@@ -39,8 +39,24 @@ exports.registerUser = async (req, res) => {
 };
 
 exports.loginUser = async (req, res) => {
-  // login logic here
+  try {
+    const { username, password } = req.body;
+    const user = await User.findOne({ username }).lean();
+    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+
+    const imagesWithUrls = (user.images || []).map(
+      (img) => `http://localhost:5001${img}`
+    );
+
+    res.json({ message: "Login successful", user: { ...user, images: imagesWithUrls } });
+  } catch (err) {
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
+
 
 exports.getUserProfile = async (req, res) => {
   // profile logic here
