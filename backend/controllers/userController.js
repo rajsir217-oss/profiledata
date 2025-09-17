@@ -41,25 +41,59 @@ exports.registerUser = async (req, res) => {
 exports.loginUser = async (req, res) => {
   try {
     const { username, password } = req.body;
+
+    // Find the user
     const user = await User.findOne({ username }).lean();
-    if (!user) return res.status(400).json({ error: "Invalid credentials" });
+    if (!user) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
 
+    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+    if (!isMatch) {
+      return res.status(400).json({ error: "Invalid credentials" });
+    }
 
+    // Build full image URLs
     const imagesWithUrls = (user.images || []).map(
       (img) => `http://localhost:5001${img}`
     );
 
-    res.json({ message: "Login successful", user: { ...user, images: imagesWithUrls } });
+    // Send full profile data
+    res.json({
+      message: "Login successful",
+      user: {
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        location: user.location,
+        aboutYou: user.aboutYou,
+        images: imagesWithUrls
+      }
+    });
   } catch (err) {
-    res.status(500).json({ error: "Server error", details: err.message });
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
-
 exports.getUserProfile = async (req, res) => {
-  // profile logic here
-  console.log("Looking for user:", req.params.username);
-
+  try {
+    const user = await User.findOne({ username: req.params.username }).lean();
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+    // Build full image URLs for frontend display
+    const imagesWithUrls = (user.images || []).map(
+      (img) => img.startsWith("http") ? img : `http://localhost:5001${img}`
+    );
+    // Do not send password hash
+    const { password, ...safeUser } = user;
+    res.json({
+      ...safeUser,
+      images: imagesWithUrls
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
