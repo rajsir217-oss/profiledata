@@ -4,6 +4,8 @@ const router = express.Router();
 const multer = require("multer");
 const path = require("path");
 const { registerUser, loginUser, getUserProfile } = require("../controllers/userController");
+const { validateRegistration, validateLogin } = require("../middleware/validation");
+const { authLimiter } = require("../middleware/rateLimiter");
 
 // Multer config
 const storage = multer.diskStorage({
@@ -22,8 +24,8 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // Routes
-router.post("/register", upload.array("images", 5), registerUser);
-router.post("/login", loginUser);
+router.post("/register", authLimiter, upload.array("images", 5), validateRegistration, registerUser);
+router.post("/login", authLimiter, validateLogin, loginUser);
 router.get("/profile/:username", getUserProfile);
 
 module.exports = router;
