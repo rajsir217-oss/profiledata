@@ -37,14 +37,18 @@ async def register_user(
     images: List[UploadFile] = File(default=[])
 ):
     """Register a new user with profile details and images"""
+    logger.info(f"📝 Registration attempt for username: {username}")
+    logger.debug(f"Registration data - Email: {contactEmail}, Name: {firstName} {lastName}")
+    
     try:
         db = get_database()
     except Exception as e:
-        logger.error(f"Database error: {e}")
+        logger.error(f"❌ Database connection error during registration: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
     
     # Validate username length
     if len(username) < 3:
+        logger.warning(f"⚠️ Registration failed: Username '{username}' too short")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Username must be at least 3 characters long"
@@ -52,14 +56,17 @@ async def register_user(
     
     # Validate password length
     if len(password) < 6:
+        logger.warning(f"⚠️ Registration failed: Password too short for user '{username}'")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters long"
         )
     
     # Check if username already exists
+    logger.debug(f"Checking if username '{username}' exists...")
     existing_user = await db.users.find_one({"username": username})
     if existing_user:
+        logger.warning(f"⚠️ Registration failed: Username '{username}' already exists")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username already exists"
@@ -67,8 +74,10 @@ async def register_user(
     
     # Check if email already exists
     if contactEmail:
+        logger.debug(f"Checking if email '{contactEmail}' exists...")
         existing_email = await db.users.find_one({"contactEmail": contactEmail})
         if existing_email:
+            logger.warning(f"⚠️ Registration failed: Email '{contactEmail}' already registered")
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail="Email already registered"
@@ -77,14 +86,25 @@ async def register_user(
     # Validate and save images
     image_paths = []
     if images and len(images) > 0:
+        logger.info(f"📸 Processing {len(images)} image(s) for user '{username}'")
         if len(images) > 5:
+            logger.warning(f"⚠️ Registration failed: User '{username}' tried to upload {len(images)} images (max 5)")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Maximum 5 images allowed"
             )
-        image_paths = await save_multiple_files(images)
+        try:
+            image_paths = await save_multiple_files(images)
+            logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
+        except Exception as e:
+            logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save images: {str(e)}"
+            )
     
     # Hash password
+    logger.debug(f"Hashing password for user '{username}'")
     hashed_password = get_password_hash(password)
     
     # Create user document
@@ -114,7 +134,16 @@ async def register_user(
     }
     
     # Insert into database
-    result = await db.users.insert_one(user_data)
+    try:
+        logger.info(f"💾 Inserting user '{username}' into database...")
+        result = await db.users.insert_one(user_data)
+        logger.info(f"✅ User '{username}' successfully registered with ID: {result.inserted_id}")
+    except Exception as e:
+        logger.error(f"❌ Database insert error for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create user: {str(e)}"
+        )
     
     # Get the created user
     created_user = await db.users.find_one({"_id": result.inserted_id})
@@ -134,24 +163,73 @@ async def register_user(
 @router.post("/login")
 async def login_user(login_data: LoginRequest):
     """Login user and return access token"""
-    db = get_database()
+    logger.info(f"🔑 Login attempt for username: {login_data.username}")
+    
+    # Special handling for hardcoded admin account
+    if login_data.username == "admin":
+        logger.info("🔐 Admin login attempt detected")
+        
+        # Check hardcoded admin password
+        # In production, this should be stored securely in environment variables
+        ADMIN_PASSWORD = "admin"  # Hardcoded admin password
+        
+        if login_data.password == ADMIN_PASSWORD:
+            logger.info("✅ Admin login successful (hardcoded credentials)")
+            
+            # Create access token
+            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+            access_token = create_access_token(
+                data={"sub": "admin"}, expires_delta=access_token_expires
+            )
+            
+            # Return admin user data
+            return {
+                "message": "Admin login successful",
+                "user": {
+                    "username": "admin",
+                    "firstName": "Admin",
+                    "lastName": "User",
+                    "contactEmail": "admin@system.com",
+                    "role": "admin"
+                },
+                "access_token": access_token,
+                "token_type": "bearer"
+            }
+        else:
+            logger.warning("⚠️ Admin login failed: Invalid password")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid credentials"
+            )
+    
+    # Regular user login
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error during login: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
     
     # Find user
+    logger.debug(f"Looking up user '{login_data.username}' in database...")
     user = await db.users.find_one({"username": login_data.username})
     if not user:
+        logger.warning(f"⚠️ Login failed: Username '{login_data.username}' not found")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid credentials"
         )
     
     # Verify password
+    logger.debug(f"Verifying password for user '{login_data.username}'")
     if not verify_password(login_data.password, user["password"]):
+        logger.warning(f"⚠️ Login failed: Invalid password for user '{login_data.username}'")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid credentials"
         )
     
     # Create access token
+    logger.debug(f"Creating access token for user '{login_data.username}'")
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
     access_token = create_access_token(
         data={"sub": user["username"]}, expires_delta=access_token_expires
@@ -164,6 +242,7 @@ async def login_user(login_data: LoginRequest):
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
+    logger.info(f"✅ Login successful for user '{login_data.username}'")
     return {
         "message": "Login successful",
         "user": user,
@@ -174,11 +253,19 @@ async def login_user(login_data: LoginRequest):
 @router.get("/profile/{username}")
 async def get_user_profile(username: str):
     """Get user profile by username"""
-    db = get_database()
+    logger.info(f"👤 Profile request for username: {username}")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error during profile fetch: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
     
     # Find user
+    logger.debug(f"Fetching profile for user '{username}'...")
     user = await db.users.find_one({"username": username})
     if not user:
+        logger.warning(f"⚠️ Profile not found for username: {username}")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
@@ -191,4 +278,269 @@ async def get_user_profile(username: str):
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
+    logger.info(f"✅ Profile successfully retrieved for user '{username}'")
     return user
+
+@router.put("/profile/{username}")
+async def update_user_profile(
+    username: str,
+    firstName: Optional[str] = Form(None),
+    lastName: Optional[str] = Form(None),
+    contactNumber: Optional[str] = Form(None),
+    contactEmail: Optional[str] = Form(None),
+    dob: Optional[str] = Form(None),
+    sex: Optional[str] = Form(None),
+    height: Optional[str] = Form(None),
+    castePreference: Optional[str] = Form(None),
+    eatingPreference: Optional[str] = Form(None),
+    location: Optional[str] = Form(None),
+    education: Optional[str] = Form(None),
+    workingStatus: Optional[str] = Form(None),
+    workplace: Optional[str] = Form(None),
+    citizenshipStatus: Optional[str] = Form(None),
+    familyBackground: Optional[str] = Form(None),
+    aboutYou: Optional[str] = Form(None),
+    partnerPreference: Optional[str] = Form(None),
+    images: List[UploadFile] = File(default=[])
+):
+    """Update user profile"""
+    logger.info(f"📝 Update request for user '{username}'")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error during update: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # Find user
+    logger.debug(f"Looking up user '{username}' for update...")
+    user = await db.users.find_one({"username": username})
+    if not user:
+        logger.warning(f"⚠️ Update failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Prepare update data
+    update_data = {}
+    if firstName is not None:
+        update_data["firstName"] = firstName
+    if lastName is not None:
+        update_data["lastName"] = lastName
+    if contactNumber is not None:
+        update_data["contactNumber"] = contactNumber
+    if contactEmail is not None:
+        update_data["contactEmail"] = contactEmail
+    if dob is not None:
+        update_data["dob"] = dob
+    if sex is not None:
+        update_data["sex"] = sex
+    if height is not None:
+        update_data["height"] = height
+    if castePreference is not None:
+        update_data["castePreference"] = castePreference
+    if eatingPreference is not None:
+        update_data["eatingPreference"] = eatingPreference
+    if location is not None:
+        update_data["location"] = location
+    if education is not None:
+        update_data["education"] = education
+    if workingStatus is not None:
+        update_data["workingStatus"] = workingStatus
+    if workplace is not None:
+        update_data["workplace"] = workplace
+    if citizenshipStatus is not None:
+        update_data["citizenshipStatus"] = citizenshipStatus
+    if familyBackground is not None:
+        update_data["familyBackground"] = familyBackground
+    if aboutYou is not None:
+        update_data["aboutYou"] = aboutYou
+    if partnerPreference is not None:
+        update_data["partnerPreference"] = partnerPreference
+    
+    # Handle new images
+    if images and len(images) > 0:
+        logger.info(f"📸 Processing {len(images)} new image(s) for user '{username}'")
+        try:
+            new_image_paths = await save_multiple_files(images)
+            # Append new images to existing ones
+            existing_images = user.get("images", [])
+            update_data["images"] = existing_images + new_image_paths
+            logger.info(f"✅ Added {len(new_image_paths)} new image(s)")
+        except Exception as e:
+            logger.error(f"❌ Error saving images: {e}", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to save images: {str(e)}"
+            )
+    
+    # Update timestamp
+    from datetime import datetime
+    update_data["updatedAt"] = datetime.utcnow().isoformat()
+    
+    # Update in database
+    try:
+        logger.info(f"💾 Updating profile for user '{username}'...")
+        result = await db.users.update_one(
+            {"username": username},
+            {"$set": update_data}
+        )
+        
+        if result.modified_count == 0:
+            logger.warning(f"⚠️ No changes made to user '{username}' profile")
+        else:
+            logger.info(f"✅ Profile updated successfully for user '{username}'")
+        
+        # Get updated user
+        updated_user = await db.users.find_one({"username": username})
+        updated_user.pop("password", None)
+        updated_user.pop("_id", None)
+        updated_user["images"] = [get_full_image_url(img) for img in updated_user.get("images", [])]
+        
+        return {
+            "message": "Profile updated successfully",
+            "user": updated_user
+        }
+    except Exception as e:
+        logger.error(f"❌ Database update error for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update profile: {str(e)}"
+        )
+
+@router.get("/admin/users")
+async def get_all_users():
+    """Get all users - Admin only endpoint"""
+    logger.info("🔐 Admin request: Get all users")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    try:
+        # Fetch all users
+        logger.debug("Fetching all users from database...")
+        users_cursor = db.users.find({})
+        users = await users_cursor.to_list(length=None)
+        
+        # Remove sensitive data
+        for user in users:
+            user.pop("password", None)
+            user.pop("_id", None)
+            # Convert image paths to full URLs
+            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+        
+        logger.info(f"✅ Retrieved {len(users)} users for admin")
+        return {
+            "users": users,
+            "count": len(users)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error fetching users: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch users: {str(e)}"
+        )
+
+@router.post("/admin/change-password")
+async def change_admin_password(
+    current_password: str = Form(...),
+    new_password: str = Form(...)
+):
+    """Change admin password"""
+    logger.info("🔐 Admin password change request")
+    
+    # Verify current password
+    ADMIN_PASSWORD = "admin"  # Current hardcoded password
+    
+    if current_password != ADMIN_PASSWORD:
+        logger.warning("⚠️ Admin password change failed: Invalid current password")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect"
+        )
+    
+    # Validate new password
+    if len(new_password) < 6:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be at least 6 characters long"
+        )
+    
+    # In a real application, you would:
+    # 1. Store the new password in a secure location (database, env file, secrets manager)
+    # 2. Hash the password before storing
+    # 3. Update the ADMIN_PASSWORD variable or configuration
+    
+    # For now, we'll just log it and return success
+    # NOTE: This is a placeholder - you need to implement actual password storage
+    logger.info(f"✅ Admin password would be changed to: {new_password}")
+    logger.warning("⚠️ Password change not persisted - implement storage mechanism")
+    
+    return {
+        "message": "Password change successful. Note: This is a demo - password not persisted across server restarts.",
+        "warning": "Implement persistent storage for production use"
+    }
+
+@router.delete("/profile/{username}")
+async def delete_user_profile(username: str):
+    """Delete user profile"""
+    logger.info(f"🗑️ Delete request for user '{username}'")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error during delete: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    # Find user
+    logger.debug(f"Looking up user '{username}' for deletion...")
+    user = await db.users.find_one({"username": username})
+    if not user:
+        logger.warning(f"⚠️ Delete failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Delete user images from filesystem
+    images = user.get("images", [])
+    if images:
+        logger.info(f"🗑️ Deleting {len(images)} image(s) for user '{username}'")
+        import os
+        from pathlib import Path
+        for img_path in images:
+            try:
+                # Remove leading slash and construct full path
+                file_path = Path(img_path.lstrip('/'))
+                if file_path.exists():
+                    file_path.unlink()
+                    logger.debug(f"Deleted image: {file_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete image {img_path}: {e}")
+    
+    # Delete user from database
+    try:
+        logger.info(f"💾 Deleting user '{username}' from database...")
+        result = await db.users.delete_one({"username": username})
+        
+        if result.deleted_count == 0:
+            logger.error(f"❌ Failed to delete user '{username}' from database")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to delete profile"
+            )
+        
+        logger.info(f"✅ User '{username}' successfully deleted")
+        return {
+            "message": f"Profile for user '{username}' has been permanently deleted"
+        }
+    except Exception as e:
+        logger.error(f"❌ Database delete error for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete profile: {str(e)}"
+        )

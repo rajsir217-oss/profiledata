@@ -1,0 +1,58 @@
+/* App Layout */
+.app-layout {
+  min-height: 100vh;
+  transition: margin-left 0.3s ease;
+  margin-left: 0;
+}
+
+.app-layout.sidebar-pinned {
+  margin-left: 280px;
+}
+
+/* Main Content */
+.main-content {
+  padding-top: 60px; /* Height of top bar */
+  min-height: 100vh;
+}
+
+.main-content .container {
+  padding-top: 20px;
+  padding-bottom: 40px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .app-layout.sidebar-pinned {
+    margin-left: 250px;
+  }
+
+  .main-content {
+    padding-top: 50px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-layout.sidebar-pinned {
+    margin-left: 0;
+  }
+
+  .main-content .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+}
+
+/* Global Styles */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}

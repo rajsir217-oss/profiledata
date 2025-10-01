@@ -21,10 +21,18 @@ const Login = () => {
     
     try {
       const res = await api.post("/login", form);
+      
+      // Save login credentials to localStorage
+      localStorage.setItem('username', res.data.user.username);
+      localStorage.setItem('token', res.data.access_token);
+      
+      // Dispatch custom event to notify other components
+      window.dispatchEvent(new Event('loginStatusChanged'));
+      
       navigate(`/profile/${res.data.user.username}`, { state: { user: res.data.user } });
     } catch (err) {
       console.error("Login error:", err);
-      setError(err.response?.data?.error || "Invalid credentials");
+      setError(err.response?.data?.detail || err.response?.data?.error || "Invalid credentials");
     } finally {
       setLoading(false);
     }
