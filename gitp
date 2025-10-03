@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Ultra-quick git script - gitp (no extension for speed)
+# Usage: ./gitp ["commit message"]
+
+# Generate default commit message with timestamp
+DEFAULT_MSG="changes made on $(date '+%Y-%m-%d | %H:%M:%S')"
+
+# Use provided message or default
+COMMIT_MSG="${1:-$DEFAULT_MSG}"
+
+echo "🚀 Quick git commit: $COMMIT_MSG"
+
+# Add all, commit, and push
+git add . && \
+git commit -m "$COMMIT_MSG" && \
+git push origin $(git branch --show-current)
+
+echo "✅ Done!"
