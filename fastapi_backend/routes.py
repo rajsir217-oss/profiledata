@@ -34,6 +34,21 @@ async def register_user(
     familyBackground: Optional[str] = Form(None),
     aboutYou: Optional[str] = Form(None),
     partnerPreference: Optional[str] = Form(None),
+    # New dating-app specific fields
+    relationshipStatus: Optional[str] = Form(None),
+    lookingFor: Optional[str] = Form(None),
+    interests: Optional[str] = Form(None),
+    languages: Optional[str] = Form(None),
+    drinking: Optional[str] = Form(None),
+    smoking: Optional[str] = Form(None),
+    religion: Optional[str] = Form(None),
+    bodyType: Optional[str] = Form(None),
+    occupation: Optional[str] = Form(None),
+    incomeRange: Optional[str] = Form(None),
+    hasChildren: Optional[str] = Form(None),
+    wantsChildren: Optional[str] = Form(None),
+    pets: Optional[str] = Form(None),
+    bio: Optional[str] = Form(None),
     images: List[UploadFile] = File(default=[])
 ):
     """Register a new user with profile details and images"""
@@ -108,6 +123,9 @@ async def register_user(
     hashed_password = get_password_hash(password)
     
     # Create user document
+    from datetime import datetime
+    now = datetime.utcnow().isoformat()
+    
     user_data = {
         "username": username,
         "password": hashed_password,
@@ -128,9 +146,28 @@ async def register_user(
         "familyBackground": familyBackground,
         "aboutYou": aboutYou,
         "partnerPreference": partnerPreference,
+        # New dating-app fields
+        "relationshipStatus": relationshipStatus,
+        "lookingFor": lookingFor,
+        "interests": interests,
+        "languages": languages,
+        "drinking": drinking,
+        "smoking": smoking,
+        "religion": religion,
+        "bodyType": bodyType,
+        "occupation": occupation,
+        "incomeRange": incomeRange,
+        "hasChildren": hasChildren,
+        "wantsChildren": wantsChildren,
+        "pets": pets,
+        "bio": bio,
         "images": image_paths,
-        "createdAt": None,
-        "updatedAt": None
+        "createdAt": now,
+        "updatedAt": now,
+        # Messaging stats (initialized to 0)
+        "messagesSent": 0,
+        "messagesReceived": 0,
+        "pendingReplies": 0
     }
     
     # Insert into database
@@ -251,9 +288,9 @@ async def login_user(login_data: LoginRequest):
     }
 
 @router.get("/profile/{username}")
-async def get_user_profile(username: str):
-    """Get user profile by username"""
-    logger.info(f"👤 Profile request for username: {username}")
+async def get_user_profile(username: str, requester: str = None):
+    """Get user profile by username with PII masking"""
+    logger.info(f"👤 Profile request for username: {username} (requester: {requester})")
     
     try:
         db = get_database()
@@ -278,7 +315,17 @@ async def get_user_profile(username: str):
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
-    logger.info(f"✅ Profile successfully retrieved for user '{username}'")
+    # Apply PII masking if requester is not the profile owner
+    from pii_security import mask_user_pii, check_access_granted
+    
+    access_granted = False
+    if requester:
+        access_granted = await check_access_granted(db, requester, username)
+        logger.info(f"🔐 PII access for {requester} viewing {username}: {access_granted}")
+    
+    user = mask_user_pii(user, requester, access_granted)
+    
+    logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     return user
 
 @router.put("/profile/{username}")
@@ -484,6 +531,82 @@ async def change_admin_password(
         "message": "Password change successful. Note: This is a demo - password not persisted across server restarts.",
         "warning": "Implement persistent storage for production use"
     }
+
+@router.post("/access-request")
+async def create_pii_access_request(
+    requester: str = Form(...),
+    requested_user: str = Form(...),
+    message: Optional[str] = Form(None)
+):
+    """Create PII access request"""
+    logger.info(f"🔐 Access request: {requester} → {requested_user}")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    from pii_security import create_access_request
+    result = await create_access_request(db, requester, requested_user, message)
+    
+    if 'error' in result:
+        raise HTTPException(status_code=400, detail=result['error'])
+    
+    logger.info(f"✅ Access request created: {requester} → {requested_user}")
+    return result
+
+@router.get("/access-requests/{username}")
+async def get_access_requests(username: str, type: str = "received"):
+    """Get access requests for user (received or sent)"""
+    logger.info(f"📋 Fetching {type} access requests for {username}")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    try:
+        if type == "received":
+            requests_cursor = db.access_requests.find({"requestedUserId": username})
+        else:
+            requests_cursor = db.access_requests.find({"requesterId": username})
+        
+        requests = await requests_cursor.to_list(100)
+        
+        for req in requests:
+            req['_id'] = str(req['_id'])
+        
+        logger.info(f"✅ Found {len(requests)} {type} requests for {username}")
+        return {"requests": requests}
+    except Exception as e:
+        logger.error(f"❌ Error fetching requests: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/access-request/{request_id}/respond")
+async def respond_to_request(
+    request_id: str,
+    response: str = Form(...),
+    responder: str = Form(...)
+):
+    """Respond to access request (approve/deny)"""
+    logger.info(f"📝 Response to request {request_id}: {response} by {responder}")
+    
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    from pii_security import respond_to_access_request
+    result = await respond_to_access_request(db, request_id, response, responder)
+    
+    if 'error' in result:
+        raise HTTPException(status_code=400, detail=result['error'])
+    
+    logger.info(f"✅ Request {request_id} {response} by {responder}")
+    return result
 
 @router.delete("/profile/{username}")
 async def delete_user_profile(username: str):

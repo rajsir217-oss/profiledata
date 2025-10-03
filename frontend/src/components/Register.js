@@ -10,18 +10,33 @@ const Register = () => {
     contactNumber: "",
     contactEmail: "",
     dob: "",
-    sex: "",
+    gender: "",
     height: "",
-    castePreference: "caste preference, caste preference",
-    eatingPreference: "eating preference, eating preference",
+    castePreference: "",
+    eatingPreference: "",
     location: "",
-    education: "Education, Education, Education, Education, Education",
+    education: "",
     workingStatus: "Yes",
-    workplace: "Workplace, Workplace, Workplace, Workplace, Workplace ",
+    workplace: "",
     citizenshipStatus: "Citizen",
-    familyBackground: "family background, family background, family background, family background, family background  ",
-    aboutYou: "about you, about you, about you, about you, about you",
-    partnerPreference: "partner preference, partner preference, partner preference, partner preference, partner preference",
+    familyBackground: "",
+    aboutYou: "",
+    partnerPreference: "",
+    // New dating-app fields
+    relationshipStatus: "",
+    lookingFor: "",
+    interests: "",
+    languages: "",
+    drinking: "",
+    smoking: "",
+    religion: "",
+    bodyType: "",
+    occupation: "",
+    incomeRange: "",
+    hasChildren: "",
+    wantsChildren: "",
+    pets: "",
+    bio: "",
   });
 
   const [images, setImages] = useState([]);
@@ -186,7 +201,7 @@ const Register = () => {
         }
         break;
 
-      case "sex":
+      case "gender":
         if (!value) {
           error = "Please select a gender";
         }
@@ -421,7 +436,7 @@ const Register = () => {
             )}
           </div>
         </div>
-        {/* Custom row for dob, height, sex, citizenshipStatus */}
+        {/* Custom row for dob, height, gender, citizenshipStatus */}
         <div className="row mb-3">
           <div className="col-md-3">
             <label className="form-label">dob</label>
@@ -454,53 +469,39 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-3">
-            <label className="form-label me-3 mb-2">Sex<span className="text-danger">*</span></label>
+            <label className="form-label me-3 mb-2">Gender<span className="text-danger">*</span></label>
             <div className="d-flex align-items-center">
               <div className="form-check form-check-inline">
                 <input 
                   className="form-check-input" 
                   type="radio" 
-                  name="sex" 
-                  id="sexNone" 
-                  value="" 
-                  checked={formData.sex === ""} 
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  required 
-                />
-                <label className="form-check-label" htmlFor="sexNone">None</label>
-              </div>
-              <div className="form-check form-check-inline">
-                <input 
-                  className="form-check-input" 
-                  type="radio" 
-                  name="sex" 
-                  id="sexMale" 
+                  name="gender" 
+                  id="genderMale" 
                   value="Male" 
-                  checked={formData.sex === "Male"} 
+                  checked={formData.gender === "Male"} 
                   onChange={handleChange}
                   onBlur={handleBlur}
                   required 
                 />
-                <label className="form-check-label" htmlFor="sexMale">Male</label>
+                <label className="form-check-label" htmlFor="genderMale">Male</label>
               </div>
               <div className="form-check form-check-inline">
                 <input 
                   className="form-check-input" 
                   type="radio" 
-                  name="sex" 
-                  id="sexFemale" 
+                  name="gender" 
+                  id="genderFemale" 
                   value="Female" 
-                  checked={formData.sex === "Female"} 
+                  checked={formData.gender === "Female"} 
                   onChange={handleChange}
                   onBlur={handleBlur}
                   required 
                 />
-                <label className="form-check-label" htmlFor="sexFemale">Female</label>
+                <label className="form-check-label" htmlFor="genderFemale">Female</label>
               </div>
             </div>
-            {fieldErrors.sex && touchedFields.sex && (
-              <div className="text-danger small mt-1">{fieldErrors.sex}</div>
+            {fieldErrors.gender && touchedFields.gender && (
+              <div className="text-danger small mt-1">{fieldErrors.gender}</div>
             )}
           </div>
           <div className="col-md-3">
@@ -686,7 +687,19 @@ const Register = () => {
         </div>
         {/* Render all other fields as input or textarea as appropriate (deduplicated) */}
         {Object.entries(formData).map(([key, value]) => {
-          if (["username", "password", "firstName", "lastName", "contactNumber", "contactEmail", "dob", "height", "sex", "citizenshipStatus", "workingStatus", "castePreference", "eatingPreference", "location"].includes(key)) return null;
+          // Exclude fields that are rendered explicitly elsewhere
+          const excludedFields = [
+            "username", "password", "firstName", "lastName", "contactNumber", "contactEmail", 
+            "dob", "height", "gender", "citizenshipStatus", "workingStatus", 
+            "castePreference", "eatingPreference", "location",
+            // Exclude new dating-app fields (rendered in Dating Preferences section)
+            "relationshipStatus", "lookingFor", "interests", "languages", 
+            "drinking", "smoking", "religion", "bodyType", "occupation", 
+            "incomeRange", "hasChildren", "wantsChildren", "pets", "bio"
+          ];
+          
+          if (excludedFields.includes(key)) return null;
+          
           if (["education", "aboutYou", "partnerPreference", "familyBackground", "workplace"].includes(key)) {
             return (
               <div className="mb-3" key={key}>
@@ -725,7 +738,300 @@ const Register = () => {
             </div>
           );
         })}
+        
+        {/* Dating App Specific Fields */}
+        <h5 className="mt-4 mb-3 text-primary">Dating Preferences</h5>
+        
+        {/* Relationship Status & Looking For */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Relationship Status</label>
+            <select
+              className={`form-control ${fieldErrors.relationshipStatus && touchedFields.relationshipStatus ? 'is-invalid' : ''}`}
+              name="relationshipStatus"
+              value={formData.relationshipStatus}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Single">Single</option>
+              <option value="Divorced">Divorced</option>
+              <option value="Widowed">Widowed</option>
+              <option value="Separated">Separated</option>
+            </select>
+            {fieldErrors.relationshipStatus && touchedFields.relationshipStatus && (
+              <div className="invalid-feedback d-block">{fieldErrors.relationshipStatus}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Looking For</label>
+            <select
+              className={`form-control ${fieldErrors.lookingFor && touchedFields.lookingFor ? 'is-invalid' : ''}`}
+              name="lookingFor"
+              value={formData.lookingFor}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Serious Relationship">Serious Relationship</option>
+              <option value="Marriage">Marriage</option>
+              <option value="Casual Dating">Casual Dating</option>
+              <option value="Friendship">Friendship</option>
+            </select>
+            {fieldErrors.lookingFor && touchedFields.lookingFor && (
+              <div className="invalid-feedback d-block">{fieldErrors.lookingFor}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Religion & Body Type */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Religion</label>
+            <select
+              className={`form-control ${fieldErrors.religion && touchedFields.religion ? 'is-invalid' : ''}`}
+              name="religion"
+              value={formData.religion}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Hindu">Hindu</option>
+              <option value="Muslim">Muslim</option>
+              <option value="Christian">Christian</option>
+              <option value="Sikh">Sikh</option>
+              <option value="Buddhist">Buddhist</option>
+              <option value="Jain">Jain</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            {fieldErrors.religion && touchedFields.religion && (
+              <div className="invalid-feedback d-block">{fieldErrors.religion}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Body Type</label>
+            <select
+              className={`form-control ${fieldErrors.bodyType && touchedFields.bodyType ? 'is-invalid' : ''}`}
+              name="bodyType"
+              value={formData.bodyType}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Slim">Slim</option>
+              <option value="Athletic">Athletic</option>
+              <option value="Average">Average</option>
+              <option value="Curvy">Curvy</option>
+              <option value="Heavyset">Heavyset</option>
+            </select>
+            {fieldErrors.bodyType && touchedFields.bodyType && (
+              <div className="invalid-feedback d-block">{fieldErrors.bodyType}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Drinking & Smoking */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Drinking</label>
+            <select
+              className={`form-control ${fieldErrors.drinking && touchedFields.drinking ? 'is-invalid' : ''}`}
+              name="drinking"
+              value={formData.drinking}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Never">Never</option>
+              <option value="Socially">Socially</option>
+              <option value="Regularly">Regularly</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            {fieldErrors.drinking && touchedFields.drinking && (
+              <div className="invalid-feedback d-block">{fieldErrors.drinking}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Smoking</label>
+            <select
+              className={`form-control ${fieldErrors.smoking && touchedFields.smoking ? 'is-invalid' : ''}`}
+              name="smoking"
+              value={formData.smoking}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Never">Never</option>
+              <option value="Socially">Socially</option>
+              <option value="Regularly">Regularly</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            {fieldErrors.smoking && touchedFields.smoking && (
+              <div className="invalid-feedback d-block">{fieldErrors.smoking}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Has Children & Wants Children */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Has Children</label>
+            <select
+              className={`form-control ${fieldErrors.hasChildren && touchedFields.hasChildren ? 'is-invalid' : ''}`}
+              name="hasChildren"
+              value={formData.hasChildren}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            {fieldErrors.hasChildren && touchedFields.hasChildren && (
+              <div className="invalid-feedback d-block">{fieldErrors.hasChildren}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Wants Children</label>
+            <select
+              className={`form-control ${fieldErrors.wantsChildren && touchedFields.wantsChildren ? 'is-invalid' : ''}`}
+              name="wantsChildren"
+              value={formData.wantsChildren}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Select...</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+              <option value="Maybe">Maybe</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+            {fieldErrors.wantsChildren && touchedFields.wantsChildren && (
+              <div className="invalid-feedback d-block">{fieldErrors.wantsChildren}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Pets */}
+        <div className="mb-3">
+          <label className="form-label">Pets</label>
+          <select
+            className={`form-control ${fieldErrors.pets && touchedFields.pets ? 'is-invalid' : ''}`}
+            name="pets"
+            value={formData.pets}
+            onChange={handleChange}
+            onBlur={handleBlur}
+          >
+            <option value="">Select...</option>
+            <option value="Dog">Dog</option>
+            <option value="Cat">Cat</option>
+            <option value="Both">Both</option>
+            <option value="Other">Other</option>
+            <option value="None">None</option>
+          </select>
+          {fieldErrors.pets && touchedFields.pets && (
+            <div className="invalid-feedback d-block">{fieldErrors.pets}</div>
+          )}
+        </div>
+
+        {/* Occupation & Income Range */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Occupation</label>
+            <input
+              type="text"
+              className={`form-control ${fieldErrors.occupation && touchedFields.occupation ? 'is-invalid' : ''}`}
+              name="occupation"
+              value={formData.occupation}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="e.g., Software Engineer"
+            />
+            {fieldErrors.occupation && touchedFields.occupation && (
+              <div className="invalid-feedback d-block">{fieldErrors.occupation}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Income Range (Optional)</label>
+            <select
+              className={`form-control ${fieldErrors.incomeRange && touchedFields.incomeRange ? 'is-invalid' : ''}`}
+              name="incomeRange"
+              value={formData.incomeRange}
+              onChange={handleChange}
+              onBlur={handleBlur}
+            >
+              <option value="">Prefer not to say</option>
+              <option value="Under $50k">Under $50k</option>
+              <option value="$50k - $75k">$50k - $75k</option>
+              <option value="$75k - $100k">$75k - $100k</option>
+              <option value="$100k - $150k">$100k - $150k</option>
+              <option value="Over $150k">Over $150k</option>
+            </select>
+            {fieldErrors.incomeRange && touchedFields.incomeRange && (
+              <div className="invalid-feedback d-block">{fieldErrors.incomeRange}</div>
+            )}
+          </div>
+        </div>
+
+        {/* Interests */}
+        <div className="mb-3">
+          <label className="form-label">Interests & Hobbies</label>
+          <input
+            type="text"
+            className={`form-control ${fieldErrors.interests && touchedFields.interests ? 'is-invalid' : ''}`}
+            name="interests"
+            value={formData.interests}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="e.g., Reading, Hiking, Cooking, Travel"
+          />
+          <small className="text-muted">Separate with commas</small>
+          {fieldErrors.interests && touchedFields.interests && (
+            <div className="invalid-feedback d-block">{fieldErrors.interests}</div>
+          )}
+        </div>
+
+        {/* Languages */}
+        <div className="mb-3">
+          <label className="form-label">Languages Spoken</label>
+          <input
+            type="text"
+            className={`form-control ${fieldErrors.languages && touchedFields.languages ? 'is-invalid' : ''}`}
+            name="languages"
+            value={formData.languages}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="e.g., English, Spanish, Hindi"
+          />
+          <small className="text-muted">Separate with commas</small>
+          {fieldErrors.languages && touchedFields.languages && (
+            <div className="invalid-feedback d-block">{fieldErrors.languages}</div>
+          )}
+        </div>
+
+        {/* Bio */}
+        <div className="mb-3">
+          <label className="form-label">Bio / Tagline</label>
+          <textarea
+            className={`form-control ${fieldErrors.bio && touchedFields.bio ? 'is-invalid' : ''}`}
+            name="bio"
+            value={formData.bio}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            rows={3}
+            placeholder="Tell us about yourself in a few words..."
+            maxLength={200}
+          />
+          <small className="text-muted">{formData.bio.length}/200 characters</small>
+          {fieldErrors.bio && touchedFields.bio && (
+            <div className="invalid-feedback d-block">{fieldErrors.bio}</div>
+          )}
+        </div>
+
         {/* Image Upload */}
+        <h5 className="mt-4 mb-3 text-primary">Profile Images</h5>
         <div className="mb-3">
           <label>Upload Images (Max 5, 5MB each)</label>
           <input type="file" className="form-control" name="images" multiple accept="image/*" onChange={handleImageChange} />

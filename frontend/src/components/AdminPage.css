@@ -228,6 +228,21 @@
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  /* Enable horizontal scroll */
+  overflow-x: auto;
+  /* Enable vertical scroll if needed */
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Ensure table takes full width and is scrollable */
+.admin-table {
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  min-width: 1200px; /* Minimum width to trigger horizontal scroll */
 }
 
 /* Responsive Design */
@@ -300,13 +315,95 @@
   transform: scale(0.98);
 }
 
-/* Security Badge */
-.admin-header::before {
-  content: '🔐 SECURE ADMIN AREA';
-  display: block;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 2px;
-  opacity: 0.8;
-  margin-bottom: 10px;
+/* Pagination Styles */
+.pagination-container {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  margin-top: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.pagination-info {
+  color: #666;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.page-numbers {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.page-ellipsis {
+  color: #999;
+  padding: 5px 10px;
+  font-weight: 500;
+}
+
+.pagination-controls .btn {
+  border-radius: 6px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.pagination-controls .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pagination-controls .btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Responsive Pagination */
+@media (max-width: 768px) {
+  .pagination-container {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 15px;
+  }
+
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .page-numbers {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pagination-controls {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .pagination-controls .btn {
+    width: 100%;
+  }
+
+  .page-numbers {
+    order: 1;
+    margin-top: 0;
+    margin-bottom: 8px;
+  }
 }

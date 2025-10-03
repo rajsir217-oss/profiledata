@@ -13,6 +13,8 @@ const AdminPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage] = useState(20);
 
   // Multi-layer security check
   useEffect(() => {
@@ -113,9 +115,34 @@ const AdminPage = () => {
     }
   };
 
+  // Calculate computed fields for a user
+  const calculateComputedFields = (user) => {
+    const now = new Date();
+    
+    // Calculate age from DOB
+    let age = 'N/A';
+    if (user.dob) {
+      const birthDate = new Date(user.dob);
+      age = Math.floor((now - birthDate) / (1000 * 60 * 60 * 24 * 365.25));
+    }
+    
+    // Calculate days since registration
+    let daysActive = 'N/A';
+    if (user.createdAt) {
+      const createdDate = new Date(user.createdAt);
+      daysActive = Math.floor((now - createdDate) / (1000 * 60 * 60 * 24));
+    }
+    
+    return {
+      ...user,
+      computedAge: age,
+      computedDaysActive: daysActive
+    };
+  };
+
   // Filter and sort users
   const getFilteredAndSortedUsers = () => {
-    let filtered = users.filter(user => {
+    let filtered = users.map(calculateComputedFields).filter(user => {
       const searchLower = searchTerm.toLowerCase();
       return (
         user.username?.toLowerCase().includes(searchLower) ||
@@ -143,6 +170,52 @@ const AdminPage = () => {
   };
 
   const filteredUsers = getFilteredAndSortedUsers();
+
+  // Pagination calculations
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = filteredUsers.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
+
+  // Reset to page 1 when search/filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortField, sortOrder]);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        pages.push(currentPage - 1);
+        pages.push(currentPage);
+        pages.push(currentPage + 1);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
 
   if (loading) {
     return (
@@ -176,6 +249,7 @@ const AdminPage = () => {
             <div className="admin-stats">
               <span className="badge bg-primary">Total Users: {users.length}</span>
               <span className="badge bg-success ms-2">Filtered: {filteredUsers.length}</span>
+              <span className="badge bg-info ms-2">Page: {currentPage}/{totalPages}</span>
             </div>
           </div>
         </div>
@@ -206,6 +280,8 @@ const AdminPage = () => {
               <th onClick={() => handleSort('firstName')} style={{ cursor: 'pointer' }}>
                 Name {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th>Age</th>
+              <th>Days Active</th>
               <th onClick={() => handleSort('contactEmail')} style={{ cursor: 'pointer' }}>
                 Email {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -214,23 +290,32 @@ const AdminPage = () => {
               <th>Location</th>
               <th>Working</th>
               <th>Images</th>
+              <th>Msgs Sent</th>
+              <th>Msgs Rcvd</th>
+              <th>Pending</th>
               <th className="text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="9" className="text-center text-muted py-4">
+                <td colSpan="14" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
             ) : (
-              filteredUsers.map((user) => (
+              currentRecords.map((user) => (
                 <tr key={user.username}>
                   <td>
                     <strong>{user.username}</strong>
                   </td>
                   <td>{user.firstName} {user.lastName}</td>
+                  <td>
+                    <span className="badge bg-primary">{user.computedAge}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-info">{user.computedDaysActive}</span>
+                  </td>
                   <td>{user.contactEmail}</td>
                   <td>{user.contactNumber}</td>
                   <td>{user.sex}</td>
@@ -242,6 +327,15 @@ const AdminPage = () => {
                   </td>
                   <td>
                     <span className="badge bg-info">{user.images?.length || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-success">{user.messagesSent || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-primary">{user.messagesReceived || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-warning">{user.pendingReplies || 0}</span>
                   </td>
                   <td className="text-center">
                     <div className="btn-group" role="group">
@@ -274,6 +368,48 @@ const AdminPage = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Showing {indexOfFirstRecord + 1} - {Math.min(indexOfLastRecord, filteredUsers.length)} of {filteredUsers.length} records
+          </div>
+          <div className="pagination-controls">
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              ← Previous
+            </button>
+            
+            <div className="page-numbers">
+              {getPageNumbers().map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} className="page-ellipsis">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-outline-primary'}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+            </div>
+            
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next →
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
