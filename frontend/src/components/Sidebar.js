@@ -99,9 +99,10 @@ const Sidebar = ({ onPinChange }) => {
         action: () => navigate(`/profile/${currentUser}`)
       },
       { 
-        icon: '✏️', 
-        label: 'edit', 
-        action: () => navigate('/edit-profile')
+        icon: '🔍', 
+        label: 'Search Profiles', 
+        subLabel: 'Find matches',
+        action: () => navigate('/search')
       },
       { 
         icon: '🔍', 

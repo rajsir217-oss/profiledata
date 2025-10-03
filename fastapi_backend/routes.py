@@ -663,7 +663,260 @@ async def delete_user_profile(username: str):
         }
     except Exception as e:
         logger.error(f"❌ Database delete error for user '{username}': {e}", exc_info=True)
+# Search endpoint for advanced user search
+@router.get("/search")
+async def search_users(
+    keyword: str = "",
+    gender: str = "",
+    ageMin: int = 0,
+    ageMax: int = 0,
+    heightMin: int = 0,
+    heightMax: int = 0,
+    location: str = "",
+    education: str = "",
+    occupation: str = "",
+    religion: str = "",
+    caste: str = "",
+    eatingPreference: str = "",
+    drinking: str = "",
+    smoking: str = "",
+    relationshipStatus: str = "",
+    bodyType: str = "",
+    newlyAdded: bool = False,
+    sortBy: str = "newest",
+    sortOrder: str = "desc",
+    page: int = 1,
+    limit: int = 20
+):
+    """Advanced search for users with filters"""
+    logger.info(f"🔍 Search request - keyword: '{keyword}', page: {page}, limit: {limit}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error during search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Build query
+    query = {}
+
+    # Text search
+    if keyword:
+        query["$or"] = [
+            {"firstName": {"$regex": keyword, "$options": "i"}},
+            {"lastName": {"$regex": keyword, "$options": "i"}},
+            {"username": {"$regex": keyword, "$options": "i"}},
+            {"location": {"$regex": keyword, "$options": "i"}},
+            {"education": {"$regex": keyword, "$options": "i"}},
+            {"occupation": {"$regex": keyword, "$options": "i"}},
+            {"aboutYou": {"$regex": keyword, "$options": "i"}},
+            {"bio": {"$regex": keyword, "$options": "i"}},
+            {"interests": {"$regex": keyword, "$options": "i"}}
+        ]
+
+    # Gender filter
+    if gender:
+        query["sex"] = gender
+
+    # Age filter
+    if ageMin > 0 or ageMax > 0:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+
+        if ageMax > 0:
+            max_date = now - timedelta(days=ageMax * 365.25)
+            query["dob"] = {"$lte": max_date.strftime("%Y-%m-%d")}
+
+        if ageMin > 0:
+            min_date = now - timedelta(days=ageMin * 365.25)
+            if "dob" in query:
+                query["dob"]["$gte"] = min_date.strftime("%Y-%m-%d")
+            else:
+                query["dob"] = {"$gte": min_date.strftime("%Y-%m-%d")}
+
+    # Height filter
+    if heightMin > 0 or heightMax > 0:
+        height_query = {}
+        if heightMin > 0:
+            height_query["$gte"] = heightMin
+        if heightMax > 0:
+            height_query["$lte"] = heightMax
+        query["height"] = height_query
+
+    # Other filters
+    if location:
+        query["location"] = {"$regex": location, "$options": "i"}
+    if education:
+        query["education"] = education
+    if occupation:
+        query["occupation"] = occupation
+    if religion:
+        query["religion"] = religion
+    if caste:
+        query["castePreference"] = caste
+    if eatingPreference:
+        query["eatingPreference"] = eatingPreference
+    if drinking:
+        query["drinking"] = drinking
+    if smoking:
+        query["smoking"] = smoking
+    if relationshipStatus:
+        query["relationshipStatus"] = relationshipStatus
+    if bodyType:
+        query["bodyType"] = bodyType
+
+    # Newly added filter (last 7 days)
+    if newlyAdded:
+        from datetime import datetime, timedelta
+        seven_days_ago = datetime.now() - timedelta(days=7)
+        query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
+
+    # Sort options
+    sort_options = {
+        "newest": [("createdAt", -1)],
+        "oldest": [("createdAt", 1)],
+        "name": [("firstName", 1)],
+        "age": [("dob", -1)],
+        "location": [("location", 1)]
+    }
+
+    sort = sort_options.get(sortBy, sort_options["newest"])
+    if sortOrder == "asc":
+        sort = [(field, 1) if direction == -1 else (field, -1) for field, direction in sort]
+
+    # Calculate skip for pagination
+    skip = (page - 1) * limit
+
+    try:
+        # Execute search
+        logger.info(f"🔍 Executing search with query: {query}")
+        users_cursor = db.users.find(query).sort(sort).skip(skip).limit(limit)
+        users = await users_cursor.to_list(length=limit)
+
+        # Get total count for pagination
+        total = await db.users.count_documents(query)
+
+        # Remove sensitive data
+        for user in users:
+            user.pop("password", None)
+            user.pop("_id", None)
+            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+
+        logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
+        return {
+            "users": users,
+            "total": total,
+            "page": page,
+            "limit": limit,
+            "totalPages": (total + limit - 1) // limit
+        }
+    except Exception as e:
+        logger.error(f"❌ Search execution error: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to delete profile: {str(e)}"
+            detail=f"Search failed: {str(e)}"
         )
+
+# Saved searches endpoints
+@router.get("/{username}/saved-searches")
+async def get_saved_searches(username: str):
+    """Get user's saved searches"""
+    logger.info(f"📋 Getting saved searches for user '{username}'")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        # Find user to verify existence
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Get saved searches for this user
+        searches_cursor = db.saved_searches.find({"username": username}).sort("createdAt", -1)
+        searches = await searches_cursor.to_list(length=None)
+
+        for search in searches:
+            search["id"] = str(search.pop("_id", ""))
+
+        logger.info(f"✅ Retrieved {len(searches)} saved searches for user '{username}'")
+        return {
+            "savedSearches": searches,
+            "count": len(searches)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error fetching saved searches: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{username}/saved-searches")
+async def save_search(username: str, search_data: dict):
+    """Save a search for future use"""
+    logger.info(f"💾 Saving search for user '{username}': {search_data.get('name', 'unnamed')}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        # Find user to verify existence
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Create saved search document
+        from datetime import datetime
+        saved_search = {
+            "username": username,
+            "name": search_data["name"],
+            "criteria": search_data["criteria"],
+            "createdAt": datetime.utcnow().isoformat()
+        }
+
+        # Insert into database
+        result = await db.saved_searches.insert_one(saved_search)
+        saved_search["id"] = str(result.inserted_id)
+        saved_search.pop("_id", None)
+
+        logger.info(f"✅ Saved search '{search_data.get('name')}' for user '{username}'")
+        return {
+            "message": "Search saved successfully",
+            "savedSearch": saved_search
+        }
+    except Exception as e:
+        logger.error(f"❌ Error saving search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{username}/saved-searches/{search_id}")
+async def delete_saved_search(username: str, search_id: str):
+    """Delete a saved search"""
+    logger.info(f"🗑️ Deleting saved search {search_id} for user '{username}'")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        from bson import ObjectId
+        # Find and delete the saved search
+        result = await db.saved_searches.delete_one({
+            "_id": ObjectId(search_id),
+            "username": username
+        })
+
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Saved search not found")
+
+        logger.info(f"✅ Deleted saved search {search_id} for user '{username}'")
+        return {
+            "message": "Saved search deleted successfully"
+        }
+    except Exception as e:
+        logger.error(f"❌ Error deleting saved search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

@@ -8,11 +8,9 @@ import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
 import ShortLists from './components/ShortLists';
-import AdminPage from './components/AdminPage';
-import ChangeAdminPassword from './components/ChangeAdminPassword';
+import SearchPage from './components/SearchPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
-import './App.css';
 
 function App() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
@@ -36,9 +34,7 @@ function App() {
               <Route path="/matching-criteria" element={<MatchingCriteria />} />
               <Route path="/top-matches" element={<TopMatches />} />
               <Route path="/shortlists" element={<ShortLists />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/admin/edit/:username" element={<EditProfile />} />
-              <Route path="/admin/change-password" element={<ChangeAdminPassword />} />
+              <Route path="/search" element={<SearchPage />} />
               <Route path="/" element={<Login />} />
             </Routes>
           </div>

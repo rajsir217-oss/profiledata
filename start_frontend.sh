@@ -5,6 +5,8 @@ echo "=============================="
 
 cd "$(dirname "$0")/frontend"
 
+ kill -9 $(lsof -ti:3000)
+
 # Check if node_modules exists
 if [ ! -d "node_modules" ]; then
     echo "❌ Dependencies not found!"
