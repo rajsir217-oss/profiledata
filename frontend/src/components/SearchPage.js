@@ -70,7 +70,7 @@ const SearchPage = () => {
 
     return (
       <div className="profile-image-container">
-        {currentImage && !hasError && (
+        {currentImage && !hasError ? (
           <img
             key={`${user.username}-${currentIndex}`}
             src={`${imageSrc}?t=${Date.now()}`}
@@ -91,8 +91,12 @@ const SearchPage = () => {
             crossOrigin="anonymous"
             loading="lazy"
           />
+        ) : (
+          <div className="profile-thumbnail-placeholder">
+            <span className="no-image-icon">👤</span>
+          </div>
         )}
-        <div className="no-image-icon" style={{display: hasError || !currentImage ? 'flex' : 'none'}}>👤</div>
+        <div className="no-image-icon-overlay" style={{display: hasError || !currentImage ? 'flex' : 'none'}}>👤</div>
 
         {user.images.length > 1 && (
           <>

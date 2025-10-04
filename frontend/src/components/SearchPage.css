@@ -308,6 +308,12 @@
     margin-bottom: 15px;
   }
 
+  .profile-thumbnail,
+  .profile-thumbnail-placeholder {
+    width: 140px;
+    height: 140px;
+  }
+
   .user-details-right {
     align-items: stretch;
   }
@@ -394,17 +400,34 @@
   font-size: 40px;
 }
 
-.no-image-icon {
-  font-size: 60px;
-  color: #adb5bd;
+.profile-thumbnail-placeholder {
+  width: 120px;
+  height: 120px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 3px solid #dee2e6;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  height: 100%;
+  color: #adb5bd;
+  font-size: 48px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.no-image-icon-overlay {
   position: absolute;
   top: 0;
   left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(248, 249, 250, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+  color: #adb5bd;
+  border-radius: 12px;
   pointer-events: none;
 }
 
