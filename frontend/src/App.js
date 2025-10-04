@@ -9,6 +9,7 @@ import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
 import ShortLists from './components/ShortLists';
 import SearchPage from './components/SearchPage';
+import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
 
@@ -29,6 +30,7 @@ function App() {
             <Routes>
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/admin" element={<AdminPage />} />
               <Route path="/profile/:username" element={<Profile />} />
               <Route path="/edit-profile" element={<EditProfile />} />
               <Route path="/matching-criteria" element={<MatchingCriteria />} />

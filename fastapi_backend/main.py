@@ -1,4 +1,5 @@
 # fastapi_backend/main.py
+from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -19,7 +20,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("🚀 Starting FastAPI application...")
@@ -44,6 +44,12 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Mount static files for uploads (after app creation)
+if os.path.exists(settings.upload_dir):
+    from fastapi.staticfiles import StaticFiles
+    app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
+    logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # Request logging middleware
 @app.middleware("http")
@@ -78,11 +84,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Mount static files for uploads
-if os.path.exists(settings.upload_dir):
-    app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
-    logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # Include routers
 app.include_router(router)

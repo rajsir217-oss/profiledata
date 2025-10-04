@@ -1,19 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './SearchPage.css';
 
 const SearchPage = () => {
-  const navigate = useNavigate();
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(20);
-  const [totalResults, setTotalResults] = useState(0);
+  // State for image indices per user
+  const [imageIndices, setImageIndices] = useState({});
+  const [imageErrors, setImageErrors] = useState({});
+  const [imageLoaded, setImageLoaded] = useState({});
 
-  // Search form state
-  const [searchCriteria, setSearchCriteria] = useState({
+  const initialSearchCriteria = {
     keyword: '',
     gender: '',
     ageMin: '',
@@ -25,19 +21,106 @@ const SearchPage = () => {
     occupation: '',
     religion: '',
     caste: '',
-    eatingPreference: '',
     drinking: '',
     smoking: '',
     relationshipStatus: '',
     bodyType: '',
     newlyAdded: false,
-    sortBy: 'newest',
     sortOrder: 'desc'
-  });
+  };
 
+  const [searchCriteria, setSearchCriteria] = useState(initialSearchCriteria);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [recordsPerPage] = useState(20);
+  const [saveSearchName, setSaveSearchName] = useState('');
   const [savedSearches, setSavedSearches] = useState([]);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
-  const [saveSearchName, setSaveSearchName] = useState('');
+
+  const navigate = useNavigate();
+
+  const handlePrevImage = (username, e) => {
+    e.stopPropagation();
+    setImageIndices(prev => ({
+      ...prev,
+      [username]: prev[username] === undefined ? 0 : prev[username] > 0 ? prev[username] - 1 : 0
+    }));
+  };
+
+  const handleNextImage = (username, e) => {
+    e.stopPropagation();
+    setImageIndices(prev => {
+      const currentIndex = prev[username] || 0;
+      const maxIndex = (users.find(u => u.username === username)?.images?.length || 1) - 1;
+      return {
+        ...prev,
+        [username]: currentIndex < maxIndex ? currentIndex + 1 : maxIndex
+      };
+    });
+  };
+  const renderProfileImage = (user) => {
+    const currentIndex = imageIndices[user.username] || 0;
+    const currentImage = user.images && user.images.length > currentIndex ? user.images[currentIndex] : null;
+    const hasError = imageErrors[user.username] || false;
+
+    // Check if image is already a full URL (from search results) or relative path (from profile view)
+    const imageSrc = currentImage && currentImage.startsWith('http') ? currentImage : `http://localhost:8000${currentImage}`;
+
+    return (
+      <div className="profile-image-container">
+        {currentImage && !hasError && (
+          <img
+            key={`${user.username}-${currentIndex}`}
+            src={`${imageSrc}?t=${Date.now()}`}
+            alt={`${user.firstName}'s profile`}
+            className="profile-thumbnail"
+            onError={(e) => {
+              console.error(`Failed to load image: ${currentImage}`, e);
+              setImageErrors(prev => ({ ...prev, [user.username]: true }));
+              setImageLoaded(prev => ({ ...prev, [user.username]: false }));
+              e.target.style.display = 'none';
+              e.target.nextSibling.style.display = 'flex';
+            }}
+            onLoad={(e) => {
+              console.log(`Successfully loaded image: ${currentImage}`);
+              setImageLoaded(prev => ({ ...prev, [user.username]: true }));
+              setImageErrors(prev => ({ ...prev, [user.username]: false }));
+              e.target.style.display = 'block';
+              e.target.nextSibling.style.display = 'none';
+            }}
+            crossOrigin="anonymous"
+            loading="lazy"
+          />
+        )}
+        <div className="no-image-icon" style={{display: hasError || !currentImage ? 'flex' : 'none'}}>👤</div>
+
+        {user.images.length > 1 && (
+          <>
+            <button
+              className="image-nav-btn prev-btn"
+              onClick={(e) => handlePrevImage(user.username, e)}
+              disabled={currentIndex === 0}
+            >
+              ‹
+            </button>
+            <button
+              className="image-nav-btn next-btn"
+              onClick={(e) => handleNextImage(user.username, e)}
+              disabled={currentIndex === user.images.length - 1}
+            >
+              ›
+            </button>
+            <div className="image-counter">
+              {currentIndex + 1}/{user.images.length}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  };
 
   // Dating field options
   const genderOptions = ['', 'Male', 'Female'];
@@ -58,11 +141,20 @@ const SearchPage = () => {
     try {
       const username = localStorage.getItem('username');
       if (username) {
-        const response = await api.get(`/users/${username}/saved-searches`);
+        const response = await api.get(`/${username}/saved-searches`);
         setSavedSearches(response.data.savedSearches || []);
       }
     } catch (err) {
-      console.error('Error loading saved searches:', err);
+      // Check if this is an expected case (no saved searches) or a real error
+      if (err.response?.status === 404 || err.response?.data?.savedSearches?.length === 0) {
+        // This is expected - user just doesn't have saved searches yet
+        console.info('No saved searches found for user (this is normal for new users)');
+        setSavedSearches([]);
+      } else {
+        // This is an actual error (network, server, etc.)
+        console.error('Error loading saved searches:', err);
+        setSavedSearches([]);
+      }
     }
   };
 
@@ -134,7 +226,7 @@ const SearchPage = () => {
         createdAt: new Date().toISOString()
       };
 
-      await api.post(`/users/${username}/saved-searches`, searchData);
+      await api.post(`/${username}/saved-searches`, searchData);
 
       setSaveSearchName('');
       setError('');
@@ -155,7 +247,7 @@ const SearchPage = () => {
   const handleDeleteSavedSearch = async (searchId) => {
     try {
       const username = localStorage.getItem('username');
-      await api.delete(`/users/${username}/saved-searches/${searchId}`);
+      await api.delete(`/${username}/saved-searches/${searchId}`);
       loadSavedSearches();
     } catch (err) {
       console.error('Error deleting saved search:', err);
@@ -246,6 +338,18 @@ const SearchPage = () => {
                 📋 Saved Searches ({savedSearches.length})
               </button>
             </div>
+          </div>
+
+          {/* Search Button - Moved here between filters and saved searches */}
+          <div className="search-button-section mb-3">
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              onClick={() => handleSearch(1)}
+              disabled={loading}
+            >
+              {loading ? 'Searching...' : 'Search Profiles'}
+            </button>
           </div>
 
           {showSavedSearches && (
@@ -580,12 +684,6 @@ const SearchPage = () => {
               </div>
             </div>
 
-            {/* Search Button */}
-            <div className="filter-actions">
-              <button type="submit" className="btn btn-primary btn-lg">
-                {loading ? 'Searching...' : 'Search Profiles'}
-              </button>
-            </div>
           </form>
         </div>
 
@@ -624,6 +722,11 @@ const SearchPage = () => {
                         {user.firstName} {user.lastName}
                       </h6>
                       <span className="badge bg-primary">{calculateAge(user.dob)} years</span>
+                    </div>
+
+                    {/* Profile Image Section */}
+                    <div className="profile-image-section mb-3">
+                      {renderProfileImage(user)}
                     </div>
 
                     <div className="user-details">

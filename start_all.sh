@@ -102,8 +102,8 @@ echo -e "${YELLOW}📦 Ensuring dependencies are installed...${NC}"
 pip install -r requirements.txt > /dev/null 2>&1
 
 # Start the backend server
-echo -e "${YELLOW}🚀 Starting backend server...${NC}"
-uvicorn main:app --reload --port 8000 --host 0.0.0.0 &
+echo -e "${YELLOW}🚀 Starting backend server in DEBUG mode...${NC}"
+uvicorn main:app --reload --port 8000 --host 0.0.0.0 --log-level debug &
 BACKEND_PID=$!
 
 # Wait for backend to start
@@ -116,7 +116,7 @@ if ! kill -0 $BACKEND_PID 2>/dev/null; then
     exit 1
 fi
 
-echo -e "${GREEN}✅ FastAPI Backend started (PID: $BACKEND_PID)${NC}"
+echo -e "${GREEN}✅ FastAPI Backend started in DEBUG mode (PID: $BACKEND_PID)${NC}"
 echo -e "${GREEN}📚 API Docs: http://localhost:8000/docs${NC}"
 
 # Start frontend in background
@@ -157,7 +157,7 @@ echo -e "${GREEN}✅ React Frontend started (PID: $FRONTEND_PID)${NC}"
 # Final status
 echo ""
 echo -e "${GREEN}🎉 All servers started successfully!${NC}"
-echo -e "${GREEN}  Backend: http://localhost:8000 (PID: $BACKEND_PID)${NC}"
+echo -e "${GREEN}  Backend: http://localhost:8000 (PID: $BACKEND_PID) - DEBUG MODE${NC}"
 echo -e "${GREEN}  Frontend: http://localhost:3000 (PID: $FRONTEND_PID)${NC}"
 echo ""
 echo -e "${BLUE}💡 Tips:${NC}"

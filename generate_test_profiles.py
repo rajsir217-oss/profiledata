@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Generate 100 test profiles for dating app
-50 Male + 50 Female profiles with realistic data
+Generate 100 NEW test profiles for dating app (with images)
+50 Male + 50 Female profiles with realistic data and profile images
+This is a second batch to avoid duplicates with existing profiles
 """
 
 import random
@@ -9,6 +10,7 @@ from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorClient
 import asyncio
 import bcrypt
+import os
 
 # Password hashing
 def hash_password(password: str) -> str:
@@ -19,13 +21,23 @@ def hash_password(password: str) -> str:
 MONGO_URL = "mongodb://localhost:27017"
 DATABASE_NAME = "matrimonialDB"
 
-# Sample data for realistic profiles
+# Available profile images
+PROFILE_IMAGES = [
+    "/uploads/profile1.jpg",
+    "/uploads/profile2.jpg",
+    "/uploads/profile3.jpg",
+    "/uploads/profile4.jpg",
+    "/uploads/profile5.jpg"
+]
+
+# Sample data for realistic profiles (extended for more variety)
 FIRST_NAMES_MALE = [
     "Raj", "Amit", "Arjun", "Rohan", "Karan", "Vikram", "Aditya", "Sanjay", "Rahul", "Nikhil",
     "Prateek", "Varun", "Ankit", "Vishal", "Deepak", "Suresh", "Mahesh", "Ramesh", "Ajay", "Vijay",
     "Ravi", "Krishna", "Shyam", "Mohan", "Gopal", "Hari", "Ashok", "Dinesh", "Ganesh", "Prakash",
     "Siddharth", "Abhishek", "Akash", "Aman", "Harsh", "Kunal", "Manish", "Naveen", "Pankaj", "Rajesh",
-    "Sachin", "Sandeep", "Tarun", "Uday", "Vivek", "Yash", "Arun", "Bharat", "Chetan", "Dev"
+    "Sachin", "Sandeep", "Tarun", "Uday", "Vivek", "Yash", "Arun", "Bharat", "Chetan", "Dev",
+    "Ritesh", "Sumit", "Aakash", "Gaurav", "Himanshu", "Jatin", "Lakshay", "Mayank", "Nitin", "Parth"
 ]
 
 FIRST_NAMES_FEMALE = [
@@ -33,7 +45,8 @@ FIRST_NAMES_FEMALE = [
     "Anita", "Geeta", "Sunita", "Rekha", "Nisha", "Asha", "Maya", "Radha", "Savita", "Usha",
     "Deepa", "Lata", "Mala", "Naina", "Poonam", "Rani", "Seema", "Tara", "Vandana", "Zara",
     "Aditi", "Bhavna", "Chitra", "Diya", "Esha", "Falguni", "Garima", "Hema", "Isha", "Jaya",
-    "Kiran", "Leela", "Manisha", "Namita", "Pallavi", "Riya", "Shreya", "Tanvi", "Varsha", "Yamini"
+    "Kiran", "Leela", "Manisha", "Namita", "Pallavi", "Riya", "Shreya", "Tanvi", "Varsha", "Yamini",
+    "Aarti", "Bhumika", "Charu", "Ekta", "Farah", "Gunjan", "Heena", "Ishita", "Juhi", "Komal"
 ]
 
 LAST_NAMES = [
@@ -41,7 +54,8 @@ LAST_NAMES = [
     "Shah", "Mehta", "Joshi", "Desai", "Rao", "Pillai", "Agarwal", "Bansal", "Chopra", "Malhotra",
     "Kapoor", "Khanna", "Bhatia", "Sethi", "Arora", "Sinha", "Mishra", "Pandey", "Tiwari", "Dubey",
     "Saxena", "Jain", "Agrawal", "Mittal", "Goel", "Singhal", "Goyal", "Jindal", "Bhandari", "Chawla",
-    "Dutta", "Ghosh", "Mukherjee", "Chatterjee", "Banerjee", "Das", "Roy", "Sen", "Bose", "Ganguly"
+    "Dutta", "Ghosh", "Mukherjee", "Chatterjee", "Banerjee", "Das", "Roy", "Sen", "Bose", "Ganguly",
+    "Khandelwal", "Somani", "Bagaria", "Lunia", "Surana", "Pugalia", "Daga", "Bhansali", "Lodha", "Baheti"
 ]
 
 CITIES = [
@@ -135,17 +149,21 @@ def generate_phone():
     return f"+91-{random.randint(70000, 99999)}-{random.randint(10000, 99999)}"
 
 def generate_profile(index, gender):
-    """Generate a single profile"""
-    
+    """Generate a single profile with images"""
+
     first_name = random.choice(FIRST_NAMES_MALE if gender == "Male" else FIRST_NAMES_FEMALE)
     last_name = random.choice(LAST_NAMES)
-    username = f"{first_name.lower()}{last_name.lower()}{index}"
-    
+    username = f"{first_name.lower()}{last_name.lower()}v2{index}"  # v2 suffix to avoid duplicates
+
     # Generate timestamps
     days_ago = random.randint(1, 365)
     created_at = datetime.now() - timedelta(days=days_ago)
     updated_at = created_at + timedelta(days=random.randint(0, days_ago))
-    
+
+    # Generate random profile images (1-3 images per profile)
+    num_images = random.randint(1, 3)
+    profile_images = random.sample(PROFILE_IMAGES, num_images)
+
     profile = {
         "username": username,
         "password": hash_password("password123"),  # Default password for all test users
@@ -166,7 +184,7 @@ def generate_profile(index, gender):
         "familyBackground": f"Loving family from {random.choice(CITIES)}. {random.choice(['Nuclear family', 'Joint family'])} with {random.choice(['2', '3', '4'])} members.",
         "aboutYou": f"I am a {random.choice(OCCUPATIONS).lower()} based in {random.choice(CITIES)}. I enjoy {random.choice(INTERESTS).lower()}.",
         "partnerPreference": f"Looking for someone who is {random.choice(['caring', 'understanding', 'family-oriented', 'ambitious', 'honest'])} and {random.choice(['educated', 'well-settled', 'traditional', 'modern', 'balanced'])}.",
-        
+
         # Dating-app specific fields
         "relationshipStatus": random.choice(RELATIONSHIP_STATUS),
         "lookingFor": random.choice(LOOKING_FOR),
@@ -182,77 +200,84 @@ def generate_profile(index, gender):
         "wantsChildren": random.choice(WANTS_CHILDREN),
         "pets": random.choice(PETS),
         "bio": random.choice(BIOS),
-        
-        "images": [],  # No images for test data
+
+        "images": profile_images,  # Add profile images
         "createdAt": created_at.isoformat(),
         "updatedAt": updated_at.isoformat(),
-        
+
         # Messaging stats
         "messagesSent": random.randint(0, 50),
         "messagesReceived": random.randint(0, 50),
         "pendingReplies": random.randint(0, 10)
     }
-    
+
     return profile
 
 async def generate_and_insert_profiles():
-    """Generate and insert 100 profiles into MongoDB"""
-    
-    print("🚀 Starting profile generation...")
-    print(f"📊 Target: 100 profiles (50 Male + 50 Female)")
-    print(f"🔗 Connecting to MongoDB: {MONGO_URL}")
-    
+    """Generate and insert 100 NEW profiles with images into MongoDB"""
+
+    print("🚀 Starting profile generation (Batch 2)...")
+    print("📊 Target: 100 profiles (50 Male + 50 Female) with profile images")
+    print("🔗 Connecting to MongoDB: {MONGO_URL}")
+    print(f"🖼️  Each profile will have 1-3 random profile images")
+
     # Connect to MongoDB
     client = AsyncIOMotorClient(MONGO_URL)
     db = client[DATABASE_NAME]
-    
+
     try:
         # Check if collection exists and has data
         count = await db.users.count_documents({})
         print(f"📋 Current profiles in database: {count}")
-        
+
         profiles = []
-        
+
         # Generate 50 male profiles
-        print("\n👨 Generating 50 male profiles...")
+        print("\n👨 Generating 50 male profiles with images...")
         for i in range(1, 51):
             profile = generate_profile(i, "Male")
             profiles.append(profile)
             if i % 10 == 0:
                 print(f"   ✓ Generated {i} male profiles")
-        
+
         # Generate 50 female profiles
-        print("\n👩 Generating 50 female profiles...")
+        print("\n👩 Generating 50 female profiles with images...")
         for i in range(1, 51):
             profile = generate_profile(i, "Female")
             profiles.append(profile)
             if i % 10 == 0:
                 print(f"   ✓ Generated {i} female profiles")
-        
+
         # Insert all profiles
         print(f"\n💾 Inserting {len(profiles)} profiles into database...")
         result = await db.users.insert_many(profiles)
-        
-        print(f"\n✅ SUCCESS! Inserted {len(result.inserted_ids)} profiles")
-        
+
+        print(f"\n✅ SUCCESS! Inserted {len(result.inserted_ids)} new profiles with images")
+
         # Show statistics
         total_count = await db.users.count_documents({})
         male_count = await db.users.count_documents({"gender": "Male"})
         female_count = await db.users.count_documents({"gender": "Female"})
-        
+        profiles_with_images = await db.users.count_documents({"images": {"$exists": True, "$ne": []}})
+
         print(f"\n📊 Database Statistics:")
         print(f"   Total profiles: {total_count}")
         print(f"   Male profiles: {male_count}")
         print(f"   Female profiles: {female_count}")
-        
-        print(f"\n🔑 Test Login Credentials:")
-        print(f"   Username: Any username from generated profiles (e.g., {profiles[0]['username']})")
+        print(f"   Profiles with images: {profiles_with_images}")
+
+        print(f"\n🔑 Test Login Credentials (Batch 2):")
+        print(f"   Username: Any username from new profiles (e.g., {profiles[0]['username']})")
         print(f"   Password: password123 (same for all test users)")
-        
-        print(f"\n💡 Sample usernames:")
+
+        print(f"\n💡 Sample usernames from Batch 2:")
         for i in range(5):
             print(f"   - {profiles[i]['username']}")
-        
+
+        print(f"\n🖼️  Profile Images Available:")
+        for i in range(min(5, len(profiles))):
+            print(f"   - {profiles[i]['username']}: {len(profiles[i]['images'])} images")
+
     except Exception as e:
         print(f"\n❌ Error: {e}")
         raise
@@ -262,9 +287,11 @@ async def generate_and_insert_profiles():
 
 if __name__ == "__main__":
     print("=" * 60)
-    print("  DATING APP - TEST PROFILE GENERATOR")
+    print("  DATING APP - TEST PROFILE GENERATOR (BATCH 2)")
+    print("  100 New Profiles with Profile Images")
     print("=" * 60)
     asyncio.run(generate_and_insert_profiles())
     print("=" * 60)
     print("✨ Profile generation complete!")
+    print("🖼️  All profiles include 1-3 random profile images")
     print("=" * 60)
