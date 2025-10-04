@@ -7,7 +7,6 @@ const SearchPage = () => {
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
   const [imageErrors, setImageErrors] = useState({});
-  const [imageLoaded, setImageLoaded] = useState({});
 
   const initialSearchCriteria = {
     keyword: '',
@@ -80,13 +79,11 @@ const SearchPage = () => {
             onError={(e) => {
               console.error(`Failed to load image: ${currentImage}`, e);
               setImageErrors(prev => ({ ...prev, [user.username]: true }));
-              setImageLoaded(prev => ({ ...prev, [user.username]: false }));
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
             }}
             onLoad={(e) => {
               console.log(`Successfully loaded image: ${currentImage}`);
-              setImageLoaded(prev => ({ ...prev, [user.username]: true }));
               setImageErrors(prev => ({ ...prev, [user.username]: false }));
               e.target.style.display = 'block';
               e.target.nextSibling.style.display = 'none';
@@ -127,7 +124,6 @@ const SearchPage = () => {
   const educationOptions = ['', 'B.Tech in Computer Science', 'MBA from IIM', 'M.Tech in Engineering', 'B.Com', 'M.Com', 'BBA', 'MCA', 'B.Sc in Physics', 'M.Sc in Chemistry', 'MBBS', 'MD', 'CA', 'CS', 'B.A. in Economics', 'M.A. in English', 'Ph.D. in Mathematics', 'B.E. in Mechanical', 'Diploma in Engineering', 'B.Pharm', 'M.Pharm'];
   const occupationOptions = ['', 'Software Engineer', 'Data Scientist', 'Product Manager', 'Business Analyst', 'Consultant', 'Doctor', 'Chartered Accountant', 'Lawyer', 'Teacher', 'Professor', 'Architect', 'Designer', 'Marketing Manager', 'Sales Executive', 'HR Manager', 'Financial Analyst', 'Civil Engineer', 'Mechanical Engineer', 'Pharmacist', 'Nurse', 'Entrepreneur', 'Banker', 'Government Officer'];
   const religionOptions = ['', 'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain'];
-  const casteOptions = ['', 'Brahmin', 'Kshatriya', 'Vaishya', 'Shudra', 'Any', 'No Preference'];
   const eatingOptions = ['', 'Vegetarian', 'Eggetarian', 'Non-Veg'];
   const lifestyleOptions = ['', 'Never', 'Socially', 'Prefer not to say'];
   const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
@@ -724,22 +720,28 @@ const SearchPage = () => {
                       <span className="badge bg-primary">{calculateAge(user.dob)} years</span>
                     </div>
 
-                    {/* Profile Image Section */}
-                    <div className="profile-image-section mb-3">
-                      {renderProfileImage(user)}
-                    </div>
+                    {/* Profile Content - Image left, Details right */}
+                    <div className="d-flex gap-3 mb-3">
+                      {/* Profile Image - Left side */}
+                      <div className="profile-image-left">
+                        {renderProfileImage(user)}
+                      </div>
 
-                    <div className="user-details">
-                      <p><strong>📍</strong> {user.location}</p>
-                      <p><strong>🎓</strong> {user.education}</p>
-                      <p><strong>💼</strong> {user.occupation}</p>
-                      <p><strong>📏</strong> {user.height}</p>
-                    </div>
+                      {/* User Details - Right side */}
+                      <div className="user-details-right flex-grow-1">
+                        <div className="user-details">
+                          <p><strong>📍</strong> {user.location}</p>
+                          <p><strong>🎓</strong> {user.education}</p>
+                          <p><strong>💼</strong> {user.occupation}</p>
+                          <p><strong>📏</strong> {user.height}</p>
+                        </div>
 
-                    <div className="user-badges">
-                      {user.religion && <span className="badge bg-info">{user.religion}</span>}
-                      {user.eatingPreference && <span className="badge bg-success">{user.eatingPreference}</span>}
-                      {user.bodyType && <span className="badge bg-warning">{user.bodyType}</span>}
+                        <div className="user-badges">
+                          {user.religion && <span className="badge bg-info">{user.religion}</span>}
+                          {user.eatingPreference && <span className="badge bg-success">{user.eatingPreference}</span>}
+                          {user.bodyType && <span className="badge bg-warning">{user.bodyType}</span>}
+                        </div>
+                      </div>
                     </div>
 
                     <div className="card-actions mt-3">
