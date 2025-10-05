@@ -20,7 +20,7 @@ const Exclusions = () => {
         return;
       }
 
-      const response = await api.get(`/api/users/exclusions/${username}`);
+      const response = await api.get(`/exclusions/${username}`);
       setExclusions(response.data.exclusions || []);
     } catch (err) {
       console.error('Error loading exclusions:', err);
@@ -30,12 +30,30 @@ const Exclusions = () => {
     }
   };
 
-  if (loading) return <div className="text-center py-4"><div className="spinner-border"></div></div>;
-  if (error) return <div className="alert alert-danger">{error}</div>;
+  const removeExclusion = async (targetUsername) => {
+    try {
+      const currentUser = localStorage.getItem('username');
+      if (!currentUser) {
+        setError('Please login to perform this action');
+        return;
+      }
+
+      await api.delete(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+
+      // Remove from local state
+      setExclusions(prev => prev.filter(username => username !== targetUsername));
+
+      console.log(`Successfully removed ${targetUsername} from exclusions`);
+    } catch (err) {
+      console.error('Error removing exclusion:', err);
+      setError('Failed to remove exclusion');
+    }
+  };
 
   return (
     <div className="container mt-4">
       <h2>❌ My Exclusions</h2>
+      {error && <div className="alert alert-danger">{error}</div>}
       {exclusions.length === 0 ? (
         <p className="text-muted">No excluded profiles. These profiles will be hidden from your search results.</p>
       ) : (
@@ -49,10 +67,7 @@ const Exclusions = () => {
                   <button
                     className="btn btn-sm btn-outline-danger"
                     onClick={() => {
-                      if (window.confirm('Remove from exclusions?')) {
-                        // Note: We don't have a remove exclusion API yet
-                        alert('Remove exclusion functionality coming soon!');
-                      }
+                      removeExclusion(username);
                     }}
                   >
                     Remove Exclusion

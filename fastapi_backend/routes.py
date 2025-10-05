@@ -1285,6 +1285,63 @@ async def get_exclusions(username: str):
         logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/exclusions/{target_username}")
+async def remove_from_exclusions(
+    target_username: str,
+    username: str
+):
+    """Remove user from exclusions"""
+    logger.info(f"🗑️ Removing {target_username} from exclusions for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if target user exists
+    target_user = await db.users.find_one({"username": target_username})
+    if not target_user:
+        logger.warning(f"⚠️ Remove from exclusions failed: Target user '{target_username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target user not found"
+        )
+
+    # Check if user exists
+    user = await db.users.find_one({"username": username})
+    if not user:
+        logger.warning(f"⚠️ Remove from exclusions failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    try:
+        # Find and delete the exclusion record
+        result = await db.exclusions.delete_one({
+            "userUsername": username,
+            "excludedUsername": target_username
+        })
+
+        if result.deleted_count == 0:
+            logger.warning(f"⚠️ Exclusion entry not found: {target_username} for user {username}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Exclusion entry not found"
+            )
+
+        logger.info(f"✅ Removed '{target_username}' from exclusions for '{username}'")
+        return {"message": "Removed from exclusions successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error removing from exclusions: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to remove from exclusions: {str(e)}"
+        )
+
 # ===== MESSAGING SYSTEM =====
 
 @router.post("/messages")

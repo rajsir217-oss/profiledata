@@ -36,7 +36,6 @@ const SearchPage = () => {
   });
   const [favoritedUsers, setFavoritedUsers] = useState(new Set());
   const [shortlistedUsers, setShortlistedUsers] = useState(new Set());
-  const [excludedUsers, setExcludedUsers] = useState(new Set());
   const [statusMessage, setStatusMessage] = useState('');
 
   // Saved searches state
@@ -57,12 +56,10 @@ const SearchPage = () => {
       loadPiiRequests();
       loadUserFavorites();
       loadUserShortlist();
-      loadUserExclusions();
     } else {
       // Clear states if not logged in
       setFavoritedUsers(new Set());
       setShortlistedUsers(new Set());
-      setExcludedUsers(new Set());
       setSavedSearches([]);
       setPiiRequests({});
       setPiiRequestCount(0);
@@ -246,27 +243,6 @@ const SearchPage = () => {
       // Silently handle error - shortlist might not exist yet for new users
       console.debug('No shortlist found or error loading shortlist:', err);
       setShortlistedUsers(new Set());
-    }
-  };
-
-  const loadUserExclusions = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        setExcludedUsers(new Set());
-        return;
-      }
-
-      console.log(`Loading exclusions for user: ${username}`);
-      const response = await api.get(`/exclusions/${username}`);
-      const exclusions = response.data.exclusions || [];
-      const excludedUsernames = new Set(exclusions);
-      setExcludedUsers(excludedUsernames);
-      console.log('Loaded exclusions:', excludedUsernames);
-    } catch (err) {
-      // Silently handle error - exclusions might not exist yet for new users
-      console.debug('No exclusions found or error loading exclusions:', err);
-      setExcludedUsers(new Set());
     }
   };
 
@@ -520,44 +496,12 @@ const SearchPage = () => {
           break;
 
         case 'exclude':
-          const isCurrentlyExcluded = excludedUsers.has(targetUsername);
-
-          try {
-            const currentUser = localStorage.getItem('username');
-            if (!currentUser) {
-              setError('Please login to perform this action');
-              return;
-            }
-
-            console.log(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
-
-            if (isCurrentlyExcluded) {
-              // Remove from exclusions
-              console.log(`DELETE /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              await api.delete(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setExcludedUsers(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(targetUsername);
-                return newSet;
-              });
-              setStatusMessage('✅ Removed from exclusions');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              // Add to exclusions
-              console.log(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setExcludedUsers(prev => new Set([...prev, targetUsername]));
-              setStatusMessage('✅ Added to exclusions');
-              setTimeout(() => setStatusMessage(''), 3000);
-            }
-            setError(''); // Clear any previous errors
-          } catch (err) {
-            console.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
-            const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions. ` + (err.response?.data?.detail || err.message);
-            setError(errorMsg);
-            setStatusMessage(`❌ ${errorMsg}`);
-            setTimeout(() => setStatusMessage(''), 3000);
-          }
+          await api.post(`/exclusions/${targetUsername}`, {
+            username: currentUser
+          });
+          setError(''); // Clear any previous errors
+          setStatusMessage('✅ Added to exclusions!');
+          setTimeout(() => setStatusMessage(''), 3000);
           break;
 
         case 'message':
@@ -577,11 +521,6 @@ const SearchPage = () => {
   };
 
   const filteredUsers = users.filter(user => {
-    // Exclude users who have been excluded by current user
-    if (excludedUsers.has(user.username)) {
-      return false;
-    }
-
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
       const age = calculateAge(user.dob);
       if (age === null) return false;
@@ -1092,11 +1031,11 @@ const SearchPage = () => {
                         💬
                       </button>
                       <button
-                        className={`btn btn-sm ${excludedUsers.has(user.username) ? 'btn-danger' : 'btn-outline-danger'} action-btn`}
+                        className="btn btn-sm btn-outline-danger action-btn"
                         onClick={(e) => handleProfileAction(e, user.username, 'exclude')}
-                        title={excludedUsers.has(user.username) ? 'Remove from Exclusions' : 'Exclude from Search'}
+                        title="Exclude from Search"
                       >
-                        {excludedUsers.has(user.username) ? '🚫' : '❌'}
+                        ❌
                       </button>
                       <button
                         className="btn btn-sm btn-outline-primary"
