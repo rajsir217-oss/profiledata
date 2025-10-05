@@ -95,3 +95,68 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+
+class PiiRequest(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    requesterUsername: str
+    requestedUsername: str
+    requestType: str  # "contact_info" or "images"
+    message: Optional[str] = None
+    status: str = "pending"  # "pending", "approved", "rejected"
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    respondedAt: Optional[datetime] = None
+    responseMessage: Optional[str] = None
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class Favorite(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    userUsername: str  # Who added to favorites
+    favoriteUsername: str  # Who was added to favorites
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class Shortlist(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    userUsername: str  # Who added to shortlist
+    shortlistedUsername: str  # Who was shortlisted
+    notes: Optional[str] = None
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class Exclusion(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    userUsername: str  # Who excluded the profile
+    excludedUsername: str  # Who was excluded
+    reason: Optional[str] = None
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class Message(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    fromUsername: str
+    toUsername: str
+    content: str
+    isRead: bool = False
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    readAt: Optional[datetime] = None
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}

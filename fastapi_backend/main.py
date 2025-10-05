@@ -51,10 +51,25 @@ if os.path.exists(settings.upload_dir):
     app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
     logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
+# CORS middleware (must be added before other middleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001"
+    ],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
+
 # Request logging middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
+    duration = 0  # Initialize duration
     
     # Log incoming request
     logger.info(f"📨 Incoming {request.method} request to {request.url.path}")
@@ -65,26 +80,19 @@ async def log_requests(request: Request, call_next):
         
         # Calculate request duration
         duration = time.time() - start_time
-        
         # Log response
         status_emoji = "✅" if response.status_code < 400 else "❌"
         logger.info(f"{status_emoji} {request.method} {request.url.path} - Status: {response.status_code} - Duration: {duration:.3f}s")
+        
+        # Log response body (only for non-streaming responses)
+        if hasattr(response, 'body') and response.body is not None:
+            logger.debug(f"Response body: {response.body.decode('utf-8')}")
         
         return response
     except Exception as e:
         duration = time.time() - start_time
         logger.error(f"❌ Error processing {request.method} {request.url.path} - Duration: {duration:.3f}s - Error: {e}", exc_info=True)
         raise
-
-# CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.frontend_url],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
 # Include routers
 app.include_router(router)
 

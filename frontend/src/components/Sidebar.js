@@ -116,8 +116,33 @@ const Sidebar = ({ onPinChange }) => {
       },
       { 
         icon: '⭐', 
-        label: 'My short lists', 
-        action: () => navigate('/shortlists')
+        label: 'My Favorites', 
+        subLabel: 'Profiles I liked',
+        action: () => navigate('/favorites')
+      },
+      { 
+        icon: '📋', 
+        label: 'My Shortlist', 
+        subLabel: 'Profiles to consider',
+        action: () => navigate('/shortlist')
+      },
+      { 
+        icon: '❌', 
+        label: 'My Exclusions', 
+        subLabel: 'Profiles to hide',
+        action: () => navigate('/exclusions')
+      },
+      { 
+        icon: '💬', 
+        label: 'My Messages', 
+        subLabel: 'Chat with matches',
+        action: () => navigate('/messages')
+      },
+      { 
+        icon: '📨', 
+        label: 'My Requests', 
+        subLabel: 'PII access requests',
+        action: () => navigate('/requests')
       },
     ];
 

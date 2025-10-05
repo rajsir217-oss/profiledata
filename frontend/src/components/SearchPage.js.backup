@@ -8,54 +8,16 @@ const SearchPage = () => {
   const [imageIndices, setImageIndices] = useState({});
   const [imageErrors, setImageErrors] = useState({});
 
-  // Main application state
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [totalResults, setTotalResults] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(20);
-
-  // User interaction state
-  const [users, setUsers] = useState([]);
-  const [searchCriteria, setSearchCriteria] = useState({
+  const initialSearchCriteria = {
     keyword: '',
     gender: '',
-    ageMin: '',
     ageMax: '',
-    heightMin: '',
-    heightMax: '',
-    location: '',
-    education: '',
-    occupation: '',
-    religion: '',
-    caste: '',
-    drinking: '',
-    smoking: '',
-    relationshipStatus: '',
-    newlyAdded: false,
-  });
-  const [favoritedUsers, setFavoritedUsers] = useState(new Set());
-  const [shortlistedUsers, setShortlistedUsers] = useState(new Set());
-  const [statusMessage, setStatusMessage] = useState('');
-
-  // Saved searches state
-  const [saveSearchName, setSaveSearchName] = useState('');
-  const [savedSearches, setSavedSearches] = useState([]);
-  const [showSavedSearches, setShowSavedSearches] = useState(false);
-
-  // PII access state
-  const [piiRequests, setPiiRequests] = useState({});
-  const [piiRequestCount, setPiiRequestCount] = useState(0);
-
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username) {
-      loadSavedSearches();
-      loadPiiRequests();
-      loadUserFavorites();
-      loadUserShortlist();
+    loadPiiRequests();
+    loadUserFavorites();
+    loadUserShortlist();
+    loadSavedSearches();
     } else {
       // Clear states if not logged in
       setFavoritedUsers(new Set());

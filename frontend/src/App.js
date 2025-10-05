@@ -12,6 +12,11 @@ import SearchPage from './components/SearchPage';
 import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
+import Favorites from './components/Favorites';
+import Shortlist from './components/Shortlist';
+import Exclusions from './components/Exclusions';
+import Messages from './components/Messages';
+import Requests from './components/Requests';
 
 function App() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
@@ -37,6 +42,11 @@ function App() {
               <Route path="/top-matches" element={<TopMatches />} />
               <Route path="/shortlists" element={<ShortLists />} />
               <Route path="/search" element={<SearchPage />} />
+              <Route path="/favorites" element={<Favorites />} />
+              <Route path="/shortlist" element={<Shortlist />} />
+              <Route path="/exclusions" element={<Exclusions />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/requests" element={<Requests />} />
               <Route path="/" element={<Login />} />
             </Routes>
           </div>

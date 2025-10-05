@@ -1,13 +1,13 @@
 # fastapi_backend/routes.py
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request
 from fastapi.responses import JSONResponse
 from typing import List, Optional
-from datetime import timedelta
+from datetime import datetime, timedelta
 from models import UserCreate, UserResponse, LoginRequest, Token
-from auth import get_password_hash, verify_password, create_access_token
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
+from auth import create_access_token, verify_password, get_password_hash  # Add missing auth imports
 import logging
 
 router = APIRouter(prefix="/api/users", tags=["users"])
@@ -920,3 +920,588 @@ async def delete_saved_search(username: str, search_id: str):
     except Exception as e:
         logger.error(f"❌ Error deleting saved search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+# ===== PII REQUEST SYSTEM =====
+
+@router.post("/pii-request")
+async def create_pii_request(
+    requester: str = Form(...),
+    requested_user: str = Form(...),
+    request_type: str = Form(...),  # "contact_info" or "images"
+    message: Optional[str] = Form(None)
+):
+    """Create a PII access request"""
+    logger.info(f"🔐 PII request: {requester} → {requested_user} ({request_type})")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if request already exists and is pending
+    existing_request = await db.pii_requests.find_one({
+        "requesterUsername": requester,
+        "requestedUsername": requested_user,
+        "requestType": request_type,
+        "status": "pending"
+    })
+
+    if existing_request:
+        logger.warning(f"⚠️ Duplicate PII request: {requester} → {requested_user}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Pending request already exists"
+        )
+
+    # Create PII request
+    pii_request = {
+        "requesterUsername": requester,
+        "requestedUsername": requested_user,
+        "requestType": request_type,
+        "message": message,
+        "status": "pending",
+        "createdAt": datetime.utcnow().isoformat()
+    }
+
+    try:
+        result = await db.pii_requests.insert_one(pii_request)
+        logger.info(f"✅ PII request created: {requester} → {requested_user}")
+        return {"message": "PII request sent successfully", "requestId": str(result.inserted_id)}
+    except Exception as e:
+        logger.error(f"❌ Error creating PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-requests/{username}")
+async def get_pii_requests(username: str, type: str = "received"):
+    """Get PII requests for user (received or sent)"""
+    logger.info(f"📋 Fetching {type} PII requests for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        if type == "received":
+            requests_cursor = db.pii_requests.find({"requestedUsername": username})
+        else:
+            requests_cursor = db.pii_requests.find({"requesterUsername": username})
+
+        requests = await requests_cursor.to_list(100)
+
+        for req in requests:
+            req['id'] = str(req.pop('_id', ''))
+
+        logger.info(f"✅ Found {len(requests)} {type} PII requests for {username}")
+        return {"requests": requests}
+    except Exception as e:
+        logger.error(f"❌ Error fetching PII requests: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/pii-request/{request_id}/respond")
+async def respond_to_pii_request(
+    request_id: str,
+    response: str = Form(...),  # "approve" or "reject"
+    responder: str = Form(...),
+    response_message: Optional[str] = Form(None)
+):
+    """Respond to PII request (approve/reject)"""
+    logger.info(f"📝 PII request response {request_id}: {response} by {responder}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    from bson import ObjectId
+    result = await db.pii_requests.update_one(
+        {"_id": ObjectId(request_id)},
+        {
+            "$set": {
+                "status": response,
+                "respondedAt": datetime.utcnow().isoformat(),
+                "responseMessage": response_message
+            }
+        }
+    )
+
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="PII request not found")
+
+    logger.info(f"✅ PII request {request_id} {response} by {responder}")
+    return {"message": f"PII request {response}d successfully"}
+
+# ===== FAVORITES MANAGEMENT =====
+
+@router.post("/favorites/{target_username}")
+async def add_to_favorites(username: str, target_username: str):
+    """Add user to favorites"""
+    logger.info(f"⭐ Adding {target_username} to {username}'s favorites")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if already in favorites
+    existing = await db.favorites.find_one({
+        "userUsername": username,
+        "favoriteUsername": target_username
+    })
+
+    if existing:
+        logger.warning(f"⚠️ Already in favorites: {username} → {target_username}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already in favorites"
+        )
+
+    # Check if target user exists
+    target_user = await db.users.find_one({"username": target_username})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    # Add to favorites
+    favorite = {
+        "userUsername": username,
+        "favoriteUsername": target_username,
+        "createdAt": datetime.utcnow().isoformat()
+    }
+
+    try:
+        await db.favorites.insert_one(favorite)
+        logger.info(f"✅ Added to favorites: {username} → {target_username}")
+        return {"message": "Added to favorites successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error adding to favorites: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/favorites/{target_username}")
+async def remove_from_favorites(username: str, target_username: str):
+    """Remove user from favorites"""
+    logger.info(f"⭐ Removing {target_username} from {username}'s favorites")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    result = await db.favorites.delete_one({
+        "userUsername": username,
+        "favoriteUsername": target_username
+    })
+
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Favorite not found")
+
+    logger.info(f"✅ Removed from favorites: {username} → {target_username}")
+    return {"message": "Removed from favorites successfully"}
+
+@router.get("/favorites/{username}")
+async def get_favorites(username: str):
+    """Get user's favorites list"""
+    logger.info(f"📋 Getting favorites for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        favorites_cursor = db.favorites.find({"userUsername": username})
+        favorites = await favorites_cursor.to_list(100)
+
+        # Get full user details for each favorite
+        favorite_users = []
+        for fav in favorites:
+            user = await db.users.find_one({"username": fav["favoriteUsername"]})
+            if user:
+                user.pop("password", None)
+                user.pop("_id", None)
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                user["addedToFavoritesAt"] = fav["createdAt"]
+                favorite_users.append(user)
+
+        logger.info(f"✅ Found {len(favorite_users)} favorites for {username}")
+        return {"favorites": favorite_users}
+    except Exception as e:
+        logger.error(f"❌ Error fetching favorites: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== SHORTLIST MANAGEMENT =====
+
+@router.post("/shortlist/{target_username}")
+async def add_to_shortlist(
+    username: str,
+    target_username: str,
+    notes: Optional[str] = Form(None)
+):
+    """Add user to shortlist"""
+    logger.info(f"📝 Adding {target_username} to {username}'s shortlist")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if already in shortlist
+    existing = await db.shortlists.find_one({
+        "userUsername": username,
+        "shortlistedUsername": target_username
+    })
+
+    if existing:
+        logger.warning(f"⚠️ Already in shortlist: {username} → {target_username}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already in shortlist"
+        )
+
+    # Check if target user exists
+    target_user = await db.users.find_one({"username": target_username})
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Target user not found")
+
+    # Add to shortlist
+    shortlist_item = {
+        "userUsername": username,
+        "shortlistedUsername": target_username,
+        "notes": notes,
+        "createdAt": datetime.utcnow().isoformat()
+    }
+
+    try:
+        await db.shortlists.insert_one(shortlist_item)
+        logger.info(f"✅ Added to shortlist: {username} → {target_username}")
+        return {"message": "Added to shortlist successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error adding to shortlist: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/shortlist/{username}")
+async def get_shortlist(username: str):
+    """Get user's shortlist"""
+    logger.info(f"📋 Getting shortlist for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        shortlist_cursor = db.shortlists.find({"userUsername": username})
+        shortlist = await shortlist_cursor.to_list(100)
+
+        # Get full user details for each shortlisted user
+        shortlisted_users = []
+        for item in shortlist:
+            user = await db.users.find_one({"username": item["shortlistedUsername"]})
+            if user:
+                user.pop("password", None)
+                user.pop("_id", None)
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                user["notes"] = item.get("notes")
+                user["addedToShortlistAt"] = item["createdAt"]
+                shortlisted_users.append(user)
+
+        logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username}")
+        return {"shortlist": shortlisted_users}
+    except Exception as e:
+        logger.error(f"❌ Error fetching shortlist: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== EXCLUSIONS MANAGEMENT =====
+
+@router.post("/exclusions/{target_username}")
+async def add_to_exclusions(
+    username: str,
+    target_username: str,
+    reason: Optional[str] = Form(None)
+):
+    """Add user to exclusions"""
+    logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if already excluded
+    existing = await db.exclusions.find_one({
+        "userUsername": username,
+        "excludedUsername": target_username
+    })
+
+    if existing:
+        logger.warning(f"⚠️ Already excluded: {username} → {target_username}")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="User already excluded"
+        )
+
+    # Add to exclusions
+    exclusion = {
+        "userUsername": username,
+        "excludedUsername": target_username,
+        "reason": reason,
+        "createdAt": datetime.utcnow().isoformat()
+    }
+
+    try:
+        await db.exclusions.insert_one(exclusion)
+        logger.info(f"✅ Added to exclusions: {username} → {target_username}")
+        return {"message": "Added to exclusions successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error adding to exclusions: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/exclusions/{username}")
+async def get_exclusions(username: str):
+    """Get user's exclusions list"""
+    logger.info(f"📋 Getting exclusions for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        exclusions_cursor = db.exclusions.find({"userUsername": username})
+        exclusions = await exclusions_cursor.to_list(100)
+
+        logger.info(f"✅ Found {len(exclusions)} exclusions for {username}")
+        return {"exclusions": [exc["excludedUsername"] for exc in exclusions]}
+    except Exception as e:
+        logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== MESSAGING SYSTEM =====
+
+@router.post("/messages")
+async def send_message(
+    from_username: str = Form(...),
+    to_username: str = Form(...),
+    content: str = Form(...)
+):
+    """Send a message to another user"""
+    logger.info(f"💬 Message from {from_username} to {to_username}")
+
+    if len(content.strip()) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Message content cannot be empty"
+        )
+
+    if len(content) > 1000:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Message too long (max 1000 characters)"
+        )
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if recipient exists
+    recipient = await db.users.find_one({"username": to_username})
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+
+    # Create message
+    message = {
+        "fromUsername": from_username,
+        "toUsername": to_username,
+        "content": content.strip(),
+        "isRead": False,
+        "createdAt": datetime.utcnow().isoformat()
+    }
+
+    try:
+        await db.messages.insert_one(message)
+        logger.info(f"✅ Message sent: {from_username} → {to_username}")
+        return {"message": "Message sent successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error sending message: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/messages/{username}")
+async def get_messages(username: str):
+    """Get messages for user"""
+    logger.info(f"📬 Getting messages for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        # Get all messages where user is sender or recipient
+        messages_cursor = db.messages.find({
+            "$or": [
+                {"fromUsername": username},
+                {"toUsername": username}
+            ]
+        }).sort("createdAt", -1)
+
+        messages = await messages_cursor.to_list(200)
+
+        # Mark messages as read if user is recipient
+        for msg in messages:
+            if msg["toUsername"] == username and not msg["isRead"]:
+                await db.messages.update_one(
+                    {"_id": msg["_id"]},
+                    {
+                        "$set": {
+                            "isRead": True,
+                            "readAt": datetime.utcnow().isoformat()
+                        }
+                    }
+                )
+
+        # Convert ObjectId to string
+        for msg in messages:
+            msg['id'] = str(msg.pop('_id', ''))
+
+        logger.info(f"✅ Found {len(messages)} messages for {username}")
+        return {"messages": messages}
+    except Exception as e:
+        logger.error(f"❌ Error fetching messages: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/conversations/{username}")
+async def get_conversations(username: str):
+    """Get list of conversations for user"""
+    logger.info(f"💭 Getting conversations for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    try:
+        # Get unique conversations
+        pipeline = [
+            {
+                "$match": {
+                    "$or": [
+                        {"fromUsername": username},
+                        {"toUsername": username}
+                    ]
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "$cond": [
+                            {"$eq": ["$fromUsername", username]},
+                            "$toUsername",
+                            "$fromUsername"
+                        ]
+                    },
+                    "lastMessage": {"$last": "$$ROOT"},
+                    "unreadCount": {
+                        "$sum": {
+                            "$cond": [
+                                {"$and": [
+                                    {"$eq": ["$toUsername", username]},
+                                    {"$eq": ["$isRead", False]}
+                                ]},
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {"$sort": {"lastMessage.createdAt": -1}}
+        ]
+
+        conversations = await db.messages.aggregate(pipeline).to_list(50)
+
+        # Get user details for each conversation
+        for conv in conversations:
+            other_username = conv["_id"]
+            user = await db.users.find_one({"username": other_username})
+            if user:
+                user.pop("password", None)
+                user.pop("_id", None)
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                conv["otherUser"] = user
+                conv["lastMessage"]["id"] = str(conv["lastMessage"].pop("_id", ""))
+            else:
+                conv["otherUser"] = {"username": other_username, "firstName": "Unknown"}
+
+        logger.info(f"✅ Found {len(conversations)} conversations for {username}")
+        return {"conversations": conversations}
+    except Exception as e:
+        logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/shortlist/{target_username}")
+async def remove_from_shortlist(target_username: str, username: str):
+    """Remove user from shortlist"""
+    logger.info(f"🗑️ Removing {target_username} from shortlist for {username}")
+
+    try:
+        db = get_database()
+    except Exception as e:
+        logger.error(f"❌ Database connection error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    # Check if target user exists
+    target_user = await db.users.find_one({"username": target_username})
+    if not target_user:
+        logger.warning(f"⚠️ Remove from shortlist failed: Target user '{target_username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Target user not found"
+        )
+
+    # Check if user exists
+    user = await db.users.find_one({"username": username})
+    if not user:
+        logger.warning(f"⚠️ Remove from shortlist failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+
+    try:
+        # Find and delete the shortlist record
+        result = await db.shortlists.delete_one({
+            "userUsername": username,
+            "shortlistedUsername": target_username
+        })
+
+        if result.deleted_count == 0:
+            logger.warning(f"⚠️ Shortlist entry not found: {target_username} for user {username}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Shortlist entry not found"
+            )
+
+        logger.info(f"✅ Removed '{target_username}' from shortlist for '{username}'")
+        return {"message": "Removed from shortlist successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error removing from shortlist: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to remove from shortlist: {str(e)}"
+        )
