@@ -20,6 +20,7 @@ import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
 import Preferences from './components/Preferences';
 import { TestDashboard } from './test-dashboard';
+import './App.css';
 import './themes/themes.css';
 
 function App() {
@@ -45,7 +46,7 @@ function App() {
         <div className={`app-layout ${!isSidebarCollapsed ? 'sidebar-open' : ''}`}>
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
           <div className="main-content">
-            <div className="container mt-5">
+            <div className="container">
               <Routes>
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
