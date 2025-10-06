@@ -10,18 +10,20 @@
 .app-layout {
   padding-top: 60px;
   width: 100%;
-  padding-left: 0;
+  padding-left: 0 !important;
   position: relative;
   transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
 }
 
 .app-layout.sidebar-open {
-  padding-left: 280px;
+  padding-left: 280px !important;
 }
 
 /* Force all direct children to respect the layout shift */
 .app-layout.sidebar-open > * {
   margin-left: 0 !important;
+  margin-right: 0 !important;
   max-width: 100% !important;
 }
 
