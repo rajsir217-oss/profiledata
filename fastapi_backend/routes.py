@@ -1107,7 +1107,8 @@ async def get_shortlist(username: str, db = Depends(get_database)):
 async def add_to_exclusions(
     username: str,
     target_username: str,
-    reason: Optional[str] = Form(None)
+    reason: Optional[str] = Form(None),
+    db = Depends(get_database)
 ):
     """Add user to exclusions"""
     logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
@@ -1159,7 +1160,8 @@ async def get_exclusions(username: str, db = Depends(get_database)):
 @router.delete("/exclusions/{target_username}")
 async def remove_from_exclusions(
     target_username: str,
-    username: str
+    username: str,
+    db = Depends(get_database)
 ):
     """Remove user from exclusions"""
     logger.info(f"🗑️ Removing {target_username} from exclusions for {username}")
@@ -1356,7 +1358,7 @@ async def get_conversations(username: str, db = Depends(get_database)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/shortlist/{target_username}")
-async def remove_from_shortlist(target_username: str, username: str):
+async def remove_from_shortlist(target_username: str, username: str, db = Depends(get_database)):
     """Remove user from shortlist"""
     logger.info(f"🗑️ Removing {target_username} from shortlist for {username}")
 
