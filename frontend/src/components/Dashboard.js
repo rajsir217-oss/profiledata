@@ -102,8 +102,6 @@ const Dashboard = () => {
 
   // Remove handlers for each category
   const handleRemoveFromFavorites = async (targetUsername) => {
-    if (!window.confirm(`Remove ${targetUsername} from your favorites?`)) return;
-    
     try {
       await api.delete(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       setDashboardData(prev => ({
@@ -112,15 +110,12 @@ const Dashboard = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
-      alert(`✅ Removed ${targetUsername} from favorites`);
     } catch (err) {
-      alert(`❌ Failed to remove from favorites: ${err.message}`);
+      console.error(`Failed to remove from favorites: ${err.message}`);
     }
   };
 
   const handleRemoveFromShortlist = async (targetUsername) => {
-    if (!window.confirm(`Remove ${targetUsername} from your shortlist?`)) return;
-    
     try {
       await api.delete(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       setDashboardData(prev => ({
@@ -129,15 +124,12 @@ const Dashboard = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
-      alert(`✅ Removed ${targetUsername} from shortlist`);
     } catch (err) {
-      alert(`❌ Failed to remove from shortlist: ${err.message}`);
+      console.error(`Failed to remove from shortlist: ${err.message}`);
     }
   };
 
   const handleRemoveFromExclusions = async (targetUsername) => {
-    if (!window.confirm(`Remove ${targetUsername} from exclusions (unblock)?`)) return;
-    
     try {
       await api.delete(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       setDashboardData(prev => ({
@@ -146,15 +138,12 @@ const Dashboard = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
-      alert(`✅ Removed ${targetUsername} from exclusions`);
     } catch (err) {
-      alert(`❌ Failed to remove from exclusions: ${err.message}`);
+      console.error(`Failed to remove from exclusions: ${err.message}`);
     }
   };
 
   const handleDeleteMessage = async (messageId, fromUsername) => {
-    if (!window.confirm(`Delete conversation with ${fromUsername}?`)) return;
-    
     try {
       // For now, just remove from UI - backend endpoint needs to be created
       setDashboardData(prev => ({
@@ -163,15 +152,12 @@ const Dashboard = () => {
           (typeof m === 'string' ? m : m.username) !== fromUsername
         )
       }));
-      alert(`✅ Removed conversation with ${fromUsername}`);
     } catch (err) {
-      alert(`❌ Failed to delete message: ${err.message}`);
+      console.error(`Failed to delete message: ${err.message}`);
     }
   };
 
   const handleClearViewHistory = async (viewerUsername) => {
-    if (!window.confirm(`Remove ${viewerUsername} from your profile viewers?`)) return;
-    
     try {
       // For now, just remove from UI - backend endpoint needs to be created
       setDashboardData(prev => ({
@@ -180,15 +166,12 @@ const Dashboard = () => {
           (typeof v === 'string' ? v : v.username) !== viewerUsername
         )
       }));
-      alert(`✅ Removed ${viewerUsername} from view history`);
     } catch (err) {
-      alert(`❌ Failed to clear view history: ${err.message}`);
+      console.error(`Failed to clear view history: ${err.message}`);
     }
   };
 
   const handleCancelPIIRequest = async (requestUsername) => {
-    if (!window.confirm(`Cancel PII request from ${requestUsername}?`)) return;
-    
     try {
       // For now, just remove from UI - backend endpoint needs to be created  
       setDashboardData(prev => ({
@@ -197,9 +180,8 @@ const Dashboard = () => {
           (typeof r === 'string' ? r : r.username) !== requestUsername
         )
       }));
-      alert(`✅ Cancelled PII request from ${requestUsername}`);
     } catch (err) {
-      alert(`❌ Failed to cancel request: ${err.message}`);
+      console.error(`Failed to cancel request: ${err.message}`);
     }
   };
 
