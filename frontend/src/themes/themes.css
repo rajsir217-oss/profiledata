@@ -1,96 +1,98 @@
 /* ========================================
-   PROFESSIONAL THEME SYSTEM
+   COZY & SMOOTH THEME SYSTEM
    ======================================== */
 
-/* Import professional font */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+/* Import cozy fonts */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Nunito:wght@300;400;500;600;700&display=swap');
 
-/* Default CSS Variables (Professional Light) */
+/* Default CSS Variables (Cozy Light) */
 :root {
-  /* Primary Colors */
-  --primary-color: #0052ff;
-  --secondary-color: #7c83ff;
-  --accent-color: #188fff;
+  /* Primary Colors - Warmer, softer */
+  --primary-color: #6366f1;
+  --secondary-color: #a78bfa;
+  --accent-color: #f59e0b;
   
-  /* Backgrounds */
-  --background-color: #ffffff;
-  --surface-color: #f8f9fa;
+  /* Backgrounds - Warmer tones */
+  --background-color: #fefefe;
+  --surface-color: #faf8f5;
   --card-background: #ffffff;
   
-  /* Text Colors */
-  --text-color: #000000;
-  --text-secondary: #787b86;
-  --text-muted: #a0a3bd;
+  /* Text Colors - Softer contrast */
+  --text-color: #1f2937;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
   
-  /* Borders & Dividers */
-  --border-color: #e0e3eb;
-  --divider-color: #eff2f5;
+  /* Borders & Dividers - Softer */
+  --border-color: #f3f4f6;
+  --divider-color: #fef3c7;
   
-  /* Interactive States */
-  --hover-background: #f0f2f5;
-  --active-background: #e6e9f0;
-  --selected-background: rgba(0, 82, 255, 0.08);
+  /* Interactive States - Cozy */
+  --hover-background: #fef3c7;
+  --active-background: #fed7aa;
+  --selected-background: rgba(99, 102, 241, 0.1);
   
-  /* Status Colors (Professional style) */
-  --success-color: #0caf50;
-  --danger-color: #ff333a;
-  --warning-color: #ff9800;
-  --info-color: #188fff;
+  /* Status Colors - Softer */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #6366f1;
   
-  /* Typography */
-  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-size-xs: 11px;
-  --font-size-sm: 13px;
-  --font-size-base: 14px;
-  --font-size-lg: 16px;
-  --font-size-xl: 20px;
-  --font-size-2xl: 24px;
+  /* Typography - Friendly fonts */
+  --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 21px;
+  --font-size-2xl: 26px;
   
-  /* Spacing */
-  --spacing-xs: 4px;
-  --spacing-sm: 8px;
-  --spacing-md: 12px;
-  --spacing-lg: 16px;
-  --spacing-xl: 24px;
+  /* Spacing - More breathing room */
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 32px;
   
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  /* Shadows - Softer, warmer */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.07), 0 4px 10px rgba(0, 0, 0, 0.03);
+  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
   
-  /* Border Radius */
-  --radius-sm: 4px;
-  --radius-md: 8px;
-  --radius-lg: 12px;
+  /* Border Radius - Rounder for coziness */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
 }
 
 /* ========================================
-   PROFESSIONAL LIGHT THEME (Default)
+   COZY LIGHT THEME (Default)
    ======================================== */
 body.theme-light-blue {
-  /* Primary Colors */
-  --primary-color: #0052ff;
-  --secondary-color: #7c83ff;
-  --accent-color: #188fff;
+  /* Primary Colors - Warm indigo */
+  --primary-color: #6366f1;
+  --secondary-color: #a78bfa;
+  --accent-color: #f59e0b;
   
-  /* Backgrounds */
-  --background-color: #ffffff;
-  --surface-color: #f8f9fa;
+  /* Backgrounds - Warm whites */
+  --background-color: #fffbf7;
+  --surface-color: #fef6ee;
   --card-background: #ffffff;
   
-  /* Text Colors */
-  --text-color: #000000;
-  --text-secondary: #787b86;
-  --text-muted: #a0a3bd;
+  /* Text Colors - Soft contrast */
+  --text-color: #374151;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
   
-  /* Borders & Dividers */
-  --border-color: #e0e3eb;
-  --divider-color: #eff2f5;
+  /* Borders & Dividers - Soft */
+  --border-color: #f9fafb;
+  --divider-color: #fef3c7;
   
-  /* Interactive States */
-  --hover-background: #f0f2f5;
-  --active-background: #e6e9f0;
-  --selected-background: rgba(0, 82, 255, 0.08);
+  /* Interactive States - Warm */
+  --hover-background: #fef3c7;
+  --active-background: #fed7aa;
+  --selected-background: rgba(99, 102, 241, 0.08);
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -137,38 +139,38 @@ body.theme-light-blue {
 }
 
 /* ========================================
-   PROFESSIONAL DARK THEME
+   COZY DARK THEME
    ======================================== */
 body.theme-dark {
-  /* Primary Colors */
-  --primary-color: #5b7fff;
-  --secondary-color: #8b9fff;
-  --accent-color: #4a9fff;
+  /* Primary Colors - Warm purple */
+  --primary-color: #a78bfa;
+  --secondary-color: #c4b5fd;
+  --accent-color: #fbbf24;
   
-  /* Backgrounds */
-  --background-color: #0a0e13;
-  --surface-color: #131722;
-  --card-background: #1e222d;
+  /* Backgrounds - Warm darks */
+  --background-color: #1a1625;
+  --surface-color: #221f2e;
+  --card-background: #2a2438;
   
-  /* Text Colors */
-  --text-color: #d1d4dc;
-  --text-secondary: #787b86;
-  --text-muted: #4a4e5a;
+  /* Text Colors - Softer contrast */
+  --text-color: #e5e7eb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
   
-  /* Borders & Dividers */
-  --border-color: #2a2e39;
-  --divider-color: #1e222d;
+  /* Borders & Dividers - Subtle */
+  --border-color: #374151;
+  --divider-color: #2a2438;
   
-  /* Interactive States */
-  --hover-background: #2a2e39;
-  --active-background: #363a45;
-  --selected-background: rgba(91, 127, 255, 0.12);
+  /* Interactive States - Warm glow */
+  --hover-background: #3a3548;
+  --active-background: #4a4558;
+  --selected-background: rgba(167, 139, 250, 0.15);
   
-  /* Status Colors (Professional style) */
-  --success-color: #0caf50;
-  --danger-color: #ff333a;
-  --warning-color: #ff9800;
-  --info-color: #4a9fff;
+  /* Status Colors - Softer */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #fbbf24;
+  --info-color: #a78bfa;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -246,38 +248,38 @@ body.theme-dark {
 }
 
 /* ========================================
-   PROFESSIONAL CLASSIC THEME (Gray)
+   COZY ROSE THEME
    ======================================== */
 body.theme-light-pink {
-  /* Primary Colors */
-  --primary-color: #570df8;
-  --secondary-color: #7c3aed;
-  --accent-color: #6366f1;
+  /* Primary Colors - Warm rose */
+  --primary-color: #ec4899;
+  --secondary-color: #f9a8d4;
+  --accent-color: #fbbf24;
   
-  /* Backgrounds */
-  --background-color: #f5f5f5;
-  --surface-color: #fafafa;
+  /* Backgrounds - Soft pink tones */
+  --background-color: #fdf2f8;
+  --surface-color: #fce7f3;
   --card-background: #ffffff;
   
-  /* Text Colors */
-  --text-color: #1a1a1a;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
+  /* Text Colors - Gentle contrast */
+  --text-color: #4a5568;
+  --text-secondary: #718096;
+  --text-muted: #a0aec0;
   
-  /* Borders & Dividers */
-  --border-color: #e5e7eb;
-  --divider-color: #f3f4f6;
+  /* Borders & Dividers - Soft pink */
+  --border-color: #fed7e2;
+  --divider-color: #fbcfe8;
   
-  /* Interactive States */
-  --hover-background: #f9fafb;
-  --active-background: #f3f4f6;
-  --selected-background: rgba(87, 13, 248, 0.08);
+  /* Interactive States - Rose glow */
+  --hover-background: #fce7f3;
+  --active-background: #fbcfe8;
+  --selected-background: rgba(236, 72, 153, 0.08);
   
-  /* Status Colors (Professional style) */
-  --success-color: #0caf50;
-  --danger-color: #ff333a;
-  --warning-color: #ff9800;
-  --info-color: #6366f1;
+  /* Status Colors - Soft palette */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #fbbf24;
+  --info-color: #ec4899;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -345,98 +347,175 @@ body.theme-light-pink {
 }
 
 /* ========================================
-   PROFESSIONAL GLOBAL STYLES
+   COZY & SMOOTH GLOBAL STYLES
    ======================================== */
 
-/* Typography */
+/* Typography - Cozy & Readable */
 body {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.65;
+  letter-spacing: 0.02em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-weight: 600;
-  line-height: 1.2;
+  line-height: 1.4;
   margin: 0;
+  letter-spacing: -0.02em;
 }
 
-/* Clean Card Style (Professional) */
+/* Cozy Card Style with Smooth Animations */
 .user-card,
 .dashboard-section,
 .stat-card,
 .preferences-section,
 .card {
   border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  box-shadow: none;
-  transition: all 0.2s ease;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(255,255,255,0.95) 100%);
+  overflow: hidden;
+  position: relative;
+}
+
+.user-card::before,
+.dashboard-section::before,
+.stat-card::before,
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.8s ease;
+}
+
+.user-card:hover::before,
+.dashboard-section:hover::before,
+.stat-card:hover::before,
+.card:hover::before {
+  left: 100%;
 }
 
 .user-card:hover,
 .dashboard-section:hover,
 .stat-card:hover,
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   border-color: var(--primary-color);
+  transform: translateY(-4px) scale(1.02);
+  background: var(--card-background);
 }
 
-/* Button Styles (Professional) */
+/* Smooth Button Styles */
 button, .btn {
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
   font-weight: 500;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  transition: all 0.15s ease;
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-xl);
+  border: none;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
-}
-
-button:hover, .btn:hover {
-  transform: translateY(-1px);
+  position: relative;
+  overflow: hidden;
   box-shadow: var(--shadow-sm);
 }
 
-/* Input Styles (Professional) */
+button::after, .btn::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+button:hover::after, .btn:hover::after {
+  width: 300px;
+  height: 300px;
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Cozy Input Styles */
 input, select, textarea {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
   background: var(--card-background);
   color: var(--text-color);
-  transition: all 0.15s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 input:focus, select:focus, textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--selected-background);
+  box-shadow: 0 0 0 4px var(--selected-background), var(--shadow-glow);
+  transform: scale(1.02);
+  background: var(--surface-color);
 }
 
-/* Sidebar Professional Style */
+/* Cozy Sidebar Style */
 .sidebar {
-  background: var(--card-background);
-  border-right: 1px solid var(--border-color);
-  box-shadow: none;
+  background: rgba(var(--card-background), 0.95);
+  backdrop-filter: blur(10px);
+  border-right: none;
+  box-shadow: var(--shadow-md);
 }
 
 .sidebar-item {
   font-size: var(--font-size-sm);
   font-weight: 500;
-  padding: var(--spacing-md);
-  border-radius: var(--radius-sm);
-  transition: all 0.15s ease;
+  padding: var(--spacing-lg);
+  margin: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.sidebar-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 0;
+  background: var(--primary-color);
+  transition: height 0.3s ease;
+  border-radius: 2px;
 }
 
 .sidebar-item:hover {
   background: var(--hover-background);
   color: var(--primary-color);
+  padding-left: calc(var(--spacing-lg) + 8px);
+  transform: scale(1.03);
+}
+
+.sidebar-item:hover::before {
+  height: 70%;
 }
 
 /* Section Headers */
@@ -476,10 +555,14 @@ tr:hover {
 }
 
 /* ========================================
-   GLOBAL THEME TRANSITIONS
+   SMOOTH GLOBAL TRANSITIONS
    ======================================== */
 body {
-  transition: background-color 0.3s ease, color 0.3s ease;
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dashboard-container,
@@ -496,10 +579,52 @@ body {
 input,
 select,
 textarea {
-  transition: background-color 0.2s ease, 
-              color 0.2s ease, 
-              border-color 0.2s ease,
-              box-shadow 0.2s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Smooth page animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Apply smooth entrance animation */
+.dashboard-container,
+.search-page,
+.profile-container,
+.preferences-container {
+  animation: fadeIn 0.6s ease-out;
+}
+
+.user-card {
+  animation: fadeIn 0.8s ease-out;
+  animation-fill-mode: both;
+}
+
+.user-card:nth-child(1) { animation-delay: 0.1s; }
+.user-card:nth-child(2) { animation-delay: 0.15s; }
+.user-card:nth-child(3) { animation-delay: 0.2s; }
+.user-card:nth-child(4) { animation-delay: 0.25s; }
+.user-card:nth-child(5) { animation-delay: 0.3s; }
+
+/* Smooth hover pulse for important elements */
+.stat-value {
+  animation: pulse 2s infinite;
 }
 
 /* ========================================

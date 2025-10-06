@@ -6,39 +6,40 @@ const Preferences = () => {
     localStorage.getItem('appTheme') || 'light-blue'
   );
   const [showSaveMessage, setShowSaveMessage] = useState(false);
+  const [fadeOut, setFadeOut] = useState(false);
 
   const themes = [
     {
       id: 'light-blue',
-      name: 'Professional Light',
-      description: 'Clean and modern light theme for daily use',
+      name: 'Cozy Light',
+      description: 'Warm and inviting light theme with soft colors',
       preview: {
-        primary: '#0052ff',
-        secondary: '#188fff',
-        background: '#ffffff',
-        text: '#000000'
+        primary: '#6366f1',
+        secondary: '#a78bfa',
+        background: '#fffbf7',
+        text: '#374151'
       }
     },
     {
       id: 'dark',
-      name: 'Professional Dark',
-      description: 'High contrast dark mode for reduced eye strain',
+      name: 'Cozy Night',
+      description: 'Warm purple dark mode for comfortable evening browsing',
       preview: {
-        primary: '#5b7fff',
-        secondary: '#4a9fff',
-        background: '#0a0e13',
-        text: '#d1d4dc'
+        primary: '#a78bfa',
+        secondary: '#c4b5fd',
+        background: '#1a1625',
+        text: '#e5e7eb'
       }
     },
     {
       id: 'light-pink',
-      name: 'Professional Classic',
-      description: 'Elegant gray theme with purple accents',
+      name: 'Cozy Rose',
+      description: 'Soft rose theme with gentle pink accents',
       preview: {
-        primary: '#570df8',
-        secondary: '#6366f1',
-        background: '#f5f5f5',
-        text: '#1a1a1a'
+        primary: '#ec4899',
+        secondary: '#f9a8d4',
+        background: '#fdf2f8',
+        text: '#4a5568'
       }
     }
   ];
@@ -62,10 +63,17 @@ const Preferences = () => {
     setSelectedTheme(themeId);
     localStorage.setItem('appTheme', themeId);
     setShowSaveMessage(true);
+    setFadeOut(false);
     
-    // Hide save message after 2 seconds
+    // Start fade out animation after 1.5 seconds
+    setTimeout(() => {
+      setFadeOut(true);
+    }, 1500);
+    
+    // Actually hide the message after animation completes
     setTimeout(() => {
       setShowSaveMessage(false);
+      setFadeOut(false);
     }, 2000);
   };
 
@@ -77,8 +85,9 @@ const Preferences = () => {
       </div>
 
       {showSaveMessage && (
-        <div className="save-message">
-          ✅ Theme saved successfully!
+        <div className={`save-message ${fadeOut ? 'fade-out' : ''}`}>
+          <span>✅</span>
+          <span>Theme saved successfully!</span>
         </div>
       )}
 

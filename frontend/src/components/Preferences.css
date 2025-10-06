@@ -28,25 +28,57 @@
   opacity: 0.9;
 }
 
-/* Save Message */
+/* Save Message - Floating Bubble */
 .save-message {
-  background: #4caf50;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
   color: white;
-  padding: 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 16px 24px;
+  border-radius: 50px;
+  box-shadow: 0 8px 32px rgba(76, 175, 80, 0.3), 0 4px 12px rgba(0, 0, 0, 0.1);
   text-align: center;
-  animation: slideDown 0.3s ease;
+  font-weight: 500;
+  font-size: 14px;
+  z-index: 1000;
+  animation: bubbleIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-@keyframes slideDown {
-  from {
-    transform: translateY(-20px);
+.save-message.fade-out {
+  animation: bubbleOut 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes bubbleIn {
+  0% {
+    transform: scale(0) translateY(-20px);
     opacity: 0;
   }
-  to {
-    transform: translateY(0);
+  50% {
+    transform: scale(1.1) translateY(0);
+  }
+  100% {
+    transform: scale(1) translateY(0);
     opacity: 1;
+  }
+}
+
+@keyframes bubbleOut {
+  0% {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1) translateY(0);
+  }
+  100% {
+    transform: scale(0) translateY(-20px);
+    opacity: 0;
   }
 }
 
@@ -174,5 +206,43 @@
   
   .preferences-section {
     padding: 15px;
+  }
+  
+  /* Adjust save message position on mobile */
+  .save-message {
+    top: auto;
+    bottom: 20px;
+    right: 50%;
+    transform: translateX(50%);
+    font-size: 13px;
+    padding: 12px 20px;
+  }
+  
+  @keyframes bubbleIn {
+    0% {
+      transform: translateX(50%) scale(0) translateY(20px);
+      opacity: 0;
+    }
+    50% {
+      transform: translateX(50%) scale(1.1) translateY(0);
+    }
+    100% {
+      transform: translateX(50%) scale(1) translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes bubbleOut {
+    0% {
+      transform: translateX(50%) scale(1) translateY(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateX(50%) scale(1.1) translateY(0);
+    }
+    100% {
+      transform: translateX(50%) scale(0) translateY(20px);
+      opacity: 0;
+    }
   }
 }
