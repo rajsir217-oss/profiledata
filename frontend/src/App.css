@@ -3,19 +3,26 @@
   width: 100%;
   min-height: 100vh;
   position: relative;
+  overflow-x: hidden;
 }
 
 /* App Layout */
 .app-layout {
   padding-top: 60px;
   width: 100%;
-  margin-left: 0;
+  padding-left: 0;
   position: relative;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: padding-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .app-layout.sidebar-open {
-  margin-left: 280px;
+  padding-left: 280px;
+}
+
+/* Force all direct children to respect the layout shift */
+.app-layout.sidebar-open > * {
+  margin-left: 0 !important;
+  max-width: 100% !important;
 }
 
 /* Main Content */
@@ -45,7 +52,7 @@
 @media (max-width: 768px) {
   /* Tablet adjustments */
   .app-layout.sidebar-open {
-    margin-left: 250px;
+    padding-left: 250px;
   }
   
   .top-bar.sidebar-open {
@@ -61,7 +68,7 @@
 @media (max-width: 576px) {
   /* Mobile: sidebar overlays instead of push */
   .app-layout.sidebar-open {
-    margin-left: 0; /* No push on mobile */
+    padding-left: 0; /* No push on mobile */
   }
   
   .top-bar.sidebar-open {
