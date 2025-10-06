@@ -2,6 +2,7 @@
 
 # Quick git workflow script - gitp (git push)
 # Usage: ./gitp.sh ["Your commit message"]
+# Note: Timestamp is automatically appended to all commit messages
 
 set -e  # Exit on any error
 
@@ -34,12 +35,17 @@ generate_default_message() {
     echo "changes made on $(date '+%Y-%m-%d | %H:%M:%S')"
 }
 
+# Get current timestamp
+TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
 # Check if commit message is provided, otherwise use default
 if [ $# -eq 0 ]; then
     COMMIT_MESSAGE=$(generate_default_message)
     print_status "No commit message provided, using: \"$COMMIT_MESSAGE\""
 else
-    COMMIT_MESSAGE="$1"
+    # Append timestamp to provided message
+    COMMIT_MESSAGE="$1 [$TIMESTAMP]"
+    print_status "Appending timestamp to your message"
 fi
 
 # Check if we're in a git repository
