@@ -8,19 +8,15 @@
 
 /* App Layout */
 .app-layout {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   padding-top: 60px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-y: auto;
+  min-height: 100vh;
+  margin-left: 0;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background-color: #f5f7fa;
 }
 
 .app-layout.sidebar-open {
-  left: 280px;
-  width: calc(100% - 280px);
+  margin-left: 280px;
 }
 
 /* Main Content */
@@ -41,8 +37,7 @@
 @media (max-width: 768px) {
   /* Tablet adjustments */
   .app-layout.sidebar-open {
-    left: 250px;
-    width: calc(100% - 250px);
+    margin-left: 250px;
   }
   
   .top-bar.sidebar-open {
@@ -58,8 +53,7 @@
 @media (max-width: 576px) {
   /* Mobile: sidebar overlays instead of push */
   .app-layout.sidebar-open {
-    left: 0;
-    width: 100%;
+    margin-left: 0;
   }
   
   .top-bar.sidebar-open {

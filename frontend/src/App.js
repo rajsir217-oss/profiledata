@@ -32,9 +32,7 @@ function App() {
   }, []);
 
   const handleSidebarToggle = () => {
-    console.log('Sidebar toggle clicked. Current state:', isSidebarCollapsed);
     setIsSidebarCollapsed(!isSidebarCollapsed);
-    console.log('New state will be:', !isSidebarCollapsed);
   };
 
   return (
