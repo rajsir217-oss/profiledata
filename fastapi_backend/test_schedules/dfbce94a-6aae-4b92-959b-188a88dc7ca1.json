@@ -1,0 +1,14 @@
+{
+  "id": "dfbce94a-6aae-4b92-959b-188a88dc7ca1",
+  "name": "test",
+  "testType": "all",
+  "schedule": "daily",
+  "time": "09:40",
+  "daysOfWeek": [],
+  "enabled": true,
+  "description": "test",
+  "lastRun": "2025-10-06T09:40:40.588705",
+  "nextRun": "2025-10-07 09:40",
+  "createdAt": "2025-10-06T09:17:28.945755",
+  "updatedAt": "2025-10-06T09:36:39.479724"
+}

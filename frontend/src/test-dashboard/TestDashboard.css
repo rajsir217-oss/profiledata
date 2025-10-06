@@ -1,7 +1,7 @@
 /* Test Dashboard Styles */
 .test-dashboard {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
 }
@@ -12,18 +12,50 @@
   align-items: center;
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid #e1e4e8;
 }
 
 .dashboard-header h1 {
   margin: 0;
-  color: #333;
+  color: #24292e;
+  font-size: 2rem;
 }
 
-.header-actions {
+/* Tabs Navigation */
+.dashboard-tabs {
+  margin-top: 20px;
+}
+
+.tabs-nav {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  gap: 10px;
+  border-bottom: 2px solid #e1e4e8;
+  margin-bottom: 20px;
+}
+
+.tab-button {
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  color: #586069;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+  color: #0366d6;
+}
+
+.tab-button.active {
+  color: #0366d6;
+  border-bottom-color: #0366d6;
+}
+
+.tab-content {
+  padding: 20px 0;
 }
 
 .dashboard-content {
@@ -151,6 +183,36 @@
   background-color: #545b62;
 }
 
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background-color: #c82333;
+}
+
+.btn-delete {
+  background: transparent;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  padding: 4px 8px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-delete:hover:not(:disabled) {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .btn-disabled {
   background-color: #ccc;
   color: #666;
@@ -214,6 +276,12 @@
   border-radius: 8px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .no-results {
   text-align: center;
   padding: 40px;
@@ -243,14 +311,22 @@
 .result-header {
   padding: 15px;
   background: #f8f9fa;
-  cursor: pointer;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 10px;
 }
 
-.result-header:hover {
-  background: #e9ecef;
+.result-header-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+}
+
+.result-header-content:hover {
+  opacity: 0.8;
 }
 
 .result-info {
@@ -371,6 +447,206 @@
 .error p {
   color: #666;
   margin-bottom: 20px;
+}
+
+/* Admin Notice */
+.admin-notice {
+  color: #ff9800;
+  font-size: 14px;
+  font-style: italic;
+  padding: 8px 12px;
+  background: #fff3e0;
+  border-left: 3px solid #ff9800;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+/* Test Scheduler Styles */
+.test-scheduler {
+  padding: 20px 0;
+}
+
+.scheduler-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.schedule-form-container {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-form h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #555;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+.days-selector {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.day-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.day-checkbox input[type="checkbox"] {
+  width: auto;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  justify-content: flex-end;
+}
+
+.schedules-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+}
+
+.schedule-card {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-card .schedule-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.schedule-card h4 {
+  margin: 0;
+  color: #333;
+}
+
+.schedule-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.btn-toggle,
+.btn-edit,
+.btn-run-now {
+  background: transparent;
+  border: 1px solid #ddd;
+  padding: 4px 8px;
+  font-size: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-run-now {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+.btn-run-now:hover {
+  background-color: #4caf50;
+  color: white;
+}
+
+.btn-run-now:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-toggle.enabled {
+  border-color: #4caf50;
+}
+
+.btn-toggle.disabled {
+  border-color: #ff9800;
+}
+
+.btn-edit:hover {
+  background-color: #f0f0f0;
+}
+
+.schedule-details .detail {
+  margin-bottom: 8px;
+  display: flex;
+  gap: 10px;
+}
+
+.schedule-details .label {
+  font-weight: 500;
+  color: #666;
+  min-width: 120px;
+}
+
+.schedule-details .value {
+  color: #333;
+}
+
+.status-enabled {
+  color: #4caf50;
+  font-weight: 500;
+}
+
+.status-disabled {
+  color: #ff9800;
+  font-weight: 500;
+}
+
+.no-schedules {
+  text-align: center;
+  padding: 40px;
+  color: #666;
 }
 
 /* Responsive Design */

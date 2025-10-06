@@ -73,7 +73,8 @@
 
 /* Buttons */
 .btn-logout,
-.btn-login {
+.btn-login,
+.btn-test-dashboard {
   padding: 8px 20px;
   background: rgba(255, 255, 255, 0.9);
   color: #667eea;
@@ -88,11 +89,22 @@
   gap: 5px;
 }
 
+.btn-test-dashboard {
+  background: rgba(255, 200, 87, 0.9);
+  color: #333;
+  margin-right: 10px;
+}
+
 .btn-logout:hover,
-.btn-login:hover {
+.btn-login:hover,
+.btn-test-dashboard:hover {
   background: white;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-test-dashboard:hover {
+  background: #FFC857;
 }
 
 .btn-logout:active,

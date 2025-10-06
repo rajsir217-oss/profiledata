@@ -129,10 +129,23 @@ describe('Profile Component', () => {
     const api = require('../../api');
     api.get.mockRejectedValue(new Error('API Error'));
 
+    // Suppress console.error for this test since we expect an error
+    const originalError = console.error;
+    console.error = jest.fn();
+
     render(<Profile />);
 
     await waitFor(() => {
       expect(screen.getByText('Unable to load profile')).toBeInTheDocument();
     });
+
+    // Verify that console.error was called with the expected error
+    expect(console.error).toHaveBeenCalledWith(
+      "Error fetching profile:",
+      expect.any(Error)
+    );
+
+    // Restore console.error
+    console.error = originalError;
   });
 });

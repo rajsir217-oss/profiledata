@@ -1,6 +1,6 @@
 import React from 'react';
 
-const TestSuiteCard = ({ testSuite, onRunTests, isRunning }) => {
+const TestSuiteCard = ({ testSuite, onRunTests, isRunning, isAdmin = false }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'passed':
@@ -50,13 +50,17 @@ const TestSuiteCard = ({ testSuite, onRunTests, isRunning }) => {
       </div>
 
       <div className="card-actions">
-        <button
-          className={`btn ${isRunning ? 'btn-disabled' : 'btn-primary'}`}
-          onClick={() => onRunTests(testSuite.type)}
-          disabled={isRunning}
-        >
-          {isRunning ? 'Running...' : 'Run Tests'}
-        </button>
+        {isAdmin ? (
+          <button
+            className={`btn ${isRunning ? 'btn-disabled' : 'btn-primary'}`}
+            onClick={() => onRunTests(testSuite.type)}
+            disabled={isRunning}
+          >
+            {isRunning ? 'Running...' : 'Run Tests'}
+          </button>
+        ) : (
+          <span className="admin-notice">Admin access required to run tests</span>
+        )}
       </div>
     </div>
   );

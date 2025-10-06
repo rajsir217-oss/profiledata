@@ -154,6 +154,13 @@ const Sidebar = ({ onPinChange }) => {
         subLabel: 'Manage all users',
         action: () => navigate('/admin')
       });
+      
+      items.push({
+        icon: '🧪',
+        label: 'Test Dashboard',
+        subLabel: 'Run & schedule tests',
+        action: () => navigate('/test-dashboard')
+      });
     }
 
     // Add logout at the end

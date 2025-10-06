@@ -85,3 +85,85 @@ export const clearAllTestResults = async () => {
   }
   return response.json();
 };
+
+/**
+ * Get all scheduled tests
+ */
+export const getScheduledTests = async () => {
+  const response = await fetch(`${API_BASE_URL}/scheduled-tests`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch scheduled tests');
+  }
+  return response.json();
+};
+
+/**
+ * Create a new test schedule
+ */
+export const createSchedule = async (scheduleData) => {
+  const response = await fetch(`${API_BASE_URL}/scheduled-tests`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(scheduleData),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create schedule');
+  }
+  return response.json();
+};
+
+/**
+ * Update an existing test schedule
+ */
+export const updateSchedule = async (scheduleId, scheduleData) => {
+  const response = await fetch(`${API_BASE_URL}/scheduled-tests/${scheduleId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(scheduleData),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to update schedule');
+  }
+  return response.json();
+};
+
+/**
+ * Delete a test schedule
+ */
+export const deleteSchedule = async (scheduleId) => {
+  const response = await fetch(`${API_BASE_URL}/scheduled-tests/${scheduleId}`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete schedule');
+  }
+  return response.json();
+};
+
+/**
+ * Manually trigger a scheduled test to run now
+ */
+export const runScheduleNow = async (scheduleId) => {
+  const response = await fetch(`${API_BASE_URL}/scheduled-tests/${scheduleId}/run-now`, {
+    method: 'POST',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to trigger scheduled test');
+  }
+  return response.json();
+};
+
+/**
+ * Get scheduler status
+ */
+export const getSchedulerStatus = async () => {
+  const response = await fetch(`${API_BASE_URL}/scheduler-status`);
+  if (!response.ok) {
+    throw new Error('Failed to fetch scheduler status');
+  }
+  return response.json();
+};

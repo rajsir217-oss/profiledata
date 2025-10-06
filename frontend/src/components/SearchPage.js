@@ -13,7 +13,7 @@ const SearchPage = () => {
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(20);
+  const [recordsPerPage, setRecordsPerPage] = useState(20);
 
   // User interaction state
   const [users, setUsers] = useState([]);
@@ -66,6 +66,14 @@ const SearchPage = () => {
       setSavedSearches([]);
       setPiiRequests({});
       setPiiRequestCount(0);
+    }
+    
+    // Load initial search results (all profiles) after component mounts
+    // Only if user is logged in
+    if (username) {
+      setTimeout(() => {
+        handleSearch(1);
+      }, 100);
     }
   }, []);
 
@@ -296,6 +304,61 @@ const SearchPage = () => {
     }));
   };
 
+  const handleClearFilters = () => {
+    setSearchCriteria({
+      keyword: '',
+      gender: '',
+      ageMin: '',
+      ageMax: '',
+      heightMin: '',
+      heightMax: '',
+      location: '',
+      education: '',
+      occupation: '',
+      religion: '',
+      caste: '',
+      eatingPreference: '',
+      drinking: '',
+      smoking: '',
+      relationshipStatus: '',
+      bodyType: '',
+      newlyAdded: false,
+      sortBy: 'newest',
+      sortOrder: 'desc'
+    });
+    setCurrentPage(1);
+    setUsers([]);
+    setTotalResults(0);
+    setSaveSearchName('');
+  };
+
+  // Check if any filters are active and count them
+  const hasActiveFilters = () => {
+    return countActiveFilters() > 0;
+  };
+
+  const countActiveFilters = () => {
+    let count = 0;
+    if (searchCriteria.keyword !== '') count++;
+    if (searchCriteria.gender !== '') count++;
+    if (searchCriteria.ageMin !== '') count++;
+    if (searchCriteria.ageMax !== '') count++;
+    if (searchCriteria.heightMin !== '') count++;
+    if (searchCriteria.heightMax !== '') count++;
+    if (searchCriteria.location !== '') count++;
+    if (searchCriteria.education !== '') count++;
+    if (searchCriteria.occupation !== '') count++;
+    if (searchCriteria.religion !== '') count++;
+    if (searchCriteria.caste !== '') count++;
+    if (searchCriteria.eatingPreference !== '') count++;
+    if (searchCriteria.drinking !== '') count++;
+    if (searchCriteria.smoking !== '') count++;
+    if (searchCriteria.relationshipStatus !== '') count++;
+    if (searchCriteria.bodyType !== '') count++;
+    if (searchCriteria.newlyAdded === true) count++;
+    return count;
+  };
+
   const handleSearch = async (page = 1) => {
     try {
       setLoading(true);
@@ -304,7 +367,7 @@ const SearchPage = () => {
       const params = {
         ...searchCriteria,
         page: page,
-        limit: recordsPerPage
+        limit: 200  // Get more results from backend to handle client-side filtering
       };
 
       Object.keys(params).forEach(key => {
@@ -317,6 +380,7 @@ const SearchPage = () => {
 
       if (page === 1) {
         setUsers(response.data.users || []);
+        setCurrentPage(1); // Reset to first page on new search
       } else {
         setUsers(prev => [...prev, ...(response.data.users || [])]);
       }
@@ -334,6 +398,95 @@ const SearchPage = () => {
 
   const handleLoadMore = () => {
     handleSearch(currentPage + 1);
+  };
+
+  const handlePageChange = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= totalPages) {
+      setCurrentPage(pageNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxButtons = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+    
+    if (endPage - startPage + 1 < maxButtons) {
+      startPage = Math.max(1, endPage - maxButtons + 1);
+    }
+
+    // Previous button
+    buttons.push(
+      <button
+        key="prev"
+        className="btn btn-outline-primary"
+        onClick={() => handlePageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+      >
+        Previous
+      </button>
+    );
+
+    // First page
+    if (startPage > 1) {
+      buttons.push(
+        <button
+          key={1}
+          className="btn btn-outline-primary"
+          onClick={() => handlePageChange(1)}
+        >
+          1
+        </button>
+      );
+      if (startPage > 2) {
+        buttons.push(<span key="dots1" className="pagination-dots">...</span>);
+      }
+    }
+
+    // Page numbers
+    for (let i = startPage; i <= endPage; i++) {
+      buttons.push(
+        <button
+          key={i}
+          className={`btn ${i === currentPage ? 'btn-primary' : 'btn-outline-primary'}`}
+          onClick={() => handlePageChange(i)}
+        >
+          {i}
+        </button>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        buttons.push(<span key="dots2" className="pagination-dots">...</span>);
+      }
+      buttons.push(
+        <button
+          key={totalPages}
+          className="btn btn-outline-primary"
+          onClick={() => handlePageChange(totalPages)}
+        >
+          {totalPages}
+        </button>
+      );
+    }
+
+    // Next button
+    buttons.push(
+      <button
+        key="next"
+        className="btn btn-outline-primary"
+        onClick={() => handlePageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+      >
+        Next
+      </button>
+    );
+
+    return buttons;
   };
 
   const handleSaveSearch = async () => {
@@ -370,6 +523,13 @@ const SearchPage = () => {
     setSearchCriteria(savedSearch.criteria);
     setSaveSearchName(savedSearch.name);
     setShowSavedSearches(false);
+    setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
+    // Automatically perform search with loaded criteria
+    setTimeout(() => {
+      handleSearch(1);
+    }, 100);
+    // Clear status message after 3 seconds
+    setTimeout(() => setStatusMessage(''), 3000);
   };
 
   const handleDeleteSavedSearch = async (searchId) => {
@@ -615,6 +775,7 @@ const SearchPage = () => {
   const indexOfLastRecord = currentPage * recordsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
   const currentRecords = filteredUsers.slice(indexOfFirstRecord, indexOfLastRecord);
+  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
 
   return (
     <div className="search-page">
@@ -635,7 +796,14 @@ const SearchPage = () => {
       <div className="search-container">
         <div className="search-filters">
           <div className="filters-header">
-            <h4>Search Filters</h4>
+            <h4>
+              Search Filters
+              {hasActiveFilters() && (
+                <span className="filters-count badge bg-info ms-2">
+                  {countActiveFilters()} active
+                </span>
+              )}
+            </h4>
             <div className="filter-actions">
               <button
                 className="btn btn-outline-primary btn-sm"
@@ -647,14 +815,29 @@ const SearchPage = () => {
           </div>
 
           <div className="search-button-section mb-3">
-            <button
-              type="button"
-              className="btn btn-primary btn-lg"
-              onClick={() => handleSearch(1)}
-              disabled={loading}
-            >
-              {loading ? 'Searching...' : 'Search Profiles'}
-            </button>
+            <div className="button-group">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => handleSearch(1)}
+                disabled={loading}
+                title="Search"
+              >
+                <span style={{ fontSize: '18px' }}>{loading ? '⟳' : '🔍'}</span>
+              </button>
+              <button
+                type="button"
+                className={`btn ${hasActiveFilters() ? 'btn-warning' : 'btn-outline-secondary'}`}
+                onClick={handleClearFilters}
+                disabled={loading || !hasActiveFilters()}
+                title="Clear Filters"
+              >
+                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>✕</span>
+                {hasActiveFilters() && (
+                  <small className="badge bg-danger ms-1">{countActiveFilters()}</small>
+                )}
+              </button>
+            </div>
           </div>
 
           {showSavedSearches && (
@@ -985,10 +1168,48 @@ const SearchPage = () => {
 
         <div className="search-results">
           <div className="results-header">
-            <h4>Search Results</h4>
-            <div className="results-info">
-              <span className="badge bg-primary">Total: {totalResults}</span>
-              <span className="badge bg-success ms-2">Filtered: {filteredUsers.length}</span>
+            <div className="results-title-section">
+              <h4>Search Results</h4>
+              <div className="results-info">
+                {users.length > 0 ? (
+                  <>
+                    <span className="badge bg-primary">Database: {totalResults} profiles</span>
+                    <span className="badge bg-success ms-2">Showing: {filteredUsers.length}</span>
+                    {users.length !== filteredUsers.length && (
+                      <span className="badge bg-warning ms-2">
+                        {users.length - filteredUsers.length} hidden (excluded)
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <span className="badge bg-secondary">No search performed yet</span>
+                )}
+              </div>
+            </div>
+            <div className="results-controls">
+              <button 
+                className="btn btn-sm btn-outline-primary"
+                onClick={() => handleSearch(1)}
+                disabled={loading}
+                title="Refresh results"
+              >
+                🔄
+              </button>
+              <label htmlFor="perPage" className="per-page-label">Show:</label>
+              <select 
+                id="perPage"
+                className="form-select form-select-sm per-page-select"
+                value={recordsPerPage}
+                onChange={(e) => {
+                  setRecordsPerPage(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+              >
+                <option value="10">10 per page</option>
+                <option value="20">20 per page</option>
+                <option value="50">50 per page</option>
+                <option value="100">100 per page</option>
+              </select>
             </div>
           </div>
 
@@ -1111,15 +1332,21 @@ const SearchPage = () => {
             ))}
           </div>
 
-          {filteredUsers.length > currentRecords.length && (
-            <div className="text-center mt-4">
-              <button
-                className="btn btn-outline-primary"
-                onClick={handleLoadMore}
-                disabled={loading}
-              >
-                {loading ? 'Loading...' : 'Load More'}
-              </button>
+          {filteredUsers.length > 0 && (
+            <div className="pagination-container">
+              <div className="pagination-info">
+                Showing {indexOfFirstRecord + 1}-{Math.min(indexOfLastRecord, filteredUsers.length)} of {filteredUsers.length} filtered results
+                {totalResults > 0 && totalResults !== filteredUsers.length && (
+                  <span className="text-muted ms-2">
+                    ({totalResults} total in database)
+                  </span>
+                )}
+              </div>
+              {totalPages > 1 && (
+                <div className="pagination-controls">
+                  {renderPaginationButtons()}
+                </div>
+              )}
             </div>
           )}
         </div>

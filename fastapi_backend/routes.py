@@ -637,7 +637,8 @@ async def search_users(
     sortBy: str = "newest",
     sortOrder: str = "desc",
     page: int = 1,
-    limit: int = 20
+    limit: int = 20,
+    db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
     logger.info(f"🔍 Search request - keyword: '{keyword}', page: {page}, limit: {limit}")

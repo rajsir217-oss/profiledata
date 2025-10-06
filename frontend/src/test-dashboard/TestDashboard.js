@@ -3,6 +3,7 @@ import { getTestSuites, getTestResults, runTests, getTestStatus } from './testAp
 import TestSuiteCard from './TestSuiteCard';
 import TestResultsList from './TestResultsList';
 import TestStatusIndicator from './TestStatusIndicator';
+import TestScheduler from './TestScheduler';
 import './TestDashboard.css';
 
 const TestDashboard = () => {
@@ -11,6 +12,8 @@ const TestDashboard = () => {
   const [testStatus, setTestStatus] = useState({ is_running: false, running_tests: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
@@ -62,6 +65,13 @@ const TestDashboard = () => {
     loadData();
   }, [loadData]);
 
+  // Check if user is admin
+  useEffect(() => {
+    const userRole = localStorage.getItem('userRole');
+    const username = localStorage.getItem('username');
+    setIsAdmin(userRole === 'admin' || username === 'admin');
+  }, []);
+
   // Load initial data
   useEffect(() => {
     loadData();
@@ -80,6 +90,18 @@ const TestDashboard = () => {
     return (
       <div className="test-dashboard">
         <div className="loading">Loading test dashboard...</div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="test-dashboard">
+        <div className="error">
+          <h2>Access Denied</h2>
+          <p>You must be an administrator to access the Test Dashboard.</p>
+          <p>Please login with an admin account to continue.</p>
+        </div>
       </div>
     );
   }
@@ -110,28 +132,76 @@ const TestDashboard = () => {
         </div>
       </header>
 
-      <div className="dashboard-content">
-        <section className="test-suites-section">
-          <h2>Test Suites</h2>
-          <div className="test-suites-grid">
-            {testSuites.map((suite) => (
-              <TestSuiteCard
-                key={suite.type}
-                testSuite={suite}
-                onRunTests={handleRunTests}
-                isRunning={testStatus.running_tests.some(t => t.test_type === suite.type)}
-              />
-            ))}
-          </div>
-        </section>
+      <div className="dashboard-tabs">
+        <div className="tabs-nav">
+          <button
+            className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveTab('dashboard')}
+          >
+            📊 Dashboard
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
+            onClick={() => setActiveTab('results')}
+          >
+            📝 Results
+          </button>
+          <button
+            className={`tab-button ${activeTab === 'scheduler' ? 'active' : ''}`}
+            onClick={() => setActiveTab('scheduler')}
+          >
+            ⏰ Scheduler
+          </button>
+        </div>
 
-        <section className="test-results-section">
-          <h2>Test Results</h2>
-          <TestResultsList
-            testResults={testResults}
-            onRefresh={handleRefresh}
-          />
-        </section>
+        <div className="tab-content">
+          {activeTab === 'dashboard' && (
+            <div className="dashboard-content">
+              <section className="test-suites-section">
+                <h2>Test Suites</h2>
+                <div className="test-suites-grid">
+                  {testSuites.map((suite) => (
+                    <TestSuiteCard
+                      key={suite.type}
+                      testSuite={suite}
+                      onRunTests={handleRunTests}
+                      isRunning={testStatus.running_tests.some(t => t.test_type === suite.type)}
+                      isAdmin={isAdmin}
+                    />
+                  ))}
+                </div>
+              </section>
+
+              <section className="test-results-summary">
+                <h2>Recent Results</h2>
+                <TestResultsList
+                  testResults={Object.fromEntries(
+                    Object.entries(testResults).slice(0, 5)
+                  )}
+                  onRefresh={handleRefresh}
+                  isAdmin={isAdmin}
+                />
+              </section>
+            </div>
+          )}
+
+          {activeTab === 'results' && (
+            <section className="test-results-section">
+              <h2>All Test Results</h2>
+              <TestResultsList
+                testResults={testResults}
+                onRefresh={handleRefresh}
+                isAdmin={isAdmin}
+              />
+            </section>
+          )}
+
+          {activeTab === 'scheduler' && (
+            <section className="test-scheduler-section">
+              <TestScheduler testSuites={testSuites} isAdmin={isAdmin} />
+            </section>
+          )}
+        </div>
       </div>
     </div>
   );

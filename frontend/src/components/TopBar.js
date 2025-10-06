@@ -56,6 +56,10 @@ const TopBar = () => {
       navigate(`/profile/${currentUser}`);
     }
   };
+  
+  const handleTestDashboard = () => {
+    navigate('/test-dashboard');
+  };
 
   if (!isLoggedIn) {
     return (
@@ -81,6 +85,11 @@ const TopBar = () => {
           <h4 className="app-title">Matrimonial Profile</h4>
         </div>
         <div className="top-bar-right">
+          {currentUser === 'admin' && (
+            <button className="btn-test-dashboard" onClick={handleTestDashboard}>
+              🧪 Test Dashboard
+            </button>
+          )}
           <div className="user-info" onClick={handleProfile}>
             <span className="user-icon">👤</span>
             <span className="user-name">{currentUser}</span>

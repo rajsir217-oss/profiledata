@@ -7,18 +7,25 @@ import json
 import subprocess
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from pathlib import Path
 import os
-from fastapi import APIRouter, HTTPException, BackgroundTasks
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
+import uuid
+import schedule
+import threading
 
 router = APIRouter()
 
 # Test results storage
 TEST_RESULTS_DIR = Path("test_results")
 TEST_RESULTS_DIR.mkdir(exist_ok=True)
+
+# Test schedules storage
+TEST_SCHEDULES_DIR = Path("test_schedules")
+TEST_SCHEDULES_DIR.mkdir(exist_ok=True)
 
 class TestResult(BaseModel):
     """Model for storing test execution results."""
@@ -41,6 +48,21 @@ class TestSuite(BaseModel):
     command: str
     last_run: Optional[str] = None
     last_status: Optional[str] = None
+
+class TestSchedule(BaseModel):
+    """Model for test schedule information."""
+    id: Optional[str] = None
+    name: str
+    testType: str  # "frontend", "backend", "all"
+    schedule: str  # "hourly", "daily", "weekly", "custom"
+    time: str  # "HH:MM" format
+    daysOfWeek: Optional[List[str]] = []
+    enabled: bool = True
+    description: Optional[str] = ""
+    lastRun: Optional[str] = None
+    nextRun: Optional[str] = None
+    createdAt: Optional[str] = None
+    updatedAt: Optional[str] = None
 
 # Global test execution tracking
 current_test_process = None
@@ -470,3 +492,328 @@ async def clear_all_test_results():
             result_file.unlink()
 
     return {"message": "All test results cleared"}
+
+# ============== Test Scheduling Endpoints ==============
+
+def load_test_schedules() -> List[TestSchedule]:
+    """Load test schedules from storage."""
+    schedules = []
+    if TEST_SCHEDULES_DIR.exists():
+        for schedule_file in TEST_SCHEDULES_DIR.glob("*.json"):
+            try:
+                with open(schedule_file, 'r') as f:
+                    data = json.load(f)
+                    schedules.append(TestSchedule(**data))
+            except Exception as e:
+                print(f"Error loading schedule {schedule_file}: {e}")
+                continue
+    return schedules
+
+def save_test_schedule(schedule: TestSchedule):
+    """Save test schedule to storage."""
+    schedule_file = TEST_SCHEDULES_DIR / f"{schedule.id}.json"
+    with open(schedule_file, 'w') as f:
+        json.dump(schedule.dict(), f, indent=2)
+
+def delete_test_schedule_file(schedule_id: str):
+    """Delete test schedule file from storage."""
+    schedule_file = TEST_SCHEDULES_DIR / f"{schedule_id}.json"
+    if schedule_file.exists():
+        schedule_file.unlink()
+
+@router.get("/scheduled-tests")
+async def get_scheduled_tests():
+    """Get all scheduled tests."""
+    return load_test_schedules()
+
+@router.get("/scheduler-status")
+async def get_scheduler_status():
+    """Get the status of the test scheduler."""
+    global scheduler_thread, scheduler_running
+    
+    schedules = load_test_schedules()
+    enabled_schedules = [s for s in schedules if s.enabled]
+    
+    return {
+        "scheduler_running": scheduler_running,
+        "thread_alive": scheduler_thread.is_alive() if scheduler_thread else False,
+        "total_schedules": len(schedules),
+        "enabled_schedules": len(enabled_schedules),
+        "current_time": datetime.now().isoformat(),
+        "schedules": [
+            {
+                "name": s.name,
+                "test_type": s.testType,
+                "schedule": s.schedule,
+                "time": s.time,
+                "enabled": s.enabled,
+                "last_run": s.lastRun,
+                "next_run": s.nextRun
+            }
+            for s in schedules
+        ]
+    }
+
+@router.post("/scheduled-tests")
+async def create_schedule(schedule: TestSchedule):
+    """Create a new test schedule."""
+    # Generate unique ID
+    schedule.id = str(uuid.uuid4())
+    schedule.createdAt = datetime.now().isoformat()
+    schedule.updatedAt = datetime.now().isoformat()
+    
+    # Calculate next run time (simplified - would need proper scheduling logic)
+    if schedule.enabled:
+        # For now, just set next run to tomorrow at the specified time
+        from datetime import timedelta
+        next_run_date = datetime.now() + timedelta(days=1)
+        schedule.nextRun = f"{next_run_date.strftime('%Y-%m-%d')} {schedule.time}"
+    
+    # Save to storage
+    save_test_schedule(schedule)
+    
+    return schedule
+
+@router.put("/scheduled-tests/{schedule_id}")
+async def update_schedule(schedule_id: str, schedule: TestSchedule):
+    """Update an existing test schedule."""
+    # Load existing schedules
+    schedules = load_test_schedules()
+    
+    # Find the schedule to update
+    existing_schedule = None
+    for s in schedules:
+        if s.id == schedule_id:
+            existing_schedule = s
+            break
+    
+    if not existing_schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    # Update the schedule
+    schedule.id = schedule_id
+    schedule.updatedAt = datetime.now().isoformat()
+    
+    # Keep the original creation date
+    if existing_schedule.createdAt:
+        schedule.createdAt = existing_schedule.createdAt
+    
+    # Calculate next run time if enabled
+    if schedule.enabled:
+        from datetime import timedelta
+        next_run_date = datetime.now() + timedelta(days=1)
+        schedule.nextRun = f"{next_run_date.strftime('%Y-%m-%d')} {schedule.time}"
+    else:
+        schedule.nextRun = None
+    
+    # Save to storage
+    save_test_schedule(schedule)
+    
+    return schedule
+
+@router.delete("/scheduled-tests/{schedule_id}")
+async def delete_schedule(schedule_id: str):
+    """Delete a test schedule."""
+    # Load existing schedules
+    schedules = load_test_schedules()
+    
+    # Check if schedule exists
+    schedule_exists = False
+    for s in schedules:
+        if s.id == schedule_id:
+            schedule_exists = True
+            break
+    
+    if not schedule_exists:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    # Delete from storage
+    delete_test_schedule_file(schedule_id)
+    
+    return {"message": "Schedule deleted successfully"}
+
+@router.post("/scheduled-tests/{schedule_id}/run-now")
+async def run_schedule_now(schedule_id: str, background_tasks: BackgroundTasks):
+    """Manually trigger a scheduled test to run immediately."""
+    # Load existing schedules
+    schedules = load_test_schedules()
+    
+    # Find the schedule
+    target_schedule = None
+    for s in schedules:
+        if s.id == schedule_id:
+            target_schedule = s
+            break
+    
+    if not target_schedule:
+        raise HTTPException(status_code=404, detail="Schedule not found")
+    
+    if not target_schedule.enabled:
+        raise HTTPException(status_code=400, detail="Schedule is disabled")
+    
+    # Create test ID
+    test_id = f"manual_{target_schedule.testType}_{int(time.time())}"
+    
+    # Create initial test result
+    initial_result = TestResult(
+        id=test_id,
+        timestamp=datetime.now().isoformat(),
+        test_type=target_schedule.testType,
+        status="running"
+    )
+    
+    test_results[test_id] = initial_result
+    
+    # Run tests in background
+    background_tasks.add_task(run_tests_background, target_schedule.testType, test_id)
+    
+    # Update last run time
+    target_schedule.lastRun = datetime.now().isoformat()
+    save_test_schedule(target_schedule)
+    
+    return {
+        "message": f"Test schedule '{target_schedule.name}' triggered manually",
+        "test_id": test_id,
+        "status": "started"
+    }
+
+# ============== Test Scheduler Background Task ==============
+
+scheduler_thread = None
+scheduler_running = False
+
+def check_and_run_scheduled_tests():
+    """Check for scheduled tests and run them if it's time."""
+    try:
+        schedules = load_test_schedules()
+        current_time = datetime.now()
+        
+        for schedule in schedules:
+            if not schedule.enabled:
+                continue
+                
+            # Parse the schedule time
+            try:
+                schedule_hour, schedule_minute = map(int, schedule.time.split(':'))
+                
+                # Check if we should run based on schedule type
+                should_run = False
+                
+                if schedule.schedule == "hourly":
+                    # Run if we're at the right minute
+                    if current_time.minute == schedule_minute:
+                        should_run = True
+                        
+                elif schedule.schedule == "daily":
+                    # Run if we're at the right time
+                    if current_time.hour == schedule_hour and current_time.minute == schedule_minute:
+                        should_run = True
+                        
+                elif schedule.schedule == "weekly":
+                    # Run if it's the right day and time
+                    current_day = current_time.strftime('%A')
+                    if current_day in (schedule.daysOfWeek or []) and \
+                       current_time.hour == schedule_hour and \
+                       current_time.minute == schedule_minute:
+                        should_run = True
+                        
+                elif schedule.schedule == "custom" and schedule.daysOfWeek:
+                    # Run if it's one of the selected days and right time
+                    current_day = current_time.strftime('%A')
+                    if current_day in schedule.daysOfWeek and \
+                       current_time.hour == schedule_hour and \
+                       current_time.minute == schedule_minute:
+                        should_run = True
+                
+                if should_run:
+                    # Check if we haven't run in the last minute (to avoid duplicates)
+                    if schedule.lastRun:
+                        try:
+                            last_run_time = datetime.fromisoformat(schedule.lastRun)
+                            if (current_time - last_run_time).total_seconds() < 60:
+                                continue  # Already ran within the last minute
+                        except:
+                            pass
+                    
+                    # Run the test
+                    print(f"Running scheduled test: {schedule.name} ({schedule.testType})")
+                    
+                    test_id = f"scheduled_{schedule.testType}_{int(time.time())}"
+                    
+                    # Create initial test result
+                    initial_result = TestResult(
+                        id=test_id,
+                        timestamp=datetime.now().isoformat(),
+                        test_type=schedule.testType,
+                        status="running"
+                    )
+                    
+                    test_results[test_id] = initial_result
+                    
+                    # Run tests in a separate thread
+                    test_thread = threading.Thread(
+                        target=run_tests_background,
+                        args=(schedule.testType, test_id)
+                    )
+                    test_thread.start()
+                    
+                    # Update schedule's last run time
+                    schedule.lastRun = current_time.isoformat()
+                    
+                    # Calculate next run time
+                    if schedule.schedule == "hourly":
+                        schedule.nextRun = (current_time + timedelta(hours=1)).strftime('%Y-%m-%d %H:%M')
+                    elif schedule.schedule == "daily":
+                        schedule.nextRun = (current_time + timedelta(days=1)).strftime('%Y-%m-%d %H:%M')
+                    elif schedule.schedule == "weekly":
+                        schedule.nextRun = (current_time + timedelta(weeks=1)).strftime('%Y-%m-%d %H:%M')
+                    
+                    save_test_schedule(schedule)
+                    
+            except Exception as e:
+                print(f"Error processing schedule {schedule.name}: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"Error in scheduler: {e}")
+
+def run_scheduler():
+    """Background thread that runs the scheduler."""
+    global scheduler_running
+    scheduler_running = True
+    
+    print("Test scheduler started")
+    
+    # Run check every minute
+    schedule.every(1).minutes.do(check_and_run_scheduled_tests)
+    
+    # Also check immediately on startup
+    check_and_run_scheduled_tests()
+    
+    while scheduler_running:
+        schedule.run_pending()
+        time.sleep(30)  # Check every 30 seconds
+    
+    print("Test scheduler stopped")
+
+def start_scheduler():
+    """Start the scheduler background thread."""
+    global scheduler_thread
+    
+    if scheduler_thread is None or not scheduler_thread.is_alive():
+        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
+        scheduler_thread.start()
+        print("Scheduler thread started")
+
+def stop_scheduler():
+    """Stop the scheduler background thread."""
+    global scheduler_running, scheduler_thread
+    
+    scheduler_running = False
+    if scheduler_thread:
+        scheduler_thread.join(timeout=5)
+        scheduler_thread = None
+    print("Scheduler thread stopped")
+
+# Start the scheduler when the module is imported
+start_scheduler()
