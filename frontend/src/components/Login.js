@@ -29,7 +29,7 @@ const Login = () => {
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('loginStatusChanged'));
       
-      navigate(`/profile/${res.data.user.username}`, { state: { user: res.data.user } });
+      navigate('/dashboard', { state: { user: res.data.user } });
     } catch (err) {
       console.error("Login error:", err);
       setError(err.response?.data?.detail || err.response?.data?.error || "Invalid credentials");

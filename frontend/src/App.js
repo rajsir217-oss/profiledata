@@ -17,6 +17,7 @@ import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
+import Dashboard from './components/Dashboard';
 import { TestDashboard } from './test-dashboard';
 
 function App() {
@@ -39,6 +40,7 @@ function App() {
             <Routes>
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/profile/:username" element={<Profile />} />
               <Route path="/edit-profile" element={<EditProfile />} />

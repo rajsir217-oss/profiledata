@@ -1402,3 +1402,168 @@ async def remove_from_shortlist(target_username: str, username: str):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to remove from shortlist: {str(e)}"
         )
+
+# Dashboard Endpoints
+@router.post("/views/{target_username}")
+async def track_profile_view(target_username: str, viewer_username: str, db = Depends(get_database)):
+    """Track when someone views a profile"""
+    logger.info(f"👁️ Tracking view: {viewer_username} viewed {target_username}")
+    
+    try:
+        # Check if view already exists
+        existing = await db.profile_views.find_one({
+            "viewedUsername": target_username,
+            "viewerUsername": viewer_username
+        })
+        
+        if existing:
+            # Update timestamp
+            await db.profile_views.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"viewedAt": datetime.utcnow()}}
+            )
+        else:
+            # Create new view record
+            await db.profile_views.insert_one({
+                "viewedUsername": target_username,
+                "viewerUsername": viewer_username,
+                "viewedAt": datetime.utcnow()
+            })
+        
+        logger.info(f"✅ Tracked view: {viewer_username} → {target_username}")
+        return {"message": "Profile view tracked"}
+    except Exception as e:
+        logger.error(f"❌ Error tracking view: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/views/{username}")
+async def get_profile_viewers(username: str, db = Depends(get_database)):
+    """Get list of users who viewed this profile"""
+    logger.info(f"👁️ Getting viewers for {username}")
+    
+    try:
+        viewers = await db.profile_views.find(
+            {"viewedUsername": username}
+        ).sort("viewedAt", -1).to_list(100)
+        
+        # Get viewer details
+        viewer_usernames = [v["viewerUsername"] for v in viewers]
+        viewer_users = await db.users.find(
+            {"username": {"$in": viewer_usernames}}
+        ).to_list(100)
+        
+        viewer_dict = {u["username"]: u for u in viewer_users}
+        
+        result = []
+        for viewer in viewers:
+            user_data = viewer_dict.get(viewer["viewerUsername"], {})
+            result.append({
+                "username": viewer["viewerUsername"],
+                "firstName": user_data.get("firstName"),
+                "lastName": user_data.get("lastName"),
+                "age": calculate_age(user_data.get("dob")),
+                "location": user_data.get("location"),
+                "occupation": user_data.get("occupation"),
+                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "viewedAt": viewer["viewedAt"].isoformat() if viewer.get("viewedAt") else None
+            })
+        
+        logger.info(f"✅ Found {len(result)} viewers for {username}")
+        return {"viewers": result}
+    except Exception as e:
+        logger.error(f"❌ Error getting viewers: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/their-favorites/{username}")
+async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
+    """Get users who have favorited the current user"""
+    logger.info(f"💖 Getting users who favorited {username}")
+    
+    try:
+        # Find all favorites where current user is the target
+        favorites = await db.favorites.find(
+            {"favoritedUsername": username}
+        ).sort("createdAt", -1).to_list(100)
+        
+        # Get user details
+        user_usernames = [f["userUsername"] for f in favorites]
+        users = await db.users.find(
+            {"username": {"$in": user_usernames}}
+        ).to_list(100)
+        
+        user_dict = {u["username"]: u for u in users}
+        
+        result = []
+        for fav in favorites:
+            user_data = user_dict.get(fav["userUsername"], {})
+            result.append({
+                "username": fav["userUsername"],
+                "firstName": user_data.get("firstName"),
+                "lastName": user_data.get("lastName"),
+                "age": calculate_age(user_data.get("dob")),
+                "location": user_data.get("location"),
+                "occupation": user_data.get("occupation"),
+                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "addedAt": fav.get("createdAt").isoformat() if fav.get("createdAt") else None
+            })
+        
+        logger.info(f"✅ Found {len(result)} users who favorited {username}")
+        return {"users": result}
+    except Exception as e:
+        logger.error(f"❌ Error getting users who favorited: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/their-shortlists/{username}")
+async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)):
+    """Get users who have shortlisted the current user"""
+    logger.info(f"📝 Getting users who shortlisted {username}")
+    
+    try:
+        # Find all shortlists where current user is the target
+        shortlists = await db.shortlists.find(
+            {"shortlistedUsername": username}
+        ).sort("createdAt", -1).to_list(100)
+        
+        # Get user details
+        user_usernames = [s["userUsername"] for s in shortlists]
+        users = await db.users.find(
+            {"username": {"$in": user_usernames}}
+        ).to_list(100)
+        
+        user_dict = {u["username"]: u for u in users}
+        
+        result = []
+        for shortlist in shortlists:
+            user_data = user_dict.get(shortlist["userUsername"], {})
+            result.append({
+                "username": shortlist["userUsername"],
+                "firstName": user_data.get("firstName"),
+                "lastName": user_data.get("lastName"),
+                "age": calculate_age(user_data.get("dob")),
+                "location": user_data.get("location"),
+                "occupation": user_data.get("occupation"),
+                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "addedAt": shortlist.get("createdAt").isoformat() if shortlist.get("createdAt") else None
+            })
+        
+        logger.info(f"✅ Found {len(result)} users who shortlisted {username}")
+        return {"users": result}
+    except Exception as e:
+        logger.error(f"❌ Error getting users who shortlisted: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Helper function for age calculation
+def calculate_age(dob):
+    """Calculate age from date of birth"""
+    if not dob:
+        return None
+    try:
+        if isinstance(dob, str):
+            birth_date = datetime.strptime(dob, "%Y-%m-%d")
+        else:
+            birth_date = dob
+        today = datetime.today()
+        age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+        return age
+    except:
+        return None

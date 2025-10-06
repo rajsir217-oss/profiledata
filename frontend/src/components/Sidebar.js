@@ -68,6 +68,12 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     const items = [
       { 
+        icon: '🏠', 
+        label: 'My Dashboard', 
+        subLabel: 'Overview & Activity',
+        action: () => navigate('/dashboard')
+      },
+      { 
         icon: '👤', 
         label: currentUser || '(profile picture)', 
         subLabel: 'Profile data',
