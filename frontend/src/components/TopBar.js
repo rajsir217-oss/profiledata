@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './TopBar.css';
 
-const TopBar = () => {
+const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
@@ -63,9 +63,12 @@ const TopBar = () => {
 
   if (!isLoggedIn) {
     return (
-      <div className="top-bar">
+      <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
         <div className="top-bar-content">
           <div className="top-bar-left">
+            <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
+              ☰
+            </button>
             <h4 className="app-title">Matrimonial Profile</h4>
           </div>
           <div className="top-bar-right">
@@ -79,9 +82,12 @@ const TopBar = () => {
   }
 
   return (
-    <div className="top-bar">
+    <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
       <div className="top-bar-content">
         <div className="top-bar-left">
+          <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
+            ☰
+          </button>
           <h4 className="app-title">Matrimonial Profile</h4>
         </div>
         <div className="top-bar-right">

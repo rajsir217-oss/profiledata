@@ -46,7 +46,6 @@ const SearchPage = () => {
 
   // PII access state
   const [piiRequests, setPiiRequests] = useState({});
-  const [piiRequestCount, setPiiRequestCount] = useState(0);
 
   const navigate = useNavigate();
 
@@ -65,7 +64,6 @@ const SearchPage = () => {
       setExcludedUsers(new Set());
       setSavedSearches([]);
       setPiiRequests({});
-      setPiiRequestCount(0);
     }
     
     // Load initial search results (all profiles) after component mounts
@@ -75,6 +73,7 @@ const SearchPage = () => {
         handleSearch(1);
       }, 100);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPiiRequests = async () => {
@@ -84,14 +83,12 @@ const SearchPage = () => {
     try {
       const response = await api.get(`/pii-requests/${currentUser}?type=sent`);
       const requests = response.data.requests || [];
-
       const requestStatus = {};
       requests.forEach(req => {
         requestStatus[`${req.requestedUsername}_${req.requestType}`] = req.status;
       });
 
       setPiiRequests(requestStatus);
-      setPiiRequestCount(requests.filter(req => req.status === 'pending').length);
     } catch (err) {
       console.error('Error loading PII requests:', err);
     }
@@ -396,9 +393,6 @@ const SearchPage = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    handleSearch(currentPage + 1);
-  };
 
   const handlePageChange = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -586,7 +580,6 @@ const SearchPage = () => {
         [`${targetUsername}_${requestType}`]: 'pending'
       }));
 
-      setPiiRequestCount(prev => prev + 1);
       alert(`${requestType === 'contact_info' ? 'Contact information' : 'Profile images'} request sent!`);
     } catch (err) {
       console.error('Error requesting PII access:', err);

@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Sidebar.css';
 
-const Sidebar = ({ onPinChange }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [isPinned, setIsPinned] = useState(false);
+const Sidebar = ({ isCollapsed, onToggle }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const navigate = useNavigate();
@@ -34,29 +32,6 @@ const Sidebar = ({ onPinChange }) => {
       window.removeEventListener('storage', checkLoginStatus);
     };
   }, []);
-
-  const handleMouseEnter = () => {
-    if (!isPinned) {
-      setIsOpen(true);
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (!isPinned) {
-      setIsOpen(false);
-    }
-  };
-
-  const togglePin = () => {
-    const newPinState = !isPinned;
-    setIsPinned(newPinState);
-    setIsOpen(newPinState);
-    
-    // Notify parent component about pin state change
-    if (onPinChange) {
-      onPinChange(newPinState);
-    }
-  };
 
   const handleLogin = () => {
     navigate('/login');
@@ -176,31 +151,9 @@ const Sidebar = ({ onPinChange }) => {
   const menuItems = buildMenuItems();
 
   return (
-    <>
-      {/* Sidebar Toggle Button (always visible) */}
-      <div 
-        className="sidebar-toggle"
-        onMouseEnter={handleMouseEnter}
-      >
-        <div className="toggle-icon">☰</div>
-      </div>
-
-      {/* Sidebar Panel */}
-      <div 
-        className={`sidebar ${isOpen || isPinned ? 'open' : ''} ${isPinned ? 'pinned' : ''}`}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        {/* Pin Button */}
-        <div className="sidebar-header">
-          <button 
-            className="pin-button" 
-            onClick={togglePin}
-            title={isPinned ? "Unpin sidebar" : "Pin sidebar"}
-          >
-            {isPinned ? '📌' : '📍'}
-          </button>
-        </div>
+    <div 
+      className={`sidebar ${!isCollapsed ? 'open' : ''}`}
+    >
 
         {/* Menu Items */}
         <div className="sidebar-menu">
@@ -229,13 +182,7 @@ const Sidebar = ({ onPinChange }) => {
           <span className="footer-separator">|</span>
           <a href="#trademark" className="footer-link">Registed Trade mark</a>
         </div>
-      </div>
-
-      {/* Overlay when sidebar is open (optional) */}
-      {(isOpen || isPinned) && (
-        <div className="sidebar-overlay" onClick={() => !isPinned && setIsOpen(false)} />
-      )}
-    </>
+    </div>
   );
 };
 

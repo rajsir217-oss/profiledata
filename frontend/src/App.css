@@ -1,11 +1,11 @@
 /* App Layout */
 .app-layout {
-  min-height: 100vh;
   transition: margin-left 0.3s ease;
+  padding-top: 60px;
   margin-left: 0;
 }
 
-.app-layout.sidebar-pinned {
+.app-layout.sidebar-open {
   margin-left: 280px;
 }
 
@@ -14,7 +14,6 @@
   padding-top: 60px; /* Height of top bar */
   min-height: 100vh;
 }
-
 .main-content .container {
   padding-top: 20px;
   padding-bottom: 40px;
@@ -22,20 +21,21 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .app-layout.sidebar-pinned {
+  .app-layout.sidebar-open {
     margin-left: 250px;
   }
-
+  
   .main-content {
     padding-top: 50px;
   }
 }
 
 @media (max-width: 480px) {
-  .app-layout.sidebar-pinned {
+  /* Mobile adjustments - no shifting on small screens */
+  .app-layout.sidebar-open {
     margin-left: 0;
   }
-
+  
   .main-content .container {
     padding-left: 10px;
     padding-right: 10px;

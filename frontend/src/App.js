@@ -20,17 +20,20 @@ import Requests from './components/Requests';
 import { TestDashboard } from './test-dashboard';
 
 function App() {
-  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
-  const handleSidebarPinChange = (isPinned) => {
-    setIsSidebarPinned(isPinned);
+  const handleSidebarToggle = () => {
+    setIsSidebarCollapsed(!isSidebarCollapsed);
   };
 
   return (
     <Router>
-      <Sidebar onPinChange={handleSidebarPinChange} />
-      <div className={`app-layout ${isSidebarPinned ? 'sidebar-pinned' : ''}`}>
-        <TopBar />
+      <Sidebar 
+        isCollapsed={isSidebarCollapsed}
+        onToggle={handleSidebarToggle}
+      />
+      <div className={`app-layout ${!isSidebarCollapsed ? 'sidebar-open' : ''}`}>
+        <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
         <div className="main-content">
           <div className="container mt-5">
             <Routes>

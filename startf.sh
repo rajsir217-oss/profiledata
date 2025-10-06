@@ -1,4 +1,5 @@
 #!/bin/bash
+clear
 
 echo "🚀 Starting React Frontend..."
 echo "=============================="
