@@ -37,15 +37,16 @@ function App() {
 
   return (
     <Router>
-      <Sidebar 
-        isCollapsed={isSidebarCollapsed}
-        onToggle={handleSidebarToggle}
-      />
-      <div className={`app-layout ${!isSidebarCollapsed ? 'sidebar-open' : ''}`}>
-        <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
-        <div className="main-content">
-          <div className="container mt-5">
-            <Routes>
+      <div className="app-wrapper">
+        <Sidebar 
+          isCollapsed={isSidebarCollapsed}
+          onToggle={handleSidebarToggle}
+        />
+        <div className={`app-layout ${!isSidebarCollapsed ? 'sidebar-open' : ''}`}>
+          <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
+          <div className="main-content">
+            <div className="container mt-5">
+              <Routes>
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/dashboard" element={<Dashboard />} />
@@ -67,6 +68,7 @@ function App() {
             </Routes>
           </div>
         </div>
+      </div>
       </div>
     </Router>
   );

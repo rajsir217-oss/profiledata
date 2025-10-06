@@ -5,23 +5,22 @@
 
 /* Sidebar Panel */
 .sidebar {
-  position: fixed;
-  left: 0;
-  top: 0;
-  width: 280px;
+  position: relative;
+  width: 0;
   height: 100vh;
   background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
   box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1002;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
-  transform: translateX(-100%);
+  overflow-x: hidden;
+  flex-shrink: 0;
 }
 
 .sidebar.open {
-  transform: translateX(0);
+  width: 280px;
 }
 
 

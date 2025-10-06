@@ -1,14 +1,18 @@
-/* App Layout */
-.app-layout {
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  padding-top: 60px;
-  margin-left: 0;
+/* App Wrapper */
+.app-wrapper {
+  display: flex;
   width: 100%;
+  min-height: 100vh;
   position: relative;
 }
 
-.app-layout.sidebar-open {
-  margin-left: 280px;
+/* App Layout */
+.app-layout {
+  flex: 1;
+  padding-top: 60px;
+  width: 100%;
+  position: relative;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Main Content */
@@ -25,8 +29,9 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .app-layout.sidebar-open {
-    margin-left: 250px;
+  /* Sidebar width adjustment for tablets */
+  .sidebar.open {
+    width: 250px;
   }
   
   .main-content {
@@ -35,13 +40,27 @@
 }
 
 @media (max-width: 576px) {
-  /* Mobile adjustments - overlay on small screens instead of push */
-  .app-layout.sidebar-open {
-    margin-left: 0;
+  /* Mobile: sidebar overlays instead of push */
+  .app-wrapper {
+    position: relative;
+  }
+  
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    width: 280px !important;
+    z-index: 1003;
+  }
+  
+  .sidebar.open {
+    transform: translateX(0);
+    width: 280px !important;
   }
   
   /* Add overlay backdrop on mobile when sidebar is open */
-  .app-layout.sidebar-open::before {
+  .app-wrapper::before {
     content: '';
     position: fixed;
     top: 0;
@@ -50,18 +69,20 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1001;
-    animation: fadeIn 0.3s ease;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .app-wrapper.has-sidebar-open::before {
+    opacity: 1;
+    pointer-events: auto;
   }
   
   .main-content .container {
     padding-left: 10px;
     padding-right: 10px;
   }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 /* Global Styles */
