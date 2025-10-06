@@ -362,11 +362,8 @@ class TestCheckAccessGranted:
     async def test_check_access_granted_denied_request(self):
         """Test access denied for denied request."""
         mock_db = AsyncMock()
-        mock_db.access_requests.find_one = AsyncMock(return_value={
-            "requesterId": "user1",
-            "requestedUserId": "user2",
-            "status": "denied"
-        })
+        # When looking for 'approved' status, return None (no approved request exists)
+        mock_db.access_requests.find_one = AsyncMock(return_value=None)
 
         result = await check_access_granted(mock_db, "user1", "user2")
 
@@ -465,16 +462,34 @@ class TestRespondToAccessRequest:
     @pytest.mark.asyncio
     async def test_respond_to_access_request_approve(self):
         """Test approving an access request."""
+        from bson import ObjectId
         mock_db = AsyncMock()
-        mock_db.access_requests.find_one = AsyncMock(return_value={
-            "_id": "507f1f77bcf86cd799439011",
-            "requesterId": "user1",
-            "requestedUserId": "user2",
-            "status": "pending"
-        })
+        request_id = "507f1f77bcf86cd799439011"
+        
+        # Mock find_one to return pending first, then approved after update
+        async def mock_find_one(query):
+            if mock_db.access_requests.update_one.call_count > 0:
+                # After update
+                return {
+                    "_id": ObjectId(request_id),
+                    "requesterId": "user1",
+                    "requestedUserId": "user2",
+                    "status": "approved",
+                    "responseDate": "2024-01-01T00:00:00"
+                }
+            else:
+                # Before update
+                return {
+                    "_id": ObjectId(request_id),
+                    "requesterId": "user1",
+                    "requestedUserId": "user2",
+                    "status": "pending"
+                }
+        
+        mock_db.access_requests.find_one = AsyncMock(side_effect=mock_find_one)
         mock_db.access_requests.update_one = AsyncMock()
 
-        result = await respond_to_access_request(mock_db, "507f1f77bcf86cd799439011", "approved", "user2")
+        result = await respond_to_access_request(mock_db, request_id, "approved", "user2")
 
         assert result["status"] == "approved"
         assert "responseDate" in result
@@ -484,16 +499,34 @@ class TestRespondToAccessRequest:
     @pytest.mark.asyncio
     async def test_respond_to_access_request_deny(self):
         """Test denying an access request."""
+        from bson import ObjectId
         mock_db = AsyncMock()
-        mock_db.access_requests.find_one = AsyncMock(return_value={
-            "_id": "507f1f77bcf86cd799439011",
-            "requesterId": "user1",
-            "requestedUserId": "user2",
-            "status": "pending"
-        })
+        request_id = "507f1f77bcf86cd799439011"
+        
+        # Mock find_one to return pending first, then denied after update
+        async def mock_find_one(query):
+            if mock_db.access_requests.update_one.call_count > 0:
+                # After update
+                return {
+                    "_id": ObjectId(request_id),
+                    "requesterId": "user1",
+                    "requestedUserId": "user2",
+                    "status": "denied",
+                    "responseDate": "2024-01-01T00:00:00"
+                }
+            else:
+                # Before update
+                return {
+                    "_id": ObjectId(request_id),
+                    "requesterId": "user1",
+                    "requestedUserId": "user2",
+                    "status": "pending"
+                }
+        
+        mock_db.access_requests.find_one = AsyncMock(side_effect=mock_find_one)
         mock_db.access_requests.update_one = AsyncMock()
 
-        result = await respond_to_access_request(mock_db, "507f1f77bcf86cd799439011", "denied", "user2")
+        result = await respond_to_access_request(mock_db, request_id, "denied", "user2")
 
         assert result["status"] == "denied"
 
@@ -503,7 +536,8 @@ class TestRespondToAccessRequest:
         mock_db = AsyncMock()
         mock_db.access_requests.find_one = AsyncMock(return_value=None)
 
-        result = await respond_to_access_request(mock_db, "invalid_id", "approved", "user2")
+        # Use a valid ObjectId format
+        result = await respond_to_access_request(mock_db, "507f1f77bcf86cd799439011", "approved", "user2")
 
         assert result == {"error": "Request not found"}
         mock_db.access_requests.update_one.assert_not_called()

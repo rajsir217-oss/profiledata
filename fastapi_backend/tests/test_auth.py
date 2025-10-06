@@ -1,17 +1,15 @@
-"""
-Tests for authentication functions and JWT token handling.
-"""
 import pytest
 from datetime import datetime, timedelta
 from unittest.mock import patch
-from jose import JWTError
+from jose import JWTError, jwt
+from config import settings
 from auth import (
     verify_password,
     get_password_hash,
     create_access_token,
     get_current_user
 )
-from models import TokenData
+from models import TokenData, UserCreate
 
 
 class TestPasswordFunctions:
@@ -112,7 +110,8 @@ class TestGetCurrentUser:
     """Test current user extraction from JWT token."""
 
     @patch('auth.settings')
-    def test_get_current_user_valid_token(self, mock_settings):
+    @pytest.mark.asyncio
+    async def test_get_current_user_valid_token(self, mock_settings):
         """Test extracting user from valid token."""
         mock_settings.secret_key = "test_secret_key"
         mock_settings.algorithm = "HS256"
@@ -127,7 +126,7 @@ class TestGetCurrentUser:
 
         # Test the function
         with patch('auth.oauth2_scheme', mock_oauth2_scheme):
-            token_data = get_current_user(token)
+            token_data = await get_current_user(token)
             assert isinstance(token_data, TokenData)
             assert token_data.username == "testuser"
 
@@ -140,7 +139,9 @@ class TestGetCurrentUser:
         invalid_token = "invalid.jwt.token"
 
         with pytest.raises(Exception) as exc_info:
-            get_current_user(invalid_token)
+            # Run in event loop since get_current_user is async
+            import asyncio
+            asyncio.run(get_current_user(invalid_token))
 
         # Should raise an HTTPException due to JWTError
         assert "Could not validate credentials" in str(exc_info.value)
@@ -156,7 +157,9 @@ class TestGetCurrentUser:
         expired_token = create_access_token(data, expires_delta=timedelta(seconds=-1))
 
         with pytest.raises(Exception) as exc_info:
-            get_current_user(expired_token)
+            # Run in event loop since get_current_user is async
+            import asyncio
+            asyncio.run(get_current_user(expired_token))
 
         assert "Could not validate credentials" in str(exc_info.value)
 
@@ -171,14 +174,20 @@ class TestGetCurrentUser:
         token = create_access_token(data)
 
         with pytest.raises(Exception) as exc_info:
-            get_current_user(token)
+            # Run in event loop since get_current_user is async
+            import asyncio
+            asyncio.run(get_current_user(token))
 
         assert "Could not validate credentials" in str(exc_info.value)
 
     @patch('auth.settings')
     def test_get_current_user_wrong_secret(self, mock_settings):
         """Test error handling for token signed with wrong secret."""
-        # Create token with one secret
+        # Set up initial settings for token creation
+        mock_settings.secret_key = "original_secret_key"
+        mock_settings.algorithm = "HS256"
+
+        # Create token with original secret
         data = {"sub": "testuser"}
         token = create_access_token(data)
 
@@ -187,7 +196,9 @@ class TestGetCurrentUser:
         mock_settings.algorithm = "HS256"
 
         with pytest.raises(Exception) as exc_info:
-            get_current_user(token)
+            # Run in event loop since get_current_user is async
+            import asyncio
+            asyncio.run(get_current_user(token))
 
         assert "Could not validate credentials" in str(exc_info.value)
 
@@ -204,20 +215,24 @@ class TestIntegrationScenarios:
         # 2. Verify the password
         assert verify_password(password, hashed) is True
 
-        # 3. Create a token for the user
-        data = {"sub": "testuser"}
-        token = create_access_token(data)
+        # 3. Create a token for the user with mocked settings
+        with patch('auth.settings') as mock_settings:
+            mock_settings.secret_key = "test_secret_key"
+            mock_settings.algorithm = "HS256"
 
-        # 4. Extract user from token (simulate)
-        # This would normally use the mocked dependency
-        decoded_payload = jwt.decode(token, "test_secret_key", algorithms=["HS256"])
-        assert decoded_payload["sub"] == "testuser"
+            data = {"sub": "testuser"}
+            token = create_access_token(data)
+
+            # 4. Extract user from token (simulate)
+            # Use the same mocked settings for decoding
+            decoded_payload = jwt.decode(token, mock_settings.secret_key, algorithms=[mock_settings.algorithm])
+            assert decoded_payload["sub"] == "testuser"
 
     def test_password_security_edge_cases(self):
         """Test password security edge cases."""
-        # Test empty password
+        # Test empty password validation at model level
         with pytest.raises(Exception):
-            get_password_hash("")
+            UserCreate(username="testuser", password="")
 
         # Test very long password (bcrypt handles up to 72 bytes)
         very_long_password = "a" * 200

@@ -11,6 +11,7 @@ import time
 
 from database import connect_to_mongo, close_mongo_connection
 from routes import router
+from test_management import router as test_router
 from config import settings
 
 # Configure logging
@@ -95,6 +96,7 @@ async def log_requests(request: Request, call_next):
         raise
 # Include routers
 app.include_router(router)
+app.include_router(test_router, prefix="/api/tests", tags=["tests"])
 
 # Health check endpoint
 @app.get("/health")

@@ -73,6 +73,11 @@ async def save_multiple_files(files: List[UploadFile]) -> List[str]:
 
 def get_full_image_url(image_path: str) -> str:
     """Convert relative image path to full URL"""
+    if not image_path:
+        return settings.backend_url
     if image_path.startswith('http'):
         return image_path
+    # Ensure path starts with /
+    if not image_path.startswith('/'):
+        image_path = f"/{image_path}"
     return f"{settings.backend_url}{image_path}"

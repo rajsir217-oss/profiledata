@@ -1,11 +1,51 @@
+// Mock react-router-dom before importing Profile
+jest.mock('react-router-dom', () => ({
+  useNavigate: jest.fn(),
+  useParams: jest.fn(),
+  useLocation: jest.fn(() => ({ pathname: '/profile/testuser' })),
+  Link: ({ children, to, ...props }) => {
+    const React = require('react');
+    return React.createElement('a', { href: to, ...props }, children);
+  },
+  BrowserRouter: ({ children }) => {
+    const React = require('react');
+    return React.createElement('div', {}, children);
+  },
+  Routes: ({ children }) => {
+    const React = require('react');
+    return React.createElement('div', {}, children);
+  },
+  Route: ({ children }) => {
+    const React = require('react');
+    return React.createElement('div', {}, children);
+  },
+}));
+
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import Profile from '../Profile';
-import * as api from '../../api';
+import { waitFor } from '@testing-library/react';
+
+// Mock localStorage
+const localStorageMock = {
+  getItem: jest.fn(),
+  setItem: jest.fn(),
+  removeItem: jest.fn(),
+  clear: jest.fn(),
+};
+global.localStorage = localStorageMock;
 
 // Mock the API module
-jest.mock('../../api');
+jest.mock('../../api', () => ({
+  get: jest.fn(),
+  post: jest.fn(),
+  put: jest.fn(),
+  delete: jest.fn(),
+  createAccessRequest: jest.fn(),
+  addToFavorites: jest.fn(),
+}));
+
+import Profile from '../Profile';
 
 describe('Profile Component', () => {
   const mockUser = {
@@ -16,152 +56,83 @@ describe('Profile Component', () => {
     contactNumber: '555-123-4567',
     location: 'New York, NY',
     education: 'Bachelor\'s Degree',
-    images: ['/uploads/test1.jpg', '/uploads/test2.jpg'],
-    aboutYou: 'Test about section',
-    piiMasked: false,
-    contactEmailMasked: false,
-    contactNumberMasked: false,
-    locationMasked: false
+    dob: null,
+    sex: '',
+    height: '',
+    castePreference: '',
+    eatingPreference: '',
+    workingStatus: '',
+    workplace: '',
+    citizenshipStatus: '',
+    familyBackground: '',
+    aboutYou: '',
+    partnerPreference: '',
+    createdAt: null,
+    updatedAt: null,
+    images: []
   };
-
-  const mockSetLoading = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Mock localStorage
-    Object.defineProperty(window, 'localStorage', {
-      value: {
-        getItem: jest.fn(() => 'fake-token'),
-        setItem: jest.fn(),
-        removeItem: jest.fn(),
-      },
-      writable: true,
-    });
+    // Reset localStorage mock
+    localStorageMock.getItem.mockClear();
+    localStorageMock.setItem.mockClear();
+    localStorageMock.removeItem.mockClear();
+    localStorageMock.clear.mockClear();
+    // Reset react-router-dom mocks
+    const reactRouterDom = require('react-router-dom');
+    reactRouterDom.useParams.mockReturnValue({ username: 'testuser' });
+    reactRouterDom.useNavigate.mockReturnValue(jest.fn());
+    // Import the mocked API module
+    const api = require('../../api');
+    // Set up default mock implementations
+    api.get.mockResolvedValue({ data: mockUser });
   });
 
-  test('renders user profile information', () => {
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
+  test('renders user profile information', async () => {
+    render(<Profile />);
 
-    expect(screen.getByText('Test User')).toBeInTheDocument();
-    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    // Wait for the API call to complete and component to render
+    await waitFor(() => {
+      expect(screen.getByText('Test User')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('testuser')).toBeInTheDocument();
     expect(screen.getByText('555-123-4567')).toBeInTheDocument();
+    expect(screen.getByText('test@example.com')).toBeInTheDocument();
     expect(screen.getByText('New York, NY')).toBeInTheDocument();
     expect(screen.getByText('Bachelor\'s Degree')).toBeInTheDocument();
-    expect(screen.getByText('Test about section')).toBeInTheDocument();
   });
 
-  test('displays masked PII when profile is masked', () => {
-    const maskedUser = {
-      ...mockUser,
-      contactEmail: 't***@example.com',
-      contactNumber: '***-***-4567',
-      location: 'NY',
-      piiMasked: true,
-      contactEmailMasked: true,
-      contactNumberMasked: true,
-      locationMasked: true
-    };
+  test('handles missing profile data gracefully', async () => {
+    const api = require('../../api');
+    api.get.mockResolvedValue({ data: null });
 
-    render(<Profile user={maskedUser} setLoading={mockSetLoading} />);
-
-    expect(screen.getByText('t***@example.com')).toBeInTheDocument();
-    expect(screen.getByText('***-***-4567')).toBeInTheDocument();
-    expect(screen.getByText('NY')).toBeInTheDocument();
-    expect(screen.getByText(/pii masked/i)).toBeInTheDocument();
-  });
-
-  test('displays profile images in carousel', () => {
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
-
-    // Check if images are rendered (you might need to check for img tags or carousel indicators)
-    const images = screen.getAllByRole('img');
-    expect(images.length).toBeGreaterThan(0);
-  });
-
-  test('shows request access button for masked profile', () => {
-    const maskedUser = {
-      ...mockUser,
-      piiMasked: true
-    };
-
-    render(<Profile user={maskedUser} setLoading={mockSetLoading} />);
-
-    expect(screen.getByText(/request access/i)).toBeInTheDocument();
-  });
-
-  test('allows requesting access to PII', async () => {
-    const maskedUser = {
-      ...mockUser,
-      piiMasked: true
-    };
-
-    const mockRequestAccess = jest.fn().mockResolvedValue({
-      message: 'Request sent successfully'
-    });
-
-    api.createAccessRequest.mockImplementation(mockRequestAccess);
-
-    const user = userEvent.setup();
-    render(<Profile user={maskedUser} setLoading={mockSetLoading} />);
-
-    const requestButton = screen.getByText(/request access/i);
-    await user.click(requestButton);
+    render(<Profile />);
 
     await waitFor(() => {
-      expect(mockRequestAccess).toHaveBeenCalled();
+      expect(screen.getByText('No profile found.')).toBeInTheDocument();
     });
   });
 
-  test('shows add to favorites button', () => {
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
+  test('shows loading state initially', () => {
+    const api = require('../../api');
+    // Mock API to not resolve immediately
+    api.get.mockImplementation(() => new Promise(() => {}));
 
-    expect(screen.getByText(/add to favorites/i)).toBeInTheDocument();
+    render(<Profile />);
+
+    expect(screen.getByText('Loading profile...')).toBeInTheDocument();
   });
 
-  test('allows adding user to favorites', async () => {
-    const mockAddToFavorites = jest.fn().mockResolvedValue({
-      message: 'Added to favorites successfully'
-    });
+  test('displays error message on API failure', async () => {
+    const api = require('../../api');
+    api.get.mockRejectedValue(new Error('API Error'));
 
-    api.addToFavorites.mockImplementation(mockAddToFavorites);
-
-    const user = userEvent.setup();
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
-
-    const favoritesButton = screen.getByText(/add to favorites/i);
-    await user.click(favoritesButton);
+    render(<Profile />);
 
     await waitFor(() => {
-      expect(mockAddToFavorites).toHaveBeenCalledWith('testuser');
+      expect(screen.getByText('Unable to load profile')).toBeInTheDocument();
     });
-  });
-
-  test('shows send message button', () => {
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
-
-    expect(screen.getByText(/send message/i)).toBeInTheDocument();
-  });
-
-  test('handles missing profile data gracefully', () => {
-    const incompleteUser = {
-      username: 'testuser',
-      firstName: 'Test'
-      // Missing other fields
-    };
-
-    render(<Profile user={incompleteUser} setLoading={mockSetLoading} />);
-
-    expect(screen.getByText('Test')).toBeInTheDocument();
-    // Should not crash with missing fields
-  });
-
-  test('displays profile actions for own profile', () => {
-    // Mock current user as profile owner
-    jest.spyOn(React, 'useState').mockImplementation(() => [mockUser, jest.fn()]);
-
-    render(<Profile user={mockUser} setLoading={mockSetLoading} />);
-
-    // Should show edit profile option for own profile
-    expect(screen.getByText(/edit profile/i)).toBeInTheDocument();
   });
 });

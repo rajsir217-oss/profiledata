@@ -49,17 +49,12 @@ async def register_user(
     wantsChildren: Optional[str] = Form(None),
     pets: Optional[str] = Form(None),
     bio: Optional[str] = Form(None),
-    images: List[UploadFile] = File(default=[])
+    images: List[UploadFile] = File(default=[]),
+    db = Depends(get_database)
 ):
     """Register a new user with profile details and images"""
     logger.info(f"📝 Registration attempt for username: {username}")
     logger.debug(f"Registration data - Email: {contactEmail}, Name: {firstName} {lastName}")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during registration: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     # Validate username length
     if len(username) < 3:
@@ -198,7 +193,7 @@ async def register_user(
     }
 
 @router.post("/login")
-async def login_user(login_data: LoginRequest):
+async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     """Login user and return access token"""
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
     
@@ -239,12 +234,7 @@ async def login_user(login_data: LoginRequest):
                 detail="Invalid credentials"
             )
     
-    # Regular user login
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during login: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    # Regular user login)
     
     # Find user
     logger.debug(f"Looking up user '{login_data.username}' in database...")
@@ -288,15 +278,9 @@ async def login_user(login_data: LoginRequest):
     }
 
 @router.get("/profile/{username}")
-async def get_user_profile(username: str, requester: str = None):
+async def get_user_profile(username: str, requester: str = None, db = Depends(get_database)):
     """Get user profile by username with PII masking"""
     logger.info(f"👤 Profile request for username: {username} (requester: {requester})")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during profile fetch: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     # Find user
     logger.debug(f"Fetching profile for user '{username}'...")
@@ -348,16 +332,11 @@ async def update_user_profile(
     familyBackground: Optional[str] = Form(None),
     aboutYou: Optional[str] = Form(None),
     partnerPreference: Optional[str] = Form(None),
-    images: List[UploadFile] = File(default=[])
+    images: List[UploadFile] = File(default=[]),
+    db = Depends(get_database)
 ):
     """Update user profile"""
     logger.info(f"📝 Update request for user '{username}'")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during update: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     # Find user
     logger.debug(f"Looking up user '{username}' for update...")
@@ -457,15 +436,9 @@ async def update_user_profile(
         )
 
 @router.get("/admin/users")
-async def get_all_users():
+async def get_all_users(db = Depends(get_database)):
     """Get all users - Admin only endpoint"""
     logger.info("🔐 Admin request: Get all users")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     try:
         # Fetch all users
@@ -536,16 +509,11 @@ async def change_admin_password(
 async def create_pii_access_request(
     requester: str = Form(...),
     requested_user: str = Form(...),
-    message: Optional[str] = Form(None)
+    message: Optional[str] = Form(None),
+    db = Depends(get_database)
 ):
     """Create PII access request"""
     logger.info(f"🔐 Access request: {requester} → {requested_user}")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     from pii_security import create_access_request
     result = await create_access_request(db, requester, requested_user, message)
@@ -560,12 +528,6 @@ async def create_pii_access_request(
 async def get_access_requests(username: str, type: str = "received"):
     """Get access requests for user (received or sent)"""
     logger.info(f"📋 Fetching {type} access requests for {username}")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     try:
         if type == "received":
@@ -588,16 +550,11 @@ async def get_access_requests(username: str, type: str = "received"):
 async def respond_to_request(
     request_id: str,
     response: str = Form(...),
-    responder: str = Form(...)
+    responder: str = Form(...),
+    db = Depends(get_database)
 ):
     """Respond to access request (approve/deny)"""
     logger.info(f"📝 Response to request {request_id}: {response} by {responder}")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     from pii_security import respond_to_access_request
     result = await respond_to_access_request(db, request_id, response, responder)
@@ -609,15 +566,9 @@ async def respond_to_request(
     return result
 
 @router.delete("/profile/{username}")
-async def delete_user_profile(username: str):
+async def delete_user_profile(username: str, db = Depends(get_database)):
     """Delete user profile"""
     logger.info(f"🗑️ Delete request for user '{username}'")
-    
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during delete: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
     
     # Find user
     logger.debug(f"Looking up user '{username}' for deletion...")
@@ -690,12 +641,6 @@ async def search_users(
 ):
     """Advanced search for users with filters"""
     logger.info(f"🔍 Search request - keyword: '{keyword}', page: {page}, limit: {limit}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error during search: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Build query
     query = {}
@@ -819,15 +764,9 @@ async def search_users(
 
 # Saved searches endpoints
 @router.get("/{username}/saved-searches")
-async def get_saved_searches(username: str):
+async def get_saved_searches(username: str, db = Depends(get_database)):
     """Get user's saved searches"""
     logger.info(f"📋 Getting saved searches for user '{username}'")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         # Find user to verify existence
@@ -852,15 +791,9 @@ async def get_saved_searches(username: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/{username}/saved-searches")
-async def save_search(username: str, search_data: dict):
+async def save_search(username: str, search_data: dict, db = Depends(get_database)):
     """Save a search for future use"""
     logger.info(f"💾 Saving search for user '{username}': {search_data.get('name', 'unnamed')}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         # Find user to verify existence
@@ -892,15 +825,9 @@ async def save_search(username: str, search_data: dict):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/{username}/saved-searches/{search_id}")
-async def delete_saved_search(username: str, search_id: str):
+async def delete_saved_search(username: str, search_id: str, db = Depends(get_database)):
     """Delete a saved search"""
     logger.info(f"🗑️ Deleting saved search {search_id} for user '{username}'")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         from bson import ObjectId
@@ -928,16 +855,11 @@ async def create_pii_request(
     requester: str = Form(...),
     requested_user: str = Form(...),
     request_type: str = Form(...),  # "contact_info" or "images"
-    message: Optional[str] = Form(None)
+    message: Optional[str] = Form(None),
+    db = Depends(get_database)
 ):
     """Create a PII access request"""
     logger.info(f"🔐 PII request: {requester} → {requested_user} ({request_type})")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Check if request already exists and is pending
     existing_request = await db.pii_requests.find_one({
@@ -973,15 +895,9 @@ async def create_pii_request(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/pii-requests/{username}")
-async def get_pii_requests(username: str, type: str = "received"):
+async def get_pii_requests(username: str, type: str = "received", db = Depends(get_database)):
     """Get PII requests for user (received or sent)"""
     logger.info(f"📋 Fetching {type} PII requests for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         if type == "received":
@@ -1005,16 +921,11 @@ async def respond_to_pii_request(
     request_id: str,
     response: str = Form(...),  # "approve" or "reject"
     responder: str = Form(...),
-    response_message: Optional[str] = Form(None)
+    response_message: Optional[str] = Form(None),
+    db = Depends(get_database)
 ):
     """Respond to PII request (approve/reject)"""
     logger.info(f"📝 PII request response {request_id}: {response} by {responder}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     from bson import ObjectId
     result = await db.pii_requests.update_one(
@@ -1037,15 +948,9 @@ async def respond_to_pii_request(
 # ===== FAVORITES MANAGEMENT =====
 
 @router.post("/favorites/{target_username}")
-async def add_to_favorites(username: str, target_username: str):
+async def add_to_favorites(username: str, target_username: str, db = Depends(get_database)):
     """Add user to favorites"""
     logger.info(f"⭐ Adding {target_username} to {username}'s favorites")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Check if already in favorites
     existing = await db.favorites.find_one({
@@ -1081,15 +986,9 @@ async def add_to_favorites(username: str, target_username: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/favorites/{target_username}")
-async def remove_from_favorites(username: str, target_username: str):
+async def remove_from_favorites(username: str, target_username: str, db = Depends(get_database)):
     """Remove user from favorites"""
     logger.info(f"⭐ Removing {target_username} from {username}'s favorites")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     result = await db.favorites.delete_one({
         "userUsername": username,
@@ -1103,15 +1002,9 @@ async def remove_from_favorites(username: str, target_username: str):
     return {"message": "Removed from favorites successfully"}
 
 @router.get("/favorites/{username}")
-async def get_favorites(username: str):
+async def get_favorites(username: str, db = Depends(get_database)):
     """Get user's favorites list"""
     logger.info(f"📋 Getting favorites for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         favorites_cursor = db.favorites.find({"userUsername": username})
@@ -1140,16 +1033,11 @@ async def get_favorites(username: str):
 async def add_to_shortlist(
     username: str,
     target_username: str,
-    notes: Optional[str] = Form(None)
+    notes: Optional[str] = Form(None),
+    db = Depends(get_database)
 ):
     """Add user to shortlist"""
     logger.info(f"📝 Adding {target_username} to {username}'s shortlist")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Check if already in shortlist
     existing = await db.shortlists.find_one({
@@ -1186,15 +1074,9 @@ async def add_to_shortlist(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/shortlist/{username}")
-async def get_shortlist(username: str):
+async def get_shortlist(username: str, db = Depends(get_database)):
     """Get user's shortlist"""
     logger.info(f"📋 Getting shortlist for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         shortlist_cursor = db.shortlists.find({"userUsername": username})
@@ -1229,12 +1111,6 @@ async def add_to_exclusions(
     """Add user to exclusions"""
     logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
 
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
     # Check if already excluded
     existing = await db.exclusions.find_one({
         "userUsername": username,
@@ -1265,15 +1141,9 @@ async def add_to_exclusions(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/exclusions/{username}")
-async def get_exclusions(username: str):
+async def get_exclusions(username: str, db = Depends(get_database)):
     """Get user's exclusions list"""
     logger.info(f"📋 Getting exclusions for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         exclusions_cursor = db.exclusions.find({"userUsername": username})
@@ -1292,12 +1162,6 @@ async def remove_from_exclusions(
 ):
     """Remove user from exclusions"""
     logger.info(f"🗑️ Removing {target_username} from exclusions for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Check if target user exists
     target_user = await db.users.find_one({"username": target_username})
@@ -1365,12 +1229,6 @@ async def send_message(
             detail="Message too long (max 1000 characters)"
         )
 
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
     # Check if recipient exists
     recipient = await db.users.find_one({"username": to_username})
     if not recipient:
@@ -1394,15 +1252,9 @@ async def send_message(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/messages/{username}")
-async def get_messages(username: str):
+async def get_messages(username: str, db = Depends(get_database)):
     """Get messages for user"""
     logger.info(f"📬 Getting messages for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         # Get all messages where user is sender or recipient
@@ -1439,15 +1291,9 @@ async def get_messages(username: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/conversations/{username}")
-async def get_conversations(username: str):
+async def get_conversations(username: str, db = Depends(get_database)):
     """Get list of conversations for user"""
     logger.info(f"💭 Getting conversations for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     try:
         # Get unique conversations
@@ -1508,17 +1354,10 @@ async def get_conversations(username: str):
         logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-
 @router.delete("/shortlist/{target_username}")
 async def remove_from_shortlist(target_username: str, username: str):
     """Remove user from shortlist"""
     logger.info(f"🗑️ Removing {target_username} from shortlist for {username}")
-
-    try:
-        db = get_database()
-    except Exception as e:
-        logger.error(f"❌ Database connection error: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
 
     # Check if target user exists
     target_user = await db.users.find_one({"username": target_username})

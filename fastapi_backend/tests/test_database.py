@@ -5,11 +5,22 @@ import pytest
 import asyncio
 from unittest.mock import patch, AsyncMock, MagicMock
 from motor.motor_asyncio import AsyncIOMotorClient
+import database
 from database import connect_to_mongo, close_mongo_connection, get_database
 
 
 class TestConnectToMongo:
     """Test cases for MongoDB connection functions."""
+
+    @pytest.fixture(autouse=True)
+    def reset_database_globals(self):
+        """Reset database global variables before each test."""
+        database.client = None
+        database.database = None
+        yield
+        # Clean up after test
+        database.client = None
+        database.database = None
 
     @pytest.fixture
     def mock_settings(self):
@@ -25,6 +36,8 @@ class TestConnectToMongo:
         # Mock the AsyncIOMotorClient and its admin.command
         mock_client = AsyncMock()
         mock_client.admin.command = AsyncMock()
+        mock_db = AsyncMock()
+        mock_client.__getitem__.return_value = mock_db
 
         with patch('database.AsyncIOMotorClient', return_value=mock_client):
             await connect_to_mongo()
@@ -37,7 +50,8 @@ class TestConnectToMongo:
 
             # Verify global variables were set
             assert database.client == mock_client
-            assert database.database == mock_client.test_db
+            assert database.database == mock_db
+            mock_client.__getitem__.assert_called_once_with("test_db")
 
     @pytest.mark.asyncio
     async def test_connect_to_mongo_connection_failure(self, mock_settings):

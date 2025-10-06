@@ -5,23 +5,21 @@ import pytest
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from httpx import AsyncClient
+import sys
+import os
+
+# Add the parent directory to Python path for imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
 from main import app
 from database import get_database
-import os
-from pathlib import Path
 
 
 # Test database URL - use a separate test database
 TEST_MONGODB_URL = os.getenv("TEST_MONGODB_URL", "mongodb://localhost:27017")
 TEST_DATABASE_NAME = "test_profiledata"
-
-
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 
 @pytest.fixture
@@ -42,7 +40,7 @@ async def test_db():
 
 
 @pytest.fixture
-async def client(test_db):
+def client(test_db):
     """Create a test client for API testing."""
 
     async def override_get_database():
@@ -51,8 +49,10 @@ async def client(test_db):
     # Override the database dependency
     app.dependency_overrides[get_database] = override_get_database
 
-    async with AsyncClient(app=app, base_url="http://test") as ac:
-        yield ac
+    from fastapi.testclient import TestClient
+    test_client = TestClient(app)
+    
+    yield test_client
 
     # Clean up dependency overrides
     app.dependency_overrides.clear()

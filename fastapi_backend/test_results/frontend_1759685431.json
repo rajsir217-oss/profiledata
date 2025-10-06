@@ -1,0 +1,12 @@
+{
+  "id": "frontend_1759685431",
+  "timestamp": "2025-10-05T10:30:31.828852",
+  "test_type": "frontend",
+  "status": "failed",
+  "total_tests": 0,
+  "passed_tests": 0,
+  "failed_tests": 0,
+  "duration": 0.0025131702423095703,
+  "output": "",
+  "error": "[Errno 2] No such file or directory: 'frontend'"
+}

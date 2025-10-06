@@ -17,6 +17,7 @@ import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
+import { TestDashboard } from './test-dashboard';
 
 function App() {
   const [isSidebarPinned, setIsSidebarPinned] = useState(false);
@@ -47,6 +48,7 @@ function App() {
               <Route path="/exclusions" element={<Exclusions />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/requests" element={<Requests />} />
+              <Route path="/test-dashboard" element={<TestDashboard />} />
               <Route path="/" element={<Login />} />
             </Routes>
           </div>

@@ -6,8 +6,9 @@ from bson import ObjectId
 
 class PyObjectId(ObjectId):
     @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
+    def __get_pydantic_core_schema__(cls, source, handler):
+        from pydantic_core import core_schema
+        return core_schema.no_info_plain_validator_function(cls.validate)
 
     @classmethod
     def validate(cls, v):
@@ -16,8 +17,8 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
     @classmethod
-    def __get_pydantic_json_schema__(cls, field_schema):
-        field_schema.update(type="string")
+    def __get_pydantic_json_schema__(cls, schema, handler):
+        return {"type": "string"}
 
 class UserBase(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
