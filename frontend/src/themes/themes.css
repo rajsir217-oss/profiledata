@@ -347,6 +347,136 @@ body.theme-light-pink {
 }
 
 /* ========================================
+   LIGHT GRAY THEME
+   ======================================== */
+body.theme-light-gray {
+  /* Primary Colors - Neutral slate */
+  --primary-color: #64748b;
+  --secondary-color: #94a3b8;
+  --accent-color: #3b82f6;
+  
+  /* Backgrounds - Clean grays */
+  --background-color: #f8fafc;
+  --surface-color: #f1f5f9;
+  --card-background: #ffffff;
+  
+  /* Text Colors - Balanced contrast */
+  --text-color: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  
+  /* Borders & Dividers */
+  --border-color: #e2e8f0;
+  --divider-color: #f1f5f9;
+  
+  /* Interactive States */
+  --hover-background: #f1f5f9;
+  --active-background: #e2e8f0;
+  --selected-background: rgba(100, 116, 139, 0.1);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-light-gray .dashboard-container,
+.theme-light-gray .search-page,
+.theme-light-gray .profile-container,
+.theme-light-gray .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-light-gray .user-card,
+.theme-light-gray .dashboard-section,
+.theme-light-gray .stat-card,
+.theme-light-gray .search-filters,
+.theme-light-gray .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-light-gray .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-light-gray .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* ========================================
+   ULTRA LIGHT GRAY THEME
+   ======================================== */
+body.theme-ultra-light-gray {
+  /* Primary Colors - Subtle slate */
+  --primary-color: #475569;
+  --secondary-color: #64748b;
+  --accent-color: #0ea5e9;
+  
+  /* Backgrounds - Maximum whitespace */
+  --background-color: #fcfcfd;
+  --surface-color: #fafbfc;
+  --card-background: #ffffff;
+  
+  /* Text Colors - Gentle contrast */
+  --text-color: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  /* Borders & Dividers - Very subtle */
+  --border-color: #f1f5f9;
+  --divider-color: #f8fafc;
+  
+  /* Interactive States - Minimal */
+  --hover-background: #f8fafc;
+  --active-background: #f1f5f9;
+  --selected-background: rgba(71, 85, 105, 0.05);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #0ea5e9;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+.theme-ultra-light-gray .dashboard-container,
+.theme-ultra-light-gray .search-page,
+.theme-ultra-light-gray .profile-container,
+.theme-ultra-light-gray .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-light-gray .user-card,
+.theme-ultra-light-gray .dashboard-section,
+.theme-ultra-light-gray .stat-card,
+.theme-ultra-light-gray .search-filters,
+.theme-ultra-light-gray .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-light-gray .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-light-gray .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* ========================================
    COZY & SMOOTH GLOBAL STYLES
    ======================================== */
 

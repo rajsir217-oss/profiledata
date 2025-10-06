@@ -41,6 +41,28 @@ const Preferences = () => {
         background: '#fdf2f8',
         text: '#4a5568'
       }
+    },
+    {
+      id: 'light-gray',
+      name: 'Light Gray',
+      description: 'Clean neutral gray theme for minimal distraction',
+      preview: {
+        primary: '#64748b',
+        secondary: '#94a3b8',
+        background: '#f8fafc',
+        text: '#1e293b'
+      }
+    },
+    {
+      id: 'ultra-light-gray',
+      name: 'Ultra Light Gray',
+      description: 'Ultra minimal gray theme with maximum whitespace',
+      preview: {
+        primary: '#475569',
+        secondary: '#64748b',
+        background: '#fcfcfd',
+        text: '#0f172a'
+      }
     }
   ];
 
