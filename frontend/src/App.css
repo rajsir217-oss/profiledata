@@ -1,8 +1,10 @@
 /* App Layout */
 .app-layout {
-  transition: margin-left 0.3s ease;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   padding-top: 60px;
   margin-left: 0;
+  width: 100%;
+  position: relative;
 }
 
 .app-layout.sidebar-open {
@@ -11,8 +13,10 @@
 
 /* Main Content */
 .main-content {
-  padding-top: 60px; /* Height of top bar */
-  min-height: 100vh;
+  padding-top: 0; /* Removed duplicate padding since app-layout already has it */
+  min-height: calc(100vh - 60px);
+  width: 100%;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .main-content .container {
   padding-top: 20px;
@@ -26,20 +30,38 @@
   }
   
   .main-content {
-    padding-top: 50px;
+    min-height: calc(100vh - 50px);
   }
 }
 
-@media (max-width: 480px) {
-  /* Mobile adjustments - no shifting on small screens */
+@media (max-width: 576px) {
+  /* Mobile adjustments - overlay on small screens instead of push */
   .app-layout.sidebar-open {
     margin-left: 0;
+  }
+  
+  /* Add overlay backdrop on mobile when sidebar is open */
+  .app-layout.sidebar-open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1001;
+    animation: fadeIn 0.3s ease;
   }
   
   .main-content .container {
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Global Styles */
