@@ -1,5 +1,5 @@
 # fastapi_backend/routes.py
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request, Query
 from fastapi.responses import JSONResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -987,7 +987,7 @@ async def add_to_favorites(username: str, target_username: str, db = Depends(get
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/favorites/{target_username}")
-async def remove_from_favorites(username: str, target_username: str, db = Depends(get_database)):
+async def remove_from_favorites(target_username: str, username: str = Query(...), db = Depends(get_database)):
     """Remove user from favorites"""
     logger.info(f"⭐ Removing {target_username} from {username}'s favorites")
 
@@ -1160,7 +1160,7 @@ async def get_exclusions(username: str, db = Depends(get_database)):
 @router.delete("/exclusions/{target_username}")
 async def remove_from_exclusions(
     target_username: str,
-    username: str,
+    username: str = Query(...),
     db = Depends(get_database)
 ):
     """Remove user from exclusions"""
@@ -1358,7 +1358,7 @@ async def get_conversations(username: str, db = Depends(get_database)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/shortlist/{target_username}")
-async def remove_from_shortlist(target_username: str, username: str, db = Depends(get_database)):
+async def remove_from_shortlist(target_username: str, username: str = Query(...), db = Depends(get_database)):
     """Remove user from shortlist"""
     logger.info(f"🗑️ Removing {target_username} from shortlist for {username}")
 
