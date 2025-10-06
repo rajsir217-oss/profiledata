@@ -38,7 +38,7 @@
 @media (max-width: 768px) {
   /* Tablet adjustments */
   .app-layout.sidebar-open {
-    margin-left: 250px;
+    transform: translateX(250px);
   }
   
   .top-bar.sidebar-open {
@@ -54,7 +54,7 @@
 @media (max-width: 576px) {
   /* Mobile: sidebar overlays instead of push */
   .app-layout.sidebar-open {
-    margin-left: 0;
+    transform: translateX(0);
   }
   
   .top-bar.sidebar-open {
