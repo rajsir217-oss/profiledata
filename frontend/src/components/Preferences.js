@@ -10,8 +10,8 @@ const Preferences = () => {
   const themes = [
     {
       id: 'light-blue',
-      name: 'Yahoo Finance Light',
-      description: 'Professional light theme inspired by Yahoo Finance',
+      name: 'Professional Light',
+      description: 'Clean and modern light theme for daily use',
       preview: {
         primary: '#0052ff',
         secondary: '#188fff',
@@ -21,8 +21,8 @@ const Preferences = () => {
     },
     {
       id: 'dark',
-      name: 'Yahoo Finance Dark',
-      description: 'Dark mode with high contrast for trading',
+      name: 'Professional Dark',
+      description: 'High contrast dark mode for reduced eye strain',
       preview: {
         primary: '#5b7fff',
         secondary: '#4a9fff',
@@ -32,8 +32,8 @@ const Preferences = () => {
     },
     {
       id: 'light-pink',
-      name: 'Yahoo Finance Classic',
-      description: 'Professional gray theme with purple accents',
+      name: 'Professional Classic',
+      description: 'Elegant gray theme with purple accents',
       preview: {
         primary: '#570df8',
         secondary: '#6366f1',

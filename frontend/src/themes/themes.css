@@ -1,11 +1,11 @@
 /* ========================================
-   YAHOO FINANCE INSPIRED THEME SYSTEM
+   PROFESSIONAL THEME SYSTEM
    ======================================== */
 
-/* Import Yahoo Finance style font */
+/* Import professional font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* Default CSS Variables (Yahoo Finance Light) */
+/* Default CSS Variables (Professional Light) */
 :root {
   /* Primary Colors */
   --primary-color: #0052ff;
@@ -31,7 +31,7 @@
   --active-background: #e6e9f0;
   --selected-background: rgba(0, 82, 255, 0.08);
   
-  /* Status Colors (Yahoo Finance style) */
+  /* Status Colors (Professional style) */
   --success-color: #0caf50;
   --danger-color: #ff333a;
   --warning-color: #ff9800;
@@ -65,7 +65,7 @@
 }
 
 /* ========================================
-   YAHOO FINANCE LIGHT THEME (Default)
+   PROFESSIONAL LIGHT THEME (Default)
    ======================================== */
 body.theme-light-blue {
   /* Primary Colors */
@@ -137,7 +137,7 @@ body.theme-light-blue {
 }
 
 /* ========================================
-   YAHOO FINANCE DARK THEME
+   PROFESSIONAL DARK THEME
    ======================================== */
 body.theme-dark {
   /* Primary Colors */
@@ -164,7 +164,7 @@ body.theme-dark {
   --active-background: #363a45;
   --selected-background: rgba(91, 127, 255, 0.12);
   
-  /* Status Colors (Yahoo Finance style) */
+  /* Status Colors (Professional style) */
   --success-color: #0caf50;
   --danger-color: #ff333a;
   --warning-color: #ff9800;
@@ -246,7 +246,7 @@ body.theme-dark {
 }
 
 /* ========================================
-   YAHOO FINANCE CLASSIC THEME (Professional Gray)
+   PROFESSIONAL CLASSIC THEME (Gray)
    ======================================== */
 body.theme-light-pink {
   /* Primary Colors */
@@ -273,7 +273,7 @@ body.theme-light-pink {
   --active-background: #f3f4f6;
   --selected-background: rgba(87, 13, 248, 0.08);
   
-  /* Status Colors (Yahoo Finance style) */
+  /* Status Colors (Professional style) */
   --success-color: #0caf50;
   --danger-color: #ff333a;
   --warning-color: #ff9800;
@@ -345,7 +345,7 @@ body.theme-light-pink {
 }
 
 /* ========================================
-   YAHOO FINANCE GLOBAL STYLES
+   PROFESSIONAL GLOBAL STYLES
    ======================================== */
 
 /* Typography */
@@ -364,7 +364,7 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 
-/* Clean Card Style (Yahoo Finance) */
+/* Clean Card Style (Professional) */
 .user-card,
 .dashboard-section,
 .stat-card,
@@ -384,7 +384,7 @@ h1, h2, h3, h4, h5, h6 {
   border-color: var(--primary-color);
 }
 
-/* Button Styles (Yahoo Finance) */
+/* Button Styles (Professional) */
 button, .btn {
   font-family: var(--font-family);
   font-size: var(--font-size-sm);
@@ -401,7 +401,7 @@ button:hover, .btn:hover {
   box-shadow: var(--shadow-sm);
 }
 
-/* Input Styles (Yahoo Finance) */
+/* Input Styles (Professional) */
 input, select, textarea {
   font-family: var(--font-family);
   font-size: var(--font-size-base);
@@ -419,7 +419,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px var(--selected-background);
 }
 
-/* Sidebar Yahoo Finance Style */
+/* Sidebar Professional Style */
 .sidebar {
   background: var(--card-background);
   border-right: 1px solid var(--border-color);
@@ -446,12 +446,12 @@ input:focus, select:focus, textarea:focus {
   padding: var(--spacing-lg) 0;
 }
 
-/* Status Indicators (Yahoo Finance style) */
+/* Status Indicators (Professional style) */
 .success { color: var(--success-color); }
 .danger { color: var(--danger-color); }
 .warning { color: var(--warning-color); }
 
-/* Data Tables (Yahoo Finance style) */
+/* Data Tables (Professional style) */
 table {
   width: 100%;
   border-collapse: collapse;
