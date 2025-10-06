@@ -1,6 +1,5 @@
 /* App Wrapper */
 .app-wrapper {
-  display: flex;
   width: 100%;
   min-height: 100vh;
   position: relative;
@@ -8,11 +7,15 @@
 
 /* App Layout */
 .app-layout {
-  flex: 1;
   padding-top: 60px;
   width: 100%;
+  margin-left: 0;
   position: relative;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.app-layout.sidebar-open {
+  margin-left: 280px;
 }
 
 /* Main Content */
@@ -29,9 +32,14 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* Sidebar width adjustment for tablets */
-  .sidebar.open {
-    width: 250px;
+  /* Tablet adjustments */
+  .app-layout.sidebar-open {
+    margin-left: 250px;
+  }
+  
+  .top-bar.sidebar-open {
+    left: 250px;
+    width: calc(100% - 250px);
   }
   
   .main-content {
@@ -41,26 +49,17 @@
 
 @media (max-width: 576px) {
   /* Mobile: sidebar overlays instead of push */
-  .app-wrapper {
-    position: relative;
+  .app-layout.sidebar-open {
+    margin-left: 0; /* No push on mobile */
   }
   
-  .sidebar {
-    position: fixed;
+  .top-bar.sidebar-open {
     left: 0;
-    top: 0;
-    transform: translateX(-100%);
-    width: 280px !important;
-    z-index: 1003;
-  }
-  
-  .sidebar.open {
-    transform: translateX(0);
-    width: 280px !important;
+    width: 100%;
   }
   
   /* Add overlay backdrop on mobile when sidebar is open */
-  .app-wrapper::before {
+  .app-layout.sidebar-open::before {
     content: '';
     position: fixed;
     top: 0;
@@ -69,20 +68,18 @@
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 1001;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s ease;
-  }
-  
-  .app-wrapper.has-sidebar-open::before {
-    opacity: 1;
-    pointer-events: auto;
+    animation: fadeIn 0.3s ease;
   }
   
   .main-content .container {
     padding-left: 10px;
     padding-right: 10px;
   }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Global Styles */
