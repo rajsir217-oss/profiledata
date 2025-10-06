@@ -80,6 +80,12 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate(`/profile/${currentUser}`)
       },
       { 
+        icon: '⚙️', 
+        label: 'My Preferences', 
+        subLabel: 'Theme & Settings',
+        action: () => navigate('/preferences')
+      },
+      { 
         icon: '🔍', 
         label: 'Search Profiles', 
         subLabel: 'Find matches',

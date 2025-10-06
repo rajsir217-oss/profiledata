@@ -1,6 +1,6 @@
 // frontend/src/App.js
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
 import Profile from './components/Profile';
@@ -18,10 +18,18 @@ import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
+import Preferences from './components/Preferences';
 import { TestDashboard } from './test-dashboard';
+import './themes/themes.css';
 
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+
+  // Initialize theme on app load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('appTheme') || 'light-blue';
+    document.body.className = `theme-${savedTheme}`;
+  }, []);
 
   const handleSidebarToggle = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
@@ -53,6 +61,7 @@ function App() {
               <Route path="/exclusions" element={<Exclusions />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/requests" element={<Requests />} />
+              <Route path="/preferences" element={<Preferences />} />
               <Route path="/test-dashboard" element={<TestDashboard />} />
               <Route path="/" element={<Login />} />
             </Routes>

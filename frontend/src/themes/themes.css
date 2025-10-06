@@ -1,0 +1,282 @@
+/* ========================================
+   THEME CSS VARIABLES AND GLOBAL STYLES
+   ======================================== */
+
+/* Default CSS Variables (Light Blue Theme) */
+:root {
+  --primary-color: #667eea;
+  --secondary-color: #764ba2;
+  --background-color: #f5f7fa;
+  --card-background: #ffffff;
+  --text-color: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --border-color: #e0e0e0;
+  --hover-background: rgba(102, 126, 234, 0.1);
+  --success-color: #4caf50;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --info-color: #3498db;
+}
+
+/* ========================================
+   LIGHT BLUE THEME (Default)
+   ======================================== */
+body.theme-light-blue {
+  --primary-color: #667eea;
+  --secondary-color: #764ba2;
+  --background-color: #f5f7fa;
+  --card-background: #ffffff;
+  --text-color: #2c3e50;
+  --text-secondary: #7f8c8d;
+  --border-color: #e0e0e0;
+  --hover-background: rgba(102, 126, 234, 0.1);
+  --success-color: #4caf50;
+  --warning-color: #f39c12;
+  --danger-color: #e74c3c;
+  --info-color: #3498db;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-light-blue .dashboard-container,
+.theme-light-blue .search-page,
+.theme-light-blue .profile-container,
+.theme-light-blue .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-light-blue .user-card,
+.theme-light-blue .dashboard-section,
+.theme-light-blue .stat-card,
+.theme-light-blue .search-filters,
+.theme-light-blue .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-light-blue .sidebar {
+  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+}
+
+/* ========================================
+   DARK THEME
+   ======================================== */
+body.theme-dark {
+  --primary-color: #bb86fc;
+  --secondary-color: #3700b3;
+  --background-color: #121212;
+  --card-background: #1e1e1e;
+  --text-color: #ffffff;
+  --text-secondary: #b0b0b0;
+  --border-color: #333333;
+  --hover-background: rgba(187, 134, 252, 0.15);
+  --success-color: #4caf50;
+  --warning-color: #ff9800;
+  --danger-color: #f44336;
+  --info-color: #2196f3;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-dark .dashboard-container,
+.theme-dark .search-page,
+.theme-dark .profile-container,
+.theme-dark .preferences-container {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-dark .dashboard-header,
+.theme-dark .preferences-header {
+  background: linear-gradient(135deg, #bb86fc 0%, #3700b3 100%);
+}
+
+.theme-dark .user-card,
+.theme-dark .dashboard-section,
+.theme-dark .stat-card,
+.theme-dark .search-filters,
+.theme-dark .preferences-section,
+.theme-dark .card {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.theme-dark .sidebar {
+  background: linear-gradient(180deg, #1e1e1e 0%, #121212 100%);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-dark .sidebar-item {
+  color: var(--text-secondary);
+}
+
+.theme-dark .sidebar-item:hover {
+  background: rgba(187, 134, 252, 0.2);
+  color: var(--primary-color);
+}
+
+.theme-dark input,
+.theme-dark select,
+.theme-dark textarea {
+  background: #2a2a2a;
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.theme-dark input::placeholder,
+.theme-dark textarea::placeholder {
+  color: var(--text-secondary);
+}
+
+.theme-dark .btn-primary {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.theme-dark .section-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.theme-dark .empty-section {
+  background: var(--card-background);
+  color: var(--text-secondary);
+}
+
+/* ========================================
+   LIGHT PINK THEME
+   ======================================== */
+body.theme-light-pink {
+  --primary-color: #ff6b9d;
+  --secondary-color: #c44569;
+  --background-color: #ffeef8;
+  --card-background: #ffffff;
+  --text-color: #4a4a4a;
+  --text-secondary: #8e8e8e;
+  --border-color: #ffd4e6;
+  --hover-background: rgba(255, 107, 157, 0.1);
+  --success-color: #4caf50;
+  --warning-color: #ffc107;
+  --danger-color: #dc3545;
+  --info-color: #17a2b8;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-light-pink .dashboard-container,
+.theme-light-pink .search-page,
+.theme-light-pink .profile-container,
+.theme-light-pink .preferences-container {
+  background: var(--background-color);
+}
+
+.theme-light-pink .dashboard-header,
+.theme-light-pink .preferences-header {
+  background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+}
+
+.theme-light-pink .user-card,
+.theme-light-pink .dashboard-section,
+.theme-light-pink .stat-card,
+.theme-light-pink .search-filters,
+.theme-light-pink .preferences-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-light-pink .sidebar {
+  background: linear-gradient(180deg, #ff6b9d 0%, #c44569 100%);
+}
+
+.theme-light-pink .sidebar-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.theme-light-pink .btn-primary {
+  background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
+  border: none;
+}
+
+.theme-light-pink .stat-value {
+  color: var(--primary-color);
+}
+
+.theme-light-pink input:focus,
+.theme-light-pink select:focus,
+.theme-light-pink textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 157, 0.25);
+}
+
+.theme-light-pink .section-count {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.theme-light-pink .online-badge {
+  color: #4caf50;
+  background: white;
+}
+
+/* ========================================
+   GLOBAL THEME TRANSITIONS
+   ======================================== */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.dashboard-container,
+.search-page,
+.profile-container,
+.preferences-container,
+.user-card,
+.dashboard-section,
+.stat-card,
+.search-filters,
+.preferences-section,
+.sidebar,
+.card,
+input,
+select,
+textarea {
+  transition: background-color 0.3s ease, 
+              color 0.3s ease, 
+              border-color 0.3s ease,
+              box-shadow 0.3s ease;
+}
+
+/* ========================================
+   ADDITIONAL THEME ADJUSTMENTS
+   ======================================== */
+
+/* Scrollbar styling for dark theme */
+.theme-dark ::-webkit-scrollbar {
+  width: 12px;
+  background: #1e1e1e;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb {
+  background: #444444;
+  border-radius: 6px;
+}
+
+.theme-dark ::-webkit-scrollbar-thumb:hover {
+  background: #555555;
+}
+
+/* Scrollbar styling for light pink theme */
+.theme-light-pink ::-webkit-scrollbar {
+  width: 12px;
+  background: #ffeef8;
+}
+
+.theme-light-pink ::-webkit-scrollbar-thumb {
+  background: #ffc0db;
+  border-radius: 6px;
+}
+
+.theme-light-pink ::-webkit-scrollbar-thumb:hover {
+  background: #ffaed0;
+}
