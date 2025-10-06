@@ -10,35 +10,35 @@ const Preferences = () => {
   const themes = [
     {
       id: 'light-blue',
-      name: 'Light Blue',
-      description: 'Clean and professional blue theme',
+      name: 'Yahoo Finance Light',
+      description: 'Professional light theme inspired by Yahoo Finance',
       preview: {
-        primary: '#667eea',
-        secondary: '#764ba2',
-        background: '#f5f7fa',
-        text: '#2c3e50'
+        primary: '#0052ff',
+        secondary: '#188fff',
+        background: '#ffffff',
+        text: '#000000'
       }
     },
     {
       id: 'dark',
-      name: 'Dark Mode',
-      description: 'Easy on the eyes dark theme',
+      name: 'Yahoo Finance Dark',
+      description: 'Dark mode with high contrast for trading',
       preview: {
-        primary: '#bb86fc',
-        secondary: '#3700b3',
-        background: '#121212',
-        text: '#ffffff'
+        primary: '#5b7fff',
+        secondary: '#4a9fff',
+        background: '#0a0e13',
+        text: '#d1d4dc'
       }
     },
     {
       id: 'light-pink',
-      name: 'Light Pink',
-      description: 'Soft and elegant pink theme',
+      name: 'Yahoo Finance Classic',
+      description: 'Professional gray theme with purple accents',
       preview: {
-        primary: '#ff6b9d',
-        secondary: '#c44569',
-        background: '#ffeef8',
-        text: '#4a4a4a'
+        primary: '#570df8',
+        secondary: '#6366f1',
+        background: '#f5f5f5',
+        text: '#1a1a1a'
       }
     }
   ];

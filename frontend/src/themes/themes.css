@@ -1,42 +1,100 @@
 /* ========================================
-   THEME CSS VARIABLES AND GLOBAL STYLES
+   YAHOO FINANCE INSPIRED THEME SYSTEM
    ======================================== */
 
-/* Default CSS Variables (Light Blue Theme) */
+/* Import Yahoo Finance style font */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+/* Default CSS Variables (Yahoo Finance Light) */
 :root {
-  --primary-color: #667eea;
-  --secondary-color: #764ba2;
-  --background-color: #f5f7fa;
+  /* Primary Colors */
+  --primary-color: #0052ff;
+  --secondary-color: #7c83ff;
+  --accent-color: #188fff;
+  
+  /* Backgrounds */
+  --background-color: #ffffff;
+  --surface-color: #f8f9fa;
   --card-background: #ffffff;
-  --text-color: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --border-color: #e0e0e0;
-  --hover-background: rgba(102, 126, 234, 0.1);
-  --success-color: #4caf50;
-  --warning-color: #f39c12;
-  --danger-color: #e74c3c;
-  --info-color: #3498db;
+  
+  /* Text Colors */
+  --text-color: #000000;
+  --text-secondary: #787b86;
+  --text-muted: #a0a3bd;
+  
+  /* Borders & Dividers */
+  --border-color: #e0e3eb;
+  --divider-color: #eff2f5;
+  
+  /* Interactive States */
+  --hover-background: #f0f2f5;
+  --active-background: #e6e9f0;
+  --selected-background: rgba(0, 82, 255, 0.08);
+  
+  /* Status Colors (Yahoo Finance style) */
+  --success-color: #0caf50;
+  --danger-color: #ff333a;
+  --warning-color: #ff9800;
+  --info-color: #188fff;
+  
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 20px;
+  --font-size-2xl: 24px;
+  
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 24px;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12);
+  
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
 /* ========================================
-   LIGHT BLUE THEME (Default)
+   YAHOO FINANCE LIGHT THEME (Default)
    ======================================== */
 body.theme-light-blue {
-  --primary-color: #667eea;
-  --secondary-color: #764ba2;
-  --background-color: #f5f7fa;
+  /* Primary Colors */
+  --primary-color: #0052ff;
+  --secondary-color: #7c83ff;
+  --accent-color: #188fff;
+  
+  /* Backgrounds */
+  --background-color: #ffffff;
+  --surface-color: #f8f9fa;
   --card-background: #ffffff;
-  --text-color: #2c3e50;
-  --text-secondary: #7f8c8d;
-  --border-color: #e0e0e0;
-  --hover-background: rgba(102, 126, 234, 0.1);
-  --success-color: #4caf50;
-  --warning-color: #f39c12;
-  --danger-color: #e74c3c;
-  --info-color: #3498db;
+  
+  /* Text Colors */
+  --text-color: #000000;
+  --text-secondary: #787b86;
+  --text-muted: #a0a3bd;
+  
+  /* Borders & Dividers */
+  --border-color: #e0e3eb;
+  --divider-color: #eff2f5;
+  
+  /* Interactive States */
+  --hover-background: #f0f2f5;
+  --active-background: #e6e9f0;
+  --selected-background: rgba(0, 82, 255, 0.08);
   
   background-color: var(--background-color);
   color: var(--text-color);
+  font-family: var(--font-family);
 }
 
 .theme-light-blue .dashboard-container,
@@ -56,28 +114,65 @@ body.theme-light-blue {
 }
 
 .theme-light-blue .sidebar {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-light-blue .dashboard-header,
+.theme-light-blue .preferences-header {
+  background: var(--primary-color);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--accent-color) 100%);
+}
+
+.theme-light-blue .section-header {
+  background: transparent;
+  border-bottom: 2px solid var(--primary-color);
+  color: var(--text-color);
+  padding: 12px 0;
+}
+
+.theme-light-blue .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 /* ========================================
-   DARK THEME
+   YAHOO FINANCE DARK THEME
    ======================================== */
 body.theme-dark {
-  --primary-color: #bb86fc;
-  --secondary-color: #3700b3;
-  --background-color: #121212;
-  --card-background: #1e1e1e;
-  --text-color: #ffffff;
-  --text-secondary: #b0b0b0;
-  --border-color: #333333;
-  --hover-background: rgba(187, 134, 252, 0.15);
-  --success-color: #4caf50;
+  /* Primary Colors */
+  --primary-color: #5b7fff;
+  --secondary-color: #8b9fff;
+  --accent-color: #4a9fff;
+  
+  /* Backgrounds */
+  --background-color: #0a0e13;
+  --surface-color: #131722;
+  --card-background: #1e222d;
+  
+  /* Text Colors */
+  --text-color: #d1d4dc;
+  --text-secondary: #787b86;
+  --text-muted: #4a4e5a;
+  
+  /* Borders & Dividers */
+  --border-color: #2a2e39;
+  --divider-color: #1e222d;
+  
+  /* Interactive States */
+  --hover-background: #2a2e39;
+  --active-background: #363a45;
+  --selected-background: rgba(91, 127, 255, 0.12);
+  
+  /* Status Colors (Yahoo Finance style) */
+  --success-color: #0caf50;
+  --danger-color: #ff333a;
   --warning-color: #ff9800;
-  --danger-color: #f44336;
-  --info-color: #2196f3;
+  --info-color: #4a9fff;
   
   background-color: var(--background-color);
   color: var(--text-color);
+  font-family: var(--font-family);
 }
 
 .theme-dark .dashboard-container,
@@ -105,8 +200,13 @@ body.theme-dark {
 }
 
 .theme-dark .sidebar {
-  background: linear-gradient(180deg, #1e1e1e 0%, #121212 100%);
+  background: var(--surface-color);
   border-right: 1px solid var(--border-color);
+}
+
+.theme-dark .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 .theme-dark .sidebar-item {
@@ -146,24 +246,42 @@ body.theme-dark {
 }
 
 /* ========================================
-   LIGHT PINK THEME
+   YAHOO FINANCE CLASSIC THEME (Professional Gray)
    ======================================== */
 body.theme-light-pink {
-  --primary-color: #ff6b9d;
-  --secondary-color: #c44569;
-  --background-color: #ffeef8;
+  /* Primary Colors */
+  --primary-color: #570df8;
+  --secondary-color: #7c3aed;
+  --accent-color: #6366f1;
+  
+  /* Backgrounds */
+  --background-color: #f5f5f5;
+  --surface-color: #fafafa;
   --card-background: #ffffff;
-  --text-color: #4a4a4a;
-  --text-secondary: #8e8e8e;
-  --border-color: #ffd4e6;
-  --hover-background: rgba(255, 107, 157, 0.1);
-  --success-color: #4caf50;
-  --warning-color: #ffc107;
-  --danger-color: #dc3545;
-  --info-color: #17a2b8;
+  
+  /* Text Colors */
+  --text-color: #1a1a1a;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  
+  /* Borders & Dividers */
+  --border-color: #e5e7eb;
+  --divider-color: #f3f4f6;
+  
+  /* Interactive States */
+  --hover-background: #f9fafb;
+  --active-background: #f3f4f6;
+  --selected-background: rgba(87, 13, 248, 0.08);
+  
+  /* Status Colors (Yahoo Finance style) */
+  --success-color: #0caf50;
+  --danger-color: #ff333a;
+  --warning-color: #ff9800;
+  --info-color: #6366f1;
   
   background-color: var(--background-color);
   color: var(--text-color);
+  font-family: var(--font-family);
 }
 
 .theme-light-pink .dashboard-container,
@@ -188,16 +306,22 @@ body.theme-light-pink {
 }
 
 .theme-light-pink .sidebar {
-  background: linear-gradient(180deg, #ff6b9d 0%, #c44569 100%);
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-light-pink .sidebar-item {
+  color: var(--text-color);
 }
 
 .theme-light-pink .sidebar-item:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: var(--hover-background);
+  color: var(--primary-color);
 }
 
 .theme-light-pink .btn-primary {
-  background: linear-gradient(135deg, #ff6b9d 0%, #c44569 100%);
-  border: none;
+  background: var(--primary-color);
+  border: 1px solid var(--primary-color);
 }
 
 .theme-light-pink .stat-value {
@@ -221,6 +345,137 @@ body.theme-light-pink {
 }
 
 /* ========================================
+   YAHOO FINANCE GLOBAL STYLES
+   ======================================== */
+
+/* Typography */
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* Clean Card Style (Yahoo Finance) */
+.user-card,
+.dashboard-section,
+.stat-card,
+.preferences-section,
+.card {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: none;
+  transition: all 0.2s ease;
+}
+
+.user-card:hover,
+.dashboard-section:hover,
+.stat-card:hover,
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--primary-color);
+}
+
+/* Button Styles (Yahoo Finance) */
+button, .btn {
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+button:hover, .btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Input Styles (Yahoo Finance) */
+input, select, textarea {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--card-background);
+  color: var(--text-color);
+  transition: all 0.15s ease;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--selected-background);
+}
+
+/* Sidebar Yahoo Finance Style */
+.sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+  box-shadow: none;
+}
+
+.sidebar-item {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  padding: var(--spacing-md);
+  border-radius: var(--radius-sm);
+  transition: all 0.15s ease;
+}
+
+.sidebar-item:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+}
+
+/* Section Headers */
+.section-header {
+  background: none;
+  border-bottom: 2px solid var(--primary-color);
+  padding: var(--spacing-lg) 0;
+}
+
+/* Status Indicators (Yahoo Finance style) */
+.success { color: var(--success-color); }
+.danger { color: var(--danger-color); }
+.warning { color: var(--warning-color); }
+
+/* Data Tables (Yahoo Finance style) */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+th {
+  font-weight: 500;
+  text-align: left;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-secondary);
+}
+
+td {
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--divider-color);
+}
+
+tr:hover {
+  background: var(--hover-background);
+}
+
+/* ========================================
    GLOBAL THEME TRANSITIONS
    ======================================== */
 body {
@@ -241,10 +496,10 @@ body {
 input,
 select,
 textarea {
-  transition: background-color 0.3s ease, 
-              color 0.3s ease, 
-              border-color 0.3s ease,
-              box-shadow 0.3s ease;
+  transition: background-color 0.2s ease, 
+              color 0.2s ease, 
+              border-color 0.2s ease,
+              box-shadow 0.2s ease;
 }
 
 /* ========================================
