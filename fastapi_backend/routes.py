@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, De
 from fastapi.responses import JSONResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
-from models import UserCreate, UserResponse, LoginRequest, Token
+from models import UserCreate, UserResponse, LoginRequest, Token, MessageCreate, ConversationResponse
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
