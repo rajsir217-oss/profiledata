@@ -135,10 +135,18 @@
   transition: all 0.3s ease;
 }
 
+.access-card.clickable {
+  cursor: pointer;
+}
+
 .access-card:hover {
   border-color: #667eea;
   box-shadow: 0 4px 16px rgba(102, 126, 234, 0.15);
   transform: translateY(-2px);
+}
+
+.access-card.clickable:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%);
 }
 
 .access-card-header {
@@ -250,9 +258,18 @@
   transition: all 0.3s ease;
 }
 
+.request-card.clickable {
+  cursor: pointer;
+}
+
 .request-card:hover {
   border-color: #667eea;
   box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
+}
+
+.request-card.clickable:hover {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%);
+  transform: translateY(-1px);
 }
 
 .request-card-header {

@@ -114,12 +114,20 @@ const PIIManagement = () => {
     return badges[status] || { label: status, class: 'badge-default' };
   };
 
+  const handleProfileClick = (username) => {
+    navigate(`/profile/${username}`);
+  };
+
   const renderAccessCard = (item, type) => {
     const profile = item.userProfile;
     const isGranted = type === 'granted';
 
     return (
-      <div key={profile.username} className="access-card">
+      <div 
+        key={profile.username} 
+        className="access-card clickable"
+        onClick={() => handleProfileClick(profile.username)}
+      >
         <div className="access-card-header">
           <div className="user-info">
             {profile.images?.[0] ? (
@@ -153,7 +161,10 @@ const PIIManagement = () => {
           <div className="access-card-actions">
             <button
               className="btn-revoke"
-              onClick={() => handleRevokeAccess(item.accessIds, profile.username)}
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent card click
+                handleRevokeAccess(item.accessIds, profile.username);
+              }}
             >
               🚫 Revoke Access
             </button>
@@ -168,7 +179,11 @@ const PIIManagement = () => {
     const badge = getStatusBadge(request.status);
 
     return (
-      <div key={request.id} className="request-card">
+      <div 
+        key={request.id} 
+        className="request-card clickable"
+        onClick={() => handleProfileClick(profile.username)}
+      >
         <div className="request-card-header">
           <div className="user-info">
             {profile.images?.[0] ? (
@@ -206,13 +221,19 @@ const PIIManagement = () => {
               <>
                 <button
                   className="btn-approve"
-                  onClick={() => handleApproveRequest(request.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleApproveRequest(request.id);
+                  }}
                 >
                   ✅ Approve
                 </button>
                 <button
                   className="btn-reject"
-                  onClick={() => handleRejectRequest(request.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRejectRequest(request.id);
+                  }}
                 >
                   ❌ Reject
                 </button>
@@ -220,7 +241,10 @@ const PIIManagement = () => {
             ) : (
               <button
                 className="btn-cancel"
-                onClick={() => handleCancelRequest(request.id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCancelRequest(request.id);
+                }}
               >
                 🚫 Cancel Request
               </button>
