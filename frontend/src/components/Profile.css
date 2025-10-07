@@ -75,6 +75,110 @@
   border-radius: 10px;
 }
 
+/* PII Request Section */
+.pii-request-section {
+  text-align: center;
+  padding: 24px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 12px;
+  margin-bottom: 30px;
+  border: 2px dashed #667eea;
+}
+
+.btn-request-access {
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 24px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-request-access:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.pii-hint {
+  margin: 12px 0 0 0;
+  font-size: 14px;
+  color: #666;
+}
+
+/* Profile Sections */
+.profile-section {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: all 0.3s ease;
+}
+
+.profile-section:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.1);
+}
+
+.profile-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #333;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+/* PII Locked State */
+.pii-locked {
+  text-align: center;
+  padding: 40px 20px;
+  background: linear-gradient(135deg, rgba(0, 0, 0, 0.02) 0%, rgba(0, 0, 0, 0.05) 100%);
+  border-radius: 8px;
+  border: 2px dashed #ccc;
+}
+
+.lock-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.pii-locked p {
+  margin: 0 0 16px 0;
+  color: #666;
+  font-size: 15px;
+}
+
+.btn-request-small {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-request-small:hover {
+  background: #764ba2;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #999;
+  font-style: italic;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .profile-header {
@@ -92,5 +196,17 @@
     min-width: auto;
     display: block;
     margin-bottom: 5px;
+  }
+
+  .profile-section {
+    padding: 20px;
+  }
+
+  .pii-request-section {
+    padding: 20px;
+  }
+
+  .btn-request-access {
+    width: 100%;
   }
 }
