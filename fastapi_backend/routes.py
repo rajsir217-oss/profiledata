@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, De
 from fastapi.responses import JSONResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
-from models import UserCreate, UserResponse, LoginRequest, Token, MessageCreate, ConversationResponse
+from models import UserCreate, UserResponse, LoginRequest, Token, MessageCreate, ConversationResponse, ProfileViewCreate
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
@@ -1779,6 +1779,131 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         return {"users": result}
     except Exception as e:
         logger.error(f"❌ Error getting users who shortlisted: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== PROFILE VIEW TRACKING =====
+
+@router.post("/profile-views")
+async def track_profile_view(
+    profile_view: ProfileViewCreate,
+    db = Depends(get_database)
+):
+    """Track when a user views another user's profile"""
+    logger.info(f"👁️ Profile view: {profile_view.viewedByUsername} viewed {profile_view.profileUsername}")
+    
+    # Don't track if user views their own profile
+    if profile_view.profileUsername == profile_view.viewedByUsername:
+        return {"message": "Self-view not tracked"}
+    
+    # Check if both users exist
+    profile_user = await db.users.find_one({"username": profile_view.profileUsername})
+    viewer_user = await db.users.find_one({"username": profile_view.viewedByUsername})
+    
+    if not profile_user:
+        raise HTTPException(status_code=404, detail="Profile user not found")
+    if not viewer_user:
+        raise HTTPException(status_code=404, detail="Viewer user not found")
+    
+    try:
+        # Check if view already exists in last 24 hours (avoid duplicate tracking)
+        recent_view = await db.profile_views.find_one({
+            "profileUsername": profile_view.profileUsername,
+            "viewedByUsername": profile_view.viewedByUsername,
+            "viewedAt": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+        })
+        
+        if recent_view:
+            # Update the viewedAt timestamp
+            await db.profile_views.update_one(
+                {"_id": recent_view["_id"]},
+                {"$set": {"viewedAt": datetime.utcnow()}}
+            )
+            logger.info(f"✅ Updated existing profile view timestamp")
+            return {"message": "Profile view updated"}
+        else:
+            # Create new profile view record
+            view_data = {
+                "profileUsername": profile_view.profileUsername,
+                "viewedByUsername": profile_view.viewedByUsername,
+                "viewedAt": datetime.utcnow(),
+                "createdAt": datetime.utcnow()
+            }
+            
+            result = await db.profile_views.insert_one(view_data)
+            logger.info(f"✅ Profile view tracked: {profile_view.viewedByUsername} → {profile_view.profileUsername}")
+            return {"message": "Profile view tracked", "id": str(result.inserted_id)}
+    
+    except Exception as e:
+        logger.error(f"❌ Error tracking profile view: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/profile-views/{username}")
+async def get_profile_views(
+    username: str,
+    limit: int = Query(50, ge=1, le=200),
+    db = Depends(get_database)
+):
+    """Get list of users who viewed this profile"""
+    logger.info(f"📊 Getting profile views for {username}")
+    
+    try:
+        # Get profile views sorted by most recent
+        views_cursor = db.profile_views.find({
+            "profileUsername": username
+        }).sort("viewedAt", -1).limit(limit)
+        
+        views = await views_cursor.to_list(limit)
+        
+        # Get viewer details for each view
+        result = []
+        for view in views:
+            viewer = await db.users.find_one({"username": view["viewedByUsername"]})
+            if viewer:
+                viewer.pop("password", None)
+                viewer["_id"] = str(viewer["_id"])
+                viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
+                
+                view_data = {
+                    "id": str(view["_id"]),
+                    "viewedAt": view["viewedAt"].isoformat(),
+                    "viewerProfile": viewer
+                }
+                result.append(view_data)
+        
+        # Get total view count
+        total_views = await db.profile_views.count_documents({"profileUsername": username})
+        
+        logger.info(f"✅ Found {len(result)} profile views for {username} (total: {total_views})")
+        return {
+            "views": result,
+            "totalViews": total_views,
+            "recentViews": len(result)
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching profile views: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/profile-views/{username}/count")
+async def get_profile_view_count(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get total count of profile views"""
+    logger.info(f"📈 Getting profile view count for {username}")
+    
+    try:
+        total_views = await db.profile_views.count_documents({"profileUsername": username})
+        unique_viewers = len(await db.profile_views.distinct("viewedByUsername", {"profileUsername": username}))
+        
+        logger.info(f"✅ Profile view stats for {username}: {total_views} total, {unique_viewers} unique")
+        return {
+            "totalViews": total_views,
+            "uniqueViewers": unique_viewers
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error getting profile view count: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # Helper function for age calculation

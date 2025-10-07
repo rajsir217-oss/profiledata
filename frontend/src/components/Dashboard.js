@@ -51,7 +51,7 @@ const Dashboard = () => {
         messagesRes,
         myFavoritesRes,
         myShortlistsRes,
-        viewsRes,
+        profileViewsRes,
         myExclusionsRes,
         requestsRes,
         theirFavoritesRes,
@@ -60,7 +60,7 @@ const Dashboard = () => {
         api.get(`/messages/${currentUser}`),
         api.get(`/favorites/${currentUser}`),
         api.get(`/shortlist/${currentUser}`),
-        api.get(`/views/${currentUser}`),
+        api.get(`/profile-views/${currentUser}`),
         api.get(`/exclusions/${currentUser}`),
         api.get(`/pii-requests/${currentUser}?type=received`),
         api.get(`/their-favorites/${currentUser}`),
@@ -71,7 +71,7 @@ const Dashboard = () => {
         myMessages: messagesRes.data.messages || [],
         myFavorites: myFavoritesRes.data.favorites || [],
         myShortlists: myShortlistsRes.data.shortlist || [],
-        myViews: viewsRes.data.viewers || [],
+        myViews: profileViewsRes.data.views || [],
         myExclusions: myExclusionsRes.data.exclusions || [],
         myRequests: requestsRes.data.requests || [],
         theirFavorites: theirFavoritesRes.data.users || [],
@@ -186,28 +186,35 @@ const Dashboard = () => {
   };
 
   const renderUserCard = (user, showActions = true, removeHandler = null, removeIcon = '❌') => {
-    const username = typeof user === 'string' ? user : user.username;
-    const profileData = typeof user === 'object' ? user : {};
+    // Handle different data structures (profile views have viewerProfile nested)
+    const profileData = user.viewerProfile || user;
+    const username = profileData.username;
+    const viewedAt = user.viewedAt; // For profile views
     
     return (
       <div key={username} className="user-card" onClick={() => handleProfileClick(username)}>
         <div className="user-card-header">
           <div className="user-avatar">
-            {profileData.profileImage ? (
-              <img src={profileData.profileImage} alt={username} />
+            {profileData.images?.[0] || profileData.profileImage ? (
+              <img src={profileData.images?.[0] || profileData.profileImage} alt={username} />
             ) : (
-              <div className="avatar-placeholder">👤</div>
+              <div className="avatar-placeholder">
+                {profileData.firstName?.[0] || username[0].toUpperCase()}
+              </div>
             )}
           </div>
           {profileData.isOnline && <span className="online-badge">●</span>}
         </div>
         
         <div className="user-card-body">
-          <h4 className="username">{username}</h4>
+          <h4 className="username">{profileData.firstName || username}</h4>
           {profileData.age && <p className="user-age">{profileData.age} years</p>}
           {profileData.location && <p className="user-location">📍 {profileData.location}</p>}
           {profileData.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}
-          {profileData.lastSeen && (
+          {viewedAt && (
+            <p className="last-seen">Viewed: {new Date(viewedAt).toLocaleString()}</p>
+          )}
+          {profileData.lastSeen && !viewedAt && (
             <p className="last-seen">Last seen: {new Date(profileData.lastSeen).toLocaleDateString()}</p>
           )}
         </div>

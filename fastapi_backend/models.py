@@ -173,3 +173,19 @@ class ConversationResponse(BaseModel):
     lastMessageTime: Optional[datetime] = None
     unreadCount: int = 0
     userProfile: Optional[dict] = None
+
+class ProfileView(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    profileUsername: str  # Profile being viewed
+    viewedByUsername: str  # Who viewed the profile
+    viewedAt: datetime = Field(default_factory=datetime.utcnow)
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class ProfileViewCreate(BaseModel):
+    profileUsername: str
+    viewedByUsername: str

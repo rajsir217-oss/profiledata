@@ -22,6 +22,19 @@ const Profile = () => {
         // Check if this is the current user's profile
         const currentUsername = localStorage.getItem('username');
         setIsOwnProfile(currentUsername === username);
+        
+        // Track profile view (only if viewing someone else's profile)
+        if (currentUsername && currentUsername !== username) {
+          try {
+            await api.post('/profile-views', {
+              profileUsername: username,
+              viewedByUsername: currentUsername
+            });
+          } catch (viewErr) {
+            // Silently fail - don't block profile loading if tracking fails
+            console.error("Error tracking profile view:", viewErr);
+          }
+        }
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Unable to load profile");
