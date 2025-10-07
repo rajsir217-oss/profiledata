@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
+import socketService from '../services/socketService';
 import './SearchPage.css';
 
 const SearchPage = () => {
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
   const [imageErrors, setImageErrors] = useState({});
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Main application state
   const [loading, setLoading] = useState(false);
@@ -71,6 +73,22 @@ const SearchPage = () => {
       setPiiRequests({});
     }
     
+    // Listen for online status updates
+    const handleUserOnline = (data) => {
+      setOnlineUsers(prev => new Set([...prev, data.username]));
+    };
+    
+    const handleUserOffline = (data) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(data.username);
+        return newSet;
+      });
+    };
+    
+    socketService.on('user_online', handleUserOnline);
+    socketService.on('user_offline', handleUserOffline);
+    
     // Load initial search results (all profiles) after component mounts
     // Only if user is logged in
     if (username) {
@@ -78,6 +96,11 @@ const SearchPage = () => {
         handleSearch(1);
       }, 100);
     }
+    
+    return () => {
+      socketService.off('user_online', handleUserOnline);
+      socketService.off('user_offline', handleUserOffline);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1230,13 +1253,19 @@ const SearchPage = () => {
           )}
 
           <div className="results-grid">
-            {currentRecords.map((user) => (
+            {currentRecords.map((user) => {
+              const isOnline = onlineUsers.has(user.username);
+              
+              return (
               <div key={user.username} className="result-card">
                 <div className="card">
                   <div className="card-body">
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <h6 className="card-title mb-0">
                         {user.firstName} {user.lastName}
+                        <span className={`status-bulb-inline ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
+                          {isOnline ? '🟢' : '⚪'}
+                        </span>
                       </h6>
                       <span className="badge bg-primary">{calculateAge(user.dob)} years</span>
                     </div>
@@ -1330,7 +1359,8 @@ const SearchPage = () => {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
 
           {filteredUsers.length > 0 && (
