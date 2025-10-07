@@ -154,6 +154,7 @@ class Message(BaseModel):
     toUsername: str
     content: str
     isRead: bool = False
+    isVisible: bool = True  # False if blocked/rejected/unfavorited
     createdAt: datetime = Field(default_factory=datetime.utcnow)
     readAt: Optional[datetime] = None
 
@@ -161,3 +162,14 @@ class Message(BaseModel):
         populate_by_name = True
         arbitrary_types_allowed = True
         json_encoders = {ObjectId: str}
+
+class MessageCreate(BaseModel):
+    toUsername: str
+    content: str = Field(..., min_length=1, max_length=1000)
+
+class ConversationResponse(BaseModel):
+    username: str
+    lastMessage: Optional[str] = None
+    lastMessageTime: Optional[datetime] = None
+    unreadCount: int = 0
+    userProfile: Optional[dict] = None

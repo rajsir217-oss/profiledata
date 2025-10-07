@@ -1357,6 +1357,220 @@ async def get_conversations(username: str, db = Depends(get_database)):
         logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ===== ENHANCED MESSAGING WITH PRIVACY =====
+
+async def check_message_visibility(username1: str, username2: str, db) -> bool:
+    """Check if messages should be visible between two users"""
+    # Check if either user has excluded/blocked the other
+    exclusion = await db.exclusions.find_one({
+        "$or": [
+            {"userUsername": username1, "excludedUsername": username2},
+            {"userUsername": username2, "excludedUsername": username1}
+        ]
+    })
+    
+    if exclusion:
+        return False
+    
+    # Check if either user has unfavorited the other (removed from favorites)
+    # If they were in favorites and removed, hide messages
+    favorite1 = await db.favorites.find_one({
+        "userUsername": username1,
+        "favoriteUsername": username2
+    })
+    favorite2 = await db.favorites.find_one({
+        "userUsername": username2,
+        "favoriteUsername": username1
+    })
+    
+    # If neither has favorited the other, messages are still visible
+    # Only hide if explicitly excluded
+    return True
+
+@router.post("/api/messages/send")
+async def send_message_enhanced(
+    message_data: MessageCreate,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Send a message with privacy checks"""
+    logger.info(f"💬 Enhanced message from {username} to {message_data.toUsername}")
+    
+    # Check if recipient exists
+    recipient = await db.users.find_one({"username": message_data.toUsername})
+    if not recipient:
+        raise HTTPException(status_code=404, detail="Recipient not found")
+    
+    # Check if messaging is allowed (not blocked/excluded)
+    is_visible = await check_message_visibility(username, message_data.toUsername, db)
+    
+    # Create message
+    message = {
+        "fromUsername": username,
+        "toUsername": message_data.toUsername,
+        "content": message_data.content.strip(),
+        "isRead": False,
+        "isVisible": is_visible,
+        "createdAt": datetime.utcnow()
+    }
+    
+    try:
+        result = await db.messages.insert_one(message)
+        message["_id"] = result.inserted_id
+        message["id"] = str(result.inserted_id)
+        logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
+        return {"message": "Message sent successfully", "data": message}
+    except Exception as e:
+        logger.error(f"❌ Error sending message: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/messages/conversation/{other_username}")
+async def get_conversation(
+    other_username: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Get conversation with specific user (with privacy checks)"""
+    logger.info(f"💭 Getting conversation between {username} and {other_username}")
+    
+    # Check if current user is admin
+    current_user = await db.users.find_one({"username": username})
+    is_admin = current_user and current_user.get("username") == "admin"
+    
+    try:
+        # Check visibility
+        is_visible = await check_message_visibility(username, other_username, db)
+        
+        # Build query
+        query = {
+            "$or": [
+                {"fromUsername": username, "toUsername": other_username},
+                {"fromUsername": other_username, "toUsername": username}
+            ]
+        }
+        
+        # If not admin and not visible, filter out invisible messages
+        if not is_admin and not is_visible:
+            query["isVisible"] = True
+        
+        messages_cursor = db.messages.find(query).sort("createdAt", 1)
+        messages = await messages_cursor.to_list(500)
+        
+        # Mark messages as read
+        for msg in messages:
+            if msg["toUsername"] == username and not msg.get("isRead", False):
+                await db.messages.update_one(
+                    {"_id": msg["_id"]},
+                    {"$set": {"isRead": True, "readAt": datetime.utcnow()}}
+                )
+        
+        # Convert ObjectId to string
+        for msg in messages:
+            msg['id'] = str(msg.pop('_id', ''))
+            msg['createdAt'] = msg['createdAt'].isoformat() if isinstance(msg['createdAt'], datetime) else msg['createdAt']
+        
+        # Get other user's profile
+        other_user = await db.users.find_one({"username": other_username})
+        if other_user:
+            other_user.pop("password", None)
+            other_user["_id"] = str(other_user["_id"])
+            other_user["images"] = [get_full_image_url(img) for img in other_user.get("images", [])]
+        
+        logger.info(f"✅ Found {len(messages)} messages in conversation")
+        return {
+            "messages": messages,
+            "otherUser": other_user,
+            "isVisible": is_visible or is_admin
+        }
+    except Exception as e:
+        logger.error(f"❌ Error fetching conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/api/messages/conversations")
+async def get_conversations_enhanced(
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Get list of all conversations with privacy checks"""
+    logger.info(f"💬 Getting conversations for {username}")
+    
+    # Check if current user is admin
+    current_user = await db.users.find_one({"username": username})
+    is_admin = current_user and current_user.get("username") == "admin"
+    
+    try:
+        # Get unique conversations
+        pipeline = [
+            {
+                "$match": {
+                    "$or": [
+                        {"fromUsername": username},
+                        {"toUsername": username}
+                    ],
+                    "isVisible": True if not is_admin else {"$in": [True, False]}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "$cond": [
+                            {"$eq": ["$fromUsername", username]},
+                            "$toUsername",
+                            "$fromUsername"
+                        ]
+                    },
+                    "lastMessage": {"$last": "$$ROOT"},
+                    "unreadCount": {
+                        "$sum": {
+                            "$cond": [
+                                {"$and": [
+                                    {"$eq": ["$toUsername", username]},
+                                    {"$eq": ["$isRead", False]}
+                                ]},
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {"$sort": {"lastMessage.createdAt": -1}}
+        ]
+        
+        conversations = await db.messages.aggregate(pipeline).to_list(100)
+        
+        # Get user details and check visibility
+        result = []
+        for conv in conversations:
+            other_username = conv["_id"]
+            
+            # Check visibility
+            is_visible = await check_message_visibility(username, other_username, db)
+            if not is_visible and not is_admin:
+                continue
+            
+            user = await db.users.find_one({"username": other_username})
+            if user:
+                user.pop("password", None)
+                user["_id"] = str(user["_id"])
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                
+                conv_data = {
+                    "username": other_username,
+                    "userProfile": user,
+                    "lastMessage": conv["lastMessage"].get("content", ""),
+                    "lastMessageTime": conv["lastMessage"]["createdAt"],
+                    "unreadCount": conv["unreadCount"],
+                    "isVisible": is_visible
+                }
+                result.append(conv_data)
+        
+        logger.info(f"✅ Found {len(result)} conversations for {username}")
+        return {"conversations": result}
+    except Exception as e:
+        logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/shortlist/{target_username}")
 async def remove_from_shortlist(target_username: str, username: str = Query(...), db = Depends(get_database)):
     """Remove user from shortlist"""

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import MessageModal from './MessageModal';
 import './SearchPage.css';
 
 const SearchPage = () => {
@@ -46,6 +47,10 @@ const SearchPage = () => {
 
   // PII access state
   const [piiRequests, setPiiRequests] = useState({});
+
+  // Message modal state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -714,7 +719,10 @@ const SearchPage = () => {
           break;
 
         case 'message':
-          navigate(`/messages?to=${targetUsername}`);
+          // Open message modal instead of navigating
+          const userToMessage = users.find(u => u.username === targetUsername);
+          setSelectedUserForMessage(userToMessage);
+          setShowMessageModal(true);
           break;
 
         default:
@@ -1344,6 +1352,16 @@ const SearchPage = () => {
           )}
         </div>
       </div>
+
+      {/* Message Modal */}
+      <MessageModal
+        isOpen={showMessageModal}
+        profile={selectedUserForMessage}
+        onClose={() => {
+          setShowMessageModal(false);
+          setSelectedUserForMessage(null);
+        }}
+      />
     </div>
   );
 };

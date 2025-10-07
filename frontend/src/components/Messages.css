@@ -1,0 +1,91 @@
+/* Messages Page */
+.messages-page {
+  height: calc(100vh - 70px);
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0;
+}
+
+.messages-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 70px);
+  gap: 15px;
+}
+
+.messages-loading p {
+  color: #666;
+  font-size: 16px;
+}
+
+/* Messages Container */
+.messages-container {
+  display: grid;
+  grid-template-columns: 350px 1fr;
+  height: 100%;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Alert */
+.messages-page .alert {
+  margin: 10px 20px;
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .messages-container {
+    grid-template-columns: 300px 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .messages-container {
+    grid-template-columns: 1fr;
+    position: relative;
+  }
+  
+  /* On mobile, show only one panel at a time */
+  .message-list {
+    display: block;
+  }
+  
+  .chat-window {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: white;
+    z-index: 10;
+    display: none;
+  }
+  
+  /* Show chat window when user is selected */
+  .chat-window.active {
+    display: flex;
+  }
+  
+  /* Add back button on mobile */
+  .chat-header::before {
+    content: '← ';
+    cursor: pointer;
+    margin-right: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .messages-page {
+    height: calc(100vh - 60px);
+  }
+  
+  .messages-container {
+    border-radius: 0;
+  }
+}
