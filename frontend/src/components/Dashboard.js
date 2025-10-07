@@ -187,34 +187,42 @@ const Dashboard = () => {
 
   const renderUserCard = (user, showActions = true, removeHandler = null, removeIcon = '❌') => {
     // Handle different data structures (profile views have viewerProfile nested)
+    if (!user) return null;
+    
     const profileData = user.viewerProfile || user;
-    const username = profileData.username;
+    const username = profileData?.username || user.username;
     const viewedAt = user.viewedAt; // For profile views
+    
+    // Safety check
+    if (!username) {
+      console.warn('User card missing username:', user);
+      return null;
+    }
     
     return (
       <div key={username} className="user-card" onClick={() => handleProfileClick(username)}>
         <div className="user-card-header">
           <div className="user-avatar">
-            {profileData.images?.[0] || profileData.profileImage ? (
+            {profileData?.images?.[0] || profileData?.profileImage ? (
               <img src={profileData.images?.[0] || profileData.profileImage} alt={username} />
             ) : (
               <div className="avatar-placeholder">
-                {profileData.firstName?.[0] || username[0].toUpperCase()}
+                {profileData?.firstName?.[0] || username?.[0]?.toUpperCase() || '?'}
               </div>
             )}
           </div>
-          {profileData.isOnline && <span className="online-badge">●</span>}
+          {profileData?.isOnline && <span className="online-badge">●</span>}
         </div>
         
         <div className="user-card-body">
-          <h4 className="username">{profileData.firstName || username}</h4>
-          {profileData.age && <p className="user-age">{profileData.age} years</p>}
-          {profileData.location && <p className="user-location">📍 {profileData.location}</p>}
-          {profileData.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}
+          <h4 className="username">{profileData?.firstName || username}</h4>
+          {profileData?.age && <p className="user-age">{profileData.age} years</p>}
+          {profileData?.location && <p className="user-location">📍 {profileData.location}</p>}
+          {profileData?.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}
           {viewedAt && (
             <p className="last-seen">Viewed: {new Date(viewedAt).toLocaleString()}</p>
           )}
-          {profileData.lastSeen && !viewedAt && (
+          {profileData?.lastSeen && !viewedAt && (
             <p className="last-seen">Last seen: {new Date(profileData.lastSeen).toLocaleDateString()}</p>
           )}
         </div>
