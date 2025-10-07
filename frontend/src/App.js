@@ -7,6 +7,7 @@ import Login from './components/Login';
 import Profile from './components/Profile';
 import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
+import TopMatches from './components/TopMatches';
 import ShortLists from './components/ShortLists';
 import SearchPage from './components/SearchPage';
 import AdminPage from './components/AdminPage';
