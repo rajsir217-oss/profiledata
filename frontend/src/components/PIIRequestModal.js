@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './PIIRequestModal.css';
 
-const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess }) => {
+const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, currentAccess = {} }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -15,6 +15,16 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     { value: 'dob', label: '🎂 Date of Birth', description: 'Full date of birth' }
   ];
 
+  // Initialize selected types with already granted access
+  useEffect(() => {
+    if (isOpen) {
+      const alreadyGranted = piiTypes
+        .filter(type => currentAccess[type.value])
+        .map(type => type.value);
+      setSelectedTypes(alreadyGranted);
+    }
+  }, [isOpen, currentAccess]);
+
   const handleToggleType = (type) => {
     setSelectedTypes(prev =>
       prev.includes(type)
@@ -26,8 +36,11 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (selectedTypes.length === 0) {
-      setError('Please select at least one type of information to request');
+    // Filter out already granted access
+    const typesToRequest = selectedTypes.filter(type => !currentAccess[type]);
+    
+    if (typesToRequest.length === 0) {
+      setError('You already have access to all selected information');
       return;
     }
 
@@ -37,7 +50,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     try {
       await api.post(`/pii-requests?username=${currentUsername}`, {
         profileUsername,
-        requestTypes: selectedTypes,
+        requestTypes: typesToRequest,
         message: message.trim() || null
       });
 
@@ -83,26 +96,35 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
           <div className="pii-types-section">
             <label className="section-label">Select information to request:</label>
             
-            {piiTypes.map(type => (
-              <div
-                key={type.value}
-                className={`pii-type-option ${selectedTypes.includes(type.value) ? 'selected' : ''}`}
-                onClick={() => handleToggleType(type.value)}
-              >
-                <div className="pii-type-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedTypes.includes(type.value)}
-                    onChange={() => handleToggleType(type.value)}
-                    onClick={(e) => e.stopPropagation()}
-                  />
+            {piiTypes.map(type => {
+              const hasAccess = currentAccess[type.value];
+              const isSelected = selectedTypes.includes(type.value);
+              
+              return (
+                <div
+                  key={type.value}
+                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''}`}
+                  onClick={() => !hasAccess && handleToggleType(type.value)}
+                >
+                  <div className="pii-type-checkbox">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      disabled={hasAccess}
+                      onChange={() => handleToggleType(type.value)}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+                  <div className="pii-type-info">
+                    <div className="pii-type-label">
+                      {type.label}
+                      {hasAccess && <span className="access-badge">✅ Already Granted</span>}
+                    </div>
+                    <div className="pii-type-description">{type.description}</div>
+                  </div>
                 </div>
-                <div className="pii-type-info">
-                  <div className="pii-type-label">{type.label}</div>
-                  <div className="pii-type-description">{type.description}</div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="pii-message-section">
@@ -130,9 +152,12 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
             <button
               type="submit"
               className="btn-submit"
-              disabled={submitting || selectedTypes.length === 0}
+              disabled={submitting || selectedTypes.filter(t => !currentAccess[t]).length === 0}
             >
-              {submitting ? 'Sending...' : `Send Request (${selectedTypes.length})`}
+              {submitting 
+                ? 'Sending...' 
+                : `Send Request (${selectedTypes.filter(t => !currentAccess[t]).length})`
+              }
             </button>
           </div>
         </form>

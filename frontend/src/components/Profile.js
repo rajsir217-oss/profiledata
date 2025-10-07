@@ -54,6 +54,15 @@ const Profile = () => {
       }
     };
     fetchProfile();
+    
+    // Poll for access changes every 10 seconds (in case access was revoked)
+    const accessCheckInterval = setInterval(() => {
+      if (currentUsername && currentUsername !== username) {
+        checkPIIAccess();
+      }
+    }, 10000);
+    
+    return () => clearInterval(accessCheckInterval);
   }, [username]);
 
   const checkPIIAccess = async () => {
@@ -97,6 +106,10 @@ const Profile = () => {
   if (!user) return <p>No profile found.</p>;
 
   const age = user.dob ? calculateAge(user.dob) : null;
+  
+  // Check if user has all access
+  const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.dob);
+  const hasAnyAccess = piiAccess.images || piiAccess.contact_info || piiAccess.dob;
 
   return (
     <div className="container mt-4">
@@ -117,13 +130,32 @@ const Profile = () => {
       {/* PII Request Button (only for others' profiles) */}
       {!isOwnProfile && (
         <div className="pii-request-section">
-          <button
-            className="btn-request-access"
-            onClick={() => setShowPIIRequestModal(true)}
-          >
-            🔒 Request Private Information Access
-          </button>
-          <p className="pii-hint">Request access to photos, contact info, or date of birth</p>
+          {hasAllAccess ? (
+            <>
+              <button
+                className="btn-request-access disabled"
+                disabled
+              >
+                ✅ You Have All Private Information Access
+              </button>
+              <p className="pii-hint">You can view all photos, contact info, and date of birth</p>
+            </>
+          ) : (
+            <>
+              <button
+                className="btn-request-access"
+                onClick={() => setShowPIIRequestModal(true)}
+              >
+                🔒 Request Private Information Access
+              </button>
+              <p className="pii-hint">
+                {hasAnyAccess 
+                  ? 'Request additional access to photos, contact info, or date of birth'
+                  : 'Request access to photos, contact info, or date of birth'
+                }
+              </p>
+            </>
+          )}
         </div>
       )}
       
@@ -265,6 +297,7 @@ const Profile = () => {
         isOpen={showPIIRequestModal}
         profileUsername={username}
         profileName={`${user.firstName} ${user.lastName}`}
+        currentAccess={piiAccess}
         onClose={() => setShowPIIRequestModal(false)}
         onSuccess={() => {
           alert('Request sent successfully!');

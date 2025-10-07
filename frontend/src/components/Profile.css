@@ -103,6 +103,18 @@
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
+.btn-request-access.disabled {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  cursor: not-allowed;
+  opacity: 0.9;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.btn-request-access.disabled:hover {
+  transform: none;
+  box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
 .pii-hint {
   margin: 12px 0 0 0;
   font-size: 14px;
