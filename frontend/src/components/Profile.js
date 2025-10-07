@@ -168,6 +168,9 @@ const Profile = () => {
           {!isOwnProfile && (
             <p className="online-status-text">
               {isOnline ? '🟢 Online now' : '⚪ Offline'}
+              <span style={{fontSize: '10px', marginLeft: '10px', color: '#999'}}>
+                (Debug: {username})
+              </span>
             </p>
           )}
         </div>
