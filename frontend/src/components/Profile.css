@@ -102,13 +102,27 @@
 
 /* Image Carousel */
 .profile-carousel {
-  margin-top: 30px;
+  margin-top: 20px;
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.profile-carousel .carousel-inner {
+  border-radius: 10px;
+}
+
+.profile-carousel .carousel-item {
+  height: 500px;
 }
 
 .profile-carousel img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   border-radius: 10px;
 }
 

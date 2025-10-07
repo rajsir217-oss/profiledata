@@ -14,6 +14,8 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   
+  console.log('📍 Profile component loaded for username:', username);
+  
   // PII Access states
   const [piiAccess, setPiiAccess] = useState({
     images: false,
@@ -47,6 +49,9 @@ const Profile = () => {
           
           // Check PII access
           await checkPIIAccess();
+          
+          // Check initial online status
+          await checkOnlineStatus();
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -66,13 +71,17 @@ const Profile = () => {
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
+      console.log('🟢 User online event:', data);
       if (data.username === username) {
+        console.log(`✅ ${username} came online!`);
         setIsOnline(true);
       }
     };
     
     const handleUserOffline = (data) => {
+      console.log('⚪ User offline event:', data);
       if (data.username === username) {
+        console.log(`❌ ${username} went offline!`);
         setIsOnline(false);
       }
     };
@@ -104,6 +113,17 @@ const Profile = () => {
       });
     } catch (err) {
       console.error("Error checking PII access:", err);
+    }
+  };
+
+  const checkOnlineStatus = async () => {
+    try {
+      console.log(`🔍 Checking online status for: ${username}`);
+      const res = await api.get(`/online-status/${username}`);
+      console.log(`✅ Online status response:`, res.data);
+      setIsOnline(res.data.isOnline);
+    } catch (err) {
+      console.error("❌ Error checking online status:", err);
     }
   };
 

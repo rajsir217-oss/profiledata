@@ -29,10 +29,12 @@ class SocketService {
     // Connection events
     this.socket.on('connect', () => {
       console.log('🔌 Connected to WebSocket server');
+      console.log('👤 Registering user as online:', username);
       this.connected = true;
       
       // Register user as online
       this.socket.emit('user_online', { username });
+      console.log('✅ Emitted user_online event');
     });
 
     this.socket.on('disconnect', () => {
