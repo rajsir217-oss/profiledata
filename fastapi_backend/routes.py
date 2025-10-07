@@ -1860,31 +1860,65 @@ async def get_profile_views(
     logger.info(f"📊 Getting profile views for {username}")
     
     try:
-        # Get profile views sorted by most recent
-        views_cursor = db.profile_views.find({
+        # Get all profile views for this user
+        all_views = await db.profile_views.find({
             "profileUsername": username
-        }).sort("lastViewedAt", -1).limit(limit)
+        }).to_list(None)
         
-        views = await views_cursor.to_list(limit)
+        # Group by viewer to consolidate duplicates
+        viewer_map = {}
+        for view in all_views:
+            viewer_username = view["viewedByUsername"]
+            
+            if viewer_username not in viewer_map:
+                # First time seeing this viewer
+                viewer_map[viewer_username] = {
+                    "viewedByUsername": viewer_username,
+                    "viewCount": view.get("viewCount", 1),
+                    "lastViewedAt": view.get("lastViewedAt", view.get("viewedAt", view.get("createdAt"))),
+                    "firstViewedAt": view.get("firstViewedAt", view.get("createdAt")),
+                    "id": view["_id"]
+                }
+            else:
+                # Duplicate viewer - consolidate
+                existing = viewer_map[viewer_username]
+                existing["viewCount"] += view.get("viewCount", 1)
+                
+                # Keep the most recent lastViewedAt
+                current_last = view.get("lastViewedAt", view.get("viewedAt", view.get("createdAt")))
+                if current_last > existing["lastViewedAt"]:
+                    existing["lastViewedAt"] = current_last
+                
+                # Keep the earliest firstViewedAt
+                current_first = view.get("firstViewedAt", view.get("createdAt"))
+                if current_first < existing["firstViewedAt"]:
+                    existing["firstViewedAt"] = current_first
         
-        # Get viewer details for each view
+        # Convert to list and sort by most recent
+        consolidated_views = sorted(
+            viewer_map.values(),
+            key=lambda x: x["lastViewedAt"],
+            reverse=True
+        )[:limit]
+        
+        # Get viewer details for each unique viewer
         result = []
         total_view_count = 0
         
-        for view in views:
+        for view in consolidated_views:
             viewer = await db.users.find_one({"username": view["viewedByUsername"]})
             if viewer:
                 viewer.pop("password", None)
                 viewer["_id"] = str(viewer["_id"])
                 viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
                 
-                view_count = view.get("viewCount", 1)
+                view_count = view["viewCount"]
                 total_view_count += view_count
                 
                 view_data = {
-                    "id": str(view["_id"]),
-                    "viewedAt": view.get("lastViewedAt", view.get("viewedAt")).isoformat(),
-                    "firstViewedAt": view.get("firstViewedAt", view.get("createdAt")).isoformat(),
+                    "id": str(view["id"]),
+                    "viewedAt": view["lastViewedAt"].isoformat() if isinstance(view["lastViewedAt"], datetime) else view["lastViewedAt"],
+                    "firstViewedAt": view["firstViewedAt"].isoformat() if isinstance(view["firstViewedAt"], datetime) else view["firstViewedAt"],
                     "viewCount": view_count,
                     "viewerProfile": viewer
                 }
@@ -1894,9 +1928,17 @@ async def get_profile_views(
         unique_viewers = len(result)
         
         # Calculate total views across all viewers
+        # Use $ifNull to handle old records without viewCount field
         pipeline = [
             {"$match": {"profileUsername": username}},
-            {"$group": {"_id": None, "totalViews": {"$sum": "$viewCount"}}}
+            {
+                "$group": {
+                    "_id": None,
+                    "totalViews": {
+                        "$sum": {"$ifNull": ["$viewCount", 1]}
+                    }
+                }
+            }
         ]
         total_result = await db.profile_views.aggregate(pipeline).to_list(1)
         total_views_all = total_result[0]["totalViews"] if total_result else 0
