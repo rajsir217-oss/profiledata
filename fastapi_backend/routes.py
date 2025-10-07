@@ -1416,10 +1416,18 @@ async def send_message_enhanced(
     
     try:
         result = await db.messages.insert_one(message)
-        message["_id"] = result.inserted_id
-        message["id"] = str(result.inserted_id)
+        # Convert to serializable format
+        message_response = {
+            "id": str(result.inserted_id),
+            "fromUsername": message["fromUsername"],
+            "toUsername": message["toUsername"],
+            "content": message["content"],
+            "isRead": message["isRead"],
+            "isVisible": message["isVisible"],
+            "createdAt": message["createdAt"].isoformat()
+        }
         logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
-        return {"message": "Message sent successfully", "data": message}
+        return {"message": "Message sent successfully", "data": message_response}
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1555,11 +1563,16 @@ async def get_conversations_enhanced(
                 user["_id"] = str(user["_id"])
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 
+                # Serialize datetime
+                last_msg_time = conv["lastMessage"]["createdAt"]
+                if isinstance(last_msg_time, datetime):
+                    last_msg_time = last_msg_time.isoformat()
+                
                 conv_data = {
                     "username": other_username,
                     "userProfile": user,
                     "lastMessage": conv["lastMessage"].get("content", ""),
-                    "lastMessageTime": conv["lastMessage"]["createdAt"],
+                    "lastMessageTime": last_msg_time,
                     "unreadCount": conv["unreadCount"],
                     "isVisible": is_visible
                 }
