@@ -1805,33 +1805,46 @@ async def track_profile_view(
         raise HTTPException(status_code=404, detail="Viewer user not found")
     
     try:
-        # Check if view already exists in last 24 hours (avoid duplicate tracking)
-        recent_view = await db.profile_views.find_one({
+        # Check if this user has viewed this profile before
+        existing_view = await db.profile_views.find_one({
             "profileUsername": profile_view.profileUsername,
-            "viewedByUsername": profile_view.viewedByUsername,
-            "viewedAt": {"$gte": datetime.utcnow() - timedelta(hours=24)}
+            "viewedByUsername": profile_view.viewedByUsername
         })
         
-        if recent_view:
-            # Update the viewedAt timestamp
+        if existing_view:
+            # Increment view count and update last viewed timestamp
             await db.profile_views.update_one(
-                {"_id": recent_view["_id"]},
-                {"$set": {"viewedAt": datetime.utcnow()}}
+                {"_id": existing_view["_id"]},
+                {
+                    "$set": {"lastViewedAt": datetime.utcnow()},
+                    "$inc": {"viewCount": 1}
+                }
             )
-            logger.info(f"✅ Updated existing profile view timestamp")
-            return {"message": "Profile view updated"}
+            new_count = existing_view.get("viewCount", 1) + 1
+            logger.info(f"✅ Incremented profile view count to {new_count}")
+            return {
+                "message": "Profile view updated",
+                "viewCount": new_count,
+                "totalViews": new_count
+            }
         else:
             # Create new profile view record
             view_data = {
                 "profileUsername": profile_view.profileUsername,
                 "viewedByUsername": profile_view.viewedByUsername,
-                "viewedAt": datetime.utcnow(),
+                "viewCount": 1,
+                "firstViewedAt": datetime.utcnow(),
+                "lastViewedAt": datetime.utcnow(),
                 "createdAt": datetime.utcnow()
             }
             
             result = await db.profile_views.insert_one(view_data)
             logger.info(f"✅ Profile view tracked: {profile_view.viewedByUsername} → {profile_view.profileUsername}")
-            return {"message": "Profile view tracked", "id": str(result.inserted_id)}
+            return {
+                "message": "Profile view tracked",
+                "id": str(result.inserted_id),
+                "viewCount": 1
+            }
     
     except Exception as e:
         logger.error(f"❌ Error tracking profile view: {e}", exc_info=True)
@@ -1850,12 +1863,14 @@ async def get_profile_views(
         # Get profile views sorted by most recent
         views_cursor = db.profile_views.find({
             "profileUsername": username
-        }).sort("viewedAt", -1).limit(limit)
+        }).sort("lastViewedAt", -1).limit(limit)
         
         views = await views_cursor.to_list(limit)
         
         # Get viewer details for each view
         result = []
+        total_view_count = 0
+        
         for view in views:
             viewer = await db.users.find_one({"username": view["viewedByUsername"]})
             if viewer:
@@ -1863,20 +1878,34 @@ async def get_profile_views(
                 viewer["_id"] = str(viewer["_id"])
                 viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
                 
+                view_count = view.get("viewCount", 1)
+                total_view_count += view_count
+                
                 view_data = {
                     "id": str(view["_id"]),
-                    "viewedAt": view["viewedAt"].isoformat(),
+                    "viewedAt": view.get("lastViewedAt", view.get("viewedAt")).isoformat(),
+                    "firstViewedAt": view.get("firstViewedAt", view.get("createdAt")).isoformat(),
+                    "viewCount": view_count,
                     "viewerProfile": viewer
                 }
                 result.append(view_data)
         
-        # Get total view count
-        total_views = await db.profile_views.count_documents({"profileUsername": username})
+        # Get unique viewer count
+        unique_viewers = len(result)
         
-        logger.info(f"✅ Found {len(result)} profile views for {username} (total: {total_views})")
+        # Calculate total views across all viewers
+        pipeline = [
+            {"$match": {"profileUsername": username}},
+            {"$group": {"_id": None, "totalViews": {"$sum": "$viewCount"}}}
+        ]
+        total_result = await db.profile_views.aggregate(pipeline).to_list(1)
+        total_views_all = total_result[0]["totalViews"] if total_result else 0
+        
+        logger.info(f"✅ Found {unique_viewers} unique viewers, {total_views_all} total views for {username}")
         return {
             "views": result,
-            "totalViews": total_views,
+            "uniqueViewers": unique_viewers,
+            "totalViews": total_views_all,
             "recentViews": len(result)
         }
     

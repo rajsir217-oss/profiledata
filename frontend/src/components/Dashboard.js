@@ -20,6 +20,12 @@ const Dashboard = () => {
     theirShortlists: []
   });
   
+  // Profile view metrics
+  const [viewMetrics, setViewMetrics] = useState({
+    uniqueViewers: 0,
+    totalViews: 0
+  });
+  
   const [activeSections, setActiveSections] = useState({
     myMessages: true,
     myFavorites: true,
@@ -76,6 +82,12 @@ const Dashboard = () => {
         myRequests: requestsRes.data.requests || [],
         theirFavorites: theirFavoritesRes.data.users || [],
         theirShortlists: theirShortlistsRes.data.users || []
+      });
+      
+      // Set view metrics
+      setViewMetrics({
+        uniqueViewers: profileViewsRes.data.uniqueViewers || 0,
+        totalViews: profileViewsRes.data.totalViews || 0
       });
     } catch (err) {
       console.error('Error loading dashboard data:', err);
@@ -220,7 +232,10 @@ const Dashboard = () => {
           {profileData?.location && <p className="user-location">📍 {profileData.location}</p>}
           {profileData?.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}
           {viewedAt && (
-            <p className="last-seen">Viewed: {new Date(viewedAt).toLocaleString()}</p>
+            <p className="last-seen">
+              Viewed: {new Date(viewedAt).toLocaleString()}
+              {user.viewCount > 1 && <span className="view-count-badge"> ({user.viewCount}x)</span>}
+            </p>
           )}
           {profileData?.lastSeen && !viewedAt && (
             <p className="last-seen">Last seen: {new Date(profileData.lastSeen).toLocaleDateString()}</p>
@@ -362,8 +377,9 @@ const Dashboard = () => {
           <div className="stat-label">Messages</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{dashboardData.myViews.length}</div>
-          <div className="stat-label">Profile Views</div>
+          <div className="stat-value">{viewMetrics.uniqueViewers}</div>
+          <div className="stat-label">Unique Viewers</div>
+          <div className="stat-sublabel">{viewMetrics.totalViews} total views</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{dashboardData.theirFavorites.length}</div>

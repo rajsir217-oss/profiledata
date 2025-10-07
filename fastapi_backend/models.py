@@ -178,7 +178,9 @@ class ProfileView(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     profileUsername: str  # Profile being viewed
     viewedByUsername: str  # Who viewed the profile
-    viewedAt: datetime = Field(default_factory=datetime.utcnow)
+    viewCount: int = 1  # Number of times this user viewed the profile
+    firstViewedAt: datetime = Field(default_factory=datetime.utcnow)
+    lastViewedAt: datetime = Field(default_factory=datetime.utcnow)
     createdAt: datetime = Field(default_factory=datetime.utcnow)
 
     class Config:

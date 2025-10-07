@@ -232,6 +232,12 @@
   margin-top: 5px;
 }
 
+.view-count-badge {
+  color: #667eea;
+  font-weight: 600;
+  font-size: 11px;
+}
+
 .user-card-actions {
   display: flex;
   justify-content: space-around;
@@ -310,12 +316,18 @@
   color: #667eea;
   margin-bottom: 5px;
 }
-
 .stat-label {
   font-size: 14px;
   color: #7f8c8d;
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
+}
+
+.stat-sublabel {
+  font-size: 11px;
+  color: #95a5a6;
+  margin-top: 4px;
+  font-style: italic;
 }
 
 /* Loading State */
