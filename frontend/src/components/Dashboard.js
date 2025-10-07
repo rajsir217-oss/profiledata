@@ -68,7 +68,7 @@ const Dashboard = () => {
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
-        api.get(`/messages/${currentUser}`),
+        api.get(`/api/messages/conversations?username=${currentUser}`),
         api.get(`/favorites/${currentUser}`),
         api.get(`/shortlist/${currentUser}`),
         api.get(`/profile-views/${currentUser}`),
@@ -79,7 +79,7 @@ const Dashboard = () => {
       ]);
 
       setDashboardData({
-        myMessages: messagesRes.data.messages || [],
+        myMessages: messagesRes.data.conversations || [],
         myFavorites: myFavoritesRes.data.favorites || [],
         myShortlists: myShortlistsRes.data.shortlist || [],
         myViews: profileViewsRes.data.views || [],
@@ -206,12 +206,17 @@ const Dashboard = () => {
   };
 
   const renderUserCard = (user, showActions = true, removeHandler = null, removeIcon = '❌') => {
-    // Handle different data structures (profile views have viewerProfile nested)
+    // Handle different data structures
+    // - Profile views: user.viewerProfile
+    // - Conversations: user.userProfile
+    // - Others: user directly
     if (!user) return null;
     
-    const profileData = user.viewerProfile || user;
+    const profileData = user.viewerProfile || user.userProfile || user;
     const username = profileData?.username || user.username;
     const viewedAt = user.viewedAt; // For profile views
+    const lastMessage = user.lastMessage; // For conversations
+    const lastMessageTime = user.lastMessageTime; // For conversations
     
     // Safety check
     if (!username) {
@@ -245,7 +250,12 @@ const Dashboard = () => {
               {user.viewCount > 1 && <span className="view-count-badge"> ({user.viewCount}x)</span>}
             </p>
           )}
-          {profileData?.lastSeen && !viewedAt && (
+          {lastMessage && (
+            <p className="last-seen">
+              {lastMessage.length > 30 ? lastMessage.substring(0, 30) + '...' : lastMessage}
+            </p>
+          )}
+          {profileData?.lastSeen && !viewedAt && !lastMessage && (
             <p className="last-seen">Last seen: {new Date(profileData.lastSeen).toLocaleDateString()}</p>
           )}
         </div>
