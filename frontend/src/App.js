@@ -19,6 +19,7 @@ import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
 import Preferences from './components/Preferences';
+import PIIManagement from './components/PIIManagement';
 import { TestDashboard } from './test-dashboard';
 import './App.css';
 import './themes/themes.css';
@@ -63,6 +64,7 @@ function App() {
               <Route path="/exclusions" element={<Exclusions />} />
               <Route path="/messages" element={<Messages />} />
               <Route path="/requests" element={<Requests />} />
+              <Route path="/pii-management" element={<PIIManagement />} />
               <Route path="/preferences" element={<Preferences />} />
               <Route path="/test-dashboard" element={<TestDashboard />} />
               <Route path="/" element={<Login />} />

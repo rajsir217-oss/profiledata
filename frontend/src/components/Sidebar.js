@@ -80,6 +80,12 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate(`/profile/${currentUser}`)
       },
       { 
+        icon: '🔒', 
+        label: 'Privacy & Data', 
+        subLabel: 'Manage PII access',
+        action: () => navigate('/pii-management')
+      },
+      { 
         icon: '⚙️', 
         label: 'My Preferences', 
         subLabel: 'Theme & Settings',
