@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import MessageModal from './MessageModal';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -25,6 +26,10 @@ const Dashboard = () => {
     uniqueViewers: 0,
     totalViews: 0
   });
+  
+  // Message modal state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
   
   const [activeSections, setActiveSections] = useState({
     myMessages: true,
@@ -101,8 +106,11 @@ const Dashboard = () => {
     navigate(`/profile/${username}`);
   };
 
-  const handleMessageUser = (username) => {
-    navigate(`/messages?to=${username}`);
+  const handleMessageUser = (username, userProfile = null) => {
+    // Open message modal instead of navigating
+    const userToMessage = userProfile || { username };
+    setSelectedUserForMessage(userToMessage);
+    setShowMessageModal(true);
   };
 
   const toggleSection = (section) => {
@@ -248,7 +256,7 @@ const Dashboard = () => {
               className="btn-message"
               onClick={(e) => {
                 e.stopPropagation();
-                handleMessageUser(username);
+                handleMessageUser(username, profileData);
               }}
               title="Send Message"
             >
@@ -390,6 +398,16 @@ const Dashboard = () => {
           <div className="stat-label">PII Requests</div>
         </div>
       </div>
+
+      {/* Message Modal */}
+      <MessageModal
+        isOpen={showMessageModal}
+        profile={selectedUserForMessage}
+        onClose={() => {
+          setShowMessageModal(false);
+          setSelectedUserForMessage(null);
+        }}
+      />
     </div>
   );
 };
