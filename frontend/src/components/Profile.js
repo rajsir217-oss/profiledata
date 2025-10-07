@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import PIIRequestModal from "./PIIRequestModal";
+import socketService from "../services/socketService";
 import "./Profile.css";
 
 const Profile = () => {
@@ -11,6 +12,7 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isOwnProfile, setIsOwnProfile] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   
   // PII Access states
   const [piiAccess, setPiiAccess] = useState({
@@ -62,7 +64,27 @@ const Profile = () => {
       }
     }, 10000);
     
-    return () => clearInterval(accessCheckInterval);
+    // Listen for online status updates
+    const handleUserOnline = (data) => {
+      if (data.username === username) {
+        setIsOnline(true);
+      }
+    };
+    
+    const handleUserOffline = (data) => {
+      if (data.username === username) {
+        setIsOnline(false);
+      }
+    };
+    
+    socketService.on('user_online', handleUserOnline);
+    socketService.on('user_offline', handleUserOffline);
+    
+    return () => {
+      clearInterval(accessCheckInterval);
+      socketService.off('user_online', handleUserOnline);
+      socketService.off('user_offline', handleUserOffline);
+    };
   }, [username]);
 
   const checkPIIAccess = async () => {
@@ -114,7 +136,21 @@ const Profile = () => {
   return (
     <div className="container mt-4">
       <div className="profile-header">
-        <h2>{user.firstName} {user.lastName}</h2>
+        <div className="profile-title-section">
+          <h2>
+            {user.firstName} {user.lastName}
+            {!isOwnProfile && (
+              <span className={`status-bulb-profile ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online Now' : 'Offline'}>
+                {isOnline ? '🟢' : '⚪'}
+              </span>
+            )}
+          </h2>
+          {!isOwnProfile && (
+            <p className="online-status-text">
+              {isOnline ? '🟢 Online now' : '⚪ Offline'}
+            </p>
+          )}
+        </div>
         {isOwnProfile && (
           <button 
             className="btn-edit-profile"
