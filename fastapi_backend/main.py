@@ -4,6 +4,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import socketio
 import os
 from pathlib import Path
 import logging
@@ -13,6 +14,7 @@ from database import connect_to_mongo, close_mongo_connection
 from routes import router
 from test_management import router as test_router
 from config import settings
+from websocket_manager import sio
 
 # Configure logging
 logging.basicConfig(
@@ -115,10 +117,17 @@ async def root():
         "health": "/health"
     }
 
+# Wrap FastAPI app with Socket.IO
+socket_app = socketio.ASGIApp(
+    sio,
+    app,
+    socketio_path='/socket.io'
+)
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        "main:socket_app",
         host="0.0.0.0",
         port=8000,
         reload=True,

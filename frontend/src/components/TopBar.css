@@ -32,6 +32,38 @@
   gap: 15px;
 }
 
+/* Online Indicator */
+.online-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: 20px;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.online-dot {
+  font-size: 12px;
+  animation: pulse 2s infinite;
+}
+
+.online-count {
+  color: white;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
 /* Sidebar Toggle Button in TopBar */
 .sidebar-toggle-btn {
   background: rgba(255, 255, 255, 0.2);

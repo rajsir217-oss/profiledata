@@ -1,12 +1,12 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import socketService from './services/socketService';
 import Register from './components/Register';
 import Login from './components/Login';
 import Profile from './components/Profile';
 import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
-import TopMatches from './components/TopMatches';
 import ShortLists from './components/ShortLists';
 import SearchPage from './components/SearchPage';
 import AdminPage from './components/AdminPage';
@@ -30,13 +30,26 @@ function App() {
   // Initialize theme on app load
   useEffect(() => {
     const savedTheme = localStorage.getItem('appTheme') || 'light-blue';
-    document.body.className = `theme-${savedTheme}`;
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
+
+  // Connect to WebSocket when user is logged in
+  useEffect(() => {
+    const username = localStorage.getItem('username');
+    if (username) {
+      socketService.connect(username);
+    }
+
+    // Cleanup on unmount
+    return () => {
+      socketService.disconnect();
+    };
   }, []);
 
   const handleSidebarToggle = () => {
     setIsSidebarCollapsed(!isSidebarCollapsed);
   };
-
+  
   return (
     <Router>
       <div className="app-wrapper">

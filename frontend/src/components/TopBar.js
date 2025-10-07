@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import socketService from '../services/socketService';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [onlineCount, setOnlineCount] = useState(0);
   const navigate = useNavigate();
 
   // Check login status
@@ -32,6 +34,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     return () => {
       window.removeEventListener('storage', checkLoginStatus);
       window.removeEventListener('loginStatusChanged', checkLoginStatus);
+    };
+  }, []);
+
+  // Listen for online count updates
+  useEffect(() => {
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count);
+    };
+
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
     };
   }, []);
 
@@ -89,6 +104,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             ☰
           </button>
           <h4 className="app-title">Matrimonial Profile</h4>
+          {onlineCount > 0 && (
+            <div className="online-indicator">
+              <span className="online-dot">🟢</span>
+              <span className="online-count">{onlineCount} Online</span>
+            </div>
+          )}
         </div>
         <div className="top-bar-right">
           {currentUser === 'admin' && (

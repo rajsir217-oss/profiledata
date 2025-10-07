@@ -2462,6 +2462,34 @@ async def check_pii_access(
         logger.error(f"❌ Error checking PII access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# ===== ONLINE STATUS & REAL-TIME =====
+
+@router.get("/online-status/count")
+async def get_online_count():
+    """Get count of currently online users"""
+    from websocket_manager import get_online_count
+    
+    count = get_online_count()
+    logger.info(f"🟢 Online users count: {count}")
+    return {"onlineCount": count}
+
+@router.get("/online-status/users")
+async def get_online_users():
+    """Get list of currently online users"""
+    from websocket_manager import get_online_users_list
+    
+    users = get_online_users_list()
+    logger.info(f"🟢 Online users: {len(users)}")
+    return {"onlineUsers": users, "count": len(users)}
+
+@router.get("/online-status/{username}")
+async def check_user_online(username: str):
+    """Check if specific user is online"""
+    from websocket_manager import is_user_online
+    
+    is_online = is_user_online(username)
+    return {"username": username, "isOnline": is_online}
+
 # Helper function for age calculation
 def calculate_age(dob):
     """Calculate age from date of birth"""

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
+import socketService from '../services/socketService';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -31,6 +32,9 @@ const Dashboard = () => {
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
   
+  // Online users state
+  const [onlineUsers, setOnlineUsers] = useState(new Set());
+  
   const [activeSections, setActiveSections] = useState({
     myMessages: true,
     myFavorites: true,
@@ -42,17 +46,38 @@ const Dashboard = () => {
     theirShortlists: true
   });
 
-  const currentUser = localStorage.getItem('username');
-
   useEffect(() => {
+    const currentUser = localStorage.getItem('username');
     if (!currentUser) {
       navigate('/login');
       return;
     }
-    loadDashboardData();
-  }, [currentUser, navigate]);
 
-  const loadDashboardData = async () => {
+    loadDashboardData(currentUser);
+    
+    // Listen for online status updates
+    const handleUserOnline = (data) => {
+      setOnlineUsers(prev => new Set([...prev, data.username]));
+    };
+    
+    const handleUserOffline = (data) => {
+      setOnlineUsers(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(data.username);
+        return newSet;
+      });
+    };
+    
+    socketService.on('user_online', handleUserOnline);
+    socketService.on('user_offline', handleUserOffline);
+    
+    return () => {
+      socketService.off('user_online', handleUserOnline);
+      socketService.off('user_offline', handleUserOffline);
+    };
+  }, [navigate]);
+
+  const loadDashboardData = async (currentUser) => {
     setLoading(true);
     setError('');
     
@@ -224,6 +249,8 @@ const Dashboard = () => {
       return null;
     }
     
+    const isOnline = onlineUsers.has(username);
+    
     return (
       <div key={username} className="user-card" onClick={() => handleProfileClick(username)}>
         <div className="user-card-header">
@@ -235,8 +262,11 @@ const Dashboard = () => {
                 {profileData?.firstName?.[0] || username?.[0]?.toUpperCase() || '?'}
               </div>
             )}
+            {/* Online status indicator */}
+            <div className={`status-bulb ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
+              {isOnline ? '🟢' : '⚪'}
+            </div>
           </div>
-          {profileData?.isOnline && <span className="online-badge">●</span>}
         </div>
         
         <div className="user-card-body">
