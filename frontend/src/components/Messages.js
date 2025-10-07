@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
+import socketService from '../services/socketService';
 import MessageList from './MessageList';
 import ChatWindow from './ChatWindow';
 import './Messages.css';
@@ -29,7 +30,33 @@ const Messages = () => {
     if (toUsername) {
       handleSelectUser(toUsername);
     }
-  }, [location]);
+
+    // Listen for real-time messages
+    const handleNewMessage = (data) => {
+      console.log('💬 New message received:', data);
+      
+      // If the message is from the currently selected user, add it to messages
+      if (selectedUser && data.from === selectedUser) {
+        const newMessage = {
+          from_username: data.from,
+          to_username: currentUsername,
+          message: data.message,
+          timestamp: data.timestamp,
+          is_read: false
+        };
+        setMessages(prev => [...prev, newMessage]);
+      }
+      
+      // Reload conversations to update last message
+      loadConversations();
+    };
+
+    socketService.on('new_message', handleNewMessage);
+
+    return () => {
+      socketService.off('new_message', handleNewMessage);
+    };
+  }, [location, selectedUser, currentUsername]);
 
   const loadConversations = async () => {
     try {
@@ -70,6 +97,10 @@ const Messages = () => {
       // Add message to local state
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
+
+      // Send real-time notification via WebSocket
+      console.log('📤 Sending real-time message via WebSocket');
+      socketService.sendMessage(selectedUser, content.trim());
 
       // Update conversation list
       await loadConversations();
