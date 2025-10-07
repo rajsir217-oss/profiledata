@@ -191,3 +191,65 @@ class ProfileView(BaseModel):
 class ProfileViewCreate(BaseModel):
     profileUsername: str
     viewedByUsername: str
+
+# ===== PII REQUEST & ACCESS MODELS =====
+
+class PIIRequestType(str):
+    """Enum for PII request types"""
+    IMAGES = "images"
+    CONTACT_INFO = "contact_info"
+    DOB = "dob"
+
+class PIIRequestStatus(str):
+    """Enum for PII request status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    CANCELLED = "cancelled"
+
+class PIIRequest(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    requesterUsername: str  # Who is requesting
+    profileUsername: str  # Whose data is requested
+    requestType: str  # 'images', 'contact_info', 'dob'
+    status: str = "pending"  # 'pending', 'approved', 'rejected', 'cancelled'
+    message: Optional[str] = None  # Optional message from requester
+    requestedAt: datetime = Field(default_factory=datetime.utcnow)
+    respondedAt: Optional[datetime] = None
+    expiresAt: Optional[datetime] = None  # Optional expiration
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class PIIRequestCreate(BaseModel):
+    profileUsername: str
+    requestTypes: List[str]  # Can request multiple types at once
+    message: Optional[str] = Field(None, max_length=500)
+
+class PIIRequestResponse(BaseModel):
+    status: str
+    message: Optional[str] = None
+    respondedAt: Optional[datetime] = None
+
+class PIIAccess(BaseModel):
+    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    granterUsername: str  # Who granted access
+    grantedToUsername: str  # Who received access
+    accessType: str  # 'images', 'contact_info', 'dob'
+    grantedAt: datetime = Field(default_factory=datetime.utcnow)
+    expiresAt: Optional[datetime] = None  # Optional time-limited access
+    isActive: bool = True  # Can be revoked
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+
+class PIIAccessCreate(BaseModel):
+    grantedToUsername: str
+    accessTypes: List[str]
+    expiresAt: Optional[datetime] = None

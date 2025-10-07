@@ -3,7 +3,12 @@ from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, De
 from fastapi.responses import JSONResponse
 from typing import List, Optional
 from datetime import datetime, timedelta
-from models import UserCreate, UserResponse, LoginRequest, Token, MessageCreate, ConversationResponse, ProfileViewCreate
+from models import (
+    UserCreate, UserResponse, LoginRequest, Token, 
+    MessageCreate, ConversationResponse, ProfileViewCreate,
+    PIIRequest, PIIRequestCreate, PIIRequestResponse, 
+    PIIAccess, PIIAccessCreate
+)
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
@@ -1975,6 +1980,486 @@ async def get_profile_view_count(
     
     except Exception as e:
         logger.error(f"❌ Error getting profile view count: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== PII REQUEST & ACCESS MANAGEMENT =====
+
+@router.post("/pii-requests")
+async def create_pii_request(
+    request_data: PIIRequestCreate,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Create PII access request(s)"""
+    logger.info(f"🔒 PII request: {username} → {request_data.profileUsername} for {request_data.requestTypes}")
+    
+    # Validate users exist
+    requester = await db.users.find_one({"username": username})
+    profile_owner = await db.users.find_one({"username": request_data.profileUsername})
+    
+    if not requester:
+        raise HTTPException(status_code=404, detail="Requester not found")
+    if not profile_owner:
+        raise HTTPException(status_code=404, detail="Profile owner not found")
+    
+    # Can't request own PII
+    if username == request_data.profileUsername:
+        raise HTTPException(status_code=400, detail="Cannot request access to your own profile")
+    
+    try:
+        created_requests = []
+        
+        for request_type in request_data.requestTypes:
+            # Check if request already exists and is pending
+            existing = await db.pii_requests.find_one({
+                "requesterUsername": username,
+                "profileUsername": request_data.profileUsername,
+                "requestType": request_type,
+                "status": "pending"
+            })
+            
+            if existing:
+                logger.info(f"⚠️ Request already exists for {request_type}")
+                continue
+            
+            # Check if access already granted
+            has_access = await db.pii_access.find_one({
+                "granterUsername": request_data.profileUsername,
+                "grantedToUsername": username,
+                "accessType": request_type,
+                "isActive": True
+            })
+            
+            if has_access:
+                logger.info(f"✅ Access already granted for {request_type}")
+                continue
+            
+            # Create new request
+            pii_request = {
+                "requesterUsername": username,
+                "profileUsername": request_data.profileUsername,
+                "requestType": request_type,
+                "status": "pending",
+                "message": request_data.message,
+                "requestedAt": datetime.utcnow(),
+                "createdAt": datetime.utcnow()
+            }
+            
+            result = await db.pii_requests.insert_one(pii_request)
+            created_requests.append({
+                "id": str(result.inserted_id),
+                "requestType": request_type
+            })
+        
+        if not created_requests:
+            return {"message": "No new requests created (already pending or access granted)"}
+        
+        logger.info(f"✅ Created {len(created_requests)} PII requests")
+        return {
+            "message": f"Created {len(created_requests)} PII request(s)",
+            "requests": created_requests
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error creating PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-requests/{username}/incoming")
+async def get_incoming_pii_requests(
+    username: str,
+    status_filter: Optional[str] = Query(None),
+    db = Depends(get_database)
+):
+    """Get PII requests received by this user (requests to view their data)"""
+    logger.info(f"📥 Getting incoming PII requests for {username}")
+    
+    try:
+        query = {"profileUsername": username}
+        if status_filter:
+            query["status"] = status_filter
+        
+        requests = await db.pii_requests.find(query).sort("requestedAt", -1).to_list(100)
+        
+        # Get requester details for each request
+        result = []
+        for req in requests:
+            requester = await db.users.find_one({"username": req["requesterUsername"]})
+            if requester:
+                requester.pop("password", None)
+                requester["_id"] = str(requester["_id"])
+                requester["images"] = [get_full_image_url(img) for img in requester.get("images", [])]
+                
+                request_data = {
+                    "id": str(req["_id"]),
+                    "requestType": req["requestType"],
+                    "status": req["status"],
+                    "message": req.get("message"),
+                    "requestedAt": req["requestedAt"].isoformat(),
+                    "respondedAt": req.get("respondedAt").isoformat() if req.get("respondedAt") else None,
+                    "requesterProfile": requester
+                }
+                result.append(request_data)
+        
+        logger.info(f"✅ Found {len(result)} incoming PII requests for {username}")
+        return {"requests": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching incoming PII requests: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-requests/{username}/outgoing")
+async def get_outgoing_pii_requests(
+    username: str,
+    status_filter: Optional[str] = Query(None),
+    db = Depends(get_database)
+):
+    """Get PII requests sent by this user (requests they made)"""
+    logger.info(f"📤 Getting outgoing PII requests for {username}")
+    
+    try:
+        query = {"requesterUsername": username}
+        if status_filter:
+            query["status"] = status_filter
+        
+        requests = await db.pii_requests.find(query).sort("requestedAt", -1).to_list(100)
+        
+        # Get profile owner details for each request
+        result = []
+        for req in requests:
+            profile_owner = await db.users.find_one({"username": req["profileUsername"]})
+            if profile_owner:
+                profile_owner.pop("password", None)
+                profile_owner["_id"] = str(profile_owner["_id"])
+                profile_owner["images"] = [get_full_image_url(img) for img in profile_owner.get("images", [])]
+                
+                request_data = {
+                    "id": str(req["_id"]),
+                    "requestType": req["requestType"],
+                    "status": req["status"],
+                    "message": req.get("message"),
+                    "requestedAt": req["requestedAt"].isoformat(),
+                    "respondedAt": req.get("respondedAt").isoformat() if req.get("respondedAt") else None,
+                    "profileOwner": profile_owner
+                }
+                result.append(request_data)
+        
+        logger.info(f"✅ Found {len(result)} outgoing PII requests for {username}")
+        return {"requests": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching outgoing PII requests: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/pii-requests/{request_id}/approve")
+async def approve_pii_request(
+    request_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Approve a PII request and grant access"""
+    logger.info(f"✅ Approving PII request {request_id} by {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Get the request
+        request = await db.pii_requests.find_one({"_id": ObjectId(request_id)})
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Verify the user is the profile owner
+        if request["profileUsername"] != username:
+            raise HTTPException(status_code=403, detail="Not authorized to approve this request")
+        
+        # Check if already approved
+        if request["status"] != "pending":
+            raise HTTPException(status_code=400, detail=f"Request already {request['status']}")
+        
+        # Update request status
+        await db.pii_requests.update_one(
+            {"_id": ObjectId(request_id)},
+            {
+                "$set": {
+                    "status": "approved",
+                    "respondedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Grant access
+        access_data = {
+            "granterUsername": username,
+            "grantedToUsername": request["requesterUsername"],
+            "accessType": request["requestType"],
+            "grantedAt": datetime.utcnow(),
+            "isActive": True,
+            "createdAt": datetime.utcnow()
+        }
+        
+        await db.pii_access.insert_one(access_data)
+        
+        logger.info(f"✅ PII request approved and access granted")
+        return {"message": "Request approved and access granted"}
+    
+    except Exception as e:
+        logger.error(f"❌ Error approving PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/pii-requests/{request_id}/reject")
+async def reject_pii_request(
+    request_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Reject a PII request"""
+    logger.info(f"❌ Rejecting PII request {request_id} by {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Get the request
+        request = await db.pii_requests.find_one({"_id": ObjectId(request_id)})
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Verify the user is the profile owner
+        if request["profileUsername"] != username:
+            raise HTTPException(status_code=403, detail="Not authorized to reject this request")
+        
+        # Update request status
+        await db.pii_requests.update_one(
+            {"_id": ObjectId(request_id)},
+            {
+                "$set": {
+                    "status": "rejected",
+                    "respondedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        logger.info(f"✅ PII request rejected")
+        return {"message": "Request rejected"}
+    
+    except Exception as e:
+        logger.error(f"❌ Error rejecting PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-requests/{request_id}")
+async def cancel_pii_request(
+    request_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Cancel a PII request (by requester)"""
+    logger.info(f"🚫 Cancelling PII request {request_id} by {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Get the request
+        request = await db.pii_requests.find_one({"_id": ObjectId(request_id)})
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Verify the user is the requester
+        if request["requesterUsername"] != username:
+            raise HTTPException(status_code=403, detail="Not authorized to cancel this request")
+        
+        # Update request status
+        await db.pii_requests.update_one(
+            {"_id": ObjectId(request_id)},
+            {
+                "$set": {
+                    "status": "cancelled",
+                    "respondedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        logger.info(f"✅ PII request cancelled")
+        return {"message": "Request cancelled"}
+    
+    except Exception as e:
+        logger.error(f"❌ Error cancelling PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-access/{username}/granted")
+async def get_granted_access(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get list of users who have access to this user's PII"""
+    logger.info(f"📊 Getting granted PII access for {username}")
+    
+    try:
+        access_records = await db.pii_access.find({
+            "granterUsername": username,
+            "isActive": True
+        }).sort("grantedAt", -1).to_list(100)
+        
+        # Group by user to consolidate multiple access types
+        user_access_map = {}
+        for access in access_records:
+            granted_to = access["grantedToUsername"]
+            
+            if granted_to not in user_access_map:
+                user_access_map[granted_to] = {
+                    "username": granted_to,
+                    "accessTypes": [],
+                    "grantedAt": access["grantedAt"],
+                    "accessIds": []
+                }
+            
+            user_access_map[granted_to]["accessTypes"].append(access["accessType"])
+            user_access_map[granted_to]["accessIds"].append(str(access["_id"]))
+        
+        # Get user details
+        result = []
+        for username_key, access_info in user_access_map.items():
+            user = await db.users.find_one({"username": username_key})
+            if user:
+                user.pop("password", None)
+                user["_id"] = str(user["_id"])
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                
+                result.append({
+                    "userProfile": user,
+                    "accessTypes": access_info["accessTypes"],
+                    "grantedAt": access_info["grantedAt"].isoformat(),
+                    "accessIds": access_info["accessIds"]
+                })
+        
+        logger.info(f"✅ Found {len(result)} users with granted access")
+        return {"grantedAccess": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching granted access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-access/{username}/received")
+async def get_received_access(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get list of users whose PII this user has access to"""
+    logger.info(f"📊 Getting received PII access for {username}")
+    
+    try:
+        access_records = await db.pii_access.find({
+            "grantedToUsername": username,
+            "isActive": True
+        }).sort("grantedAt", -1).to_list(100)
+        
+        # Group by user
+        user_access_map = {}
+        for access in access_records:
+            granter = access["granterUsername"]
+            
+            if granter not in user_access_map:
+                user_access_map[granter] = {
+                    "username": granter,
+                    "accessTypes": [],
+                    "grantedAt": access["grantedAt"],
+                    "accessIds": []
+                }
+            
+            user_access_map[granter]["accessTypes"].append(access["accessType"])
+            user_access_map[granter]["accessIds"].append(str(access["_id"]))
+        
+        # Get user details
+        result = []
+        for username_key, access_info in user_access_map.items():
+            user = await db.users.find_one({"username": username_key})
+            if user:
+                user.pop("password", None)
+                user["_id"] = str(user["_id"])
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                
+                result.append({
+                    "userProfile": user,
+                    "accessTypes": access_info["accessTypes"],
+                    "grantedAt": access_info["grantedAt"].isoformat(),
+                    "accessIds": access_info["accessIds"]
+                })
+        
+        logger.info(f"✅ Found {len(result)} users who granted access")
+        return {"receivedAccess": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching received access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-access/{access_id}")
+async def revoke_pii_access(
+    access_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Revoke PII access"""
+    logger.info(f"🚫 Revoking PII access {access_id} by {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Get the access record
+        access = await db.pii_access.find_one({"_id": ObjectId(access_id)})
+        if not access:
+            raise HTTPException(status_code=404, detail="Access record not found")
+        
+        # Verify the user is the granter
+        if access["granterUsername"] != username:
+            raise HTTPException(status_code=403, detail="Not authorized to revoke this access")
+        
+        # Revoke access
+        await db.pii_access.update_one(
+            {"_id": ObjectId(access_id)},
+            {"$set": {"isActive": False}}
+        )
+        
+        logger.info(f"✅ PII access revoked")
+        return {"message": "Access revoked"}
+    
+    except Exception as e:
+        logger.error(f"❌ Error revoking PII access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-access/check")
+async def check_pii_access(
+    requester: str = Query(...),
+    profile_owner: str = Query(...),
+    access_type: str = Query(...),
+    db = Depends(get_database)
+):
+    """Check if requester has access to profile owner's PII"""
+    
+    try:
+        # Check for active access
+        access = await db.pii_access.find_one({
+            "granterUsername": profile_owner,
+            "grantedToUsername": requester,
+            "accessType": access_type,
+            "isActive": True
+        })
+        
+        has_access = access is not None
+        
+        # Check if expired
+        if has_access and access.get("expiresAt"):
+            if access["expiresAt"] < datetime.utcnow():
+                has_access = False
+                # Mark as inactive
+                await db.pii_access.update_one(
+                    {"_id": access["_id"]},
+                    {"$set": {"isActive": False}}
+                )
+        
+        return {
+            "hasAccess": has_access,
+            "accessType": access_type
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error checking PII access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # Helper function for age calculation
