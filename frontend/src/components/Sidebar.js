@@ -13,16 +13,18 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     const checkLoginStatus = () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
-      const status = localStorage.getItem('userStatus') || 'active';
+      const status = localStorage.getItem('userStatus');
       
       if (username && token) {
         setIsLoggedIn(true);
         setCurrentUser(username);
-        setUserStatus(status);
+        // If no status in localStorage, default to pending (not active)
+        // This ensures users must login again after migration
+        setUserStatus(status || 'pending');
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
-        setUserStatus('active');
+        setUserStatus('pending');
       }
     };
 
