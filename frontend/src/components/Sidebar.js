@@ -139,8 +139,16 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       },
     ];
 
-    // Add Admin Dashboard for admin user
+    // Add Admin section for admin user
     if (currentUser === 'admin') {
+      items.push({
+        icon: '━━━',
+        label: 'ADMIN SECTION',
+        subLabel: '',
+        action: () => {},
+        isHeader: true
+      });
+      
       items.push({
         icon: '🔐',
         label: 'Admin Dashboard',
@@ -185,7 +193,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           {menuItems.map((item, index) => (
             <div 
               key={index} 
-              className="menu-item"
+              className={`menu-item ${item.isHeader ? 'menu-header' : ''}`}
               onClick={item.action}
             >
               <div className="menu-icon">{item.icon}</div>

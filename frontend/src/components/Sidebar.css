@@ -88,6 +88,35 @@
   font-size: 14px;
 }
 
+/* Admin Section Header */
+.menu-header {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 600;
+  margin-top: 10px;
+  margin-bottom: 5px;
+  border-left: none !important;
+  cursor: default !important;
+  padding: 12px 20px;
+}
+
+.menu-header:hover {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-left-color: transparent !important;
+}
+
+.menu-header .menu-icon {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.menu-header .menu-label {
+  color: white;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
 /* Sidebar Footer */
 .sidebar-footer {
   padding: 20px;
