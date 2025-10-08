@@ -51,6 +51,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
+    console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser });
+    
     if (!isLoggedIn) {
       return [
         { 
@@ -182,6 +184,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   };
 
   const menuItems = buildMenuItems();
+  console.log('📋 Menu Items Count:', menuItems.length);
 
   return (
     <div 
@@ -190,6 +193,11 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Menu Items */}
         <div className="sidebar-menu">
+          {menuItems.length === 0 && (
+            <div style={{padding: '20px', color: '#666'}}>
+              No menu items available
+            </div>
+          )}
           {menuItems.map((item, index) => (
             <div 
               key={index} 
