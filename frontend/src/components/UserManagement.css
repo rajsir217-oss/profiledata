@@ -511,6 +511,7 @@
   align-items: center;
   justify-content: space-between;
   color: white;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 .action-modal-user-info {
@@ -597,23 +598,22 @@
 }
 
 .action-modal-warning {
-  background: #fef3c7;
-  border-left: 4px solid #f59e0b;
   padding: 16px;
   border-radius: 8px;
   margin-bottom: 20px;
+  border-left: 4px solid;
 }
 
 .action-modal-warning strong {
   display: block;
-  color: #92400e;
   margin-bottom: 8px;
   font-size: 14px;
+  font-weight: 600;
 }
 
 .action-modal-warning p {
   margin: 0;
-  color: #78350f;
+  color: #374151;
   font-size: 14px;
 }
 

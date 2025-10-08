@@ -423,8 +423,8 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
   return (
     <div className="action-modal-overlay" onClick={onClose}>
       <div className="action-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* Modal Header with User Info */}
-        <div className="action-modal-header" style={{ background: actionInfo.color }}>
+        {/* Modal Header with User Info - Purple Theme */}
+        <div className="action-modal-header">
           <div className="action-modal-user-info">
             <div className="action-modal-avatar">
               {user.username.charAt(0).toUpperCase()}
@@ -442,7 +442,9 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
         {/* Modal Content */}
         <div className="action-modal-body">
           <div className="action-modal-title">
-            <span className="action-icon">{actionInfo.icon}</span>
+            <span className="action-icon" style={{ color: actionInfo.color }}>
+              {actionInfo.icon}
+            </span>
             <h2>{actionInfo.title}</h2>
           </div>
           
@@ -450,8 +452,11 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
             {actionInfo.description}
           </p>
 
-          <div className="action-modal-warning">
-            <strong>⚠️ Confirmation Required</strong>
+          <div className="action-modal-warning" style={{ 
+            borderLeftColor: actionInfo.color,
+            background: `${actionInfo.color}15`
+          }}>
+            <strong style={{ color: actionInfo.color }}>⚠️ Confirmation Required</strong>
             <p>Are you sure you want to <strong>{action}</strong> this user?</p>
           </div>
 
