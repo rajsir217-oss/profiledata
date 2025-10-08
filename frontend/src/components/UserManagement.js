@@ -70,6 +70,21 @@ const UserManagement = () => {
       setTotalPages(response.data.pages || 1);
     } catch (err) {
       console.error('Error loading users:', err);
+      
+      // Check if token expired
+      if (err.response?.status === 401) {
+        const errorMsg = err.response?.data?.detail || '';
+        if (errorMsg.includes('expired') || errorMsg.includes('Invalid token')) {
+          // Clear localStorage and redirect to login
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userStatus');
+          alert('Your session has expired. Please login again.');
+          navigate('/login');
+          return;
+        }
+      }
+      
       setError('Failed to load users: ' + (err.response?.data?.detail || err.message));
     } finally {
       setLoading(false);
