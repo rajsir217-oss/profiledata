@@ -186,6 +186,13 @@ async def register_user(
         "images": image_paths,
         "createdAt": now,
         "updatedAt": now,
+        # User account status (pending activation by admin)
+        "status": {
+            "status": "pending",  # pending, active, suspended, banned
+            "reason": None,
+            "updatedAt": now,
+            "updatedBy": None
+        },
         # Messaging stats (initialized to 0)
         "messagesSent": 0,
         "messagesReceived": 0,
