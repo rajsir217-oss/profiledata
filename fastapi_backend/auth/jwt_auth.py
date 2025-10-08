@@ -147,6 +147,21 @@ class AuthenticationService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        # Special handling for hardcoded admin user
+        if username == "admin":
+            return {
+                "username": "admin",
+                "firstName": "Admin",
+                "lastName": "User",
+                "email": "admin@system.com",
+                "contactEmail": "admin@system.com",
+                "role": "admin",
+                "role_name": "admin",
+                "permissions": ["all"],
+                "status": {"status": "active"},
+                "_id": "admin"
+            }
+        
         # Get user from database (if db provided)
         if db is not None:
             user = await db.users.find_one({"username": username})
