@@ -148,7 +148,7 @@ class AuthenticationService:
             )
         
         # Get user from database (if db provided)
-        if db:
+        if db is not None:
             user = await db.users.find_one({"username": username})
             if user is None:
                 raise HTTPException(
