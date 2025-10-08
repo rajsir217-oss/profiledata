@@ -338,55 +338,90 @@ const RoleModal = ({ user, onClose, onAssign }) => {
   const [reason, setReason] = useState('');
 
   const roles = [
-    { value: 'admin', label: 'Admin', description: 'Full system access' },
-    { value: 'moderator', label: 'Moderator', description: 'User & content moderation' },
-    { value: 'premium_user', label: 'Premium User', description: 'Enhanced features' },
-    { value: 'free_user', label: 'Free User', description: 'Basic access' }
+    { value: 'admin', label: 'Admin', icon: '👑', description: 'Full system access', color: '#3b82f6' },
+    { value: 'moderator', label: 'Moderator', icon: '🛡️', description: 'User & content moderation', color: '#f59e0b' },
+    { value: 'premium_user', label: 'Premium User', icon: '⭐', description: 'Enhanced features', color: '#ec4899' },
+    { value: 'free_user', label: 'Free User', icon: '👤', description: 'Basic access', color: '#6b7280' }
   ];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2>🎭 Assign Role to {user.username}</h2>
-        <p className="modal-subtitle">Current role: <strong>{user.role_name}</strong></p>
-
-        <div className="role-options">
-          {roles.map((role) => (
-            <label key={role.value} className="role-option">
-              <input
-                type="radio"
-                name="role"
-                value={role.value}
-                checked={selectedRole === role.value}
-                onChange={(e) => setSelectedRole(e.target.value)}
-              />
-              <div className="role-info">
-                <strong>{role.label}</strong>
-                <span>{role.description}</span>
-              </div>
-            </label>
-          ))}
+    <div className="action-modal-overlay" onClick={onClose}>
+      <div className="action-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header with User Info - Purple Theme */}
+        <div className="action-modal-header">
+          <div className="action-modal-user-info">
+            <div className="action-modal-avatar">
+              {user.username.charAt(0).toUpperCase()}
+            </div>
+            <div className="action-modal-user-details">
+              <h3>{user.username}</h3>
+              <p>{user.email || user.contactEmail || 'No email'}</p>
+            </div>
+          </div>
+          <button className="action-modal-close" onClick={onClose}>
+            ✕
+          </button>
         </div>
 
-        <textarea
-          placeholder="Reason for role change (optional)"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="reason-input"
-          rows="3"
-        />
+        {/* Modal Content */}
+        <div className="action-modal-body">
+          <div className="action-modal-title">
+            <span className="action-icon">🎭</span>
+            <h2>Assign Role</h2>
+          </div>
+          
+          <p className="action-modal-description">
+            Select a new role for this user. Current role: <strong>{user.role_name || 'free_user'}</strong>
+          </p>
 
-        <div className="modal-actions">
-          <button onClick={onClose} className="btn-cancel">
-            Cancel
-          </button>
-          <button
-            onClick={() => onAssign(user.username, selectedRole, reason)}
-            className="btn-confirm"
-            disabled={selectedRole === user.role_name}
-          >
-            Assign Role
-          </button>
+          <div className="role-options">
+            {roles.map((role) => (
+              <label 
+                key={role.value} 
+                className={`role-option ${selectedRole === role.value ? 'selected' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={role.value}
+                  checked={selectedRole === role.value}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                />
+                <div className="role-icon" style={{ color: role.color }}>
+                  {role.icon}
+                </div>
+                <div className="role-info">
+                  <strong>{role.label}</strong>
+                  <span>{role.description}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="action-modal-form">
+            <label>Reason (optional)</label>
+            <textarea
+              placeholder="Enter reason for role change..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="action-reason-input"
+              rows="3"
+            />
+          </div>
+
+          <div className="action-modal-footer">
+            <button onClick={onClose} className="action-btn-cancel">
+              Cancel
+            </button>
+            <button
+              onClick={() => onAssign(user.username, selectedRole, reason)}
+              className="action-btn-confirm"
+              disabled={selectedRole === user.role_name}
+              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+            >
+              🎭 Assign Role
+            </button>
+          </div>
         </div>
       </div>
     </div>
