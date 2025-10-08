@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
 import './MessageModal.css';
 
@@ -11,8 +12,31 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
   useEffect(() => {
     if (isOpen && profile) {
       loadConversation();
+      
+      // Listen for real-time messages
+      const handleNewMessage = (data) => {
+        console.log('💬 MessageModal: New message received:', data);
+        
+        // If message is from the profile user we're chatting with
+        if (data.from === profile.username) {
+          const newMessage = {
+            from_username: data.from,
+            to_username: currentUsername,
+            message: data.message,
+            timestamp: data.timestamp,
+            is_read: false
+          };
+          setMessages(prev => [...prev, newMessage]);
+        }
+      };
+
+      socketService.on('new_message', handleNewMessage);
+
+      return () => {
+        socketService.off('new_message', handleNewMessage);
+      };
     }
-  }, [isOpen, profile]);
+  }, [isOpen, profile, currentUsername]);
 
   const loadConversation = async () => {
     if (!profile?.username) return;
@@ -44,6 +68,10 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
 
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
+      
+      // Send real-time notification via WebSocket
+      console.log('📤 MessageModal: Sending real-time message via WebSocket');
+      socketService.sendMessage(profile.username, content.trim());
     } catch (err) {
       console.error('Error sending message:', err);
     }
