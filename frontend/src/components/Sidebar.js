@@ -56,7 +56,15 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
-    console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus });
+    // Check if user is activated (admin is always active)
+    const isActive = currentUser === 'admin' || userStatus === 'active';
+    console.log('🔍 Sidebar Debug:', { 
+      isLoggedIn, 
+      currentUser, 
+      userStatus, 
+      isActive,
+      fromLocalStorage: localStorage.getItem('userStatus')
+    });
     
     if (!isLoggedIn) {
       return [
@@ -73,8 +81,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       ];
     }
 
-    // Check if user is activated (admin is always active)
-    const isActive = currentUser === 'admin' || userStatus === 'active';
+    // isActive already declared above with debug logging
 
     const items = [
       { 
