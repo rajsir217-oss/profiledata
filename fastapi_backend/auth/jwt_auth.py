@@ -258,5 +258,5 @@ async def get_current_user_dependency(
 ) -> Dict:
     """Dependency to get current user from token"""
     from database import get_database
-    db = await get_database()
+    db = get_database()  # Not async - returns database directly
     return await AuthenticationService.get_current_user(credentials, db)
