@@ -82,9 +82,20 @@ const Dashboard = () => {
     };
   }, [navigate]);
 
-  const loadDashboardData = async (currentUser) => {
+  const loadDashboardData = async (username) => {
+    // Use passed username or get from localStorage
+    const user = username || localStorage.getItem('username');
+    
+    if (!user) {
+      setError('No user logged in');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError('');
+    
+    console.log('Loading dashboard for user:', user);
     
     try {
       // Load all dashboard data
@@ -98,14 +109,14 @@ const Dashboard = () => {
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
-        api.get(`/api/messages/conversations?username=${currentUser}`),
-        api.get(`/favorites/${currentUser}`),
-        api.get(`/shortlist/${currentUser}`),
-        api.get(`/profile-views/${currentUser}`),
-        api.get(`/exclusions/${currentUser}`),
-        api.get(`/pii-requests/${currentUser}?type=received`),
-        api.get(`/their-favorites/${currentUser}`),
-        api.get(`/their-shortlists/${currentUser}`)
+        api.get(`/api/messages/conversations?username=${user}`),
+        api.get(`/favorites/${user}`),
+        api.get(`/shortlist/${user}`),
+        api.get(`/profile-views/${user}`),
+        api.get(`/exclusions/${user}`),
+        api.get(`/pii-requests/${user}?type=received`),
+        api.get(`/their-favorites/${user}`),
+        api.get(`/their-shortlists/${user}`)
       ]);
 
       setDashboardData({
@@ -126,7 +137,14 @@ const Dashboard = () => {
       });
     } catch (err) {
       console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data');
+      console.error('Error details:', err.response?.data || err.message);
+      
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Failed to load dashboard data';
+      
+      setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

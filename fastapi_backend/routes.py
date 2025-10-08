@@ -29,6 +29,17 @@ import logging
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
 
+# Helper function to safely serialize datetime
+def safe_datetime_serialize(dt):
+    """Safely serialize datetime to ISO format string"""
+    if dt is None:
+        return None
+    if isinstance(dt, datetime):
+        return dt.isoformat()
+    if isinstance(dt, str):
+        return dt  # Already a string
+    return str(dt)
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     username: str = Form(...),
@@ -1710,7 +1721,7 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
-                "viewedAt": viewer["viewedAt"].isoformat() if viewer.get("viewedAt") else None
+                "viewedAt": safe_datetime_serialize(viewer.get("viewedAt"))
             })
         
         logger.info(f"✅ Found {len(result)} viewers for {username}")
@@ -1749,7 +1760,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
-                "addedAt": fav.get("createdAt").isoformat() if fav.get("createdAt") else None
+                "addedAt": safe_datetime_serialize(fav.get("createdAt"))
             })
         
         logger.info(f"✅ Found {len(result)} users who favorited {username}")
@@ -1788,7 +1799,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
-                "addedAt": shortlist.get("createdAt").isoformat() if shortlist.get("createdAt") else None
+                "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
             })
         
         logger.info(f"✅ Found {len(result)} users who shortlisted {username}")
