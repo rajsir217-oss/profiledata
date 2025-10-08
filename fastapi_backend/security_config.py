@@ -1,0 +1,203 @@
+# fastapi_backend/security_config.py
+"""
+Enterprise-Grade Security Configuration
+Compliant with OWASP, NIST, and industry best practices
+"""
+
+from pydantic_settings import BaseSettings
+from typing import Optional
+from datetime import timedelta
+
+class SecuritySettings(BaseSettings):
+    """Security configuration settings"""
+    
+    # ===== JWT Configuration =====
+    JWT_SECRET_KEY: str = "your-secret-key-change-in-production"  # Change in production!
+    JWT_ALGORITHM: str = "HS256"
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60  # 1 hour
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 days
+    
+    # ===== Password Policy =====
+    PASSWORD_MIN_LENGTH: int = 8
+    PASSWORD_MAX_LENGTH: int = 128
+    PASSWORD_REQUIRE_UPPERCASE: bool = True
+    PASSWORD_REQUIRE_LOWERCASE: bool = True
+    PASSWORD_REQUIRE_NUMBERS: bool = True
+    PASSWORD_REQUIRE_SPECIAL: bool = True
+    PASSWORD_SPECIAL_CHARS: str = "!@#$%^&*()_+-=[]{}|;:,.<>?"
+    
+    # ===== Password Expiry & Rotation =====
+    PASSWORD_EXPIRY_DAYS: int = 90  # Force password change every 90 days
+    PASSWORD_EXPIRY_WARNING_DAYS: int = 7  # Warn user 7 days before expiry
+    PASSWORD_HISTORY_COUNT: int = 5  # Prevent reusing last 5 passwords
+    FORCE_PASSWORD_CHANGE_ON_FIRST_LOGIN: bool = True
+    
+    # ===== Account Lockout Policy =====
+    MAX_FAILED_LOGIN_ATTEMPTS: int = 5
+    ACCOUNT_LOCKOUT_DURATION_MINUTES: int = 30
+    RESET_FAILED_ATTEMPTS_AFTER_MINUTES: int = 60
+    
+    # ===== Session Management =====
+    SESSION_TIMEOUT_MINUTES: int = 60
+    MAX_CONCURRENT_SESSIONS_PER_USER: int = 3
+    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 24
+    
+    # ===== Multi-Factor Authentication =====
+    MFA_ENABLED: bool = False  # Enable for production
+    MFA_REQUIRED_FOR_ADMIN: bool = True
+    MFA_ISSUER_NAME: str = "Matrimonial Profile App"
+    
+    # ===== Rate Limiting =====
+    RATE_LIMIT_LOGIN_ATTEMPTS: int = 10  # Per 15 minutes
+    RATE_LIMIT_PASSWORD_RESET: int = 3  # Per hour
+    RATE_LIMIT_API_CALLS: int = 100  # Per minute
+    
+    # ===== Email Verification =====
+    EMAIL_VERIFICATION_REQUIRED: bool = True
+    EMAIL_VERIFICATION_TOKEN_EXPIRE_HOURS: int = 24
+    
+    # ===== Security Headers =====
+    CORS_ALLOWED_ORIGINS: list = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://127.0.0.1:3000"
+    ]
+    CORS_ALLOW_CREDENTIALS: bool = True
+    
+    # ===== Audit Logging =====
+    AUDIT_LOG_ENABLED: bool = True
+    AUDIT_LOG_RETENTION_DAYS: int = 365  # Keep logs for 1 year
+    LOG_SENSITIVE_DATA: bool = False  # Don't log passwords, tokens
+    
+    # ===== GDPR Compliance =====
+    GDPR_ENABLED: bool = True
+    DATA_RETENTION_DAYS: int = 730  # 2 years
+    ALLOW_DATA_EXPORT: bool = True
+    ALLOW_DATA_DELETION: bool = True
+    
+    # ===== IP Tracking =====
+    TRACK_IP_ADDRESSES: bool = True
+    BLOCK_SUSPICIOUS_IPS: bool = True
+    MAX_FAILED_ATTEMPTS_PER_IP: int = 20
+    
+    # ===== Default Roles =====
+    DEFAULT_USER_ROLE: str = "free_user"
+    SYSTEM_ROLES: list = ["admin", "moderator", "premium_user", "free_user"]
+    
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+# Global security settings instance
+security_settings = SecuritySettings()
+
+# ===== Password Validation Rules =====
+def get_password_requirements() -> dict:
+    """Get human-readable password requirements"""
+    requirements = []
+    
+    if security_settings.PASSWORD_MIN_LENGTH:
+        requirements.append(f"At least {security_settings.PASSWORD_MIN_LENGTH} characters")
+    
+    if security_settings.PASSWORD_REQUIRE_UPPERCASE:
+        requirements.append("At least one uppercase letter (A-Z)")
+    
+    if security_settings.PASSWORD_REQUIRE_LOWERCASE:
+        requirements.append("At least one lowercase letter (a-z)")
+    
+    if security_settings.PASSWORD_REQUIRE_NUMBERS:
+        requirements.append("At least one number (0-9)")
+    
+    if security_settings.PASSWORD_REQUIRE_SPECIAL:
+        requirements.append(f"At least one special character ({security_settings.PASSWORD_SPECIAL_CHARS})")
+    
+    return {
+        "requirements": requirements,
+        "min_length": security_settings.PASSWORD_MIN_LENGTH,
+        "max_length": security_settings.PASSWORD_MAX_LENGTH
+    }
+
+# ===== Default Permissions =====
+DEFAULT_PERMISSIONS = {
+    "admin": [
+        "users.*",  # All user operations
+        "roles.*",  # All role operations
+        "permissions.*",  # All permission operations
+        "profiles.*",  # All profile operations
+        "messages.*",  # All message operations
+        "pii.*",  # All PII operations
+        "audit.*",  # View audit logs
+        "security.*"  # Security settings
+    ],
+    "moderator": [
+        "users.read",
+        "users.update",
+        "profiles.read",
+        "profiles.update",
+        "profiles.delete",
+        "messages.read",
+        "messages.delete",
+        "pii.read",
+        "audit.read"
+    ],
+    "premium_user": [
+        "profiles.read",
+        "profiles.create",
+        "profiles.update",
+        "messages.read",
+        "messages.create",
+        "pii.request",
+        "pii.grant",
+        "favorites.*",
+        "shortlist.*"
+    ],
+    "free_user": [
+        "profiles.read",
+        "profiles.create",
+        "profiles.update",
+        "messages.read",
+        "messages.create",
+        "pii.request",
+        "favorites.read",
+        "favorites.create"
+    ]
+}
+
+# ===== Security Event Types =====
+SECURITY_EVENTS = {
+    "LOGIN_SUCCESS": "login_success",
+    "LOGIN_FAILED": "login_failed",
+    "LOGOUT": "logout",
+    "PASSWORD_CHANGED": "password_changed",
+    "PASSWORD_RESET_REQUESTED": "password_reset_requested",
+    "PASSWORD_RESET_COMPLETED": "password_reset_completed",
+    "ACCOUNT_LOCKED": "account_locked",
+    "ACCOUNT_UNLOCKED": "account_unlocked",
+    "EMAIL_VERIFIED": "email_verified",
+    "MFA_ENABLED": "mfa_enabled",
+    "MFA_DISABLED": "mfa_disabled",
+    "ROLE_CHANGED": "role_changed",
+    "PERMISSION_GRANTED": "permission_granted",
+    "PERMISSION_REVOKED": "permission_revoked",
+    "SUSPICIOUS_ACTIVITY": "suspicious_activity",
+    "DATA_EXPORTED": "data_exported",
+    "DATA_DELETED": "data_deleted"
+}
+
+# ===== User Status Types =====
+USER_STATUS = {
+    "ACTIVE": "active",
+    "INACTIVE": "inactive",
+    "SUSPENDED": "suspended",
+    "BANNED": "banned",
+    "PENDING_VERIFICATION": "pending_verification",
+    "PASSWORD_EXPIRED": "password_expired",
+    "LOCKED": "locked"
+}
+
+# ===== Session Types =====
+SESSION_TYPES = {
+    "WEB": "web",
+    "MOBILE": "mobile",
+    "API": "api"
+}
