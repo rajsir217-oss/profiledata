@@ -13,6 +13,8 @@ import time
 from database import connect_to_mongo, close_mongo_connection
 from routes import router
 from test_management import router as test_router
+from auth.admin_routes import router as admin_router
+from auth.auth_routes import router as auth_router
 from config import settings
 from websocket_manager import sio
 
@@ -99,6 +101,8 @@ async def log_requests(request: Request, call_next):
 # Include routers
 app.include_router(router)
 app.include_router(test_router, prefix="/api/tests", tags=["tests"])
+app.include_router(admin_router)  # Admin routes (already has /api/admin prefix)
+app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
 
 # Health check endpoint
 @app.get("/health")
