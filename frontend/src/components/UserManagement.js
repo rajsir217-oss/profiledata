@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import axios from 'axios';
 import './UserManagement.css';
+
+// Create admin API client without baseURL prefix
+const adminApi = axios.create({
+  baseURL: 'http://localhost:8000'
+});
+
+// Add auth token interceptor
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
@@ -43,8 +61,7 @@ const UserManagement = () => {
       if (roleFilter) params.append('role', roleFilter);
       if (searchTerm) params.append('search', searchTerm);
 
-      // Use axios directly to avoid baseURL prefix doubling
-      const response = await api.get(`http://localhost:8000/api/admin/users?${params.toString()}`);
+      const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       
       setUsers(response.data.users || []);
       setTotalPages(response.data.pages || 1);
@@ -58,7 +75,7 @@ const UserManagement = () => {
 
   const handleAssignRole = async (username, newRole, reason) => {
     try {
-      await api.post(`http://localhost:8000/api/admin/users/${username}/assign-role`, {
+      await adminApi.post(`/api/admin/users/${username}/assign-role`, {
         role_name: newRole,
         reason: reason || 'Role updated by admin'
       });
@@ -75,7 +92,7 @@ const UserManagement = () => {
 
   const handleUserAction = async (username, action, reason) => {
     try {
-      await api.post(`http://localhost:8000/api/admin/users/${username}/manage`, {
+      await adminApi.post(`/api/admin/users/${username}/manage`, {
         action: action,
         reason: reason || `${action} by admin`
       });
