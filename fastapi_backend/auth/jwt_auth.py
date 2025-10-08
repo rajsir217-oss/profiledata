@@ -95,7 +95,9 @@ class JWTManager:
         """Get token expiry datetime"""
         exp_timestamp = payload.get("exp")
         if exp_timestamp:
-            return datetime.fromtimestamp(exp_timestamp)
+            # Use UTC timezone to match token creation
+            from datetime import timezone
+            return datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
         return None
     
     @staticmethod
@@ -103,7 +105,9 @@ class JWTManager:
         """Check if token is expired"""
         expiry = JWTManager.get_token_expiry(payload)
         if expiry:
-            return datetime.utcnow() >= expiry
+            # Compare timezone-aware datetimes
+            from datetime import timezone
+            return datetime.now(timezone.utc) >= expiry
         return True
 
 class AuthenticationService:
