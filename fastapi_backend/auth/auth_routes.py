@@ -9,6 +9,7 @@ from typing import Optional
 from bson import ObjectId
 import sys
 import os
+import logging
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -23,7 +24,7 @@ from .security_config import security_settings, SECURITY_EVENTS, USER_STATUS
 from .password_utils import PasswordManager, AccountLockoutManager, TokenManager
 from .jwt_auth import JWTManager, create_token_pair, get_current_user_dependency, AuthenticationService
 from .audit_logger import AuditLogger
-import logging
+from .authorization import PermissionChecker
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])

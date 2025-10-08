@@ -12,7 +12,18 @@ from models import (
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
-from auth import create_access_token, verify_password, get_password_hash  # Add missing auth imports
+from auth.password_utils import PasswordManager
+from auth.jwt_auth import JWTManager
+
+# Compatibility aliases for old code
+def get_password_hash(password: str) -> str:
+    return PasswordManager.hash_password(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return PasswordManager.verify_password(plain_password, hashed_password)
+
+def create_access_token(data: dict) -> str:
+    return JWTManager.create_access_token(data)
 import logging
 
 router = APIRouter(prefix="/api/users", tags=["users"])

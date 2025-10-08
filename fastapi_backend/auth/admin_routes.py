@@ -7,16 +7,23 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
+import sys
+import os
+import logging
+import re
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from database import get_database
-from jwt_auth import get_current_user_dependency
-from authorization import require_admin, PermissionChecker, RoleChecker
-from security_models import (
+from .jwt_auth import get_current_user_dependency
+from .authorization import require_admin, PermissionChecker, RoleChecker
+from .security_models import (
     UserManagementRequest, RoleAssignmentRequest, PermissionGrantRequest,
     UserSecurityStatus, UserRole, Permission
 )
-from security_config import DEFAULT_PERMISSIONS, USER_STATUS, SECURITY_EVENTS
-from password_utils import PasswordManager
-import logging
+from .security_config import DEFAULT_PERMISSIONS, USER_STATUS, SECURITY_EVENTS
+from .password_utils import PasswordManager
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
