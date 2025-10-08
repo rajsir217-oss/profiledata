@@ -398,40 +398,86 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
   const [reason, setReason] = useState('');
 
   const actionLabels = {
-    'activate': { title: 'Activate User', icon: '✅', color: 'green' },
-    'suspend': { title: 'Suspend User', icon: '⏸️', color: 'orange' },
-    'ban': { title: 'Ban User', icon: '🚫', color: 'red' }
+    'activate': { 
+      title: 'Activate User Account', 
+      icon: '✅', 
+      color: '#10b981',
+      description: 'This will grant the user full access to the platform.'
+    },
+    'suspend': { 
+      title: 'Suspend User Account', 
+      icon: '⏸️', 
+      color: '#f59e0b',
+      description: 'This will temporarily restrict the user\'s access.'
+    },
+    'ban': { 
+      title: 'Ban User Account', 
+      icon: '🚫', 
+      color: '#ef4444',
+      description: 'This will permanently block the user from the platform.'
+    }
   };
 
   const actionInfo = actionLabels[action] || {};
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <h2>{actionInfo.icon} {actionInfo.title}</h2>
-        <p className="modal-subtitle">
-          Are you sure you want to <strong>{action}</strong> user <strong>{user.username}</strong>?
-        </p>
-
-        <textarea
-          placeholder="Reason (optional)"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className="reason-input"
-          rows="3"
-        />
-
-        <div className="modal-actions">
-          <button onClick={onClose} className="btn-cancel">
-            Cancel
+    <div className="action-modal-overlay" onClick={onClose}>
+      <div className="action-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header with User Info */}
+        <div className="action-modal-header" style={{ background: actionInfo.color }}>
+          <div className="action-modal-user-info">
+            <div className="action-modal-avatar">
+              {user.username.charAt(0).toUpperCase()}
+            </div>
+            <div className="action-modal-user-details">
+              <h3>{user.username}</h3>
+              <p>{user.email || user.contactEmail || 'No email'}</p>
+            </div>
+          </div>
+          <button className="action-modal-close" onClick={onClose}>
+            ✕
           </button>
-          <button
-            onClick={() => onConfirm(user.username, action, reason)}
-            className="btn-confirm"
-            style={{ backgroundColor: actionInfo.color }}
-          >
-            Confirm {action}
-          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="action-modal-body">
+          <div className="action-modal-title">
+            <span className="action-icon">{actionInfo.icon}</span>
+            <h2>{actionInfo.title}</h2>
+          </div>
+          
+          <p className="action-modal-description">
+            {actionInfo.description}
+          </p>
+
+          <div className="action-modal-warning">
+            <strong>⚠️ Confirmation Required</strong>
+            <p>Are you sure you want to <strong>{action}</strong> this user?</p>
+          </div>
+
+          <div className="action-modal-form">
+            <label>Reason (optional)</label>
+            <textarea
+              placeholder={`Enter reason for ${action}ing this user...`}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="action-reason-input"
+              rows="4"
+            />
+          </div>
+
+          <div className="action-modal-footer">
+            <button onClick={onClose} className="action-btn-cancel">
+              Cancel
+            </button>
+            <button
+              onClick={() => onConfirm(user.username, action, reason)}
+              className="action-btn-confirm"
+              style={{ backgroundColor: actionInfo.color }}
+            >
+              {actionInfo.icon} Confirm {action.charAt(0).toUpperCase() + action.slice(1)}
+            </button>
+          </div>
         </div>
       </div>
     </div>
