@@ -45,9 +45,17 @@ const Messages = () => {
           is_read: false
         };
         setMessages(prev => [...prev, newMessage]);
+        
+        // Show browser notification if supported
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(`New message from ${data.from}`, {
+            body: data.message,
+            icon: '/logo192.png'
+          });
+        }
       }
       
-      // Reload conversations to update last message
+      // Always reload conversations to update last message and unread count
       loadConversations();
     };
 
