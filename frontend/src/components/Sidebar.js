@@ -5,19 +5,24 @@ import './Sidebar.css';
 const Sidebar = ({ isCollapsed, onToggle }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userStatus, setUserStatus] = useState('active'); // Default to active
   const navigate = useNavigate();
 
-  // Check login status on mount and listen for changes
+  // Check login status and user activation status
   useEffect(() => {
     const checkLoginStatus = () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
+      const status = localStorage.getItem('userStatus') || 'active';
+      
       if (username && token) {
         setIsLoggedIn(true);
         setCurrentUser(username);
+        setUserStatus(status);
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setUserStatus('active');
       }
     };
 
@@ -51,7 +56,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
-    console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser });
+    console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus });
     
     if (!isLoggedIn) {
       return [
@@ -68,76 +73,91 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       ];
     }
 
+    // Check if user is activated (admin is always active)
+    const isActive = currentUser === 'admin' || userStatus === 'active';
+
     const items = [
       { 
         icon: '🏠', 
         label: 'My Dashboard', 
         subLabel: 'Overview & Activity',
-        action: () => navigate('/dashboard')
+        action: () => navigate('/dashboard'),
+        disabled: !isActive
       },
       { 
         icon: '👤', 
         label: currentUser || '(profile picture)', 
         subLabel: 'Profile data',
-        action: () => navigate(`/profile/${currentUser}`)
+        action: () => navigate(`/profile/${currentUser}`),
+        disabled: false // Always enabled - users need to access their profile
       },
       { 
         icon: '🔒', 
         label: 'Privacy & Data', 
         subLabel: 'Manage PII access',
-        action: () => navigate('/pii-management')
+        action: () => navigate('/pii-management'),
+        disabled: !isActive
       },
       { 
         icon: '⚙️', 
         label: 'My Preferences', 
         subLabel: 'Theme & Settings',
-        action: () => navigate('/preferences')
+        action: () => navigate('/preferences'),
+        disabled: !isActive
       },
       { 
         icon: '🔍', 
         label: 'Search Profiles', 
         subLabel: 'Find matches',
-        action: () => navigate('/search')
+        action: () => navigate('/search'),
+        disabled: !isActive
       },
       { 
         icon: '🔍', 
         label: 'My matching criteria', 
-        action: () => navigate('/matching-criteria')
+        action: () => navigate('/matching-criteria'),
+        disabled: !isActive
       },
       { 
         icon: '💑', 
         label: 'My top 3 matches', 
-        action: () => navigate('/top-matches')
+        action: () => navigate('/top-matches'),
+        disabled: !isActive
       },
       { 
         icon: '⭐', 
         label: 'My Favorites', 
         subLabel: 'Profiles I liked',
-        action: () => navigate('/favorites')
+        action: () => navigate('/favorites'),
+        disabled: !isActive
       },
       { 
         icon: '📋', 
         label: 'My Shortlist', 
         subLabel: 'Profiles to consider',
-        action: () => navigate('/shortlist')
+        action: () => navigate('/shortlist'),
+        disabled: !isActive
       },
       { 
         icon: '❌', 
         label: 'My Exclusions', 
         subLabel: 'Profiles to hide',
-        action: () => navigate('/exclusions')
+        action: () => navigate('/exclusions'),
+        disabled: !isActive
       },
       { 
         icon: '💬', 
         label: 'My Messages', 
         subLabel: 'Chat with matches',
-        action: () => navigate('/messages')
+        action: () => navigate('/messages'),
+        disabled: !isActive
       },
       { 
         icon: '📨', 
         label: 'My Requests', 
         subLabel: 'PII access requests',
-        action: () => navigate('/requests')
+        action: () => navigate('/requests'),
+        disabled: !isActive
       },
     ];
 
@@ -201,8 +221,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           {menuItems.map((item, index) => (
             <div 
               key={index} 
-              className={`menu-item ${item.isHeader ? 'menu-header' : ''}`}
-              onClick={item.action}
+              className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
+              onClick={item.disabled ? undefined : item.action}
+              title={item.disabled ? 'Please activate your account to access this feature' : ''}
             >
               <div className="menu-icon">{item.icon}</div>
               <div className="menu-content">
@@ -211,6 +232,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
                   <div className="menu-sublabel">{item.subLabel}</div>
                 )}
               </div>
+              {item.disabled && (
+                <div className="disabled-badge">🔒</div>
+              )}
             </div>
           ))}
         </div>

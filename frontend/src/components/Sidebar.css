@@ -47,6 +47,24 @@
   border-left-color: #667eea;
 }
 
+/* Disabled menu items */
+.menu-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed !important;
+  pointer-events: none;
+}
+
+.menu-item.disabled .menu-label,
+.menu-item.disabled .menu-sublabel {
+  color: #999 !important;
+}
+
+.disabled-badge {
+  font-size: 14px;
+  margin-left: auto;
+  opacity: 0.6;
+}
+
 .menu-icon {
   font-size: 24px;
   margin-right: 15px;

@@ -26,6 +26,10 @@ const Login = () => {
       localStorage.setItem('username', res.data.user.username);
       localStorage.setItem('token', res.data.access_token);
       
+      // Save user status for menu access control
+      const userStatus = res.data.user.status?.status || res.data.user.status || 'active';
+      localStorage.setItem('userStatus', userStatus);
+      
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('loginStatusChanged'));
       
