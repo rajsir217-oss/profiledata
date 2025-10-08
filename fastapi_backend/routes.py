@@ -22,8 +22,8 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PasswordManager.verify_password(plain_password, hashed_password)
 
-def create_access_token(data: dict) -> str:
-    return JWTManager.create_access_token(data)
+def create_access_token(data: dict, expires_delta=None) -> str:
+    return JWTManager.create_access_token(data, expires_delta)
 import logging
 
 router = APIRouter(prefix="/api/users", tags=["users"])

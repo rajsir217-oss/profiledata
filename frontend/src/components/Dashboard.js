@@ -54,7 +54,10 @@ const Dashboard = () => {
       return;
     }
 
-    loadDashboardData(currentUser);
+    // Small delay to ensure token is set after login
+    const timer = setTimeout(() => {
+      loadDashboardData(currentUser);
+    }, 100);
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
@@ -73,6 +76,7 @@ const Dashboard = () => {
     socketService.on('user_offline', handleUserOffline);
     
     return () => {
+      clearTimeout(timer);
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
     };
@@ -380,7 +384,7 @@ const Dashboard = () => {
     return (
       <div className="dashboard-error">
         <p>{error}</p>
-        <button onClick={loadDashboardData}>Retry</button>
+        <button onClick={() => loadDashboardData(currentUser)}>Retry</button>
       </div>
     );
   }
@@ -392,7 +396,7 @@ const Dashboard = () => {
         <p>Welcome back, {currentUser}!</p>
         <button 
           className="btn-refresh"
-          onClick={loadDashboardData}
+          onClick={() => loadDashboardData(currentUser)}
           title="Refresh Dashboard"
         >
           🔄 Refresh
