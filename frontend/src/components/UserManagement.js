@@ -43,7 +43,8 @@ const UserManagement = () => {
       if (roleFilter) params.append('role', roleFilter);
       if (searchTerm) params.append('search', searchTerm);
 
-      const response = await api.get(`/api/admin/users?${params.toString()}`);
+      // Use axios directly to avoid baseURL prefix doubling
+      const response = await api.get(`http://localhost:8000/api/admin/users?${params.toString()}`);
       
       setUsers(response.data.users || []);
       setTotalPages(response.data.pages || 1);
@@ -57,7 +58,7 @@ const UserManagement = () => {
 
   const handleAssignRole = async (username, newRole, reason) => {
     try {
-      await api.post(`/api/admin/users/${username}/assign-role`, {
+      await api.post(`http://localhost:8000/api/admin/users/${username}/assign-role`, {
         role_name: newRole,
         reason: reason || 'Role updated by admin'
       });
@@ -74,7 +75,7 @@ const UserManagement = () => {
 
   const handleUserAction = async (username, action, reason) => {
     try {
-      await api.post(`/api/admin/users/${username}/manage`, {
+      await api.post(`http://localhost:8000/api/admin/users/${username}/manage`, {
         action: action,
         reason: reason || `${action} by admin`
       });
