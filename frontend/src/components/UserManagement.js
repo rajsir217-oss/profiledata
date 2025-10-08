@@ -34,6 +34,9 @@ const UserManagement = () => {
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
   const [actionType, setActionType] = useState('');
+  const [selectedUsers, setSelectedUsers] = useState([]); // For bulk operations
+  const [sortField, setSortField] = useState('username'); // Sort field
+  const [sortOrder, setSortOrder] = useState('asc'); // Sort order
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -140,6 +143,88 @@ const UserManagement = () => {
     return statusClasses[status] || 'status-inactive';
   };
 
+  // Sorting function
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle sort order if same field
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New field, default to ascending
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  // Sort users
+  const sortedUsers = [...users].sort((a, b) => {
+    let aValue = a[sortField];
+    let bValue = b[sortField];
+
+    // Handle nested status field
+    if (sortField === 'status') {
+      aValue = a.status?.status || '';
+      bValue = b.status?.status || '';
+    }
+
+    // Handle date fields
+    if (sortField === 'created_at') {
+      aValue = new Date(aValue || 0);
+      bValue = new Date(bValue || 0);
+    }
+
+    // String comparison
+    if (typeof aValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+
+    if (sortOrder === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  // Bulk selection functions
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedUsers(users.map(u => u.username));
+    } else {
+      setSelectedUsers([]);
+    }
+  };
+
+  const handleSelectUser = (username) => {
+    if (selectedUsers.includes(username)) {
+      setSelectedUsers(selectedUsers.filter(u => u !== username));
+    } else {
+      setSelectedUsers([...selectedUsers, username]);
+    }
+  };
+
+  const handleBulkAction = async (action) => {
+    if (selectedUsers.length === 0) {
+      alert('Please select users first');
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to ${action} ${selectedUsers.length} user(s)?`)) {
+      return;
+    }
+
+    try {
+      // Perform bulk action
+      for (const username of selectedUsers) {
+        await handleUserAction(username, action, `Bulk ${action}`);
+      }
+      setSelectedUsers([]);
+      loadUsers();
+    } catch (error) {
+      console.error('Bulk action error:', error);
+      alert('Some operations failed. Please check the console.');
+    }
+  };
+
   if (loading && users.length === 0) {
     return (
       <div className="user-management-loading">
@@ -203,23 +288,86 @@ const UserManagement = () => {
         </div>
       )}
 
+      {/* Bulk Actions Bar */}
+      {selectedUsers.length > 0 && (
+        <div className="bulk-actions-bar">
+          <span className="bulk-selected-count">
+            {selectedUsers.length} user(s) selected
+          </span>
+          <div className="bulk-action-buttons">
+            <button onClick={() => handleBulkAction('activate')} className="bulk-btn bulk-activate">
+              ✅ Activate
+            </button>
+            <button onClick={() => handleBulkAction('suspend')} className="bulk-btn bulk-suspend">
+              ⏸️ Suspend
+            </button>
+            <button onClick={() => handleBulkAction('ban')} className="bulk-btn bulk-ban">
+              🚫 Ban
+            </button>
+            <button onClick={() => setSelectedUsers([])} className="bulk-btn bulk-clear">
+              ✕ Clear Selection
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="users-table-container">
         <table className="users-table">
           <thead>
             <tr>
-              <th>Username</th>
-              <th>Name</th>
+              <th className="th-checkbox">
+                <input
+                  type="checkbox"
+                  checked={selectedUsers.length === users.length && users.length > 0}
+                  onChange={handleSelectAll}
+                  title="Select all"
+                />
+              </th>
+              <th className="sortable" onClick={() => handleSort('username')}>
+                Username
+                {sortField === 'username' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
+              <th className="sortable" onClick={() => handleSort('firstName')}>
+                Name
+                {sortField === 'firstName' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
               <th>Email</th>
-              <th>Role</th>
-              <th>Status</th>
-              <th>Created</th>
+              <th className="sortable" onClick={() => handleSort('role_name')}>
+                Role
+                {sortField === 'role_name' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
+              <th className="sortable" onClick={() => handleSort('status')}>
+                Status
+                {sortField === 'status' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
+              <th className="sortable" onClick={() => handleSort('created_at')}>
+                Created
+                {sortField === 'created_at' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {users.map((user) => (
-              <tr key={user.username}>
+            {sortedUsers.map((user) => (
+              <tr key={user.username} className={selectedUsers.includes(user.username) ? 'selected-row' : ''}>
+                <td className="td-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={selectedUsers.includes(user.username)}
+                    onChange={() => handleSelectUser(user.username)}
+                  />
+                </td>
                 <td>
                   <strong>{user.username}</strong>
                 </td>
