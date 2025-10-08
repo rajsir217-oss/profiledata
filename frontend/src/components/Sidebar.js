@@ -149,6 +149,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '👥',
+        label: 'User Management',
+        subLabel: 'Roles & Permissions',
+        action: () => navigate('/user-management')
+      });
+      
+      items.push({
         icon: '🧪',
         label: 'Test Dashboard',
         subLabel: 'Run & schedule tests',
