@@ -1,17 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
 import messagePollingService from '../services/messagePollingService';
+import onlineStatusService from '../services/onlineStatusService';
 import ChatWindow from './ChatWindow';
 import './MessageModal.css';
 
 const MessageModal = ({ isOpen, profile, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
     if (isOpen && profile) {
       loadConversation();
+      checkOnlineStatus();
+      
+      // Check online status every 30 seconds
+      const onlineCheckInterval = setInterval(() => {
+        checkOnlineStatus();
+      }, 30000);
       
       // Check for any pending messages that arrived while modal was closed
       const pendingMessages = messagePollingService.getPendingMessages(currentUsername, profile.username);
@@ -94,9 +102,21 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
 
       return () => {
         messagePollingService.offNewMessage(handleNewMessage);
+        clearInterval(onlineCheckInterval);
       };
     }
   }, [isOpen, profile, currentUsername]);
+
+  const checkOnlineStatus = async () => {
+    if (!profile?.username) return;
+    
+    try {
+      const online = await onlineStatusService.isUserOnline(profile.username);
+      setIsOnline(online);
+    } catch (error) {
+      console.error('Error checking online status:', error);
+    }
+  };
 
   const loadConversation = async () => {
     if (!profile?.username) {
@@ -155,13 +175,17 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       <div className="message-modal">
         <div className="message-modal-header">
           <div className="modal-user-info">
-            {profile?.images?.[0] ? (
-              <img src={profile.images[0]} alt={profile.username} className="modal-avatar" />
-            ) : (
-              <div className="modal-avatar-placeholder">
-                {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
-              </div>
-            )}
+            <div className="modal-avatar-container">
+              {profile?.images?.[0] ? (
+                <img src={profile.images[0]} alt={profile.username} className="modal-avatar" />
+              ) : (
+                <div className="modal-avatar-placeholder">
+                  {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className={`online-status-indicator ${isOnline ? '' : 'offline'}`} 
+                   title={isOnline ? 'Online' : 'Offline'} />
+            </div>
             <div>
               <h3>{profile?.firstName || profile?.username}</h3>
               <p>{profile?.location || 'Location not specified'}</p>
