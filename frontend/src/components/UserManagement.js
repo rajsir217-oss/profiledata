@@ -221,24 +221,41 @@ const UserManagement = () => {
 
   const handleBulkAction = async (action) => {
     if (selectedUsers.length === 0) {
-      alert('Please select users first');
-      return;
-    }
-
-    if (!window.confirm(`Are you sure you want to ${action} ${selectedUsers.length} user(s)?`)) {
+      setError('Please select users first');
       return;
     }
 
     try {
+      let successCount = 0;
+      let failCount = 0;
+
       // Perform bulk action
       for (const username of selectedUsers) {
-        await handleUserAction(username, action, `Bulk ${action}`);
+        try {
+          await handleUserAction(username, action, `Bulk ${action}`);
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to ${action} ${username}:`, error);
+          failCount++;
+        }
       }
+      
       setSelectedUsers([]);
       loadUsers();
+
+      // Show success message
+      if (failCount === 0) {
+        setSuccessMessage(`✅ Successfully ${action}ed ${successCount} user(s)`);
+        setError('');
+      } else {
+        setSuccessMessage(`⚠️ Bulk ${action}: ${successCount} success, ${failCount} failed`);
+      }
+
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Bulk action error:', error);
-      alert('Some operations failed. Please check the console.');
+      setError(`Bulk ${action} failed. Please try again.`);
     }
   };
 
@@ -477,7 +494,8 @@ const UserManagement = () => {
                     <button
                       onClick={() => openRoleModal(user)}
                       className="btn-action btn-role"
-                      title="Assign Role"
+                      title={user.username === currentUser ? 'Cannot modify your own role' : 'Assign Role'}
+                      disabled={user.username === currentUser}
                     >
                       🎭
                     </button>
@@ -491,22 +509,24 @@ const UserManagement = () => {
                     <button
                       onClick={() => openActionModal(user, 'activate')}
                       className="btn-action btn-activate"
-                      title="Activate"
-                      disabled={user.status?.status === 'active'}
+                      title={user.username === currentUser ? 'Cannot modify your own account' : 'Activate'}
+                      disabled={user.status?.status === 'active' || user.username === currentUser}
                     >
                       ✅
                     </button>
                     <button
                       onClick={() => openActionModal(user, 'suspend')}
                       className="btn-action btn-suspend"
-                      title="Suspend"
+                      title={user.username === currentUser ? 'Cannot suspend your own account' : 'Suspend'}
+                      disabled={user.username === currentUser}
                     >
                       ⏸️
                     </button>
                     <button
                       onClick={() => openActionModal(user, 'ban')}
                       className="btn-action btn-ban"
-                      title="Ban"
+                      title={user.username === currentUser ? 'Cannot ban your own account' : 'Ban'}
+                      disabled={user.username === currentUser}
                     >
                       🚫
                     </button>
