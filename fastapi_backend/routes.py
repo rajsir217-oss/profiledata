@@ -668,6 +668,7 @@ async def search_users(
     relationshipStatus: str = "",
     bodyType: str = "",
     newlyAdded: bool = False,
+    status: str = "",
     sortBy: str = "newest",
     sortOrder: str = "desc",
     page: int = 1,
@@ -675,10 +676,17 @@ async def search_users(
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
-    logger.info(f"🔍 Search request - keyword: '{keyword}', page: {page}, limit: {limit}")
+    logger.info(f"🔍 Search request - keyword: '{keyword}', status: '{status}', page: {page}, limit: {limit}")
 
     # Build query
     query = {}
+    
+    # Status filter - only show active users by default
+    if status:
+        query["status.status"] = {"$regex": f"^{status}$", "$options": "i"}
+    else:
+        # Default to active users only if no status specified
+        query["status.status"] = {"$regex": "^active$", "$options": "i"}
 
     # Text search
     if keyword:

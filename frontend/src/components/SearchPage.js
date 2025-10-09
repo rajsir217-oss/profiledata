@@ -55,33 +55,57 @@ const SearchPage = () => {
 
   // Message modal state
   const [showMessageModal, setShowMessageModal] = useState(false);
-  const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const username = localStorage.getItem('username');
-    if (username) {
-      loadSavedSearches();
-      loadPiiRequests();
-      loadUserFavorites();
-      loadUserShortlist();
-      loadUserExclusions();
-    } else {
-      // Clear states if not logged in
-      setFavoritedUsers(new Set());
-      setShortlistedUsers(new Set());
-      setExcludedUsers(new Set());
-      setSavedSearches([]);
-      setPiiRequests({});
+    if (!username) {
+      navigate('/login');
+      return;
     }
+    
+    // Load user's favorites, shortlist, and exclusions
+    const loadUserData = async () => {
+      try {
+        const [favResponse, shortlistResponse, exclusionsResponse] = await Promise.all([
+          api.get(`/favorites/${username}`),
+          api.get(`/shortlist/${username}`),
+          api.get(`/exclusions/${username}`)
+        ]);
+        
+        setFavoritedUsers(new Set(favResponse.data.favorites || []));
+        setShortlistedUsers(new Set(shortlistResponse.data.shortlist || []));
+        setExcludedUsers(new Set(exclusionsResponse.data.exclusions || []));
+      } catch (err) {
+        console.error('Error loading user data:', err);
+      }
+    };
+    
+    // Load initial online users
+    const loadOnlineUsers = async () => {
+      try {
+        const response = await api.get('/online-status/users');
+        console.log('Loaded online users:', response.data.onlineUsers);
+        setOnlineUsers(new Set(response.data.onlineUsers || []));
+      } catch (err) {
+        console.error('Error loading online users:', err);
+      }
+    };
+    
+    loadUserData();
+    loadSavedSearches();
+    loadPiiRequests();
+    loadOnlineUsers(); // Load initial online users
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
+      console.log('User came online:', data.username);
       setOnlineUsers(prev => new Set([...prev, data.username]));
     };
     
     const handleUserOffline = (data) => {
+      console.log('User went offline:', data.username);
       setOnlineUsers(prev => {
         const newSet = new Set(prev);
         newSet.delete(data.username);
@@ -94,15 +118,15 @@ const SearchPage = () => {
     
     // Load initial search results (all profiles) after component mounts
     // Only if user is logged in
-    if (username) {
-      setTimeout(() => {
-        handleSearch(1);
-      }, 100);
+    const currentUser = localStorage.getItem('username');
+    if (currentUser) {
+      handleSearch(1);
     }
     
     return () => {
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
+{{ ... }}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
