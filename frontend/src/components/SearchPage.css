@@ -441,7 +441,7 @@
 .result-card .card-title-section {
   padding: 12px 15px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  color: white !important;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -449,15 +449,20 @@
 }
 
 .result-card .card-title {
-  color: white;
+  color: white !important;
   font-weight: 600;
   font-size: 16px;
   margin: 0;
 }
 
+.result-card .card-title-section h6 {
+  color: white !important;
+  margin: 0;
+}
+
 .result-card .age-badge {
   background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
+  color: #667eea !important;
   padding: 4px 12px;
   border-radius: 20px;
   font-weight: 600;
@@ -467,6 +472,86 @@
 /* Override Bootstrap d-flex in search results */
 .results-grid .d-flex {
   display: flex !important;
+}
+
+/* Icon overlay for saved search button */
+.saved-search-btn .icon-overlay {
+  position: relative;
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+}
+
+.saved-search-btn .icon-base {
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-size: 1em;
+}
+
+.saved-search-btn .icon-top {
+  position: absolute;
+  right: -4px;
+  bottom: -2px;
+  font-size: 0.7em;
+}
+
+/* Selected Search Banner */
+.selected-search-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 12px 16px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  animation: slideDown 0.3s ease;
+}
+
+.selected-search-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.selected-label {
+  font-weight: 600;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.selected-name {
+  font-weight: 700;
+  font-size: 15px;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.selected-search-banner .btn-outline-danger {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid white;
+  color: white;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.selected-search-banner .btn-outline-danger:hover {
+  background: white;
+  color: #dc3545;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Profile card layout with separator - Redesigned */

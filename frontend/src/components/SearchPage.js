@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
+import SaveSearchModal from './SaveSearchModal';
 import socketService from '../services/socketService';
 import './SearchPage.css';
 
@@ -46,6 +47,8 @@ const SearchPage = () => {
   const [saveSearchName, setSaveSearchName] = useState('');
   const [savedSearches, setSavedSearches] = useState([]);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [selectedSearch, setSelectedSearch] = useState(null);
 
   // PII access state
   const [piiRequests, setPiiRequests] = useState({});
@@ -391,8 +394,9 @@ const SearchPage = () => {
 
       const params = {
         ...searchCriteria,
+        status: 'active',  // Only search for active users
         page: page,
-        limit: 200  // Get more results from backend to handle client-side filtering
+        limit: 500  // Get more results from backend to handle client-side filtering
       };
 
       Object.keys(params).forEach(key => {
@@ -511,12 +515,7 @@ const SearchPage = () => {
     return buttons;
   };
 
-  const handleSaveSearch = async () => {
-    if (!saveSearchName.trim()) {
-      setError('Please enter a name for the saved search');
-      return;
-    }
-
+  const handleSaveSearch = async (searchName) => {
     try {
       const username = localStorage.getItem('username');
       if (!username) {
@@ -525,25 +524,38 @@ const SearchPage = () => {
       }
 
       const searchData = {
-        name: saveSearchName.trim(),
+        name: searchName.trim(),
         criteria: searchCriteria,
-        createdAt: new Date().toISOString()
+        created_at: new Date().toISOString()
       };
 
       await api.post(`/${username}/saved-searches`, searchData);
 
-      setSaveSearchName('');
+      setStatusMessage(`✅ Search saved: "${searchName}"`);
+      setTimeout(() => setStatusMessage(''), 3000);
       loadSavedSearches();
-      loadPiiRequests();
     } catch (err) {
       console.error('Error saving search:', err);
       setError('Failed to save search. ' + (err.response?.data?.detail || err.message));
     }
   };
 
+  const handleUpdateSavedSearch = async (searchId, newName) => {
+    try {
+      const username = localStorage.getItem('username');
+      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
+      setStatusMessage(`✅ Search renamed to: "${newName}"`);
+      setTimeout(() => setStatusMessage(''), 3000);
+      loadSavedSearches();
+    } catch (err) {
+      console.error('Error updating saved search:', err);
+      setError('Failed to update saved search');
+    }
+  };
+
   const handleLoadSavedSearch = (savedSearch) => {
     setSearchCriteria(savedSearch.criteria);
-    setSaveSearchName(savedSearch.name);
+    setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
     setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
     // Automatically perform search with loaded criteria
@@ -558,11 +570,49 @@ const SearchPage = () => {
     try {
       const username = localStorage.getItem('username');
       await api.delete(`/${username}/saved-searches/${searchId}`);
+      setStatusMessage('✅ Search deleted');
+      setTimeout(() => setStatusMessage(''), 3000);
       loadSavedSearches();
+      // Clear selected search if it was deleted
+      if (selectedSearch && selectedSearch._id === searchId) {
+        setSelectedSearch(null);
+      }
     } catch (err) {
       console.error('Error deleting saved search:', err);
       setError('Failed to delete saved search');
     }
+  };
+
+  const handleClearSelectedSearch = () => {
+    setSelectedSearch(null);
+    const clearedCriteria = {
+      keyword: '',
+      gender: '',
+      ageMin: '',
+      ageMax: '',
+      heightMin: '',
+      heightMax: '',
+      location: '',
+      education: '',
+      occupation: '',
+      religion: '',
+      caste: '',
+      drinking: '',
+      smoking: '',
+      relationshipStatus: '',
+      newlyAdded: false,
+    };
+    setSearchCriteria(clearedCriteria);
+    // Clear results first
+    setUsers([]);
+    setTotalResults(0);
+    setCurrentPage(1);
+    setStatusMessage('✅ Search cleared - showing all active users');
+    setTimeout(() => setStatusMessage(''), 3000);
+    // Trigger a search with cleared criteria to get all active users
+    setTimeout(() => {
+      handleSearch(1);
+    }, 150);
   };
 
   const parseHeight = (height) => {
@@ -830,10 +880,17 @@ const SearchPage = () => {
             </h4>
             <div className="filter-actions">
               <button
-                className="btn btn-outline-primary btn-sm"
+                className="btn btn-outline-primary btn-sm saved-search-btn"
                 onClick={() => setShowSavedSearches(!showSavedSearches)}
+                title={savedSearches.length > 0 ? `${savedSearches.length} saved searches` : 'No saved searches'}
               >
-                📋 Saved Searches ({savedSearches.length})
+                {savedSearches.length > 0 ? (
+                  <span className="icon-overlay">
+                    <span className="icon-base">📋</span>
+                    <span className="icon-top">🔍</span>
+                  </span>
+                ) : '🔍'}
+                {savedSearches.length > 0 && ` (${savedSearches.length})`}
               </button>
             </div>
           </div>
@@ -886,6 +943,23 @@ const SearchPage = () => {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Selected Search Display */}
+          {selectedSearch && (
+            <div className="selected-search-banner">
+              <div className="selected-search-info">
+                <span className="selected-label">📌 Selected Search:</span>
+                <span className="selected-name">{selectedSearch.name}</span>
+              </div>
+              <button 
+                className="btn btn-sm btn-outline-danger"
+                onClick={handleClearSelectedSearch}
+                title="Clear selected search"
+              >
+                ✕ Clear
+              </button>
             </div>
           )}
 
@@ -1169,23 +1243,14 @@ const SearchPage = () => {
             </div>
 
             <div className="filter-section">
-              <h6>Save This Search</h6>
-              <div className="input-group">
-                <input
-                  type="text"
-                  className="form-control"
-                  value={saveSearchName}
-                  onChange={(e) => setSaveSearchName(e.target.value)}
-                  placeholder="Enter search name..."
-                />
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSaveSearch}
-                >
-                  Save Search
-                </button>
-              </div>
+              <h6>Manage Searches</h6>
+              <button
+                type="button"
+                className="btn btn-primary btn-block"
+                onClick={() => setShowSaveModal(true)}
+              >
+                💾 Save & Manage Searches
+              </button>
             </div>
           </form>
         </div>
@@ -1259,17 +1324,18 @@ const SearchPage = () => {
               return (
               <div key={user.username} className="result-card">
                 <div className="card">
-                  <div className="card-body">
-                    <div className="d-flex justify-content-between align-items-start mb-2">
-                      <h6 className="card-title mb-0">
-                        {user.firstName} {user.lastName}
-                        <span className={`status-bulb-inline ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
-                          {isOnline ? '🟢' : '⚪'}
-                        </span>
-                      </h6>
-                      <span className="badge bg-primary">{calculateAge(user.dob)} years</span>
-                    </div>
+                  {/* Card Title Section with Purple Gradient */}
+                  <div className="card-title-section">
+                    <h6 className="card-title">
+                      {user.firstName} {user.lastName}
+                      <span className={`status-bulb-inline ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
+                        {isOnline ? ' 🟢' : ' ⚪'}
+                      </span>
+                    </h6>
+                    <span className="age-badge">{calculateAge(user.dob)} years</span>
+                  </div>
 
+                  <div className="card-body">
                     <div className="d-flex gap-3 mb-3">
                       <div className="profile-image-left">
                         {renderProfileImage(user)}
@@ -1391,6 +1457,17 @@ const SearchPage = () => {
           setShowMessageModal(false);
           setSelectedUserForMessage(null);
         }}
+      />
+
+      {/* Save Search Modal */}
+      <SaveSearchModal
+        show={showSaveModal}
+        onClose={() => setShowSaveModal(false)}
+        onSave={handleSaveSearch}
+        savedSearches={savedSearches}
+        onUpdate={handleUpdateSavedSearch}
+        onDelete={handleDeleteSavedSearch}
+        currentCriteria={searchCriteria}
       />
     </div>
   );
