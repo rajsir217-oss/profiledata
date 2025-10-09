@@ -105,27 +105,14 @@ const UserManagement = () => {
       loadUsers();
       alert(`Role assigned successfully to ${username}`);
     } catch (err) {
-      console.error('Error assigning role:', err);
-      alert('Failed to assign role: ' + (err.response?.data?.detail || err.message));
     }
   };
 
   const handleUserAction = async (username, action, reason) => {
-    try {
-      await adminApi.post(`/api/admin/users/${username}/manage`, {
-        action: action,
-        reason: reason || `${action} by admin`
-      });
-      
-      setShowActionModal(false);
-      setSelectedUser(null);
-      setActionType('');
-      loadUsers();
-      alert(`User ${action}d successfully`);
-    } catch (err) {
-      console.error('Error performing action:', err);
-      alert('Failed to perform action: ' + (err.response?.data?.detail || err.message));
-    }
+    await adminApi.post(`/api/admin/users/${username}/manage`, {
+      action: action,
+      reason: reason || `${action} by admin`
+    });
   };
 
   const openRoleModal = (user) => {
@@ -133,10 +120,18 @@ const UserManagement = () => {
     setShowRoleModal(true);
   };
 
-  const openActionModal = (user, action) => {
-    setSelectedUser(user);
-    setActionType(action);
-    setShowActionModal(true);
+  const openActionModal = async (user, action) => {
+    // Execute action directly without modal
+    try {
+      await handleUserAction(user.username, action, `${action} by admin`);
+      loadUsers();
+      setSuccessMessage(`✅ Successfully ${action}ed user ${user.username}`);
+      setError('');
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (error) {
+      console.error(`Failed to ${action} user:`, error);
+      setError(`Failed to ${action} user: ${error.response?.data?.detail || error.message}`);
+    }
   };
 
   const getRoleBadgeClass = (role) => {
@@ -568,20 +563,6 @@ const UserManagement = () => {
             setSelectedUser(null);
           }}
           onAssign={handleAssignRole}
-        />
-      )}
-
-      {/* Action Modal */}
-      {showActionModal && selectedUser && (
-        <ActionModal
-          user={selectedUser}
-          action={actionType}
-          onClose={() => {
-            setShowActionModal(false);
-            setSelectedUser(null);
-            setActionType('');
-          }}
-          onConfirm={handleUserAction}
         />
       )}
 
