@@ -6,28 +6,20 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { BrowserRouter } from 'react-router-dom';
-import Sidebar from '../Sidebar';
 import '@testing-library/jest-dom';
 
-// Mock useNavigate
+// Mock useNavigate before importing components
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => {
-  const actual = jest.requireActual('react-router-dom');
-  return {
-    ...actual,
-    useNavigate: () => mockNavigate,
-    BrowserRouter: actual.BrowserRouter,
-  };
-});
+jest.mock('react-router-dom', () => ({
+  BrowserRouter: ({ children }) => <div>{children}</div>,
+  useNavigate: () => mockNavigate,
+}));
 
-// Helper to render with router
+import Sidebar from '../Sidebar';
+
+// Helper to render component
 const renderWithRouter = (component) => {
-  return render(
-    <BrowserRouter>
-      {component}
-    </BrowserRouter>
-  );
+  return render(component);
 };
 
 describe('Sidebar Component', () => {
