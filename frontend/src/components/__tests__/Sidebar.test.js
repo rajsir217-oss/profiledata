@@ -12,10 +12,14 @@ import '@testing-library/jest-dom';
 
 // Mock useNavigate
 const mockNavigate = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useNavigate: () => mockNavigate,
-}));
+jest.mock('react-router-dom', () => {
+  const actual = jest.requireActual('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => mockNavigate,
+    BrowserRouter: actual.BrowserRouter,
+  };
+});
 
 // Helper to render with router
 const renderWithRouter = (component) => {

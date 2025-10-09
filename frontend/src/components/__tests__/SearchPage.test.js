@@ -37,7 +37,8 @@ describe('SearchPage Component', () => {
     render(<SearchPage />);
 
     expect(screen.getByPlaceholderText('Search in name, location, interests, bio...')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Search Profiles/i })).toBeInTheDocument();
+    // Search button now uses icon (🔍) instead of text
+    expect(screen.getByTitle('Search')).toBeInTheDocument();
   });
 
   test('allows user to type in search input', () => {

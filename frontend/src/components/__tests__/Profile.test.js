@@ -98,8 +98,7 @@ describe('Profile Component', () => {
     });
 
     expect(screen.getByText('testuser')).toBeInTheDocument();
-    expect(screen.getByText('555-123-4567')).toBeInTheDocument();
-    expect(screen.getByText('test@example.com')).toBeInTheDocument();
+    // Contact info is now PII-protected and locked by default
     expect(screen.getByText('New York, NY')).toBeInTheDocument();
     expect(screen.getByText('Bachelor\'s Degree')).toBeInTheDocument();
   });
