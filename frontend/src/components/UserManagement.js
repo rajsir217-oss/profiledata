@@ -38,6 +38,7 @@ const UserManagement = () => {
   const [sortField, setSortField] = useState('username'); // Sort field
   const [sortOrder, setSortOrder] = useState('asc'); // Sort order
   const [showBulkRoleModal, setShowBulkRoleModal] = useState(false); // Bulk role modal
+  const [successMessage, setSuccessMessage] = useState(''); // Success notification
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -243,7 +244,7 @@ const UserManagement = () => {
 
   const handleBulkRoleAssignment = async (newRole, reason) => {
     if (selectedUsers.length === 0) {
-      alert('Please select users first');
+      setError('Please select users first');
       return;
     }
 
@@ -268,10 +269,19 @@ const UserManagement = () => {
       setSelectedUsers([]);
       loadUsers();
       
-      alert(`Bulk role assignment complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+      // Show success message in the UI instead of alert
+      if (failCount === 0) {
+        setSuccessMessage(`✅ Successfully assigned role to ${successCount} user(s)`);
+        setError(''); // Clear any previous errors
+      } else {
+        setSuccessMessage(`⚠️ Bulk role assignment completed: ${successCount} success, ${failCount} failed`);
+      }
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (error) {
       console.error('Bulk role assignment error:', error);
-      alert('Bulk role assignment failed. Please try again.');
+      setError('Bulk role assignment failed. Please try again.');
     }
   };
 
@@ -335,6 +345,13 @@ const UserManagement = () => {
         <div className="error-message">
           <p>{error}</p>
           <button onClick={loadUsers}>Retry</button>
+        </div>
+      )}
+
+      {successMessage && (
+        <div className="success-message">
+          <p>{successMessage}</p>
+          <button onClick={() => setSuccessMessage('')}>✕</button>
         </div>
       )}
 

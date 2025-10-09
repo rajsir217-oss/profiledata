@@ -699,6 +699,45 @@
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
+/* Success Message */
+.success-message {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  animation: slideDown 0.3s ease;
+}
+
+.success-message p {
+  margin: 0;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.success-message button {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.success-message button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
 /* Bulk Actions Bar */
 .bulk-actions-bar {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
