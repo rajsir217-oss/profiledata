@@ -1253,11 +1253,78 @@ async def remove_from_exclusions(
 
 # ===== MESSAGING SYSTEM =====
 
+@router.get("/messages/poll/{username}")
+async def poll_messages(
+    username: str,
+    since: str = Query(None, description="ISO timestamp of last received message"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of messages to return"),
+    db = Depends(get_database)
+):
+    """Poll for new messages since a timestamp with validation and error handling"""
+    from redis_manager import get_redis_manager
+    
+    try:
+        # Validation
+        if not username or len(username) < 3:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid username"
+            )
+        
+        # Verify user exists
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"User '{username}' not found"
+            )
+        
+        # Validate timestamp format if provided
+        if since:
+            try:
+                datetime.fromisoformat(since.replace('Z', '+00:00'))
+            except ValueError:
+                logger.warning(f"⚠️ Invalid timestamp format: {since}, ignoring")
+                since = None
+        
+        redis = get_redis_manager()
+        
+        # Get new messages from Redis
+        new_messages = redis.get_new_messages_since(username, since, limit=limit)
+        
+        if new_messages:
+            logger.info(f"📬 Polling: '{username}' - found {len(new_messages)} new messages since {since}")
+        else:
+            logger.debug(f"📭 Polling: '{username}' - no new messages")
+        
+        return {
+            "messages": new_messages,
+            "count": len(new_messages),
+            "timestamp": datetime.now().isoformat(),
+            "success": True
+        }
+        
+    except HTTPException:
+        raise
+    except redis.RedisError as e:
+        logger.error(f"❌ Redis error polling messages: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Message service temporarily unavailable"
+        )
+    except Exception as e:
+        logger.error(f"❌ Unexpected error polling messages: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Internal server error"
+        )
+
 @router.post("/messages")
 async def send_message(
     from_username: str = Form(...),
     to_username: str = Form(...),
-    content: str = Form(...)
+    content: str = Form(...),
+    db = Depends(get_database)
 ):
     """Send a message to another user"""
     logger.info(f"💬 Message from {from_username} to {to_username}")
@@ -1280,7 +1347,9 @@ async def send_message(
         raise HTTPException(status_code=404, detail="Recipient not found")
 
     # Create message
+    message_id = f"{from_username}_{to_username}_{datetime.utcnow().timestamp()}"
     message = {
+        "_id": message_id,
         "fromUsername": from_username,
         "toUsername": to_username,
         "content": content.strip(),
@@ -1289,9 +1358,16 @@ async def send_message(
     }
 
     try:
+        # Store in MongoDB
         await db.messages.insert_one(message)
-        logger.info(f"✅ Message sent: {from_username} → {to_username}")
-        return {"message": "Message sent successfully"}
+        
+        # Send via Redis for real-time delivery
+        from redis_manager import get_redis_manager
+        redis = get_redis_manager()
+        redis.send_message(from_username, to_username, content.strip(), message_id)
+        
+        logger.info(f"✅ Message sent: {from_username} → {to_username} (MongoDB + Redis)")
+        return {"message": "Message sent successfully", "id": message_id}
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1458,15 +1534,23 @@ async def send_message_enhanced(
     
     try:
         result = await db.messages.insert_one(message)
+        
+        # Send via Redis for real-time delivery (only if message is visible)
+        if is_visible:
+            from redis_manager import get_redis_manager
+            redis = get_redis_manager()
+            message_id = str(result.inserted_id)
+            redis.send_message(username, message_data.toUsername, message_data.content.strip(), message_id)
+            logger.info(f"📡 Message sent via Redis for real-time delivery")
+        
         # Convert to serializable format
         message_response = {
             "id": str(result.inserted_id),
-            "fromUsername": message["fromUsername"],
-            "toUsername": message["toUsername"],
-            "content": message["content"],
-            "isRead": message["isRead"],
-            "isVisible": message["isVisible"],
-            "createdAt": message["createdAt"].isoformat()
+            "from_username": message["fromUsername"],  # Changed to match frontend expectation
+            "to_username": message["toUsername"],      # Changed to match frontend expectation
+            "message": message["content"],             # Changed to match frontend expectation
+            "timestamp": message["createdAt"].isoformat(),  # Changed to match frontend expectation
+            "is_read": message["isRead"]               # Changed to match frontend expectation
         }
         logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
         return {"message": "Message sent successfully", "data": message_response}
@@ -2499,33 +2583,64 @@ async def check_pii_access(
         logger.error(f"❌ Error checking PII access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-# ===== ONLINE STATUS & REAL-TIME =====
 
 @router.get("/online-status/count")
 async def get_online_count():
     """Get count of currently online users"""
-    from websocket_manager import get_online_count
+    from redis_manager import get_redis_manager
     
-    count = get_online_count()
-    logger.info(f"🟢 Online users count: {count}")
+    redis = get_redis_manager()
+    users = redis.get_online_users()
+    count = len(users)
+    logger.info(f"Online users count: {count}")
     return {"onlineCount": count}
 
 @router.get("/online-status/users")
 async def get_online_users():
     """Get list of currently online users"""
-    from websocket_manager import get_online_users_list
+    from redis_manager import get_redis_manager
     
-    users = get_online_users_list()
-    logger.info(f"🟢 Online users: {len(users)}")
+    redis = get_redis_manager()
+    users = redis.get_online_users()
+    logger.info(f"Online users: {len(users)} - {users}")
     return {"onlineUsers": users, "count": len(users)}
 
 @router.get("/online-status/{username}")
 async def check_user_online(username: str):
     """Check if specific user is online"""
-    from websocket_manager import is_user_online
+    from redis_manager import get_redis_manager
     
-    is_online = is_user_online(username)
-    return {"username": username, "isOnline": is_online}
+    redis = get_redis_manager()
+    online = redis.is_user_online(username)
+    logger.info(f"User '{username}' online status: {online}")
+    return {"username": username, "online": online}
+
+@router.post("/online-status/{username}/online")
+async def mark_user_online(username: str):
+    """Mark user as online"""
+    from redis_manager import get_redis_manager
+    
+    redis = get_redis_manager()
+    success = redis.set_user_online(username)
+    return {"username": username, "online": success}
+
+@router.post("/online-status/{username}/offline")
+async def mark_user_offline(username: str):
+    """Mark user as offline"""
+    from redis_manager import get_redis_manager
+    
+    redis = get_redis_manager()
+    success = redis.set_user_offline(username)
+    return {"username": username, "offline": success}
+
+@router.post("/online-status/{username}/refresh")
+async def refresh_user_online(username: str):
+    """Refresh user's online status (heartbeat)"""
+    from redis_manager import get_redis_manager
+    
+    redis = get_redis_manager()
+    success = redis.refresh_user_online(username)
+    return {"username": username, "refreshed": success}
 
 # Helper function for age calculation
 def calculate_age(dob):

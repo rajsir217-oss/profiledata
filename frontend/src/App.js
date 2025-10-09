@@ -1,7 +1,6 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import socketService from './services/socketService';
 import Register from './components/Register';
 import Login from './components/Login';
 import Profile from './components/Profile';
@@ -37,16 +36,37 @@ function App() {
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
-  // Connect to WebSocket when user is logged in
+  // Start message polling when user is logged in
   useEffect(() => {
+    console.log('🚀 App.js useEffect running - checking for username');
     const username = localStorage.getItem('username');
+    console.log('👤 Username from localStorage:', username);
+    
     if (username) {
-      socketService.connect(username);
+      console.log('✅ Username found, starting message polling');
+      // Dynamic import with error handling
+      import('./services/messagePollingService')
+        .then(module => {
+          console.log('📦 Message polling service loaded');
+          module.default.startPolling(username);
+        })
+        .catch(error => {
+          console.error('❌ Failed to load message polling service:', error);
+        });
+    } else {
+      console.log('⚠️ No username in localStorage, skipping message polling');
     }
 
     // Cleanup on unmount
     return () => {
-      socketService.disconnect();
+      console.log('🧹 App.js cleanup - stopping message polling');
+      import('./services/messagePollingService')
+        .then(module => {
+          module.default.stopPolling();
+        })
+        .catch(error => {
+          console.error('❌ Failed to stop message polling:', error);
+        });
     };
   }, []);
 

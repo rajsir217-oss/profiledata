@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import socketService from '../services/socketService';
+import messagePollingService from '../services/messagePollingService';
 import ChatWindow from './ChatWindow';
 import './MessageModal.css';
 
@@ -13,42 +13,108 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     if (isOpen && profile) {
       loadConversation();
       
-      // Listen for real-time messages
+      // Check for any pending messages that arrived while modal was closed
+      const pendingMessages = messagePollingService.getPendingMessages(currentUsername, profile.username);
+      if (pendingMessages.length > 0) {
+        console.log(`📥 Processing ${pendingMessages.length} pending messages`);
+        pendingMessages.forEach(msg => {
+          setMessages(prev => {
+            // Check if message already exists
+            const exists = prev.some(existing => 
+              existing.from_username === msg.from && 
+              existing.to_username === msg.to &&
+              existing.message === msg.message &&
+              Math.abs(new Date(existing.timestamp) - new Date(msg.timestamp)) < 1000
+            );
+            
+            if (exists) return prev;
+            
+            return [...prev, {
+              from_username: msg.from,
+              to_username: msg.to,
+              message: msg.message,
+              timestamp: msg.timestamp,
+              is_read: false
+            }];
+          });
+        });
+      }
+      
+      // Listen for real-time messages via polling
       const handleNewMessage = (data) => {
         console.log('💬 MessageModal: New message received:', data);
+        console.log('🔍 Current chat with:', profile.username);
+        console.log('🔍 Message from:', data.from, 'to:', data.to);
+        console.log('🔍 Current user:', currentUsername);
         
-        // If message is from the profile user we're chatting with
-        if (data.from === profile.username) {
-          const newMessage = {
-            from_username: data.from,
-            to_username: currentUsername,
-            message: data.message,
-            timestamp: data.timestamp,
-            is_read: false
-          };
-          setMessages(prev => [...prev, newMessage]);
+        // Check if this message is part of the current conversation
+        // Either: we sent it to them, OR they sent it to us
+        const isFromThem = data.from === profile.username && data.to === currentUsername;
+        const isFromUs = data.from === currentUsername && data.to === profile.username;
+        const isRelevant = isFromThem || isFromUs;
+        
+        console.log('🔍 Is from them?', isFromThem);
+        console.log('🔍 Is from us?', isFromUs);
+        console.log('🔍 Is relevant?', isRelevant);
+        
+        if (isRelevant) {
+          console.log('✅ Message is part of current conversation, adding to UI');
+          
+          // Check if message already exists (prevent duplicates)
+          setMessages(prev => {
+            const exists = prev.some(msg => 
+              msg.from_username === data.from && 
+              msg.to_username === data.to &&
+              msg.message === data.message &&
+              Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000
+            );
+            
+            if (exists) {
+              console.log('⚠️ Message already exists, skipping');
+              return prev;
+            }
+            
+            const newMessage = {
+              from_username: data.from,
+              to_username: data.to,
+              message: data.message,
+              timestamp: data.timestamp,
+              is_read: false
+            };
+            
+            console.log('📝 Adding new message to state');
+            return [...prev, newMessage];
+          });
+        } else {
+          console.log('⏭️ Message not part of current conversation, ignoring');
         }
       };
 
-      socketService.on('new_message', handleNewMessage);
+      messagePollingService.onNewMessage(handleNewMessage);
 
       return () => {
-        socketService.off('new_message', handleNewMessage);
+        messagePollingService.offNewMessage(handleNewMessage);
       };
     }
   }, [isOpen, profile, currentUsername]);
 
   const loadConversation = async () => {
-    if (!profile?.username) return;
+    if (!profile?.username) {
+      console.warn('⚠️ No profile username, skipping conversation load');
+      return;
+    }
     
+    console.log('📥 Loading conversation with:', profile.username);
     setLoading(true);
     try {
       const response = await api.get(
         `/api/messages/conversation/${profile.username}?username=${currentUsername}`
       );
+      console.log('✅ Conversation loaded:', response.data.messages?.length || 0, 'messages');
       setMessages(response.data.messages || []);
     } catch (err) {
-      console.error('Error loading conversation:', err);
+      console.error('❌ Error loading conversation:', err);
+      console.error('Error details:', err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -69,9 +135,8 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
       
-      // Send real-time notification via WebSocket
-      console.log('📤 MessageModal: Sending real-time message via WebSocket');
-      socketService.sendMessage(profile.username, content.trim());
+      // Message will be delivered via Redis polling (no WebSocket needed)
+      console.log('✅ MessageModal: Message sent, will be delivered via polling');
     } catch (err) {
       console.error('Error sending message:', err);
     }

@@ -10,17 +10,16 @@ class SocketService {
   }
 
   connect(username) {
-    // WebSocket disabled - real-time messaging not implemented yet
-    // Uncomment when backend WebSocket server is ready
-    return;
+    console.log('🔧 socketService.connect() called with username:', username);
     
-    /* 
     if (this.connected && this.username === username) {
       console.log('✅ Already connected to WebSocket');
       return;
     }
 
     this.username = username;
+    
+    console.log('🔌 Attempting to connect to Socket.IO server at http://localhost:8000');
     
     // Connect to Socket.IO server
     this.socket = io('http://localhost:8000', {
@@ -30,12 +29,14 @@ class SocketService {
       reconnectionDelay: 1000,
       reconnectionAttempts: 5
     });
-    */
+    
+    console.log('📡 Socket.IO client initialized:', !!this.socket);
 
     // Connection events
     this.socket.on('connect', () => {
       console.log('🔌 Connected to WebSocket server');
       console.log('👤 Registering user as online:', username);
+      console.log('🔍 Socket ID:', this.socket.id);
       this.connected = true;
       
       // Register user as online
@@ -43,9 +44,19 @@ class SocketService {
       console.log('✅ Emitted user_online event');
     });
 
-    this.socket.on('disconnect', () => {
+    this.socket.on('disconnect', (reason) => {
       console.log('🔌 Disconnected from WebSocket server');
+      console.log('📋 Disconnect reason:', reason);
       this.connected = false;
+    });
+
+    this.socket.on('connect_error', (error) => {
+      console.error('❌ WebSocket connection error:', error);
+      console.error('📋 Error details:', error.message);
+    });
+
+    this.socket.on('error', (error) => {
+      console.error('❌ WebSocket error:', error);
     });
 
     this.socket.on('connection_established', (data) => {
@@ -70,7 +81,10 @@ class SocketService {
 
     // Message events
     this.socket.on('new_message', (data) => {
-      console.log('💬 New message received:', data);
+      console.log('💬 New message received via WebSocket:', data);
+      console.log('📋 Message from:', data.from);
+      console.log('📋 Message content:', data.message);
+      console.log('📋 Triggering new_message event to listeners');
       this.trigger('new_message', data);
     });
 
@@ -121,16 +135,23 @@ class SocketService {
 
   // Send message
   sendMessage(to, message) {
-    if (!this.connected) {
+    if (!this.connected || !this.socket) {
       console.error('❌ Not connected to WebSocket');
+      console.log('🔍 Connection status:', this.connected);
+      console.log('🔍 Socket exists:', !!this.socket);
       return;
     }
 
-    this.socket.emit('send_message', {
+    const messageData = {
+      id: `${this.username}_${to}_${Date.now()}`,
       from: this.username,
       to,
-      message
-    });
+      message,
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('📤 Emitting send_message event:', messageData);
+    this.socket.emit('send_message', messageData);
   }
 
   // Send typing indicator

@@ -37,11 +37,23 @@ async def lifespan(app: FastAPI):
     # Connect to MongoDB
     await connect_to_mongo()
     
+    # Connect to Redis
+    from redis_manager import redis_manager
+    redis_connected = redis_manager.connect()
+    if redis_connected:
+        logger.info("✅ Redis connected successfully")
+    else:
+        logger.warning("⚠️ Redis connection failed - online status features may not work")
+    
     yield
     
     # Shutdown
     logger.info("👋 Shutting down FastAPI application...")
     await close_mongo_connection()
+    
+    # Disconnect Redis
+    from redis_manager import redis_manager
+    redis_manager.disconnect()
 
 app = FastAPI(
     title="Matrimonial Profile API",

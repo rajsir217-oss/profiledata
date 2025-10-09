@@ -55,6 +55,7 @@ const SearchPage = () => {
 
   // Message modal state
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
 
   const navigate = useNavigate();
 
@@ -86,17 +87,28 @@ const SearchPage = () => {
     const loadOnlineUsers = async () => {
       try {
         const response = await api.get('/online-status/users');
-        console.log('Loaded online users:', response.data.onlineUsers);
-        setOnlineUsers(new Set(response.data.onlineUsers || []));
+        console.log('🟢 Loaded online users:', response.data.onlineUsers);
+        const onlineSet = new Set(response.data.onlineUsers || []);
+        console.log('🟢 Online users Set:', onlineSet);
+        setOnlineUsers(onlineSet);
       } catch (err) {
-        console.error('Error loading online users:', err);
+        console.error('❌ Error loading online users:', err);
       }
     };
     
     loadUserData();
     loadSavedSearches();
     loadPiiRequests();
-    loadOnlineUsers(); // Load initial online users
+    
+    // Load online users initially with a small delay to let polling service mark user online
+    setTimeout(() => {
+      loadOnlineUsers();
+    }, 1000);
+    
+    // Refresh online users every 10 seconds
+    const onlineUsersInterval = setInterval(() => {
+      loadOnlineUsers();
+    }, 10000);
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
@@ -126,7 +138,11 @@ const SearchPage = () => {
     return () => {
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
-{{ ... }}
+      
+      // Clear online users refresh interval
+      if (onlineUsersInterval) {
+        clearInterval(onlineUsersInterval);
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

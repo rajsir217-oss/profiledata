@@ -74,8 +74,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isOwnMessage = msg.fromUsername === currentUsername;
-            const showAvatar = index === 0 || messages[index - 1].fromUsername !== msg.fromUsername;
+            const isOwnMessage = (msg.fromUsername || msg.from_username) === currentUsername;
+            const showAvatar = index === 0 || (messages[index - 1].fromUsername || messages[index - 1].from_username) !== (msg.fromUsername || msg.from_username);
             
             return (
               <div
@@ -96,8 +96,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
                 {!isOwnMessage && !showAvatar && <div className="message-avatar-spacer" />}
                 
                 <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>
-                  <p>{msg.content}</p>
-                  <span className="message-time">{formatTime(msg.createdAt)}</span>
+                  <p>{msg.content || msg.message}</p>
+                  <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
                 </div>
               </div>
             );
