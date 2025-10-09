@@ -734,6 +734,15 @@
   color: white;
 }
 
+.bulk-role {
+  background: #8b5cf6;
+}
+
+.bulk-role:hover {
+  background: #7c3aed;
+  transform: translateY(-2px);
+}
+
 .bulk-activate {
   background: #10b981;
 }

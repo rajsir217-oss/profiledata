@@ -37,6 +37,7 @@ const UserManagement = () => {
   const [selectedUsers, setSelectedUsers] = useState([]); // For bulk operations
   const [sortField, setSortField] = useState('username'); // Sort field
   const [sortOrder, setSortOrder] = useState('asc'); // Sort order
+  const [showBulkRoleModal, setShowBulkRoleModal] = useState(false); // Bulk role modal
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -240,6 +241,40 @@ const UserManagement = () => {
     }
   };
 
+  const handleBulkRoleAssignment = async (newRole, reason) => {
+    if (selectedUsers.length === 0) {
+      alert('Please select users first');
+      return;
+    }
+
+    try {
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const username of selectedUsers) {
+        try {
+          await adminApi.post(`/api/admin/users/${username}/assign-role`, {
+            role_name: newRole,
+            reason: reason || `Bulk role assignment to ${newRole}`
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Failed to assign role to ${username}:`, error);
+          failCount++;
+        }
+      }
+
+      setShowBulkRoleModal(false);
+      setSelectedUsers([]);
+      loadUsers();
+      
+      alert(`Bulk role assignment complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+    } catch (error) {
+      console.error('Bulk role assignment error:', error);
+      alert('Bulk role assignment failed. Please try again.');
+    }
+  };
+
   if (loading && users.length === 0) {
     return (
       <div className="user-management-loading">
@@ -310,6 +345,9 @@ const UserManagement = () => {
             {selectedUsers.length} user(s) selected
           </span>
           <div className="bulk-action-buttons">
+            <button onClick={() => setShowBulkRoleModal(true)} className="bulk-btn bulk-role">
+              🎭 Assign Role
+            </button>
             <button onClick={() => handleBulkAction('activate')} className="bulk-btn bulk-activate">
               ✅ Activate
             </button>
@@ -489,6 +527,15 @@ const UserManagement = () => {
             setActionType('');
           }}
           onConfirm={handleUserAction}
+        />
+      )}
+
+      {/* Bulk Role Assignment Modal */}
+      {showBulkRoleModal && (
+        <BulkRoleModal
+          userCount={selectedUsers.length}
+          onClose={() => setShowBulkRoleModal(false)}
+          onAssign={handleBulkRoleAssignment}
         />
       )}
     </div>
@@ -679,6 +726,101 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
               style={{ backgroundColor: actionInfo.color }}
             >
               {actionInfo.icon} Confirm {action.charAt(0).toUpperCase() + action.slice(1)}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Bulk Role Assignment Modal Component
+const BulkRoleModal = ({ userCount, onClose, onAssign }) => {
+  const [selectedRole, setSelectedRole] = useState('free_user');
+  const [reason, setReason] = useState('');
+
+  const roles = [
+    { value: 'admin', label: 'Admin', icon: '👑', description: 'Full system access', color: '#3b82f6' },
+    { value: 'moderator', label: 'Moderator', icon: '🛡️', description: 'User & content moderation', color: '#f59e0b' },
+    { value: 'premium_user', label: 'Premium User', icon: '⭐', description: 'Enhanced features', color: '#ec4899' },
+    { value: 'free_user', label: 'Free User', icon: '👤', description: 'Basic access', color: '#6b7280' }
+  ];
+
+  return (
+    <div className="action-modal-overlay" onClick={onClose}>
+      <div className="action-modal-container" onClick={(e) => e.stopPropagation()}>
+        {/* Modal Header - Purple Theme */}
+        <div className="action-modal-header">
+          <div className="action-modal-user-info">
+            <div className="action-modal-avatar">
+              {userCount}
+            </div>
+            <div className="action-modal-user-details">
+              <h3>Bulk Role Assignment</h3>
+              <p>{userCount} users selected</p>
+            </div>
+          </div>
+          <button className="action-modal-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+
+        {/* Modal Content */}
+        <div className="action-modal-body">
+          <div className="action-modal-title">
+            <span className="action-icon">🎭</span>
+            <h2>Assign Role to Multiple Users</h2>
+          </div>
+          
+          <p className="action-modal-description">
+            Select a role to assign to all {userCount} selected users. This will update their permissions immediately.
+          </p>
+
+          <div className="role-options">
+            {roles.map((role) => (
+              <label 
+                key={role.value} 
+                className={`role-option ${selectedRole === role.value ? 'selected' : ''}`}
+              >
+                <input
+                  type="radio"
+                  name="role"
+                  value={role.value}
+                  checked={selectedRole === role.value}
+                  onChange={(e) => setSelectedRole(e.target.value)}
+                />
+                <div className="role-icon" style={{ color: role.color }}>
+                  {role.icon}
+                </div>
+                <div className="role-info">
+                  <strong>{role.label}</strong>
+                  <span>{role.description}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          <div className="action-modal-form">
+            <label>Reason (optional)</label>
+            <textarea
+              placeholder="Enter reason for bulk role assignment..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              className="action-reason-input"
+              rows="3"
+            />
+          </div>
+
+          <div className="action-modal-footer">
+            <button onClick={onClose} className="action-btn-cancel">
+              Cancel
+            </button>
+            <button
+              onClick={() => onAssign(selectedRole, reason)}
+              className="action-btn-confirm"
+              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+            >
+              🎭 Assign Role to {userCount} Users
             </button>
           </div>
         </div>
