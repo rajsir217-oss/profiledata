@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
+import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
+import { getDisplayName } from '../utils/userDisplay';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -286,14 +288,14 @@ const Dashboard = () => {
               </div>
             )}
             {/* Online status indicator */}
-            <div className={`status-bulb ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
-              {isOnline ? '🟢' : '⚪'}
+            <div className="status-badge-absolute">
+              <OnlineStatusBadge username={username} size="small" />
             </div>
           </div>
         </div>
         
         <div className="user-card-body">
-          <h4 className="username">{profileData?.firstName || username}</h4>
+          <h4 className="username">{getDisplayName(profileData) || username}</h4>
           {profileData?.age && <p className="user-age">{profileData.age} years</p>}
           {profileData?.location && <p className="user-location">📍 {profileData.location}</p>}
           {profileData?.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}

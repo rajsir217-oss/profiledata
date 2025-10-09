@@ -174,7 +174,7 @@
   width: 60px;
   height: 60px;
   border-radius: 50%;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to show status badge */
   margin: 0 auto;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -189,6 +189,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%; /* Ensure image itself is circular */
 }
 
 .avatar-placeholder {
@@ -199,7 +200,14 @@
   justify-content: center;
 }
 
-/* Status Bulb */
+/* Online Status Badge Positioning */
+.user-avatar .status-badge-absolute {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+/* Status Bulb (legacy - keep for compatibility) */
 .status-bulb {
   position: absolute;
   bottom: 0;

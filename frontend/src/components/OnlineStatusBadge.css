@@ -1,0 +1,71 @@
+/* Online Status Badge */
+.online-status-badge {
+  border-radius: 50%;
+  border: 2px solid white;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Sizes */
+.status-badge-small {
+  width: 10px;
+  height: 10px;
+  border-width: 2px;
+}
+
+.status-badge-medium {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+
+.status-badge-large {
+  width: 18px;
+  height: 18px;
+  border-width: 3px;
+}
+
+/* Status Colors */
+.online-status-badge.online {
+  background: #10b981;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  animation: pulse-badge 2s ease-in-out infinite;
+}
+
+.online-status-badge.offline {
+  background: #9ca3af;
+  box-shadow: none;
+}
+
+/* Pulse Animation */
+@keyframes pulse-badge {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4);
+  }
+}
+
+/* Positioning variants */
+.status-badge-absolute {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+.status-badge-inline {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+  margin-left: 8px;
+}
+
+/* For use in card titles */
+.card-title .status-badge-inline {
+  margin-left: 8px;
+}
+
+.card-title .status-badge-inline .online-status-badge {
+  margin-top: -2px;
+}

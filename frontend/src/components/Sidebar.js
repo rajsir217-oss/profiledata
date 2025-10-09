@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
+import { getDisplayName, getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [userStatus, setUserStatus] = useState('active'); // Default to active
   const navigate = useNavigate();
 
   // Check login status and user activation status
   useEffect(() => {
-    const checkLoginStatus = () => {
+    const checkLoginStatus = async () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
       const status = localStorage.getItem('userStatus');
@@ -18,12 +21,19 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       if (username && token) {
         setIsLoggedIn(true);
         setCurrentUser(username);
-        // If no status in localStorage, default to pending (not active)
-        // This ensures users must login again after migration
         setUserStatus(status || 'pending');
+        
+        // Load user profile for display name
+        try {
+          const response = await api.get(`/profile/${username}`);
+          setUserProfile(response.data);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        }
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setUserProfile(null);
         setUserStatus('pending');
       }
     };
@@ -90,7 +100,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       },
       { 
         icon: '👤', 
-        label: currentUser || '(profile picture)', 
+        label: userProfile ? getShortName(userProfile) : (currentUser || 'Profile'), 
         subLabel: 'Profile data',
         action: () => navigate(`/profile/${currentUser}`),
         disabled: false // Always enabled - users need to access their profile

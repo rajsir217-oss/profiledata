@@ -1014,6 +1014,15 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
+/* Online Status Badge in Profile Images */
+.profile-image-container .status-badge-absolute,
+.profile-image-left .status-badge-absolute {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  z-index: 10;
+}
+
 .profile-thumbnail {
   width: 120px;
   height: 120px;

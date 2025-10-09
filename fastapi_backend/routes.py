@@ -1475,6 +1475,105 @@ async def get_conversations(username: str, db = Depends(get_database)):
         logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/messages/recent/{username}")
+async def get_recent_conversations(
+    username: str, 
+    limit: int = Query(10, ge=1, le=50, description="Maximum conversations to return"),
+    db = Depends(get_database)
+):
+    """Get recent conversations with unread counts and online status"""
+    from redis_manager import get_redis_manager
+    logger.info(f"💬 Getting recent conversations for {username}")
+
+    try:
+        # Get unique conversations with aggregation
+        pipeline = [
+            {
+                "$match": {
+                    "$or": [
+                        {"fromUsername": username},
+                        {"toUsername": username}
+                    ]
+                }
+            },
+            {
+                "$sort": {"createdAt": -1}
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "$cond": [
+                            {"$eq": ["$fromUsername", username]},
+                            "$toUsername",
+                            "$fromUsername"
+                        ]
+                    },
+                    "lastMessage": {"$first": "$$ROOT"},
+                    "unreadCount": {
+                        "$sum": {
+                            "$cond": [
+                                {"$and": [
+                                    {"$eq": ["$toUsername", username]},
+                                    {"$eq": ["$isRead", False]}
+                                ]},
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {"$sort": {"lastMessage.createdAt": -1}},
+            {"$limit": limit}
+        ]
+
+        conversations = await db.messages.aggregate(pipeline).to_list(limit)
+        redis = get_redis_manager()
+        
+        # Get user details and online status for each conversation
+        result = []
+        for conv in conversations:
+            other_username = conv["_id"]
+            user = await db.users.find_one({"username": other_username})
+            
+            if user:
+                # Check online status
+                is_online = redis.is_user_online(other_username)
+                
+                result.append({
+                    "username": other_username,
+                    "firstName": user.get("firstName", ""),
+                    "lastName": user.get("lastName", ""),
+                    "avatar": get_full_image_url(user.get("images", [None])[0]) if user.get("images") else None,
+                    "lastMessage": conv["lastMessage"].get("content", ""),
+                    "timestamp": conv["lastMessage"].get("createdAt", ""),
+                    "unreadCount": conv.get("unreadCount", 0),
+                    "isOnline": is_online
+                })
+
+        logger.info(f"✅ Found {len(result)} recent conversations for {username}")
+        return {"conversations": result, "count": len(result)}
+    except Exception as e:
+        logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/messages/unread-count/{username}")
+async def get_unread_count(username: str, db = Depends(get_database)):
+    """Get total unread message count for user"""
+    logger.info(f"📊 Getting unread count for {username}")
+
+    try:
+        unread_count = await db.messages.count_documents({
+            "toUsername": username,
+            "isRead": False
+        })
+        
+        logger.info(f"✅ User {username} has {unread_count} unread messages")
+        return {"unreadCount": unread_count}
+    except Exception as e:
+        logger.error(f"❌ Error fetching unread count: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ===== ENHANCED MESSAGING WITH PRIVACY =====
 
 async def check_message_visibility(username1: str, username2: str, db) -> bool:

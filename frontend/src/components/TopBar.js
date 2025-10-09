@@ -1,25 +1,44 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
 import socketService from '../services/socketService';
+import onlineStatusService from '../services/onlineStatusService';
+import MessagesDropdown from './MessagesDropdown';
+import MessageModal from './MessageModal';
+import { getDisplayName } from '../utils/userDisplay';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
   const [onlineCount, setOnlineCount] = useState(0);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
+  const [selectedProfile, setSelectedProfile] = useState(null);
+  const [showMessageModal, setShowMessageModal] = useState(false);
   const navigate = useNavigate();
 
-  // Check login status
+  // Check login status and load user profile
   useEffect(() => {
-    const checkLoginStatus = () => {
+    const checkLoginStatus = async () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
       if (username && token) {
         setIsLoggedIn(true);
         setCurrentUser(username);
+        
+        // Load user profile for display name
+        try {
+          const response = await api.get(`/profile/${username}`);
+          setUserProfile(response.data);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        }
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setUserProfile(null);
       }
     };
 
@@ -37,18 +56,31 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, []);
 
-  // Listen for online count updates
+  // Fetch online count and unread messages
   useEffect(() => {
-    const handleOnlineCountUpdate = (data) => {
-      setOnlineCount(data.count);
+    if (!currentUser) return;
+
+    const fetchCounts = async () => {
+      try {
+        // Get online count
+        const onlineResponse = await onlineStatusService.getOnlineCount();
+        setOnlineCount(onlineResponse);
+
+        // Get unread message count
+        const unreadResponse = await api.get(`/messages/unread-count/${currentUser}`);
+        setUnreadCount(unreadResponse.data.unreadCount || 0);
+      } catch (error) {
+        console.error('Error fetching counts:', error);
+      }
     };
 
-    socketService.on('online_count_update', handleOnlineCountUpdate);
+    fetchCounts();
 
-    return () => {
-      socketService.off('online_count_update', handleOnlineCountUpdate);
-    };
-  }, []);
+    // Update every 30 seconds
+    const interval = setInterval(fetchCounts, 30000);
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
 
   const handleLogout = () => {
     localStorage.removeItem('username');
@@ -107,7 +139,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {onlineCount > 0 && (
             <div className="online-indicator">
               <span className="online-dot">🟢</span>
-              <span className="online-count">{onlineCount} Online</span>
+              <span className="online-count">{onlineCount} online</span>
             </div>
           )}
         </div>
@@ -117,14 +149,49 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               🧪 Test Dashboard
             </button>
           )}
+          
+          {/* Messages Icon with Dropdown */}
+          <div className="messages-icon-container">
+            <button 
+              className="btn-messages" 
+              onClick={() => setShowMessagesDropdown(!showMessagesDropdown)}
+              title="Messages"
+            >
+              💬
+              {unreadCount > 0 && (
+                <span className="unread-count-badge">{unreadCount > 99 ? '99+' : unreadCount}</span>
+              )}
+            </button>
+            <MessagesDropdown
+              isOpen={showMessagesDropdown}
+              onClose={() => setShowMessagesDropdown(false)}
+              onOpenMessage={(profile) => {
+                setSelectedProfile(profile);
+                setShowMessageModal(true);
+              }}
+            />
+          </div>
+          
           <div className="user-info" onClick={handleProfile}>
             <span className="user-icon">👤</span>
-            <span className="user-name">{currentUser}</span>
+            <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
           <button className="btn-logout" onClick={handleLogout}>
             🚪 Logout
           </button>
         </div>
+        
+        {/* Message Modal */}
+        {showMessageModal && selectedProfile && (
+          <MessageModal
+            isOpen={showMessageModal}
+            profile={selectedProfile}
+            onClose={() => {
+              setShowMessageModal(false);
+              setSelectedProfile(null);
+            }}
+          />
+        )}
       </div>
     </div>
   );

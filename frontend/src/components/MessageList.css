@@ -90,6 +90,13 @@
   font-weight: 600;
 }
 
+/* Online Status Badge in Avatar */
+.conversation-avatar .status-badge-absolute {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
 .unread-badge {
   position: absolute;
   top: -5px;
@@ -102,6 +109,7 @@
   font-weight: 600;
   min-width: 18px;
   text-align: center;
+  z-index: 2;
 }
 
 /* Conversation Info */

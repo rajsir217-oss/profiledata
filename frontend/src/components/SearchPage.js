@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
+import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
+import { getDisplayName } from '../utils/userDisplay';
 import './SearchPage.css';
 
 const SearchPage = () => {
@@ -1386,9 +1388,9 @@ const SearchPage = () => {
                   {/* Card Title Section with Purple Gradient */}
                   <div className="card-title-section">
                     <h6 className="card-title">
-                      {user.firstName} {user.lastName}
-                      <span className={`status-bulb-inline ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
-                        {isOnline ? ' 🟢' : ' ⚪'}
+                      {getDisplayName(user)}
+                      <span className="status-badge-inline">
+                        <OnlineStatusBadge username={user.username} size="small" />
                       </span>
                     </h6>
                     <span className="age-badge">{calculateAge(user.dob)} years</span>

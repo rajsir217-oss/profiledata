@@ -1,4 +1,6 @@
 import React from 'react';
+import OnlineStatusBadge from './OnlineStatusBadge';
+import { getDisplayName } from '../utils/userDisplay';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
@@ -49,6 +51,10 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                     {conv.userProfile?.firstName?.[0] || conv.username[0].toUpperCase()}
                   </div>
                 )}
+                {/* Online Status Badge */}
+                <div className="status-badge-absolute">
+                  <OnlineStatusBadge username={conv.username} size="small" />
+                </div>
                 {conv.unreadCount > 0 && (
                   <span className="unread-badge">{conv.unreadCount}</span>
                 )}
@@ -57,7 +63,7 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               <div className="conversation-info">
                 <div className="conversation-header">
                   <span className="conversation-name">
-                    {conv.userProfile?.firstName || conv.username}
+                    {getDisplayName(conv.userProfile) || conv.username}
                   </span>
                   <span className="conversation-time">
                     {formatTime(conv.lastMessageTime)}
