@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 // Mock useNavigate before importing components
@@ -267,8 +267,10 @@ describe('Sidebar Component', () => {
       localStorage.setItem('token', 'new-token');
       localStorage.setItem('userStatus', 'active');
       
-      // Trigger storage event
-      window.dispatchEvent(new Event('loginStatusChanged'));
+      // Trigger storage event wrapped in act
+      await act(async () => {
+        window.dispatchEvent(new Event('loginStatusChanged'));
+      });
       
       await waitFor(() => {
         expect(screen.queryByText('Login')).not.toBeInTheDocument();
@@ -296,7 +298,8 @@ describe('Sidebar Component', () => {
     test('menu items have proper semantic structure', () => {
       renderWithRouter(<Sidebar isCollapsed={false} />);
       
-      const menuItems = screen.getAllByRole('button', { hidden: true });
+      // Menu items are now divs with menu-item class, not buttons
+      const menuItems = document.querySelectorAll('.menu-item');
       expect(menuItems.length).toBeGreaterThan(0);
     });
   });
