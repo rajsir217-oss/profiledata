@@ -103,8 +103,13 @@ const UserManagement = () => {
       setShowRoleModal(false);
       setSelectedUser(null);
       loadUsers();
-      alert(`Role assigned successfully to ${username}`);
+      
+      setSuccessMessage(`✅ Successfully assigned ${newRole} role to ${username}`);
+      setError('');
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
+      console.error('Failed to assign role:', err);
+      setError(`Failed to assign role: ${err.response?.data?.detail || err.message}`);
     }
   };
 
@@ -116,6 +121,18 @@ const UserManagement = () => {
   };
 
   const openRoleModal = (user) => {
+    // For now, just show a simple prompt for role selection
+    // We'll make this a quick inline action
+    const roles = ['admin', 'moderator', 'premium_user', 'free_user'];
+    const roleLabels = {
+      'admin': 'Admin',
+      'moderator': 'Moderator', 
+      'premium_user': 'Premium User',
+      'free_user': 'Free User'
+    };
+    
+    // Show role options inline - we'll create a better UX
+    // For now, let's keep the modal but make it simpler
     setSelectedUser(user);
     setShowRoleModal(true);
   };
