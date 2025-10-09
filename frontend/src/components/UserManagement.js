@@ -439,32 +439,32 @@ const UserManagement = () => {
                   title="Select all"
                 />
               </th>
-              <th className="sortable" onClick={() => handleSort('username')}>
+              <th className={`sortable ${sortField === 'username' ? 'active-sort' : ''}`} onClick={() => handleSort('username')}>
                 Username
                 {sortField === 'username' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className="sortable" onClick={() => handleSort('firstName')}>
+              <th className={`sortable ${sortField === 'firstName' ? 'active-sort' : ''}`} onClick={() => handleSort('firstName')}>
                 Name
                 {sortField === 'firstName' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
               <th>Email</th>
-              <th className="sortable" onClick={() => handleSort('role_name')}>
+              <th className={`sortable ${sortField === 'role_name' ? 'active-sort' : ''}`} onClick={() => handleSort('role_name')}>
                 Role
                 {sortField === 'role_name' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className="sortable" onClick={() => handleSort('status')}>
+              <th className={`sortable ${sortField === 'status' ? 'active-sort' : ''}`} onClick={() => handleSort('status')}>
                 Status
                 {sortField === 'status' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className="sortable" onClick={() => handleSort('created_at')}>
+              <th className={`sortable ${sortField === 'created_at' ? 'active-sort' : ''}`} onClick={() => handleSort('created_at')}>
                 Created
                 {sortField === 'created_at' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
