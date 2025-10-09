@@ -23,6 +23,7 @@ import Preferences from './components/Preferences';
 import PIIManagement from './components/PIIManagement';
 import UserManagement from './components/UserManagement';
 import { TestDashboard } from './test-dashboard';
+import ToastContainer from './components/ToastContainer';
 import './App.css';
 import './themes/themes.css';
 
@@ -80,15 +81,15 @@ function App() {
               <Route path="/messages" element={<Messages />} />
               <Route path="/requests" element={<Requests />} />
               <Route path="/pii-management" element={<PIIManagement />} />
-              <Route path="/preferences" element={<Preferences />} />
               <Route path="/user-management" element={<UserManagement />} />
               <Route path="/test-dashboard" element={<TestDashboard />} />
               <Route path="/" element={<Login />} />
             </Routes>
           </div>
+          </div>
         </div>
       </div>
-      </div>
+      <ToastContainer />
     </Router>
   );
 }

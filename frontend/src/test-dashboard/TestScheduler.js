@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getScheduledTests, createSchedule, updateSchedule, deleteSchedule, runScheduleNow } from './testApi';
+import toastService from '../services/toastService';
 
 const TestScheduler = ({ testSuites, isAdmin = false }) => {
   const [schedules, setSchedules] = useState([]);
@@ -68,17 +69,16 @@ const TestScheduler = ({ testSuites, isAdmin = false }) => {
   };
 
   const handleDelete = async (scheduleId) => {
-    if (window.confirm('Are you sure you want to delete this schedule?')) {
-      try {
-        setLoading(true);
-        await deleteSchedule(scheduleId);
-        await loadSchedules();
-      } catch (error) {
-        console.error('Failed to delete schedule:', error);
-        alert('Failed to delete schedule');
-      } finally {
-        setLoading(false);
-      }
+    try {
+      setLoading(true);
+      await deleteSchedule(scheduleId);
+      await loadSchedules();
+      toastService.success('Schedule deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete schedule:', error);
+      toastService.error('Failed to delete schedule');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -88,22 +88,21 @@ const TestScheduler = ({ testSuites, isAdmin = false }) => {
       await loadSchedules();
     } catch (error) {
       console.error('Failed to update schedule:', error);
+      toastService.error('Failed to update schedule');
     }
   };
 
   const handleRunNow = async (schedule) => {
-    if (window.confirm(`Run test schedule "${schedule.name}" now?`)) {
-      try {
-        setLoading(true);
-        const result = await runScheduleNow(schedule.id);
-        alert(result.message || 'Test started successfully');
-        await loadSchedules();
-      } catch (error) {
-        console.error('Failed to run schedule:', error);
-        alert('Failed to run scheduled test');
-      } finally {
-        setLoading(false);
-      }
+    try {
+      setLoading(true);
+      const result = await runScheduleNow(schedule.id);
+      toastService.success(result.message || `Test schedule "${schedule.name}" started successfully`);
+      await loadSchedules();
+    } catch (error) {
+      console.error('Failed to run schedule:', error);
+      toastService.error('Failed to run schedule');
+    } finally {
+      setLoading(false);
     }
   };
 

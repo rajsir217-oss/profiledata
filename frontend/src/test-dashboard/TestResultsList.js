@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { deleteTestResult, clearAllTestResults } from './testApi';
+import toastService from '../services/toastService';
 
 const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
   const [expandedResult, setExpandedResult] = useState(null);
@@ -44,38 +45,35 @@ const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds.toFixed(1)}s`;
   };
-
   const toggleExpanded = (resultId) => {
     setExpandedResult(expandedResult === resultId ? null : resultId);
   };
 
   const handleDeleteResult = async (resultId) => {
-    if (window.confirm('Are you sure you want to delete this test result?')) {
-      try {
-        setDeletingId(resultId);
-        await deleteTestResult(resultId);
-        onRefresh();
-      } catch (error) {
-        console.error('Failed to delete test result:', error);
-        alert('Failed to delete test result');
-      } finally {
-        setDeletingId(null);
-      }
+    try {
+      setDeletingId(resultId);
+      await deleteTestResult(resultId);
+      onRefresh();
+      toastService.success('Test result deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete test result:', error);
+      toastService.error('Failed to delete test result');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const handleClearAllResults = async () => {
-    if (window.confirm('Are you sure you want to delete ALL test results? This action cannot be undone.')) {
-      try {
-        setClearingAll(true);
-        await clearAllTestResults();
-        onRefresh();
-      } catch (error) {
-        console.error('Failed to clear all test results:', error);
-        alert('Failed to clear all test results');
-      } finally {
-        setClearingAll(false);
-      }
+    try {
+      setClearingAll(true);
+      await clearAllTestResults();
+      onRefresh();
+      toastService.success('All test results cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear all results:', error);
+      toastService.error('Failed to clear all results');
+    } finally {
+      setClearingAll(false);
     }
   };
 
