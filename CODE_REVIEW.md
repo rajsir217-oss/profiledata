@@ -177,7 +177,7 @@ const Dashboard = React.lazy(() => import('./components/Dashboard'));
 #### b. **Unused Styles**
 - Potential unused CSS rules
 - **Recommendation:** Run PurgeCSS
-
+### all ####
 ---
 
 ## ✅ Positive Aspects

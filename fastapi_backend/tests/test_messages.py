@@ -18,8 +18,9 @@ from database import get_database
 client = TestClient(app)
 
 @pytest.fixture
-async def test_users(test_db):
+def test_users(test_db):
     """Create test users for messaging tests"""
+    import asyncio
     users = [
         {
             "username": "user1",
@@ -51,15 +52,16 @@ async def test_users(test_db):
         }
     ]
     
-    await test_db.users.insert_many(users)
+    asyncio.get_event_loop().run_until_complete(test_db.users.insert_many(users))
     return users
 
 @pytest.fixture
-async def cleanup_messages(test_db):
+def cleanup_messages(test_db):
     """Clean up messages after each test"""
+    import asyncio
     yield
-    await test_db.messages.delete_many({})
-    await test_db.exclusions.delete_many({})
+    asyncio.get_event_loop().run_until_complete(test_db.messages.delete_many({}))
+    asyncio.get_event_loop().run_until_complete(test_db.exclusions.delete_many({}))
 
 class TestSendMessage:
     """Test sending messages"""
@@ -138,15 +140,16 @@ class TestMessagePrivacy:
     """Test message privacy rules"""
     
     @pytest.fixture
-    async def blocked_users(self, test_db, test_users):
+    def blocked_users(self, test_db, test_users):
         """Create exclusion between users"""
+        import asyncio
         exclusion = {
             "userUsername": "user1",
             "excludedUsername": "blocked_user",
             "reason": "Test exclusion",
             "createdAt": datetime.utcnow()
         }
-        await test_db.exclusions.insert_one(exclusion)
+        asyncio.get_event_loop().run_until_complete(test_db.exclusions.insert_one(exclusion))
         return exclusion
     
     def test_send_message_to_blocked_user_marked_invisible(self, test_users, blocked_users, cleanup_messages):
@@ -181,8 +184,9 @@ class TestGetConversation:
     """Test retrieving conversation with specific user"""
     
     @pytest.fixture
-    async def sample_messages(self, test_db, test_users):
+    def sample_messages(self, test_db, test_users):
         """Create sample messages"""
+        import asyncio
         messages = [
             {
                 "fromUsername": "user1",
@@ -209,7 +213,7 @@ class TestGetConversation:
                 "createdAt": datetime.utcnow()
             }
         ]
-        await test_db.messages.insert_many(messages)
+        asyncio.get_event_loop().run_until_complete(test_db.messages.insert_many(messages))
         return messages
     
     def test_get_conversation_success(self, test_users, sample_messages, cleanup_messages):
@@ -269,8 +273,9 @@ class TestGetConversations:
     """Test retrieving list of all conversations"""
     
     @pytest.fixture
-    async def multiple_conversations(self, test_db, test_users):
+    def multiple_conversations(self, test_db, test_users):
         """Create messages with multiple users"""
+        import asyncio
         messages = [
             {
                 "fromUsername": "user1",
@@ -297,7 +302,7 @@ class TestGetConversations:
                 "createdAt": datetime.utcnow()
             }
         ]
-        await test_db.messages.insert_many(messages)
+        asyncio.get_event_loop().run_until_complete(test_db.messages.insert_many(messages))
         return messages
     
     def test_get_conversations_success(self, test_users, multiple_conversations, cleanup_messages):
@@ -355,15 +360,16 @@ class TestAdminOverride:
     """Test admin can see blocked messages"""
     
     @pytest.fixture
-    async def blocked_messages(self, test_db, test_users):
+    def blocked_messages(self, test_db, test_users):
         """Create blocked messages and exclusion"""
+        import asyncio
         # Create exclusion
         exclusion = {
             "userUsername": "user1",
             "excludedUsername": "user2",
             "createdAt": datetime.utcnow()
         }
-        await test_db.exclusions.insert_one(exclusion)
+        asyncio.get_event_loop().run_until_complete(test_db.exclusions.insert_one(exclusion))
         
         # Create invisible message
         message = {
@@ -374,7 +380,7 @@ class TestAdminOverride:
             "isVisible": False,
             "createdAt": datetime.utcnow()
         }
-        await test_db.messages.insert_one(message)
+        asyncio.get_event_loop().run_until_complete(test_db.messages.insert_one(message))
         return message
     
     def test_admin_can_see_blocked_messages(self, test_users, blocked_messages, cleanup_messages):

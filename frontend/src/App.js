@@ -24,6 +24,7 @@ import PIIManagement from './components/PIIManagement';
 import UserManagement from './components/UserManagement';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
+import ProtectedRoute from './components/ProtectedRoute';
 import './App.css';
 import './themes/themes.css';
 
@@ -65,25 +66,29 @@ function App() {
           <div className="main-content">
             <div className="container">
               <Routes>
+              {/* Public routes */}
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/admin" element={<AdminPage />} />
-              <Route path="/profile/:username" element={<Profile />} />
-              <Route path="/edit-profile" element={<EditProfile />} />
-              <Route path="/matching-criteria" element={<MatchingCriteria />} />
-              <Route path="/top-matches" element={<TopMatches />} />
-              <Route path="/shortlists" element={<ShortLists />} />
-              <Route path="/search" element={<SearchPage />} />
-              <Route path="/favorites" element={<Favorites />} />
-              <Route path="/shortlist" element={<Shortlist />} />
-              <Route path="/exclusions" element={<Exclusions />} />
-              <Route path="/messages" element={<Messages />} />
-              <Route path="/requests" element={<Requests />} />
-              <Route path="/pii-management" element={<PIIManagement />} />
-              <Route path="/user-management" element={<UserManagement />} />
-              <Route path="/test-dashboard" element={<TestDashboard />} />
               <Route path="/" element={<Login />} />
+              
+              {/* Protected routes - require active status except profile/edit-profile/preferences */}
+              <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+              <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+              <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+              <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
+              <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
+              <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
+              <Route path="/shortlists" element={<ProtectedRoute><ShortLists /></ProtectedRoute>} />
+              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
+              <Route path="/shortlist" element={<ProtectedRoute><Shortlist /></ProtectedRoute>} />
+              <Route path="/exclusions" element={<ProtectedRoute><Exclusions /></ProtectedRoute>} />
+              <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
+              <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
+              <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
+              <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+              <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
             </Routes>
           </div>
           </div>

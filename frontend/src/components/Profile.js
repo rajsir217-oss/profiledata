@@ -13,8 +13,20 @@ const Profile = () => {
   const [error, setError] = useState("");
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
   
   console.log('📍 Profile component loaded for username:', username);
+  
+  // Check for status message from ProtectedRoute
+  useEffect(() => {
+    const message = sessionStorage.getItem('statusMessage');
+    if (message) {
+      setStatusMessage(message);
+      sessionStorage.removeItem('statusMessage');
+      // Auto-hide after 10 seconds
+      setTimeout(() => setStatusMessage(""), 10000);
+    }
+  }, []);
   
   // PII Access states
   const [piiAccess, setPiiAccess] = useState({
@@ -155,6 +167,45 @@ const Profile = () => {
 
   return (
     <div className="container mt-4">
+      {/* Status Message Alert */}
+      {statusMessage && (
+        <div className="status-alert" style={{
+          backgroundColor: '#fff3cd',
+          border: '1px solid #ffc107',
+          borderRadius: '8px',
+          padding: '15px 20px',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <span style={{ fontSize: '24px' }}>⚠️</span>
+          <div style={{ flex: 1 }}>
+            <strong style={{ color: '#856404', display: 'block', marginBottom: '5px' }}>
+              Account Status Notice
+            </strong>
+            <p style={{ color: '#856404', margin: 0, fontSize: '14px' }}>
+              {statusMessage}
+            </p>
+          </div>
+          <button 
+            onClick={() => setStatusMessage("")}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '20px',
+              cursor: 'pointer',
+              color: '#856404',
+              padding: '5px 10px'
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="profile-header">
         <div className="profile-title-section">
           <h2>

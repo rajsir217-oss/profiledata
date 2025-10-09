@@ -22,21 +22,29 @@ TEST_MONGODB_URL = os.getenv("TEST_MONGODB_URL", "mongodb://localhost:27017")
 TEST_DATABASE_NAME = "test_profiledata"
 
 
-@pytest.fixture
-async def test_db():
+@pytest.fixture(scope="function")
+def test_db():
     """Create a test database connection."""
-    client = AsyncIOMotorClient(TEST_MONGODB_URL)
+    # Create a new event loop for this test
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    
+    client = AsyncIOMotorClient(TEST_MONGODB_URL, io_loop=loop)
     db = client[TEST_DATABASE_NAME]
 
     # Clear test database before tests
-    for collection_name in await db.list_collection_names():
-        await db[collection_name].drop()
+    async def clear_db():
+        for collection_name in await db.list_collection_names():
+            await db[collection_name].drop()
+    
+    loop.run_until_complete(clear_db())
 
     yield db
 
     # Cleanup after tests
-    client.drop_database(TEST_DATABASE_NAME)
+    loop.run_until_complete(client.drop_database(TEST_DATABASE_NAME))
     client.close()
+    loop.close()
 
 
 @pytest.fixture

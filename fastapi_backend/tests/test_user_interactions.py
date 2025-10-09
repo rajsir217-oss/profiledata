@@ -11,13 +11,17 @@ Tests favorites, shortlist, and exclusions functionality including:
 import pytest
 from fastapi.testclient import TestClient
 from datetime import datetime
+import asyncio
 from main import app
 from database import get_database
 
-client = TestClient(app)
+def run_async(coro):
+    """Helper to run async code in sync context"""
+    loop = asyncio.get_event_loop()
+    return loop.run_until_complete(coro)
 
 @pytest.fixture
-async def interaction_users(test_db):
+def interaction_users(test_db):
     """Create test users for interaction testing"""
     users = [
         {
@@ -43,21 +47,21 @@ async def interaction_users(test_db):
         }
     ]
     
-    await test_db.users.insert_many(users)
+    run_async(test_db.users.insert_many(users))
     return users
 
 @pytest.fixture
-async def cleanup_interactions(test_db):
+def cleanup_interactions(test_db):
     """Clean up after interaction tests"""
     yield
-    await test_db.favorites.delete_many({})
-    await test_db.shortlists.delete_many({})
-    await test_db.exclusions.delete_many({})
+    run_async(test_db.favorites.delete_many({}))
+    run_async(test_db.shortlists.delete_many({}))
+    run_async(test_db.exclusions.delete_many({}))
 
 class TestFavorites:
     """Test favorites functionality"""
     
-    def test_add_to_favorites_success(self, interaction_users, cleanup_interactions):
+    def test_add_to_favorites_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully adding user to favorites"""
         response = client.post(
             "/api/users/favorites/user_b?username=user_a"
@@ -67,7 +71,7 @@ class TestFavorites:
         data = response.json()
         assert "added" in data["message"].lower() or "success" in data["message"].lower()
     
-    def test_add_to_favorites_nonexistent_user(self, interaction_users, cleanup_interactions):
+    def test_add_to_favorites_nonexistent_user(self, client, interaction_users, cleanup_interactions):
         """Test adding non-existent user to favorites"""
         response = client.post(
             "/api/users/favorites/nonexistent?username=user_a"
@@ -75,7 +79,7 @@ class TestFavorites:
         
         assert response.status_code == 404
     
-    def test_add_self_to_favorites(self, interaction_users, cleanup_interactions):
+    def test_add_self_to_favorites(self, client, interaction_users, cleanup_interactions):
         """Test that user cannot favorite themselves"""
         response = client.post(
             "/api/users/favorites/user_a?username=user_a"
@@ -84,7 +88,7 @@ class TestFavorites:
         # Should return error or be prevented
         assert response.status_code in [400, 422]
     
-    def test_duplicate_favorite(self, interaction_users, cleanup_interactions):
+    def test_duplicate_favorite(self, client, interaction_users, cleanup_interactions):
         """Test adding same user to favorites twice"""
         # First add
         response1 = client.post(
@@ -100,7 +104,7 @@ class TestFavorites:
         # Should handle gracefully (already exists or success)
         assert response2.status_code in [200, 409]
     
-    def test_remove_from_favorites_success(self, interaction_users, cleanup_interactions):
+    def test_remove_from_favorites_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully removing user from favorites"""
         # First add
         client.post("/api/users/favorites/user_b?username=user_a")
@@ -111,14 +115,14 @@ class TestFavorites:
         assert response.status_code == 200
         assert "removed" in response.json()["message"].lower()
     
-    def test_remove_nonexistent_favorite(self, interaction_users, cleanup_interactions):
+    def test_remove_nonexistent_favorite(self, client, interaction_users, cleanup_interactions):
         """Test removing user that's not in favorites"""
         response = client.delete("/api/users/favorites/user_b?username=user_a")
         
         # Should return 404 or success message
         assert response.status_code in [200, 404]
     
-    def test_get_favorites_list(self, interaction_users, cleanup_interactions):
+    def test_get_favorites_list(self, client, interaction_users, cleanup_interactions):
         """Test retrieving list of favorites"""
         # Add multiple favorites
         client.post("/api/users/favorites/user_b?username=user_a")
@@ -135,7 +139,7 @@ class TestFavorites:
 class TestShortlist:
     """Test shortlist functionality"""
     
-    def test_add_to_shortlist_success(self, interaction_users, cleanup_interactions):
+    def test_add_to_shortlist_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully adding user to shortlist"""
         response = client.post(
             "/api/users/shortlist/user_b?username=user_a"
@@ -143,13 +147,13 @@ class TestShortlist:
         
         assert response.status_code == 200
     
-    def test_add_to_shortlist_with_notes(self, interaction_users, cleanup_interactions):
+    def test_add_to_shortlist_with_notes(self, client, interaction_users, cleanup_interactions):
         """Test adding user to shortlist with notes"""
         # This depends on API implementation
         # Placeholder for future enhancement
         pass
     
-    def test_remove_from_shortlist_success(self, interaction_users, cleanup_interactions):
+    def test_remove_from_shortlist_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully removing user from shortlist"""
         # First add
         client.post("/api/users/shortlist/user_b?username=user_a")
@@ -159,7 +163,7 @@ class TestShortlist:
         
         assert response.status_code == 200
     
-    def test_get_shortlist(self, interaction_users, cleanup_interactions):
+    def test_get_shortlist(self, client, interaction_users, cleanup_interactions):
         """Test retrieving shortlist"""
         # Add users to shortlist
         client.post("/api/users/shortlist/user_b?username=user_a")
@@ -173,7 +177,7 @@ class TestShortlist:
         assert "shortlist" in data
         assert len(data["shortlist"]) == 2
     
-    def test_duplicate_shortlist(self, interaction_users, cleanup_interactions):
+    def test_duplicate_shortlist(self, client, interaction_users, cleanup_interactions):
         """Test adding same user to shortlist twice"""
         response1 = client.post("/api/users/shortlist/user_b?username=user_a")
         response2 = client.post("/api/users/shortlist/user_b?username=user_a")
@@ -184,7 +188,7 @@ class TestShortlist:
 class TestExclusions:
     """Test exclusions/blocking functionality"""
     
-    def test_add_to_exclusions_success(self, interaction_users, cleanup_interactions):
+    def test_add_to_exclusions_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully adding user to exclusions"""
         response = client.post(
             "/api/users/exclusions/user_b?username=user_a"
@@ -192,12 +196,12 @@ class TestExclusions:
         
         assert response.status_code == 200
     
-    def test_add_to_exclusions_with_reason(self, interaction_users, cleanup_interactions):
+    def test_add_to_exclusions_with_reason(self, client, interaction_users, cleanup_interactions):
         """Test adding user to exclusions with reason"""
         # This depends on API implementation
         pass
     
-    def test_remove_from_exclusions_success(self, interaction_users, cleanup_interactions):
+    def test_remove_from_exclusions_success(self, client, interaction_users, cleanup_interactions):
         """Test successfully removing user from exclusions (unblock)"""
         # First add
         client.post("/api/users/exclusions/user_b?username=user_a")
@@ -207,7 +211,7 @@ class TestExclusions:
         
         assert response.status_code == 200
     
-    def test_get_exclusions_list(self, interaction_users, cleanup_interactions):
+    def test_get_exclusions_list(self, client, interaction_users, cleanup_interactions):
         """Test retrieving exclusions list"""
         # Add exclusions
         client.post("/api/users/exclusions/user_b?username=user_a")
@@ -221,7 +225,7 @@ class TestExclusions:
         assert "exclusions" in data
         assert len(data["exclusions"]) == 2
     
-    def test_exclusion_affects_search_results(self, interaction_users, cleanup_interactions):
+    def test_exclusion_affects_search_results(self, client, interaction_users, cleanup_interactions):
         """Test that excluded users don't appear in search results"""
         # Add exclusion
         client.post("/api/users/exclusions/user_b?username=user_a")
@@ -240,7 +244,7 @@ class TestGetTheirFavorites:
     """Test retrieving users who favorited you"""
     
     @pytest.fixture
-    async def setup_their_favorites(self, test_db, interaction_users):
+    def setup_their_favorites(self, test_db, interaction_users):
         """Setup: Other users favorite user_a"""
         favorites = [
             {
@@ -254,10 +258,10 @@ class TestGetTheirFavorites:
                 "createdAt": datetime.utcnow()
             }
         ]
-        await test_db.favorites.insert_many(favorites)
+        run_async(test_db.favorites.insert_many(favorites))
         return favorites
     
-    def test_get_their_favorites(self, interaction_users, setup_their_favorites, cleanup_interactions):
+    def test_get_their_favorites(self, client, interaction_users, setup_their_favorites, cleanup_interactions):
         """Test getting list of users who favorited you"""
         response = client.get("/api/users/their-favorites/user_a")
         
@@ -275,7 +279,7 @@ class TestGetTheirShortlists:
     """Test retrieving users who shortlisted you"""
     
     @pytest.fixture
-    async def setup_their_shortlists(self, test_db, interaction_users):
+    def setup_their_shortlists(self, test_db, interaction_users):
         """Setup: Other users shortlist user_a"""
         shortlists = [
             {
@@ -285,10 +289,10 @@ class TestGetTheirShortlists:
                 "createdAt": datetime.utcnow()
             }
         ]
-        await test_db.shortlists.insert_many(shortlists)
+        run_async(test_db.shortlists.insert_many(shortlists))
         return shortlists
     
-    def test_get_their_shortlists(self, interaction_users, setup_their_shortlists, cleanup_interactions):
+    def test_get_their_shortlists(self, client, interaction_users, setup_their_shortlists, cleanup_interactions):
         """Test getting list of users who shortlisted you"""
         response = client.get("/api/users/their-shortlists/user_a")
         
@@ -300,7 +304,7 @@ class TestGetTheirShortlists:
 class TestCrossFeatureInteractions:
     """Test interactions between different features"""
     
-    def test_favorite_and_shortlist_same_user(self, interaction_users, cleanup_interactions):
+    def test_favorite_and_shortlist_same_user(self, client, interaction_users, cleanup_interactions):
         """Test that user can be both favorited and shortlisted"""
         # Add to favorites
         fav_response = client.post("/api/users/favorites/user_b?username=user_a")
@@ -312,7 +316,7 @@ class TestCrossFeatureInteractions:
         
         # Both should succeed
     
-    def test_favorite_then_exclude(self, interaction_users, cleanup_interactions):
+    def test_favorite_then_exclude(self, client, interaction_users, cleanup_interactions):
         """Test favoriting then excluding same user"""
         # Add to favorites
         client.post("/api/users/favorites/user_b?username=user_a")
@@ -323,7 +327,7 @@ class TestCrossFeatureInteractions:
         assert response.status_code == 200
         # Both can coexist (user might want to track who they blocked)
     
-    def test_exclude_removes_from_search(self, interaction_users, cleanup_interactions):
+    def test_exclude_removes_from_search(self, client, interaction_users, cleanup_interactions):
         """Test that excluding user removes them from search results"""
         # Exclude user_b
         client.post("/api/users/exclusions/user_b?username=user_a")
@@ -338,7 +342,7 @@ class TestCrossFeatureInteractions:
 class TestInteractionEdgeCases:
     """Test edge cases for user interactions"""
     
-    def test_multiple_users_favorite_same_profile(self, interaction_users, cleanup_interactions):
+    def test_multiple_users_favorite_same_profile(self, client, interaction_users, cleanup_interactions):
         """Test multiple users can favorite the same profile"""
         response1 = client.post("/api/users/favorites/user_c?username=user_a")
         response2 = client.post("/api/users/favorites/user_c?username=user_b")
@@ -350,7 +354,7 @@ class TestInteractionEdgeCases:
         their_favs = client.get("/api/users/their-favorites/user_c")
         assert len(their_favs.json()["users"]) == 2
     
-    def test_bidirectional_favorites(self, interaction_users, cleanup_interactions):
+    def test_bidirectional_favorites(self, client, interaction_users, cleanup_interactions):
         """Test that both users can favorite each other"""
         response1 = client.post("/api/users/favorites/user_b?username=user_a")
         response2 = client.post("/api/users/favorites/user_a?username=user_b")
@@ -358,7 +362,7 @@ class TestInteractionEdgeCases:
         assert response1.status_code == 200
         assert response2.status_code == 200
     
-    def test_remove_all_interactions(self, interaction_users, cleanup_interactions):
+    def test_remove_all_interactions(self, client, interaction_users, cleanup_interactions):
         """Test removing all interactions with a user"""
         # Add to all lists
         client.post("/api/users/favorites/user_b?username=user_a")
