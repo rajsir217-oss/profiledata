@@ -57,7 +57,15 @@ const SaveSearchModal = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>💾 Saved Searches</h3>
+          <div className="modal-user-info">
+            <div className="modal-avatar-placeholder">
+              💾
+            </div>
+            <div>
+              <h3>Saved Searches</h3>
+              <p>Manage your search criteria</p>
+            </div>
+          </div>
           <button className="modal-close-btn" onClick={onClose}>×</button>
         </div>
 

@@ -583,7 +583,7 @@ const SearchPage = () => {
     }
   };
 
-  const handleClearSelectedSearch = () => {
+  const handleClearSelectedSearch = async () => {
     setSelectedSearch(null);
     const clearedCriteria = {
       keyword: '',
@@ -602,17 +602,36 @@ const SearchPage = () => {
       relationshipStatus: '',
       newlyAdded: false,
     };
+    
+    // Update criteria and clear results
     setSearchCriteria(clearedCriteria);
-    // Clear results first
     setUsers([]);
     setTotalResults(0);
     setCurrentPage(1);
     setStatusMessage('✅ Search cleared - showing all active users');
     setTimeout(() => setStatusMessage(''), 3000);
-    // Trigger a search with cleared criteria to get all active users
-    setTimeout(() => {
-      handleSearch(1);
-    }, 150);
+    
+    // Perform search directly with cleared criteria instead of relying on state update
+    try {
+      setLoading(true);
+      setError('');
+
+      const params = {
+        status: 'active',  // Only search for active users
+        page: 1,
+        limit: 500
+      };
+
+      const response = await api.get('/search', { params });
+      setUsers(response.data.users || []);
+      setTotalResults(response.data.total || 0);
+      setCurrentPage(1);
+    } catch (err) {
+      console.error('Error searching users:', err);
+      setError('Failed to search users. ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const parseHeight = (height) => {
