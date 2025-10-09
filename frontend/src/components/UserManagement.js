@@ -248,11 +248,20 @@ const UserManagement = () => {
       return;
     }
 
+    // Filter out admin user from bulk operations
+    const usersToUpdate = selectedUsers.filter(username => username !== 'admin');
+    const skippedAdmin = selectedUsers.length !== usersToUpdate.length;
+
+    if (usersToUpdate.length === 0) {
+      setError('Cannot change admin user role. Please select other users.');
+      return;
+    }
+
     try {
       let successCount = 0;
       let failCount = 0;
 
-      for (const username of selectedUsers) {
+      for (const username of usersToUpdate) {
         try {
           await adminApi.post(`/api/admin/users/${username}/assign-role`, {
             role_name: newRole,
@@ -270,12 +279,19 @@ const UserManagement = () => {
       loadUsers();
       
       // Show success message in the UI instead of alert
-      if (failCount === 0) {
-        setSuccessMessage(`✅ Successfully assigned role to ${successCount} user(s)`);
-        setError(''); // Clear any previous errors
+      let message = '';
+      if (skippedAdmin && failCount === 0) {
+        message = `✅ Successfully assigned role to ${successCount} user(s). Admin user skipped.`;
+      } else if (failCount === 0) {
+        message = `✅ Successfully assigned role to ${successCount} user(s)`;
+      } else if (skippedAdmin) {
+        message = `⚠️ Bulk role assignment: ${successCount} success, ${failCount} failed. Admin user skipped.`;
       } else {
-        setSuccessMessage(`⚠️ Bulk role assignment completed: ${successCount} success, ${failCount} failed`);
+        message = `⚠️ Bulk role assignment completed: ${successCount} success, ${failCount} failed`;
       }
+      
+      setSuccessMessage(message);
+      setError(''); // Clear any previous errors
       
       // Auto-hide success message after 5 seconds
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -436,6 +452,8 @@ const UserManagement = () => {
                     type="checkbox"
                     checked={selectedUsers.includes(user.username)}
                     onChange={() => handleSelectUser(user.username)}
+                    disabled={user.username === 'admin'}
+                    title={user.username === 'admin' ? 'Admin user cannot be modified' : ''}
                   />
                 </td>
                 <td>
