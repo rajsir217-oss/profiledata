@@ -60,13 +60,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   const buildMenuItems = () => {
     // Check if user is activated (admin is always active)
     const isActive = currentUser === 'admin' || userStatus === 'active';
-    console.log('🔍 Sidebar Debug:', { 
-      isLoggedIn, 
-      currentUser, 
-      userStatus, 
-      isActive,
-      fromLocalStorage: localStorage.getItem('userStatus')
-    });
+    // Debug logging removed - uncomment if needed for debugging
+    // console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus, isActive });
     
     if (!isLoggedIn) {
       return [
@@ -213,7 +208,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   };
 
   const menuItems = buildMenuItems();
-  console.log('📋 Menu Items Count:', menuItems.length);
+  // console.log('📋 Menu Items Count:', menuItems.length);
 
   return (
     <div 

@@ -10,6 +10,11 @@ class SocketService {
   }
 
   connect(username) {
+    // WebSocket disabled - real-time messaging not implemented yet
+    // Uncomment when backend WebSocket server is ready
+    return;
+    
+    /* 
     if (this.connected && this.username === username) {
       console.log('✅ Already connected to WebSocket');
       return;
@@ -25,6 +30,7 @@ class SocketService {
       reconnectionDelay: 1000,
       reconnectionAttempts: 5
     });
+    */
 
     // Connection events
     this.socket.on('connect', () => {
