@@ -1,15 +1,17 @@
 /**
  * Message Polling Service
- * Simple HTTP polling for real-time messages (no WebSocket needed!)
  */
 import api from '../api';
 
 class MessagePollingService {
   constructor() {
+    this.username = null;
     this.pollingInterval = null;
+    this.heartbeatInterval = null;
     this.lastMessageTimestamp = null;
     this.listeners = [];
     this.isPolling = false;
+    this.isCurrentlyPolling = false; // Track if a poll is in progress
     this.POLL_INTERVAL_MS = 2000; // Poll every 2 seconds
     this.messageQueue = []; // Store all received messages
   }
@@ -24,82 +26,56 @@ class MessagePollingService {
       return;
     }
 
-    if (this.isPolling && this.username === username) {
-      console.log('✅ Already polling for messages for:', username);
+    // Skip if not currently polling or if a poll is already in progress
+    if (!this.isPolling || !this.username || this.isCurrentlyPolling) {
       return;
     }
 
-    // Stop existing polling if different user
-    if (this.isPolling && this.username !== username) {
-      console.log('🔄 Switching polling from', this.username, 'to', username);
-      await this.stopPolling();
-    }
+    this.isCurrentlyPolling = true; // Mark poll as in progress
 
-    console.log('🔄 Starting message polling for:', username);
-    this.isPolling = true;
-    this.username = username;
-    this.lastMessageTimestamp = null; // Reset timestamp for new user
-    
-    // Mark user as online
     try {
-      const api = (await import('../api')).default;
-      await api.post(`/online-status/${username}/online`);
-      console.log('🟢 Marked user as online:', username);
-    } catch (error) {
-      console.error('❌ Failed to mark user as online:', error);
-    }
-    
-    // Initial poll
-    this.pollMessages();
+      // Stop existing polling if different user
+      if (this.isPolling && this.username !== username) {
+        console.log('🔄 Switching polling from', this.username, 'to', username);
+        await this.stopPolling();
+      }
 
-    // Set up interval
-    this.pollingInterval = setInterval(() => {
-      this.pollMessages();
-    }, this.POLL_INTERVAL_MS);
-    
-    // Set up heartbeat to keep user online (every 30 seconds)
-    this.heartbeatInterval = setInterval(async () => {
+      console.log('🔄 Starting message polling for:', username);
+      this.isPolling = true;
+      this.username = username;
+      this.lastMessageTimestamp = null; // Reset timestamp for new user
+      
+      // Mark user as online
       try {
         const api = (await import('../api')).default;
-        await api.post(`/online-status/${username}/refresh`);
-        console.log('💓 Heartbeat: refreshed online status');
+        await api.post(`/online-status/${username}/online`);
+        console.log('🟢 Marked user as online:', username);
       } catch (error) {
-        console.error('❌ Heartbeat failed:', error);
+        console.error('❌ Failed to mark user as online:', error);
       }
-    }, 30000); // 30 seconds
-  }
+      
+      // Initial poll
+      this.pollMessages();
 
-  /**
-   * Stop polling
-   */
-  async stopPolling() {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
-      this.isPolling = false;
-      console.log('⏹️ Stopped message polling');
-    }
-    
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
-      this.heartbeatInterval = null;
-      console.log('💓 Stopped heartbeat');
-    }
-    
-    // Mark user as offline (with delay to avoid race conditions during React remounts)
-    if (this.username) {
-      setTimeout(async () => {
-        // Only mark offline if polling hasn't restarted
-        if (!this.isPolling) {
-          try {
-            const api = (await import('../api')).default;
-            await api.post(`/online-status/${this.username}/offline`);
-            console.log('⚪ Marked user as offline:', this.username);
-          } catch (error) {
-            console.error('❌ Failed to mark user as offline:', error);
-          }
+      // Set up interval
+      this.pollingInterval = setInterval(() => {
+        this.pollMessages();
+      }, this.POLL_INTERVAL_MS);
+      
+      // Set up heartbeat to keep user online (every 30 seconds)
+      this.heartbeatInterval = setInterval(async () => {
+        try {
+          const api = (await import('../api')).default;
+          await api.post(`/online-status/${username}/refresh`);
+          console.log('💓 Heartbeat: refreshed online status');
+        } catch (error) {
+          console.error('❌ Heartbeat failed:', error);
         }
-      }, 1000); // 1 second delay
+      }, 30000); // 30 seconds
+    } catch (error) {
+      console.error('❌ Error starting polling:', error);
+    } finally {
+      this.isCurrentlyPolling = false; // Mark poll as complete
     }
   }
 
@@ -107,10 +83,12 @@ class MessagePollingService {
    * Poll for new messages with error handling and retry logic
    */
   async pollMessages() {
-    if (!this.username) {
-      console.warn('⚠️ No username set, skipping poll');
+    // Skip if not currently polling or if a poll is already in progress
+    if (!this.isPolling || !this.username || this.isCurrentlyPolling) {
       return;
     }
+
+    this.isCurrentlyPolling = true; // Mark poll as in progress
 
     try {
       const params = this.lastMessageTimestamp 
@@ -119,7 +97,7 @@ class MessagePollingService {
 
       const response = await api.get(`/messages/poll/${this.username}`, { 
         params,
-        timeout: 30000 // 30 second timeout for long polling
+        timeout: 10000 // 10 second timeout
       });
       
       // Validate response
@@ -175,12 +153,13 @@ class MessagePollingService {
       } else if (error.response) {
         // Server responded with error
         console.error(`❌ Polling error ${error.response.status}:`, error.response.data?.detail || error.message);
-      } else if (error.request) {
-        // Request made but no response
+      } else if (error.code === 'ERR_NETWORK') {
         console.error('❌ No response from server');
       } else {
         console.error('❌ Error polling messages:', error.message);
       }
+    } finally {
+      this.isCurrentlyPolling = false; // Mark poll as complete
     }
   }
 
