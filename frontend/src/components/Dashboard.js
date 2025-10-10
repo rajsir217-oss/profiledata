@@ -5,7 +5,6 @@ import MessageModal from './MessageModal';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import MessageBadge from './MessageBadge';
 import socketService from '../services/socketService';
-import realtimeMessagingService from '../services/realtimeMessagingService';
 import { getDisplayName } from '../utils/userDisplay';
 import './Dashboard.css';
 
@@ -56,11 +55,6 @@ const Dashboard = () => {
     if (!currentUser) {
       navigate('/login');
       return;
-    }
-
-    // Initialize realtime messaging service
-    if (currentUser) {
-      realtimeMessagingService.initialize(currentUser);
     }
     
     // Small delay to ensure token is set after login

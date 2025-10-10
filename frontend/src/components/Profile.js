@@ -41,7 +41,8 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await api.get(`/profile/${username}`);
+        // Pass requester to properly handle PII masking
+        const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
         setUser(res.data);
         
         // Check if this is the current user's profile

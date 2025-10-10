@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
-import onlineStatusService from "../services/onlineStatusService";
 import socketService from "../services/socketService";
 
 const Login = () => {
@@ -32,13 +31,9 @@ const Login = () => {
       const userStatus = res.data.user.status?.status || res.data.user.status || 'active';
       localStorage.setItem('userStatus', userStatus);
       
-      // Connect to WebSocket
+      // Connect to WebSocket (automatically marks user as online)
       console.log('🔌 Connecting to WebSocket');
       socketService.connect(res.data.user.username);
-      
-      // Mark user as online
-      console.log('🟢 Login successful, marking user as online');
-      await onlineStatusService.goOnline(res.data.user.username);
       
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('loginStatusChanged'));

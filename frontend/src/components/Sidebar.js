@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
-import onlineStatusService from '../services/onlineStatusService';
 import socketService from '../services/socketService';
 import { getDisplayName, getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
@@ -25,9 +24,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         setCurrentUser(username);
         setUserStatus(status || 'pending');
         
-        // Load user profile for display name
+        // Load user profile for display name (pass requester to avoid PII masking)
         try {
-          const response = await api.get(`/profile/${username}`);
+          const response = await api.get(`/profile/${username}?requester=${username}`);
           setUserProfile(response.data);
         } catch (error) {
           console.error('Error loading user profile:', error);
@@ -59,15 +58,17 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   const handleLogout = async () => {
     const username = currentUser;
     
-    // Mark user as offline
-    if (username) {
-      console.log('⚪ Logout, marking user as offline');
-      await onlineStatusService.goOffline(username);
-    }
-    
     // Disconnect WebSocket
     console.log('🔌 Disconnecting WebSocket');
     socketService.disconnect();
+    
+    // Mark user as offline (non-blocking beacon)
+    if (username) {
+      navigator.sendBeacon(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        ''
+      );
+    }
     
     localStorage.removeItem('username');
     localStorage.removeItem('token');

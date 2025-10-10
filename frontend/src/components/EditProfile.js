@@ -46,7 +46,7 @@ const EditProfile = () => {
           return;
         }
 
-        const response = await api.get(`/profile/${username}`);
+        const response = await api.get(`/profile/${username}?requester=${username}`);
         const userData = response.data;
 
         // Populate form with existing data

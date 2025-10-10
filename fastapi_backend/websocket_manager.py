@@ -23,20 +23,32 @@ async def connect(sid, environ):
     """Handle client connection"""
     from redis_manager import get_redis_manager
     
-    username = environ.get('HTTP_USERNAME')  # Get username from headers
+    # Get username from query parameters (Socket.IO connection)
+    query_string = environ.get('QUERY_STRING', '')
+    username = None
+    
+    # Parse query string to get username
+    if query_string:
+        from urllib.parse import parse_qs
+        params = parse_qs(query_string)
+        username = params.get('username', [None])[0]
+    
     if username:
         online_users[username] = sid
         user_sessions[sid] = username
         
         # Mark user as online in Redis
         redis = get_redis_manager()
-        redis.set_user_online(username)
+        success = redis.set_user_online(username)
         
         logger.info(f"🟢 User '{username}' connected (sid: {sid})")
+        logger.info(f"   Redis set_user_online result: {success}")
+        logger.info(f"   Total online users: {len(online_users)}")
         
-        # Broadcast user online status
+        # Broadcast user online status to all other clients
         await sio.emit('user_online', {'username': username}, skip_sid=sid)
         await broadcast_online_count()
+        logger.info(f"   Broadcasted online status for '{username}'")
     else:
         logger.warning(f"⚠️ Connection without username (sid: {sid})")
         
@@ -58,11 +70,15 @@ async def disconnect(sid):
         
         # Mark user as offline in Redis
         redis = get_redis_manager()
-        redis.set_user_offline(username)
+        success = redis.set_user_offline(username)
+        
+        logger.info(f"⚪ User '{username}' went offline")
+        logger.info(f"   Redis set_user_offline result: {success}")
+        logger.info(f"   Remaining online users: {len(online_users)}")
         
         await broadcast_online_count()
         await sio.emit('user_offline', {'username': username})
-        logger.info(f"⚪ User {username} went offline")
+        logger.info(f"   Broadcasted offline status for '{username}'")
 
 @sio.event
 async def send_message(sid, data):

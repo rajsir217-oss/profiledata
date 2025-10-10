@@ -21,8 +21,8 @@ const ProtectedRoute = ({ children }) => {
       setCurrentUsername(username);
 
       try {
-        // Fetch user profile to get status
-        const response = await api.get(`/profile/${username}`);
+        // Fetch user profile to get status (pass requester to avoid PII masking)
+        const response = await api.get(`/profile/${username}?requester=${username}`);
         console.log('🔍 Full profile response:', response.data);
         console.log('🔍 Status object:', response.data.status);
         const status = response.data.status?.status || 'pending';

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
-import messagePollingService from '../services/messagePollingService';
-import onlineStatusService from '../services/onlineStatusService';
+import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
 import './MessageModal.css';
 
@@ -16,56 +15,21 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       loadConversation();
       checkOnlineStatus();
       
-      // Check online status every 30 seconds
-      const onlineCheckInterval = setInterval(() => {
-        checkOnlineStatus();
-      }, 30000);
-      
-      // Check for any pending messages that arrived while modal was closed
-      const pendingMessages = messagePollingService.getPendingMessages(currentUsername, profile.username);
-      if (pendingMessages.length > 0) {
-        console.log(`📥 Processing ${pendingMessages.length} pending messages`);
-        pendingMessages.forEach(msg => {
-          setMessages(prev => {
-            // Check if message already exists
-            const exists = prev.some(existing => 
-              existing.from_username === msg.from && 
-              existing.to_username === msg.to &&
-              existing.message === msg.message &&
-              Math.abs(new Date(existing.timestamp) - new Date(msg.timestamp)) < 1000
-            );
-            
-            if (exists) return prev;
-            
-            return [...prev, {
-              from_username: msg.from,
-              to_username: msg.to,
-              message: msg.message,
-              timestamp: msg.timestamp,
-              is_read: false
-            }];
-          });
-        });
-      }
-      
-      // Listen for real-time messages via polling
+      // Listen for real-time messages via WebSocket
       const handleNewMessage = (data) => {
-        console.log('💬 MessageModal: New message received:', data);
-        console.log('🔍 Current chat with:', profile.username);
-        console.log('🔍 Message from:', data.from, 'to:', data.to);
-        console.log('🔍 Current user:', currentUsername);
+        console.log('💬 MessageModal: New message via WebSocket');
+        console.log('   From:', data.from, 'To:', data.to);
+        console.log('   Current conversation with:', profile.username);
+        console.log('   Current user:', currentUsername);
         
         // Check if this message is part of the current conversation
-        // Either: we sent it to them, OR they sent it to us
-        const isFromThem = data.from === profile.username && data.to === currentUsername;
+        const isFromThem = data.from === profile.username && (data.to === currentUsername || !data.to);
         const isFromUs = data.from === currentUsername && data.to === profile.username;
-        const isRelevant = isFromThem || isFromUs;
         
-        console.log('🔍 Is from them?', isFromThem);
-        console.log('🔍 Is from us?', isFromUs);
-        console.log('🔍 Is relevant?', isRelevant);
+        console.log('   Is from them?', isFromThem);
+        console.log('   Is from us?', isFromUs);
         
-        if (isRelevant) {
+        if (isFromThem || isFromUs) {
           console.log('✅ Message is part of current conversation, adding to UI');
           
           // Check if message already exists (prevent duplicates)
@@ -82,27 +46,41 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
               return prev;
             }
             
-            const newMessage = {
+            console.log('➕ Adding message to state');
+            return [...prev, {
               from_username: data.from,
               to_username: data.to,
               message: data.message,
               timestamp: data.timestamp,
               is_read: false
-            };
-            
-            console.log('📝 Adding new message to state');
-            return [...prev, newMessage];
+            }];
           });
         } else {
-          console.log('⏭️ Message not part of current conversation, ignoring');
+          console.log('⏭️ Message not for current conversation, ignoring');
         }
       };
 
-      messagePollingService.onNewMessage(handleNewMessage);
+      // Listen for online status changes
+      const handleUserOnline = (data) => {
+        if (data.username === profile.username) {
+          setIsOnline(true);
+        }
+      };
+
+      const handleUserOffline = (data) => {
+        if (data.username === profile.username) {
+          setIsOnline(false);
+        }
+      };
+
+      socketService.on('new_message', handleNewMessage);
+      socketService.on('user_online', handleUserOnline);
+      socketService.on('user_offline', handleUserOffline);
 
       return () => {
-        messagePollingService.offNewMessage(handleNewMessage);
-        clearInterval(onlineCheckInterval);
+        socketService.off('new_message', handleNewMessage);
+        socketService.off('user_online', handleUserOnline);
+        socketService.off('user_offline', handleUserOffline);
       };
     }
   }, [isOpen, profile, currentUsername]);
@@ -111,7 +89,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     if (!profile?.username) return;
     
     try {
-      const online = await onlineStatusService.isUserOnline(profile.username);
+      const online = await socketService.isUserOnline(profile.username);
       setIsOnline(online);
     } catch (error) {
       console.error('Error checking online status:', error);
@@ -144,6 +122,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     if (!content.trim() || !profile?.username) return;
 
     try {
+      // Save message to database via API
       const response = await api.post(
         `/api/messages/send?username=${currentUsername}`,
         {
@@ -155,8 +134,13 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
       
-      // Message will be delivered via Redis polling (no WebSocket needed)
-      console.log('✅ MessageModal: Message sent, will be delivered via polling');
+      // Also send via WebSocket for real-time delivery
+      if (socketService.isConnected()) {
+        socketService.sendMessage(profile.username, content.trim());
+        console.log('✅ Message sent via WebSocket for real-time delivery');
+      } else {
+        console.warn('⚠️ WebSocket not connected, message saved to DB only');
+      }
     } catch (err) {
       console.error('Error sending message:', err);
     }

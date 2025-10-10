@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
-import onlineStatusService from '../services/onlineStatusService';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import { getDisplayName } from '../utils/userDisplay';
@@ -28,9 +27,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
         setIsLoggedIn(true);
         setCurrentUser(username);
         
-        // Load user profile for display name
+        // Load user profile for display name (pass requester to avoid PII masking)
         try {
-          const response = await api.get(`/profile/${username}`);
+          const response = await api.get(`/profile/${username}?requester=${username}`);
           setUserProfile(response.data);
         } catch (error) {
           console.error('Error loading user profile:', error);
@@ -56,44 +55,52 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, []);
 
-  // Fetch online count and unread messages
+  // Listen for WebSocket updates (online count and unread messages)
   useEffect(() => {
     if (!currentUser) return;
 
-    const fetchCounts = async () => {
-      try {
-        // Get online count
-        const onlineResponse = await onlineStatusService.getOnlineCount();
-        setOnlineCount(onlineResponse);
-
-        // Get unread message count
-        const unreadResponse = await api.get(`/messages/unread-count/${currentUser}`);
-        setUnreadCount(unreadResponse.data.unreadCount || 0);
-      } catch (error) {
-        console.error('Error fetching counts:', error);
-      }
+    // Update online count from WebSocket
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count);
     };
 
-    fetchCounts();
+    // Update unread count from WebSocket
+    const handleUnreadUpdate = (data) => {
+      setUnreadCount(data.totalUnread || 0);
+    };
 
-    // Update every 30 seconds
-    const interval = setInterval(fetchCounts, 30000);
+    const handleUnreadCountsLoaded = (data) => {
+      setUnreadCount(data.totalUnread || 0);
+    };
 
-    return () => clearInterval(interval);
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+    socketService.on('unread_update', handleUnreadUpdate);
+    socketService.on('unread_counts_loaded', handleUnreadCountsLoaded);
+
+    // Get initial counts
+    setUnreadCount(socketService.getTotalUnread());
+
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
+      socketService.off('unread_update', handleUnreadUpdate);
+      socketService.off('unread_counts_loaded', handleUnreadCountsLoaded);
+    };
   }, [currentUser]);
 
   const handleLogout = async () => {
     const username = currentUser;
     
-    // Mark user as offline
-    if (username) {
-      console.log('⚪ Logout, marking user as offline');
-      await onlineStatusService.goOffline(username);
-    }
-    
     // Disconnect WebSocket
     console.log('🔌 Disconnecting WebSocket');
     socketService.disconnect();
+    
+    // Mark user as offline (non-blocking beacon)
+    if (username) {
+      navigator.sendBeacon(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        ''
+      );
+    }
     
     localStorage.removeItem('username');
     localStorage.removeItem('token');

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import realtimeMessagingService from '../services/realtimeMessagingService';
+import socketService from '../services/socketService';
 import './MessageBadge.css';
 
 const MessageBadge = ({ username, size = 'medium', showCount = true }) => {
@@ -12,20 +12,29 @@ const MessageBadge = ({ username, size = 'medium', showCount = true }) => {
   const [hasUnread, setHasUnread] = useState(false);
   
   useEffect(() => {
-    // Subscribe to realtime updates
-    const unsubscribe = realtimeMessagingService.subscribe((data) => {
-      const count = realtimeMessagingService.getUnreadCount(username);
+    // Update count function
+    const updateCount = () => {
+      const count = socketService.getUnreadCount(username);
       setUnreadCount(count);
       setHasUnread(count > 0);
-    });
+    };
+    
+    // Listen for unread updates
+    const handleUnreadUpdate = (data) => {
+      if (data.username === username || !data.username) {
+        updateCount();
+      }
+    };
+    
+    socketService.on('unread_update', handleUnreadUpdate);
+    socketService.on('unread_counts_loaded', updateCount);
     
     // Get initial count
-    const count = realtimeMessagingService.getUnreadCount(username);
-    setUnreadCount(count);
-    setHasUnread(count > 0);
+    updateCount();
     
     return () => {
-      unsubscribe();
+      socketService.off('unread_update', handleUnreadUpdate);
+      socketService.off('unread_counts_loaded', updateCount);
     };
   }, [username]);
   
