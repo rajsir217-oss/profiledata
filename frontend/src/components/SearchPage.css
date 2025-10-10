@@ -504,17 +504,6 @@
   background: white;
   color: #667eea;
 }
-
-.view-toggle-group .btn-outline-primary:hover {
-  background: #f0f2ff;
-}
-
-.per-page-label {
-  margin: 0;
-  font-weight: 500;
-  color: #666;
-}
-
 .per-page-select {
   width: auto;
   min-width: 130px;
@@ -529,6 +518,107 @@
 .per-page-select:focus {
   border-color: #667eea;
   box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+/* Grid Lines Toggle */
+.grid-lines-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  background: #f8f9fa;
+  border-radius: 20px;
+  border: 1px solid #ddd;
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: #333;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 20px;
+  margin: 0;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.3s;
+  border-radius: 20px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: #667eea;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(20px);
+}
+
+.toggle-slider:hover {
+  background-color: #999;
+}
+
+.toggle-switch input:checked + .toggle-slider:hover {
+  background-color: #5568d3;
+}
+
+/* Grid Lines Effect */
+.results-grid.with-grid-lines .card,
+.results-rows.with-grid-lines .result-row {
+  border: 1px solid #ddd !important;
+}
+
+.results-grid.with-grid-lines {
+  gap: 0 !important;
+}
+
+.results-grid.with-grid-lines .card {
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+.results-rows.with-grid-lines {
+  gap: 0 !important;
+}
+
+.results-rows.with-grid-lines .result-row {
+  border-radius: 0 !important;
+  border-bottom: 1px solid #ddd !important;
+}
+
+.results-rows.with-grid-lines .result-row:first-child {
+  border-top: 1px solid #ddd !important;
 }
 
 .results-grid {

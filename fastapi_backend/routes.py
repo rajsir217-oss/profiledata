@@ -374,6 +374,7 @@ async def update_user_profile(
     aboutYou: Optional[str] = Form(None),
     partnerPreference: Optional[str] = Form(None),
     images: List[UploadFile] = File(default=[]),
+    imagesToDelete: Optional[str] = Form(None),
     db = Depends(get_database)
 ):
     """Update user profile"""
@@ -389,51 +390,87 @@ async def update_user_profile(
             detail="User not found"
         )
     
-    # Prepare update data
+    # Prepare update data - only update fields that are provided and not empty
     update_data = {}
-    if firstName is not None:
-        update_data["firstName"] = firstName
-    if lastName is not None:
-        update_data["lastName"] = lastName
-    if contactNumber is not None:
-        update_data["contactNumber"] = contactNumber
-    if contactEmail is not None:
-        update_data["contactEmail"] = contactEmail
-    if dob is not None:
-        update_data["dob"] = dob
-    if sex is not None:
-        update_data["sex"] = sex
-    if height is not None:
-        update_data["height"] = height
-    if castePreference is not None:
-        update_data["castePreference"] = castePreference
-    if eatingPreference is not None:
-        update_data["eatingPreference"] = eatingPreference
-    if location is not None:
-        update_data["location"] = location
-    if education is not None:
-        update_data["education"] = education
-    if workingStatus is not None:
-        update_data["workingStatus"] = workingStatus
-    if workplace is not None:
-        update_data["workplace"] = workplace
-    if citizenshipStatus is not None:
-        update_data["citizenshipStatus"] = citizenshipStatus
-    if familyBackground is not None:
-        update_data["familyBackground"] = familyBackground
-    if aboutYou is not None:
-        update_data["aboutYou"] = aboutYou
-    if partnerPreference is not None:
-        update_data["partnerPreference"] = partnerPreference
+    if firstName is not None and firstName.strip():
+        update_data["firstName"] = firstName.strip()
+    if lastName is not None and lastName.strip():
+        update_data["lastName"] = lastName.strip()
+    if contactNumber is not None and contactNumber.strip():
+        update_data["contactNumber"] = contactNumber.strip()
+    if contactEmail is not None and contactEmail.strip():
+        update_data["contactEmail"] = contactEmail.strip()
+    if dob is not None and dob.strip():
+        update_data["dob"] = dob.strip()
+    if sex is not None and sex.strip():
+        update_data["sex"] = sex.strip()
+    if height is not None and height.strip():
+        update_data["height"] = height.strip()
+    if castePreference is not None and castePreference.strip():
+        update_data["castePreference"] = castePreference.strip()
+    if eatingPreference is not None and eatingPreference.strip():
+        update_data["eatingPreference"] = eatingPreference.strip()
+    if location is not None and location.strip():
+        update_data["location"] = location.strip()
+    if education is not None and education.strip():
+        update_data["education"] = education.strip()
+    if workingStatus is not None and workingStatus.strip():
+        update_data["workingStatus"] = workingStatus.strip()
+    if workplace is not None and workplace.strip():
+        update_data["workplace"] = workplace.strip()
+    if citizenshipStatus is not None and citizenshipStatus.strip():
+        update_data["citizenshipStatus"] = citizenshipStatus.strip()
+    if familyBackground is not None and familyBackground.strip():
+        update_data["familyBackground"] = familyBackground.strip()
+    if aboutYou is not None and aboutYou.strip():
+        update_data["aboutYou"] = aboutYou.strip()
+    if partnerPreference is not None and partnerPreference.strip():
+        update_data["partnerPreference"] = partnerPreference.strip()
+    
+    logger.info(f"📝 Fields to update: {list(update_data.keys())}")
+    
+    # Handle image deletions and additions
+    existing_images = user.get("images", [])
+    images_modified = False
+    
+    # Handle image deletions
+    if imagesToDelete:
+        try:
+            # Parse the imagesToDelete (could be JSON array or comma-separated)
+            import json
+            try:
+                images_to_delete_list = json.loads(imagesToDelete)
+            except:
+                images_to_delete_list = [img.strip() for img in imagesToDelete.split(',') if img.strip()]
+            
+            if images_to_delete_list:
+                logger.info(f"🗑️ Deleting {len(images_to_delete_list)} image(s) for user '{username}'")
+                # Extract just the filename from full URLs to match against stored paths
+                for img_to_delete in images_to_delete_list:
+                    # Handle both full URLs and relative paths
+                    if img_to_delete.startswith('http'):
+                        # Extract the path after /uploads/
+                        img_path = img_to_delete.split('/uploads/')[-1] if '/uploads/' in img_to_delete else img_to_delete
+                    else:
+                        img_path = img_to_delete
+                    
+                    # Remove from existing images if it matches
+                    existing_images = [img for img in existing_images if img != img_path and not img.endswith(img_path)]
+                    logger.debug(f"  Removed: {img_path}")
+                
+                images_modified = True
+                logger.info(f"✅ Removed {len(images_to_delete_list)} image(s)")
+        except Exception as e:
+            logger.error(f"❌ Error deleting images: {e}", exc_info=True)
     
     # Handle new images
     if images and len(images) > 0:
         logger.info(f"📸 Processing {len(images)} new image(s) for user '{username}'")
         try:
             new_image_paths = await save_multiple_files(images)
-            # Append new images to existing ones
-            existing_images = user.get("images", [])
-            update_data["images"] = existing_images + new_image_paths
+            # Append new images to existing ones (after deletions)
+            existing_images = existing_images + new_image_paths
+            images_modified = True
             logger.info(f"✅ Added {len(new_image_paths)} new image(s)")
         except Exception as e:
             logger.error(f"❌ Error saving images: {e}", exc_info=True)
@@ -442,22 +479,39 @@ async def update_user_profile(
                 detail=f"Failed to save images: {str(e)}"
             )
     
+    # Update images field if modified
+    if images_modified:
+        update_data["images"] = existing_images
+        logger.info(f"📸 Final image count: {len(existing_images)}")
+    
+    # Check if there's anything to update
+    if not update_data:
+        logger.warning(f"⚠️ No valid fields to update for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No valid fields provided for update"
+        )
+    
     # Update timestamp
     from datetime import datetime
     update_data["updatedAt"] = datetime.utcnow().isoformat()
     
     # Update in database
     try:
-        logger.info(f"💾 Updating profile for user '{username}'...")
+        logger.info(f"💾 Updating profile for user '{username}' with {len(update_data)} fields...")
         result = await db.users.update_one(
             {"username": username},
             {"$set": update_data}
         )
         
-        if result.modified_count == 0:
-            logger.warning(f"⚠️ No changes made to user '{username}' profile")
-        else:
-            logger.info(f"✅ Profile updated successfully for user '{username}'")
+        if result.matched_count == 0:
+            logger.error(f"❌ User '{username}' not found during update")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        logger.info(f"✅ Profile updated successfully for user '{username}' (modified: {result.modified_count} fields)")
         
         # Get updated user
         updated_user = await db.users.find_one({"username": username})

@@ -115,15 +115,38 @@ const EditProfile = () => {
       // Prepare form data
       const data = new FormData();
       Object.keys(formData).forEach(key => {
-        data.append(key, formData[key]);
+        if (formData[key] && formData[key].toString().trim()) {
+          data.append(key, formData[key]);
+        }
       });
       
       // Add new images
       images.forEach(img => data.append('images', img));
       
-      // Send update request
-      const response = await api.put(`/profile/${username}`, data);
+      // Add images to delete
+      if (imagesToDelete.length > 0) {
+        data.append('imagesToDelete', JSON.stringify(imagesToDelete));
+      }
       
+      // Log what we're sending
+      console.log('📤 Sending update request for:', username);
+      console.log('📝 Form fields being sent:');
+      for (let [key, value] of data.entries()) {
+        if (key !== 'images') {
+          console.log(`  ${key}: ${value}`);
+        }
+      }
+      console.log(`📸 Images: ${images.length} new file(s)`);
+      console.log(`🗑️ Images to delete: ${imagesToDelete.length}`, imagesToDelete);
+      
+      // Send update request with proper headers
+      const response = await api.put(`/profile/${username}`, data, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      console.log('✅ Update response:', response.data);
       setSuccessMsg('✅ ' + response.data.message);
       
       // Redirect after short delay
@@ -131,7 +154,8 @@ const EditProfile = () => {
         navigate(`/profile/${username}`);
       }, 1500);
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error('❌ Error updating profile:', error);
+      console.error('Error details:', error.response?.data);
       setErrorMsg(error.response?.data?.detail || '❌ Failed to update profile');
     } finally {
       setSaving(false);

@@ -49,6 +49,7 @@ const SearchPage = () => {
   // View mode state
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [showGridLines, setShowGridLines] = useState(false);
 
   // Saved searches state
   const [saveSearchName, setSaveSearchName] = useState('');
@@ -1360,6 +1361,19 @@ const SearchPage = () => {
                 </button>
               </div>
               
+              {/* Grid Lines Toggle */}
+              <div className="grid-lines-toggle">
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={showGridLines}
+                    onChange={(e) => setShowGridLines(e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+                <span className="toggle-label">Table grid lines</span>
+              </div>
+              
               <label htmlFor="perPage" className="per-page-label">Show:</label>
               <select 
                 id="perPage"
@@ -1393,7 +1407,7 @@ const SearchPage = () => {
             </div>
           )}
 
-          <div className={viewMode === 'cards' ? 'results-grid' : 'results-rows'}>
+          <div className={`${viewMode === 'cards' ? 'results-grid' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}>
             {currentRecords.map((user) => {
               const isOnline = onlineUsers.has(user.username);
               
