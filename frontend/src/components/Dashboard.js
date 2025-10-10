@@ -44,7 +44,7 @@ const Dashboard = () => {
     myFavorites: true,
     myShortlists: true,
     myViews: true,
-    myExclusions: false,
+    myExclusions: true,
     myRequests: true,
     theirFavorites: true,
     theirShortlists: true

@@ -118,7 +118,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: userProfile ? getShortName(userProfile) : (currentUser || 'Profile'), 
         subLabel: 'Profile data',
         action: () => navigate(`/profile/${currentUser}`),
-        disabled: false // Always enabled - users need to access their profile
+        disabled: false, // Always enabled - users need to access their profile
+        profileImage: true // Flag to render profile image instead of icon
       },
       { 
         icon: '🔒', 
@@ -254,7 +255,19 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
               onClick={item.disabled ? undefined : item.action}
               title={item.disabled ? 'Please activate your account to access this feature' : ''}
             >
-              <div className="menu-icon">{item.icon}</div>
+              {item.profileImage ? (
+                <div className="menu-icon profile-icon">
+                  {userProfile?.images?.[0] ? (
+                    <img src={userProfile.images[0]} alt={currentUser} className="profile-avatar" />
+                  ) : (
+                    <div className="profile-avatar-placeholder">
+                      {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="menu-icon">{item.icon}</div>
+              )}
               <div className="menu-content">
                 <div className="menu-label">{item.label}</div>
                 {item.subLabel && (

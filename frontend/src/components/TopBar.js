@@ -192,7 +192,15 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           </div>
           
           <div className="user-info" onClick={handleProfile}>
-            <span className="user-icon">👤</span>
+            <div className="user-icon">
+              {userProfile?.images?.[0] ? (
+                <img src={userProfile.images[0]} alt={currentUser} className="topbar-profile-avatar" />
+              ) : (
+                <div className="topbar-profile-placeholder">
+                  {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
+                </div>
+              )}
+            </div>
             <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
           <button className="btn-logout" onClick={handleLogout}>

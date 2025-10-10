@@ -1200,8 +1200,19 @@ async def get_exclusions(username: str, db = Depends(get_database)):
         exclusions_cursor = db.exclusions.find({"userUsername": username})
         exclusions = await exclusions_cursor.to_list(100)
 
-        logger.info(f"✅ Found {len(exclusions)} exclusions for {username}")
-        return {"exclusions": [exc["excludedUsername"] for exc in exclusions]}
+        # Get full user details for each excluded user
+        excluded_users = []
+        for exc in exclusions:
+            user = await db.users.find_one({"username": exc["excludedUsername"]})
+            if user:
+                user.pop("password", None)
+                user.pop("_id", None)
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                user["excludedAt"] = exc.get("createdAt")
+                excluded_users.append(user)
+
+        logger.info(f"✅ Found {len(excluded_users)} exclusions for {username}")
+        return {"exclusions": excluded_users}
     except Exception as e:
         logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
