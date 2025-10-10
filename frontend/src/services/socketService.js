@@ -20,14 +20,18 @@ class SocketService {
     this.username = username;
     
     console.log('🔌 Attempting to connect to Socket.IO server at http://localhost:8000');
+    console.log('👤 Username for connection:', username);
     
-    // Connect to Socket.IO server
+    // Connect to Socket.IO server with username in headers
     this.socket = io('http://localhost:8000', {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
       reconnectionDelay: 1000,
-      reconnectionAttempts: 5
+      reconnectionAttempts: 5,
+      extraHeaders: {
+        'username': username
+      }
     });
     
     console.log('📡 Socket.IO client initialized:', !!this.socket);

@@ -36,15 +36,36 @@ function App() {
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
 
-  // Start message polling when user is logged in
+  // Start message polling, WebSocket, realtime messaging, and mark user as online when logged in
   useEffect(() => {
     console.log('🚀 App.js useEffect running - checking for username');
     const username = localStorage.getItem('username');
     console.log('👤 Username from localStorage:', username);
     
     if (username) {
-      console.log('✅ Username found, starting message polling');
-      // Dynamic import with error handling
+      console.log('✅ Username found, starting services');
+      
+      // Initialize realtime messaging service (SSE)
+      import('./services/realtimeMessagingService')
+        .then(module => {
+          console.log('📡 Initializing realtime messaging service');
+          module.default.initialize(username);
+        })
+        .catch(error => {
+          console.error('❌ Failed to initialize realtime messaging:', error);
+        });
+      
+      // Connect to WebSocket
+      import('./services/socketService')
+        .then(module => {
+          console.log('🔌 Connecting to WebSocket');
+          module.default.connect(username);
+        })
+        .catch(error => {
+          console.error('❌ Failed to connect to WebSocket:', error);
+        });
+      
+      // Start message polling (backup)
       import('./services/messagePollingService')
         .then(module => {
           console.log('📦 Message polling service loaded');
@@ -53,13 +74,46 @@ function App() {
         .catch(error => {
           console.error('❌ Failed to load message polling service:', error);
         });
+      
+      // Mark user as online
+      import('./services/onlineStatusService')
+        .then(module => {
+          console.log('🟢 Marking user as online');
+          module.default.goOnline(username);
+        })
+        .catch(error => {
+          console.error('❌ Failed to mark user as online:', error);
+        });
     } else {
-      console.log('⚠️ No username in localStorage, skipping message polling');
+      console.log('⚠️ No username in localStorage, skipping services');
     }
 
     // Cleanup on unmount
     return () => {
-      console.log('🧹 App.js cleanup - stopping message polling');
+      const username = localStorage.getItem('username');
+      console.log('🧹 App.js cleanup - stopping services');
+      
+      // Disconnect realtime messaging service
+      import('./services/realtimeMessagingService')
+        .then(module => {
+          console.log('📡 Disconnecting realtime messaging');
+          module.default.disconnect();
+        })
+        .catch(error => {
+          console.error('❌ Failed to disconnect realtime messaging:', error);
+        });
+      
+      // Disconnect WebSocket
+      import('./services/socketService')
+        .then(module => {
+          console.log('🔌 Disconnecting WebSocket');
+          module.default.disconnect();
+        })
+        .catch(error => {
+          console.error('❌ Failed to disconnect WebSocket:', error);
+        });
+      
+      // Stop message polling
       import('./services/messagePollingService')
         .then(module => {
           module.default.stopPolling();
@@ -67,6 +121,18 @@ function App() {
         .catch(error => {
           console.error('❌ Failed to stop message polling:', error);
         });
+      
+      // Mark user as offline
+      if (username) {
+        import('./services/onlineStatusService')
+          .then(module => {
+            console.log('⚪ Marking user as offline');
+            module.default.goOffline(username);
+          })
+          .catch(error => {
+            console.error('❌ Failed to mark user as offline:', error);
+          });
+      }
     };
   }, []);
 

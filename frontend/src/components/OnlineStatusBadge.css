@@ -4,24 +4,25 @@
   border: 2px solid white;
   flex-shrink: 0;
   position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 /* Sizes */
 .status-badge-small {
-  width: 10px;
-  height: 10px;
-  border-width: 2px;
-}
-
-.status-badge-medium {
   width: 14px;
   height: 14px;
   border-width: 2px;
 }
 
-.status-badge-large {
+.status-badge-medium {
   width: 18px;
   height: 18px;
+  border-width: 2px;
+}
+
+.status-badge-large {
+  width: 22px;
+  height: 22px;
   border-width: 3px;
 }
 

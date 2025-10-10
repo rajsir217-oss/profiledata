@@ -5,7 +5,7 @@ import './OnlineStatusBadge.css';
 /**
  * OnlineStatusBadge Component
  * Displays a green/gray indicator showing if a user is online
- * Auto-updates every 30 seconds
+ * Auto-updates every 15 seconds for more responsive status changes
  */
 const OnlineStatusBadge = ({ username, size = 'small', showTooltip = true }) => {
   const [isOnline, setIsOnline] = useState(false);
@@ -20,10 +20,20 @@ const OnlineStatusBadge = ({ username, size = 'small', showTooltip = true }) => 
     // Initial check
     checkStatus();
 
-    // Update every 30 seconds
-    const interval = setInterval(checkStatus, 30000);
+    // Update every 15 seconds (reduced from 30s for more responsive updates)
+    const interval = setInterval(checkStatus, 15000);
 
-    return () => clearInterval(interval);
+    // Subscribe to real-time status changes
+    const unsubscribe = onlineStatusService.subscribe((changedUsername, online) => {
+      if (changedUsername === username) {
+        setIsOnline(online);
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
   }, [username]);
 
   const checkStatus = async () => {

@@ -1,13 +1,20 @@
 # fastapi_backend/routes.py
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request, Query
 from fastapi.responses import JSONResponse
-from typing import List, Optional
-from datetime import datetime, timedelta
+from typing import List, Optional, Dict, Any
+from datetime import datetime, timedelta, date
+import time
+import logging
+import uuid
+import hashlib
+import shutil
+import json
+from pathlib import Path
+from sse_starlette.sse import EventSourceResponse
 from models import (
-    UserCreate, UserResponse, LoginRequest, Token, 
     MessageCreate, ConversationResponse, ProfileViewCreate,
     PIIRequest, PIIRequestCreate, PIIRequestResponse, 
-    PIIAccess, PIIAccessCreate
+    PIIAccess, PIIAccessCreate, LoginRequest
 )
 from database import get_database
 from utils import save_multiple_files, get_full_image_url
@@ -2716,20 +2723,36 @@ async def check_user_online(username: str):
 
 @router.post("/online-status/{username}/online")
 async def mark_user_online(username: str):
-    """Mark user as online"""
+    """Mark user as online and broadcast to all clients"""
     from redis_manager import get_redis_manager
+    from websocket_manager import sio, broadcast_online_count
     
     redis = get_redis_manager()
     success = redis.set_user_online(username)
+    
+    if success:
+        # Broadcast to all connected clients via WebSocket
+        await sio.emit('user_online', {'username': username})
+        await broadcast_online_count()
+        logger.info(f"🟢 Broadcasted online status for '{username}'")
+    
     return {"username": username, "online": success}
 
 @router.post("/online-status/{username}/offline")
 async def mark_user_offline(username: str):
-    """Mark user as offline"""
+    """Mark user as offline and broadcast to all clients"""
     from redis_manager import get_redis_manager
+    from websocket_manager import sio, broadcast_online_count
     
     redis = get_redis_manager()
     success = redis.set_user_offline(username)
+    
+    if success:
+        # Broadcast to all connected clients via WebSocket
+        await sio.emit('user_offline', {'username': username})
+        await broadcast_online_count()
+        logger.info(f"⚪ Broadcasted offline status for '{username}'")
+    
     return {"username": username, "offline": success}
 
 @router.post("/online-status/{username}/refresh")
@@ -2741,18 +2764,66 @@ async def refresh_user_online(username: str):
     success = redis.refresh_user_online(username)
     return {"username": username, "refreshed": success}
 
+# ==================== SSE Real-time Messaging Endpoints ====================
+
+@router.get("/messages/stream/{username}")
+async def stream_messages(username: str, request: Request):
+    """
+    SSE endpoint for real-time message streaming
+    """
+    from sse_manager import get_sse_manager
+    
+    logger.info(f"📡 SSE stream requested for user: {username}")
+    
+    async def event_generator():
+        sse_manager = get_sse_manager()
+        async for event in sse_manager.subscribe_to_user_channel(username):
+            # Check if client disconnected
+            if await request.is_disconnected():
+                break
+            yield event
+    
+    return EventSourceResponse(event_generator())
+
+@router.get("/messages/unread-counts/{username}")
+async def get_unread_counts(username: str):
+    """
+    Get unread message counts for all conversations
+    """
+    from redis_manager import get_redis_manager
+    
+    try:
+        redis = get_redis_manager()
+        
+        # Get all conversations for this user
+        conversations = redis.get_conversations(username)
+        unread_counts = {}
+        
+        for conv_username in conversations:
+            # Get unread count for each conversation
+            messages = redis.get_conversation(username, conv_username)
+            unread = sum(1 for msg in messages if not msg.get('read', False) and msg['from'] == conv_username)
+            if unread > 0:
+                unread_counts[conv_username] = unread
+        
+        logger.info(f"📊 Unread counts for {username}: {unread_counts}")
+        return {"unread_counts": unread_counts}
+    except Exception as e:
+        logger.error(f"❌ Error getting unread counts: {e}")
+        return {"unread_counts": {}}
+
 # Helper function for age calculation
 def calculate_age(dob):
     """Calculate age from date of birth"""
     if not dob:
         return None
-    try:
-        if isinstance(dob, str):
-            birth_date = datetime.strptime(dob, "%Y-%m-%d")
-        else:
-            birth_date = dob
-        today = datetime.today()
-        age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
-        return age
-    except:
-        return None
+    if isinstance(dob, str):
+        try:
+            dob = datetime.strptime(dob, "%Y-%m-%d").date()
+        except:
+            return None
+    elif isinstance(dob, datetime):
+        dob = dob.date()
+    today = date.today()
+    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    return age

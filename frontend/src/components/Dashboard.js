@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
 import OnlineStatusBadge from './OnlineStatusBadge';
+import MessageBadge from './MessageBadge';
 import socketService from '../services/socketService';
+import realtimeMessagingService from '../services/realtimeMessagingService';
 import { getDisplayName } from '../utils/userDisplay';
 import './Dashboard.css';
 
@@ -56,6 +58,11 @@ const Dashboard = () => {
       return;
     }
 
+    // Initialize realtime messaging service
+    if (currentUser) {
+      realtimeMessagingService.initialize(currentUser);
+    }
+    
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
       loadDashboardData(currentUser);
@@ -291,6 +298,8 @@ const Dashboard = () => {
             <div className="status-badge-absolute">
               <OnlineStatusBadge username={username} size="small" />
             </div>
+            {/* Message badge for unread messages */}
+            <MessageBadge username={username} size="small" showCount={true} />
           </div>
         </div>
         

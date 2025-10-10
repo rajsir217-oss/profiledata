@@ -28,7 +28,7 @@ class RedisManager:
         self.TYPING_PREFIX = "typing:"
         
         # TTL settings (in seconds)
-        self.ONLINE_TTL = 300  # 5 minutes
+        self.ONLINE_TTL = 120  # 2 minutes (reduced from 5 for more accurate status)
         self.TYPING_TTL = 5    # 5 seconds
         
     def connect(self):
@@ -70,10 +70,10 @@ class RedisManager:
             # Set user online with TTL
             self.redis_client.setex(key, self.ONLINE_TTL, timestamp)
             
-            # Add to online users set
-            self.redis_client.sadd(self.ONLINE_SET, username)
+            # Add to online users set with score (timestamp for cleanup)
+            self.redis_client.zadd(self.ONLINE_SET, {username: datetime.now().timestamp()})
             
-            logger.info(f"🟢 User '{username}' marked as online")
+            logger.info(f"🟢 User '{username}' marked as online (TTL: {self.ONLINE_TTL}s)")
             return True
         except Exception as e:
             logger.error(f"❌ Error setting user online: {e}")
@@ -87,8 +87,8 @@ class RedisManager:
             # Remove online status
             self.redis_client.delete(key)
             
-            # Remove from online users set
-            self.redis_client.srem(self.ONLINE_SET, username)
+            # Remove from online users sorted set
+            self.redis_client.zrem(self.ONLINE_SET, username)
             
             logger.info(f"⚪ User '{username}' marked as offline")
             return True
@@ -106,21 +106,28 @@ class RedisManager:
             return False
     
     def get_online_users(self) -> List[str]:
-        """Get list of all online users"""
+        """Get list of all online users with automatic cleanup of stale entries"""
         try:
-            # Get all members from online users set
-            online_users = self.redis_client.smembers(self.ONLINE_SET)
+            # Get all members from online users sorted set
+            online_users = self.redis_client.zrange(self.ONLINE_SET, 0, -1)
             
-            # Verify each user is still online (has valid key)
+            # Verify each user is still online (has valid key) and cleanup stale entries
             valid_users = []
+            stale_users = []
+            
             for username in online_users:
                 if self.is_user_online(username):
                     valid_users.append(username)
                 else:
-                    # Remove stale entry
-                    self.redis_client.srem(self.ONLINE_SET, username)
+                    # Mark for removal
+                    stale_users.append(username)
             
-            logger.info(f"🟢 Found {len(valid_users)} online users")
+            # Remove all stale entries in one operation
+            if stale_users:
+                self.redis_client.zrem(self.ONLINE_SET, *stale_users)
+                logger.info(f"🧹 Cleaned up {len(stale_users)} stale online entries: {stale_users}")
+            
+            logger.info(f"🟢 Found {len(valid_users)} online users: {valid_users}")
             return valid_users
         except Exception as e:
             logger.error(f"❌ Error getting online users: {e}")
@@ -131,7 +138,10 @@ class RedisManager:
         try:
             key = f"{self.ONLINE_PREFIX}{username}"
             if self.redis_client.exists(key):
+                # Extend TTL on the key
                 self.redis_client.expire(key, self.ONLINE_TTL)
+                # Update timestamp in sorted set
+                self.redis_client.zadd(self.ONLINE_SET, {username: datetime.now().timestamp()})
                 return True
             else:
                 # User was offline, mark as online
@@ -259,10 +269,67 @@ class RedisManager:
         try:
             queue_key = f"{self.MESSAGE_PREFIX}{username}"
             messages = self.redis_client.lrange(queue_key, 0, limit - 1)
-            
             return [json.loads(msg) for msg in messages]
         except Exception as e:
             logger.error(f"❌ Error getting messages: {e}")
+            return []
+    
+    def get_conversations(self, username: str) -> List[str]:
+        """Get list of usernames that have conversations with the given user"""
+        try:
+            # Get all conversation keys for this user
+            pattern = f"conversation:{username}:*"
+            keys = self.redis_client.keys(pattern)
+            
+            conversations = []
+            for key in keys:
+                # Extract the other username from the key
+                parts = key.split(':')
+                if len(parts) == 3:
+                    other_user = parts[2]
+                    conversations.append(other_user)
+            
+            # Also check reverse pattern
+            pattern = f"conversation:*:{username}"
+            keys = self.redis_client.keys(pattern)
+            for key in keys:
+                parts = key.split(':')
+                if len(parts) == 3:
+                    other_user = parts[1]
+                    if other_user not in conversations:
+                        conversations.append(other_user)
+            
+            return conversations
+        except Exception as e:
+            logger.error(f"❌ Error getting conversations: {e}")
+            return []
+    
+    def get_conversation(self, user1: str, user2: str) -> List[Dict]:
+        """Get messages between two users"""
+        try:
+            # Try both possible conversation keys
+            key1 = f"conversation:{user1}:{user2}"
+            key2 = f"conversation:{user2}:{user1}"
+            
+            messages = []
+            
+            # Get messages from both possible keys
+            for key in [key1, key2]:
+                messages_str = self.redis_client.get(key)
+                if messages_str:
+                    try:
+                        conv_messages = json.loads(messages_str)
+                        if isinstance(conv_messages, list):
+                            messages.extend(conv_messages)
+                    except json.JSONDecodeError:
+                        logger.error(f"❌ Error decoding messages from {key}")
+            
+            # Sort by timestamp if available
+            messages.sort(key=lambda x: x.get('timestamp', ''), reverse=False)
+            
+            return messages
+        except Exception as e:
+            logger.error(f"❌ Error getting conversation: {e}")
             return []
     
     def mark_messages_read(self, username: str, from_user: str) -> bool:

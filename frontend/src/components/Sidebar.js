@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import onlineStatusService from '../services/onlineStatusService';
+import socketService from '../services/socketService';
 import { getDisplayName, getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
 
@@ -54,7 +56,19 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     navigate('/login');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const username = currentUser;
+    
+    // Mark user as offline
+    if (username) {
+      console.log('⚪ Logout, marking user as offline');
+      await onlineStatusService.goOffline(username);
+    }
+    
+    // Disconnect WebSocket
+    console.log('🔌 Disconnecting WebSocket');
+    socketService.disconnect();
+    
     localStorage.removeItem('username');
     localStorage.removeItem('token');
     setIsLoggedIn(false);

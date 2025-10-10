@@ -119,7 +119,7 @@ class MessagePollingService {
 
       const response = await api.get(`/messages/poll/${this.username}`, { 
         params,
-        timeout: 5000 // 5 second timeout
+        timeout: 30000 // 30 second timeout for long polling
       });
       
       // Validate response

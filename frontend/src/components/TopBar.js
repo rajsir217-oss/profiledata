@@ -82,7 +82,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     return () => clearInterval(interval);
   }, [currentUser]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const username = currentUser;
+    
+    // Mark user as offline
+    if (username) {
+      console.log('⚪ Logout, marking user as offline');
+      await onlineStatusService.goOffline(username);
+    }
+    
+    // Disconnect WebSocket
+    console.log('🔌 Disconnecting WebSocket');
+    socketService.disconnect();
+    
     localStorage.removeItem('username');
     localStorage.removeItem('token');
     setIsLoggedIn(false);

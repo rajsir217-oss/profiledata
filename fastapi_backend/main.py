@@ -17,6 +17,7 @@ from auth.admin_routes import router as admin_router
 from auth.auth_routes import router as auth_router
 from config import settings
 from websocket_manager import sio
+from sse_manager import sse_manager
 
 # Configure logging
 logging.basicConfig(
@@ -45,11 +46,19 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("⚠️ Redis connection failed - online status features may not work")
     
+    # Initialize SSE Manager
+    await sse_manager.initialize()
+    logger.info("✅ SSE Manager initialized for real-time messaging")
+    
     yield
     
     # Shutdown
     logger.info("👋 Shutting down FastAPI application...")
     await close_mongo_connection()
+    
+    # Close SSE Manager
+    await sse_manager.close()
+    logger.info("🔌 SSE Manager closed")
     
     # Disconnect Redis
     from redis_manager import redis_manager

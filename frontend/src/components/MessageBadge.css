@@ -1,0 +1,113 @@
+/* MessageBadge.css */
+
+.message-badge {
+  position: absolute;
+  bottom: 5px;
+  right: 5px;
+  background: linear-gradient(135deg, #00c851, #00ff5e);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 200, 81, 0.4);
+  animation: pulse 2s infinite;
+  z-index: 15;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 200, 81, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(0, 200, 81, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 200, 81, 0);
+  }
+}
+
+/* Size variations */
+.message-badge-small {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+}
+
+.message-badge-medium {
+  width: 32px;
+  height: 32px;
+  font-size: 12px;
+}
+
+.message-badge-large {
+  width: 40px;
+  height: 40px;
+  font-size: 14px;
+}
+
+.message-icon {
+  filter: brightness(0) invert(1);
+  font-size: inherit;
+}
+
+.message-count {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #ff0000;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-weight: bold;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Profile card specific positioning */
+.profile-card {
+  position: relative;
+}
+
+.profile-card .message-badge {
+  bottom: 10px;
+  right: 10px;
+}
+
+/* For inline badges */
+.message-badge-inline {
+  position: relative;
+  display: inline-flex;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* Green glow effect */
+.message-badge.has-unread {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 5px #00c851, 0 0 10px #00c851, 0 0 15px #00c851;
+  }
+  to {
+    box-shadow: 0 0 10px #00ff5e, 0 0 20px #00ff5e, 0 0 30px #00ff5e;
+  }
+}
+
+/* For dashboard cards */
+.dashboard-card .message-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+}
+
+/* For search results */
+.search-result-card .message-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}

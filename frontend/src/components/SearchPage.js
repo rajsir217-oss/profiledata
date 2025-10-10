@@ -192,7 +192,6 @@ const SearchPage = () => {
     const currentImage = user.images && user.images.length > currentIndex ? user.images[currentIndex] : null;
     const hasError = imageErrors[user.username] || false;
 
-    // Check if user has access to view images
     const hasImageAccess = hasPiiAccess(user.username, 'images');
 
     // If no access to images, show masked version
@@ -215,13 +214,16 @@ const SearchPage = () => {
               {isPiiRequestPending(user.username, 'images') ? 'Pending' : 'Request Access'}
             </button>
           </div>
+          {/* Online Status Badge */}
+          <div className="status-badge-absolute">
+            <OnlineStatusBadge username={user.username} size="medium" />
+          </div>
         </div>
       );
     }
 
     // Check if image is already a full URL (from search results) or relative path (from profile view)
     const imageSrc = currentImage && currentImage.startsWith('http') ? currentImage : `http://localhost:8000${currentImage}`;
-
     return (
       <div className="profile-image-container">
         {currentImage && !hasError ? (
@@ -273,6 +275,11 @@ const SearchPage = () => {
             </div>
           </>
         )}
+        
+        {/* Online Status Badge */}
+        <div className="status-badge-absolute">
+          <OnlineStatusBadge username={user.username} size="medium" />
+        </div>
       </div>
     );
   };
@@ -1389,9 +1396,6 @@ const SearchPage = () => {
                   <div className="card-title-section">
                     <h6 className="card-title">
                       {getDisplayName(user)}
-                      <span className="status-badge-inline">
-                        <OnlineStatusBadge username={user.username} size="small" />
-                      </span>
                     </h6>
                     <span className="age-badge">{calculateAge(user.dob)} years</span>
                   </div>
