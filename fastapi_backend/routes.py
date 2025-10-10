@@ -2784,7 +2784,7 @@ async def check_user_online(username: str):
     redis = get_redis_manager()
     online = redis.is_user_online(username)
     logger.info(f"User '{username}' online status: {online}")
-    return {"username": username, "online": online}
+    return {"username": username, "isOnline": online}
 
 @router.post("/online-status/{username}/online")
 async def mark_user_online(username: str):

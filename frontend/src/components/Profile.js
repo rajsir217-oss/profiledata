@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import PIIRequestModal from "./PIIRequestModal";
-import socketService from "../services/socketService";
+import onlineStatusService from "../services/onlineStatusService";
 import "./Profile.css";
 
 const Profile = () => {
@@ -14,6 +14,7 @@ const Profile = () => {
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   
   console.log('📍 Profile component loaded for username:', username);
   
@@ -63,8 +64,9 @@ const Profile = () => {
           // Check PII access
           await checkPIIAccess();
           
-          // Check initial online status
-          await checkOnlineStatus();
+          // Check initial online status using service
+          const online = await onlineStatusService.isUserOnline(username);
+          setIsOnline(online);
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
@@ -75,39 +77,26 @@ const Profile = () => {
     };
     fetchProfile();
     
-    // Poll for access changes every 10 seconds (in case access was revoked)
+    // Poll for PII access changes every 10 seconds
     const accessCheckInterval = setInterval(() => {
       if (currentUsername && currentUsername !== username) {
         checkPIIAccess();
       }
     }, 10000);
     
-    // Listen for online status updates
-    const handleUserOnline = (data) => {
-      console.log('🟢 User online event:', data);
-      if (data.username === username) {
-        console.log(`✅ ${username} came online!`);
-        setIsOnline(true);
+    // Subscribe to online status changes for this user
+    const unsubscribe = onlineStatusService.subscribe((changedUsername, online) => {
+      if (changedUsername === username) {
+        console.log(`🔄 Status update for ${username}:`, online ? 'online' : 'offline');
+        setIsOnline(online);
       }
-    };
-    
-    const handleUserOffline = (data) => {
-      console.log('⚪ User offline event:', data);
-      if (data.username === username) {
-        console.log(`❌ ${username} went offline!`);
-        setIsOnline(false);
-      }
-    };
-    
-    socketService.on('user_online', handleUserOnline);
-    socketService.on('user_offline', handleUserOffline);
+    });
     
     return () => {
       clearInterval(accessCheckInterval);
-      socketService.off('user_online', handleUserOnline);
-      socketService.off('user_offline', handleUserOffline);
+      unsubscribe();
     };
-  }, [username]);
+  }, [username, currentUsername]);
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
@@ -126,17 +115,6 @@ const Profile = () => {
       });
     } catch (err) {
       console.error("Error checking PII access:", err);
-    }
-  };
-
-  const checkOnlineStatus = async () => {
-    try {
-      console.log(`🔍 Checking online status for: ${username}`);
-      const res = await api.get(`/online-status/${username}`);
-      console.log(`✅ Online status response:`, res.data);
-      setIsOnline(res.data.isOnline);
-    } catch (err) {
-      console.error("❌ Error checking online status:", err);
     }
   };
 
@@ -168,25 +146,30 @@ const Profile = () => {
 
   return (
     <div className="container mt-4">
-      {/* Status Message Alert */}
+      {/* Status Message Bubble */}
       {statusMessage && (
-        <div className="status-alert" style={{
+        <div className="status-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
           backgroundColor: '#fff3cd',
           border: '1px solid #ffc107',
-          borderRadius: '8px',
-          padding: '15px 20px',
-          marginBottom: '20px',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
           display: 'flex',
-          alignItems: 'center',
+          alignItems: 'flex-start',
           gap: '10px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.3s ease-out'
         }}>
-          <span style={{ fontSize: '24px' }}>⚠️</span>
-          <div style={{ flex: 1 }}>
-            <strong style={{ color: '#856404', display: 'block', marginBottom: '5px' }}>
-              Account Status Notice
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>⚠️</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#856404', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Account Status
             </strong>
-            <p style={{ color: '#856404', margin: 0, fontSize: '14px' }}>
+            <p style={{ color: '#856404', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
               {statusMessage}
             </p>
           </div>
@@ -195,10 +178,66 @@ const Profile = () => {
             style={{
               background: 'none',
               border: 'none',
-              fontSize: '20px',
+              fontSize: '18px',
               cursor: 'pointer',
               color: '#856404',
-              padding: '5px 10px'
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Success Message Bubble */}
+      {successMessage && (
+        <div className="status-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#d4edda',
+          border: '1px solid #c3e6cb',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#155724', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Success
+            </strong>
+            <p style={{ color: '#155724', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {successMessage}
+            </p>
+          </div>
+          <button 
+            onClick={() => setSuccessMessage("")}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#155724',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
             }}
             title="Dismiss"
           >
@@ -217,14 +256,14 @@ const Profile = () => {
               </span>
             )}
           </h2>
-          {!isOwnProfile && (
+          {/* {!isOwnProfile && (
             <p className="online-status-text">
               {isOnline ? '🟢 Online now' : '⚪ Offline'}
               <span style={{fontSize: '10px', marginLeft: '10px', color: '#999'}}>
                 (Debug: {username})
               </span>
             </p>
-          )}
+          )} */}
         </div>
         {isOwnProfile && (
           <button 
@@ -270,67 +309,6 @@ const Profile = () => {
         </div>
       )}
       
-      {/* Profile Images Section */}
-      <div className="profile-section">
-        <h3>📷 Photos</h3>
-        {isOwnProfile || piiAccess.images ? (
-          user.images?.length > 0 ? (
-            <div
-              id="profileCarousel"
-              className="carousel slide profile-carousel"
-              data-bs-ride="carousel"
-            >
-              <div className="carousel-inner">
-                {user.images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className={`carousel-item ${idx === 0 ? "active" : ""}`}
-                  >
-                    <img
-                      src={img}
-                      className="d-block w-100"
-                      alt={`Slide ${idx + 1}`}
-                      style={{ maxHeight: "500px", objectFit: "cover" }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <button
-                className="carousel-control-prev"
-                type="button"
-                data-bs-target="#profileCarousel"
-                data-bs-slide="prev"
-              >
-                <span className="carousel-control-prev-icon" aria-hidden="true" />
-                <span className="visually-hidden">Previous</span>
-              </button>
-              <button
-                className="carousel-control-next"
-                type="button"
-                data-bs-target="#profileCarousel"
-                data-bs-slide="next"
-              >
-                <span className="carousel-control-next-icon" aria-hidden="true" />
-                <span className="visually-hidden">Next</span>
-              </button>
-            </div>
-          ) : (
-            <p className="no-data">No photos available</p>
-          )
-        ) : (
-          <div className="pii-locked">
-            <div className="lock-icon">🔒</div>
-            <p>Photos are private</p>
-            <button
-              className="btn-request-small"
-              onClick={() => setShowPIIRequestModal(true)}
-            >
-              Request Access
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Basic Info (Always visible) */}
       <div className="profile-section">
         <h3>👤 Basic Information</h3>
@@ -403,6 +381,67 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Profile Images Section */}
+      <div className="profile-section">
+        <h3>📷 Photos</h3>
+        {isOwnProfile || piiAccess.images ? (
+          user.images?.length > 0 ? (
+            <div
+              id="profileCarousel"
+              className="carousel slide profile-carousel"
+              data-bs-ride="carousel"
+            >
+              <div className="carousel-inner">
+                {user.images.map((img, idx) => (
+                  <div
+                    key={idx}
+                    className={`carousel-item ${idx === 0 ? "active" : ""}`}
+                  >
+                    <img
+                      src={img}
+                      className="d-block w-100"
+                      alt={`Slide ${idx + 1}`}
+                      style={{ maxHeight: "500px", objectFit: "cover" }}
+                    />
+                  </div>
+                ))}
+              </div>
+              <button
+                className="carousel-control-prev"
+                type="button"
+                data-bs-target="#profileCarousel"
+                data-bs-slide="prev"
+              >
+                <span className="carousel-control-prev-icon" aria-hidden="true" />
+                <span className="visually-hidden">Previous</span>
+              </button>
+              <button
+                className="carousel-control-next"
+                type="button"
+                data-bs-target="#profileCarousel"
+                data-bs-slide="next"
+              >
+                <span className="carousel-control-next-icon" aria-hidden="true" />
+                <span className="visually-hidden">Next</span>
+              </button>
+            </div>
+          ) : (
+            <p className="no-data">No photos available</p>
+          )
+        ) : (
+          <div className="pii-locked">
+            <div className="lock-icon">🔒</div>
+            <p>Photos are private</p>
+            <button
+              className="btn-request-small"
+              onClick={() => setShowPIIRequestModal(true)}
+            >
+              Request Access
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* PII Request Modal */}
       <PIIRequestModal
         isOpen={showPIIRequestModal}
@@ -411,7 +450,8 @@ const Profile = () => {
         currentAccess={piiAccess}
         onClose={() => setShowPIIRequestModal(false)}
         onSuccess={() => {
-          alert('Request sent successfully!');
+          setSuccessMessage('Request sent successfully!');
+          setTimeout(() => setSuccessMessage(''), 5000); // Auto-hide after 5 seconds
           checkPIIAccess(); // Refresh access status
         }}
       />

@@ -160,7 +160,7 @@ class OnlineStatusService {
 
       // Fetch from server
       const response = await api.get(`/online-status/${username}`);
-      const online = response.data.online || false;
+      const online = response.data.isOnline || false;
       
       // Update cache
       this.statusCache.set(username, {

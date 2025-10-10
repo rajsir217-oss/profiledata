@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import socketService from '../services/socketService';
+import onlineStatusService from '../services/onlineStatusService';
 import './OnlineStatusBadge.css';
 
 /**
@@ -15,7 +15,7 @@ const OnlineStatusBadge = ({ username, size = 'small', showTooltip = true }) => 
     if (!username) return;
 
     try {
-      const online = await socketService.isUserOnline(username);
+      const online = await onlineStatusService.isUserOnline(username);
       setIsOnline(online);
       setLoading(false);
     } catch (error) {
@@ -39,28 +39,17 @@ const OnlineStatusBadge = ({ username, size = 'small', showTooltip = true }) => 
       checkStatus();
     }, 30000);
 
-    // Subscribe to real-time status changes via WebSocket
-    const handleUserOnline = (data) => {
-      if (data.username === username) {
-        setIsOnline(true);
+    // Subscribe to real-time status changes via onlineStatusService
+    const unsubscribe = onlineStatusService.subscribe((changedUsername, online) => {
+      if (changedUsername === username) {
+        setIsOnline(online);
         setLoading(false);
       }
-    };
-
-    const handleUserOffline = (data) => {
-      if (data.username === username) {
-        setIsOnline(false);
-        setLoading(false);
-      }
-    };
-
-    socketService.on('user_online', handleUserOnline);
-    socketService.on('user_offline', handleUserOffline);
+    });
 
     return () => {
       clearInterval(statusCheckInterval);
-      socketService.off('user_online', handleUserOnline);
-      socketService.off('user_offline', handleUserOffline);
+      unsubscribe();
     };
   }, [username, checkStatus]);
 

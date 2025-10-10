@@ -266,17 +266,60 @@ const PIIManagement = () => {
 
   return (
     <div className="pii-management-page">
+      {/* Error Message Bubble */}
+      {error && (
+        <div className="status-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#721c24', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Error
+            </strong>
+            <p style={{ color: '#721c24', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {error}
+            </p>
+          </div>
+          <button 
+            onClick={() => setError('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#721c24',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="pii-header">
         <h2>🔒 Privacy & Data Management</h2>
         <p>Manage who can access your private information</p>
       </div>
-
-      {error && (
-        <div className="alert alert-danger alert-dismissible">
-          {error}
-          <button onClick={() => setError('')} className="btn-close">×</button>
-        </div>
-      )}
 
       {/* Tabs */}
       <div className="pii-tabs">

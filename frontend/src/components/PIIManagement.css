@@ -510,3 +510,25 @@
     width: 100%;
   }
 }
+
+/* Status Bubble Animation */
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Status Bubble Responsive */
+@media (max-width: 768px) {
+  .status-bubble {
+    top: 70px !important;
+    right: 10px !important;
+    left: 10px !important;
+    max-width: calc(100% - 20px) !important;
+  }
+}

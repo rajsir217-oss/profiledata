@@ -7,6 +7,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const currentUsername = localStorage.getItem('username');
 
   const piiTypes = [
@@ -54,16 +55,26 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         message: message.trim() || null
       });
 
-      // Success
-      if (onSuccess) onSuccess();
-      onClose();
+      // Show success message
+      setSuccessMessage(`Request sent successfully to ${profileName}!`);
       
-      // Reset form
-      setSelectedTypes([]);
-      setMessage('');
+      // Auto-hide success message and close modal
+      setTimeout(() => {
+        setSuccessMessage('');
+        onClose();
+        
+        // Reset form
+        setSelectedTypes([]);
+        setMessage('');
+        
+        // Call parent success handler
+        if (onSuccess) onSuccess();
+      }, 2000);
     } catch (err) {
       console.error('Error creating PII request:', err);
       setError(err.response?.data?.detail || 'Failed to send request');
+      // Auto-hide error after 5 seconds
+      setTimeout(() => setError(''), 5000);
     } finally {
       setSubmitting(false);
     }
@@ -79,6 +90,86 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
 
   return (
     <div className="pii-modal-overlay" onClick={handleOverlayClick}>
+      {/* Error Bubble */}
+      {error && (
+        <div className="status-bubble error-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#f8d7da',
+          border: '1px solid #f5c6cb',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 2000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#721c24', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Error
+            </strong>
+            <p style={{ color: '#721c24', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {error}
+            </p>
+          </div>
+          <button 
+            onClick={() => setError('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#721c24',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* Success Bubble */}
+      {successMessage && (
+        <div className="status-bubble success-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#d4edda',
+          border: '1px solid #c3e6cb',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 2000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#155724', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Success
+            </strong>
+            <p style={{ color: '#155724', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {successMessage}
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="pii-modal">
         <div className="pii-modal-header">
           <h3>🔒 Request Access to Information</h3>
@@ -87,12 +178,6 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         </div>
 
         <form onSubmit={handleSubmit} className="pii-modal-body">
-          {error && (
-            <div className="alert alert-danger">
-              {error}
-            </div>
-          )}
-
           <div className="pii-types-section">
             <label className="section-label">Select information to request:</label>
             
