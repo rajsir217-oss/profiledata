@@ -155,24 +155,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '⭐', 
-        label: 'My Favorites', 
-        subLabel: 'Profiles I liked',
-        action: () => navigate('/favorites'),
-        disabled: !isActive
-      },
-      { 
         icon: '📋', 
-        label: 'My Shortlist', 
-        subLabel: 'Profiles to consider',
-        action: () => navigate('/shortlist'),
-        disabled: !isActive
-      },
-      { 
-        icon: '❌', 
-        label: 'My Exclusions', 
-        subLabel: 'Profiles to hide',
-        action: () => navigate('/exclusions'),
+        label: 'My Lists', 
+        subLabel: 'Favorites, Shortlist, Exclusions',
+        action: () => navigate('/my-lists'),
         disabled: !isActive
       },
       { 

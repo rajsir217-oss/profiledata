@@ -1480,6 +1480,239 @@
   font-weight: bold;
 }
 
+/* ===== COMPACT ROW VIEW LAYOUT ===== */
+.result-row-compact {
+  width: 100%;
+  margin-bottom: 12px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  border: 1px solid #e0e0e0;
+}
+
+.result-row-compact:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  transform: translateY(-2px);
+}
+
+.row-compact-content {
+  display: grid;
+  grid-template-columns: 120px minmax(200px, 300px) minmax(200px, 280px) minmax(180px, 260px) 220px;
+  gap: 20px;
+  padding: 15px 20px;
+  align-items: center;
+  min-height: 120px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Column 1: Image */
+.row-image-compact {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.row-image-compact .profile-thumbnail,
+.row-image-compact .profile-thumbnail-placeholder {
+  width: 100px !important;
+  height: 100px !important;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.row-image-compact .profile-image-container {
+  width: 100px;
+  height: 100px;
+}
+
+.row-image-compact .image-access-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(248, 249, 250, 0.95);
+  border-radius: 8px;
+}
+
+.row-image-compact .image-nav-btn {
+  display: none; /* Hide image navigation in compact view */
+}
+
+.row-image-compact .image-counter {
+  font-size: 10px;
+  padding: 2px 6px;
+}
+
+/* Column 2, 3, 4: Info Columns */
+.row-info-column-1,
+.row-info-column-2,
+.row-info-column-3 {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0; /* Allow text truncation */
+}
+
+.row-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.age-badge-inline {
+  font-size: 12px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.row-detail {
+  font-size: 13px;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+  color: #555;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-detail strong {
+  margin-right: 4px;
+}
+
+.row-detail-pii {
+  font-size: 12px;
+  margin: 0;
+  padding: 0;
+  line-height: 1.4;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.pii-data-sm {
+  color: #155724;
+  font-size: 11px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+}
+
+.pii-masked-sm {
+  color: #999;
+  font-style: italic;
+  font-size: 11px;
+}
+
+.pii-btn-xs {
+  padding: 0px 6px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-decoration: none;
+}
+
+.row-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.badge-sm {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
+/* Column 5: Actions */
+.row-actions-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.row-actions-compact .btn {
+  padding: 6px 10px;
+  font-size: 13px;
+  min-width: unset;
+}
+
+.row-actions-compact .action-btn {
+  padding: 6px 8px;
+  font-size: 14px;
+}
+
+/* Responsive for compact rows */
+@media (max-width: 1200px) {
+  .row-compact-content {
+    grid-template-columns: 100px 1fr 1fr 150px;
+    gap: 12px;
+  }
+  
+  .row-info-column-3 {
+    display: none; /* Hide contact column on smaller screens */
+  }
+}
+
+@media (max-width: 768px) {
+  .row-compact-content {
+    grid-template-columns: 80px 1fr 120px;
+    gap: 10px;
+    padding: 10px;
+    min-height: 100px;
+  }
+  
+  .row-image-compact {
+    width: 80px;
+    height: 80px;
+  }
+  
+  .row-image-compact .profile-thumbnail,
+  .row-image-compact .profile-thumbnail-placeholder {
+    width: 80px !important;
+    height: 80px !important;
+  }
+  
+  .row-info-column-2 {
+    display: none; /* Hide education column on mobile */
+  }
+  
+  .row-name {
+    font-size: 14px;
+  }
+  
+  .row-detail {
+    font-size: 12px;
+  }
+  
+  .row-actions-compact .btn {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+}
+
 /* Responsive adjustments for profile images */
 @media (max-width: 768px) {
   .profile-thumbnail {

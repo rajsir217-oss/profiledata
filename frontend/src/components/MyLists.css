@@ -1,0 +1,125 @@
+/* Drag and Drop Styles */
+.draggable-card {
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.draggable-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.draggable-card.drag-over {
+  border: 2px dashed #667eea;
+  border-radius: 12px;
+  background: rgba(102, 126, 234, 0.05);
+  transform: scale(1.02);
+}
+
+.draggable-card.drag-over::before {
+  content: 'Drop here to reorder';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(102, 126, 234, 0.95);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.draggable-card:active {
+  cursor: grabbing !important;
+}
+
+/* My Lists Tab Styling */
+.nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+  border: none;
+  background: transparent;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 12px 20px;
+  margin-right: 5px;
+  border-radius: 8px 8px 0 0;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.nav-tabs .nav-link:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.nav-tabs .nav-link.active {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.nav-tabs .nav-link .badge {
+  font-size: 11px;
+  padding: 3px 7px;
+  border-radius: 10px;
+}
+
+.nav-tabs .nav-link.active .badge {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+  color: white;
+}
+
+/* View Mode Toggle */
+.view-mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+
+.view-mode-toggle .btn {
+  min-width: 90px;
+  font-size: 14px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.view-mode-toggle .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+.view-mode-toggle .btn-outline-secondary {
+  border: 2px solid #dee2e6;
+  color: #6c757d;
+}
+
+.view-mode-toggle .btn-outline-secondary:hover {
+  background: #f8f9fa;
+  border-color: #667eea;
+  color: #667eea;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nav-tabs .nav-link {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+  
+  .nav-tabs .nav-link .badge {
+    font-size: 10px;
+    padding: 2px 5px;
+  }
+  
+  .view-mode-toggle .btn {
+    min-width: 70px;
+    font-size: 12px;
+    padding: 6px 12px;
+  }
+}

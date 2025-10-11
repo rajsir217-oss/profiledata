@@ -38,7 +38,8 @@ const SearchResultCard = ({
   showMessageButton = true,
   showRemoveButton = false,
   removeButtonLabel = 'Remove',
-  removeButtonIcon = '🗑️'
+  removeButtonIcon = '🗑️',
+  viewMode = 'cards' // 'cards' or 'rows'
 }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -174,6 +175,151 @@ const SearchResultCard = ({
     );
   };
 
+  // Render compact row view
+  if (viewMode === 'rows') {
+    return (
+      <div className="result-row-compact">
+        <div className="row-compact-content">
+          {/* Column 1: Image */}
+          <div className="row-image-compact">
+            {renderProfileImage()}
+          </div>
+
+          {/* Column 2: Basic Info */}
+          <div className="row-info-column-1">
+            <h6 className="row-name">
+              {getDisplayName(user)}
+              <span className="age-badge-inline">{calculateAge(user.dob)}y</span>
+            </h6>
+            <p className="row-detail"><strong>📍</strong> {user.location}</p>
+            <p className="row-detail"><strong>📏</strong> {user.height}</p>
+            <div className="row-badges">
+              {user.religion && <span className="badge bg-info badge-sm">{user.religion}</span>}
+              {user.eatingPreference && <span className="badge bg-success badge-sm">{user.eatingPreference}</span>}
+            </div>
+          </div>
+
+          {/* Column 3: Education & Work */}
+          <div className="row-info-column-2">
+            <p className="row-detail"><strong>🎓</strong> {user.education}</p>
+            <p className="row-detail"><strong>💼</strong> {user.occupation}</p>
+            {user.bodyType && <span className="badge bg-warning badge-sm">{user.bodyType}</span>}
+          </div>
+
+          {/* Column 4: Contact (PII) */}
+          <div className="row-info-column-3">
+            <p className="row-detail-pii">
+              <strong>📧</strong>
+              {hasPiiAccess ? (
+                <span className="pii-data-sm">{user.contactEmail}</span>
+              ) : (
+                <>
+                  <span className="pii-masked-sm">[Locked]</span>
+                  {onPIIRequest && (
+                    <button
+                      className="btn btn-xs btn-link pii-btn-xs"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPIIRequest(user);
+                      }}
+                      disabled={isPiiRequestPending}
+                    >
+                      {isPiiRequestPending ? '📨' : 'Request'}
+                    </button>
+                  )}
+                </>
+              )}
+            </p>
+            <p className="row-detail-pii">
+              <strong>📱</strong>
+              {hasPiiAccess ? (
+                <span className="pii-data-sm">{user.contactNumber}</span>
+              ) : (
+                <span className="pii-masked-sm">[Locked]</span>
+              )}
+            </p>
+          </div>
+
+          {/* Column 5: Actions */}
+          <div className="row-actions-compact">
+            {showFavoriteButton && onFavorite && (
+              <button
+                className={`btn btn-sm ${isFavorited ? 'btn-warning' : 'btn-outline-warning'} action-btn`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFavorite(user);
+                }}
+                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+              >
+                {isFavorited ? '⭐' : '☆'}
+              </button>
+            )}
+            
+            {showShortlistButton && onShortlist && (
+              <button
+                className={`btn btn-sm ${isShortlisted ? 'btn-info' : 'btn-outline-info'} action-btn`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onShortlist(user);
+                }}
+                title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+              >
+                📋
+              </button>
+            )}
+            
+            {showMessageButton && onMessage && (
+              <button
+                className="btn btn-sm btn-outline-primary action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMessage(user);
+                }}
+                title="Send Message"
+              >
+                💬
+              </button>
+            )}
+            
+            {showExcludeButton && onExclude && (
+              <button
+                className={`btn btn-sm ${isExcluded ? 'btn-danger' : 'btn-outline-danger'} action-btn`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onExclude(user);
+                }}
+                title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+              >
+                {isExcluded ? '🚫' : '❌'}
+              </button>
+            )}
+            
+            {showRemoveButton && onRemove && (
+              <button
+                className="btn btn-sm btn-outline-danger action-btn"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(user);
+                }}
+                title={removeButtonLabel}
+              >
+                {removeButtonIcon}
+              </button>
+            )}
+            
+            <button
+              className="btn btn-sm btn-outline-primary"
+              onClick={() => navigate(`/profile/${user.username}`)}
+            >
+              View
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render card view (default)
   return (
     <div className="result-card">
       <div className="card">

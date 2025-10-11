@@ -15,6 +15,7 @@ import TopBar from './components/TopBar';
 import Favorites from './components/Favorites';
 import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
+import MyLists from './components/MyLists';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
@@ -108,6 +109,7 @@ function App() {
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
               <Route path="/shortlists" element={<ProtectedRoute><ShortLists /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              <Route path="/my-lists" element={<ProtectedRoute><MyLists /></ProtectedRoute>} />
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
               <Route path="/shortlist" element={<ProtectedRoute><Shortlist /></ProtectedRoute>} />
               <Route path="/exclusions" element={<ProtectedRoute><Exclusions /></ProtectedRoute>} />
