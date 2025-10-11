@@ -129,13 +129,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '⚙️', 
-        label: 'My Preferences', 
-        subLabel: 'Theme & Settings',
-        action: () => navigate('/preferences'),
-        disabled: !isActive
-      },
-      { 
         icon: '🔍', 
         label: 'Search Profiles', 
         subLabel: 'Find matches',
@@ -166,13 +159,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'My Messages', 
         subLabel: 'Chat with matches',
         action: () => navigate('/messages'),
-        disabled: !isActive
-      },
-      { 
-        icon: '📨', 
-        label: 'My Requests', 
-        subLabel: 'PII access requests',
-        action: () => navigate('/requests'),
         disabled: !isActive
       },
     ];
@@ -208,6 +194,15 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/test-dashboard')
       });
     }
+
+    // Add Settings before logout
+    items.push({ 
+      icon: '⚙️', 
+      label: 'Settings', 
+      subLabel: 'Preferences & Theme',
+      action: () => navigate('/preferences'),
+      disabled: !isActive
+    });
 
     // Add logout at the end
     items.push({ 

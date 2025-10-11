@@ -146,7 +146,7 @@ const MyLists = () => {
     setDragOverIndex(null);
   };
 
-  const handleDrop = (e, dropIndex) => {
+  const handleDrop = async (e, dropIndex) => {
     e.preventDefault();
     
     if (draggedIndex === null || draggedIndex === dropIndex) {
@@ -156,19 +156,23 @@ const MyLists = () => {
     // Get the current list data based on active tab
     let currentData = [];
     let setCurrentData = null;
+    let endpoint = '';
 
     switch (activeTab) {
       case 'favorites':
         currentData = [...favorites];
         setCurrentData = setFavorites;
+        endpoint = `/favorites/${currentUsername}/reorder`;
         break;
       case 'shortlist':
         currentData = [...shortlist];
         setCurrentData = setShortlist;
+        endpoint = `/shortlist/${currentUsername}/reorder`;
         break;
       case 'exclusions':
         currentData = [...exclusions];
         setCurrentData = setExclusions;
+        endpoint = `/exclusions/${currentUsername}/reorder`;
         break;
       default:
         return;
@@ -179,11 +183,24 @@ const MyLists = () => {
     currentData.splice(draggedIndex, 1);
     currentData.splice(dropIndex, 0, draggedItem);
 
-    // Update state
+    // Update state immediately for instant feedback
     setCurrentData(currentData);
     setDragOverIndex(null);
-    setStatusMessage(`✅ Reordered successfully!`);
-    setTimeout(() => setStatusMessage(''), 2000);
+
+    // Save order to backend
+    try {
+      const order = currentData.map(item => 
+        typeof item === 'string' ? item : item.username
+      );
+      
+      await api.put(endpoint, order);
+      setStatusMessage(`✅ Order saved successfully!`);
+      setTimeout(() => setStatusMessage(''), 2000);
+    } catch (err) {
+      console.error('Error saving order:', err);
+      setStatusMessage(`⚠️ Order changed but not saved - please refresh`);
+      setTimeout(() => setStatusMessage(''), 3000);
+    }
   };
 
   const removeFromFavorites = async (user) => {

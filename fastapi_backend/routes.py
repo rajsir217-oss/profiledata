@@ -1131,7 +1131,7 @@ async def get_favorites(username: str, db = Depends(get_database)):
     logger.info(f"📋 Getting favorites for {username}")
 
     try:
-        favorites_cursor = db.favorites.find({"userUsername": username})
+        favorites_cursor = db.favorites.find({"userUsername": username}).sort("displayOrder", 1)
         favorites = await favorites_cursor.to_list(100)
 
         # Get full user details for each favorite
@@ -1149,6 +1149,28 @@ async def get_favorites(username: str, db = Depends(get_database)):
         return {"favorites": favorite_users}
     except Exception as e:
         logger.error(f"❌ Error fetching favorites: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/favorites/{username}/reorder")
+async def reorder_favorites(username: str, order: List[str], db = Depends(get_database)):
+    """Update the display order of favorites"""
+    logger.info(f"🔄 Reordering favorites for {username}")
+    
+    try:
+        # Update each favorite with its new order index
+        for index, favorite_username in enumerate(order):
+            await db.favorites.update_one(
+                {
+                    "userUsername": username,
+                    "favoriteUsername": favorite_username
+                },
+                {"$set": {"displayOrder": index}}
+            )
+        
+        logger.info(f"✅ Reordered {len(order)} favorites for {username}")
+        return {"message": "Favorites reordered successfully", "count": len(order)}
+    except Exception as e:
+        logger.error(f"❌ Error reordering favorites: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== SHORTLIST MANAGEMENT =====
@@ -1203,7 +1225,7 @@ async def get_shortlist(username: str, db = Depends(get_database)):
     logger.info(f"📋 Getting shortlist for {username}")
 
     try:
-        shortlist_cursor = db.shortlists.find({"userUsername": username})
+        shortlist_cursor = db.shortlists.find({"userUsername": username}).sort("displayOrder", 1)
         shortlist = await shortlist_cursor.to_list(100)
 
         # Get full user details for each shortlisted user
@@ -1222,6 +1244,28 @@ async def get_shortlist(username: str, db = Depends(get_database)):
         return {"shortlist": shortlisted_users}
     except Exception as e:
         logger.error(f"❌ Error fetching shortlist: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/shortlist/{username}/reorder")
+async def reorder_shortlist(username: str, order: List[str], db = Depends(get_database)):
+    """Update the display order of shortlist"""
+    logger.info(f"🔄 Reordering shortlist for {username}")
+    
+    try:
+        # Update each shortlist item with its new order index
+        for index, shortlisted_username in enumerate(order):
+            await db.shortlists.update_one(
+                {
+                    "userUsername": username,
+                    "shortlistedUsername": shortlisted_username
+                },
+                {"$set": {"displayOrder": index}}
+            )
+        
+        logger.info(f"✅ Reordered {len(order)} shortlist items for {username}")
+        return {"message": "Shortlist reordered successfully", "count": len(order)}
+    except Exception as e:
+        logger.error(f"❌ Error reordering shortlist: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== EXCLUSIONS MANAGEMENT =====
@@ -1271,7 +1315,7 @@ async def get_exclusions(username: str, db = Depends(get_database)):
     logger.info(f"📋 Getting exclusions for {username}")
 
     try:
-        exclusions_cursor = db.exclusions.find({"userUsername": username})
+        exclusions_cursor = db.exclusions.find({"userUsername": username}).sort("displayOrder", 1)
         exclusions = await exclusions_cursor.to_list(100)
 
         # Get full user details for each excluded user
@@ -1289,6 +1333,28 @@ async def get_exclusions(username: str, db = Depends(get_database)):
         return {"exclusions": excluded_users}
     except Exception as e:
         logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/exclusions/{username}/reorder")
+async def reorder_exclusions(username: str, order: List[str], db = Depends(get_database)):
+    """Update the display order of exclusions"""
+    logger.info(f"🔄 Reordering exclusions for {username}")
+    
+    try:
+        # Update each exclusion with its new order index
+        for index, excluded_username in enumerate(order):
+            await db.exclusions.update_one(
+                {
+                    "userUsername": username,
+                    "excludedUsername": excluded_username
+                },
+                {"$set": {"displayOrder": index}}
+            )
+        
+        logger.info(f"✅ Reordered {len(order)} exclusions for {username}")
+        return {"message": "Exclusions reordered successfully", "count": len(order)}
+    except Exception as e:
+        logger.error(f"❌ Error reordering exclusions: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/exclusions/{target_username}")
