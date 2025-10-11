@@ -123,6 +123,25 @@ export const getMessages = async (userId) => {
   }
 };
 
+// User Preferences API
+export const getUserPreferences = async () => {
+  try {
+    const response = await api.get('/preferences');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const updateUserPreferences = async (preferences) => {
+  try {
+    const response = await api.put('/preferences', preferences);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export default api;
 
 

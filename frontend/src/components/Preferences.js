@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import './Preferences.css';
+import { getUserPreferences, updateUserPreferences } from '../api';
 
 const Preferences = () => {
-  const [selectedTheme, setSelectedTheme] = useState(
-    localStorage.getItem('appTheme') || 'light-blue'
-  );
+  const [selectedTheme, setSelectedTheme] = useState('light-blue');
+  const [isLoading, setIsLoading] = useState(true);
   const [showSaveMessage, setShowSaveMessage] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
 
@@ -12,6 +12,7 @@ const Preferences = () => {
     {
       id: 'light-blue',
       name: 'Cozy Light',
+      icon: '☀️',
       description: 'Warm and inviting light theme with soft colors',
       preview: {
         primary: '#6366f1',
@@ -23,6 +24,7 @@ const Preferences = () => {
     {
       id: 'dark',
       name: 'Cozy Night',
+      icon: '🌙',
       description: 'Warm purple dark mode for comfortable evening browsing',
       preview: {
         primary: '#a78bfa',
@@ -34,6 +36,7 @@ const Preferences = () => {
     {
       id: 'light-pink',
       name: 'Cozy Rose',
+      icon: '🌸',
       description: 'Soft rose theme with gentle pink accents',
       preview: {
         primary: '#ec4899',
@@ -45,6 +48,7 @@ const Preferences = () => {
     {
       id: 'light-gray',
       name: 'Light Gray',
+      icon: '⚡',
       description: 'Clean neutral gray theme for minimal distraction',
       preview: {
         primary: '#64748b',
@@ -56,6 +60,7 @@ const Preferences = () => {
     {
       id: 'ultra-light-gray',
       name: 'Ultra Light Gray',
+      icon: '✨',
       description: 'Ultra minimal gray theme with maximum whitespace',
       preview: {
         primary: '#475569',
@@ -66,6 +71,24 @@ const Preferences = () => {
     }
   ];
 
+  // Load theme from API on mount
+  useEffect(() => {
+    const loadTheme = async () => {
+      try {
+        const prefs = await getUserPreferences();
+        const themeId = prefs.themePreference || 'light-blue';
+        setSelectedTheme(themeId);
+      } catch (error) {
+        console.error('Failed to load theme from server:', error);
+        setSelectedTheme('light-blue'); // Use default on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadTheme();
+  }, []);
+
+  // Apply theme whenever it changes
   useEffect(() => {
     // Apply the theme to the body element
     document.body.className = `theme-${selectedTheme}`;
@@ -79,30 +102,40 @@ const Preferences = () => {
       root.style.setProperty('--background-color', theme.preview.background);
       root.style.setProperty('--text-color', theme.preview.text);
     }
-  }, [selectedTheme]);
+  }, [selectedTheme, themes]);
 
-  const handleThemeChange = (themeId) => {
+  const handleThemeChange = async (themeId) => {
     setSelectedTheme(themeId);
-    localStorage.setItem('appTheme', themeId);
-    setShowSaveMessage(true);
-    setFadeOut(false);
     
-    // Start fade out animation after 1.5 seconds
-    setTimeout(() => {
-      setFadeOut(true);
-    }, 1500);
-    
-    // Actually hide the message after animation completes
-    setTimeout(() => {
-      setShowSaveMessage(false);
+    try {
+      // Save to server (database) - NOT localStorage
+      await updateUserPreferences({ themePreference: themeId });
+      console.log('✅ Theme saved to database:', themeId);
+      
+      // Show success message
+      setShowSaveMessage(true);
       setFadeOut(false);
-    }, 2000);
+      
+      // Start fade out animation after 1.5 seconds
+      setTimeout(() => {
+        setFadeOut(true);
+      }, 1500);
+      
+      // Actually hide the message after animation completes
+      setTimeout(() => {
+        setShowSaveMessage(false);
+        setFadeOut(false);
+      }, 2000);
+    } catch (error) {
+      console.error('❌ Failed to save theme to server:', error);
+      alert('Failed to save theme preference. Please try again.');
+    }
   };
 
   return (
     <div className="preferences-container">
       <div className="preferences-header">
-        <h1>My Preferences</h1>
+        <h1>⚙️ Settings</h1>
         <p>Customize your app experience</p>
       </div>
 
@@ -124,28 +157,32 @@ const Preferences = () => {
               className={`theme-card ${selectedTheme === theme.id ? 'selected' : ''}`}
               onClick={() => handleThemeChange(theme.id)}
             >
+              <div className="theme-icon">{theme.icon}</div>
               <div className="theme-preview">
                 <div 
-                  className="color-strip primary"
-                  style={{ backgroundColor: theme.preview.primary }}
-                />
-                <div 
-                  className="color-strip secondary"
-                  style={{ backgroundColor: theme.preview.secondary }}
-                />
-                <div 
-                  className="color-strip background"
+                  className="color-block primary"
                   style={{ backgroundColor: theme.preview.background }}
+                  title="Background"
                 />
                 <div 
-                  className="color-strip text"
+                  className="color-block accent"
+                  style={{ backgroundColor: theme.preview.primary }}
+                  title="Primary Color"
+                />
+                <div 
+                  className="color-block text"
                   style={{ backgroundColor: theme.preview.text }}
+                  title="Text Color"
                 />
               </div>
-              <h3>{theme.name}</h3>
-              <p>{theme.description}</p>
+              <div className="theme-info">
+                <h3>{theme.name}</h3>
+                <p>{theme.description}</p>
+              </div>
               {selectedTheme === theme.id && (
-                <div className="selected-badge">✓ Active</div>
+                <div className="selected-badge badge badge-success">
+                  <span>✓</span> Active
+                </div>
               )}
             </div>
           ))}

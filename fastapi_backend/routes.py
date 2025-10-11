@@ -20,7 +20,7 @@ from database import get_database
 from utils import save_multiple_files, get_full_image_url
 from config import settings
 from auth.password_utils import PasswordManager
-from auth.jwt_auth import JWTManager
+from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user
 
 # Compatibility aliases for old code
 def get_password_hash(password: str) -> str:
@@ -548,6 +548,95 @@ async def update_user_profile(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update profile: {str(e)}"
+        )
+
+# ===== USER PREFERENCES ENDPOINTS =====
+
+@router.get("/preferences")
+async def get_user_preferences(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get current user's preferences (theme, etc.)"""
+    username = current_user.get("username")
+    logger.info(f"⚙️ Getting preferences for user '{username}'")
+    
+    try:
+        user = await db.users.find_one({"username": username})
+        if not user:
+            logger.warning(f"⚠️ User '{username}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        preferences = {
+            "themePreference": user.get("themePreference", "light-blue")
+        }
+        
+        logger.info(f"✅ Retrieved preferences for '{username}': {preferences}")
+        return preferences
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error fetching preferences: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to fetch preferences: {str(e)}"
+        )
+
+@router.put("/preferences")
+async def update_user_preferences(
+    preferences: dict,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Update current user's preferences"""
+    username = current_user.get("username")
+    theme_preference = preferences.get("themePreference")
+    
+    logger.info(f"⚙️ Updating preferences for user '{username}': theme={theme_preference}")
+    
+    # Validate theme
+    valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
+    if theme_preference and theme_preference not in valid_themes:
+        logger.warning(f"⚠️ Invalid theme preference: {theme_preference}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid theme. Must be one of: {', '.join(valid_themes)}"
+        )
+    
+    try:
+        # Update user preferences
+        update_data = {
+            "themePreference": theme_preference,
+            "updatedAt": datetime.utcnow()
+        }
+        
+        result = await db.users.update_one(
+            {"username": username},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            logger.warning(f"⚠️ User '{username}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        logger.info(f"✅ Updated preferences for '{username}': theme={theme_preference}")
+        return {
+            "message": "Preferences updated successfully",
+            "themePreference": theme_preference
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating preferences: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update preferences: {str(e)}"
         )
 
 @router.get("/admin/users")

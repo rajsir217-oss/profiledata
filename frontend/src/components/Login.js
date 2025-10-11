@@ -35,8 +35,14 @@ const Login = () => {
       console.log('🔌 Connecting to WebSocket');
       socketService.connect(res.data.user.username);
       
+      // Clear any cached theme from previous user
+      localStorage.removeItem('appTheme');
+      
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('loginStatusChanged'));
+      
+      // Dispatch theme reload event
+      window.dispatchEvent(new Event('userLoggedIn'));
       
       navigate('/dashboard', { state: { user: res.data.user } });
     } catch (err) {

@@ -72,6 +72,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     
     localStorage.removeItem('username');
     localStorage.removeItem('token');
+    localStorage.removeItem('appTheme'); // Clear theme cache
     setIsLoggedIn(false);
     setCurrentUser(null);
     

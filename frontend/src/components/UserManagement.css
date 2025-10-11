@@ -89,12 +89,12 @@
 }
 
 .users-table thead {
-  background: #1c0561 !important;
+  background: var(--primary-color) !important;
   color: white !important;
 }
 
 .users-table thead tr {
-  background: #1c0561 !important;
+  background: var(--primary-color) !important;
 }
 
 .users-table th {
@@ -105,7 +105,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: white !important;
-  background: #1c0561 !important;
+  background: var(--primary-color) !important;
 }
 
 .users-table tbody tr {
@@ -133,47 +133,47 @@
 }
 
 .role-admin {
-  background: #ef4444;
+  background: var(--danger-color);
   color: white;
 }
 
 .role-moderator {
-  background: #f59e0b;
+  background: var(--warning-color);
   color: white;
 }
 
 .role-premium {
-  background: #8b5cf6;
+  background: var(--primary-color);
   color: white;
 }
 
 .role-free {
-  background: #6b7280;
+  background: var(--text-secondary);
   color: white;
 }
 
 .status-active {
-  background: #10b981;
+  background: var(--success-color);
   color: white;
 }
 
 .status-inactive {
-  background: #6b7280;
+  background: var(--text-secondary);
   color: white;
 }
 
 .status-suspended {
-  background: #f59e0b;
+  background: var(--warning-color);
   color: white;
 }
 
 .status-banned {
-  background: #ef4444;
+  background: var(--danger-color);
   color: white;
 }
 
 .status-pending {
-  background: #3b82f6;
+  background: var(--info-color);
   color: white;
 }
 
@@ -278,7 +278,7 @@
 }
 
 .modal-content {
-  background: #ffffff;
+  background: var(--card-background);
   border-radius: 16px;
   padding: 30px;
   max-width: 500px;
@@ -292,13 +292,13 @@
 
 .modal-content h2 {
   margin-bottom: 10px;
-  color: #111827;
+  color: var(--text-color);
   word-wrap: break-word;
   line-height: 1.3;
 }
 
 .modal-subtitle {
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 20px;
   font-size: 0.9rem;
 }
@@ -315,23 +315,23 @@
   align-items: center;
   gap: 12px;
   padding: 14px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: #f9fafb;
+  background: var(--surface-color);
 }
 
 .role-option:hover {
-  border-color: #667eea;
-  background: #f3f4f6;
+  border-color: var(--primary-color);
+  background: var(--hover-background);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
 }
 
 .role-option.selected {
-  border-color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  border-color: var(--primary-color);
+  background: var(--selected-background);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -357,14 +357,14 @@
 }
 
 .role-info strong {
-  color: #111827;
+  color: var(--text-color);
   font-size: 1rem;
   font-weight: 600;
 }
 
 .role-info span {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--text-secondary);
   line-height: 1.4;
 }
 

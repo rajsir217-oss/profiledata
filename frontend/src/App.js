@@ -25,16 +25,69 @@ import UserManagement from './components/UserManagement';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
 import ProtectedRoute from './components/ProtectedRoute';
-import './App.css';
-import './themes/themes.css';
+import './styles/index.css'; // Consolidated styles (includes themes)
+import './App.css'; // App-specific layout only
+import { getUserPreferences } from './api';
+
+// Theme configuration
+const themes = {
+  'light-blue': { primary: '#6366f1', secondary: '#a78bfa', background: '#fffbf7', text: '#374151' },
+  'dark': { primary: '#a78bfa', secondary: '#c4b5fd', background: '#1a1625', text: '#e5e7eb' },
+  'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fdf2f8', text: '#4a5568' },
+  'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f8fafc', text: '#1e293b' },
+  'ultra-light-gray': { primary: '#475569', secondary: '#64748b', background: '#fcfcfd', text: '#0f172a' }
+};
+
+const applyTheme = (themeId) => {
+  document.body.className = `theme-${themeId}`;
+  const theme = themes[themeId];
+  if (theme) {
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', theme.primary);
+    root.style.setProperty('--secondary-color', theme.secondary);
+    root.style.setProperty('--background-color', theme.background);
+    root.style.setProperty('--text-color', theme.text);
+  }
+};
 
 function App() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   // Initialize theme on app load
   useEffect(() => {
-    const savedTheme = localStorage.getItem('appTheme') || 'light-blue';
-    document.documentElement.setAttribute('data-theme', savedTheme);
+    const loadTheme = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        // User is logged in, load theme from API (not localStorage!)
+        try {
+          const prefs = await getUserPreferences();
+          const themeId = prefs.themePreference || 'light-blue';
+          applyTheme(themeId);
+          console.log('✅ Loaded theme from database:', themeId);
+        } catch (error) {
+          console.log('⚠️ API error, using default theme');
+          applyTheme('light-blue');
+        }
+      } else {
+        // Not logged in, use default
+        applyTheme('light-blue');
+      }
+    };
+    
+    loadTheme();
+    
+    // Listen for login events to reload theme
+    const handleUserLogin = () => {
+      console.log('🔄 User logged in, reloading theme...');
+      loadTheme();
+    };
+    
+    window.addEventListener('userLoggedIn', handleUserLogin);
+    
+    return () => {
+      window.removeEventListener('userLoggedIn', handleUserLogin);
+    };
   }, []);
 
   // Initialize unified Socket.IO service (handles messages, online status, and unread counts)

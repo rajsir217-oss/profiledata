@@ -43,6 +43,7 @@ class UserBase(BaseModel):
     aboutYou: Optional[str] = None
     partnerPreference: Optional[str] = None
     images: List[str] = []
+    themePreference: Optional[str] = "light-blue"  # User's preferred theme
 
     @validator('username')
     def username_alphanumeric(cls, v):
@@ -66,6 +67,13 @@ class UserBase(BaseModel):
     def validate_citizenship(cls, v):
         if v and v not in ['Citizen', 'Greencard', '']:
             raise ValueError('Invalid citizenship status')
+        return v
+
+    @validator('themePreference')
+    def validate_theme(cls, v):
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
+        if v and v not in valid_themes:
+            raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v
 
 class UserCreate(UserBase):
@@ -256,3 +264,16 @@ class PIIAccessCreate(BaseModel):
     grantedToUsername: str
     accessTypes: List[str]
     expiresAt: Optional[datetime] = None
+
+class UserPreferencesUpdate(BaseModel):
+    themePreference: str
+
+    @validator('themePreference')
+    def validate_theme(cls, v):
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
+        if v not in valid_themes:
+            raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
+        return v
+
+class UserPreferencesResponse(BaseModel):
+    themePreference: str

@@ -46,18 +46,18 @@
 }
 
 .search-bar input:focus {
-  background: white;
-  border-color: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: var(--card-background);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
   outline: none;
 }
 
 /* Admin Table */
 .admin-table {
-  background: white;
+  background: var(--card-background);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .admin-table thead {
@@ -88,7 +88,7 @@
 .admin-table tbody td {
   padding: 12px 15px;
   vertical-align: middle;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
 }
 
 .admin-table tbody td strong {

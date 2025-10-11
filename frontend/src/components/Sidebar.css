@@ -10,7 +10,7 @@
   top: 0;
   width: 280px;
   height: 100vh;
-  background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
+  background: var(--card-background);
   box-shadow: 2px 0 15px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 1002;
@@ -43,8 +43,8 @@
 }
 
 .menu-item:hover {
-  background: linear-gradient(90deg, rgba(102, 126, 234, 0.1) 0%, transparent 100%);
-  border-left-color: #667eea;
+  background: var(--hover-background);
+  border-left-color: var(--primary-color);
 }
 
 /* Disabled menu items */
@@ -98,7 +98,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-size: 16px;
   font-weight: 600;
@@ -112,36 +112,36 @@
 .menu-label {
   font-size: 14px;
   font-weight: 500;
-  color: #333;
+  color: var(--text-color);
   margin-bottom: 2px;
 }
 
 .menu-sublabel {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 /* First menu item (profile) styling */
 .menu-item:first-child {
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
   margin-bottom: 5px;
   padding-bottom: 20px;
 }
 
 .menu-item:first-child .menu-label {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .menu-item:first-child .menu-sublabel {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   font-size: 14px;
 }
 
 /* Admin Section Header */
 .menu-header {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-weight: 600;
   margin-top: 10px;
@@ -152,7 +152,7 @@
 }
 
 .menu-header:hover {
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   border-left-color: transparent !important;
 }
 
@@ -171,21 +171,21 @@
 /* Sidebar Footer */
 .sidebar-footer {
   padding: 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color);
   font-size: 11px;
-  color: #666;
+  color: var(--text-secondary);
   text-align: center;
-  background: #f8f9fa;
+  background: var(--surface-color);
 }
 
 .footer-link {
-  color: #667eea;
+  color: var(--primary-color);
   text-decoration: none;
   transition: color 0.2s ease;
 }
 
 .footer-link:hover {
-  color: #764ba2;
+  color: var(--secondary-color);
   text-decoration: underline;
 }
 
@@ -209,14 +209,14 @@
 }
 
 .sidebar::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface-color);
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: #667eea;
+  background: var(--primary-color);
   border-radius: 3px;
 }
 
 .sidebar::-webkit-scrollbar-thumb:hover {
-  background: #764ba2;
+  background: var(--secondary-color);
 }

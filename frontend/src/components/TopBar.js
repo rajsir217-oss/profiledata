@@ -104,6 +104,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     
     localStorage.removeItem('username');
     localStorage.removeItem('token');
+    localStorage.removeItem('appTheme'); // Clear theme cache
     setIsLoggedIn(false);
     setCurrentUser(null);
     

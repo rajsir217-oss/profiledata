@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import onlineStatusService from '../services/onlineStatusService';
-import './OnlineStatusBadge.css';
+// Uses global .status-badge from styles/components.css
 
 /**
  * OnlineStatusBadge Component
@@ -57,13 +57,16 @@ const OnlineStatusBadge = ({ username, size = 'small', showTooltip = true }) => 
     return null; // Don't show anything while loading
   }
 
-  const sizeClass = `status-badge-${size}`;
   const statusClass = isOnline ? 'online' : 'offline';
   const tooltipText = isOnline ? 'Online' : 'Offline';
 
   return (
     <div
-      className={`online-status-badge ${sizeClass} ${statusClass}`}
+      className={`status-badge ${statusClass}`}
+      style={{
+        width: size === 'small' ? '14px' : size === 'large' ? '22px' : '18px',
+        height: size === 'small' ? '14px' : size === 'large' ? '22px' : '18px'
+      }}
       title={showTooltip ? tooltipText : ''}
       aria-label={tooltipText}
     />

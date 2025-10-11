@@ -1,0 +1,122 @@
+/* ========================================
+   MAIN STYLESHEET - IMPORT ORDER MATTERS
+   Import all global styles in the correct order
+   ======================================== */
+
+/* 1. Reset & Base - Clear browser defaults */
+@import './reset.css';
+
+/* 2. Variables - CSS custom properties */
+@import './variables.css';
+
+/* 3. Themes - Color schemes and theme overrides */
+@import '../themes/themes.css';
+
+/* 4. Global - Base typography and global elements */
+@import './global.css';
+
+/* 5. Utilities - Utility classes (flexbox, spacing, text) */
+@import './utilities.css';
+
+/* 6. Components - Reusable component patterns */
+@import './components.css';
+
+/* 7. Animations - Keyframes and animation utilities */
+@import './animations.css';
+
+/* ========================================
+   COMPONENT-SPECIFIC STYLES
+   Imported individually by each component
+   ======================================== */
+
+/*
+Component CSS files should only contain:
+- Unique layouts specific to that component
+- Complex grid/flex patterns unique to that component
+- Component-specific state management
+
+Component CSS should NOT contain:
+- Colors (use CSS variables)
+- Spacing (use utility classes)
+- Common patterns (use component classes)
+- Duplicate code from other files
+
+Example good component CSS:
+.search-page-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: var(--spacing-lg);
+}
+
+Example bad component CSS:
+.my-card {
+  background: #ffffff;  // ❌ Use var(--card-background)
+  padding: 20px;        // ❌ Use utility class p-lg
+  border-radius: 12px;  // ❌ Use utility class rounded-lg
+}
+*/
+
+/* ========================================
+   NOTES FOR DEVELOPERS
+   ======================================== */
+
+/*
+✅ DO:
+- Use CSS variables for colors
+- Use utility classes for common patterns
+- Use component classes for reusable components
+- Keep component CSS files minimal and specific
+- Follow the existing naming conventions
+
+❌ DON'T:
+- Hardcode colors
+- Duplicate patterns across files
+- Create component-specific classes for common things
+- Use inline styles unless absolutely necessary
+- Override theme variables in component CSS
+*/
+
+/* ========================================
+   THEME USAGE EXAMPLE
+   ======================================== */
+
+/*
+// In your component:
+.my-component {
+  background: var(--card-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: var(--spacing-lg);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-smooth);
+}
+
+.my-component:hover {
+  box-shadow: var(--shadow-lg);
+  border-color: var(--primary-color);
+}
+*/
+
+/* ========================================
+   UTILITY CLASS USAGE EXAMPLE
+   ======================================== */
+
+/*
+// Instead of writing CSS:
+<div className="my-custom-card">
+  <h3 className="my-custom-title">Title</h3>
+</div>
+
+.my-custom-card {
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+// Use utility classes:
+<div className="card p-lg rounded-lg shadow-md">
+  <h3 className="text-xl font-semibold">Title</h3>
+</div>
+
+// No custom CSS needed!
+*/

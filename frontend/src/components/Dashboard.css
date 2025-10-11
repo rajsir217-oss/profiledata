@@ -2,13 +2,13 @@
 .dashboard-container {
   max-width: 100%;
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--background-color);
   min-height: 100vh;
 }
 
 /* Dashboard Header */
 .dashboard-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   padding: 30px;
   border-radius: 15px;
@@ -67,17 +67,17 @@
 }
 
 .column-title {
-  color: #2c3e50;
+  color: var(--text-color);
   font-size: 20px;
   font-weight: 600;
   margin: 0 0 10px 0;
   padding-bottom: 10px;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color);
 }
 
 /* Dashboard Sections */
 .dashboard-section {
-  background: white;
+  background: var(--card-background);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -90,11 +90,11 @@
 
 .section-header {
   padding: 15px 20px;
-  cursor: pointer;
+  background: var(--card-background);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   transition: all 0.3s ease;
 }
@@ -176,7 +176,7 @@
   border-radius: 50%;
   overflow: visible; /* Changed from hidden to show status badge */
   margin: 0 auto;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-size: 24px;
   display: flex;
