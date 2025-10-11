@@ -367,6 +367,9 @@ async def update_user_profile(
     eatingPreference: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
     education: Optional[str] = Form(None),
+    educationHistory: Optional[str] = Form(None),  # JSON string
+    workExperience: Optional[str] = Form(None),  # JSON string
+    linkedinUrl: Optional[str] = Form(None),
     workingStatus: Optional[str] = Form(None),
     workplace: Optional[str] = Form(None),
     citizenshipStatus: Optional[str] = Form(None),
@@ -426,6 +429,23 @@ async def update_user_profile(
         update_data["aboutYou"] = aboutYou.strip()
     if partnerPreference is not None and partnerPreference.strip():
         update_data["partnerPreference"] = partnerPreference.strip()
+    
+    # Handle new structured fields (JSON arrays)
+    import json
+    if educationHistory is not None and educationHistory.strip():
+        try:
+            update_data["educationHistory"] = json.loads(educationHistory)
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON for educationHistory: {educationHistory}")
+    
+    if workExperience is not None and workExperience.strip():
+        try:
+            update_data["workExperience"] = json.loads(workExperience)
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON for workExperience: {workExperience}")
+    
+    if linkedinUrl is not None and linkedinUrl.strip():
+        update_data["linkedinUrl"] = linkedinUrl.strip()
     
     logger.info(f"📝 Fields to update: {list(update_data.keys())}")
     
@@ -2626,6 +2646,59 @@ async def get_granted_access(
     
     except Exception as e:
         logger.error(f"❌ Error fetching granted access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-access/{username}/revoked")
+async def get_revoked_access(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get list of users whose access was revoked by this user"""
+    logger.info(f"📊 Getting revoked PII access for {username}")
+    
+    try:
+        access_records = await db.pii_access.find({
+            "granterUsername": username,
+            "isActive": False
+        }).sort("grantedAt", -1).to_list(100)
+        
+        # Group by user to consolidate multiple access types
+        user_access_map = {}
+        for access in access_records:
+            granted_to = access["grantedToUsername"]
+            
+            if granted_to not in user_access_map:
+                user_access_map[granted_to] = {
+                    "username": granted_to,
+                    "accessTypes": [],
+                    "grantedAt": access["grantedAt"],
+                    "accessIds": []
+                }
+            
+            user_access_map[granted_to]["accessTypes"].append(access["accessType"])
+            user_access_map[granted_to]["accessIds"].append(str(access["_id"]))
+        
+        # Get user details
+        result = []
+        for username_key, access_info in user_access_map.items():
+            user = await db.users.find_one({"username": username_key})
+            if user:
+                user.pop("password", None)
+                user["_id"] = str(user["_id"])
+                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                
+                result.append({
+                    "userProfile": user,
+                    "accessTypes": access_info["accessTypes"],
+                    "grantedAt": access_info["grantedAt"].isoformat(),
+                    "accessIds": access_info["accessIds"]
+                })
+        
+        logger.info(f"✅ Found {len(result)} users with revoked access")
+        return {"grantedAccess": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching revoked access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/pii-access/{username}/received")

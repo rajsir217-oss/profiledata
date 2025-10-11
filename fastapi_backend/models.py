@@ -32,9 +32,12 @@ class UserBase(BaseModel):
     castePreference: Optional[str] = None
     eatingPreference: Optional[str] = None
     location: Optional[str] = None
-    education: Optional[str] = None
+    education: Optional[str] = None  # Legacy field for backward compatibility
+    educationHistory: List[dict] = []  # New structured education array
+    workExperience: List[dict] = []  # New work experience array
     workingStatus: Optional[str] = None
     workplace: Optional[str] = None
+    linkedinUrl: Optional[str] = None  # Private PII field
     citizenshipStatus: Optional[str] = "Citizen"
     familyBackground: Optional[str] = None
     aboutYou: Optional[str] = None

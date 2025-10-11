@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import ProfilePreview from './ProfilePreview';
 import './EditProfile.css';
 
 const EditProfile = () => {
@@ -11,6 +12,7 @@ const EditProfile = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   
   const [formData, setFormData] = useState({
     firstName: '',
@@ -29,8 +31,12 @@ const EditProfile = () => {
     citizenshipStatus: 'Citizen',
     familyBackground: '',
     aboutYou: '',
-    partnerPreference: ''
+    partnerPreference: '',
+    linkedinUrl: ''
   });
+
+  const [educationHistory, setEducationHistory] = useState([]);
+  const [workExperience, setWorkExperience] = useState([]);
 
   const [images, setImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -67,8 +73,12 @@ const EditProfile = () => {
           citizenshipStatus: userData.citizenshipStatus || 'Citizen',
           familyBackground: userData.familyBackground || '',
           aboutYou: userData.aboutYou || '',
-          partnerPreference: userData.partnerPreference || ''
+          partnerPreference: userData.partnerPreference || '',
+          linkedinUrl: userData.linkedinUrl || ''
         });
+
+        setEducationHistory(userData.educationHistory || []);
+        setWorkExperience(userData.workExperience || []);
 
         setExistingImages(userData.images || []);
         setLoading(false);
@@ -103,6 +113,36 @@ const EditProfile = () => {
     setExistingImages(prev => prev.filter(img => img !== imageUrl));
   };
 
+  // Education handlers
+  const addEducation = () => {
+    setEducationHistory([...educationHistory, { degree: '', institution: '', year: '' }]);
+  };
+
+  const updateEducation = (index, field, value) => {
+    const updated = [...educationHistory];
+    updated[index][field] = value;
+    setEducationHistory(updated);
+  };
+
+  const removeEducation = (index) => {
+    setEducationHistory(educationHistory.filter((_, i) => i !== index));
+  };
+
+  // Work experience handlers
+  const addWorkExperience = () => {
+    setWorkExperience([...workExperience, { position: '', company: '', years: '' }]);
+  };
+
+  const updateWorkExperience = (index, field, value) => {
+    const updated = [...workExperience];
+    updated[index][field] = value;
+    setWorkExperience(updated);
+  };
+
+  const removeWorkExperience = (index) => {
+    setWorkExperience(workExperience.filter((_, i) => i !== index));
+  };
+
   const handleUpdate = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -119,6 +159,14 @@ const EditProfile = () => {
           data.append(key, formData[key]);
         }
       });
+      
+      // Add structured data as JSON strings
+      if (educationHistory.length > 0) {
+        data.append('educationHistory', JSON.stringify(educationHistory));
+      }
+      if (workExperience.length > 0) {
+        data.append('workExperience', JSON.stringify(workExperience));
+      }
       
       // Add new images
       images.forEach(img => data.append('images', img));
@@ -404,15 +452,137 @@ const EditProfile = () => {
 
           {/* Text Areas */}
           <div className="mb-3">
-            <label className="form-label">Education</label>
+            <label className="form-label">Education (Legacy - for backward compatibility)</label>
             <textarea
               className="form-control"
               name="education"
               value={formData.education}
               onChange={handleChange}
               rows={3}
-              required
             />
+          </div>
+
+          {/* Education History Section */}
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="form-label mb-0">🎓 Education History</label>
+              <button type="button" className="btn btn-sm btn-primary" onClick={addEducation}>
+                + Add Education
+              </button>
+            </div>
+            {educationHistory.map((edu, index) => (
+              <div key={index} className="card mb-2 p-3 bg-light">
+                <div className="row">
+                  <div className="col-md-4">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Degree (e.g., B.S. Computer Science)"
+                      value={edu.degree}
+                      onChange={(e) => updateEducation(index, 'degree', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Institution (e.g., MIT)"
+                      value={edu.institution}
+                      onChange={(e) => updateEducation(index, 'institution', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Year (e.g., 2015-2019)"
+                      value={edu.year}
+                      onChange={(e) => updateEducation(index, 'year', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-1 text-end">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => removeEducation(index)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Work Experience Section */}
+          <div className="mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="form-label mb-0">💼 Work Experience</label>
+              <button type="button" className="btn btn-sm btn-primary" onClick={addWorkExperience}>
+                + Add Work Experience
+              </button>
+            </div>
+            {workExperience.map((work, index) => (
+              <div key={index} className="card mb-2 p-3 bg-light">
+                <div className="row">
+                  <div className="col-md-4">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Position (e.g., Senior Engineer)"
+                      value={work.position}
+                      onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Company (e.g., Google)"
+                      value={work.company}
+                      onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <input
+                      type="text"
+                      className="form-control form-control-sm mb-2"
+                      placeholder="Years (e.g., 2019-Present)"
+                      value={work.years}
+                      onChange={(e) => updateWorkExperience(index, 'years', e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-1 text-end">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger"
+                      onClick={() => removeWorkExperience(index)}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* LinkedIn URL - Private Field */}
+          <div className="mb-3">
+            <label className="form-label">
+              🔗 LinkedIn Profile URL 
+              <span className="badge bg-warning text-dark ms-2">🔒 Private</span>
+            </label>
+            <input
+              type="url"
+              className="form-control"
+              name="linkedinUrl"
+              value={formData.linkedinUrl}
+              onChange={handleChange}
+              placeholder="https://www.linkedin.com/in/yourprofile"
+            />
+            <small className="text-muted">
+              This will be masked. Others need to request access to view it.
+            </small>
           </div>
 
           <div className="mb-3">
@@ -508,14 +678,25 @@ const EditProfile = () => {
           </div>
 
           {/* Action Buttons */}
-          <div className="d-flex justify-content-between align-items-center mt-4">
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg"
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : '💾 Save Changes'}
-            </button>
+          <div className="d-flex justify-content-between align-items-center mt-4 gap-2">
+            <div className="d-flex gap-2">
+              <button
+                type="submit"
+                className="btn btn-primary btn-lg"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : '💾 Save Changes'}
+              </button>
+              
+              <button
+                type="button"
+                className="btn btn-info btn-lg"
+                onClick={() => setShowPreview(true)}
+                disabled={saving}
+              >
+                👁️ Preview
+              </button>
+            </div>
 
             <button
               type="button"
@@ -528,6 +709,20 @@ const EditProfile = () => {
           </div>
         </form>
       </div>
+
+      {/* Profile Preview Modal */}
+      {showPreview && (
+        <ProfilePreview
+          user={{
+            ...formData,
+            educationHistory,
+            workExperience,
+            images: existingImages,
+            username: localStorage.getItem('username')
+          }}
+          onClose={() => setShowPreview(false)}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (

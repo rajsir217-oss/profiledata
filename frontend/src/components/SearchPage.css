@@ -401,9 +401,9 @@
 /* Profile Card Layout - Image Left, Details Right */
 .profile-image-left {
   flex-shrink: 0;
-  width: 90px;
-  min-width: 90px;
-  height: 90px;
+  width: 180px;
+  min-width: 180px;
+  height: 180px;
   position: relative;
 }
 
@@ -623,7 +623,7 @@
 
 .results-grid {
   display: grid !important;
-  grid-template-columns: 1fr 1fr !important;
+  grid-template-columns: 1fr 1fr 1fr !important;
   gap: 15px;
   margin-bottom: 30px;
   width: 100%;
@@ -902,7 +902,7 @@
   height: 100% !important;
   object-fit: cover !important;
   border-radius: 0 !important;
-  min-height: 200px;
+  min-height: 180px;
 }
 
 .profile-image-container {
@@ -1132,7 +1132,7 @@
 /* Responsive Design */
 @media (max-width: 1400px) {
   .results-grid {
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr 1fr 1fr !important;
   }
   
   .search-container {
@@ -1248,8 +1248,8 @@
 
   .profile-thumbnail,
   .profile-thumbnail-placeholder {
-    width: 140px;
-    height: 140px;
+    width: 160px;
+    height: 160px;
   }
 
   .user-details-right {
@@ -1338,9 +1338,9 @@
 }
 
 .profile-thumbnail {
-  width: 120px;
-  height: 120px;
-  object-fit: contain;
+  width: 180px;
+  height: 180px;
+  object-fit: cover;
   background: #f8f9fa;
   border-radius: 12px;
   cursor: pointer;
@@ -1370,8 +1370,8 @@
 }
 
 .profile-thumbnail-placeholder {
-  width: 120px;
-  height: 120px;
+  width: 180px;
+  height: 180px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border: 3px solid #dee2e6;
   border-radius: 12px;
@@ -1483,8 +1483,8 @@
 /* Responsive adjustments for profile images */
 @media (max-width: 768px) {
   .profile-thumbnail {
-    width: 140px;
-    height: 140px;
+    width: 160px;
+    height: 160px;
   }
 
   .profile-image-placeholder {

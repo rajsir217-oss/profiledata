@@ -7,12 +7,19 @@ const PIIManagement = () => {
   const [activeTab, setActiveTab] = useState('granted');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const navigate = useNavigate();
   
   const [grantedAccess, setGrantedAccess] = useState([]);
   const [receivedAccess, setReceivedAccess] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
+  
+  // History data
+  const [revokedAccess, setRevokedAccess] = useState([]);
+  const [rejectedIncoming, setRejectedIncoming] = useState([]);
+  const [rejectedOutgoing, setRejectedOutgoing] = useState([]);
   
   const currentUsername = localStorage.getItem('username');
 
@@ -29,17 +36,24 @@ const PIIManagement = () => {
     setError('');
     
     try {
-      const [grantedRes, receivedRes, incomingRes, outgoingRes] = await Promise.all([
+      const [grantedRes, receivedRes, incomingRes, outgoingRes, revokedRes, rejectedInRes, rejectedOutRes] = await Promise.all([
         api.get(`/pii-access/${currentUsername}/granted`),
         api.get(`/pii-access/${currentUsername}/received`),
         api.get(`/pii-requests/${currentUsername}/incoming?status_filter=pending`),
-        api.get(`/pii-requests/${currentUsername}/outgoing`)
+        api.get(`/pii-requests/${currentUsername}/outgoing?status_filter=pending`),
+        api.get(`/pii-access/${currentUsername}/revoked`),
+        api.get(`/pii-requests/${currentUsername}/incoming?status_filter=rejected`),
+        api.get(`/pii-requests/${currentUsername}/outgoing?status_filter=rejected`)
       ]);
 
       setGrantedAccess(grantedRes.data.grantedAccess || []);
       setReceivedAccess(receivedRes.data.receivedAccess || []);
       setIncomingRequests(incomingRes.data.requests || []);
       setOutgoingRequests(outgoingRes.data.requests || []);
+      
+      setRevokedAccess(revokedRes.data.grantedAccess || []);
+      setRejectedIncoming(rejectedInRes.data.requests || []);
+      setRejectedOutgoing(rejectedOutRes.data.requests || []);
     } catch (err) {
       console.error('Error loading PII data:', err);
       setError('Failed to load PII management data');
@@ -59,6 +73,8 @@ const PIIManagement = () => {
       
       // Reload data
       await loadAllData();
+      setSuccessMessage(`Access revoked for ${username} successfully.`);
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
       console.error('Error revoking access:', err);
       setError('Failed to revoke access');
@@ -69,6 +85,8 @@ const PIIManagement = () => {
     try {
       await api.put(`/pii-requests/${requestId}/approve?username=${currentUsername}`);
       await loadAllData();
+      setSuccessMessage('Request approved! Access granted successfully.');
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
       console.error('Error approving request:', err);
       setError('Failed to approve request');
@@ -79,6 +97,8 @@ const PIIManagement = () => {
     try {
       await api.put(`/pii-requests/${requestId}/reject?username=${currentUsername}`);
       await loadAllData();
+      setSuccessMessage('Request rejected successfully.');
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
       console.error('Error rejecting request:', err);
       setError('Failed to reject request');
@@ -89,6 +109,8 @@ const PIIManagement = () => {
     try {
       await api.delete(`/pii-requests/${requestId}?username=${currentUsername}`);
       await loadAllData();
+      setSuccessMessage('Request cancelled successfully.');
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err) {
       console.error('Error cancelling request:', err);
       setError('Failed to cancel request');
@@ -316,9 +338,79 @@ const PIIManagement = () => {
         </div>
       )}
 
+      {/* Success Message Bubble */}
+      {successMessage && (
+        <div className="status-bubble" style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          backgroundColor: '#d4edda',
+          border: '1px solid #c3e6cb',
+          borderRadius: '12px',
+          padding: '12px 16px',
+          maxWidth: '350px',
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: '10px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 1000,
+          animation: 'slideInRight 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <strong style={{ color: '#155724', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
+              Success
+            </strong>
+            <p style={{ color: '#155724', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
+              {successMessage}
+            </p>
+          </div>
+          <button 
+            onClick={() => setSuccessMessage('')}
+            style={{
+              background: 'none',
+              border: 'none',
+              fontSize: '18px',
+              cursor: 'pointer',
+              color: '#155724',
+              padding: '0',
+              width: '20px',
+              height: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}
+            title="Dismiss"
+          >
+            ×
+          </button>
+        </div>
+      )}
+
       <div className="pii-header">
-        <h2>🔒 Privacy & Data Management</h2>
-        <p>Manage who can access your private information</p>
+        <div className="pii-header-content">
+          <div>
+            <h2>🔒 Privacy & Data Management</h2>
+            <p>Manage who can access your private information</p>
+          </div>
+          <div className="view-toggle">
+            <button
+              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card view"
+            >
+              ▦
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => setViewMode('rows')}
+              title="Row view"
+            >
+              ☰
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -347,6 +439,14 @@ const PIIManagement = () => {
           <span className="tab-label">Pending Requests</span>
           <span className="tab-count">{incomingRequests.length + outgoingRequests.length}</span>
         </button>
+        <button
+          className={`pii-tab ${activeTab === 'history' ? 'active' : ''}`}
+          onClick={() => setActiveTab('history')}
+        >
+          <span className="tab-icon">📜</span>
+          <span className="tab-label">History</span>
+          <span className="tab-count">{revokedAccess.length + rejectedIncoming.length + rejectedOutgoing.length}</span>
+        </button>
       </div>
 
       {/* Tab Content */}
@@ -363,7 +463,7 @@ const PIIManagement = () => {
                 <p>You haven't granted access to anyone yet</p>
               </div>
             ) : (
-              <div className="access-grid">
+              <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
                 {grantedAccess.map(item => renderAccessCard(item, 'granted'))}
               </div>
             )}
@@ -382,7 +482,7 @@ const PIIManagement = () => {
                 <p>You don't have access to anyone's private information yet</p>
               </div>
             ) : (
-              <div className="access-grid">
+              <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
                 {receivedAccess.map(item => renderAccessCard(item, 'received'))}
               </div>
             )}
@@ -402,7 +502,7 @@ const PIIManagement = () => {
                   <p>No pending requests</p>
                 </div>
               ) : (
-                <div className="request-grid">
+                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
                   {incomingRequests.map(req => renderRequestCard(req, true))}
                 </div>
               )}
@@ -419,8 +519,179 @@ const PIIManagement = () => {
                   <p>No requests sent</p>
                 </div>
               ) : (
-                <div className="request-grid">
+                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
                   {outgoingRequests.map(req => renderRequestCard(req, false))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'history' && (
+          <div className="tab-panel">
+            {/* Revoked Access */}
+            <div className="requests-section">
+              <div className="panel-header">
+                <h3>🚫 Revoked Access ({revokedAccess.length})</h3>
+                <p>Access you've revoked from others</p>
+              </div>
+              {revokedAccess.length === 0 ? (
+                <div className="empty-state-small">
+                  <p>No revoked access</p>
+                </div>
+              ) : (
+                <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
+                  {revokedAccess.map(item => {
+                    const profile = item.userProfile;
+                    return (
+                      <div 
+                        key={profile.username} 
+                        className="access-card clickable history-card"
+                        onClick={() => handleProfileClick(profile.username)}
+                      >
+                        <div className="access-card-header">
+                          <div className="user-info">
+                            {profile.images?.[0] ? (
+                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                            ) : (
+                              <div className="access-avatar-placeholder">
+                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h4>{profile.firstName || profile.username}</h4>
+                              <p className="access-username">@{profile.username}</p>
+                            </div>
+                          </div>
+                          <span className="status-badge badge-cancelled">Revoked</span>
+                        </div>
+                        <div className="access-card-body">
+                          <div className="access-types">
+                            {item.accessTypes.map(type => (
+                              <span key={type} className="access-type-badge">
+                                {getAccessTypeLabel(type)}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="access-date">
+                            Revoked: {new Date(item.grantedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Rejected Incoming Requests */}
+            <div className="requests-section">
+              <div className="panel-header">
+                <h3>❌ Rejected Requests to You ({rejectedIncoming.length})</h3>
+                <p>Requests you've rejected</p>
+              </div>
+              {rejectedIncoming.length === 0 ? (
+                <div className="empty-state-small">
+                  <p>No rejected requests</p>
+                </div>
+              ) : (
+                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
+                  {rejectedIncoming.map(request => {
+                    const profile = request.requesterProfile;
+                    return (
+                      <div 
+                        key={request.id} 
+                        className="request-card clickable history-card"
+                        onClick={() => handleProfileClick(profile.username)}
+                      >
+                        <div className="request-card-header">
+                          <div className="user-info">
+                            {profile.images?.[0] ? (
+                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                            ) : (
+                              <div className="access-avatar-placeholder">
+                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h4>{profile.firstName || profile.username}</h4>
+                              <p className="access-username">@{profile.username}</p>
+                            </div>
+                          </div>
+                          <span className="status-badge badge-rejected">Rejected</span>
+                        </div>
+                        <div className="request-card-body">
+                          <div className="request-type">
+                            <strong>Requested:</strong> {getAccessTypeLabel(request.requestType)}
+                          </div>
+                          {request.message && (
+                            <div className="request-message">
+                              <strong>Message:</strong> {request.message}
+                            </div>
+                          )}
+                          <p className="request-date">
+                            Rejected: {new Date(request.respondedAt || request.requestedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Rejected Outgoing Requests */}
+            <div className="requests-section">
+              <div className="panel-header">
+                <h3>⛔ Your Rejected Requests ({rejectedOutgoing.length})</h3>
+                <p>Your requests that were rejected by others</p>
+              </div>
+              {rejectedOutgoing.length === 0 ? (
+                <div className="empty-state-small">
+                  <p>No rejected requests</p>
+                </div>
+              ) : (
+                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
+                  {rejectedOutgoing.map(request => {
+                    const profile = request.profileOwner;
+                    return (
+                      <div 
+                        key={request.id} 
+                        className="request-card clickable history-card"
+                        onClick={() => handleProfileClick(profile.username)}
+                      >
+                        <div className="request-card-header">
+                          <div className="user-info">
+                            {profile.images?.[0] ? (
+                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                            ) : (
+                              <div className="access-avatar-placeholder">
+                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h4>{profile.firstName || profile.username}</h4>
+                              <p className="access-username">@{profile.username}</p>
+                            </div>
+                          </div>
+                          <span className="status-badge badge-rejected">Rejected</span>
+                        </div>
+                        <div className="request-card-body">
+                          <div className="request-type">
+                            <strong>Requested:</strong> {getAccessTypeLabel(request.requestType)}
+                          </div>
+                          {request.message && (
+                            <div className="request-message">
+                              <strong>Your message:</strong> {request.message}
+                            </div>
+                          )}
+                          <p className="request-date">
+                            Rejected: {new Date(request.respondedAt || request.requestedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

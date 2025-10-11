@@ -29,4 +29,6 @@ echo "🔍 Starting with detailed logging..."
 echo ""
 
 # Start the server with verbose logging (using socket_app for WebSocket support)
-uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level trace
+# uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level trace
+
+uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level debug

@@ -13,7 +13,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   const piiTypes = [
     { value: 'images', label: '📷 View Photos', description: 'Access to profile pictures' },
     { value: 'contact_info', label: '📧 Contact Information', description: 'Email and phone number' },
-    { value: 'dob', label: '🎂 Date of Birth', description: 'Full date of birth' }
+    { value: 'dob', label: '🎂 Date of Birth', description: 'Full date of birth' },
+    { value: 'linkedin_url', label: '🔗 LinkedIn Profile', description: 'LinkedIn profile URL' }
   ];
 
   // Initialize selected types with already granted access

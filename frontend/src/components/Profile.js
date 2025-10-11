@@ -325,6 +325,65 @@ const Profile = () => {
         </div>
       </div>
 
+      {/* Education History */}
+      {user.educationHistory && user.educationHistory.length > 0 && (
+        <div className="profile-section">
+          <h3>🎓 Education History</h3>
+          <div className="profile-info">
+            {user.educationHistory.map((edu, idx) => (
+              <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.educationHistory.length - 1 ? '1px solid #eee' : 'none'}}>
+                <p><strong>{edu.degree}</strong></p>
+                <p style={{marginLeft: '10px', color: '#666'}}>{edu.institution}</p>
+                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>{edu.year}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Work Experience */}
+      {user.workExperience && user.workExperience.length > 0 && (
+        <div className="profile-section">
+          <h3>💼 Work Experience</h3>
+          <div className="profile-info">
+            {user.workExperience.map((work, idx) => (
+              <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.workExperience.length - 1 ? '1px solid #eee' : 'none'}}>
+                <p><strong>{work.position}</strong></p>
+                <p style={{marginLeft: '10px', color: '#666'}}>{work.company}</p>
+                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>{work.years}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* LinkedIn URL (PII Protected) */}
+      {user.linkedinUrl && (
+        <div className="profile-section">
+          <h3>🔗 LinkedIn Profile</h3>
+          {isOwnProfile || !user.linkedinUrlMasked ? (
+            <div className="profile-info">
+              <p>
+                <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
+                  🔗 View LinkedIn Profile
+                </a>
+              </p>
+            </div>
+          ) : (
+            <div className="pii-locked">
+              <div className="lock-icon">🔒</div>
+              <p>LinkedIn profile is private</p>
+              <button
+                className="btn-request-small"
+                onClick={() => setShowPIIRequestModal(true)}
+              >
+                Request Access
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Contact Information (PII Protected) */}
       <div className="profile-section">
         <h3>📧 Contact Information</h3>

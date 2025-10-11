@@ -112,6 +112,11 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False):
         masked_data['workplace'] = mask_workplace(masked_data['workplace'])
         masked_data['workplaceMasked'] = True
 
+    # Mask LinkedIn URL completely
+    if 'linkedinUrl' in masked_data and masked_data['linkedinUrl']:
+        masked_data['linkedinUrl'] = '[🔒 Private - Request Access]'
+        masked_data['linkedinUrlMasked'] = True
+
     # Add flag indicating PII is masked
     masked_data['piiMasked'] = True
 

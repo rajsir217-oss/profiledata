@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
+import PIIRequestModal from './PIIRequestModal';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
@@ -64,6 +65,11 @@ const SearchPage = () => {
   // Message modal state
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
+
+  // PII Request modal state
+  const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
+  const [selectedUserForPII, setSelectedUserForPII] = useState(null);
+  const [currentPIIAccess, setCurrentPIIAccess] = useState({});
 
   const navigate = useNavigate();
 
@@ -160,13 +166,33 @@ const SearchPage = () => {
     if (!currentUser) return;
 
     try {
-      const response = await api.get(`/pii-requests/${currentUser}?type=sent`);
-      const requests = response.data.requests || [];
+      // Load both outgoing requests AND received access grants
+      const [requestsResponse, accessResponse] = await Promise.all([
+        api.get(`/pii-requests/${currentUser}/outgoing`),
+        api.get(`/pii-access/${currentUser}/received`)
+      ]);
+
+      const requests = requestsResponse.data.requests || [];
+      const receivedAccess = accessResponse.data.receivedAccess || [];
       const requestStatus = {};
+
+      // First, add all outgoing requests with their status
       requests.forEach(req => {
-        requestStatus[`${req.requestedUsername}_${req.requestType}`] = req.status;
+        // Handle both old (requestedUsername) and new (profileUsername) field names
+        const targetUsername = req.profileUsername || req.requestedUsername;
+        requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
       });
 
+      // Then, add all received access (these are approved grants)
+      receivedAccess.forEach(access => {
+        const targetUsername = access.userProfile.username;
+        // Mark all access types as 'approved' since they're in pii_access collection
+        access.accessTypes.forEach(accessType => {
+          requestStatus[`${targetUsername}_${accessType}`] = 'approved';
+        });
+      });
+
+      console.log('📊 PII Access Status:', requestStatus);
       setPiiRequests(requestStatus);
     } catch (err) {
       console.error('Error loading PII requests:', err);
@@ -213,11 +239,13 @@ const SearchPage = () => {
               className="btn btn-sm btn-primary"
               onClick={(e) => {
                 e.stopPropagation();
-                requestPiiAccess(user.username, 'images');
+                openPIIRequestModal(user.username);
               }}
               disabled={isPiiRequestPending(user.username, 'images')}
             >
-              {isPiiRequestPending(user.username, 'images') ? 'Pending' : 'Request Access'}
+              {isPiiRequestPending(user.username, 'images') ? (
+                <span className="badge bg-warning text-dark">📨 Request Sent</span>
+              ) : 'Request Access'}
             </button>
           </div>
           {/* Online Status Badge */}
@@ -712,35 +740,24 @@ const SearchPage = () => {
     return age;
   };
 
-  const requestPiiAccess = async (targetUsername, requestType) => {
-    const currentUser = localStorage.getItem('username');
-    if (!currentUser) {
-      setError('Please login to request PII access');
-      return;
-    }
+  const openPIIRequestModal = (targetUsername) => {
+    const user = users.find(u => u.username === targetUsername);
+    if (!user) return;
 
-    try {
-      await api.post('/pii-request', {
-        requester: currentUser,
-        requested_user: targetUsername,
-        request_type: requestType,
-        message: `Request to view ${requestType === 'contact_info' ? 'contact information' : 'profile images'}`
-      });
+    // Set current PII access status
+    setCurrentPIIAccess({
+      images: hasPiiAccess(targetUsername, 'images'),
+      contact_info: hasPiiAccess(targetUsername, 'contact_info'),
+      dob: hasPiiAccess(targetUsername, 'dob')
+    });
 
-      setPiiRequests(prev => ({
-        ...prev,
-        [`${targetUsername}_${requestType}`]: 'pending'
-      }));
+    setSelectedUserForPII(user);
+    setShowPIIRequestModal(true);
+  };
 
-      alert(`${requestType === 'contact_info' ? 'Contact information' : 'Profile images'} request sent!`);
-    } catch (err) {
-      console.error('Error requesting PII access:', err);
-      if (err.response?.status === 409) {
-        setError('Request already pending');
-      } else {
-        setError('Failed to send request');
-      }
-    }
+  const handlePIIRequestSuccess = async () => {
+    // Reload PII requests to get updated status
+    await loadPiiRequests();
   };
 
   const hasPiiAccess = (targetUsername, requestType) => {
@@ -1506,11 +1523,13 @@ const SearchPage = () => {
                                   className="btn btn-sm btn-link pii-request-btn"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    requestPiiAccess(user.username, 'contact_info');
+                                    openPIIRequestModal(user.username);
                                   }}
                                   disabled={isPiiRequestPending(user.username, 'contact_info')}
                                 >
-                                  {isPiiRequestPending(user.username, 'contact_info') ? 'Pending' : 'Request'}
+                                  {isPiiRequestPending(user.username, 'contact_info') ? (
+                                    <span className="badge bg-warning text-dark">📨 Sent</span>
+                                  ) : 'Request'}
                                 </button>
                               )}
                             </p>
@@ -1615,6 +1634,21 @@ const SearchPage = () => {
         onDelete={handleDeleteSavedSearch}
         currentCriteria={searchCriteria}
       />
+
+      {/* PII Request Modal */}
+      {selectedUserForPII && (
+        <PIIRequestModal
+          isOpen={showPIIRequestModal}
+          profileUsername={selectedUserForPII.username}
+          profileName={`${selectedUserForPII.firstName || selectedUserForPII.username}`}
+          currentAccess={currentPIIAccess}
+          onClose={() => {
+            setShowPIIRequestModal(false);
+            setSelectedUserForPII(null);
+          }}
+          onSuccess={handlePIIRequestSuccess}
+        />
+      )}
     </div>
   );
 };
