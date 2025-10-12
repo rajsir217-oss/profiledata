@@ -10,9 +10,9 @@
 }
 
 .draggable-card.drag-over {
-  border: 2px dashed #667eea;
+  border: 2px dashed var(--primary-color, #667eea);
   border-radius: 12px;
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--hover-background, rgba(102, 126, 234, 0.05));
   transform: scale(1.02);
 }
 
@@ -22,7 +22,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(102, 126, 234, 0.95);
+  background: var(--primary-color, #667eea);
   color: white;
   padding: 8px 16px;
   border-radius: 6px;
@@ -30,6 +30,7 @@
   font-weight: 500;
   z-index: 10;
   pointer-events: none;
+  opacity: 0.95;
 }
 
 .draggable-card:active {
@@ -38,13 +39,13 @@
 
 /* My Lists Tab Styling */
 .nav-tabs {
-  border-bottom: 2px solid #dee2e6;
+  border-bottom: 2px solid var(--border-color, #dee2e6);
 }
 
 .nav-tabs .nav-link {
   border: none;
   background: transparent;
-  color: #6c757d;
+  color: var(--text-secondary, #6c757d);
   font-weight: 500;
   padding: 12px 20px;
   margin-right: 5px;
@@ -54,12 +55,12 @@
 }
 
 .nav-tabs .nav-link:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  background: var(--hover-background, rgba(102, 126, 234, 0.1));
+  color: var(--primary-color, #667eea);
 }
 
 .nav-tabs .nav-link.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
 }

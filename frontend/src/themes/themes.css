@@ -37,6 +37,12 @@
   --warning-color: #f59e0b;
   --info-color: #6366f1;
   
+  /* Button State Colors */
+  --info-light: #e0e7ff;
+  --info-hover: #c7d2fe;
+  --danger-light: #ffebee;
+  --danger-hover: #ffcdd2;
+  
   /* Typography - Friendly fonts */
   --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, sans-serif;
   --font-size-xs: 12px;
@@ -171,6 +177,12 @@ body.theme-dark {
   --danger-color: #ef4444;
   --warning-color: #fbbf24;
   --info-color: #a78bfa;
+  
+  /* Button State Colors */
+  --info-light: #4c1d95;
+  --info-hover: #5b21b6;
+  --danger-light: #7f1d1d;
+  --danger-hover: #991b1b;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -331,6 +343,12 @@ body.theme-light-pink {
   --danger-color: #ef4444;
   --warning-color: #fbbf24;
   --info-color: #ec4899;
+  
+  /* Button State Colors */
+  --info-light: #fce7f3;
+  --info-hover: #fbcfe8;
+  --danger-light: #fee2e2;
+  --danger-hover: #fecaca;
   
   background-color: var(--background-color);
   color: var(--text-color);

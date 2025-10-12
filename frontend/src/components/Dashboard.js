@@ -39,6 +39,9 @@ const Dashboard = () => {
   // Online users state
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   
+  // Current user profile for display name
+  const [userProfile, setUserProfile] = useState(null);
+  
   const [activeSections, setActiveSections] = useState({
     myMessages: true,
     myFavorites: true,
@@ -56,6 +59,18 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
+    
+    // Load user profile for display name
+    const loadUserProfile = async () => {
+      try {
+        const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
+        setUserProfile(response.data);
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+    
+    loadUserProfile();
     
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
@@ -416,7 +431,7 @@ const Dashboard = () => {
     <div className="dashboard-container">
       <div className="dashboard-header">
         <h1>My Dashboard</h1>
-        <p>Welcome back, {currentUser}!</p>
+        <p>Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</p>
         <button 
           className="btn-refresh"
           onClick={() => loadDashboardData(currentUser)}
