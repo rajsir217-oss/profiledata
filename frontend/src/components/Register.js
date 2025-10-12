@@ -733,7 +733,10 @@ const Register = () => {
             // Exclude new dating-app fields (rendered in Dating Preferences section)
             "relationshipStatus", "lookingFor", "interests", "languages", 
             "drinking", "smoking", "religion", "bodyType", "occupation", 
-            "incomeRange", "hasChildren", "wantsChildren", "pets", "bio"
+            "incomeRange", "hasChildren", "wantsChildren", "pets", "bio",
+            // Exclude legal consent fields (backend-only metadata, not profile fields)
+            "agreedToAge", "agreedToTerms", "agreedToPrivacy", "agreedToGuidelines",
+            "agreedToDataProcessing", "agreedToMarketing"
           ];
           
           if (excludedFields.includes(key)) return null;

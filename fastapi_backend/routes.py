@@ -47,6 +47,21 @@ def safe_datetime_serialize(dt):
         return dt  # Already a string
     return str(dt)
 
+# Helper function to remove consent metadata from user objects
+def remove_consent_metadata(user_dict):
+    """
+    Remove consent-related fields from user dictionary.
+    These are backend-only fields for legal/audit purposes and should not be exposed in API responses.
+    """
+    consent_fields = [
+        "agreedToAge", "agreedToTerms", "agreedToPrivacy", 
+        "agreedToGuidelines", "agreedToDataProcessing", "agreedToMarketing",
+        "termsAgreedAt", "privacyAgreedAt", "consentIpAddress", "consentUserAgent"
+    ]
+    for field in consent_fields:
+        user_dict.pop(field, None)
+    return user_dict
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     username: str = Form(...),
@@ -282,6 +297,9 @@ async def register_user(
     created_user.pop("password", None)
     created_user.pop("_id", None)
     
+    # Remove consent metadata (backend-only fields)
+    remove_consent_metadata(created_user)
+    
     # Convert image paths to full URLs
     created_user["images"] = [get_full_image_url(img) for img in created_user.get("images", [])]
     
@@ -364,6 +382,9 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     user.pop("password", None)
     user.pop("_id", None)
     
+    # Remove consent metadata (backend-only fields)
+    remove_consent_metadata(user)
+    
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
@@ -393,6 +414,9 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Remove password and _id from response
     user.pop("password", None)
     user.pop("_id", None)
+    
+    # Remove consent metadata (backend-only fields)
+    remove_consent_metadata(user)
     
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
@@ -594,6 +618,8 @@ async def update_user_profile(
         updated_user = await db.users.find_one({"username": username})
         updated_user.pop("password", None)
         updated_user.pop("_id", None)
+        # Remove consent metadata (backend-only fields)
+        remove_consent_metadata(updated_user)
         updated_user["images"] = [get_full_image_url(img) for img in updated_user.get("images", [])]
         
         return {
@@ -1015,6 +1041,8 @@ async def search_users(
         for user in users:
             user.pop("password", None)
             user.pop("_id", None)
+            # Remove consent metadata (backend-only fields)
+            remove_consent_metadata(user)
             user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
@@ -1287,6 +1315,7 @@ async def get_favorites(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
@@ -1381,6 +1410,7 @@ async def get_shortlist(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["notes"] = item.get("notes")
                 user["addedToShortlistAt"] = item["createdAt"]
@@ -1471,6 +1501,7 @@ async def get_exclusions(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["excludedAt"] = exc.get("createdAt")
                 excluded_users.append(user)
@@ -1767,6 +1798,7 @@ async def get_conversations(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 conv["otherUser"] = user
                 conv["lastMessage"]["id"] = str(conv["lastMessage"].pop("_id", ""))
@@ -2439,6 +2471,7 @@ async def get_profile_views(
             if viewer:
                 viewer.pop("password", None)
                 viewer["_id"] = str(viewer["_id"])
+                remove_consent_metadata(viewer)
                 viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
                 
                 view_count = view["viewCount"]

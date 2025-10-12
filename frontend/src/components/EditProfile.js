@@ -42,6 +42,36 @@ const EditProfile = () => {
   const [existingImages, setExistingImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
+  // Sample description carousel states
+  const [aboutYouSampleIndex, setAboutYouSampleIndex] = useState(0);
+  const [partnerPrefSampleIndex, setPartnerPrefSampleIndex] = useState(0);
+
+  // Sample descriptions for "About You"
+  const aboutYouSamples = [
+    "I am a warm-hearted and family-oriented individual who values tradition while embracing modern perspectives. My friends describe me as compassionate, reliable, and someone with a great sense of humor. I enjoy meaningful conversations, weekend getaways, and trying new cuisines. In my free time, I love reading, cooking, and spending quality time with loved ones. I believe in honesty, respect, and building a strong foundation of friendship in a relationship.",
+    
+    "As a dedicated professional, I've built a successful career while maintaining a healthy work-life balance. I'm passionate about personal growth, fitness, and exploring new cultures through travel. I value deep connections and believe in the power of communication and understanding. Whether it's a quiet evening at home or an adventure in the mountains, I appreciate life's simple pleasures. I'm looking for someone who shares my values and is ready to build a beautiful future together.",
+    
+    "I'm an optimistic person who finds joy in life's little moments. My family means everything to me, and I cherish the values they've instilled in me. I have a curious mind and love learning new things, whether it's picking up a new hobby or exploring different perspectives. I enjoy cooking traditional dishes with a modern twist, practicing yoga, and volunteering in my community. I believe in mutual respect, trust, and supporting each other's dreams in a partnership.",
+    
+    "I would describe myself as down-to-earth, ambitious, and emotionally intelligent. My career in [your field] keeps me engaged, but I always make time for family, friends, and personal interests. I'm passionate about music, art, and staying active through sports or outdoor activities. I value authenticity and believe that the best relationships are built on friendship, laughter, and shared values. I'm looking for a life partner who is equally committed to growing together while celebrating our individual strengths.",
+    
+    "I'm a creative soul with a practical approach to life. I balance my professional responsibilities with hobbies like photography, gardening, and exploring local food scenes. My friends appreciate my loyalty and my ability to listen without judgment. I come from a close-knit family and hope to create the same warmth in my own home someday. I value kindness, integrity, and a good sense of humor. Life's too short not to laugh, love, and make beautiful memories along the way."
+  ];
+
+  // Sample descriptions for "Partner Preference"
+  const partnerPrefSamples = [
+    "I'm seeking a life partner who values family, honesty, and mutual respect. Someone who is educated, career-oriented, and has a balanced approach to life. I appreciate a person who can engage in meaningful conversations and shares similar cultural values while being open-minded. A good sense of humor and the ability to handle life's ups and downs with grace are qualities I deeply admire. Most importantly, I'm looking for someone who believes in partnership, where we support each other's goals and grow together.",
+    
+    "I'm looking for someone who is kind-hearted, ambitious, and has strong family values. Education and career are important, but what matters most is finding someone with emotional maturity and excellent communication skills. I value a partner who enjoys both quiet evenings at home and occasional adventures exploring new places. Someone who respects traditions while embracing modern thinking would be a perfect match. Honesty, loyalty, and a positive outlook on life are qualities I hold dear in a potential life partner.",
+    
+    "My ideal partner is someone who is compassionate, well-educated, and has a strong sense of self. I appreciate independence but also value togetherness and teamwork in building a life. Someone who shares my love for family, respects my ambitions, and has their own passions and interests would be wonderful. I'm drawn to people who are genuine, have integrity, and can find humor in everyday situations. A partner who believes in equality, mutual growth, and creating a loving home together would be my perfect match.",
+    
+    "I'm seeking a partner who is emotionally intelligent, supportive, and shares similar values about family and relationships. Professional stability is important, but I'm more interested in someone's character, kindness, and ability to communicate openly. I appreciate someone who is health-conscious, enjoys staying active, and values personal growth. A great sense of humor, patience, and the ability to be both my best friend and life partner are qualities I'm looking for. Together, I hope we can build a relationship based on trust, love, and mutual respect.",
+    
+    "I envision a partner who is confident yet humble, successful yet grounded. Someone who values their roots while being open to new experiences and perspectives. I appreciate a person who can balance career ambitions with family priorities and knows the importance of quality time together. Shared values about honesty, loyalty, and commitment are essential to me. I'm looking for someone who can be my companion through life's journey—celebrating successes, supporting through challenges, and creating a warm, loving family together."
+  ];
+
   // Load current user's profile data
   useEffect(() => {
     const loadProfile = async () => {
@@ -609,26 +639,104 @@ const EditProfile = () => {
             />
           </div>
 
+          {/* About You with Sample Carousel */}
           <div className="mb-3">
-            <label className="form-label">About You</label>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="form-label mb-0">About You</label>
+              <div className="d-flex align-items-center gap-2">
+                <small className="text-muted">Sample Descriptions:</small>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setAboutYouSampleIndex((prev) => (prev - 1 + aboutYouSamples.length) % aboutYouSamples.length)}
+                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                >
+                  &lt;&lt;
+                </button>
+                <span className="badge bg-primary" style={{ minWidth: '45px' }}>
+                  {aboutYouSampleIndex + 1}/{aboutYouSamples.length}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setAboutYouSampleIndex((prev) => (prev + 1) % aboutYouSamples.length)}
+                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                >
+                  &gt;&gt;
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-success"
+                  onClick={() => setFormData({ ...formData, aboutYou: aboutYouSamples[aboutYouSampleIndex] })}
+                  style={{ fontSize: '12px' }}
+                >
+                  Use This Sample
+                </button>
+              </div>
+            </div>
+            <div className="card p-2 mb-2" style={{ backgroundColor: '#f8f9fa', border: '1px dashed #dee2e6' }}>
+              <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                <strong>Sample {aboutYouSampleIndex + 1}:</strong> {aboutYouSamples[aboutYouSampleIndex].substring(0, 150)}...
+              </small>
+            </div>
             <textarea
               className="form-control"
               name="aboutYou"
               value={formData.aboutYou}
               onChange={handleChange}
-              rows={3}
+              rows={5}
+              placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
               required
             />
           </div>
 
+          {/* Partner Preference with Sample Carousel */}
           <div className="mb-3">
-            <label className="form-label">Partner Preference</label>
+            <div className="d-flex justify-content-between align-items-center mb-2">
+              <label className="form-label mb-0">Partner Preference</label>
+              <div className="d-flex align-items-center gap-2">
+                <small className="text-muted">Sample Descriptions:</small>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
+                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                >
+                  &lt;&lt;
+                </button>
+                <span className="badge bg-primary" style={{ minWidth: '45px' }}>
+                  {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
+                </span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
+                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                >
+                  &gt;&gt;
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-success"
+                  onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
+                  style={{ fontSize: '12px' }}
+                >
+                  Use This Sample
+                </button>
+              </div>
+            </div>
+            <div className="card p-2 mb-2" style={{ backgroundColor: '#f8f9fa', border: '1px dashed #dee2e6' }}>
+              <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}...
+              </small>
+            </div>
             <textarea
               className="form-control"
               name="partnerPreference"
               value={formData.partnerPreference}
               onChange={handleChange}
-              rows={3}
+              rows={5}
+              placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
               required
             />
           </div>
