@@ -44,6 +44,18 @@ class UserBase(BaseModel):
     partnerPreference: Optional[str] = None
     images: List[str] = []
     themePreference: Optional[str] = "light-blue"  # User's preferred theme
+    
+    # Legal consent fields
+    agreedToAge: bool = False
+    agreedToTerms: bool = False
+    agreedToPrivacy: bool = False
+    agreedToGuidelines: bool = False
+    agreedToDataProcessing: bool = False
+    agreedToMarketing: bool = False
+    termsAgreedAt: Optional[datetime] = None
+    privacyAgreedAt: Optional[datetime] = None
+    consentIpAddress: Optional[str] = None
+    consentUserAgent: Optional[str] = None
 
     @validator('username')
     def username_alphanumeric(cls, v):

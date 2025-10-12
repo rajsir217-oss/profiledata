@@ -83,12 +83,58 @@ async def register_user(
     wantsChildren: Optional[str] = Form(None),
     pets: Optional[str] = Form(None),
     bio: Optional[str] = Form(None),
+    # Legal consent fields
+    agreedToAge: bool = Form(False),
+    agreedToTerms: bool = Form(False),
+    agreedToPrivacy: bool = Form(False),
+    agreedToGuidelines: bool = Form(False),
+    agreedToDataProcessing: bool = Form(False),
+    agreedToMarketing: bool = Form(False),
     images: List[UploadFile] = File(default=[]),
+    request: Request = None,
     db = Depends(get_database)
 ):
     """Register a new user with profile details and images"""
     logger.info(f"📝 Registration attempt for username: {username}")
     logger.debug(f"Registration data - Email: {contactEmail}, Name: {firstName} {lastName}")
+    
+    # Validate legal consents (CRITICAL FOR LEGAL COMPLIANCE)
+    if not agreedToAge:
+        logger.warning(f"⚠️ Registration failed: User '{username}' did not confirm age")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must confirm that you are at least 18 years old"
+        )
+    
+    if not agreedToTerms:
+        logger.warning(f"⚠️ Registration failed: User '{username}' did not agree to Terms of Service")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must agree to the Terms of Service"
+        )
+    
+    if not agreedToPrivacy:
+        logger.warning(f"⚠️ Registration failed: User '{username}' did not agree to Privacy Policy")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must agree to the Privacy Policy"
+        )
+    
+    if not agreedToGuidelines:
+        logger.warning(f"⚠️ Registration failed: User '{username}' did not agree to Community Guidelines")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must agree to follow the Community Guidelines"
+        )
+    
+    if not agreedToDataProcessing:
+        logger.warning(f"⚠️ Registration failed: User '{username}' did not consent to data processing")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must consent to data processing for matchmaking purposes"
+        )
+    
+    logger.info(f"✅ Legal consents validated for user '{username}'")
     
     # Validate username length
     if len(username) < 3:
@@ -191,6 +237,17 @@ async def register_user(
         "pets": pets,
         "bio": bio,
         "images": image_paths,
+        # Legal consent metadata (for audit trail and GDPR compliance)
+        "agreedToAge": agreedToAge,
+        "agreedToTerms": agreedToTerms,
+        "agreedToPrivacy": agreedToPrivacy,
+        "agreedToGuidelines": agreedToGuidelines,
+        "agreedToDataProcessing": agreedToDataProcessing,
+        "agreedToMarketing": agreedToMarketing,
+        "termsAgreedAt": now,
+        "privacyAgreedAt": now,
+        "consentIpAddress": request.client.host if request else None,
+        "consentUserAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
         "updatedAt": now,
         # User account status (pending activation by admin)

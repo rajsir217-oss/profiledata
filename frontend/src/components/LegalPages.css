@@ -1,0 +1,247 @@
+/* Legal Pages Styling */
+
+.legal-page-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 20px;
+  background: var(--background-color, #fff);
+  min-height: 100vh;
+}
+
+.legal-content {
+  background: white;
+  padding: 40px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Dark theme support */
+.theme-dark .legal-content {
+  background: #2a2438;
+  color: #e5e7eb;
+}
+
+.legal-content h1 {
+  color: var(--primary-color, #6366f1);
+  margin-bottom: 10px;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.legal-content .last-updated {
+  color: #6b7280;
+  font-size: 0.95rem;
+  margin-bottom: 30px;
+  font-style: italic;
+}
+
+.legal-content section {
+  margin-bottom: 35px;
+}
+
+.legal-content h2 {
+  color: var(--primary-color, #6366f1);
+  font-size: 1.75rem;
+  margin-top: 30px;
+  margin-bottom: 15px;
+  font-weight: 600;
+  border-bottom: 2px solid var(--primary-color, #6366f1);
+  padding-bottom: 8px;
+}
+
+.legal-content h3 {
+  color: var(--text-color, #374151);
+  font-size: 1.25rem;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.theme-dark .legal-content h3 {
+  color: #d1d5db;
+}
+
+.legal-content p {
+  line-height: 1.7;
+  margin-bottom: 15px;
+  color: var(--text-color, #374151);
+}
+
+.legal-content ul, .legal-content ol {
+  margin-left: 20px;
+  margin-bottom: 20px;
+  line-height: 1.8;
+}
+
+.legal-content li {
+  margin-bottom: 10px;
+  color: var(--text-color, #374151);
+}
+
+.legal-content a {
+  color: var(--primary-color, #6366f1);
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.legal-content a:hover {
+  color: var(--secondary-color, #a78bfa);
+}
+
+/* Highlighted boxes */
+.disclaimer-box {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 4px;
+}
+
+.theme-dark .disclaimer-box {
+  background: rgba(245, 158, 11, 0.15);
+  border-left-color: #fbbf24;
+}
+
+.disclaimer-box p:last-child {
+  margin-bottom: 0;
+}
+
+.highlight {
+  background: #dbeafe;
+  padding: 15px;
+  border-left: 4px solid #3b82f6;
+  border-radius: 4px;
+  margin: 15px 0;
+}
+
+.theme-dark .highlight {
+  background: rgba(59, 130, 246, 0.15);
+  border-left-color: #60a5fa;
+}
+
+.acceptance-notice {
+  background: #f0fdf4;
+  border: 2px solid #10b981;
+  padding: 25px;
+  margin-top: 40px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.theme-dark .acceptance-notice {
+  background: rgba(16, 185, 129, 0.15);
+  border-color: #34d399;
+}
+
+.acceptance-notice p {
+  margin-bottom: 10px;
+}
+
+.acceptance-notice p:last-child {
+  margin-bottom: 0;
+}
+
+.contact-info {
+  background: #f9fafb;
+  padding: 20px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  margin-top: 15px;
+}
+
+.theme-dark .contact-info {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Cookie table */
+.cookie-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 20px 0;
+  font-size: 0.95rem;
+}
+
+.cookie-table thead {
+  background: var(--primary-color, #6366f1);
+  color: white;
+}
+
+.cookie-table th,
+.cookie-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border: 1px solid #e5e7eb;
+}
+
+.theme-dark .cookie-table td {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.cookie-table tbody tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.theme-dark .cookie-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cookie-table tbody tr:hover {
+  background: #f3f4f6;
+}
+
+.theme-dark .cookie-table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .legal-page-container {
+    padding: 10px;
+  }
+
+  .legal-content {
+    padding: 20px;
+  }
+
+  .legal-content h1 {
+    font-size: 2rem;
+  }
+
+  .legal-content h2 {
+    font-size: 1.5rem;
+  }
+
+  .legal-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .cookie-table {
+    font-size: 0.85rem;
+  }
+
+  .cookie-table th,
+  .cookie-table td {
+    padding: 8px 10px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .legal-page-container {
+    max-width: 100%;
+  }
+
+  .legal-content {
+    box-shadow: none;
+    padding: 20px;
+  }
+
+  .disclaimer-box,
+  .highlight,
+  .acceptance-notice,
+  .contact-info {
+    border: 1px solid #000;
+    page-break-inside: avoid;
+  }
+}

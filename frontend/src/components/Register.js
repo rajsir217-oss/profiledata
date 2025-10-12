@@ -37,6 +37,13 @@ const Register = () => {
     wantsChildren: "",
     pets: "",
     bio: "",
+    // Legal consent fields
+    agreedToAge: false,
+    agreedToTerms: false,
+    agreedToPrivacy: false,
+    agreedToGuidelines: false,
+    agreedToDataProcessing: false,
+    agreedToMarketing: false,
   });
 
   const [images, setImages] = useState([]);
@@ -333,6 +340,37 @@ const Register = () => {
     setErrorMsg("");
     setSuccessMsg("");
     setSavedUser(null);
+
+    // Validate legal consents first
+    if (!formData.agreedToAge) {
+      setErrorMsg("❌ You must confirm that you are at least 18 years old to register.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.agreedToTerms) {
+      setErrorMsg("❌ You must agree to the Terms of Service to register.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.agreedToPrivacy) {
+      setErrorMsg("❌ You must agree to the Privacy Policy to register.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.agreedToGuidelines) {
+      setErrorMsg("❌ You must agree to follow the Community Guidelines to register.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.agreedToDataProcessing) {
+      setErrorMsg("❌ You must consent to data processing for matchmaking purposes.");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
 
     // Validate all fields before submission
     const errors = {};
@@ -1028,6 +1066,109 @@ const Register = () => {
           {fieldErrors.bio && touchedFields.bio && (
             <div className="invalid-feedback d-block">{fieldErrors.bio}</div>
           )}
+        </div>
+
+        {/* Legal Agreements Section */}
+        <div className="legal-agreements-section mt-4 p-4 border rounded" style={{ backgroundColor: '#fff3cd', borderColor: '#ffc107' }}>
+          <h5 className="text-danger mb-3">⚠️ Legal Agreements (Required)</h5>
+          
+          {/* Age Verification */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="ageConfirmation"
+              checked={formData.agreedToAge}
+              onChange={(e) => setFormData({...formData, agreedToAge: e.target.checked})}
+              required
+            />
+            <label className="form-check-label" htmlFor="ageConfirmation">
+              <strong>I confirm that I am at least 18 years old</strong> and have legal capacity to enter into a binding agreement.
+            </label>
+          </div>
+
+          {/* Terms of Service */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="termsAgreement"
+              checked={formData.agreedToTerms}
+              onChange={(e) => setFormData({...formData, agreedToTerms: e.target.checked})}
+              required
+            />
+            <label className="form-check-label" htmlFor="termsAgreement">
+              I have read and agree to the{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary">
+                Terms of Service
+              </a>
+            </label>
+          </div>
+
+          {/* Privacy Policy */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="privacyAgreement"
+              checked={formData.agreedToPrivacy}
+              onChange={(e) => setFormData({...formData, agreedToPrivacy: e.target.checked})}
+              required
+            />
+            <label className="form-check-label" htmlFor="privacyAgreement">
+              I have read and agree to the{' '}
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary">
+                Privacy Policy
+              </a>
+            </label>
+          </div>
+
+          {/* Community Guidelines */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="guidelinesAgreement"
+              checked={formData.agreedToGuidelines}
+              onChange={(e) => setFormData({...formData, agreedToGuidelines: e.target.checked})}
+              required
+            />
+            <label className="form-check-label" htmlFor="guidelinesAgreement">
+              I agree to follow the{' '}
+              <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary">
+                Community Guidelines
+              </a>
+            </label>
+          </div>
+
+          {/* Data Processing Consent (GDPR) */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="dataProcessingConsent"
+              checked={formData.agreedToDataProcessing}
+              onChange={(e) => setFormData({...formData, agreedToDataProcessing: e.target.checked})}
+              required
+            />
+            <label className="form-check-label" htmlFor="dataProcessingConsent">
+              I consent to the processing of my personal data for matchmaking purposes as described in the Privacy Policy
+            </label>
+          </div>
+
+          {/* Marketing Communications (Optional) */}
+          <div className="form-check mb-3">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="marketingConsent"
+              checked={formData.agreedToMarketing}
+              onChange={(e) => setFormData({...formData, agreedToMarketing: e.target.checked})}
+            />
+            <label className="form-check-label" htmlFor="marketingConsent">
+              <em>(Optional)</em> I would like to receive updates, promotions, and newsletters
+            </label>
+          </div>
         </div>
 
         {/* Image Upload */}

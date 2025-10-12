@@ -25,6 +25,10 @@ import UserManagement from './components/UserManagement';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
 import ProtectedRoute from './components/ProtectedRoute';
+import TermsOfService from './components/TermsOfService';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import CommunityGuidelines from './components/CommunityGuidelines';
+import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
@@ -151,6 +155,12 @@ function App() {
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
               <Route path="/" element={<Login />} />
+              
+              {/* Legal pages - accessible to all */}
+              <Route path="/terms" element={<TermsOfService />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/community-guidelines" element={<CommunityGuidelines />} />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
