@@ -270,7 +270,6 @@ const EditProfile = () => {
                 value={formData.height}
                 onChange={handleChange}
                 placeholder="e.g., 5'8&quot;"
-                required
               />
             </div>
             <div className="col-md-3">

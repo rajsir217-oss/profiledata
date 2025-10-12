@@ -1021,7 +1021,7 @@ const Register = () => {
             onChange={handleChange}
             onBlur={handleBlur}
             rows={3}
-            placeholder="Tell us about yourself in a few words..."
+            placeholder="A short tagline about yourself..."
             maxLength={200}
           />
           <small className="text-muted">{formData.bio.length}/200 characters</small>
