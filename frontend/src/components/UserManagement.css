@@ -368,22 +368,15 @@
   line-height: 1.4;
 }
 
-.reason-input {
+.action-reason-input {
   width: 100%;
+  min-height: 100px;
   padding: 12px;
   border: 2px solid #e5e7eb;
   border-radius: 8px;
-  font-family: inherit;
   font-size: 0.95rem;
   resize: vertical;
   margin-bottom: 20px;
-  background: #ffffff;
-  color: #111827;
-}
-
-.reason-input:focus {
-  outline: none;
-  border-color: #667eea;
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -512,7 +505,7 @@
 }
 
 .action-modal-container {
-  background: #ffffff;
+  background: var(--card-background, #ffffff);
   border-radius: 16px;
   max-width: 500px;
   width: 100%;
@@ -661,8 +654,8 @@
 
 .action-reason-input:focus {
   outline: none;
-  border-color: #667eea;
-  background: #ffffff;
+  border-color: var(--primary-color, #667eea);
+  background: var(--card-background, #ffffff);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 

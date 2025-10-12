@@ -16,7 +16,7 @@
 
 /* PII Modal */
 .pii-modal {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 16px;
   width: 100%;
   max-width: 550px;
@@ -30,8 +30,8 @@
 .pii-modal-header {
   position: relative;
   padding: 24px;
-  border-bottom: 2px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 2px solid var(--border-color, #f0f0f0);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border-radius: 16px 16px 0 0;
 }
@@ -74,13 +74,14 @@
 /* Modal Body */
 .pii-modal-body {
   padding: 24px;
+  background: var(--card-background, white);
 }
 
 .section-label {
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   margin-bottom: 12px;
 }
 
@@ -94,23 +95,23 @@
   align-items: flex-start;
   gap: 12px;
   padding: 16px;
-  border: 2px solid #e0e0e0;
+  border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
   margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: white;
+  background: var(--surface-color, white);
 }
 
 .pii-type-option:hover {
-  border-color: #667eea;
-  background: #f8f9ff;
+  border-color: var(--primary-color, #667eea);
+  background: var(--hover-background, #f8f9ff);
   transform: translateX(4px);
 }
 
 .pii-type-option.selected {
-  border-color: #667eea;
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-color: var(--primary-color, #667eea);
+  background: var(--selected-background, rgba(102, 126, 234, 0.1));
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
 }
 
@@ -136,7 +137,7 @@
   width: 20px;
   height: 20px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: var(--primary-color, #667eea);
 }
 
 .pii-type-checkbox input[type="checkbox"]:disabled {
@@ -151,7 +152,7 @@
 .pii-type-label {
   font-size: 16px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -169,7 +170,7 @@
 
 .pii-type-description {
   font-size: 13px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 /* Message Section */
@@ -190,14 +191,14 @@
 
 .pii-message-input:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color, #667eea);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .char-count {
   text-align: right;
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted, #999);
   margin-top: 4px;
 }
 
@@ -207,7 +208,7 @@
   gap: 12px;
   justify-content: flex-end;
   padding-top: 20px;
-  border-top: 2px solid #f0f0f0;
+  border-top: 2px solid var(--border-color, #f0f0f0);
 }
 
 .btn-cancel,
@@ -222,8 +223,8 @@
 }
 
 .btn-cancel {
-  background: #f5f5f5;
-  color: #666;
+  background: var(--surface-color, #f5f5f5);
+  color: var(--text-secondary, #666);
 }
 
 .btn-cancel:hover:not(:disabled) {
@@ -231,7 +232,7 @@
 }
 
 .btn-submit {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
 }
 

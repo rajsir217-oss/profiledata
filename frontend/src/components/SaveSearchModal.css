@@ -15,7 +15,7 @@
 }
 
 .modal-container {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 12px;
   width: 100%;
   max-width: 700px;
@@ -93,50 +93,35 @@
 }
 
 .modal-tabs {
-  display: flex;
   border-bottom: 2px solid #e0e0e0;
   background: #f8f9fa;
 }
 
 .tab-btn {
-  flex: 1;
-  padding: 12px 16px;
-  background: none;
+  padding: 12px 24px;
+  background: transparent;
   border: none;
   font-size: 14px;
   font-weight: 600;
-  color: #666;
+  color: var(--text-secondary, #666);
   cursor: pointer;
   transition: all 0.2s;
   border-bottom: 3px solid transparent;
 }
 
 .tab-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
+  color: var(--primary-color, #667eea);
 }
 
 .tab-btn.active {
-  color: #667eea;
-  background: white;
-  border-bottom-color: #667eea;
+  color: var(--primary-color, #667eea);
+  background: var(--card-background, white);
+  border-bottom-color: var(--primary-color, #667eea);
 }
 
 .modal-body {
   padding: 24px;
   overflow-y: auto;
-  flex: 1;
-}
-
-/* Save Section */
-.save-section h4 {
-  margin-bottom: 8px;
-  color: #333;
-}
-
-.save-section .text-muted {
-  font-size: 14px;
-  margin-bottom: 20px;
 }
 
 .form-group {
@@ -147,7 +132,7 @@
   display: block;
   font-weight: 600;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .form-control {
@@ -172,11 +157,11 @@
   margin-bottom: 20px;
 }
 
-.criteria-preview h5 {
+.criteria-section h5 {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 12px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .criteria-list {
@@ -186,12 +171,12 @@
 }
 
 .criteria-badge {
-  background: white;
-  border: 1px solid #e0e0e0;
+  background: var(--surface-color, white);
+  border: 1px solid var(--border-color, #e0e0e0);
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .criteria-badge strong {
@@ -209,7 +194,7 @@
 /* Manage Section */
 .manage-section h4 {
   margin-bottom: 16px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .saved-searches-list {
@@ -237,7 +222,7 @@
 .search-info h5 {
   margin: 0 0 4px 0;
   font-size: 16px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .search-info .text-muted {
@@ -303,9 +288,9 @@
 }
 
 .btn-outline-primary {
-  background: white;
-  border: 2px solid #667eea;
-  color: #667eea;
+  background: var(--card-background, white);
+  border: 2px solid var(--primary-color, #667eea);
+  color: var(--primary-color, #667eea);
 }
 
 .btn-outline-primary:hover {
@@ -314,9 +299,9 @@
 }
 
 .btn-outline-danger {
-  background: white;
-  border: 2px solid #dc3545;
-  color: #dc3545;
+  background: var(--card-background, white);
+  border: 2px solid var(--danger-color, #dc3545);
+  color: var(--danger-color, #dc3545);
 }
 
 .btn-outline-danger:hover {

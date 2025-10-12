@@ -5,7 +5,7 @@
   justify-content: space-between;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
 }
 
 .profile-title-section {
@@ -14,7 +14,7 @@
 
 .profile-header h2 {
   margin: 0 0 8px 0;
-  color: #333;
+  color: var(--text-color, #333);
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -44,7 +44,7 @@
   margin: 0;
   font-size: 14px;
   font-weight: 500;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .online-status-text.online {
@@ -56,7 +56,7 @@
   align-items: center;
   gap: 8px;
   padding: 8px 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
   border-radius: 20px;
@@ -83,7 +83,7 @@
 
 /* Profile Info Section */
 .profile-info {
-  background: #f8f9fa;
+  background: var(--surface-color, #f8f9fa);
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 20px;
@@ -95,7 +95,7 @@
 }
 
 .profile-info strong {
-  color: #667eea;
+  color: var(--primary-color, #667eea);
   min-width: 180px;
   display: inline-block;
 }
@@ -169,13 +169,13 @@
 .pii-hint {
   margin: 12px 0 0 0;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 /* Profile Sections */
 .profile-section {
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: var(--card-background, white);
+  border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
@@ -191,9 +191,9 @@
   margin: 0 0 16px 0;
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   padding-bottom: 12px;
-  border-bottom: 2px solid #f0f0f0;
+  border-bottom: 2px solid var(--border-color, #f0f0f0);
 }
 
 /* PII Locked State */
@@ -213,7 +213,7 @@
 
 .pii-locked p {
   margin: 0 0 16px 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 15px;
 }
 

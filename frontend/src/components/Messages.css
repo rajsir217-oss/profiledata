@@ -17,7 +17,7 @@
 }
 
 .messages-loading p {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 16px;
 }
 
@@ -26,7 +26,7 @@
   display: grid;
   grid-template-columns: 350px 1fr;
   height: 100%;
-  background: white;
+  background: var(--card-background, white);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
   overflow: hidden;
@@ -50,25 +50,24 @@
     grid-template-columns: 1fr;
     position: relative;
   }
-  
   /* On mobile, show only one panel at a time */
   .message-list {
     display: block;
   }
   
-  .chat-window {
+  .message-list-mobile {
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     bottom: 0;
-    background: white;
+    background: var(--card-background, white);
     z-index: 10;
     display: none;
   }
   
   /* Show chat window when user is selected */
-  .chat-window.active {
+  .message-list-mobile.active {
     display: flex;
   }
   

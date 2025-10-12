@@ -15,7 +15,7 @@
 }
 
 .pii-loading p {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 16px;
 }
 
@@ -35,34 +35,31 @@
   margin: 0 0 8px 0;
   font-size: 28px;
   font-weight: 700;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .pii-header p {
   margin: 0;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 /* View Toggle */
 .view-toggle {
   display: flex;
   gap: 8px;
-  background: white;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  padding: 4px;
+  background: var(--card-background, white);
 }
 
 .view-toggle-btn {
+  flex: 1;
   padding: 8px 16px;
-  background: transparent;
   border: none;
-  border-radius: 6px;
+  background: transparent;
   font-size: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .view-toggle-btn:hover {
@@ -70,149 +67,39 @@
   color: #667eea;
 }
 
-.view-toggle-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-}
-
 /* Tabs */
-.pii-tabs {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 24px;
-  border-bottom: 2px solid #e0e0e0;
-  overflow-x: auto;
-}
-
 .pii-tab {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 14px 20px;
   background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
+  border: 2px solid var(--border-color, #e0e0e0);
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 15px;
   font-weight: 500;
 }
 
 .pii-tab:hover {
+  background: rgba(102, 126, 234, 0.1);
   color: #667eea;
-  background: rgba(102, 126, 234, 0.05);
 }
 
 .pii-tab.active {
-  color: #667eea;
-  border-bottom-color: #667eea;
-  font-weight: 600;
-}
-
-.tab-icon {
-  font-size: 20px;
-}
-
-.tab-count {
-  background: #667eea;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 600;
-  min-width: 24px;
-  text-align: center;
-}
-
-.pii-tab.active .tab-count {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-
-/* Tab Content */
-.pii-tab-content {
-  min-height: 400px;
-}
-
-.tab-panel {
-  animation: fadeIn 0.3s ease;
-}
-
-.panel-header {
-  margin-bottom: 20px;
-}
-
-.panel-header h3 {
-  margin: 0 0 8px 0;
-  font-size: 20px;
+  color: white;
+  border-color: #667eea;
   font-weight: 600;
-  color: #333;
-}
-
-.panel-header p {
-  margin: 0;
-  font-size: 14px;
-  color: #666;
-}
-
-/* Access Grid - Card View (3 per row) */
-.access-grid-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 30px;
-}
-
-/* Access Grid - Row View */
-.access-grid-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-bottom: 30px;
-}
-
-.access-grid-rows .access-card {
-  display: flex;
-  align-items: center;
-  padding: 16px 20px;
-}
-
-.access-grid-rows .access-card-header {
-  flex: 0 0 250px;
-  margin-bottom: 0;
-  margin-right: 20px;
-}
-
-.access-grid-rows .access-card-body {
-  flex: 1;
-  margin-bottom: 0;
-  margin-right: 20px;
-}
-
-.access-grid-rows .access-card-actions {
-  flex: 0 0 150px;
-  padding-top: 0;
-  border-top: none;
-}
-
-.access-grid-rows .access-types {
-  margin-bottom: 8px;
-}
-
-/* Backward compatibility */
-.access-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 20px;
-  margin-bottom: 30px;
 }
 
 /* Access Card */
 .access-card {
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: var(--card-background, white);
+  border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -232,57 +119,10 @@
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.02) 0%, rgba(118, 75, 162, 0.02) 100%);
 }
 
-/* History Cards */
-.history-card {
-  opacity: 0.85;
-  background: #f8f9fa;
-}
-
-.history-card:hover {
-  opacity: 1;
-  background: white;
-}
-
-.access-card-header {
-  margin-bottom: 16px;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.access-avatar {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.access-avatar-placeholder {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.user-info h4 {
+.access-username {
   margin: 0 0 4px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #333;
-}
-
-.access-username {
-  margin: 0;
-  font-size: 13px;
   color: #999;
 }
 
@@ -385,8 +225,8 @@
 }
 
 .request-card {
-  background: white;
-  border: 2px solid #e0e0e0;
+  background: var(--card-background, white);
+  border: 2px solid var(--border-color, #e0e0e0);
   border-radius: 12px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -449,7 +289,7 @@
 .request-message {
   margin-bottom: 8px;
   font-size: 14px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 .request-message {

@@ -12,17 +12,42 @@
 /* Messages Dropdown Container */
 .messages-dropdown {
   position: absolute;
-  top: 60px;
-  right: 20px;
+  top: 55px;
+  right: 0;
   width: 380px;
   max-height: 500px;
-  background: white;
+  background: var(--card-background, white);
   border-radius: 12px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
   z-index: 1999;
   display: flex;
   flex-direction: column;
   animation: slideDown 0.3s ease;
+}
+
+/* Arrow pointing to message icon */
+.messages-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid var(--primary-color, #667eea);
+}
+
+.messages-dropdown::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 11px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid var(--card-background, white);
 }
 
 @keyframes slideDown {
@@ -42,8 +67,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
-  border-bottom: 1px solid #e0e0e0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   border-radius: 12px 12px 0 0;
 }
 
@@ -86,7 +111,7 @@
 }
 
 .messages-dropdown-body::-webkit-scrollbar-track {
-  background: #f0f0f0;
+  background: var(--surface-color, #f0f0f0);
 }
 
 .messages-dropdown-body::-webkit-scrollbar-thumb {
@@ -95,7 +120,7 @@
 }
 
 .messages-dropdown-body::-webkit-scrollbar-thumb:hover {
-  background: #999;
+  background: var(--text-muted, #999);
 }
 
 /* Loading State */
@@ -106,7 +131,7 @@
   justify-content: center;
   padding: 40px 20px;
   gap: 12px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .messages-loading span {
@@ -132,7 +157,7 @@
 .no-conversations p {
   margin: 0 0 4px 0;
   font-size: 15px;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-weight: 500;
 }
 
@@ -142,18 +167,13 @@
 }
 
 /* Conversations List */
-.conversations-list {
-  padding: 8px 0;
-}
-
 .conversation-item {
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 12px 20px;
   cursor: pointer;
   transition: all 0.2s ease;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
 }
 
 .conversation-item:last-child {
@@ -161,27 +181,31 @@
 }
 
 .conversation-item:hover {
-  background: #f8f9fa;
+  background: var(--hover-background, #f5f7fa);
 }
 
 /* Conversation Avatar */
 .conversation-avatar-container {
   position: relative;
+  margin-right: 12px;
   flex-shrink: 0;
 }
 
-.conversation-avatar {
-  width: 48px;
-  height: 48px;
+.conversation-avatar,
+.conversation-avatar-placeholder {
+  width: 45px;
+  height: 45px;
   border-radius: 50%;
+}
+
+.conversation-avatar img {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
 }
 
 .conversation-avatar-placeholder {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -190,13 +214,8 @@
   font-weight: 600;
 }
 
-.conversation-status-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-}
-
-/* Conversation Details */
+/* Conversation Info / Details */
+.conversation-info,
 .conversation-details {
   flex: 1;
   min-width: 0;
@@ -204,36 +223,32 @@
 
 .conversation-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 4px;
 }
 
 .conversation-name {
-  font-size: 15px;
   font-weight: 600;
-  color: #333;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--text-color, #333);
+  font-size: 15px;
 }
 
 .unread-badge {
-  background: #ef4444;
+  background: #f44336;
   color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
   font-size: 11px;
   font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 10px;
   min-width: 18px;
   text-align: center;
-  flex-shrink: 0;
 }
 
 .conversation-message {
   margin: 0 0 4px 0;
-  font-size: 13px;
-  color: #666;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -241,43 +256,56 @@
 
 .conversation-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted, #999);
+}
+
+.conversation-status-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
 }
 
 /* Dropdown Footer */
 .messages-dropdown-footer {
   padding: 12px 20px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color, #e0e0e0);
   text-align: center;
 }
 
 .view-all-link {
-  color: #667eea;
-  text-decoration: none;
+  color: var(--primary-color, #667eea);
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .view-all-link:hover {
-  color: #764ba2;
+  color: var(--secondary-color, #764ba2);
   text-decoration: underline;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
   .messages-dropdown {
-    right: 10px;
-    width: calc(100vw - 20px);
-    max-width: 380px;
+    width: 360px;
   }
 }
 
 @media (max-width: 480px) {
   .messages-dropdown {
-    top: 55px;
-    right: 5px;
-    width: calc(100vw - 10px);
+    position: fixed;
+    top: 65px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+  
+  .messages-dropdown::before {
+    right: 60px;
+  }
+  
+  .messages-dropdown::after {
+    right: 61px;
   }
   
   .conversation-item {

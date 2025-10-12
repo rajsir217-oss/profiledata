@@ -3,14 +3,14 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
-  border-right: 1px solid #e0e0e0;
+  background: var(--card-background, white);
+  border-right: 1px solid var(--border-color, #e0e0e0);
 }
 
 .message-list-header {
   padding: 20px;
-  border-bottom: 2px solid #f0f0f0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-bottom: 2px solid var(--border-color, #f0f0f0);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
 }
 
 .message-list-header h3 {
@@ -29,17 +29,17 @@
 .no-conversations {
   padding: 40px 20px;
   text-align: center;
-  color: #999;
+  color: var(--text-muted, #999);
 }
 
 .no-conversations p {
   margin: 0 0 8px 0;
   font-size: 16px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .no-conversations small {
-  color: #999;
+  color: var(--text-muted, #999);
   font-size: 13px;
 }
 
@@ -49,18 +49,18 @@
   align-items: center;
   padding: 15px 20px;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
   transition: all 0.2s ease;
   position: relative;
 }
 
 .conversation-item:hover {
-  background: #f8f9fa;
+  background: var(--hover-background, #f8f9fa);
 }
 
 .conversation-item.active {
-  background: #e3f2fd;
-  border-left: 4px solid #667eea;
+  background: var(--selected-background, #e3f2fd);
+  border-left: 4px solid var(--primary-color, #667eea);
 }
 
 /* Avatar */
@@ -81,7 +81,7 @@
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   display: flex;
   align-items: center;
@@ -127,18 +127,18 @@
 
 .conversation-name {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   font-size: 15px;
 }
 
 .conversation-time {
   font-size: 12px;
-  color: #999;
+  color: var(--text-muted, #999);
 }
 
 .conversation-preview p {
   margin: 0;
-  color: #666;
+  color: var(--text-secondary, #666);
   font-size: 14px;
   white-space: nowrap;
   overflow: hidden;
@@ -147,7 +147,7 @@
 
 .conversation-preview p.unread {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 /* Scrollbar */
@@ -156,7 +156,7 @@
 }
 
 .conversations-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--surface-color, #f1f1f1);
 }
 
 .conversations-container::-webkit-scrollbar-thumb {

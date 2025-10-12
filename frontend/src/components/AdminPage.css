@@ -159,7 +159,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-background, white);
   padding: 30px;
   border-radius: 15px;
   max-width: 500px;
@@ -186,7 +186,7 @@
 }
 
 .modal-content p {
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
   margin-bottom: 10px;
 }
@@ -236,7 +236,7 @@
 
 /* Ensure table takes full width and is scrollable */
 .admin-table {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -316,7 +316,7 @@
 
 /* Pagination Styles */
 .pagination-container {
-  background: white;
+  background: var(--card-background, white);
   padding: 20px;
   border-radius: 10px;
   margin-top: 20px;
@@ -329,7 +329,7 @@
 }
 
 .pagination-info {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-weight: 500;
   font-size: 14px;
 }
