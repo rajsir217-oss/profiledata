@@ -644,39 +644,51 @@ const EditProfile = () => {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <label className="form-label mb-0">About You</label>
               <div className="d-flex align-items-center gap-2">
-                <small className="text-muted">Sample Descriptions:</small>
+                <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-primary"
                   onClick={() => setAboutYouSampleIndex((prev) => (prev - 1 + aboutYouSamples.length) % aboutYouSamples.length)}
-                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                  title="Previous sample"
                 >
-                  &lt;&lt;
+                  ‹
                 </button>
-                <span className="badge bg-primary" style={{ minWidth: '45px' }}>
+                <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
                   {aboutYouSampleIndex + 1}/{aboutYouSamples.length}
                 </span>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-primary"
                   onClick={() => setAboutYouSampleIndex((prev) => (prev + 1) % aboutYouSamples.length)}
-                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                  title="Next sample"
                 >
-                  &gt;&gt;
-                </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-success"
-                  onClick={() => setFormData({ ...formData, aboutYou: aboutYouSamples[aboutYouSampleIndex] })}
-                  style={{ fontSize: '12px' }}
-                >
-                  Use This Sample
-                </button>
-              </div>
+                  ›
+              </button>
             </div>
-            <div className="card p-2 mb-2" style={{ backgroundColor: '#f8f9fa', border: '1px dashed #dee2e6' }}>
+          </div>
+          <div 
+              className="card p-2 mb-2" 
+              onClick={() => setFormData({ ...formData, aboutYou: aboutYouSamples[aboutYouSampleIndex] })}
+              style={{ 
+                backgroundColor: '#f8f9fa', 
+                border: '1px dashed #dee2e6',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.borderColor = '#2196f3';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.borderColor = '#dee2e6';
+              }}
+              title="Click to load this sample"
+            >
               <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                <strong>Sample {aboutYouSampleIndex + 1}:</strong> {aboutYouSamples[aboutYouSampleIndex].substring(0, 150)}...
+                <strong>Sample {aboutYouSampleIndex + 1}:</strong> {aboutYouSamples[aboutYouSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
               </small>
             </div>
             <textarea
@@ -695,39 +707,60 @@ const EditProfile = () => {
             <div className="d-flex justify-content-between align-items-center mb-2">
               <label className="form-label mb-0">Partner Preference</label>
               <div className="d-flex align-items-center gap-2">
-                <small className="text-muted">Sample Descriptions:</small>
+                <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-primary"
                   onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
-                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                  title="Previous sample"
                 >
-                  &lt;&lt;
+                  ‹
                 </button>
-                <span className="badge bg-primary" style={{ minWidth: '45px' }}>
+                <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
                   {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
                 </span>
                 <button
                   type="button"
-                  className="btn btn-sm btn-outline-secondary"
+                  className="btn btn-sm btn-outline-primary"
                   onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
-                  style={{ padding: '2px 8px', fontSize: '14px' }}
+                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                  title="Next sample"
                 >
-                  &gt;&gt;
+                  ›
                 </button>
                 <button
                   type="button"
                   className="btn btn-sm btn-success"
                   onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
-                  style={{ fontSize: '12px' }}
+                  style={{ padding: '5px 12px', fontSize: '13px', fontWeight: '500', borderRadius: '6px' }}
+                  title="Load this sample into the text field"
                 >
-                  Use This Sample
+                  ↓ Load
                 </button>
               </div>
             </div>
-            <div className="card p-2 mb-2" style={{ backgroundColor: '#f8f9fa', border: '1px dashed #dee2e6' }}>
+            <div 
+              className="card p-2 mb-2" 
+              onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
+              style={{ 
+                backgroundColor: '#f8f9fa', 
+                border: '1px dashed #dee2e6',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                e.currentTarget.style.borderColor = '#2196f3';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.borderColor = '#dee2e6';
+              }}
+              title="Click to load this sample"
+            >
               <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}...
+                <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
               </small>
             </div>
             <textarea
