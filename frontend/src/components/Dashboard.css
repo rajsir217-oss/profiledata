@@ -10,40 +10,42 @@
 .dashboard-header {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
-  padding: 30px;
-  border-radius: 15px;
+  padding: 20px 24px;
+  border-radius: 12px;
   margin-bottom: 30px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.2);
 }
 
 .dashboard-header h1 {
-  margin: 0 0 5px 0;
-  font-size: 32px;
+  margin: 0 0 4px 0;
+  font-size: 24px;
   font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
 .dashboard-header p {
   margin: 0;
-  opacity: 0.9;
-  font-size: 16px;
+  opacity: 0.85;
+  font-size: 14px;
+  font-weight: 400;
 }
 
 .btn-refresh {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 20px;
-  border-radius: 25px;
-  font-size: 14px;
-  font-weight: 600;
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
 }
 
 .btn-refresh:hover {
@@ -88,18 +90,18 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-.section-header {
-  padding: 15px 20px;
-  background: var(--card-background);
+.dashboard-section .section-header {
+  padding: 10px 18px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
   transition: all 0.3s ease;
+  border-bottom: none;
 }
 
-.section-header:hover {
+.dashboard-section .section-header:hover {
   opacity: 0.9;
 }
 
@@ -110,22 +112,22 @@
 }
 
 .section-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .section-title h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 600;
 }
 
 .section-count {
   background: rgba(255, 255, 255, 0.3);
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-size: 11px;
   font-weight: bold;
-  min-width: 20px;
+  min-width: 18px;
   text-align: center;
 }
 
@@ -444,11 +446,16 @@
   .dashboard-header {
     flex-direction: column;
     text-align: center;
-    gap: 15px;
+    gap: 12px;
+    padding: 16px 20px;
   }
   
   .dashboard-header h1 {
-    font-size: 24px;
+    font-size: 20px;
+  }
+  
+  .dashboard-header p {
+    font-size: 13px;
   }
   
   .dashboard-stats {
@@ -466,7 +473,7 @@
   }
   
   .dashboard-header {
-    padding: 20px;
+    padding: 14px 16px;
   }
   
   .user-cards-grid {

@@ -51,6 +51,10 @@ const SearchPage = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [showGridLines, setShowGridLines] = useState(false);
+  const [cardsPerRow, setCardsPerRow] = useState(() => {
+    const saved = localStorage.getItem('searchCardsPerRow');
+    return saved ? parseInt(saved) : 3;
+  });
 
   // Saved searches state
   const [saveSearchName, setSaveSearchName] = useState('');
@@ -1377,6 +1381,26 @@ const SearchPage = () => {
                   ☰
                 </button>
               </div>
+
+              {/* Cards Per Row (only show in card view) */}
+              {viewMode === 'cards' && (
+                <div className="cards-per-row-selector">
+                  <span className="selector-label">Cards per row:</span>
+                  {[2, 3, 4, 5].map(num => (
+                    <button
+                      key={num}
+                      className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => {
+                        setCardsPerRow(num);
+                        localStorage.setItem('searchCardsPerRow', num.toString());
+                      }}
+                      title={`${num} cards per row`}
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              )}
               
               {/* Grid Lines Toggle */}
               <div className="grid-lines-toggle">
@@ -1424,7 +1448,10 @@ const SearchPage = () => {
             </div>
           )}
 
-          <div className={`${viewMode === 'cards' ? 'results-grid' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}>
+          <div 
+            className={`${viewMode === 'cards' ? 'results-grid' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}
+            style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
+          >
             {currentRecords.map((user) => {
               const isOnline = onlineUsers.has(user.username);
               

@@ -480,15 +480,7 @@
 /* View Toggle */
 .view-toggle-group {
   display: flex;
-  gap: 0;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.view-toggle-group .btn {
-  border-radius: 0 !important;
-  border: none !important;
+  gap: 5px;
   padding: 6px 12px;
   font-size: 16px;
   min-width: 40px;
@@ -539,6 +531,33 @@
   color: var(--text-color, #333);
   font-weight: 500;
   user-select: none;
+}
+
+/* Cards Per Row Selector */
+.cards-per-row-selector {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--surface-color, #f8f9fa);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 20px;
+}
+
+.cards-per-row-selector .selector-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary, #666);
+  margin-right: 2px;
+  user-select: none;
+}
+
+.cards-per-row-selector .btn {
+  min-width: 28px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 4px;
 }
 
 /* Toggle Switch */
@@ -626,7 +645,7 @@
 
 .results-grid {
   display: grid !important;
-  grid-template-columns: 1fr 1fr 1fr !important;
+  grid-template-columns: repeat(3, 1fr); /* Default 3 columns, overridden by inline style */
   gap: 15px;
   row-gap: 8px; /* Very tight vertical spacing */
   margin-bottom: 30px;
@@ -635,7 +654,6 @@
 
 /* Row View */
 .results-rows {
-  display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 30px;
@@ -1177,9 +1195,7 @@
 
 /* Responsive Design */
 @media (max-width: 1400px) {
-  .results-grid {
-    grid-template-columns: 1fr 1fr 1fr !important;
-  }
+  /* Let inline style control columns */
   
   .search-container {
     max-width: 1200px;
@@ -1202,8 +1218,9 @@
   }
   
   .results-grid {
-    grid-template-columns: 1fr 1fr !important;
     gap: 15px;
+    /* Max 2 columns on tablets */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
   }
 }
 
