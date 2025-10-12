@@ -729,15 +729,6 @@ const EditProfile = () => {
                 >
                   ›
                 </button>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-success"
-                  onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
-                  style={{ padding: '5px 12px', fontSize: '13px', fontWeight: '500', borderRadius: '6px' }}
-                  title="Load this sample into the text field"
-                >
-                  ↓ Load
-                </button>
               </div>
             </div>
             <div 
