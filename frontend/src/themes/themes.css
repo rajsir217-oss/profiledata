@@ -75,10 +75,10 @@ body.theme-light-blue {
   --secondary-color: #a78bfa;
   --accent-color: #f59e0b;
   
-  /* Backgrounds - Warm whites */
+  /* Backgrounds - Warm whites with purple tint */
   --background-color: #fffbf7;
   --surface-color: #fef6ee;
-  --card-background: #ffffff;
+  --card-background: #faf9ff; /* Ultra light purple */
   
   /* Text Colors - Soft contrast */
   --text-color: #374151;
@@ -147,24 +147,24 @@ body.theme-dark {
   --secondary-color: #c4b5fd;
   --accent-color: #fbbf24;
   
-  /* Backgrounds - Warm darks */
-  --background-color: #1a1625;
-  --surface-color: #221f2e;
-  --card-background: #2a2438;
+  /* Backgrounds - Lighter, warmer darks */
+  --background-color: #1e1b2e;
+  --surface-color: #2a2740;
+  --card-background: #3a3450; /* Lighter purple tint for better visibility */
   
-  /* Text Colors - Softer contrast */
-  --text-color: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  /* Text Colors - Better contrast */
+  --text-color: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   
-  /* Borders & Dividers - Subtle */
-  --border-color: #374151;
-  --divider-color: #2a2438;
+  /* Borders & Dividers - More visible */
+  --border-color: #4b4563;
+  --divider-color: #3a3548;
   
-  /* Interactive States - Warm glow */
-  --hover-background: #3a3548;
-  --active-background: #4a4558;
-  --selected-background: rgba(167, 139, 250, 0.15);
+  /* Interactive States - Warmer, more visible glow */
+  --hover-background: #4a4060;
+  --active-background: #5a5070;
+  --selected-background: rgba(167, 139, 250, 0.2);
   
   /* Status Colors - Softer */
   --success-color: #10b981;
@@ -247,6 +247,57 @@ body.theme-dark {
   color: var(--text-secondary);
 }
 
+/* SearchPage Dark Theme Overrides */
+.theme-dark .search-filters,
+.theme-dark .search-results,
+.theme-dark .result-card .card,
+.theme-dark .result-row {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-dark .search-form,
+.theme-dark .saved-searches {
+  background: var(--surface-color) !important;
+}
+
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark .per-page-select {
+  background-color: var(--surface-color) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-dark .row-name,
+.theme-dark .result-card .card-title {
+  color: white !important;
+}
+
+.theme-dark .row-details,
+.theme-dark .form-group label,
+.theme-dark .form-check-label {
+  color: var(--text-secondary) !important;
+}
+
+.theme-dark .saved-search-item {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-dark .saved-search-item:hover {
+  background: var(--hover-background) !important;
+}
+
+.theme-dark .toggle-label {
+  color: var(--text-color) !important;
+}
+
+.theme-dark .toggle-container {
+  background: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
 /* ========================================
    COZY ROSE THEME
    ======================================== */
@@ -259,7 +310,7 @@ body.theme-light-pink {
   /* Backgrounds - Soft pink tones */
   --background-color: #fdf2f8;
   --surface-color: #fce7f3;
-  --card-background: #ffffff;
+  --card-background: #fef6fb; /* Ultra light pink-purple */
   
   /* Text Colors - Gentle contrast */
   --text-color: #4a5568;
@@ -355,10 +406,10 @@ body.theme-light-gray {
   --secondary-color: #94a3b8;
   --accent-color: #3b82f6;
   
-  /* Backgrounds - Clean grays */
+  /* Backgrounds - Clean grays with subtle tint */
   --background-color: #f8fafc;
   --surface-color: #f1f5f9;
-  --card-background: #ffffff;
+  --card-background: #f9fafb; /* Ultra light gray with subtle warmth */
   
   /* Text Colors - Balanced contrast */
   --text-color: #1e293b;
@@ -420,10 +471,10 @@ body.theme-ultra-light-gray {
   --secondary-color: #64748b;
   --accent-color: #0ea5e9;
   
-  /* Backgrounds - Maximum whitespace */
+  /* Backgrounds - Maximum whitespace with subtle tint */
   --background-color: #fcfcfd;
   --surface-color: #fafbfc;
-  --card-background: #ffffff;
+  --card-background: #fdfeff; /* Almost white with cool tint */
   
   /* Text Colors - Gentle contrast */
   --text-color: #0f172a;

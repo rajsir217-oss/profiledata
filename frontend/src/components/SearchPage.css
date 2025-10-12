@@ -27,10 +27,10 @@
 }
 
 .search-filters {
-  background: white;
+  background: var(--card-background, white);
   padding: 15px 20px;
   border-radius: 12px;
-  border: 2px solid #667eea;
+  border: 2px solid var(--primary-color, #667eea);
   width: 100%;
   box-sizing: border-box;
   transition: all 0.3s ease;
@@ -75,7 +75,7 @@
 
 /* Search Results */
 .search-results {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 12px;
   padding: 20px;
   min-height: 500px;
@@ -196,7 +196,7 @@
 
 .search-form label {
   font-weight: 500;
-  color: #495057;
+  color: var(--text-color, #495057);
   margin-bottom: 8px;
   display: block;
 }
@@ -321,7 +321,7 @@
 
 .form-group label {
   font-weight: 500;
-  color: #555;
+  color: var(--text-color, #555);
   margin-bottom: 6px;
   display: block;
   font-size: 12px;
@@ -358,7 +358,7 @@
 
 .form-check-label {
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 /* Saved Searches */
@@ -371,7 +371,7 @@
 }
 .saved-searches h6 {
   margin-bottom: 10px;
-  color: #495057;
+  color: var(--text-color, #495057);
   font-weight: 600;
 }
 
@@ -382,7 +382,7 @@
   padding: 8px;
   margin-bottom: 5px;
   border-radius: 5px;
-  background: white;
+  background: var(--surface-color, white);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -395,7 +395,7 @@
 .saved-search-item span {
   flex: 1;
   font-size: 14px;
-  color: #333;
+  color: var(--text-color, #333);
 }
 
 /* Profile Card Layout - Image Left, Details Right */
@@ -440,9 +440,12 @@
   align-items: center;
   margin-bottom: 25px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid var(--border-color, #e9ecef);
   flex-wrap: wrap;
   gap: 15px;
+  background: black !important; /* TEST - black background */
+  padding: 15px;
+  border-radius: 8px 8px 0 0;
 }
 
 .results-title-section {
@@ -452,7 +455,7 @@
 }
 
 .results-header h4 {
-  color: #667eea;
+  color: var(--primary-color, #667eea);
   margin: 0;
   font-weight: 600;
 }
@@ -507,11 +510,11 @@
 .per-page-select {
   width: auto;
   min-width: 130px;
-  border: 1px solid #ddd;
+  border: 1px solid var(--border-color, #ddd);
   border-radius: 6px;
   padding: 6px 10px;
   font-size: 14px;
-  background: white;
+  background: var(--card-background, white);
   cursor: pointer;
 }
 
@@ -533,7 +536,7 @@
 
 .toggle-label {
   font-size: 13px;
-  color: #333;
+  color: var(--text-color, #333);
   font-weight: 500;
   user-select: none;
 }
@@ -625,6 +628,7 @@
   display: grid !important;
   grid-template-columns: 1fr 1fr 1fr !important;
   gap: 15px;
+  row-gap: 8px; /* Very tight vertical spacing */
   margin-bottom: 30px;
   width: 100%;
 }
@@ -639,7 +643,7 @@
 }
 
 .result-row {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -694,7 +698,7 @@
 .row-name {
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   margin: 0;
 }
 
@@ -709,7 +713,7 @@
   flex-wrap: wrap;
   gap: 15px;
   font-size: 14px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .row-details span {
@@ -744,6 +748,7 @@
   height: 100%;
   overflow: hidden;
   width: 100%;
+  background: var(--card-background, white) !important; /* Force theme-aware background */
 }
 
 .result-card .card:hover {
@@ -879,20 +884,35 @@
   gap: 0 !important;
   margin: 0;
   border-bottom: none;
+  display: flex !important; /* Force flex container */
+  flex-direction: row !important; /* Explicit horizontal layout */
+  align-items: stretch !important; /* Make children same height */
 }
 
 .profile-image-left {
   position: relative;
-  padding: 0;
-  border-right: none;
+  padding: 20px 15px;
+  border-right: 1px solid var(--border-color, #e0e0e0);
+  width: 180px; /* Fixed width */
   min-width: 180px;
   max-width: 180px;
   display: flex;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: stretch;
-  background: #f8f9fa;
+  align-items: center;
+  justify-content: center; /* Center the locked content vertically */
+  background: #2a2a2a !important; /* TEST - dark gray background */
   overflow: hidden;
+  text-align: center;
+  gap: 15px;
+  height: 100%; /* Fill parent height */
+}
+
+/* When images are present */
+.profile-image-left:has(img),
+.profile-image-left:has(.profile-thumbnail-placeholder) {
+  padding: 0;
+  gap: 0;
+  min-height: 200px; /* Keep height consistency */
 }
 
 /* Make profile images fill the container */
@@ -905,6 +925,23 @@
   min-height: 180px;
 }
 
+/* Locked images text and button styling */
+.profile-image-left > div,
+.profile-image-left > button {
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Center the locked content */
+.profile-image-left > div:first-child {
+  margin-top: auto;
+}
+
+.profile-image-left > button {
+  margin-bottom: auto;
+}
+
 .profile-image-container {
   width: 100%;
   height: 100%;
@@ -913,15 +950,19 @@
 }
 
 .user-details-right {
-  padding: 15px 20px;
+  padding: 15px 20px 3px 20px; /* Minimal bottom padding for tight spacing */
   flex: 1;
-  background: white;
+  background: var(--card-background, white) !important; /* Theme-aware */
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 100%; /* Ensure it takes full height */
 }
 
 .user-details p {
   margin-bottom: 5px;
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary, #666);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -933,8 +974,9 @@
 .user-badges {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 5px;
   margin-top: 8px;
+  margin-bottom: 0; /* No space after badges */
 }
 
 .user-badges .badge {
@@ -944,13 +986,14 @@
 
 /* Action icons section at bottom */
 .card-actions {
-  padding: 8px 10px;
+  padding: 6px 10px 4px 10px; /* Very minimal padding */
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   justify-content: center;
-  background: white;
+  background: transparent; /* Transparent to show dark background */
   border-top: none;
+  margin-top: -15px; /* Very close to card */
 }
 
 .card-actions .btn {
@@ -990,12 +1033,12 @@
 }
 
 .pii-masked {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-style: italic;
 }
 
 .pii-data {
-  color: #333;
+  color: var(--text-color, #333);
   font-weight: 500;
 }
 
@@ -1012,7 +1055,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(255, 255, 255, 0.95);
+  background: #2a2a2a !important; /* TEST - dark gray background */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1030,7 +1073,7 @@
 .no-results {
   text-align: center;
   padding: 60px 20px;
-  color: #666;
+  color: var(--text-secondary, #666);
 }
 
 .no-results h5 {
@@ -1047,13 +1090,16 @@
 /* Pagination Styles */
 .pagination-container {
   margin-top: 40px;
-  padding-top: 20px;
-  border-top: 1px solid #e1e4e8;
+  padding: 20px;
+  
+  border-top: 1px solid var(--border-color, #e1e4e8);
+  background: black !important; /* TEST - black background */
+  border-radius: 0 0 8px 8px;
 }
 
 .pagination-info {
   text-align: center;
-  color: #666;
+  color: var(--text-secondary, #666);
   margin-bottom: 20px;
   font-size: 14px;
 }
@@ -1114,7 +1160,7 @@
 }
 
 .filters-header h4 {
-  color: #495057;
+  color: var(--text-color, #495057);
   font-size: 1.2rem;
   font-weight: 600;
   margin-bottom: 10px;
@@ -1484,11 +1530,11 @@
 .result-row-compact {
   width: 100%;
   margin-bottom: 12px;
-  background: white;
+  background: var(--card-background, white);
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color, #e0e0e0);
 }
 
 .result-row-compact:hover {
