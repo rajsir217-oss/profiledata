@@ -8,7 +8,7 @@ from typing import Optional, List
 from datetime import datetime
 from bson import ObjectId
 import re
-from security_config import security_settings, get_password_requirements
+from .security_config import security_settings, get_password_requirements
 
 # ===== User Models =====
 

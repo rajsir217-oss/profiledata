@@ -49,6 +49,19 @@ from .authorization import (
     require_premium_user
 )
 
+# Convenience functions for backward compatibility with routes.py
+def create_access_token(data: dict, expires_delta=None):
+    """Create JWT access token - wrapper for backward compatibility"""
+    return JWTManager.create_access_token(data, expires_delta)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify password - wrapper for backward compatibility"""
+    return PasswordManager.verify_password(plain_password, hashed_password)
+
+def get_password_hash(password: str) -> str:
+    """Hash password - wrapper for backward compatibility"""
+    return PasswordManager.hash_password(password)
+
 __all__ = [
     # Config
     'security_settings',
@@ -90,6 +103,11 @@ __all__ = [
     'require_admin',
     'require_moderator_or_admin',
     'require_premium_user',
+    
+    # Backward compatibility functions
+    'create_access_token',
+    'verify_password',
+    'get_password_hash',
 ]
 
 __version__ = '1.0.0'

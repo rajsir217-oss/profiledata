@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import List, Tuple
 import secrets
 import string
-from security_config import security_settings
+from .security_config import security_settings
 
 # Password hashing context
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

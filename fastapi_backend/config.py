@@ -1,5 +1,6 @@
 # fastapi_backend/config.py
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import Optional
 
 class Settings(BaseSettings):
@@ -12,8 +13,10 @@ class Settings(BaseSettings):
     backend_url: str = "http://localhost:8000"
     upload_dir: str = "uploads"
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
+    model_config = ConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra fields in .env
+    )
 
 settings = Settings()

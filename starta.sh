@@ -103,7 +103,7 @@ pip install -r requirements.txt > /dev/null 2>&1
 
 # Start the backend server
 echo -e "${YELLOW}🚀 Starting backend server in DEBUG mode...${NC}"
-uvicorn main:app --reload --port 8000 --host 0.0.0.0 --log-level debug &
+uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level debug &
 BACKEND_PID=$!
 
 # Wait for backend to start

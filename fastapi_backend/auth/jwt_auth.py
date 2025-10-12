@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from security_config import security_settings
+from .security_config import security_settings
 import secrets
 
 # HTTP Bearer token scheme

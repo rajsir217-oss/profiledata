@@ -6,8 +6,8 @@ Role-Based Access Control (RBAC) Authorization System
 from fastapi import HTTPException, status, Depends
 from typing import List, Callable
 from functools import wraps
-from jwt_auth import get_current_user_dependency
-from security_config import DEFAULT_PERMISSIONS
+from .jwt_auth import get_current_user_dependency
+from .security_config import DEFAULT_PERMISSIONS
 import re
 
 class PermissionChecker:
