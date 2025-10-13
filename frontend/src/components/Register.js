@@ -1817,6 +1817,14 @@ const Register = () => {
           )}
         </div>
 
+        {/* Partner Matching Criteria Section */}
+        <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
+        <div className="alert alert-info">
+          <small>
+            <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
+          </small>
+        </div>
+        
         {/* Partner Preference with Sample Carousel */}
         <div className="mb-3">
           <div className="d-flex justify-content-between align-items-center mb-2">
@@ -1882,14 +1890,6 @@ const Register = () => {
           {fieldErrors.partnerPreference && touchedFields.partnerPreference && (
             <div className="invalid-feedback d-block">{fieldErrors.partnerPreference}</div>
           )}
-        </div>
-        
-        {/* Partner Matching Criteria Section */}
-        <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
-        <div className="alert alert-info">
-          <small>
-            <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
-          </small>
         </div>
         
         {/* Age and Height Range */}
@@ -2484,6 +2484,27 @@ const Register = () => {
           </div>
         </div>
 
+        {/* Image Upload */}
+        <h5 className="mt-4 mb-3 text-primary">Profile Images</h5>
+        <div className="mb-3">
+          <label>Upload Images (Max 5, 5MB each)</label>
+          <input type="file" className="form-control" name="images" multiple accept="image/*" onChange={handleImageChange} />
+        </div>
+        {/* Local Preview */}
+        {images.length > 0 && (
+          <div className="mb-3 text-center">
+            <img src={URL.createObjectURL(images[previewIndex])} alt="preview" className="img-thumbnail" width="200" height="200" />
+            <div className="mt-2">
+              <button type="button" className="btn btn-outline-primary me-2" onClick={() => setPreviewIndex((previewIndex - 1 + images.length) % images.length)}>
+                ◀️
+              </button>
+              <button type="button" className="btn btn-outline-primary" onClick={() => setPreviewIndex((previewIndex + 1) % images.length)}>
+                ▶️
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Legal Agreements Section */}
         <div className="legal-agreements-section mt-4 p-4 border rounded" style={{ backgroundColor: '#fff3cd', borderColor: '#ffc107' }}>
           <h5 className="text-danger mb-3">⚠️ Legal Agreements (Required)</h5>
@@ -2587,26 +2608,6 @@ const Register = () => {
           </div>
         </div>
 
-        {/* Image Upload */}
-        <h5 className="mt-4 mb-3 text-primary">Profile Images</h5>
-        <div className="mb-3">
-          <label>Upload Images (Max 5, 5MB each)</label>
-          <input type="file" className="form-control" name="images" multiple accept="image/*" onChange={handleImageChange} />
-        </div>
-        {/* Local Preview */}
-        {images.length > 0 && (
-          <div className="mb-3 text-center">
-            <img src={URL.createObjectURL(images[previewIndex])} alt="preview" className="img-thumbnail" width="200" height="200" />
-            <div className="mt-2">
-              <button type="button" className="btn btn-outline-primary me-2" onClick={() => setPreviewIndex((previewIndex - 1 + images.length) % images.length)}>
-                ◀️
-              </button>
-              <button type="button" className="btn btn-outline-primary" onClick={() => setPreviewIndex((previewIndex + 1) % images.length)}>
-                ▶️
-              </button>
-            </div>
-          </div>
-        )}
         <button className="btn btn-success" type="submit">
           Create Profile
         </button>
