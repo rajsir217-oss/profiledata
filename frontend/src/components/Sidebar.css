@@ -182,11 +182,14 @@
   color: var(--primary-color);
   text-decoration: none;
   transition: color 0.2s ease;
+  cursor: pointer;
+  font-weight: 500;
 }
 
 .footer-link:hover {
   color: var(--secondary-color);
   text-decoration: underline;
+  font-weight: 600;
 }
 
 .footer-separator {

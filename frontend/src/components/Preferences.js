@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import './Preferences.css';
-import { getUserPreferences, updateUserPreferences } from '../api';
+import { getUserPreferences, updateUserPreferences, changePassword } from '../api';
 
 const Preferences = () => {
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
   const [isLoading, setIsLoading] = useState(true);
   const [showSaveMessage, setShowSaveMessage] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  
+  // Password change state
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
 
   const themes = [
     {
@@ -132,6 +141,69 @@ const Preferences = () => {
     }
   };
 
+  const handlePasswordInputChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    // Clear messages when user starts typing
+    if (passwordMessage.text) {
+      setPasswordMessage({ type: '', text: '' });
+    }
+  };
+
+  const handlePasswordChange = async (e) => {
+    e.preventDefault();
+    
+    // Validate passwords match
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'New passwords do not match' });
+      return;
+    }
+    
+    // Validate password length
+    if (passwordData.newPassword.length < 6) {
+      setPasswordMessage({ type: 'error', text: 'Password must be at least 6 characters long' });
+      return;
+    }
+    
+    setIsChangingPassword(true);
+    setPasswordMessage({ type: '', text: '' });
+    
+    try {
+      const result = await changePassword({
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        confirm_password: passwordData.confirmPassword
+      });
+      
+      setPasswordMessage({ 
+        type: 'success', 
+        text: result.message || 'Password changed successfully!' 
+      });
+      
+      // Clear form
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => {
+        setPasswordMessage({ type: '', text: '' });
+      }, 5000);
+      
+    } catch (error) {
+      console.error('Password change error:', error);
+      const errorMessage = error.detail || error.message || 'Failed to change password. Please try again.';
+      setPasswordMessage({ type: 'error', text: errorMessage });
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   return (
     <div className="preferences-container">
       <div className="preferences-header">
@@ -198,10 +270,77 @@ const Preferences = () => {
       </div>
 
       <div className="preferences-section">
-        <h2>🔒 Privacy Settings</h2>
-        <p className="section-description">Coming soon...</p>
-        <div className="coming-soon">
-          <p>Control who can see your profile, message you, and access your information.</p>
+        <h2>🔒 Change Password</h2>
+        <p className="section-description">Update your account password</p>
+        
+        {passwordMessage.text && (
+          <div className={`password-message ${passwordMessage.type}`}>
+            <span>{passwordMessage.type === 'success' ? '✅' : '⚠️'}</span>
+            <span>{passwordMessage.text}</span>
+          </div>
+        )}
+        
+        <form onSubmit={handlePasswordChange} className="password-form">
+          <div className="form-group">
+            <label htmlFor="currentPassword">Current Password</label>
+            <input
+              type="password"
+              id="currentPassword"
+              name="currentPassword"
+              value={passwordData.currentPassword}
+              onChange={handlePasswordInputChange}
+              placeholder="Enter current password"
+              required
+              disabled={isChangingPassword}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="newPassword">New Password</label>
+            <input
+              type="password"
+              id="newPassword"
+              name="newPassword"
+              value={passwordData.newPassword}
+              onChange={handlePasswordInputChange}
+              placeholder="Enter new password (min 6 characters)"
+              required
+              minLength="6"
+              disabled={isChangingPassword}
+            />
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="confirmPassword">Confirm New Password</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              name="confirmPassword"
+              value={passwordData.confirmPassword}
+              onChange={handlePasswordInputChange}
+              placeholder="Confirm new password"
+              required
+              minLength="6"
+              disabled={isChangingPassword}
+            />
+          </div>
+          
+          <button 
+            type="submit" 
+            className="btn-change-password"
+            disabled={isChangingPassword || !passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword}
+          >
+            {isChangingPassword ? '🔄 Changing Password...' : '🔒 Change Password'}
+          </button>
+        </form>
+        
+        <div className="password-requirements">
+          <p><strong>Password Requirements:</strong></p>
+          <ul>
+            <li>Minimum 6 characters</li>
+            <li>Cannot be the same as current password</li>
+            <li>Cannot reuse recent passwords</li>
+          </ul>
         </div>
       </div>
     </div>

@@ -137,15 +137,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '🔍', 
-        label: 'My matching criteria', 
-        action: () => navigate('/matching-criteria'),
-        disabled: !isActive
-      },
-      { 
-        icon: '💑', 
-        label: 'My top 3 matches', 
-        action: () => navigate('/top-matches'),
+        icon: '🦋', 
+        label: 'My L3V3L Matches', 
+        subLabel: 'Love, Loyalty, Laughter+',
+        action: () => navigate('/l3v3l-matches'),
         disabled: !isActive
       },
       { 
@@ -265,11 +260,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Footer Links */}
         <div className="sidebar-footer">
-          <a href="#privacy" className="footer-link">Privacy</a>
+          <span className="footer-link" onClick={() => navigate('/l3v3l-info')}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
-          <a href="#about" className="footer-link">about us</a>
+          <span className="footer-link" onClick={() => navigate('/privacy')}>Privacy</span>
           <span className="footer-separator">|</span>
-          <a href="#trademark" className="footer-link">Registed Trade mark</a>
+          <span className="footer-link" onClick={() => navigate('/about')}>About Us</span>
+          <span className="footer-separator">|</span>
+          <span className="footer-link" onClick={() => navigate('/trademark')}>Trademark</span>
         </div>
     </div>
   );

@@ -24,6 +24,8 @@ import PIIManagement from './components/PIIManagement';
 import UserManagement from './components/UserManagement';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
+import L3V3LInfo from './components/L3V3LInfo';
+import L3V3LMatches from './components/L3V3LMatches';
 import ProtectedRoute from './components/ProtectedRoute';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -161,6 +163,11 @@ function App() {
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/community-guidelines" element={<CommunityGuidelines />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
+              <Route path="/about" element={<PrivacyPolicy />} />
+              <Route path="/trademark" element={<PrivacyPolicy />} />
+              
+              {/* L3V3L Info page - accessible to all */}
+              <Route path="/l3v3l-info" element={<L3V3LInfo />} />
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
@@ -170,6 +177,7 @@ function App() {
               <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
+              <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
               <Route path="/shortlists" element={<ProtectedRoute><ShortLists /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
               <Route path="/my-lists" element={<ProtectedRoute><MyLists /></ProtectedRoute>} />

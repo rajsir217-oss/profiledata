@@ -142,6 +142,26 @@ export const updateUserPreferences = async (preferences) => {
   }
 };
 
+// Change Password API
+export const changePassword = async (passwordData) => {
+  try {
+    const authApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL?.replace('/api/users', '/api/auth') || 'http://localhost:8000/api/auth',
+    });
+    
+    // Add auth token
+    const token = localStorage.getItem('token');
+    if (token) {
+      authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await authApi.post('/change-password', passwordData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export default api;
 
 

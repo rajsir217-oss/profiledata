@@ -1881,3 +1881,81 @@
     grid-template-columns: 1fr 1fr !important;
   }
 }
+
+/* ========================================
+   L3V3L Matches Specific Styles
+   ======================================== */
+
+.l3v3l-banner {
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%);
+  padding: 25px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.3);
+}
+
+.l3v3l-banner-content {
+  color: white;
+  text-align: center;
+}
+
+.l3v3l-banner-content h3 {
+  margin: 0 0 12px 0;
+  font-size: 24px;
+  font-weight: 600;
+  color: white;
+}
+
+.l3v3l-banner-content p {
+  margin: 0 0 15px 0;
+  font-size: 15px;
+  opacity: 0.95;
+  line-height: 1.6;
+}
+
+.l3v3l-pillars-mini {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pillar-badge {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.pillar-badge:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Mobile responsive for L3V3L banner */
+@media (max-width: 768px) {
+  .l3v3l-banner {
+    padding: 20px 15px;
+  }
+
+  .l3v3l-banner-content h3 {
+    font-size: 20px;
+  }
+
+  .l3v3l-banner-content p {
+    font-size: 14px;
+  }
+
+  .l3v3l-pillars-mini {
+    gap: 8px;
+  }
+
+  .pillar-badge {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+}

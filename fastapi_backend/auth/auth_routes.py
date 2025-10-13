@@ -439,3 +439,107 @@ async def get_current_user(
     }
     
     return user_data
+
+# ===== CHANGE PASSWORD =====
+
+@router.post("/change-password")
+async def change_password(
+    request: PasswordChangeRequest,
+    current_user: dict = Depends(get_current_user_dependency),
+    http_request: Request = None,
+    db = Depends(get_database)
+):
+    """Change user password"""
+    try:
+        username = current_user.get("username")
+        logger.info(f"🔐 Password change request from {username}")
+        
+        # Get user from database
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        security = user.get("security", {})
+        
+        # Verify current password
+        current_password_hash = security.get("password_hash")
+        if not PasswordManager.verify_password(request.current_password, current_password_hash):
+            logger.warning(f"⚠️ Password change failed for {username}: Invalid current password")
+            await AuditLogger.log(
+                db=db,
+                user_id=str(user.get("_id")),
+                username=username,
+                action=SECURITY_EVENTS["PASSWORD_CHANGE_FAILED"],
+                ip_address=http_request.client.host if http_request else None,
+                user_agent=http_request.headers.get("user-agent") if http_request else None,
+                status="failure",
+                details={"reason": "Invalid current password"}
+            )
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        
+        # Validate new password strength
+        is_valid, errors = PasswordManager.validate_password_strength(request.new_password)
+        if not is_valid:
+            raise HTTPException(status_code=400, detail="; ".join(errors))
+        
+        # Check if new password matches current password
+        if PasswordManager.verify_password(request.new_password, current_password_hash):
+            raise HTTPException(
+                status_code=400, 
+                detail="New password cannot be the same as current password"
+            )
+        
+        # Check password history
+        password_history = security.get("password_history", [])
+        if PasswordManager.check_password_in_history(request.new_password, password_history):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Password was used recently. Please choose a different password (last {security_settings.PASSWORD_HISTORY_COUNT} passwords cannot be reused)"
+            )
+        
+        # Hash new password
+        new_password_hash = PasswordManager.hash_password(request.new_password)
+        
+        # Update password and security settings
+        password_changed_at = datetime.utcnow()
+        password_expires_at = PasswordManager.calculate_password_expiry(password_changed_at)
+        updated_history = PasswordManager.update_password_history(password_history, new_password_hash)
+        
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "security.password_hash": new_password_hash,
+                    "security.password_changed_at": password_changed_at,
+                    "security.password_expires_at": password_expires_at,
+                    "security.password_history": updated_history,
+                    "security.force_password_change": False,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Log successful password change
+        await AuditLogger.log(
+            db=db,
+            user_id=str(user.get("_id")),
+            username=username,
+            action=SECURITY_EVENTS["PASSWORD_CHANGED"],
+            ip_address=http_request.client.host if http_request else None,
+            user_agent=http_request.headers.get("user-agent") if http_request else None,
+            status="success",
+            details={"password_expiry": password_expires_at.isoformat()}
+        )
+        
+        logger.info(f"✅ Password changed successfully for {username}")
+        
+        return {
+            "message": "Password changed successfully",
+            "password_expires_in_days": PasswordManager.get_days_until_expiry(password_expires_at)
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Password change error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Failed to change password")
