@@ -1887,11 +1887,11 @@
    ======================================== */
 
 .l3v3l-banner {
-  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   padding: 25px;
   border-radius: 12px;
   margin-bottom: 20px;
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.3);
+  box-shadow: 0 6px 20px rgba(var(--primary-color-rgb, 99, 102, 241), 0.3);
 }
 
 .l3v3l-banner-content {

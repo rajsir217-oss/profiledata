@@ -76,10 +76,8 @@ const Profile = () => {
           setIsOnline(online);
         }
         
-        // Fetch KPI stats for own profile
-        if (currentUsername === username) {
-          await fetchKPIStats();
-        }
+        // Fetch KPI stats for all profiles
+        await fetchKPIStats();
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Unable to load profile");
@@ -96,6 +94,18 @@ const Profile = () => {
       }
     }, 10000);
     
+    // Poll for KPI stats updates every 15 seconds
+    const kpiStatsInterval = setInterval(() => {
+      fetchKPIStats();
+    }, 15000);
+    
+    // Refresh KPI stats when page regains focus
+    const handleFocus = () => {
+      console.log('🔄 Page focused - refreshing KPI stats');
+      fetchKPIStats();
+    };
+    window.addEventListener('focus', handleFocus);
+    
     // Subscribe to online status changes for this user
     const unsubscribe = onlineStatusService.subscribe((changedUsername, online) => {
       if (changedUsername === username) {
@@ -106,6 +116,8 @@ const Profile = () => {
     
     return () => {
       clearInterval(accessCheckInterval);
+      clearInterval(kpiStatsInterval);
+      window.removeEventListener('focus', handleFocus);
       unsubscribe();
     };
   }, [username, currentUsername]);
@@ -132,19 +144,28 @@ const Profile = () => {
 
   const fetchKPIStats = async () => {
     try {
+      console.log('📊 Fetching KPI stats for:', username);
+      
       const [viewsRes, shortlistRes, favoritesRes] = await Promise.all([
         api.get(`/profile-views/${username}/count`),
         api.get(`/their-shortlists/${username}`),
         api.get(`/their-favorites/${username}`)
       ]);
       
-      setKpiStats({
-        profileViews: viewsRes.data.count || 0,
-        shortlistedBy: shortlistRes.data.length || 0,
-        favoritedBy: favoritesRes.data.length || 0
-      });
+      console.log('📊 Views Response:', viewsRes.data);
+      console.log('📊 Shortlist Response:', shortlistRes.data);
+      console.log('📊 Favorites Response:', favoritesRes.data);
+      
+      const stats = {
+        profileViews: viewsRes.data?.totalViews || viewsRes.data?.uniqueViewers || 0,
+        shortlistedBy: shortlistRes.data?.users?.length || 0,
+        favoritedBy: favoritesRes.data?.users?.length || 0
+      };
+      
+      console.log('📊 Parsed KPI stats:', stats);
+      setKpiStats(stats);
     } catch (err) {
-      console.error("Error fetching KPI stats:", err);
+      console.error("❌ Error fetching KPI stats:", err);
     }
   };
 

@@ -2481,7 +2481,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
     try:
         # Find all favorites where current user is the target
         favorites = await db.favorites.find(
-            {"favoritedUsername": username}
+            {"favoriteUsername": username}
         ).sort("createdAt", -1).to_list(100)
         
         # Get user details
