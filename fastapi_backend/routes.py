@@ -505,21 +505,49 @@ async def update_user_profile(
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
     dob: Optional[str] = Form(None),
+    dateOfBirth: Optional[str] = Form(None),  # NEW: consistent naming
     sex: Optional[str] = Form(None),
+    gender: Optional[str] = Form(None),  # NEW: consistent naming
     height: Optional[str] = Form(None),
+    # Regional/Cultural fields
+    religion: Optional[str] = Form(None),  # NEW
+    languagesSpoken: Optional[str] = Form(None),  # NEW: JSON array
+    countryOfOrigin: Optional[str] = Form(None),  # NEW
+    countryOfResidence: Optional[str] = Form(None),  # NEW
+    state: Optional[str] = Form(None),  # NEW
+    caste: Optional[str] = Form(None),  # NEW: India-specific
+    motherTongue: Optional[str] = Form(None),  # NEW: India-specific
+    familyType: Optional[str] = Form(None),  # NEW
+    familyValues: Optional[str] = Form(None),  # NEW
     castePreference: Optional[str] = Form(None),
     eatingPreference: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
+    # Education & Work
     education: Optional[str] = Form(None),
     educationHistory: Optional[str] = Form(None),  # JSON string
     workExperience: Optional[str] = Form(None),  # JSON string
+    workLocation: Optional[str] = Form(None),  # NEW
     linkedinUrl: Optional[str] = Form(None),
     workingStatus: Optional[str] = Form(None),
     workplace: Optional[str] = Form(None),
     citizenshipStatus: Optional[str] = Form(None),
+    # Personal/Lifestyle fields
+    relationshipStatus: Optional[str] = Form(None),  # NEW
+    lookingFor: Optional[str] = Form(None),  # NEW
+    bodyType: Optional[str] = Form(None),  # NEW
+    drinking: Optional[str] = Form(None),  # NEW
+    smoking: Optional[str] = Form(None),  # NEW
+    hasChildren: Optional[str] = Form(None),  # NEW
+    wantsChildren: Optional[str] = Form(None),  # NEW
+    pets: Optional[str] = Form(None),  # NEW
+    interests: Optional[str] = Form(None),  # NEW: comma-separated text
+    languages: Optional[str] = Form(None),  # NEW: comma-separated text (different from languagesSpoken)
+    # Background & About
     familyBackground: Optional[str] = Form(None),
     aboutYou: Optional[str] = Form(None),
+    aboutMe: Optional[str] = Form(None),  # NEW: consistent naming
     partnerPreference: Optional[str] = Form(None),
+    partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
     images: List[UploadFile] = File(default=[]),
     imagesToDelete: Optional[str] = Form(None),
     db = Depends(get_database)
@@ -538,7 +566,10 @@ async def update_user_profile(
         )
     
     # Prepare update data - only update fields that are provided and not empty
+    import json
     update_data = {}
+    
+    # Basic Information
     if firstName is not None and firstName.strip():
         update_data["firstName"] = firstName.strip()
     if lastName is not None and lastName.strip():
@@ -547,35 +578,100 @@ async def update_user_profile(
         update_data["contactNumber"] = contactNumber.strip()
     if contactEmail is not None and contactEmail.strip():
         update_data["contactEmail"] = contactEmail.strip()
-    if dob is not None and dob.strip():
+    
+    # Handle both old and new field names for date of birth
+    if dateOfBirth is not None and dateOfBirth.strip():
+        update_data["dateOfBirth"] = dateOfBirth.strip()
+        update_data["dob"] = dateOfBirth.strip()  # Keep both for compatibility
+    elif dob is not None and dob.strip():
         update_data["dob"] = dob.strip()
-    if sex is not None and sex.strip():
+        update_data["dateOfBirth"] = dob.strip()  # Keep both for compatibility
+    
+    # Handle both old and new field names for gender
+    if gender is not None and gender.strip():
+        update_data["gender"] = gender.strip()
+        update_data["sex"] = gender.strip()  # Keep both for compatibility
+    elif sex is not None and sex.strip():
         update_data["sex"] = sex.strip()
+        update_data["gender"] = sex.strip()  # Keep both for compatibility
+    
     if height is not None and height.strip():
         update_data["height"] = height.strip()
+    
+    # Regional/Cultural fields
+    if religion is not None and religion.strip():
+        update_data["religion"] = religion.strip()
+    if countryOfOrigin is not None and countryOfOrigin.strip():
+        update_data["countryOfOrigin"] = countryOfOrigin.strip()
+    if countryOfResidence is not None and countryOfResidence.strip():
+        update_data["countryOfResidence"] = countryOfResidence.strip()
+    if state is not None and state.strip():
+        update_data["state"] = state.strip()
+    if caste is not None and caste.strip():
+        update_data["caste"] = caste.strip()
+    if motherTongue is not None and motherTongue.strip():
+        update_data["motherTongue"] = motherTongue.strip()
+    if familyType is not None and familyType.strip():
+        update_data["familyType"] = familyType.strip()
+    if familyValues is not None and familyValues.strip():
+        update_data["familyValues"] = familyValues.strip()
     if castePreference is not None and castePreference.strip():
         update_data["castePreference"] = castePreference.strip()
     if eatingPreference is not None and eatingPreference.strip():
         update_data["eatingPreference"] = eatingPreference.strip()
     if location is not None and location.strip():
         update_data["location"] = location.strip()
+    
+    # Education & Work
     if education is not None and education.strip():
         update_data["education"] = education.strip()
     if workingStatus is not None and workingStatus.strip():
         update_data["workingStatus"] = workingStatus.strip()
     if workplace is not None and workplace.strip():
         update_data["workplace"] = workplace.strip()
+    if workLocation is not None and workLocation.strip():
+        update_data["workLocation"] = workLocation.strip()
     if citizenshipStatus is not None and citizenshipStatus.strip():
         update_data["citizenshipStatus"] = citizenshipStatus.strip()
+    
+    # Personal/Lifestyle fields
+    if relationshipStatus is not None and relationshipStatus.strip():
+        update_data["relationshipStatus"] = relationshipStatus.strip()
+    if lookingFor is not None and lookingFor.strip():
+        update_data["lookingFor"] = lookingFor.strip()
+    if bodyType is not None and bodyType.strip():
+        update_data["bodyType"] = bodyType.strip()
+    if drinking is not None and drinking.strip():
+        update_data["drinking"] = drinking.strip()
+    if smoking is not None and smoking.strip():
+        update_data["smoking"] = smoking.strip()
+    if hasChildren is not None and hasChildren.strip():
+        update_data["hasChildren"] = hasChildren.strip()
+    if wantsChildren is not None and wantsChildren.strip():
+        update_data["wantsChildren"] = wantsChildren.strip()
+    if pets is not None and pets.strip():
+        update_data["pets"] = pets.strip()
+    if interests is not None and interests.strip():
+        update_data["interests"] = interests.strip()
+    if languages is not None and languages.strip():
+        update_data["languages"] = languages.strip()
+    
+    # Background & About
     if familyBackground is not None and familyBackground.strip():
         update_data["familyBackground"] = familyBackground.strip()
-    if aboutYou is not None and aboutYou.strip():
+    
+    # Handle both old and new field names for about
+    if aboutMe is not None and aboutMe.strip():
+        update_data["aboutMe"] = aboutMe.strip()
+        update_data["aboutYou"] = aboutMe.strip()  # Keep both for compatibility
+    elif aboutYou is not None and aboutYou.strip():
         update_data["aboutYou"] = aboutYou.strip()
+        update_data["aboutMe"] = aboutYou.strip()  # Keep both for compatibility
+    
     if partnerPreference is not None and partnerPreference.strip():
         update_data["partnerPreference"] = partnerPreference.strip()
     
-    # Handle new structured fields (JSON arrays)
-    import json
+    # Handle new structured fields (JSON arrays/objects)
     if educationHistory is not None and educationHistory.strip():
         try:
             update_data["educationHistory"] = json.loads(educationHistory)
@@ -587,6 +683,18 @@ async def update_user_profile(
             update_data["workExperience"] = json.loads(workExperience)
         except json.JSONDecodeError:
             logger.warning(f"Invalid JSON for workExperience: {workExperience}")
+    
+    if languagesSpoken is not None and languagesSpoken.strip():
+        try:
+            update_data["languagesSpoken"] = json.loads(languagesSpoken)
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON for languagesSpoken: {languagesSpoken}")
+    
+    if partnerCriteria is not None and partnerCriteria.strip():
+        try:
+            update_data["partnerCriteria"] = json.loads(partnerCriteria)
+        except json.JSONDecodeError:
+            logger.warning(f"Invalid JSON for partnerCriteria: {partnerCriteria}")
     
     if linkedinUrl is not None and linkedinUrl.strip():
         update_data["linkedinUrl"] = linkedinUrl.strip()
@@ -786,15 +894,50 @@ async def update_user_preferences(
         )
 
 @router.get("/admin/users")
-async def get_all_users(db = Depends(get_database)):
-    """Get all users - Admin only endpoint"""
-    logger.info("🔐 Admin request: Get all users")
+async def get_all_users(
+    page: int = 1,
+    limit: int = 20,
+    search: Optional[str] = None,
+    status: Optional[str] = None,
+    role: Optional[str] = None,
+    db = Depends(get_database)
+):
+    """Get all users with pagination and filtering - Admin only endpoint"""
+    logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status={status}, role={role})")
     
     try:
-        # Fetch all users
-        logger.debug("Fetching all users from database...")
-        users_cursor = db.users.find({})
-        users = await users_cursor.to_list(length=None)
+        # Build query filter
+        query = {}
+        
+        # Search filter (username, email, firstName, lastName)
+        if search:
+            search_regex = {"$regex": search, "$options": "i"}  # Case-insensitive
+            query["$or"] = [
+                {"username": search_regex},
+                {"email": search_regex},
+                {"firstName": search_regex},
+                {"lastName": search_regex}
+            ]
+            logger.debug(f"🔍 Search filter applied: {search}")
+        
+        # Status filter (status is nested: status.status)
+        if status:
+            query["status.status"] = status
+            logger.debug(f"📊 Status filter applied: {status}")
+        
+        # Role filter
+        if role:
+            query["role_name"] = role
+            logger.debug(f"👤 Role filter applied: {role}")
+        
+        # Get total count for pagination
+        total_count = await db.users.count_documents(query)
+        total_pages = (total_count + limit - 1) // limit  # Ceiling division
+        
+        # Fetch users with pagination
+        skip = (page - 1) * limit
+        users_cursor = db.users.find(query).skip(skip).limit(limit)
+        users = await users_cursor.to_list(length=limit)
         
         # Remove sensitive data
         for user in users:
@@ -803,10 +946,13 @@ async def get_all_users(db = Depends(get_database)):
             # Convert image paths to full URLs
             user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
         
-        logger.info(f"✅ Retrieved {len(users)} users for admin")
+        logger.info(f"✅ Retrieved {len(users)} users (page {page}/{total_pages}, total: {total_count})")
         return {
             "users": users,
-            "count": len(users)
+            "count": len(users),
+            "total": total_count,
+            "page": page,
+            "totalPages": total_pages
         }
     except Exception as e:
         logger.error(f"❌ Error fetching users: {e}", exc_info=True)

@@ -362,11 +362,11 @@ const UserManagement = () => {
           className="filter-select"
         >
           <option value="">All Status</option>
+          <option value="pending">Pending Verification</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="suspended">Suspended</option>
           <option value="banned">Banned</option>
-          <option value="pending_verification">Pending Verification</option>
         </select>
 
         <select
@@ -500,7 +500,7 @@ const UserManagement = () => {
                     {user.status?.status || 'unknown'}
                   </span>
                 </td>
-                <td>{new Date(user.created_at).toLocaleDateString()}</td>
+                <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
                 <td>
                   <div className="action-buttons">
                     <button

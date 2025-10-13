@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../api";
+import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector } from "./shared";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -16,7 +17,7 @@ const Register = () => {
     heightFeet: "",  // Feet: 4-7
     heightInches: "",  // Inches: 0-11
     // Preferences & Cultural Information
-    religion: "",  // For both India and USA
+    religion: "Prefer not to say",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
     castePreference: "None",  // Default "None"
     eatingPreference: "None",  // Default "None"
@@ -62,12 +63,12 @@ const Register = () => {
       familyValues: []
     },
     // New dating-app fields
-    relationshipStatus: "single",
-    lookingFor: "serious relationship",
+    relationshipStatus: "Single",
+    lookingFor: "Serious Relationship",
     interests: "Reading, Hiking, cooking, travel",
     languages: "",
-    drinking: "Average",
-    smoking: "never",
+    drinking: "Socially",
+    smoking: "Never",
     // religion moved to main preferences above
     bodyType: "Average",
     hasChildren: "No",
@@ -95,28 +96,11 @@ const Register = () => {
   const usernameCheckTimeout = useRef(null);
   const emailCheckTimeout = useRef(null);
 
-  // Education entry state
-  const [newEducation, setNewEducation] = useState({
-    level: "",
-    degree: "",
-    startYear: "",
-    endYear: "",
-    institution: ""
-  });
-  const [editingEducationIndex, setEditingEducationIndex] = useState(null);
-
-  // Work experience entry state
-  const [newWorkExperience, setNewWorkExperience] = useState({
-    status: "",
-    description: ""
-  });
-  const [editingWorkIndex, setEditingWorkIndex] = useState(null);
-
   // Sample description carousel states
   const [aboutMeSampleIndex, setAboutMeSampleIndex] = useState(0);  // Renamed from aboutYouSampleIndex
   const [partnerPrefSampleIndex, setPartnerPrefSampleIndex] = useState(0);
-  const [familyBackgroundSampleIndex, setFamilyBackgroundSampleIndex] = useState(0);
   const [bioSampleIndex, setBioSampleIndex] = useState(0);
+  // familyBackgroundSampleIndex is now managed inside TextAreaWithSamples component
 
   // Sample descriptions for "About Me"
   const aboutMeSamples = [  // Renamed from aboutYouSamples
@@ -483,149 +467,7 @@ const Register = () => {
     setFieldErrors((prev) => ({ ...prev, [name]: error }));
   };
 
-  // Education handlers
-  const handleEducationChange = (e) => {
-    const { name, value } = e.target;
-    setNewEducation(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddEducation = () => {
-    // Validation
-    if (!newEducation.level) {
-      setErrorMsg("❌ Please select education level");
-      return;
-    }
-    if (!newEducation.degree) {
-      setErrorMsg("❌ Please enter degree type (e.g., BS, MS, PHD)");
-      return;
-    }
-    if (!newEducation.startYear || !newEducation.endYear) {
-      setErrorMsg("❌ Please enter start and end year");
-      return;
-    }
-    if (!newEducation.institution) {
-      setErrorMsg("❌ Please enter institution name");
-      return;
-    }
-
-    // Add to educationHistory
-    const educationEntry = {
-      level: newEducation.level,
-      degree: newEducation.degree,
-      startYear: newEducation.startYear,
-      endYear: newEducation.endYear,
-      institution: newEducation.institution
-    };
-
-    if (editingEducationIndex !== null) {
-      // Update existing entry
-      const updated = [...formData.educationHistory];
-      updated[editingEducationIndex] = educationEntry;
-      setFormData(prev => ({ ...prev, educationHistory: updated }));
-      setEditingEducationIndex(null);
-    } else {
-      // Add new entry
-      setFormData(prev => ({
-        ...prev,
-        educationHistory: [...prev.educationHistory, educationEntry]
-      }));
-    }
-
-    // Reset form
-    setNewEducation({
-      level: "",
-      degree: "",
-      startYear: "",
-      endYear: "",
-      institution: ""
-    });
-    setErrorMsg("");
-  };
-
-  const handleEditEducation = (index) => {
-    const edu = formData.educationHistory[index];
-    setNewEducation(edu);
-    setEditingEducationIndex(index);
-  };
-
-  const handleDeleteEducation = (index) => {
-    const updated = formData.educationHistory.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, educationHistory: updated }));
-    // If editing this entry, reset
-    if (editingEducationIndex === index) {
-      setNewEducation({
-        level: "",
-        degree: "",
-        startYear: "",
-        endYear: "",
-        institution: ""
-      });
-      setEditingEducationIndex(null);
-    }
-  };
-
-  // Work experience handlers
-  const handleWorkExperienceChange = (e) => {
-    const { name, value } = e.target;
-    setNewWorkExperience(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleAddWorkExperience = () => {
-    // Validation
-    if (!newWorkExperience.status) {
-      setErrorMsg("❌ Please select work status");
-      return;
-    }
-    if (!newWorkExperience.description) {
-      setErrorMsg("❌ Please describe your work and industry");
-      return;
-    }
-
-    const workEntry = {
-      status: newWorkExperience.status,
-      description: newWorkExperience.description
-    };
-
-    if (editingWorkIndex !== null) {
-      // Update existing entry
-      const updated = [...formData.workExperience];
-      updated[editingWorkIndex] = workEntry;
-      setFormData(prev => ({ ...prev, workExperience: updated }));
-      setEditingWorkIndex(null);
-    } else {
-      // Add new entry
-      setFormData(prev => ({
-        ...prev,
-        workExperience: [...prev.workExperience, workEntry]
-      }));
-    }
-
-    // Reset form
-    setNewWorkExperience({
-      status: "",
-      description: ""
-    });
-    setErrorMsg("");
-  };
-
-  const handleEditWorkExperience = (index) => {
-    const work = formData.workExperience[index];
-    setNewWorkExperience(work);
-    setEditingWorkIndex(index);
-  };
-
-  const handleDeleteWorkExperience = (index) => {
-    const updated = formData.workExperience.filter((_, i) => i !== index);
-    setFormData(prev => ({ ...prev, workExperience: updated }));
-    // If editing this entry, reset
-    if (editingWorkIndex === index) {
-      setNewWorkExperience({
-        status: "",
-        description: ""
-      });
-      setEditingWorkIndex(null);
-    }
-  };
+  // Education and Work Experience handlers are now in shared components
 
   // Handle image selection with validation
   const handleImageChange = (e) => {
@@ -714,6 +556,19 @@ const Register = () => {
     if (hasErrors) {
       const fieldList = errorFields.join(", ");
       setErrorMsg(`❌ Please fix validation errors in the following fields: ${fieldList}`);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    // Validate array fields (education and work experience)
+    if (!formData.educationHistory || formData.educationHistory.length === 0) {
+      setErrorMsg("❌ Please add at least one education entry using the '+ Add' button in the Education History section");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!formData.workExperience || formData.workExperience.length === 0) {
+      setErrorMsg("❌ Please add at least one work experience entry using the '+ Add' button in the Work Experience section");
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
@@ -881,40 +736,16 @@ const Register = () => {
             </div>
           </div>
           <div className="col-md-4">
-            <label className="form-label me-3 mb-2">Gender<span className="text-danger">*</span></label>
-            <div className="d-flex align-items-center">
-              <div className="form-check form-check-inline">
-                <input 
-                  className="form-check-input" 
-                  type="radio" 
-                  name="gender" 
-                  id="genderMale" 
-                  value="Male" 
-                  checked={formData.gender === "Male"} 
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  required 
-                />
-                <label className="form-check-label" htmlFor="genderMale">Male</label>
-              </div>
-              <div className="form-check form-check-inline">
-                <input 
-                  className="form-check-input" 
-                  type="radio" 
-                  name="gender" 
-                  id="genderFemale" 
-                  value="Female" 
-                  checked={formData.gender === "Female"} 
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  required 
-                />
-                <label className="form-check-label" htmlFor="genderFemale">Female</label>
-              </div>
-            </div>
-            {fieldErrors.gender && touchedFields.gender && (
-              <div className="text-danger small mt-1">{fieldErrors.gender}</div>
-            )}
+            <GenderSelector
+              value={formData.gender}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required
+              label="Gender"
+              name="gender"
+              error={fieldErrors.gender}
+              touched={touchedFields.gender}
+            />
           </div>
         </div>
         {/* Custom row for contactNumber and contactEmail */}
@@ -1391,234 +1222,25 @@ const Register = () => {
             )}
           </div>
         </div>
-        {/* Education History Section */}
-        <h5 className="mt-4 mb-3 text-primary">📚 Education History</h5>
-        
-        {/* Saved Education Entries */}
-        {formData.educationHistory.length > 0 && (
-          <div className="mb-3">
-            <table className="table table-bordered">
-              <thead className="table-light">
-                <tr>
-                  <th>Level</th>
-                  <th>Details</th>
-                  <th style={{ width: '80px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.educationHistory.map((edu, index) => (
-                  <tr key={index}>
-                    <td><strong>{edu.level}</strong></td>
-                    <td>
-                      {edu.degree} graduated in Year {edu.startYear}-{edu.endYear} from {edu.institution}
-                    </td>
-                    <td className="text-center">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-success me-1"
-                        onClick={() => handleEditEducation(index)}
-                        title="Edit"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteEducation(index)}
-                        title="Delete"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        {/* Education History Section - Using Shared Component */}
+        <EducationHistory
+          educationHistory={formData.educationHistory}
+          setEducationHistory={(value) => setFormData(prev => ({ ...prev, educationHistory: value }))}
+          isRequired={true}
+          showValidation={true}
+          errorMsg={errorMsg}
+          setErrorMsg={setErrorMsg}
+        />
 
-        {/* Add/Edit Education Form */}
-        <div className="card p-3 mb-3" style={{ backgroundColor: '#f8f9fa' }}>
-          <h6 className="mb-3">{editingEducationIndex !== null ? 'Edit' : 'Add'} Education Entry</h6>
-          
-          <div className="row mb-3">
-            <div className="col-md-3">
-              <label className="form-label">Education Level <span className="text-danger">*</span></label>
-              <select
-                className="form-control"
-                name="level"
-                value={newEducation.level}
-                onChange={handleEducationChange}
-                required
-              >
-                <option value="">Select Level</option>
-                <option value="Under Graduation">Under Graduation</option>
-                <option value="Graduation">Graduation</option>
-                <option value="Post Graduation">Post Graduation</option>
-                <option value="PHD">PHD</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-            
-            <div className="col-md-3">
-              <label className="form-label">Degree Type <span className="text-danger">*</span></label>
-              <input
-                type="text"
-                className="form-control"
-                name="degree"
-                value={newEducation.degree}
-                onChange={handleEducationChange}
-                placeholder="e.g., BS, MS, PHD"
-                required
-              />
-            </div>
-
-            <div className="col-md-2">
-              <label className="form-label">Start Year <span className="text-danger">*</span></label>
-              <input
-                type="number"
-                className="form-control"
-                name="startYear"
-                value={newEducation.startYear}
-                onChange={handleEducationChange}
-                placeholder="YYYY"
-                min="1950"
-                max="2030"
-                required
-              />
-            </div>
-
-            <div className="col-md-2">
-              <label className="form-label">End Year <span className="text-danger">*</span></label>
-              <input
-                type="number"
-                className="form-control"
-                name="endYear"
-                value={newEducation.endYear}
-                onChange={handleEducationChange}
-                placeholder="YYYY"
-                min="1950"
-                max="2030"
-                required
-              />
-            </div>
-
-            <div className="col-md-2 d-flex align-items-end">
-              <button
-                type="button"
-                className="btn btn-primary w-100"
-                onClick={handleAddEducation}
-              >
-                {editingEducationIndex !== null ? '✓ Update' : '✓ Add'}
-              </button>
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="col-md-12">
-              <label className="form-label">Institution Name <span className="text-danger">*</span></label>
-              <input
-                type="text"
-                className="form-control"
-                name="institution"
-                value={newEducation.institution}
-                onChange={handleEducationChange}
-                placeholder="e.g., Georgia Tech, MIT, Stanford"
-                required
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Work Experience Section */}
-        <h5 className="mt-4 mb-3 text-primary">💼 Work Experience</h5>
-        
-        {/* Saved Work Experience Entries */}
-        {formData.workExperience.length > 0 && (
-          <div className="mb-3">
-            <table className="table table-bordered">
-              <thead className="table-light">
-                <tr>
-                  <th style={{ width: '120px' }}>Status</th>
-                  <th>Description</th>
-                  <th style={{ width: '80px' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.workExperience.map((work, index) => (
-                  <tr key={index}>
-                    <td><strong>{work.status}</strong></td>
-                    <td>{work.description}</td>
-                    <td className="text-center">
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-success me-1"
-                        onClick={() => handleEditWorkExperience(index)}
-                        title="Edit"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDeleteWorkExperience(index)}
-                        title="Delete"
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Add/Edit Work Experience Form */}
-        <div className="card p-3 mb-3" style={{ backgroundColor: '#f8f9fa' }}>
-          <h6 className="mb-3">{editingWorkIndex !== null ? 'Edit' : 'Add'} Work Experience Entry</h6>
-          
-          <div className="row mb-3">
-            <div className="col-md-3">
-              <label className="form-label">Work Status <span className="text-danger">*</span></label>
-              <select
-                className="form-control"
-                name="status"
-                value={newWorkExperience.status}
-                onChange={handleWorkExperienceChange}
-                required
-              >
-                <option value="">Select Status</option>
-                <option value="current">Current</option>
-                <option value="past">Past</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            
-            <div className="col-md-7">
-              <label className="form-label">Description (Type of work and industry) <span className="text-danger">*</span></label>
-              <input
-                type="text"
-                className="form-control"
-                name="description"
-                value={newWorkExperience.description}
-                onChange={handleWorkExperienceChange}
-                placeholder="e.g., Software Engineer in Tech Industry, Marketing Manager in Healthcare"
-                required
-              />
-            </div>
-
-            <div className="col-md-2 d-flex align-items-end">
-              <button
-                type="button"
-                className="btn btn-primary w-100"
-                onClick={handleAddWorkExperience}
-              >
-                {editingWorkIndex !== null ? '✓ Update' : '✓ Add'}
-              </button>
-            </div>
-          </div>
-        </div>
+        {/* Work Experience Section - Using Shared Component */}
+        <WorkExperience
+          workExperience={formData.workExperience}
+          setWorkExperience={(value) => setFormData(prev => ({ ...prev, workExperience: value }))}
+          isRequired={true}
+          showValidation={true}
+          errorMsg={errorMsg}
+          setErrorMsg={setErrorMsg}
+        />
 
         {/* Work Location (Optional) - workingStatus is auto-calculated from workExperience */}
         <div className="mb-3">
@@ -1664,71 +1286,20 @@ const Register = () => {
           
           if (key === "familyBackground") {
             return (
-              <div className="mb-3" key={key}>
-                <div className="d-flex justify-content-between align-items-center mb-2">
-                  <label className="form-label mb-0">Family Background</label>
-                  <div className="d-flex align-items-center gap-2">
-                    <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => setFamilyBackgroundSampleIndex((prev) => (prev - 1 + familyBackgroundSamples.length) % familyBackgroundSamples.length)}
-                      style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                      title="Previous sample"
-                    >
-                      ‹
-                    </button>
-                    <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
-                      {familyBackgroundSampleIndex + 1}/{familyBackgroundSamples.length}
-                    </span>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => setFamilyBackgroundSampleIndex((prev) => (prev + 1) % familyBackgroundSamples.length)}
-                      style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                      title="Next sample"
-                    >
-                      ›
-                    </button>
-                  </div>
-                </div>
-                <div 
-                  className="card p-2 mb-2" 
-                  onClick={() => setFormData({ ...formData, familyBackground: familyBackgroundSamples[familyBackgroundSampleIndex] })}
-                  style={{ 
-                    backgroundColor: '#f8f9fa', 
-                    border: '1px dashed #dee2e6',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#e3f2fd';
-                    e.currentTarget.style.borderColor = '#2196f3';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8f9fa';
-                    e.currentTarget.style.borderColor = '#dee2e6';
-                  }}
-                  title="Click to load this sample"
-                >
-                  <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                    <strong>Sample {familyBackgroundSampleIndex + 1}:</strong> {familyBackgroundSamples[familyBackgroundSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
-                  </small>
-                </div>
-                <textarea
-                  className={`form-control ${fieldErrors[key] && touchedFields[key] ? 'is-invalid' : ''}`}
-                  name={key}
-                  value={value}
-                  onChange={handleChange}
-                  onBlur={handleBlur}
-                  rows={5}
-                  placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
-                  required
-                />
-                {fieldErrors[key] && touchedFields[key] && (
-                  <div className="invalid-feedback d-block">{fieldErrors[key]}</div>
-                )}
-              </div>
+              <TextAreaWithSamples
+                key={key}
+                label="Family Background"
+                name="familyBackground"
+                value={formData.familyBackground}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                rows={5}
+                placeholder="Click the sample texts above to load a description, then customize it to your liking..."
+                samples={familyBackgroundSamples}
+                error={fieldErrors.familyBackground}
+                touched={touchedFields.familyBackground}
+              />
             );
           }
           return (

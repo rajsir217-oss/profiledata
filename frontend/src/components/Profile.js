@@ -325,21 +325,78 @@ const Profile = () => {
         </div>
       )}
       
+      {/* Bio / Tagline */}
+      {user.bio && (
+        <div className="profile-section" style={{ 
+          backgroundColor: '#f8f9fa', 
+          borderLeft: '4px solid #007bff',
+          fontStyle: 'italic',
+          fontSize: '16px',
+          textAlign: 'center',
+          padding: '20px'
+        }}>
+          <p style={{ margin: 0, color: '#495057' }}>"{user.bio}"</p>
+        </div>
+      )}
+
       {/* Basic Info (Always visible) */}
       <div className="profile-section">
         <h3>👤 Basic Information</h3>
         <div className="profile-info">
           <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Sex:</strong> {user.sex}</p>
+          <p><strong>Gender:</strong> {user.gender || user.sex}</p>
           {age && <p><strong>Age:</strong> {age} years</p>}
           <p><strong>Height:</strong> {user.height}</p>
           <p><strong>Location:</strong> {user.location}</p>
-          <p><strong>Education:</strong> {user.education}</p>
+          {user.religion && <p><strong>Religion:</strong> {user.religion}</p>}
+          {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
+          {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
+          {user.education && <p><strong>Education:</strong> {user.education}</p>}
           <p><strong>Working Status:</strong> {user.workingStatus}</p>
           {user.workplace && <p><strong>Workplace:</strong> {user.workplace}</p>}
-          <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>
+          {user.workLocation && <p><strong>Work Location:</strong> {user.workLocation}</p>}
+          {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
+          {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
         </div>
       </div>
+
+      {/* Regional & Cultural Information */}
+      {(user.countryOfOrigin || user.countryOfResidence || user.state || user.languagesSpoken?.length > 0 || user.motherTongue || user.caste || user.familyType || user.familyValues || user.castePreference || user.eatingPreference) && (
+        <div className="profile-section">
+          <h3>🌍 Regional & Cultural</h3>
+          <div className="profile-info">
+            {user.countryOfOrigin && <p><strong>Country of Origin:</strong> {user.countryOfOrigin === 'IN' ? 'India' : user.countryOfOrigin === 'US' ? 'USA' : user.countryOfOrigin}</p>}
+            {user.countryOfResidence && <p><strong>Country of Residence:</strong> {user.countryOfResidence === 'IN' ? 'India' : user.countryOfResidence === 'US' ? 'USA' : user.countryOfResidence}</p>}
+            {user.state && <p><strong>State:</strong> {user.state}</p>}
+            {user.languagesSpoken && user.languagesSpoken.length > 0 && (
+              <p><strong>Languages Spoken:</strong> {user.languagesSpoken.join(', ')}</p>
+            )}
+            {user.motherTongue && <p><strong>Mother Tongue:</strong> {user.motherTongue}</p>}
+            {user.caste && <p><strong>Caste:</strong> {user.caste}</p>}
+            {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
+            {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
+            {user.familyType && <p><strong>Family Type:</strong> {user.familyType}</p>}
+            {user.familyValues && <p><strong>Family Values:</strong> {user.familyValues}</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Personal & Lifestyle */}
+      {(user.bodyType || user.drinking || user.smoking || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
+        <div className="profile-section">
+          <h3>💭 Personal & Lifestyle</h3>
+          <div className="profile-info">
+            {user.bodyType && <p><strong>Body Type:</strong> {user.bodyType}</p>}
+            {user.drinking && <p><strong>Drinking:</strong> {user.drinking}</p>}
+            {user.smoking && <p><strong>Smoking:</strong> {user.smoking}</p>}
+            {user.hasChildren && <p><strong>Has Children:</strong> {user.hasChildren}</p>}
+            {user.wantsChildren && <p><strong>Wants Children:</strong> {user.wantsChildren}</p>}
+            {user.pets && <p><strong>Pets:</strong> {user.pets}</p>}
+            {user.interests && <p><strong>Interests & Hobbies:</strong> {user.interests}</p>}
+            {user.languages && <p><strong>Languages:</strong> {user.languages}</p>}
+          </div>
+        </div>
+      )}
 
       {/* Education History */}
       {user.educationHistory && user.educationHistory.length > 0 && (
@@ -348,9 +405,11 @@ const Profile = () => {
           <div className="profile-info">
             {user.educationHistory.map((edu, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.educationHistory.length - 1 ? '1px solid #eee' : 'none'}}>
-                <p><strong>{edu.degree}</strong></p>
+                <p><strong>{edu.level ? `${edu.level} - ${edu.degree}` : edu.degree}</strong></p>
                 <p style={{marginLeft: '10px', color: '#666'}}>{edu.institution}</p>
-                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>{edu.year}</p>
+                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>
+                  {edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : (edu.year || 'N/A')}
+                </p>
               </div>
             ))}
           </div>
@@ -364,9 +423,8 @@ const Profile = () => {
           <div className="profile-info">
             {user.workExperience.map((work, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.workExperience.length - 1 ? '1px solid #eee' : 'none'}}>
-                <p><strong>{work.position}</strong></p>
-                <p style={{marginLeft: '10px', color: '#666'}}>{work.company}</p>
-                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>{work.years}</p>
+                <p><strong>{work.status === 'current' ? '🟢 Current Position' : '⚪ Past Position'}</strong></p>
+                <p style={{marginLeft: '10px', color: '#666', whiteSpace: 'pre-wrap'}}>{work.description}</p>
               </div>
             ))}
           </div>
@@ -448,13 +506,53 @@ const Profile = () => {
       <div className="profile-section">
         <h3>💭 Preferences & Background</h3>
         <div className="profile-info">
-          <p><strong>Caste Preference:</strong> {user.castePreference}</p>
-          <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>
-          <p><strong>Family Background:</strong> {user.familyBackground}</p>
-          <p><strong>About:</strong> {user.aboutYou}</p>
-          <p><strong>Partner Preference:</strong> {user.partnerPreference}</p>
+          {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
+          {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
+          {user.familyType && <p><strong>Family Type:</strong> {user.familyType}</p>}
+          {user.familyValues && <p><strong>Family Values:</strong> {user.familyValues}</p>}
+          {user.familyBackground && <p><strong>Family Background:</strong> {user.familyBackground}</p>}
+          {(user.aboutMe || user.aboutYou) && <p><strong>About:</strong> {user.aboutMe || user.aboutYou}</p>}
+          {user.partnerPreference && <p><strong>Partner Preference:</strong> {user.partnerPreference}</p>}
         </div>
       </div>
+
+      {/* Partner Matching Criteria */}
+      {user.partnerCriteria && Object.keys(user.partnerCriteria).length > 0 && (
+        <div className="profile-section">
+          <h3>🎯 Partner Matching Criteria</h3>
+          <div className="profile-info">
+            {user.partnerCriteria.ageRange && (user.partnerCriteria.ageRange.min || user.partnerCriteria.ageRange.max) && (
+              <p><strong>Preferred Age Range:</strong> {user.partnerCriteria.ageRange.min || '?'} - {user.partnerCriteria.ageRange.max || '?'} years</p>
+            )}
+            {user.partnerCriteria.heightRange && (
+              <p><strong>Preferred Height Range:</strong> {user.partnerCriteria.heightRange.minFeet || '?'}'{user.partnerCriteria.heightRange.minInches || '0'}" - {user.partnerCriteria.heightRange.maxFeet || '?'}'{user.partnerCriteria.heightRange.maxInches || '0'}"</p>
+            )}
+            {user.partnerCriteria.educationLevel && user.partnerCriteria.educationLevel.length > 0 && (
+              <p><strong>Preferred Education:</strong> {user.partnerCriteria.educationLevel.join(', ')}</p>
+            )}
+            {user.partnerCriteria.profession && user.partnerCriteria.profession.length > 0 && (
+              <p><strong>Preferred Profession:</strong> {user.partnerCriteria.profession.join(', ')}</p>
+            )}
+            {user.partnerCriteria.location && user.partnerCriteria.location.length > 0 && (
+              <p><strong>Preferred Locations:</strong> {user.partnerCriteria.location.join(', ')}</p>
+            )}
+            {user.partnerCriteria.languages && user.partnerCriteria.languages.length > 0 && (
+              <p><strong>Preferred Languages:</strong> {user.partnerCriteria.languages.join(', ')}</p>
+            )}
+            {user.partnerCriteria.religion && <p><strong>Preferred Religion:</strong> {user.partnerCriteria.religion}</p>}
+            {user.partnerCriteria.caste && <p><strong>Preferred Caste:</strong> {user.partnerCriteria.caste}</p>}
+            {user.partnerCriteria.eatingPreference && user.partnerCriteria.eatingPreference.length > 0 && (
+              <p><strong>Preferred Eating:</strong> {user.partnerCriteria.eatingPreference.join(', ')}</p>
+            )}
+            {user.partnerCriteria.familyType && user.partnerCriteria.familyType.length > 0 && (
+              <p><strong>Preferred Family Type:</strong> {user.partnerCriteria.familyType.join(', ')}</p>
+            )}
+            {user.partnerCriteria.familyValues && user.partnerCriteria.familyValues.length > 0 && (
+              <p><strong>Preferred Family Values:</strong> {user.partnerCriteria.familyValues.join(', ')}</p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Profile Images Section */}
       <div className="profile-section">

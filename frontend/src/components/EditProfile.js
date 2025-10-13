@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import ProfilePreview from './ProfilePreview';
+import { EducationHistory, WorkExperience, TextAreaWithSamples, HeightSelector, GenderSelector } from './shared';
 import './EditProfile.css';
 
 const EditProfile = () => {
@@ -20,19 +21,63 @@ const EditProfile = () => {
     contactNumber: '',
     contactEmail: '',
     dob: '',
+    dateOfBirth: '',
     sex: '',
+    gender: '',
     height: '',
+    heightFeet: '',
+    heightInches: '',
+    // Regional/Cultural
+    religion: '',
+    languagesSpoken: [],
+    countryOfOrigin: 'US',
+    countryOfResidence: 'US',
+    state: '',
+    caste: '',
+    motherTongue: '',
+    familyType: '',
+    familyValues: '',
     castePreference: '',
     eatingPreference: '',
     location: '',
+    // Education & Work
     education: '',
     workingStatus: 'Yes',
     workplace: '',
+    workLocation: '',
     citizenshipStatus: 'Citizen',
+    // Personal/Lifestyle
+    relationshipStatus: '',
+    lookingFor: '',
+    bodyType: '',
+    drinking: '',
+    smoking: '',
+    hasChildren: '',
+    wantsChildren: '',
+    pets: '',
+    interests: '',
+    languages: '',
+    // Background
     familyBackground: '',
     aboutYou: '',
+    aboutMe: '',
     partnerPreference: '',
-    linkedinUrl: ''
+    bio: '',
+    linkedinUrl: '',
+    // Partner Criteria (will be object)
+    partnerCriteria: {
+      ageRange: { min: '', max: '' },
+      heightRange: { minFeet: '', minInches: '', maxFeet: '', maxInches: '' },
+      educationLevel: [],
+      profession: [],
+      location: [],
+      languages: [],
+      religion: '',
+      caste: '',
+      eatingPreference: [],
+      familyType: [],
+      familyValues: []
+    }
   });
 
   const [educationHistory, setEducationHistory] = useState([]);
@@ -42,9 +87,7 @@ const EditProfile = () => {
   const [existingImages, setExistingImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
-  // Sample description carousel states
-  const [aboutYouSampleIndex, setAboutYouSampleIndex] = useState(0);
-  const [partnerPrefSampleIndex, setPartnerPrefSampleIndex] = useState(0);
+  // Sample description carousel states are now managed inside TextAreaWithSamples component
 
   // Sample descriptions for "About You"
   const aboutYouSamples = [
@@ -72,6 +115,28 @@ const EditProfile = () => {
     "I envision a partner who is confident yet humble, successful yet grounded. Someone who values their roots while being open to new experiences and perspectives. I appreciate a person who can balance career ambitions with family priorities and knows the importance of quality time together. Shared values about honesty, loyalty, and commitment are essential to me. I'm looking for someone who can be my companion through life's journey—celebrating successes, supporting through challenges, and creating a warm, loving family together."
   ];
 
+  // Sample descriptions for "Family Background"
+  const familyBackgroundSamples = [
+    "I come from a close-knit, traditional family that values education, respect, and strong moral principles. My parents have been wonderful role models, teaching me the importance of hard work, honesty, and compassion. We celebrate all festivals together and maintain strong bonds with extended family. My family is supportive of my career and personal choices while instilling cultural values. They believe in modern thinking while respecting traditions, and family gatherings are always filled with warmth and joy.",
+    
+    "I belong to a modern, progressive family that encourages independence and personal growth. My parents are both professionals who have always supported my education and career aspirations. We have a small, close family that values open communication and mutual respect. While we respect our cultural roots, we're also open to different perspectives and beliefs. Family is important to us, but we also believe in giving each other space to pursue individual dreams and passions.",
+    
+    "I come from a well-educated, middle-class family with strong values of integrity and kindness. My father is retired, and my mother is a homemaker who has been the pillar of our family. I have siblings who are all well-settled in their respective careers. We're a traditional yet modern family that believes in maintaining cultural heritage while embracing change. Family gatherings, festivals, and celebrations are an integral part of our lives, and we share a deep bond of love and support.",
+    
+    "My family is small but very loving and supportive. We believe in simplicity, honesty, and treating everyone with respect. My parents have always encouraged me to pursue my dreams while staying grounded in our values. We may not have elaborate celebrations, but we treasure quality time together. Education and good character have always been priorities in our household. My family is understanding and would welcome a life partner who shares similar values of respect and love.",
+    
+    "I belong to a large, joint family where traditions and togetherness are highly valued. We have regular family gatherings, celebrate all occasions with enthusiasm, and maintain strong connections with relatives. My family is well-respected in our community and places great importance on values like hospitality, respect for elders, and cultural traditions. At the same time, they're progressive in their thinking and supportive of individual choices. Growing up in such a nurturing environment has shaped my values and outlook on relationships and family life."
+  ];
+
+  // Sample descriptions for "Bio / Tagline"
+  const bioSamples = [
+    "Family-oriented professional seeking genuine connection and lifelong partnership 💕",
+    "Traditional values, modern outlook. Love travel, food, and meaningful conversations ✨",
+    "Balanced life, big heart. Looking for my partner in crime and best friend 🌟",
+    "Adventure seeker with strong family values. Let's create beautiful memories together 🎯",
+    "Passionate about life, career, and relationships. Seeking someone who values honesty and respect 💫"
+  ];
+
   // Load current user's profile data
   useEffect(() => {
     const loadProfile = async () => {
@@ -85,26 +150,81 @@ const EditProfile = () => {
         const response = await api.get(`/profile/${username}?requester=${username}`);
         const userData = response.data;
 
+        // Parse height from format "5'8"" into feet and inches
+        let heightFeet = '';
+        let heightInches = '';
+        if (userData.height) {
+          const heightMatch = userData.height.match(/(\d+)'(\d+)"/);
+          if (heightMatch) {
+            heightFeet = heightMatch[1];
+            heightInches = heightMatch[2];
+          }
+        }
+
         // Populate form with existing data
         setFormData({
           firstName: userData.firstName || '',
           lastName: userData.lastName || '',
           contactNumber: userData.contactNumber || '',
           contactEmail: userData.contactEmail || '',
-          dob: userData.dob || '',
-          sex: userData.sex || '',
+          dob: userData.dob || userData.dateOfBirth || '',
+          dateOfBirth: userData.dateOfBirth || userData.dob || '',
+          sex: userData.sex || userData.gender || '',
+          gender: userData.gender || userData.sex || '',
           height: userData.height || '',
+          heightFeet: heightFeet,
+          heightInches: heightInches,
+          // Regional/Cultural
+          religion: userData.religion || '',
+          languagesSpoken: userData.languagesSpoken || [],
+          countryOfOrigin: userData.countryOfOrigin || 'US',
+          countryOfResidence: userData.countryOfResidence || 'US',
+          state: userData.state || '',
+          caste: userData.caste || '',
+          motherTongue: userData.motherTongue || '',
+          familyType: userData.familyType || '',
+          familyValues: userData.familyValues || '',
           castePreference: userData.castePreference || '',
           eatingPreference: userData.eatingPreference || '',
           location: userData.location || '',
+          // Education & Work
           education: userData.education || '',
           workingStatus: userData.workingStatus || 'Yes',
           workplace: userData.workplace || '',
+          workLocation: userData.workLocation || '',
           citizenshipStatus: userData.citizenshipStatus || 'Citizen',
+          // Personal/Lifestyle
+          relationshipStatus: userData.relationshipStatus || '',
+          lookingFor: userData.lookingFor || '',
+          bodyType: userData.bodyType || '',
+          drinking: userData.drinking || '',
+          smoking: userData.smoking || '',
+          hasChildren: userData.hasChildren || '',
+          wantsChildren: userData.wantsChildren || '',
+          pets: userData.pets || '',
+          interests: userData.interests || '',
+          languages: userData.languages || '',
+          // Background
           familyBackground: userData.familyBackground || '',
-          aboutYou: userData.aboutYou || '',
+          aboutYou: userData.aboutYou || userData.aboutMe || '',
+          aboutMe: userData.aboutMe || userData.aboutYou || '',
           partnerPreference: userData.partnerPreference || '',
-          linkedinUrl: userData.linkedinUrl || ''
+          bio: userData.bio || '',
+          linkedinUrl: userData.linkedinUrl || '',
+          // Partner Criteria
+          partnerCriteria: userData.partnerCriteria || {
+            ageRange: { min: '', max: '' },
+            heightRange: { minFeet: '', minInches: '', maxFeet: '', maxInches: '' },
+            educationLevel: [],
+            profession: [],
+            location: [],
+            languages: [],
+            religion: '',
+            caste: '',
+            eatingPreference: [],
+            familyType: [],
+            familyValues: []
+          }
         });
 
         setEducationHistory(userData.educationHistory || []);
@@ -143,35 +263,7 @@ const EditProfile = () => {
     setExistingImages(prev => prev.filter(img => img !== imageUrl));
   };
 
-  // Education handlers
-  const addEducation = () => {
-    setEducationHistory([...educationHistory, { degree: '', institution: '', year: '' }]);
-  };
-
-  const updateEducation = (index, field, value) => {
-    const updated = [...educationHistory];
-    updated[index][field] = value;
-    setEducationHistory(updated);
-  };
-
-  const removeEducation = (index) => {
-    setEducationHistory(educationHistory.filter((_, i) => i !== index));
-  };
-
-  // Work experience handlers
-  const addWorkExperience = () => {
-    setWorkExperience([...workExperience, { position: '', company: '', years: '' }]);
-  };
-
-  const updateWorkExperience = (index, field, value) => {
-    const updated = [...workExperience];
-    updated[index][field] = value;
-    setWorkExperience(updated);
-  };
-
-  const removeWorkExperience = (index) => {
-    setWorkExperience(workExperience.filter((_, i) => i !== index));
-  };
+  // Education and Work Experience handlers are now in shared components
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -184,11 +276,42 @@ const EditProfile = () => {
       
       // Prepare form data
       const data = new FormData();
-      Object.keys(formData).forEach(key => {
-        if (formData[key] && formData[key].toString().trim()) {
+      
+      // Combine heightFeet and heightInches into height field
+      if (formData.heightFeet && formData.heightInches !== '') {
+        formData.height = `${formData.heightFeet}'${formData.heightInches}"`;
+      }
+      
+      // Add simple string fields
+      const simpleFields = [
+        'firstName', 'lastName', 'contactNumber', 'contactEmail',
+        'dob', 'dateOfBirth', 'sex', 'gender', 'height',
+        'religion', 'countryOfOrigin', 'countryOfResidence', 'state',
+        'caste', 'motherTongue', 'familyType', 'familyValues',
+        'castePreference', 'eatingPreference', 'location',
+        'education', 'workingStatus', 'workplace', 'workLocation', 'citizenshipStatus',
+        'relationshipStatus', 'lookingFor', 'bodyType', 'drinking', 'smoking',
+        'hasChildren', 'wantsChildren', 'pets', 'interests', 'languages',
+        'familyBackground', 'aboutYou', 'aboutMe', 'partnerPreference', 'bio', 'linkedinUrl'
+      ];
+      
+      simpleFields.forEach(key => {
+        if (formData[key] && typeof formData[key] === 'string' && formData[key].trim()) {
+          data.append(key, formData[key]);
+        } else if (formData[key] && typeof formData[key] !== 'object') {
           data.append(key, formData[key]);
         }
       });
+      
+      // Add array fields as JSON strings
+      if (formData.languagesSpoken && Array.isArray(formData.languagesSpoken) && formData.languagesSpoken.length > 0) {
+        data.append('languagesSpoken', JSON.stringify(formData.languagesSpoken));
+      }
+      
+      // Add partner criteria as JSON string
+      if (formData.partnerCriteria && Object.keys(formData.partnerCriteria).length > 0) {
+        data.append('partnerCriteria', JSON.stringify(formData.partnerCriteria));
+      }
       
       // Add structured data as JSON strings
       if (educationHistory.length > 0) {
@@ -298,7 +421,7 @@ const EditProfile = () => {
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
         <form onSubmit={handleUpdate}>
-          {/* Name Fields */}
+          {/* Section 1: Name Fields */}
           <div className="row mb-3">
             <div className="col-md-6">
               <label className="form-label">First Name</label>
@@ -324,7 +447,41 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Contact Fields */}
+          {/* Section 2: Personal Details - dateOfBirth, height, gender */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label className="form-label">Date of Birth</label>
+              <input
+                type="date"
+                className="form-control"
+                name="dob"
+                value={formData.dob}
+                onChange={handleChange}
+                required
+              />
+            </div>
+            <div className="col-md-4">
+              <HeightSelector
+                heightFeet={formData.heightFeet}
+                heightInches={formData.heightInches}
+                onFeetChange={handleChange}
+                onInchesChange={handleChange}
+                required
+                label="Height"
+              />
+            </div>
+            <div className="col-md-4">
+              <GenderSelector
+                value={formData.sex}
+                onChange={handleChange}
+                required
+                label="Gender"
+                name="sex"
+              />
+            </div>
+          </div>
+
+          {/* Section 3: Contact Fields (MOVED FROM TOP) */}
           <div className="row mb-3">
             <div className="col-md-6">
               <label className="form-label">Contact Number</label>
@@ -350,46 +507,134 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Personal Details */}
+          {/* Section 4: Religion & Languages Spoken */}
           <div className="row mb-3">
-            <div className="col-md-3">
-              <label className="form-label">Date of Birth</label>
-              <input
-                type="date"
-                className="form-control"
-                name="dob"
-                value={formData.dob}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">Height</label>
-              <input
-                type="text"
-                className="form-control"
-                name="height"
-                value={formData.height}
-                onChange={handleChange}
-                placeholder="e.g., 5'8&quot;"
-                required
-              />
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">Sex</label>
+            <div className="col-md-6">
+              <label className="form-label">Religion</label>
               <select
                 className="form-control"
-                name="sex"
-                value={formData.sex}
+                name="religion"
+                value={formData.religion}
                 onChange={handleChange}
-                required
               >
-                <option value="">Select...</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
+                <option value="">Select Religion</option>
+                <option value="Hindu">Hindu</option>
+                <option value="Muslim">Muslim</option>
+                <option value="Christian">Christian</option>
+                <option value="Sikh">Sikh</option>
+                <option value="Buddhist">Buddhist</option>
+                <option value="Jain">Jain</option>
+                <option value="Jewish">Jewish</option>
+                <option value="Parsi">Parsi</option>
+                <option value="No Religion">No Religion</option>
+                <option value="Other">Other</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Languages Spoken</label>
+              <select
+                multiple
+                className="form-control"
+                name="languagesSpoken"
+                value={formData.languagesSpoken}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({ ...prev, languagesSpoken: selected }));
+                }}
+                style={{ minHeight: '100px' }}
+              >
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Marathi">Marathi</option>
+                <option value="Bengali">Bengali</option>
+                <option value="Gujarati">Gujarati</option>
+                <option value="Kannada">Kannada</option>
+                <option value="Malayalam">Malayalam</option>
+                <option value="Punjabi">Punjabi</option>
+                <option value="Urdu">Urdu</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Chinese">Chinese</option>
+                <option value="Japanese">Japanese</option>
+                <option value="Korean">Korean</option>
+                <option value="Arabic">Arabic</option>
+                <option value="Other">Other</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple. Selected: {formData.languagesSpoken.length}</small>
+            </div>
+          </div>
+
+          {/* Section 5: Bio / Tagline (MOVED FROM END) */}
+          <TextAreaWithSamples
+            label="Bio / Tagline"
+            name="bio"
+            value={formData.bio}
+            onChange={handleChange}
+            rows={3}
+            placeholder="A short tagline that captures your personality..."
+            samples={bioSamples}
+            showSamples={true}
+            helperText="Max 200 characters. This appears at the top of your profile."
+          />
+
+          {/* Section 6: Regional/Location Information */}
+          <h5 className="mt-4 mb-3 text-primary">🌍 Regional & Location Information</h5>
+          <div className="row mb-3">
+            <div className="col-md-3">
+              <label className="form-label">Country of Origin</label>
+              <select
+                className="form-control"
+                name="countryOfOrigin"
+                value={formData.countryOfOrigin}
+                onChange={handleChange}
+              >
+                <option value="US">USA</option>
+                <option value="IN">India</option>
               </select>
             </div>
             <div className="col-md-3">
+              <label className="form-label">Country of Residence</label>
+              <select
+                className="form-control"
+                name="countryOfResidence"
+                value={formData.countryOfResidence}
+                onChange={handleChange}
+              >
+                <option value="US">USA</option>
+                <option value="IN">India</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">State</label>
+              <input
+                type="text"
+                className="form-control"
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                placeholder="e.g., California, Tamil Nadu"
+              />
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Location (City)</label>
+              <input
+                type="text"
+                className="form-control"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="City/Town"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="row mb-3">
+            <div className="col-md-12">
               <label className="form-label">Citizenship Status</label>
               <select
                 className="form-control"
@@ -403,45 +648,114 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Preferences */}
+          {/* Section 7: Cultural Information (India-Specific - Conditional) */}
+          {formData.countryOfOrigin === 'IN' && (
+            <>
+              <div className="alert alert-info" style={{marginBottom: '20px'}}>
+                <strong>🇮🇳 India-Specific Fields</strong> - These fields are important for matrimonial matchmaking in India
+              </div>
+              <h5 className="mt-4 mb-3 text-primary">🕉️ Cultural Information</h5>
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">Caste <span className="text-muted">(Optional)</span></label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    name="caste"
+                    value={formData.caste}
+                    onChange={handleChange}
+                    placeholder="e.g., Brahmin, Kshatriya, etc."
+                  />
+                  <small className="text-muted">Only visible to matched users</small>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Mother Tongue</label>
+                  <select
+                    className="form-control"
+                    name="motherTongue"
+                    value={formData.motherTongue}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Language</option>
+                    <option value="Hindi">Hindi</option>
+                    <option value="Tamil">Tamil</option>
+                    <option value="Telugu">Telugu</option>
+                    <option value="Marathi">Marathi</option>
+                    <option value="Bengali">Bengali</option>
+                    <option value="Gujarati">Gujarati</option>
+                    <option value="Kannada">Kannada</option>
+                    <option value="Malayalam">Malayalam</option>
+                    <option value="Punjabi">Punjabi</option>
+                    <option value="Urdu">Urdu</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="row mb-3">
+                <div className="col-md-6">
+                  <label className="form-label">Family Type</label>
+                  <select
+                    className="form-control"
+                    name="familyType"
+                    value={formData.familyType}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Joint Family">Joint Family</option>
+                    <option value="Nuclear Family">Nuclear Family</option>
+                  </select>
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label">Family Values</label>
+                  <select
+                    className="form-control"
+                    name="familyValues"
+                    value={formData.familyValues}
+                    onChange={handleChange}
+                  >
+                    <option value="">Select Values</option>
+                    <option value="Traditional">Traditional</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Liberal">Liberal</option>
+                  </select>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Section 8: Preferences (Always Visible) */}
+          <h5 className="mt-4 mb-3 text-primary">💭 Preferences</h5>
           <div className="row mb-3">
-            <div className="col-md-4">
+            <div className="col-md-6">
               <label className="form-label">Caste Preference</label>
-              <input
-                type="text"
+              <select
                 className="form-control"
                 name="castePreference"
                 value={formData.castePreference}
                 onChange={handleChange}
-                required
-              />
+              >
+                <option value="">Select...</option>
+                <option value="None">No Preference</option>
+                <option value="Open to all">Open to all</option>
+                <option value="Specific">Within caste only</option>
+              </select>
             </div>
-            <div className="col-md-4">
+            <div className="col-md-6">
               <label className="form-label">Eating Preference</label>
               <select
                 className="form-control"
                 name="eatingPreference"
                 value={formData.eatingPreference}
                 onChange={handleChange}
-                required
               >
                 <option value="">Select...</option>
                 <option value="Vegetarian">Vegetarian</option>
                 <option value="Eggetarian">Eggetarian</option>
-                <option value="Non-Veg">Non-Veg</option>
-                <option value="Others">Others</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="None">No Preference</option>
               </select>
-            </div>
-            <div className="col-md-4">
-              <label className="form-label">Location</label>
-              <input
-                type="text"
-                className="form-control"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                required
-              />
             </div>
           </div>
 
@@ -492,109 +806,25 @@ const EditProfile = () => {
             />
           </div>
 
-          {/* Education History Section */}
-          <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <label className="form-label mb-0">🎓 Education History</label>
-              <button type="button" className="btn btn-sm btn-primary" onClick={addEducation}>
-                + Add Education
-              </button>
-            </div>
-            {educationHistory.map((edu, index) => (
-              <div key={index} className="card mb-2 p-3 bg-light">
-                <div className="row">
-                  <div className="col-md-4">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Degree (e.g., B.S. Computer Science)"
-                      value={edu.degree}
-                      onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Institution (e.g., MIT)"
-                      value={edu.institution}
-                      onChange={(e) => updateEducation(index, 'institution', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Year (e.g., 2015-2019)"
-                      value={edu.year}
-                      onChange={(e) => updateEducation(index, 'year', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-1 text-end">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger"
-                      onClick={() => removeEducation(index)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Education History Section - Using Shared Component */}
+          <EducationHistory
+            educationHistory={educationHistory}
+            setEducationHistory={setEducationHistory}
+            isRequired={false}
+            showValidation={false}
+            errorMsg={errorMsg}
+            setErrorMsg={setErrorMsg}
+          />
 
-          {/* Work Experience Section */}
-          <div className="mb-4">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <label className="form-label mb-0">💼 Work Experience</label>
-              <button type="button" className="btn btn-sm btn-primary" onClick={addWorkExperience}>
-                + Add Work Experience
-              </button>
-            </div>
-            {workExperience.map((work, index) => (
-              <div key={index} className="card mb-2 p-3 bg-light">
-                <div className="row">
-                  <div className="col-md-4">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Position (e.g., Senior Engineer)"
-                      value={work.position}
-                      onChange={(e) => updateWorkExperience(index, 'position', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-4">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Company (e.g., Google)"
-                      value={work.company}
-                      onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-3">
-                    <input
-                      type="text"
-                      className="form-control form-control-sm mb-2"
-                      placeholder="Years (e.g., 2019-Present)"
-                      value={work.years}
-                      onChange={(e) => updateWorkExperience(index, 'years', e.target.value)}
-                    />
-                  </div>
-                  <div className="col-md-1 text-end">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-danger"
-                      onClick={() => removeWorkExperience(index)}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {/* Work Experience Section - Using Shared Component */}
+          <WorkExperience
+            workExperience={workExperience}
+            setWorkExperience={setWorkExperience}
+            isRequired={false}
+            showValidation={false}
+            errorMsg={errorMsg}
+            setErrorMsg={setErrorMsg}
+          />
 
           {/* LinkedIn URL - Private Field */}
           <div className="mb-3">
@@ -615,154 +845,563 @@ const EditProfile = () => {
             </small>
           </div>
 
-          <div className="mb-3">
-            <label className="form-label">Workplace</label>
-            <textarea
-              className="form-control"
-              name="workplace"
-              value={formData.workplace}
-              onChange={handleChange}
-              rows={3}
-              required
-            />
-          </div>
-
-          <div className="mb-3">
-            <label className="form-label">Family Background</label>
-            <textarea
-              className="form-control"
-              name="familyBackground"
-              value={formData.familyBackground}
-              onChange={handleChange}
-              rows={3}
-              required
-            />
-          </div>
-
-          {/* About You with Sample Carousel */}
-          <div className="mb-3">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <label className="form-label mb-0">About You</label>
-              <div className="d-flex align-items-center gap-2">
-                <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => setAboutYouSampleIndex((prev) => (prev - 1 + aboutYouSamples.length) % aboutYouSamples.length)}
-                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                  title="Previous sample"
-                >
-                  ‹
-                </button>
-                <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
-                  {aboutYouSampleIndex + 1}/{aboutYouSamples.length}
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => setAboutYouSampleIndex((prev) => (prev + 1) % aboutYouSamples.length)}
-                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                  title="Next sample"
-                >
-                  ›
-              </button>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Workplace</label>
+              <textarea
+                className="form-control"
+                name="workplace"
+                value={formData.workplace}
+                onChange={handleChange}
+                rows={3}
+                required
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Work Location</label>
+              <input
+                type="text"
+                className="form-control"
+                name="workLocation"
+                value={formData.workLocation}
+                onChange={handleChange}
+                placeholder="e.g., Bangalore, San Francisco"
+              />
+              <small className="text-muted">Where you work (if employed)</small>
             </div>
           </div>
-          <div 
-              className="card p-2 mb-2" 
-              onClick={() => setFormData({ ...formData, aboutYou: aboutYouSamples[aboutYouSampleIndex] })}
-              style={{ 
-                backgroundColor: '#f8f9fa', 
-                border: '1px dashed #dee2e6',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-                e.currentTarget.style.borderColor = '#2196f3';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f8f9fa';
-                e.currentTarget.style.borderColor = '#dee2e6';
-              }}
-              title="Click to load this sample"
-            >
-              <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                <strong>Sample {aboutYouSampleIndex + 1}:</strong> {aboutYouSamples[aboutYouSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
-              </small>
+
+          {/* Personal & Lifestyle Section */}
+          <h5 className="mt-4 mb-3 text-primary">👥 Personal & Lifestyle</h5>
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label className="form-label">Relationship Status</label>
+              <select
+                className="form-control"
+                name="relationshipStatus"
+                value={formData.relationshipStatus}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Single">Single</option>
+                <option value="Divorced">Divorced</option>
+                <option value="Widowed">Widowed</option>
+                <option value="Separated">Separated</option>
+              </select>
             </div>
-            <textarea
-              className="form-control"
-              name="aboutYou"
-              value={formData.aboutYou}
-              onChange={handleChange}
-              rows={5}
-              placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
-              required
-            />
+            <div className="col-md-4">
+              <label className="form-label">Looking For</label>
+              <select
+                className="form-control"
+                name="lookingFor"
+                value={formData.lookingFor}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Marriage">Marriage</option>
+                <option value="Serious Relationship">Serious Relationship</option>
+                <option value="Casual Dating">Casual Dating</option>
+                <option value="Friendship">Friendship</option>
+              </select>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Body Type</label>
+              <select
+                className="form-control"
+                name="bodyType"
+                value={formData.bodyType}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Slim">Slim</option>
+                <option value="Athletic">Athletic</option>
+                <option value="Average">Average</option>
+                <option value="Curvy">Curvy</option>
+                <option value="Heavyset">Heavyset</option>
+              </select>
+            </div>
           </div>
 
-          {/* Partner Preference with Sample Carousel */}
-          <div className="mb-3">
-            <div className="d-flex justify-content-between align-items-center mb-2">
-              <label className="form-label mb-0">Partner Preference</label>
-              <div className="d-flex align-items-center gap-2">
-                <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
-                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                  title="Previous sample"
-                >
-                  ‹
-                </button>
-                <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
-                  {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
-                </span>
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-primary"
-                  onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
-                  style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                  title="Next sample"
-                >
-                  ›
-                </button>
+          <div className="row mb-3">
+            <div className="col-md-3">
+              <label className="form-label">Drinking</label>
+              <select
+                className="form-control"
+                name="drinking"
+                value={formData.drinking}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Never">Never</option>
+                <option value="Socially">Socially</option>
+                <option value="Regularly">Regularly</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Smoking</label>
+              <select
+                className="form-control"
+                name="smoking"
+                value={formData.smoking}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Never">Never</option>
+                <option value="Socially">Socially</option>
+                <option value="Regularly">Regularly</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Has Children</label>
+              <select
+                className="form-control"
+                name="hasChildren"
+                value={formData.hasChildren}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+            <div className="col-md-3">
+              <label className="form-label">Wants Children</label>
+              <select
+                className="form-control"
+                name="wantsChildren"
+                value={formData.wantsChildren}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Yes">Yes</option>
+                <option value="No">No</option>
+                <option value="Maybe">Maybe</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label className="form-label">Pets</label>
+              <select
+                className="form-control"
+                name="pets"
+                value={formData.pets}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Dog">Dog</option>
+                <option value="Cat">Cat</option>
+                <option value="Both">Both</option>
+                <option value="Other">Other</option>
+                <option value="None">None</option>
+              </select>
+            </div>
+            <div className="col-md-8">
+              <label className="form-label">Interests & Hobbies</label>
+              <input
+                type="text"
+                className="form-control"
+                name="interests"
+                value={formData.interests}
+                onChange={handleChange}
+                placeholder="e.g., Reading, Hiking, Cooking, Photography"
+              />
+              <small className="text-muted">Comma-separated list</small>
+            </div>
+          </div>
+
+          {/* Section 11: About & Background */}
+          <h5 className="mt-4 mb-3 text-primary">📝 About & Background</h5>
+          
+          <TextAreaWithSamples
+            label="Family Background"
+            name="familyBackground"
+            value={formData.familyBackground}
+            onChange={handleChange}
+            required
+            rows={5}
+            placeholder="Click the sample texts above to load a description, then customize it to your liking..."
+            samples={familyBackgroundSamples}
+            showSamples={true}
+          />
+
+          <TextAreaWithSamples
+            label="About Me"
+            name="aboutYou"
+            value={formData.aboutYou}
+            onChange={handleChange}
+            required
+            rows={5}
+            placeholder="Click the sample texts above to load a description, then customize it to your liking..."
+            samples={aboutYouSamples}
+            showSamples={true}
+          />
+
+          <TextAreaWithSamples
+            label="Partner Preference"
+            name="partnerPreference"
+            value={formData.partnerPreference}
+            onChange={handleChange}
+            required
+            rows={5}
+            placeholder="Click the sample texts above to load a description, then customize it to your liking..."
+            samples={partnerPrefSamples}
+            showSamples={true}
+          />
+
+          {/* Section 12: Partner Criteria */}
+          <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
+          <p className="text-muted mb-3">Specify your preferences for a potential partner</p>
+          
+          {/* Age Range */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Minimum Age</label>
+              <input
+                type="number"
+                className="form-control"
+                name="partnerCriteria.ageRange.min"
+                value={formData.partnerCriteria.ageRange.min}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    ageRange: { ...prev.partnerCriteria.ageRange, min: e.target.value }
+                  }
+                }))}
+                placeholder="e.g., 25"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Maximum Age</label>
+              <input
+                type="number"
+                className="form-control"
+                name="partnerCriteria.ageRange.max"
+                value={formData.partnerCriteria.ageRange.max}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    ageRange: { ...prev.partnerCriteria.ageRange, max: e.target.value }
+                  }
+                }))}
+                placeholder="e.g., 35"
+              />
+            </div>
+          </div>
+
+          {/* Height Range */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Minimum Height</label>
+              <div className="row">
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    value={formData.partnerCriteria.heightRange.minFeet}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      partnerCriteria: {
+                        ...prev.partnerCriteria,
+                        heightRange: { ...prev.partnerCriteria.heightRange, minFeet: e.target.value }
+                      }
+                    }))}
+                  >
+                    <option value="">Feet</option>
+                    <option value="4">4 ft</option>
+                    <option value="5">5 ft</option>
+                    <option value="6">6 ft</option>
+                    <option value="7">7 ft</option>
+                  </select>
+                </div>
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    value={formData.partnerCriteria.heightRange.minInches}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      partnerCriteria: {
+                        ...prev.partnerCriteria,
+                        heightRange: { ...prev.partnerCriteria.heightRange, minInches: e.target.value }
+                      }
+                    }))}
+                  >
+                    <option value="">Inches</option>
+                    {[...Array(12)].map((_, i) => (
+                      <option key={i} value={i}>{i} in</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </div>
-            <div 
-              className="card p-2 mb-2" 
-              onClick={() => setFormData({ ...formData, partnerPreference: partnerPrefSamples[partnerPrefSampleIndex] })}
-              style={{ 
-                backgroundColor: '#f8f9fa', 
-                border: '1px dashed #dee2e6',
-                cursor: 'pointer',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#e3f2fd';
-                e.currentTarget.style.borderColor = '#2196f3';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = '#f8f9fa';
-                e.currentTarget.style.borderColor = '#dee2e6';
-              }}
-              title="Click to load this sample"
-            >
-              <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                <strong>Sample {partnerPrefSampleIndex + 1}:</strong> {partnerPrefSamples[partnerPrefSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
-              </small>
+            <div className="col-md-6">
+              <label className="form-label">Maximum Height</label>
+              <div className="row">
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    value={formData.partnerCriteria.heightRange.maxFeet}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      partnerCriteria: {
+                        ...prev.partnerCriteria,
+                        heightRange: { ...prev.partnerCriteria.heightRange, maxFeet: e.target.value }
+                      }
+                    }))}
+                  >
+                    <option value="">Feet</option>
+                    <option value="4">4 ft</option>
+                    <option value="5">5 ft</option>
+                    <option value="6">6 ft</option>
+                    <option value="7">7 ft</option>
+                  </select>
+                </div>
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    value={formData.partnerCriteria.heightRange.maxInches}
+                    onChange={(e) => setFormData(prev => ({
+                      ...prev,
+                      partnerCriteria: {
+                        ...prev.partnerCriteria,
+                        heightRange: { ...prev.partnerCriteria.heightRange, maxInches: e.target.value }
+                      }
+                    }))}
+                  >
+                    <option value="">Inches</option>
+                    {[...Array(12)].map((_, i) => (
+                      <option key={i} value={i}>{i} in</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
-            <textarea
-              className="form-control"
-              name="partnerPreference"
-              value={formData.partnerPreference}
-              onChange={handleChange}
-              rows={5}
-              placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
-              required
-            />
+          </div>
+
+          {/* Education Level & Profession */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Preferred Education Levels</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.educationLevel}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, educationLevel: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="High School">High School</option>
+                <option value="Associate Degree">Associate Degree</option>
+                <option value="Bachelor's Degree">Bachelor's Degree</option>
+                <option value="Master's Degree">Master's Degree</option>
+                <option value="Doctorate/PhD">Doctorate/PhD</option>
+                <option value="Professional Degree">Professional Degree</option>
+                <option value="Trade/Vocational">Trade/Vocational</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Preferred Professions</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.profession}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, profession: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="Software Engineer">Software Engineer</option>
+                <option value="Doctor">Doctor</option>
+                <option value="Teacher">Teacher</option>
+                <option value="Business">Business</option>
+                <option value="Finance">Finance</option>
+                <option value="Healthcare">Healthcare</option>
+                <option value="Any">Any Profession</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+          </div>
+
+          {/* Location & Languages */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Preferred Locations</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.location}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, location: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="USA">USA</option>
+                <option value="India">India</option>
+                <option value="Canada">Canada</option>
+                <option value="UK">UK</option>
+                <option value="Willing to Relocate">Willing to Relocate</option>
+                <option value="Any">Any Location</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Preferred Languages</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.languages}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, languages: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="English">English</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Tamil">Tamil</option>
+                <option value="Telugu">Telugu</option>
+                <option value="Spanish">Spanish</option>
+                <option value="Any">Any Language</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+          </div>
+
+          {/* Religion & Caste */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Preferred Religions</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.religion}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, religion: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="Hindu">Hindu</option>
+                <option value="Muslim">Muslim</option>
+                <option value="Christian">Christian</option>
+                <option value="Sikh">Sikh</option>
+                <option value="Buddhist">Buddhist</option>
+                <option value="Jain">Jain</option>
+                <option value="Any">Any Religion</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd to select multiple</small>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Preferred Caste</label>
+              <input
+                type="text"
+                className="form-control"
+                value={formData.partnerCriteria.caste}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: { ...prev.partnerCriteria, caste: e.target.value }
+                }))}
+                placeholder="Any or specific caste"
+              />
+            </div>
+          </div>
+
+          {/* Eating Preference, Family Type, Family Values */}
+          <div className="row mb-3">
+            <div className="col-md-4">
+              <label className="form-label">Preferred Eating Habits</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.eatingPreference}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, eatingPreference: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Eggetarian">Eggetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="Any">Any</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd for multiple</small>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Preferred Family Types</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.familyType}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, familyType: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="Nuclear Family">Nuclear Family</option>
+                <option value="Joint Family">Joint Family</option>
+                <option value="Extended Family">Extended Family</option>
+                <option value="Any">Any</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd for multiple</small>
+            </div>
+            <div className="col-md-4">
+              <label className="form-label">Preferred Family Values</label>
+              <select
+                multiple
+                className="form-control"
+                value={formData.partnerCriteria.familyValues}
+                onChange={(e) => {
+                  const selected = Array.from(e.target.selectedOptions, option => option.value);
+                  setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: { ...prev.partnerCriteria, familyValues: selected }
+                  }));
+                }}
+                style={{ minHeight: '80px' }}
+              >
+                <option value="Traditional">Traditional</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Liberal">Liberal</option>
+                <option value="Conservative">Conservative</option>
+                <option value="Any">Any</option>
+              </select>
+              <small className="text-muted">Hold Ctrl/Cmd for multiple</small>
+            </div>
           </div>
 
           {/* Existing Images */}
