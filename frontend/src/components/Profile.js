@@ -16,6 +16,13 @@ const Profile = () => {
   const [statusMessage, setStatusMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   
+  // KPI Stats
+  const [kpiStats, setKpiStats] = useState({
+    profileViews: 0,
+    shortlistedBy: 0,
+    favoritedBy: 0
+  });
+  
   console.log('📍 Profile component loaded for username:', username);
   
   // Check for status message from ProtectedRoute
@@ -68,6 +75,11 @@ const Profile = () => {
           const online = await onlineStatusService.isUserOnline(username);
           setIsOnline(online);
         }
+        
+        // Fetch KPI stats for own profile
+        if (currentUsername === username) {
+          await fetchKPIStats();
+        }
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Unable to load profile");
@@ -115,6 +127,24 @@ const Profile = () => {
       });
     } catch (err) {
       console.error("Error checking PII access:", err);
+    }
+  };
+
+  const fetchKPIStats = async () => {
+    try {
+      const [viewsRes, shortlistRes, favoritesRes] = await Promise.all([
+        api.get(`/profile-views/${username}/count`),
+        api.get(`/their-shortlists/${username}`),
+        api.get(`/their-favorites/${username}`)
+      ]);
+      
+      setKpiStats({
+        profileViews: viewsRes.data.count || 0,
+        shortlistedBy: shortlistRes.data.length || 0,
+        favoritedBy: favoritesRes.data.length || 0
+      });
+    } catch (err) {
+      console.error("Error fetching KPI stats:", err);
     }
   };
 
@@ -247,50 +277,165 @@ const Profile = () => {
       )}
 
       <div className="profile-header">
-        <div className="profile-title-section">
-          <h2>
-            {user.firstName} {user.lastName}
-            {!isOwnProfile && (
-              <span className={`status-bulb-profile ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online Now' : 'Offline'}>
-                {isOnline ? '🟢' : '⚪'}
-              </span>
-            )}
-          </h2>
-          {user.profileId && (
-            <p style={{ 
-              fontSize: '14px', 
-              color: '#6c757d', 
-              margin: '5px 0 0 0',
-              fontFamily: 'monospace',
-              letterSpacing: '1px'
-            }}>
-              <strong>Profile ID:</strong> <span style={{ 
-                backgroundColor: '#f0f0f0', 
-                padding: '2px 8px', 
-                borderRadius: '4px',
-                color: '#495057'
-              }}>{user.profileId}</span>
-            </p>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap' }}>
+          {/* Profile Avatar with KPI Bubbles */}
+          {isOwnProfile && (
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              {/* Main Avatar */}
+              <div style={{
+                width: '120px',
+                height: '120px',
+                borderRadius: '50%',
+                overflow: 'hidden',
+                border: '4px solid var(--primary-color, #667eea)',
+                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+                backgroundColor: '#f0f0f0',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '48px',
+                fontWeight: 'bold',
+                color: '#667eea'
+              }}>
+                {user.images?.[0] ? (
+                  <img src={user.images[0]} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
+                )}
+              </div>
+              
+              {/* KPI Bubbles positioned around avatar */}
+              {/* Top-left: Profile Views */}
+              <div style={{
+                position: 'absolute',
+                top: '-10px',
+                left: '-20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                backgroundColor: '#fff3cd',
+                borderRadius: '20px',
+                border: '2px solid #ffc107',
+                boxShadow: '0 3px 10px rgba(255, 193, 7, 0.4)',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#856404',
+                whiteSpace: 'nowrap',
+                zIndex: 10
+              }}>
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ffc107',
+                  boxShadow: '0 0 8px rgba(255, 193, 7, 0.8)'
+                }} />
+                <span>👁️ {kpiStats.profileViews}</span>
+              </div>
+
+              {/* Top-right: Shortlisted */}
+              <div style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-20px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                backgroundColor: '#d1ecf1',
+                borderRadius: '20px',
+                border: '2px solid #17a2b8',
+                boxShadow: '0 3px 10px rgba(23, 162, 184, 0.4)',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#0c5460',
+                whiteSpace: 'nowrap',
+                zIndex: 10
+              }}>
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#17a2b8',
+                  boxShadow: '0 0 8px rgba(23, 162, 184, 0.8)'
+                }} />
+                <span>📝 {kpiStats.shortlistedBy}</span>
+              </div>
+
+              {/* Bottom: Favorites */}
+              <div style={{
+                position: 'absolute',
+                bottom: '-10px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 10px',
+                backgroundColor: '#f8d7da',
+                borderRadius: '20px',
+                border: '2px solid #dc3545',
+                boxShadow: '0 3px 10px rgba(220, 53, 69, 0.4)',
+                fontSize: '11px',
+                fontWeight: '600',
+                color: '#721c24',
+                whiteSpace: 'nowrap',
+                zIndex: 10
+              }}>
+                <div style={{
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: '#dc3545',
+                  boxShadow: '0 0 8px rgba(220, 53, 69, 0.8)'
+                }} />
+                <span>❤️ {kpiStats.favoritedBy}</span>
+              </div>
+            </div>
           )}
-          {/* {!isOwnProfile && (
-            <p className="online-status-text">
-              {isOnline ? '🟢 Online now' : '⚪ Offline'}
-              <span style={{fontSize: '10px', marginLeft: '10px', color: '#999'}}>
-                (Debug: {username})
-              </span>
-            </p>
-          )} */}
+          
+          {/* Profile Info */}
+          <div className="profile-title-section" style={{ flex: 1, minWidth: '250px' }}>
+            <h2>
+              {user.firstName} {user.lastName}
+              {!isOwnProfile && (
+                <span className={`status-bulb-profile ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online Now' : 'Offline'}>
+                  {isOnline ? '🟢' : '⚪'}
+                </span>
+              )}
+            </h2>
+            {user.profileId && (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6c757d', 
+                margin: '5px 0 0 0',
+                fontFamily: 'monospace',
+                letterSpacing: '1px'
+              }}>
+                <strong>Profile ID:</strong> <span style={{ 
+                  backgroundColor: '#f0f0f0', 
+                  padding: '2px 8px', 
+                  borderRadius: '4px',
+                  color: '#495057'
+                }}>{user.profileId}</span>
+              </p>
+            )}
+          </div>
+          
+          {/* Edit Profile Button */}
+          {isOwnProfile && (
+            <button 
+              className="btn-edit-profile"
+              onClick={handleEditProfile}
+              title="Edit Profile"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              <span>✏️</span>
+              <span>Edit Profile</span>
+            </button>
+          )}
         </div>
-        {isOwnProfile && (
-          <button 
-            className="btn-edit-profile"
-            onClick={handleEditProfile}
-            title="Edit Profile"
-          >
-            <span>✏️</span>
-            <span>Edit Profile</span>
-          </button>
-        )}
       </div>
 
       {/* PII Request Button (only for others' profiles) */}

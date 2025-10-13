@@ -1,7 +1,14 @@
 /* Edit Profile Container */
-.edit-profile-container {
+/* .edit-profile-container {
   max-width: 900px;
   padding: 20px;
+} */
+
+.edit-profile-container {
+  padding: 20px;
+  max-width: 100%;
+  background: var(--background-color);
+  /* background: transparent; */
 }
 
 .edit-profile-container .card {

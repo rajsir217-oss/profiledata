@@ -130,13 +130,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '🔒', 
-        label: 'Privacy & Data', 
-        subLabel: 'Manage PII access',
-        action: () => navigate('/pii-management'),
-        disabled: !isActive
-      },
-      { 
         icon: '🔍', 
         label: 'Search Profiles', 
         subLabel: 'Find matches',
@@ -160,6 +153,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'My Lists', 
         subLabel: 'Favorites, Shortlist, Exclusions',
         action: () => navigate('/my-lists'),
+        disabled: !isActive
+      },
+      { 
+        icon: '🔒', 
+        label: 'Privacy & Data', 
+        subLabel: 'Manage PII access',
+        action: () => navigate('/pii-management'),
         disabled: !isActive
       },
     ];
