@@ -64,25 +64,45 @@ def remove_consent_metadata(user_dict):
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
+    # Basic Information
     username: str = Form(...),
     password: str = Form(...),
     firstName: Optional[str] = Form(None),
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
-    dob: Optional[str] = Form(None),
-    sex: Optional[str] = Form(None),
-    height: Optional[str] = Form(None),
-    castePreference: Optional[str] = Form(None),
-    eatingPreference: Optional[str] = Form(None),
-    location: Optional[str] = Form(None),
-    education: Optional[str] = Form(None),
-    workingStatus: Optional[str] = Form(None),
-    workplace: Optional[str] = Form(None),
-    citizenshipStatus: Optional[str] = Form("Citizen"),
+    dateOfBirth: Optional[str] = Form(None),  # Renamed from dob
+    gender: Optional[str] = Form(None),  # Renamed from sex
+    height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
+    # Preferences & Cultural Information
+    religion: Optional[str] = Form(None),  # For both India and USA
+    languagesSpoken: Optional[str] = Form(None),  # JSON string array of languages
+    castePreference: Optional[str] = Form("None"),  # Default "None"
+    eatingPreference: Optional[str] = Form("None"),  # Default "None"
+    # Residential Information (Mandatory)
+    countryOfOrigin: str = Form("US"),  # Mandatory, default US
+    countryOfResidence: str = Form("US"),  # Mandatory, default US
+    state: str = Form(...),  # Mandatory
+    location: Optional[str] = Form(None),  # City/Town
+    # USA-specific field
+    citizenshipStatus: Optional[str] = Form("Citizen"),  # Relevant for USA only
+    # India-specific fields (optional)
+    caste: Optional[str] = Form(None),
+    motherTongue: Optional[str] = Form(None),
+    familyType: Optional[str] = Form(None),
+    familyValues: Optional[str] = Form(None),
+    # Educational Information
+    educationHistory: Optional[str] = Form(None),  # JSON string array of education entries
+    # Professional & Work Related Information
+    workExperience: Optional[str] = Form(None),  # JSON string array of work experience entries
+    workLocation: Optional[str] = Form(None),  # Renamed from workplace
+    linkedinUrl: Optional[str] = Form(None),
+    # About Me and Partner Information
     familyBackground: Optional[str] = Form(None),
-    aboutYou: Optional[str] = Form(None),
+    aboutMe: Optional[str] = Form(None),  # Renamed from aboutYou
     partnerPreference: Optional[str] = Form(None),
+    # Partner Matching Criteria (JSON string)
+    partnerCriteria: Optional[str] = Form(None),  # JSON string of structured criteria,
     # New dating-app specific fields
     relationshipStatus: Optional[str] = Form(None),
     lookingFor: Optional[str] = Form(None),
@@ -90,7 +110,7 @@ async def register_user(
     languages: Optional[str] = Form(None),
     drinking: Optional[str] = Form(None),
     smoking: Optional[str] = Form(None),
-    religion: Optional[str] = Form(None),
+    # religion moved to main preferences section above
     bodyType: Optional[str] = Form(None),
     occupation: Optional[str] = Form(None),
     incomeRange: Optional[str] = Form(None),
@@ -216,26 +236,50 @@ async def register_user(
     from datetime import datetime
     now = datetime.utcnow().isoformat()
     
+    # Auto-calculate workingStatus from workExperience (if it gets passed later)
+    # For now, set to "No" by default during registration
+    workingStatus = "No"  # Will be updated when workExperience is added
+    
     user_data = {
+        # Basic Information
         "username": username,
         "password": hashed_password,
         "firstName": firstName,
         "lastName": lastName,
         "contactNumber": contactNumber,
         "contactEmail": contactEmail,
-        "dob": dob,
-        "sex": sex,
+        "dateOfBirth": dateOfBirth,  # Renamed from dob
+        "gender": gender,  # Renamed from sex
         "height": height,
+        # Preferences & Cultural Information
+        "religion": religion,
+        "languagesSpoken": json.loads(languagesSpoken) if languagesSpoken else [],
         "castePreference": castePreference,
         "eatingPreference": eatingPreference,
+        # Residential Information
+        "countryOfOrigin": countryOfOrigin,
+        "countryOfResidence": countryOfResidence,
+        "state": state,
         "location": location,
-        "education": education,
-        "workingStatus": workingStatus,
-        "workplace": workplace,
-        "citizenshipStatus": citizenshipStatus,
+        # USA-specific field
+        "citizenshipStatus": citizenshipStatus if countryOfResidence == "US" else None,
+        # India-specific fields
+        "caste": caste,
+        "motherTongue": motherTongue,
+        "familyType": familyType,
+        "familyValues": familyValues,
+        # Educational Information
+        "educationHistory": json.loads(educationHistory) if educationHistory else [],
+        # Professional & Work Related Information
+        "workExperience": json.loads(workExperience) if workExperience else [],
+        "workingStatus": workingStatus,  # Auto-set to "No" initially
+        "workLocation": workLocation,
+        "linkedinUrl": linkedinUrl,
+        # About Me and Partner Information
         "familyBackground": familyBackground,
-        "aboutYou": aboutYou,
+        "aboutMe": aboutMe,  # Renamed from aboutYou
         "partnerPreference": partnerPreference,
+        "partnerCriteria": json.loads(partnerCriteria) if partnerCriteria else None,
         # New dating-app fields
         "relationshipStatus": relationshipStatus,
         "lookingFor": lookingFor,
@@ -243,7 +287,7 @@ async def register_user(
         "languages": languages,
         "drinking": drinking,
         "smoking": smoking,
-        "religion": religion,
+        # religion now in main preferences section above
         "bodyType": bodyType,
         "occupation": occupation,
         "incomeRange": incomeRange,

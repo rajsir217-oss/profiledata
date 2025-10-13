@@ -21,27 +21,70 @@ class PyObjectId(ObjectId):
         return {"type": "string"}
 
 class UserBase(BaseModel):
+    # Basic Information
     username: str = Field(..., min_length=3, max_length=50)
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     contactNumber: Optional[str] = None
     contactEmail: Optional[EmailStr] = None
-    dob: Optional[str] = None
-    sex: Optional[str] = None
-    height: Optional[str] = None
-    castePreference: Optional[str] = None
-    eatingPreference: Optional[str] = None
-    location: Optional[str] = None
+    dateOfBirth: Optional[str] = None  # Renamed from dob
+    gender: Optional[str] = None  # Renamed from sex
+    height: Optional[str] = None  # Format: "5'8\"" or "5 ft 8 in"
+    
+    # Preferences & Cultural Information
+    religion: Optional[str] = None  # For both India and USA
+    languagesSpoken: List[str] = []  # Multiple languages user speaks
+    castePreference: Optional[str] = "None"  # Default "None", relevant for India
+    eatingPreference: Optional[str] = "None"  # Default "None"
+    
+    # Residential Information (Mandatory)
+    countryOfOrigin: str = "US"  # "IN" or "US" - Mandatory
+    countryOfResidence: str = "US"  # "IN" or "US" - Mandatory
+    state: str = Field(..., description="State/Province - Mandatory")
+    location: Optional[str] = None  # City/Town
+    
+    # USA-specific field
+    citizenshipStatus: Optional[str] = "Citizen"  # Relevant for USA only
+    
+    # India-specific fields (optional)
+    caste: Optional[str] = None
+    motherTongue: Optional[str] = None
+    familyType: Optional[str] = None
+    familyValues: Optional[str] = None
+    
+    # Educational Information
     education: Optional[str] = None  # Legacy field for backward compatibility
     educationHistory: List[dict] = []  # New structured education array
+    
+    # Professional & Work Related Information
     workExperience: List[dict] = []  # New work experience array
-    workingStatus: Optional[str] = None
-    workplace: Optional[str] = None
+    workLocation: Optional[str] = None  # Work city/location
     linkedinUrl: Optional[str] = None  # Private PII field
-    citizenshipStatus: Optional[str] = "Citizen"
+    # Note: workingStatus is automatically derived from workExperience
+    
+    # About Me and Partner Information
     familyBackground: Optional[str] = None
-    aboutYou: Optional[str] = None
-    partnerPreference: Optional[str] = None
+    aboutMe: Optional[str] = None  # Renamed from aboutYou
+    partnerPreference: Optional[str] = None  # Free-text partner description
+    
+    # Partner Matching Criteria (Structured)
+    partnerCriteria: Optional[dict] = None  # Structured matching preferences
+    # Expected structure:
+    # {
+    #   "ageRange": {"min": 25, "max": 35},
+    #   "heightRange": {"min": "5'4\"", "max": "6'0\""},
+    #   "educationLevel": ["Bachelor's", "Master's", "PhD"],
+    #   "profession": ["Engineer", "Doctor", "Business"],
+    #   "languages": ["English", "Hindi"],
+    #   "religion": ["Hindu", "Christian"],
+    #   "caste": "Any",
+    #   "location": ["Bangalore", "Mumbai", "California"],
+    #   "eatingPreference": ["Vegetarian", "Eggetarian"],
+    #   "familyType": ["Nuclear Family", "Joint Family"],
+    #   "familyValues": ["Traditional", "Moderate", "Liberal"]
+    # }
+    
+    # Images and Theme
     images: List[str] = []
     themePreference: Optional[str] = "light-blue"  # User's preferred theme
     
@@ -63,10 +106,46 @@ class UserBase(BaseModel):
             raise ValueError('Username must be alphanumeric with optional underscores')
         return v
 
-    @validator('sex')
-    def validate_sex(cls, v):
+    @validator('gender')
+    def validate_gender(cls, v):
         if v and v not in ['Male', 'Female', '']:
-            raise ValueError('Sex must be Male, Female, or empty')
+            raise ValueError('Gender must be Male, Female, or empty')
+        return v
+    
+    @validator('countryOfOrigin', 'countryOfResidence')
+    def validate_country(cls, v):
+        if v and v not in ['IN', 'US']:
+            raise ValueError('Country must be IN (India) or US (United States)')
+        return v
+    
+    @validator('height')
+    def validate_height(cls, v):
+        if v:
+            # Accept formats: "5'8\"", "5 ft 8 in", "170cm", etc.
+            import re
+            patterns = [
+                r"^\d+['\"]\s*\d*['\"]?$",  # 5'8" or 5'8
+                r"^\d+\s*ft\s*\d*\s*in$",  # 5 ft 8 in
+                r"^\d+(\.\d+)?\s*(cm|m|inches?)$"  # 170cm, 1.7m, 68inches
+            ]
+            if not any(re.match(p, v.strip(), re.IGNORECASE) for p in patterns):
+                raise ValueError('Height must be in format: 5\'8", 5 ft 8 in, 170cm, or similar')
+        return v
+    
+    @validator('religion')
+    def validate_religion(cls, v):
+        valid_religions = [
+            'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain', 
+            'Jewish', 'Parsi', 'Other', 'Prefer not to say', 'No Religion'
+        ]
+        if v and v not in valid_religions:
+            raise ValueError(f'Religion must be one of: {", ".join(valid_religions)}')
+        return v
+    
+    @validator('languagesSpoken')
+    def validate_languages(cls, v):
+        if v and len(v) > 10:
+            raise ValueError('Maximum 10 languages allowed')
         return v
 
     @validator('eatingPreference')
