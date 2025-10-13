@@ -85,6 +85,21 @@ const ProfileCard = ({
       <div className="profile-card-body">
         <h4 className="profile-name">{displayName}</h4>
         
+        {user.profileId && (
+          <p className="profile-id" style={{ 
+            fontSize: '11px', 
+            color: '#6c757d', 
+            margin: '2px 0 5px 0',
+            fontFamily: 'monospace'
+          }}>
+            ID: <span style={{ 
+              backgroundColor: '#f8f9fa', 
+              padding: '1px 5px', 
+              borderRadius: '3px'
+            }}>{user.profileId}</span>
+          </p>
+        )}
+        
         {user.age && (
           <p className="profile-age">{user.age} years</p>
         )}

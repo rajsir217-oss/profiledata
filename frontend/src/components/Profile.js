@@ -256,6 +256,22 @@ const Profile = () => {
               </span>
             )}
           </h2>
+          {user.profileId && (
+            <p style={{ 
+              fontSize: '14px', 
+              color: '#6c757d', 
+              margin: '5px 0 0 0',
+              fontFamily: 'monospace',
+              letterSpacing: '1px'
+            }}>
+              <strong>Profile ID:</strong> <span style={{ 
+                backgroundColor: '#f0f0f0', 
+                padding: '2px 8px', 
+                borderRadius: '4px',
+                color: '#495057'
+              }}>{user.profileId}</span>
+            </p>
+          )}
           {/* {!isOwnProfile && (
             <p className="online-status-text">
               {isOnline ? '🟢 Online now' : '⚪ Offline'}

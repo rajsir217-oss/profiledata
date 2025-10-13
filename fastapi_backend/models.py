@@ -23,6 +23,7 @@ class PyObjectId(ObjectId):
 class UserBase(BaseModel):
     # Basic Information
     username: str = Field(..., min_length=3, max_length=50)
+    profileId: Optional[str] = Field(None, min_length=8, max_length=8)  # 8-char unique alphanumeric ID
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     contactNumber: Optional[str] = None

@@ -219,6 +219,53 @@ const Register = () => {
     }
   };
 
+  // Generate username from first and last name
+  const generateUsername = (firstName, lastName) => {
+    if (!firstName || !lastName) return '';
+    
+    // Get 3 random characters from firstName
+    const cleanFirst = firstName.toLowerCase().replace(/[^a-z]/g, '');
+    const cleanLast = lastName.toLowerCase().replace(/[^a-z]/g, '');
+    
+    if (cleanFirst.length < 3 || cleanLast.length < 3) return '';
+    
+    // Get 3 random characters from first name
+    let firstPart = '';
+    const firstChars = cleanFirst.split('');
+    for (let i = 0; i < 3; i++) {
+      const randomIndex = Math.floor(Math.random() * firstChars.length);
+      firstPart += firstChars[randomIndex];
+      firstChars.splice(randomIndex, 1); // Remove to avoid duplicates
+    }
+    
+    // Get 3 random characters from last name
+    let lastPart = '';
+    const lastChars = cleanLast.split('');
+    for (let i = 0; i < 3; i++) {
+      const randomIndex = Math.floor(Math.random() * lastChars.length);
+      lastPart += lastChars[randomIndex];
+      lastChars.splice(randomIndex, 1);
+    }
+    
+    // Generate 3 random digits
+    const randomDigits = Math.floor(100 + Math.random() * 900); // 100-999
+    
+    return `${firstPart}${lastPart}${randomDigits}`;
+  };
+
+  // Auto-generate username when first/last name changes
+  useEffect(() => {
+    if (formData.firstName && formData.lastName && !formData.username) {
+      const generatedUsername = generateUsername(formData.firstName, formData.lastName);
+      if (generatedUsername) {
+        setFormData(prev => ({
+          ...prev,
+          username: generatedUsername
+        }));
+      }
+    }
+  }, [formData.firstName, formData.lastName]);
+
   // Debounced username check effect
   useEffect(() => {
     if (formData.username && touchedFields.username) {

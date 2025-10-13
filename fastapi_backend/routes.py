@@ -29,6 +29,20 @@ def get_password_hash(password: str) -> str:
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PasswordManager.verify_password(plain_password, hashed_password)
 
+# Generate unique 8-character alphanumeric profileId
+async def generate_unique_profile_id(db) -> str:
+    import random
+    import string
+    
+    while True:
+        # Generate 8-char alphanumeric ID (mix of uppercase, lowercase, digits)
+        profile_id = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
+        
+        # Check if profileId already exists
+        existing = await db.users.find_one({"profileId": profile_id})
+        if not existing:
+            return profile_id
+
 def create_access_token(data: dict, expires_delta=None) -> str:
     return JWTManager.create_access_token(data, expires_delta)
 import logging
@@ -232,6 +246,10 @@ async def register_user(
     logger.debug(f"Hashing password for user '{username}'")
     hashed_password = get_password_hash(password)
     
+    # Generate unique profileId
+    profile_id = await generate_unique_profile_id(db)
+    logger.debug(f"Generated profileId: {profile_id} for user '{username}'")
+    
     # Create user document
     from datetime import datetime
     now = datetime.utcnow().isoformat()
@@ -243,6 +261,7 @@ async def register_user(
     user_data = {
         # Basic Information
         "username": username,
+        "profileId": profile_id,  # 8-char unique alphanumeric ID
         "password": hashed_password,
         "firstName": firstName,
         "lastName": lastName,
