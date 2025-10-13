@@ -1,8 +1,15 @@
 /* Preferences Container */
-.preferences-container {
+/* .preferences-container {
   max-width: 1200px;
   padding: 20px;
   min-height: 100vh;
+} */
+
+.preferences-container {
+  padding: 20px;
+  max-width: 100%;
+  background: var(--background-color);
+  
 }
 
 /* Preferences Header */

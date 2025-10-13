@@ -16,6 +16,9 @@
   --background-color: #fefefe;
   --surface-color: #faf8f5;
   --card-background: #ffffff;
+  --card-bg: #ffffff; /* Alias for card-background */
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
   
   /* Text Colors - Softer contrast */
   --text-color: #1f2937;
@@ -85,6 +88,9 @@ body.theme-light-blue {
   --background-color: #fffbf7;
   --surface-color: #fef6ee;
   --card-background: #faf9ff; /* Ultra light purple */
+  --card-bg: #faf9ff;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
   
   /* Text Colors - Soft contrast */
   --text-color: #374151;
@@ -157,6 +163,9 @@ body.theme-dark {
   --background-color: #1e1b2e;
   --surface-color: #2a2740;
   --card-background: #3a3450; /* Lighter purple tint for better visibility */
+  --card-bg: #3a3450;
+  --input-bg: #2a2740;
+  --error-bg: #3f1d1d;
   
   /* Text Colors - Better contrast */
   --text-color: #f3f4f6;

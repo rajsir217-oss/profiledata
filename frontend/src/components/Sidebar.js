@@ -123,6 +123,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         profileImage: true // Flag to render profile image instead of icon
       },
       { 
+        icon: '💬', 
+        label: 'My Messages', 
+        subLabel: 'Chat with matches',
+        action: () => navigate('/messages'),
+        disabled: !isActive
+      },
+      { 
         icon: '🔒', 
         label: 'Privacy & Data', 
         subLabel: 'Manage PII access',
@@ -153,13 +160,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'My Lists', 
         subLabel: 'Favorites, Shortlist, Exclusions',
         action: () => navigate('/my-lists'),
-        disabled: !isActive
-      },
-      { 
-        icon: '💬', 
-        label: 'My Messages', 
-        subLabel: 'Chat with matches',
-        action: () => navigate('/messages'),
         disabled: !isActive
       },
     ];

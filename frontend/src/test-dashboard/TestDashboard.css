@@ -1,9 +1,17 @@
 /* Test Dashboard Styles */
-.test-dashboard {
+/* .test-dashboard {
   padding: 20px;
   max-width: 1400px;
   margin: 0 auto;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+} */
+
+
+.test-dashboard {
+  padding: 20px;
+  max-width: 100%;
+  background: var(--background-color);
+  
 }
 
 .dashboard-header {
