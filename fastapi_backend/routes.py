@@ -1168,7 +1168,7 @@ async def search_users(
 
     # Gender filter
     if gender:
-        query["sex"] = gender
+        query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
 
     # Age filter
     if ageMin > 0 or ageMax > 0:

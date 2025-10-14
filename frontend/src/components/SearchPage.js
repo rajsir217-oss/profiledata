@@ -24,9 +24,10 @@ const SearchPage = () => {
 
   // User interaction state
   const [users, setUsers] = useState([]);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [searchCriteria, setSearchCriteria] = useState({
     keyword: '',
-    gender: '',
+    gender: '', // Will be set to opposite gender after loading user profile
     ageMin: '',
     ageMax: '',
     heightMin: '',
@@ -84,6 +85,36 @@ const SearchPage = () => {
       return;
     }
     
+    // Load current user's profile to get gender and set default search
+    const loadCurrentUserProfile = async () => {
+      try {
+        const response = await api.get(`/profile/${username}?requester=${username}`);
+        console.log('👤 Current user profile loaded:', response.data);
+        setCurrentUserProfile(response.data);
+        
+        // Set default gender to opposite gender
+        const userGender = response.data.gender?.toLowerCase();
+        let oppositeGender = '';
+        if (userGender === 'male') {
+          oppositeGender = 'female';
+        } else if (userGender === 'female') {
+          oppositeGender = 'male';
+        }
+        
+        console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
+        
+        // Set default search criteria to opposite gender (or empty if no gender)
+        setSearchCriteria(prev => ({
+          ...prev,
+          gender: oppositeGender
+        }));
+      } catch (err) {
+        console.error('❌ Error loading current user profile:', err);
+        // Set profile anyway to trigger search
+        setCurrentUserProfile({});
+      }
+    };
+    
     // Load user's favorites, shortlist, and exclusions
     const loadUserData = async () => {
       try {
@@ -114,6 +145,7 @@ const SearchPage = () => {
       }
     };
     
+    loadCurrentUserProfile();
     loadUserData();
     loadSavedSearches();
     loadPiiRequests();
@@ -146,12 +178,8 @@ const SearchPage = () => {
     socketService.on('user_online', handleUserOnline);
     socketService.on('user_offline', handleUserOffline);
     
-    // Load initial search results (all profiles) after component mounts
-    // Only if user is logged in
-    const currentUser = localStorage.getItem('username');
-    if (currentUser) {
-      handleSearch(1);
-    }
+    // Load initial search results after profile is loaded
+    // This will be triggered by useEffect dependency on currentUserProfile
     
     return () => {
       socketService.off('user_online', handleUserOnline);
@@ -164,6 +192,31 @@ const SearchPage = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Trigger initial search after user profile is loaded
+  useEffect(() => {
+    if (currentUserProfile) {
+      // Perform initial search with default criteria (opposite gender if available)
+      console.log('🔍 Auto-triggering search with gender:', searchCriteria.gender || 'all');
+      console.log('📋 Current search criteria:', searchCriteria);
+      setTimeout(() => {
+        console.log('⏰ Timeout fired - calling handleSearch');
+        handleSearch(1);
+      }, 800); // Slightly longer delay to ensure all state is updated
+    } else {
+      console.log('⚠️ currentUserProfile is null/undefined, waiting...');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserProfile]);
+  
+  // Additional trigger when searchCriteria.gender changes
+  useEffect(() => {
+    if (currentUserProfile && searchCriteria.gender && users.length === 0) {
+      console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
+      handleSearch(1);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchCriteria.gender]);
 
   const loadPiiRequests = async () => {
     const currentUser = localStorage.getItem('username');
@@ -493,15 +546,41 @@ const SearchPage = () => {
       });
 
       const response = await api.get('/search', { params });
+      const currentUser = localStorage.getItem('username');
+      
+      console.log('📊 Search response - Total users from backend:', response.data.users?.length || 0);
+      
+      // Filter out:
+      // 1. Own profile
+      // 2. Admin profiles
+      // 3. Moderator profiles
+      const filteredUsers = (response.data.users || []).filter(user => {
+        // Exclude own profile
+        if (user.username === currentUser) {
+          console.log('❌ Filtered out own profile:', currentUser);
+          return false;
+        }
+        
+        // Exclude admin and moderator roles
+        const userRole = user.role?.toLowerCase();
+        if (userRole === 'admin' || userRole === 'moderator') {
+          console.log('❌ Filtered out admin/moderator:', user.username, userRole);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      console.log('✅ After filtering - Users to display:', filteredUsers.length);
 
       if (page === 1) {
-        setUsers(response.data.users || []);
+        setUsers(filteredUsers);
         setCurrentPage(1); // Reset to first page on new search
       } else {
-        setUsers(prev => [...prev, ...(response.data.users || [])]);
+        setUsers(prev => [...prev, ...filteredUsers]);
       }
 
-      setTotalResults(response.data.total || 0);
+      setTotalResults(filteredUsers.length);
       setCurrentPage(page);
 
     } catch (err) {
@@ -1071,9 +1150,25 @@ const SearchPage = () => {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-            {/* Row 1: Keyword | Age Range | Height Range | Body Type */}
+            {/* Row 1: Gender | Keyword | Age Range | Height Range | Body Type */}
             <div className="filter-section">
               <div className="row filter-row-1">
+                <div className="col-gender">
+                  <div className="form-group">
+                    <label>Gender</label>
+                    <select
+                      className="form-control"
+                      name="gender"
+                      value={searchCriteria.gender}
+                      onChange={handleInputChange}
+                    >
+                      <option value="">All</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                </div>
                 <div className="col-keyword">
                   <div className="form-group">
                     <label>Keyword Search</label>

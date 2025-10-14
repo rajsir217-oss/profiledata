@@ -231,9 +231,9 @@
   align-items: end;
 }
 
-/* Row 1: Keyword | Age Min | Age Max | Height Min | Height Max | Body Type */
+/* Row 1: Gender | Keyword | Age Min | Age Max | Height Min | Height Max | Body Type */
 .filter-row-1 {
-  grid-template-columns: 2fr 0.8fr 0.8fr 1fr 1fr 1.2fr;
+  grid-template-columns: 1fr 2fr 0.8fr 0.8fr 1fr 1fr 1.2fr;
 }
 
 /* Row 2: Education | Occupation | Eating | Drinking | Smoking */
@@ -247,6 +247,7 @@
 }
 
 /* Column classes */
+.col-gender,
 .col-keyword,
 .col-age-min,
 .col-age-max,
@@ -2014,14 +2015,9 @@
 
 /* Tablet adjustments */
 @media (min-width: 769px) and (max-width: 1024px) {
-  /* Row 1: Keyword full width, then 2 columns for age/height pairs */
+  /* Row 1: Gender + Keyword full width, then 2 columns for age/height pairs */
   .filter-row-1 {
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "keyword"
-      "age-range"
-      "height-range"
-      "body-type";
+    grid-template-columns: 1fr 1fr !important;
   }
   
   /* Row 2: Education/Occupation full width, then 3 columns for lifestyle */
