@@ -1,7 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import axios from 'axios';
 import './AdminPage.css';
+
+// Create admin API client without baseURL prefix
+const adminApi = axios.create({
+  baseURL: 'http://localhost:8000'
+});
+
+// Add auth token interceptor
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -11,10 +29,15 @@ const AdminPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending for faster loading
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(20);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedUserForStatus, setSelectedUserForStatus] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [statusChangeReason, setStatusChangeReason] = useState('');
 
   // Multi-layer security check
   useEffect(() => {
@@ -57,8 +80,8 @@ const AdminPage = () => {
       setLoading(true);
       setError('');
 
-      // Fetch all users - you'll need to create this endpoint
-      const response = await api.get('/admin/users');
+      // Fetch all users
+      const response = await adminApi.get('/api/admin/users?limit=1000');
       setUsers(response.data.users || []);
       
       console.log(`✅ Loaded ${response.data.users?.length || 0} users`);
@@ -76,9 +99,41 @@ const AdminPage = () => {
     }
   };
 
-  const handleEdit = (username) => {
-    // Navigate to edit page for specific user
-    navigate(`/admin/edit/${username}`);
+  const handleEditStatus = (user) => {
+    setSelectedUserForStatus(user);
+    const currentStatus = user.status?.status || user.status || 'pending';
+    setSelectedStatus(currentStatus);
+    setStatusChangeReason('');
+    setShowStatusModal(true);
+  };
+  
+  const handleStatusChange = async () => {
+    if (!selectedUserForStatus || !selectedStatus) return;
+    
+    try {
+      setError('');
+      setSuccessMsg('');
+      
+      // Update user status via API
+      const response = await adminApi.patch(`/api/admin/users/${selectedUserForStatus.username}/status`, {
+        status: selectedStatus
+      });
+      
+      setSuccessMsg(`✅ Status updated to "${selectedStatus}" for ${selectedUserForStatus.username}`);
+      setShowStatusModal(false);
+      setSelectedUserForStatus(null);
+      setSelectedStatus('');
+      setStatusChangeReason('');
+      
+      // Reload users list
+      loadAllUsers();
+      
+      // Auto-hide success message
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Failed to update status. ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const handleDeleteClick = (user) => {
@@ -92,7 +147,7 @@ const AdminPage = () => {
       setError('');
       setSuccessMsg('');
 
-      const response = await api.delete(`/profile/${deleteConfirm.username}`);
+      const response = await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
       
       setSuccessMsg(`✅ User "${deleteConfirm.username}" deleted successfully`);
       setDeleteConfirm(null);
@@ -144,12 +199,20 @@ const AdminPage = () => {
   const getFilteredAndSortedUsers = () => {
     let filtered = users.map(calculateComputedFields).filter(user => {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      
+      // Apply search filter
+      const matchesSearch = (
         user.username?.toLowerCase().includes(searchLower) ||
         user.firstName?.toLowerCase().includes(searchLower) ||
         user.lastName?.toLowerCase().includes(searchLower) ||
         user.contactEmail?.toLowerCase().includes(searchLower)
       );
+      
+      // Apply status filter
+      const userStatus = user.status?.status || user.status || 'pending';
+      const matchesStatus = !statusFilter || userStatus === statusFilter;
+      
+      return matchesSearch && matchesStatus;
     });
 
     filtered.sort((a, b) => {
@@ -180,7 +243,7 @@ const AdminPage = () => {
   // Reset to page 1 when search/filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortField, sortOrder]);
+  }, [searchTerm, statusFilter, sortField, sortOrder]);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -257,15 +320,38 @@ const AdminPage = () => {
         {error && <div className="alert alert-danger">{error}</div>}
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
-        {/* Search Bar */}
-        <div className="search-bar mb-4">
+        {/* Search and Filter Bar */}
+        <div className="search-filter-bar mb-4 d-flex gap-3">
           <input
             type="text"
             className="form-control"
             placeholder="🔍 Search by username, name, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ flex: 2 }}
           />
+          
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ flex: 1, maxWidth: '250px' }}
+          >
+            <option value="">All Status</option>
+            <option value="pending">Pending Verification</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+          </select>
+          
+          <button
+            className="btn btn-primary"
+            onClick={loadAllUsers}
+            title="Refresh List"
+          >
+            🔄 Refresh
+          </button>
         </div>
       </div>
 
@@ -348,8 +434,8 @@ const AdminPage = () => {
                       </button>
                       <button
                         className="btn btn-sm btn-outline-warning"
-                        onClick={() => handleEdit(user.username)}
-                        title="Edit Profile"
+                        onClick={() => handleEditStatus(user)}
+                        title="Edit Status"
                       >
                         ✏️ Edit
                       </button>
@@ -407,6 +493,140 @@ const AdminPage = () => {
             >
               Next →
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Status Edit Modal */}
+      {showStatusModal && selectedUserForStatus && (
+        <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
+          <div className="status-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header with User Info */}
+            <div className="status-modal-header">
+              <div className="user-info">
+                <div className="user-avatar">
+                  {selectedUserForStatus.username.charAt(0).toUpperCase()}
+                </div>
+                <div className="user-details">
+                  <h4>{selectedUserForStatus.username}</h4>
+                  <p>{selectedUserForStatus.contactEmail || 'No email'}</p>
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setShowStatusModal(false)}>
+                ✕
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="status-modal-body">
+              <h3>🔐 Change User Status</h3>
+              <p className="current-status">
+                Select a new status for this user. Current status: <strong>{selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending'}</strong>
+              </p>
+              
+              {/* Status Options */}
+              <div className="status-radio-group">
+                <label className={`status-radio-option ${selectedStatus === 'pending' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="pending"
+                    checked={selectedStatus === 'pending'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⏳</div>
+                  <div className="status-info">
+                    <strong>Pending Verification</strong>
+                    <span>Awaiting approval or verification</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'active' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="active"
+                    checked={selectedStatus === 'active'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">✅</div>
+                  <div className="status-info">
+                    <strong>Active</strong>
+                    <span>Full access to all features</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'inactive' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="inactive"
+                    checked={selectedStatus === 'inactive'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⚪</div>
+                  <div className="status-info">
+                    <strong>Inactive</strong>
+                    <span>Account dormant or on hold</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'suspended' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="suspended"
+                    checked={selectedStatus === 'suspended'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⏸️</div>
+                  <div className="status-info">
+                    <strong>Suspended</strong>
+                    <span>Temporarily restricted access</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'banned' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="banned"
+                    checked={selectedStatus === 'banned'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">🚫</div>
+                  <div className="status-info">
+                    <strong>Banned</strong>
+                    <span>Permanently blocked from access</span>
+                  </div>
+                </label>
+              </div>
+              
+              {/* Reason (Optional) */}
+              <div className="status-reason">
+                <label>Reason (optional)</label>
+                <textarea
+                  placeholder="Enter reason for status change..."
+                  value={statusChangeReason}
+                  onChange={(e) => setStatusChangeReason(e.target.value)}
+                  rows="3"
+                />
+              </div>
+              
+              {/* Footer Buttons */}
+              <div className="status-modal-footer">
+                <button className="btn-cancel" onClick={() => setShowStatusModal(false)}>
+                  Cancel
+                </button>
+                <button 
+                  className="btn-confirm" 
+                  onClick={handleStatusChange}
+                  disabled={selectedStatus === (selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending')}
+                >
+                  🔐 Update Status
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

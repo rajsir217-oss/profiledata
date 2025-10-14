@@ -380,6 +380,9 @@ const EditProfile = () => {
       setTimeout(() => {
         localStorage.removeItem('username');
         localStorage.removeItem('token');
+        localStorage.removeItem('userRole');
+        localStorage.removeItem('userStatus');
+        localStorage.removeItem('appTheme');
         window.dispatchEvent(new Event('loginStatusChanged'));
         navigate('/login');
       }, 1500);

@@ -8,6 +8,7 @@ const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -30,6 +31,11 @@ const Login = () => {
       // Save user status for menu access control
       const userStatus = res.data.user.status?.status || res.data.user.status || 'active';
       localStorage.setItem('userStatus', userStatus);
+      
+      // Save user role for admin access control
+      const userRole = res.data.user.role_name || 'free_user';
+      localStorage.setItem('userRole', userRole);
+      console.log('👤 User role saved:', userRole);
       
       // Connect to WebSocket (automatically marks user as online)
       console.log('🔌 Connecting to WebSocket');
@@ -72,15 +78,25 @@ const Login = () => {
         </div>
         <div className="mb-3">
           <label className="form-label">Password</label>
-          <input
-            type="password"
-            name="password"
-            placeholder="Enter password"
-            className="form-control"
-            onChange={handleChange}
-            value={form.password}
-            required
-          />
+          <div className="input-group">
+            <input
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter password"
+              className="form-control"
+              onChange={handleChange}
+              value={form.password}
+              required
+            />
+            <button
+              className="btn btn-outline-secondary"
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              tabIndex="-1"
+            >
+              {showPassword ? '👁️' : '👁️‍🗨️'}
+            </button>
+          </div>
         </div>
         <button type="submit" className="btn btn-primary w-100" disabled={loading}>
           {loading ? "Logging in..." : "Login"}
@@ -88,6 +104,11 @@ const Login = () => {
       </form>
       <div className="text-center mt-3">
         <Link to="/register">Don't have an account? Register</Link>
+      </div>
+      <div className="text-center mt-2">
+        <small className="text-muted">
+          Forgot password? Change it from <Link to="/preferences">Settings</Link> after logging in.
+        </small>
       </div>
     </div>
   );

@@ -67,7 +67,7 @@ class TestSendMessage:
     def test_send_message_success(self, client, test_users, cleanup_messages):
         """Test successfully sending a message"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "user2",
                 "content": "Hello, how are you?"
@@ -86,7 +86,7 @@ class TestSendMessage:
     def test_send_message_to_nonexistent_user(self, client, test_users, cleanup_messages):
         """Test sending message to non-existent user"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "nonexistent",
                 "content": "Hello"
@@ -99,7 +99,7 @@ class TestSendMessage:
     def test_send_empty_message(self, client, test_users, cleanup_messages):
         """Test sending empty message"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "user2",
                 "content": ""
@@ -112,7 +112,7 @@ class TestSendMessage:
         """Test sending message exceeding max length"""
         long_message = "a" * 1001  # Max is 1000
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "user2",
                 "content": long_message
@@ -124,7 +124,7 @@ class TestSendMessage:
     def test_send_message_trims_whitespace(self, client, test_users, cleanup_messages):
         """Test that message content is trimmed"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "user2",
                 "content": "  Hello  "
@@ -153,7 +153,7 @@ class TestMessagePrivacy:
     def test_send_message_to_blocked_user_marked_invisible(self, client, test_users, blocked_users, cleanup_messages):
         """Test that messages to blocked users are marked as invisible"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "blocked_user",
                 "content": "This should be invisible"
@@ -167,7 +167,7 @@ class TestMessagePrivacy:
     def test_send_message_from_blocked_user_marked_invisible(self, client, test_users, blocked_users, cleanup_messages):
         """Test that messages from blocked users are marked as invisible"""
         response = client.post(
-            "/api/users/messages/send?username=blocked_user",
+            "/api/messages/send?username=blocked_user",
             json={
                 "toUsername": "user1",
                 "content": "This should also be invisible"
@@ -216,7 +216,7 @@ class TestGetConversation:
     
     def test_get_conversation_success(self, client, test_users, sample_messages, cleanup_messages):
         """Test successfully retrieving a conversation"""
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -228,7 +228,7 @@ class TestGetConversation:
     
     def test_get_conversation_sorted_chronologically(self, client, test_users, sample_messages, cleanup_messages):
         """Test that messages are sorted chronologically"""
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         messages = response.json()["messages"]
@@ -241,14 +241,14 @@ class TestGetConversation:
     def test_get_conversation_marks_messages_as_read(self, client, test_users, sample_messages, cleanup_messages):
         """Test that retrieving conversation marks messages as read"""
         # Get conversation as user1 (recipient of message from user2)
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         # Messages should be marked as read (tested via database check in integration)
     
     def test_get_conversation_includes_other_user_profile(self, client, test_users, sample_messages, cleanup_messages):
         """Test that conversation includes other user's profile"""
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -260,7 +260,7 @@ class TestGetConversation:
     
     def test_get_conversation_empty(self, client, test_users, cleanup_messages):
         """Test getting conversation with no messages"""
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -305,7 +305,7 @@ class TestGetConversations:
     
     def test_get_conversations_success(self, client, test_users, multiple_conversations, cleanup_messages):
         """Test successfully retrieving conversations list"""
-        response = client.get("/api/users/messages/conversations?username=user1")
+        response = client.get("/api/messages/conversations?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -314,7 +314,7 @@ class TestGetConversations:
     
     def test_get_conversations_sorted_by_recent(self, client, test_users, multiple_conversations, cleanup_messages):
         """Test that conversations are sorted by most recent message"""
-        response = client.get("/api/users/messages/conversations?username=user1")
+        response = client.get("/api/messages/conversations?username=user1")
         
         assert response.status_code == 200
         conversations = response.json()["conversations"]
@@ -325,7 +325,7 @@ class TestGetConversations:
     
     def test_get_conversations_includes_unread_count(self, client, test_users, multiple_conversations, cleanup_messages):
         """Test that conversations include unread message count"""
-        response = client.get("/api/users/messages/conversations?username=user1")
+        response = client.get("/api/messages/conversations?username=user1")
         
         assert response.status_code == 200
         conversations = response.json()["conversations"]
@@ -336,7 +336,7 @@ class TestGetConversations:
     
     def test_get_conversations_includes_last_message(self, client, test_users, multiple_conversations, cleanup_messages):
         """Test that conversations include last message preview"""
-        response = client.get("/api/users/messages/conversations?username=user1")
+        response = client.get("/api/messages/conversations?username=user1")
         
         assert response.status_code == 200
         conversations = response.json()["conversations"]
@@ -348,7 +348,7 @@ class TestGetConversations:
     
     def test_get_conversations_empty(self, client, test_users, cleanup_messages):
         """Test getting conversations when none exist"""
-        response = client.get("/api/users/messages/conversations?username=user1")
+        response = client.get("/api/messages/conversations?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -383,7 +383,7 @@ class TestAdminOverride:
     
     def test_admin_can_see_blocked_messages(self, client, test_users, blocked_messages, cleanup_messages):
         """Test that admin can see messages marked as invisible"""
-        response = client.get("/api/users/messages/conversation/user2?username=admin")
+        response = client.get("/api/messages/conversation/user2?username=admin")
         
         assert response.status_code == 200
         # Admin should be able to see messages regardless of visibility
@@ -391,7 +391,7 @@ class TestAdminOverride:
     
     def test_regular_user_cannot_see_blocked_messages(self, client, test_users, blocked_messages, cleanup_messages):
         """Test that regular users cannot see blocked messages"""
-        response = client.get("/api/users/messages/conversation/user2?username=user1")
+        response = client.get("/api/messages/conversation/user2?username=user1")
         
         assert response.status_code == 200
         data = response.json()
@@ -405,7 +405,7 @@ class TestMessageEdgeCases:
     def test_send_message_missing_username(self, client, test_users, cleanup_messages):
         """Test sending message without username parameter"""
         response = client.post(
-            "/api/users/messages/send",
+            "/api/messages/send",
             json={
                 "toUsername": "user2",
                 "content": "Hello"
@@ -417,7 +417,7 @@ class TestMessageEdgeCases:
     def test_send_message_special_characters(self, client, test_users, cleanup_messages):
         """Test sending message with special characters"""
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={
                 "toUsername": "user2",
                 "content": "Hello! 😊 <script>alert('xss')</script>"
@@ -429,7 +429,7 @@ class TestMessageEdgeCases:
     
     def test_get_conversation_nonexistent_user(self, client, test_users, cleanup_messages):
         """Test getting conversation with non-existent user"""
-        response = client.get("/api/users/messages/conversation/nonexistent?username=user1")
+        response = client.get("/api/messages/conversation/nonexistent?username=user1")
         
         # Should return empty conversation or 404
         assert response.status_code in [200, 404]
@@ -447,25 +447,25 @@ class TestMessageIntegration:
         """Test complete workflow: send messages, retrieve conversation"""
         # Send message from user1 to user2
         send_response1 = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={"toUsername": "user2", "content": "Hello"}
         )
         assert send_response1.status_code == 200
         
         # Send reply from user2 to user1
         send_response2 = client.post(
-            "/api/users/messages/send?username=user2",
+            "/api/messages/send?username=user2",
             json={"toUsername": "user1", "content": "Hi there!"}
         )
         assert send_response2.status_code == 200
         
         # Get conversation as user1
-        conv_response = client.get("/api/users/messages/conversation/user2?username=user1")
+        conv_response = client.get("/api/messages/conversation/user2?username=user1")
         assert conv_response.status_code == 200
         assert len(conv_response.json()["messages"]) == 2
         
         # Get conversations list
-        list_response = client.get("/api/users/messages/conversations?username=user1")
+        list_response = client.get("/api/messages/conversations?username=user1")
         assert list_response.status_code == 200
         assert len(list_response.json()["conversations"]) == 1
     
@@ -473,7 +473,7 @@ class TestMessageIntegration:
         """Test that blocking a user hides existing messages"""
         # Send messages
         client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={"toUsername": "user2", "content": "Before block"}
         )
         
@@ -482,7 +482,7 @@ class TestMessageIntegration:
         
         # Send message after block
         response = client.post(
-            "/api/users/messages/send?username=user1",
+            "/api/messages/send?username=user1",
             json={"toUsername": "user2", "content": "After block"}
         )
         

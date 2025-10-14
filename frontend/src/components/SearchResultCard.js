@@ -148,6 +148,14 @@ const SearchResultCard = ({
         <div className="status-badge-absolute">
           <OnlineStatusBadge username={user.username} size="medium" />
         </div>
+        
+        {/* L3V3L Match Score Badge */}
+        {user.matchScore && (
+          <div className="match-score-badge" title={user.compatibilityLevel}>
+            <div className="match-score-value">{Math.round(user.matchScore)}%</div>
+            <div className="match-score-label">L3V3L Match</div>
+          </div>
+        )}
 
         {/* Image Navigation */}
         {user.images && user.images.length > 1 && (

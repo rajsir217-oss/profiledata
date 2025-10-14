@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 from main import app
 from database import get_database
 
+client = TestClient(app)
 
 @pytest.fixture
 def test_users(test_db):

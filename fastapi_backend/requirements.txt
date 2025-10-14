@@ -18,6 +18,11 @@ hiredis==2.3.2
 sse-starlette==1.6.5
 redis[hiredis]==5.0.1
 
+# Machine Learning dependencies (for L3V3L matching algorithm)
+numpy==2.3.3
+scikit-learn==1.7.2
+Pillow==11.0.0  # Image processing and validation
+
 # Testing dependencies
 pytest==8.0.0
 pytest-asyncio==0.23.5

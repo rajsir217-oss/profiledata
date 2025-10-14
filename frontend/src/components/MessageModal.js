@@ -106,7 +106,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     setLoading(true);
     try {
       const response = await api.get(
-        `/api/messages/conversation/${profile.username}?username=${currentUsername}`
+        `/messages/conversation/${profile.username}?username=${currentUsername}`
       );
       console.log('✅ Conversation loaded:', response.data.messages?.length || 0, 'messages');
       setMessages(response.data.messages || []);
@@ -124,7 +124,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     try {
       // Save message to database via API
       const response = await api.post(
-        `/api/messages/send?username=${currentUsername}`,
+        `/messages/send?username=${currentUsername}`,
         {
           toUsername: profile.username,
           content: content.trim()

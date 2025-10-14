@@ -40,22 +40,24 @@ const L3V3LMatches = () => {
     setError('');
     
     try {
-      // For now, use regular search endpoint
-      // TODO: Implement L3V3L matching algorithm on backend
-      console.log('🦋 Fetching L3V3L matches...');
+      console.log('🦋 Fetching L3V3L matches with AI algorithm...');
       
-      const response = await searchUsers({
-        keyword: '',
-        page: 1,
-        limit: 50
+      // Use new L3V3L matching endpoint
+      const response = await api.get(`/l3v3l-matches/${currentUsername}`, {
+        params: {
+          limit: 50,
+          min_score: 50  // Minimum 50% compatibility
+        }
       });
 
-      console.log('✅ L3V3L matches response:', response);
+      console.log('✅ L3V3L matches response:', response.data);
       
-      const users = response.users || [];
-      setMatches(users);
+      const matches = response.data.matches || [];
+      setMatches(matches);
       
-      console.log(`Found ${users.length} matches`);
+      console.log(`Found ${matches.length} L3V3L matches`);
+      console.log(`Algorithm version: ${response.data.algorithm_version}`);
+      console.log(`ML enabled: ${response.data.ml_enabled}`);
       
     } catch (err) {
       console.error('❌ Error fetching L3V3L matches:', err);
@@ -218,10 +220,10 @@ const L3V3LMatches = () => {
       {/* L3V3L Info Banner */}
       <div className="l3v3l-banner">
         <div className="l3v3l-banner-content">
-          <h3>🎯 L3V3L Matching Algorithm</h3>
+          <h3>🎯 AI-Powered L3V3L Matching Algorithm</h3>
           <p>
-            Our intelligent matching algorithm considers compatibility across all five pillars:
-            emotional connection, trust, joy, authenticity, and mutual growth.
+            Our comprehensive AI algorithm analyzes <strong>8 key dimensions</strong> including gender compatibility,
+            L3V3L values, demographics, partner preferences, habits, career, physical attributes, and cultural factors.
           </p>
           <div className="l3v3l-pillars-mini">
             <span className="pillar-badge">💕 Love</span>
@@ -229,6 +231,9 @@ const L3V3LMatches = () => {
             <span className="pillar-badge">😄 Laughter</span>
             <span className="pillar-badge">💭 Vulnerability</span>
             <span className="pillar-badge">🚀 Elevation</span>
+          </div>
+          <div style={{marginTop: '10px', fontSize: '12px', opacity: 0.8}}>
+            ✨ Powered by Proprietary AI Matching Algorithm
           </div>
         </div>
       </div>

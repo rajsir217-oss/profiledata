@@ -138,9 +138,12 @@ async def check_access_granted(db, requester_id, requested_user_id):
         # User viewing own profile - always granted
         return True
     
-    # Check if admin
-    if requester_id == 'admin':
-        return True
+    # Check if requester is admin (by username or role)
+    requester = await db.users.find_one({'username': requester_id})
+    if requester:
+        # Check role_name field for admin role
+        if requester.get('role_name') == 'admin' or requester_id == 'admin':
+            return True
     
     # Check access_requests collection
     access_request = await db.access_requests.find_one({

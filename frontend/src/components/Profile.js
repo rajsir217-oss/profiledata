@@ -43,12 +43,18 @@ const Profile = () => {
     dob: false
   });
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        // Check if current user is admin
+        const userRole = localStorage.getItem('userRole');
+        const adminStatus = currentUsername === 'admin' || userRole === 'admin';
+        setIsAdmin(adminStatus);
+        
         // Pass requester to properly handle PII masking
         const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
         setUser(res.data);
@@ -124,6 +130,17 @@ const Profile = () => {
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
+    
+    // ✅ ADMIN BYPASS - Admins have full access to all PII
+    if (isAdmin) {
+      console.log('🔓 Admin user detected - granting full PII access');
+      setPiiAccess({
+        images: true,
+        contact_info: true,
+        dob: true
+      });
+      return;
+    }
     
     try {
       const [imagesRes, contactRes, dobRes] = await Promise.all([

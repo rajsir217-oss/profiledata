@@ -16,6 +16,7 @@ from datetime import datetime
 from main import app
 from database import get_database
 
+client = TestClient(app)
 
 @pytest.fixture
 def search_test_users(test_db):

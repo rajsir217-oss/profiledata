@@ -7,20 +7,23 @@ import time
 import logging
 import uuid
 import hashlib
-import shutil
 import json
 from pathlib import Path
 from sse_starlette.sse import EventSourceResponse
 from models import (
-    MessageCreate, ConversationResponse, ProfileViewCreate,
-    PIIRequest, PIIRequestCreate, PIIRequestResponse, 
-    PIIAccess, PIIAccessCreate, LoginRequest
+    UserCreate, UserResponse, LoginRequest, Token,
+    Favorite, Shortlist, Exclusion, Message, MessageCreate,
+    ProfileView, ProfileViewCreate, PIIRequest, PIIRequestCreate,
+    PIIRequestResponse, PIIAccess, PIIAccessCreate,
+    UserPreferencesUpdate, UserPreferencesResponse
 )
 from database import get_database
-from utils import save_multiple_files, get_full_image_url
-from config import settings
 from auth.password_utils import PasswordManager
 from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user
+from l3v3l_matching_engine import matching_engine
+from l3v3l_ml_enhancer import ml_enhancer
+from config import settings
+from utils import get_full_image_url, save_multiple_files
 
 # Compatibility aliases for old code
 def get_password_hash(password: str) -> str:
@@ -45,7 +48,6 @@ async def generate_unique_profile_id(db) -> str:
 
 def create_access_token(data: dict, expires_delta=None) -> str:
     return JWTManager.create_access_token(data, expires_delta)
-import logging
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
@@ -898,12 +900,12 @@ async def get_all_users(
     page: int = 1,
     limit: int = 20,
     search: Optional[str] = None,
-    status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     role: Optional[str] = None,
     db = Depends(get_database)
 ):
     """Get all users with pagination and filtering - Admin only endpoint"""
-    logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status={status}, role={role})")
+    logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status_filter={status_filter}, role={role})")
     
     try:
         # Build query filter
@@ -921,9 +923,9 @@ async def get_all_users(
             logger.debug(f"🔍 Search filter applied: {search}")
         
         # Status filter (status is nested: status.status)
-        if status:
-            query["status.status"] = status
-            logger.debug(f"📊 Status filter applied: {status}")
+        if status_filter:
+            query["status.status"] = status_filter
+            logger.debug(f"📊 Status filter applied: {status_filter}")
         
         # Role filter
         if role:
@@ -1130,7 +1132,7 @@ async def search_users(
     relationshipStatus: str = "",
     bodyType: str = "",
     newlyAdded: bool = False,
-    status: str = "",
+    status_filter: str = "",
     sortBy: str = "newest",
     sortOrder: str = "desc",
     page: int = 1,
@@ -1138,16 +1140,16 @@ async def search_users(
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
-    logger.info(f"🔍 Search request - keyword: '{keyword}', status: '{status}', page: {page}, limit: {limit}")
+    logger.info(f"🔍 Search request - keyword: '{keyword}', status_filter: '{status_filter}', page: {page}, limit: {limit}")
 
     # Build query
     query = {}
     
     # Status filter - only show active users by default
-    if status:
-        query["status.status"] = {"$regex": f"^{status}$", "$options": "i"}
+    if status_filter:
+        query["status.status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
     else:
-        # Default to active users only if no status specified
+        # Default to active users only if no status_filter specified
         query["status.status"] = {"$regex": "^active$", "$options": "i"}
 
     # Text search
@@ -2149,14 +2151,74 @@ async def check_message_visibility(username1: str, username2: str, db) -> bool:
     # Only hide if explicitly excluded
     return True
 
-@router.post("/api/messages/send")
+@router.post("/messages/send")
 async def send_message_enhanced(
     message_data: MessageCreate,
     username: str = Query(...),
     db = Depends(get_database)
 ):
-    """Send a message with privacy checks"""
+    """Send a message with privacy checks and profanity filtering"""
     logger.info(f"💬 Enhanced message from {username} to {message_data.toUsername}")
+    
+    # Check for profanity FIRST
+    from profanity_filter import check_message_content
+    content_check = check_message_content(message_data.content)
+    
+    if not content_check["is_clean"]:
+        # Log violation
+        logger.warning(
+            f"⚠️ Profanity detected from {username}: "
+            f"violations={content_check['violations']}, severity={content_check['severity']}"
+        )
+        
+        # Record violation in database
+        await db.content_violations.insert_one({
+            "username": username,
+            "type": "message_profanity",
+            "content": message_data.content,
+            "violations": content_check["violations"],
+            "severity": content_check["severity"],
+            "recipient": message_data.toUsername,
+            "timestamp": datetime.utcnow()
+        })
+        
+        # Check user's violation count
+        violation_count = await db.content_violations.count_documents({
+            "username": username,
+            "type": "message_profanity"
+        })
+        
+        # Enforce consequences based on violation count
+        if violation_count >= 3:
+            # 3rd strike - ban user
+            await db.users.update_one(
+                {"username": username},
+                {"$set": {"status": {"status": "banned", "reason": "Repeated profanity violations"}}}
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Your account has been banned due to repeated violations of community guidelines."
+            )
+        elif violation_count >= 2:
+            # 2nd strike - suspend for 7 days
+            from datetime import timedelta
+            suspend_until = datetime.utcnow() + timedelta(days=7)
+            await db.users.update_one(
+                {"username": username},
+                {"$set": {"status": {"status": "suspended", "until": suspend_until.isoformat()}}}
+            )
+            raise HTTPException(
+                status_code=403,
+                detail="Your account has been suspended for 7 days due to inappropriate language. "
+                       "This is your second violation. A third violation will result in permanent ban."
+            )
+        else:
+            # 1st strike - reject message with warning
+            raise HTTPException(
+                status_code=400,
+                detail="⚠️ Your message contains inappropriate content. Please maintain professional "
+                       "communication. Repeated violations will result in account suspension or ban."
+            )
     
     # Check if recipient exists
     recipient = await db.users.find_one({"username": message_data.toUsername})
@@ -2202,7 +2264,7 @@ async def send_message_enhanced(
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/messages/conversation/{other_username}")
+@router.get("/messages/conversation/{other_username}")
 async def get_conversation(
     other_username: str,
     username: str = Query(...),
@@ -2264,7 +2326,7 @@ async def get_conversation(
         logger.error(f"❌ Error fetching conversation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/api/messages/conversations")
+@router.get("/messages/conversations")
 async def get_conversations_enhanced(
     username: str = Query(...),
     db = Depends(get_database)
@@ -3252,6 +3314,21 @@ async def check_pii_access(
     """Check if requester has access to profile owner's PII"""
     
     try:
+        # ✅ ADMIN BYPASS - Admins have access to all PII
+        requester_user = await db.users.find_one({"username": requester})
+        if requester_user:
+            is_admin = (
+                requester_user.get('role_name') == 'admin' or 
+                requester == 'admin'
+            )
+            if is_admin:
+                logger.info(f"🔓 Admin '{requester}' granted PII access to {profile_owner}'s {access_type}")
+                return {
+                    "hasAccess": True,
+                    "accessType": access_type,
+                    "reason": "admin_access"
+                }
+        
         # Check for active access
         access = await db.pii_access.find_one({
             "granterUsername": profile_owner,
@@ -3419,3 +3496,167 @@ def calculate_age(dob):
     today = date.today()
     age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
     return age
+
+
+# ===== L3V3L MATCHING ALGORITHM =====
+
+@router.get("/l3v3l-matches/{username}")
+async def get_l3v3l_matches(
+    username: str,
+    limit: int = 20,
+    min_score: float = 50.0,
+    db = Depends(get_database)
+):
+    """
+    Get L3V3L matches for a user using comprehensive AI-powered algorithm
+    
+    Considers:
+    1. Gender compatibility (opposite gender)
+    2. L3V3L Pillars alignment (values, personality)
+    3. Demographics (location, background)
+    4. Partner preferences match
+    5. Habits & personality compatibility
+    6. Career & education compatibility
+    7. Physical attributes (height, age, education level)
+    8. Cultural factors (religion, origin, traditions)
+    9. ML-based predictions (if trained)
+    """
+    logger.info(f"🦋 Getting L3V3L matches for {username}")
+    
+    try:
+        # Get current user
+        current_user = await db.users.find_one({"username": username})
+        if not current_user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        current_user['_id'] = str(current_user['_id'])
+        
+        # Get opposite gender users
+        opposite_gender = "Female" if current_user.get('gender') == 'Male' else "Male"
+        
+        # Build query
+        query = {
+            "username": {"$ne": username},  # Exclude self
+            "gender": opposite_gender,
+            "status.status": {"$regex": "^active$", "$options": "i"}  # Only active users
+        }
+        
+        # Get potential matches
+        potential_matches = await db.users.find(query).to_list(1000)
+        
+        # Get user's exclusions
+        exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
+        excluded_usernames = {exc['excludedUsername'] for exc in exclusions}
+        
+        # Filter out excluded users
+        potential_matches = [u for u in potential_matches if u['username'] not in excluded_usernames]
+        
+        logger.info(f"📊 Found {len(potential_matches)} potential matches")
+        
+        # Calculate match scores
+        matches_with_scores = []
+        for candidate in potential_matches:
+            candidate['_id'] = str(candidate['_id'])
+            
+            # Calculate comprehensive match score
+            match_result = matching_engine.calculate_match_score(current_user, candidate)
+            
+            # Add ML prediction if model is trained
+            ml_score = 0
+            if ml_enhancer.is_trained:
+                ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
+                # Blend ML score with rule-based score (70% rule-based, 30% ML)
+                match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
+                match_result['ml_prediction'] = round(ml_score * 100, 2)
+            
+            # Filter by minimum score
+            if match_result['total_score'] >= min_score:
+                # Prepare profile data
+                profile = {
+                    'username': candidate['username'],
+                    'profileId': candidate.get('profileId'),
+                    'firstName': candidate.get('firstName'),
+                    'lastName': candidate.get('lastName'),
+                    'age': calculate_age(candidate.get('dateOfBirth')),
+                    'gender': candidate.get('gender'),
+                    'height': candidate.get('height'),
+                    'location': candidate.get('location'),
+                    'state': candidate.get('state'),
+                    'education': candidate.get('education'),
+                    'religion': candidate.get('religion'),
+                    'images': [get_full_image_url(img) for img in candidate.get('images', [])][:1],  # Only first image
+                    'aboutMe': candidate.get('aboutMe', '')[:200] if candidate.get('aboutMe') else '',  # Truncate
+                    'matchScore': match_result['total_score'],
+                    'compatibilityLevel': match_result['compatibility_level'],
+                    'matchReasons': match_result['match_reasons'],
+                    'componentScores': match_result['component_scores']
+                }
+                
+                if ml_enhancer.is_trained:
+                    profile['mlPrediction'] = match_result.get('ml_prediction', 0)
+                
+                matches_with_scores.append(profile)
+        
+        # Sort by match score (descending)
+        matches_with_scores.sort(key=lambda x: x['matchScore'], reverse=True)
+        
+        # Limit results
+        top_matches = matches_with_scores[:limit]
+        
+        logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username}")
+        
+        return {
+            "matches": top_matches,
+            "total_found": len(matches_with_scores),
+            "algorithm_version": "1.0.0",
+            "ml_enabled": ml_enhancer.is_trained
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error getting L3V3L matches: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to get matches: {str(e)}")
+
+
+@router.get("/l3v3l-match-score/{username}/{other_username}")
+async def get_match_score_between_users(
+    username: str,
+    other_username: str,
+    db = Depends(get_database)
+):
+    """Get detailed match score between two specific users"""
+    logger.info(f"🦋 Calculating match score: {username} <-> {other_username}")
+    
+    try:
+        # Get both users
+        user1 = await db.users.find_one({"username": username})
+        user2 = await db.users.find_one({"username": other_username})
+        
+        if not user1 or not user2:
+            raise HTTPException(status_code=404, detail="One or both users not found")
+        
+        user1['_id'] = str(user1['_id'])
+        user2['_id'] = str(user2['_id'])
+        
+        # Calculate match score
+        match_result = matching_engine.calculate_match_score(user1, user2)
+        
+        # Add ML prediction if available
+        if ml_enhancer.is_trained:
+            ml_score = ml_enhancer.predict_compatibility(user1, user2)
+            match_result['ml_prediction'] = round(ml_score * 100, 2)
+            # Blend scores
+            match_result['blended_score'] = round(
+                (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3), 2
+            )
+        
+        logger.info(f"✅ Match score calculated: {match_result['total_score']}%")
+        
+        return {
+            "user1": username,
+            "user2": other_username,
+            **match_result
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error calculating match score: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

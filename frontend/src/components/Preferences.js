@@ -16,6 +16,11 @@ const Preferences = () => {
   });
   const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
 
   const themes = [
     {
@@ -283,46 +288,79 @@ const Preferences = () => {
         <form onSubmit={handlePasswordChange} className="password-form">
           <div className="form-group">
             <label htmlFor="currentPassword">Current Password</label>
-            <input
-              type="password"
-              id="currentPassword"
-              name="currentPassword"
-              value={passwordData.currentPassword}
-              onChange={handlePasswordInputChange}
-              placeholder="Enter current password"
-              required
-              disabled={isChangingPassword}
-            />
+            <div className="input-with-toggle">
+              <input
+                type={showPasswords.current ? "text" : "password"}
+                id="currentPassword"
+                name="currentPassword"
+                value={passwordData.currentPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="Enter current password"
+                required
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                disabled={isChangingPassword}
+                tabIndex="-1"
+              >
+                {showPasswords.current ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
           
           <div className="form-group">
             <label htmlFor="newPassword">New Password</label>
-            <input
-              type="password"
-              id="newPassword"
-              name="newPassword"
-              value={passwordData.newPassword}
-              onChange={handlePasswordInputChange}
-              placeholder="Enter new password (min 6 characters)"
-              required
-              minLength="6"
-              disabled={isChangingPassword}
-            />
+            <div className="input-with-toggle">
+              <input
+                type={showPasswords.new ? "text" : "password"}
+                id="newPassword"
+                name="newPassword"
+                value={passwordData.newPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="Enter new password (min 6 characters)"
+                required
+                minLength="6"
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                disabled={isChangingPassword}
+                tabIndex="-1"
+              >
+                {showPasswords.new ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
           
           <div className="form-group">
             <label htmlFor="confirmPassword">Confirm New Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={passwordData.confirmPassword}
-              onChange={handlePasswordInputChange}
-              placeholder="Confirm new password"
-              required
-              minLength="6"
-              disabled={isChangingPassword}
-            />
+            <div className="input-with-toggle">
+              <input
+                type={showPasswords.confirm ? "text" : "password"}
+                id="confirmPassword"
+                name="confirmPassword"
+                value={passwordData.confirmPassword}
+                onChange={handlePasswordInputChange}
+                placeholder="Confirm new password"
+                required
+                minLength="6"
+                disabled={isChangingPassword}
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                disabled={isChangingPassword}
+                tabIndex="-1"
+              >
+                {showPasswords.confirm ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
           
           <button 

@@ -106,6 +106,14 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Community Guidelines Banner */}
+      <div className="chat-guidelines-banner">
+        <span className="guidelines-icon">⚠️</span>
+        <span className="guidelines-text">
+          <strong>Be Professional.</strong> No vulgar or abusive language. Violations result in immediate suspension or ban.
+        </span>
+      </div>
+
       {/* Message Input */}
       <div className="message-input-container">
         <form onSubmit={handleSend} className="message-input-form">

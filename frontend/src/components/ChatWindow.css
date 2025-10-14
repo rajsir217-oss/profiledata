@@ -320,6 +320,57 @@
   scrollbar-color: var(--primary-color, #667eea) var(--surface-color, #f0f0f0);
 }
 
+/* Community Guidelines Banner */
+.chat-guidelines-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  border-top: 2px solid #ffc107;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  font-size: 13px;
+  color: #856404;
+  animation: fadeIn 0.3s ease;
+}
+
+.guidelines-icon {
+  font-size: 18px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.guidelines-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.guidelines-text strong {
+  font-weight: 700;
+  color: #664d03;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* Dark mode support for guidelines banner */
+@media (prefers-color-scheme: dark) {
+  .chat-guidelines-banner {
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 234, 167, 0.2) 100%);
+    border-top-color: rgba(255, 193, 7, 0.5);
+    color: #ffc107;
+  }
+  
+  .guidelines-text strong {
+    color: #ffd54f;
+  }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .message-bubble {

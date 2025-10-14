@@ -25,11 +25,14 @@ TEST_DATABASE_NAME = "test_profiledata"
 @pytest.fixture(scope="function")
 def test_db():
     """Create a test database connection."""
-    # Create a new event loop for this test
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
+    # Get or create event loop
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
     
-    client = AsyncIOMotorClient(TEST_MONGODB_URL, io_loop=loop)
+    client = AsyncIOMotorClient(TEST_MONGODB_URL)
     db = client[TEST_DATABASE_NAME]
 
     # Clear test database before tests
@@ -44,7 +47,6 @@ def test_db():
     # Cleanup after tests
     loop.run_until_complete(client.drop_database(TEST_DATABASE_NAME))
     client.close()
-    loop.close()
 
 
 @pytest.fixture

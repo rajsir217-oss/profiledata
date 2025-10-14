@@ -68,7 +68,7 @@ const Messages = () => {
 
   const loadConversations = async () => {
     try {
-      const response = await api.get(`/api/messages/conversations?username=${currentUsername}`);
+      const response = await api.get(`/messages/conversations?username=${currentUsername}`);
       setConversations(response.data.conversations || []);
       setLoading(false);
     } catch (err) {
@@ -84,7 +84,7 @@ const Messages = () => {
     setOtherUser(null);
 
     try {
-      const response = await api.get(`/api/messages/conversation/${username}?username=${currentUsername}`);
+      const response = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
       setMessages(response.data.messages || []);
       setOtherUser(response.data.otherUser);
     } catch (err) {
@@ -97,7 +97,7 @@ const Messages = () => {
     if (!content.trim() || !selectedUser) return;
 
     try {
-      const response = await api.post(`/api/messages/send?username=${currentUsername}`, {
+      const response = await api.post(`/messages/send?username=${currentUsername}`, {
         toUsername: selectedUser,
         content: content.trim()
       });

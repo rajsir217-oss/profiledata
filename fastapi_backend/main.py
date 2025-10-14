@@ -10,14 +10,16 @@ from pathlib import Path
 import logging
 import time
 
-from database import connect_to_mongo, close_mongo_connection
+from database import connect_to_mongo, close_mongo_connection, get_database
 from routes import router
 from test_management import router as test_router
 from auth.admin_routes import router as admin_router
 from auth.auth_routes import router as auth_router
+from cleanup_routes import router as cleanup_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
+from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -50,10 +52,19 @@ async def lifespan(app: FastAPI):
     await sse_manager.initialize()
     logger.info("✅ SSE Manager initialized for real-time messaging")
     
+    # Initialize Unified Scheduler (handles both cleanup and tests)
+    db = get_database()  # Don't await - it's not async
+    await initialize_unified_scheduler(db)
+    logger.info("✅ Unified Scheduler initialized")
+    
     yield
     
     # Shutdown
     logger.info("👋 Shutting down FastAPI application...")
+    
+    # Stop unified scheduler
+    await shutdown_unified_scheduler()
+    
     await close_mongo_connection()
     
     # Close SSE Manager
@@ -87,7 +98,7 @@ app.add_middleware(
         "http://127.0.0.1:3001"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -124,6 +135,7 @@ app.include_router(router)
 app.include_router(test_router, prefix="/api/tests", tags=["tests"])
 app.include_router(admin_router)  # Admin routes (already has /api/admin prefix)
 app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
+app.include_router(cleanup_router)  # Cleanup and moderation routes
 
 # Health check endpoint
 @app.get("/health")

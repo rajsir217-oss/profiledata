@@ -27,7 +27,7 @@ const UserManagement = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('admin'); // Default to admin for faster load
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -39,6 +39,12 @@ const UserManagement = () => {
   const [sortOrder, setSortOrder] = useState('asc'); // Sort order
   const [showBulkRoleModal, setShowBulkRoleModal] = useState(false); // Bulk role modal
   const [successMessage, setSuccessMessage] = useState(''); // Success notification
+  const [imageValidationStatus, setImageValidationStatus] = useState({}); // Image validation status by username
+  const [validatingImages, setValidatingImages] = useState({}); // Track validation in progress
+  const [showCleanupModal, setShowCleanupModal] = useState(false); // Cleanup settings modal
+  const [selectedUserForCleanup, setSelectedUserForCleanup] = useState(null); // User for cleanup settings
+  const [cleanupDays, setCleanupDays] = useState(90); // Cleanup days
+  const [openDropdown, setOpenDropdown] = useState(null); // Track which dropdown is open
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -51,6 +57,18 @@ const UserManagement = () => {
     }
     loadUsers();
   }, [page, statusFilter, roleFilter, searchTerm]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdown && !event.target.closest('.action-dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
 
   const loadUsers = async () => {
     setLoading(true);
@@ -68,8 +86,12 @@ const UserManagement = () => {
 
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       
-      setUsers(response.data.users || []);
+      const loadedUsers = response.data.users || [];
+      setUsers(loadedUsers);
       setTotalPages(response.data.pages || 1);
+      
+      // Load image validation status for each user
+      loadImageValidationStatus(loadedUsers);
     } catch (err) {
       console.error('Error loading users:', err);
       
@@ -80,7 +102,9 @@ const UserManagement = () => {
           // Clear localStorage and redirect to login
           localStorage.removeItem('token');
           localStorage.removeItem('username');
+          localStorage.removeItem('userRole');
           localStorage.removeItem('userStatus');
+          localStorage.removeItem('appTheme');
           alert('Your session has expired. Please login again.');
           navigate('/login');
           return;
@@ -90,6 +114,43 @@ const UserManagement = () => {
       setError('Failed to load users: ' + (err.response?.data?.detail || err.message));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadImageValidationStatus = async (userList) => {
+    const statusMap = {};
+    
+    for (const user of userList) {
+      if (user.imageValidation) {
+        statusMap[user.username] = user.imageValidation;
+      }
+    }
+    
+    setImageValidationStatus(statusMap);
+  };
+
+  const handleValidateImages = async (username) => {
+    try {
+      setValidatingImages(prev => ({ ...prev, [username]: true }));
+      
+      const response = await adminApi.post(`/api/admin/users/${username}/validate-images`);
+      
+      // Update validation status
+      setImageValidationStatus(prev => ({
+        ...prev,
+        [username]: response.data.validation_status
+      }));
+      
+      setSuccessMessage(`✅ Images validated for ${username}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+      
+      // Reload users to get updated data
+      loadUsers();
+    } catch (err) {
+      console.error('Error validating images:', err);
+      setError('Failed to validate images: ' + (err.response?.data?.detail || err.message));
+    } finally {
+      setValidatingImages(prev => ({ ...prev, [username]: false }));
     }
   };
 
@@ -271,7 +332,42 @@ const UserManagement = () => {
     }
   };
 
-  const handleBulkRoleAssignment = async (newRole, reason) => {
+  const openCleanupModal = async (user) => {
+    setSelectedUserForCleanup(user);
+    
+    // Fetch user's current cleanup settings
+    try {
+      const response = await adminApi.get(`/api/users/${user.username}/cleanup-settings`);
+      setCleanupDays(response.data.cleanup_days || 90);
+    } catch (err) {
+      console.error('Error fetching cleanup settings:', err);
+      setCleanupDays(90); // Default
+    }
+    
+    setShowCleanupModal(true);
+  };
+
+  const handleCleanupSettingsUpdate = async () => {
+    if (!selectedUserForCleanup) return;
+    
+    try {
+      await adminApi.put(`/api/admin/users/${selectedUserForCleanup.username}/cleanup-settings`, {
+        cleanup_days: cleanupDays
+      });
+      
+      setSuccessMessage(`✅ Cleanup period set to ${cleanupDays} days for ${selectedUserForCleanup.username}`);
+      setShowCleanupModal(false);
+      setSelectedUserForCleanup(null);
+      
+      // Auto-hide success message
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error updating cleanup settings:', err);
+      setError('Failed to update cleanup settings: ' + (err.response?.data?.detail || err.message));
+    }
+  };
+
+  const handleBulkRoleAssign = async (role, reason) => {
     if (selectedUsers.length === 0) {
       setError('Please select users first');
       return;
@@ -293,8 +389,8 @@ const UserManagement = () => {
       for (const username of usersToUpdate) {
         try {
           await adminApi.post(`/api/admin/users/${username}/assign-role`, {
-            role_name: newRole,
-            reason: reason || `Bulk role assignment to ${newRole}`
+            role_name: role,
+            reason: reason || `Bulk role assignment to ${role}`
           });
           successCount++;
         } catch (error) {
@@ -439,32 +535,32 @@ const UserManagement = () => {
                   title="Select all"
                 />
               </th>
-              <th className={`sortable ${sortField === 'username' ? 'active-sort' : ''}`} onClick={() => handleSort('username')}>
+              <th onClick={() => handleSort('username')}>
                 Username
                 {sortField === 'username' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={`sortable ${sortField === 'firstName' ? 'active-sort' : ''}`} onClick={() => handleSort('firstName')}>
+              <th onClick={() => handleSort('firstName')}>
                 Name
                 {sortField === 'firstName' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
               <th>Email</th>
-              <th className={`sortable ${sortField === 'role_name' ? 'active-sort' : ''}`} onClick={() => handleSort('role_name')}>
+              <th onClick={() => handleSort('role_name')}>
                 Role
                 {sortField === 'role_name' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={`sortable ${sortField === 'status' ? 'active-sort' : ''}`} onClick={() => handleSort('status')}>
+              <th onClick={() => handleSort('status')}>
                 Status
                 {sortField === 'status' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th className={`sortable ${sortField === 'created_at' ? 'active-sort' : ''}`} onClick={() => handleSort('created_at')}>
+              <th onClick={() => handleSort('created_at')}>
                 Created
                 {sortField === 'created_at' && (
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
@@ -502,46 +598,117 @@ const UserManagement = () => {
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
                 <td>
-                  <div className="action-buttons">
+                  <div className="action-dropdown-container">
                     <button
-                      onClick={() => openRoleModal(user)}
-                      className="btn-action btn-role"
-                      title={user.username === currentUser ? 'Cannot modify your own role' : 'Assign Role'}
-                      disabled={user.username === currentUser}
+                      className="btn-actions-menu"
+                      onClick={() => setOpenDropdown(openDropdown === user.username ? null : user.username)}
                     >
-                      🎭
+                      ⋮ Actions
                     </button>
-                    <button
-                      onClick={() => navigate(`/profile/${user.username}`)}
-                      className="btn-action btn-view"
-                      title="View Profile"
-                    >
-                      👁️
-                    </button>
-                    <button
-                      onClick={() => openActionModal(user, 'activate')}
-                      className="btn-action btn-activate"
-                      title={user.username === currentUser ? 'Cannot modify your own account' : 'Activate'}
-                      disabled={user.status?.status === 'active' || user.username === currentUser}
-                    >
-                      ✅
-                    </button>
-                    <button
-                      onClick={() => openActionModal(user, 'suspend')}
-                      className="btn-action btn-suspend"
-                      title={user.username === currentUser ? 'Cannot suspend your own account' : 'Suspend'}
-                      disabled={user.username === currentUser}
-                    >
-                      ⏸️
-                    </button>
-                    <button
-                      onClick={() => openActionModal(user, 'ban')}
-                      className="btn-action btn-ban"
-                      title={user.username === currentUser ? 'Cannot ban your own account' : 'Ban'}
-                      disabled={user.username === currentUser}
-                    >
-                      🚫
-                    </button>
+                    
+                    {openDropdown === user.username && (
+                      <div className="actions-dropdown-menu">
+                        <button
+                          className="dropdown-item"
+                          onClick={() => {
+                            navigate(`/profile/${user.username}`);
+                            setOpenDropdown(null);
+                          }}
+                        >
+                          <span className="dropdown-icon">👤</span>
+                          View Profile
+                        </button>
+                        
+                        <button
+                          className="dropdown-item"
+                          onClick={() => {
+                            openRoleModal(user);
+                            setOpenDropdown(null);
+                          }}
+                          disabled={user.username === currentUser}
+                        >
+                          <span className="dropdown-icon">👥</span>
+                          Assign Role
+                        </button>
+                        
+                        {(() => {
+                          const validation = imageValidationStatus[user.username];
+                          const hasImages = user.images && user.images.length > 0;
+                          const needsReview = validation?.needs_review || false;
+                          const isValidating = validatingImages[user.username] || false;
+                          
+                          if (hasImages) {
+                            return (
+                              <button
+                                className={`dropdown-item ${needsReview ? 'dropdown-item-warning' : 'dropdown-item-success'}`}
+                                onClick={() => {
+                                  handleValidateImages(user.username);
+                                  setOpenDropdown(null);
+                                }}
+                                disabled={isValidating}
+                              >
+                                <span className="dropdown-icon">
+                                  {isValidating ? '🔄' : needsReview ? '⚠️' : validation ? '✓' : '🔍'}
+                                </span>
+                                {isValidating ? 'Validating...' : needsReview ? 'Review Images' : validation ? 'Images Verified' : 'Validate Images'}
+                              </button>
+                            );
+                          }
+                          return null;
+                        })()}
+                        
+                        <div className="dropdown-divider"></div>
+                        
+                        <button
+                          className="dropdown-item dropdown-item-success"
+                          onClick={() => {
+                            openActionModal(user, 'activate');
+                            setOpenDropdown(null);
+                          }}
+                          disabled={user.status?.status === 'active' || user.username === currentUser}
+                        >
+                          <span className="dropdown-icon">✅</span>
+                          Activate
+                        </button>
+                        
+                        <button
+                          className="dropdown-item dropdown-item-warning"
+                          onClick={() => {
+                            openActionModal(user, 'suspend');
+                            setOpenDropdown(null);
+                          }}
+                          disabled={user.username === currentUser}
+                        >
+                          <span className="dropdown-icon">⏸️</span>
+                          Suspend
+                        </button>
+                        
+                        <button
+                          className="dropdown-item dropdown-item-danger"
+                          onClick={() => {
+                            openActionModal(user, 'ban');
+                            setOpenDropdown(null);
+                          }}
+                          disabled={user.username === currentUser}
+                        >
+                          <span className="dropdown-icon">🚫</span>
+                          Ban
+                        </button>
+                        
+                        <div className="dropdown-divider"></div>
+                        
+                        <button
+                          className="dropdown-item"
+                          onClick={() => {
+                            openCleanupModal(user);
+                            setOpenDropdown(null);
+                          }}
+                        >
+                          <span className="dropdown-icon">🗑️</span>
+                          Configure Cleanup
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -588,8 +755,80 @@ const UserManagement = () => {
         <BulkRoleModal
           userCount={selectedUsers.length}
           onClose={() => setShowBulkRoleModal(false)}
-          onAssign={handleBulkRoleAssignment}
+          onAssign={handleBulkRoleAssign}
         />
+      )}
+
+      {/* Cleanup Settings Modal */}
+      {showCleanupModal && selectedUserForCleanup && (
+        <div className="cleanup-modal-overlay" onClick={() => setShowCleanupModal(false)}>
+          <div className="cleanup-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Purple Gradient Header */}
+            <div className="cleanup-modal-header">
+              <div className="cleanup-user-info">
+                <div className="cleanup-avatar">
+                  {selectedUserForCleanup.username.charAt(0).toUpperCase()}
+                </div>
+                <div className="cleanup-user-details">
+                  <div className="cleanup-username">{selectedUserForCleanup.username}</div>
+                  <div className="cleanup-email">{selectedUserForCleanup.email || selectedUserForCleanup.contactEmail || 'No email'}</div>
+                </div>
+              </div>
+              <button className="cleanup-close-btn" onClick={() => setShowCleanupModal(false)}>
+                ✕
+              </button>
+            </div>
+
+            {/* White Body Content */}
+            <div className="cleanup-modal-body">
+              <div className="cleanup-title">
+                <span className="cleanup-icon">🗑️</span>
+                <h3>Configure Data Cleanup Settings</h3>
+              </div>
+              
+              <div className="cleanup-description">
+                Data older than this period will be automatically deleted
+              </div>
+
+              <div className="cleanup-period-section">
+                <label className="cleanup-label">Cleanup Period</label>
+                <select
+                  className="cleanup-select"
+                  value={cleanupDays}
+                  onChange={(e) => setCleanupDays(Number(e.target.value))}
+                >
+                  <option value={30}>30 days (1 month)</option>
+                  <option value={60}>60 days (2 months)</option>
+                  <option value={90}>90 days (3 months) - Recommended</option>
+                  <option value={120}>120 days (4 months)</option>
+                  <option value={180}>180 days (6 months)</option>
+                  <option value={365}>365 days (1 year)</option>
+                </select>
+                
+                <div className="cleanup-current-setting">
+                  <div className="cleanup-setting-text">
+                    <strong>Current setting:</strong> {cleanupDays} days
+                  </div>
+                  <div className="cleanup-affects">
+                    This affects: Favorites ❤️, Shortlist ⭐, Messages 💬
+                  </div>
+                </div>
+              </div>
+
+              <div className="cleanup-modal-footer">
+                <button onClick={() => setShowCleanupModal(false)} className="cleanup-btn-cancel">
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCleanupSettingsUpdate}
+                  className="cleanup-btn-save"
+                >
+                  🗑️ Save Cleanup Settings
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

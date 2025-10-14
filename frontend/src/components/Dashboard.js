@@ -127,7 +127,7 @@ const Dashboard = () => {
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
-        api.get(`/api/messages/conversations?username=${user}`),
+        api.get(`/messages/conversations?username=${user}`),
         api.get(`/favorites/${user}`),
         api.get(`/shortlist/${user}`),
         api.get(`/profile-views/${user}`),
