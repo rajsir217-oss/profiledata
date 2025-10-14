@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import api from "../api";
 import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector } from "./shared";
+import Logo from "./Logo";
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -630,7 +631,10 @@ const Register = () => {
 
   return (
     <div className="card p-4 shadow">
-      <h3>[Register Profile]</h3>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <Logo variant="modern" size="medium" showText={true} theme="light" />
+      </div>
+      <h3 className="text-center mb-3">Create Your Profile</h3>
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
       <form onSubmit={handleSubmit} encType="multipart/form-data">

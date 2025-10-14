@@ -4,6 +4,7 @@ import api from '../api';
 import socketService from '../services/socketService';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
+import Logo from './Logo';
 import { getDisplayName } from '../utils/userDisplay';
 import './TopBar.css';
 
@@ -16,7 +17,28 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState('light');
   const navigate = useNavigate();
+
+  // Detect current theme
+  useEffect(() => {
+    const detectTheme = () => {
+      const bodyClass = document.body.className;
+      if (bodyClass.includes('theme-dark')) {
+        setCurrentTheme('dark');
+      } else {
+        setCurrentTheme('light');
+      }
+    };
+
+    detectTheme();
+    
+    // Listen for theme changes
+    const observer = new MutationObserver(detectTheme);
+    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Check login status and load user profile
   useEffect(() => {
@@ -138,7 +160,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
               ☰
             </button>
-            <h4 className="app-title">Matrimonial Profile</h4>
+            <div className="app-logo" onClick={() => navigate('/')}>
+              <Logo variant="modern" size="small" showText={true} theme="navbar" />
+            </div>
           </div>
           <div className="top-bar-right">
             <button className="btn-login" onClick={handleLogin}>
@@ -157,7 +181,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">
             ☰
           </button>
-          <h4 className="app-title">Matrimonial Profile</h4>
+          <div className="app-logo" onClick={() => navigate('/dashboard')}>
+            <Logo variant="modern" size="small" showText={true} theme="navbar" />
+          </div>
           {onlineCount > 0 && (
             <div className="online-indicator">
               <span className="online-dot">🟢</span>

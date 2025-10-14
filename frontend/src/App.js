@@ -27,6 +27,7 @@ import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
 import L3V3LInfo from './components/L3V3LInfo';
 import L3V3LMatches from './components/L3V3LMatches';
+import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -169,6 +170,9 @@ function App() {
               
               {/* L3V3L Info page - accessible to all */}
               <Route path="/l3v3l-info" element={<L3V3LInfo />} />
+              
+              {/* Logo Showcase - for design review */}
+              <Route path="/logo-showcase" element={<LogoShowcase />} />
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

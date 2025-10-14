@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import socketService from "../services/socketService";
+import Logo from "./Logo";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -61,7 +62,10 @@ const Login = () => {
 
   return (
     <div className="card p-4 shadow" style={{ maxWidth: '400px', margin: '0 auto' }}>
-      <h3 className="text-center mb-4">Login</h3>
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <Logo variant="modern" size="medium" showText={true} theme="light" />
+      </div>
+      <h3 className="text-center mb-4">Welcome Back!</h3>
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
