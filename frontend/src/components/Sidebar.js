@@ -146,13 +146,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '📋', 
-        label: 'My Lists', 
-        subLabel: 'Favorites, Shortlist, Exclusions',
-        action: () => navigate('/my-lists'),
-        disabled: !isActive
-      },
-      { 
         icon: '🔒', 
         label: 'Privacy & Data', 
         subLabel: 'Manage PII access',
@@ -181,8 +174,15 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({
         icon: '👥',
         label: 'User Management',
-        subLabel: 'Roles & Permissions',
+        subLabel: 'Manage users',
         action: () => navigate('/user-management')
+      });
+      
+      items.push({
+        icon: '🎭',
+        label: 'Role Management',
+        subLabel: 'Roles & Permissions',
+        action: () => navigate('/role-management')
       });
       
       items.push({

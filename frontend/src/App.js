@@ -15,7 +15,6 @@ import TopBar from './components/TopBar';
 import Favorites from './components/Favorites';
 import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
-import MyLists from './components/MyLists';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
@@ -23,12 +22,14 @@ import Preferences from './components/Preferences';
 import PIIManagement from './components/PIIManagement';
 import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
+import RoleManagement from './components/RoleManagement';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
 import L3V3LInfo from './components/L3V3LInfo';
 import L3V3LMatches from './components/L3V3LMatches';
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
+import { Navigate } from 'react-router-dom';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CommunityGuidelines from './components/CommunityGuidelines';
@@ -186,7 +187,8 @@ function App() {
               <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
               <Route path="/shortlists" element={<ProtectedRoute><ShortLists /></ProtectedRoute>} />
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
-              <Route path="/my-lists" element={<ProtectedRoute><MyLists /></ProtectedRoute>} />
+              {/* MyLists removed - functionality merged into Dashboard */}
+              <Route path="/my-lists" element={<Navigate to="/dashboard" replace />} />
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />
               <Route path="/shortlist" element={<ProtectedRoute><Shortlist /></ProtectedRoute>} />
               <Route path="/exclusions" element={<ProtectedRoute><Exclusions /></ProtectedRoute>} />
@@ -194,6 +196,7 @@ function App() {
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
+              <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
             </Routes>
           </div>

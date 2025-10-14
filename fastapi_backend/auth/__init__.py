@@ -41,6 +41,7 @@ from .jwt_auth import (
 from .authorization import (
     PermissionChecker,
     RoleChecker,
+    LimitChecker,
     OwnershipChecker,
     require_permission,
     require_role,
@@ -84,6 +85,7 @@ __all__ = [
     # Authorization
     'PermissionChecker',
     'RoleChecker',
+    'LimitChecker',
     'OwnershipChecker',
     'require_permission',
     'require_role',

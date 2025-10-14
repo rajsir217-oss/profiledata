@@ -4,11 +4,12 @@ Role-Based Access Control (RBAC) Authorization System
 """
 
 from fastapi import HTTPException, status, Depends
-from typing import List, Callable
+from typing import List, Callable, Optional
 from functools import wraps
 from .jwt_auth import get_current_user_dependency
-from .security_config import DEFAULT_PERMISSIONS
+from .security_config import DEFAULT_PERMISSIONS, ROLE_HIERARCHY, ROLE_LIMITS
 import re
+from datetime import datetime
 
 class PermissionChecker:
     """Permission checking utilities"""
@@ -38,18 +39,53 @@ class PermissionChecker:
         return False
     
     @staticmethod
-    def get_user_permissions(user: dict) -> List[str]:
-        """Get all permissions for a user (role + custom)"""
+    def get_inherited_permissions(role_name: str) -> List[str]:
+        """Get all permissions including inherited ones"""
         permissions = []
         
-        # Get role permissions
-        role_name = user.get('role_name', 'free_user')
+        # Add own permissions
         role_permissions = DEFAULT_PERMISSIONS.get(role_name, [])
         permissions.extend(role_permissions)
+        
+        # Add inherited permissions from hierarchy
+        inherited_roles = ROLE_HIERARCHY.get(role_name, [])
+        for inherited_role in inherited_roles:
+            inherited_perms = DEFAULT_PERMISSIONS.get(inherited_role, [])
+            permissions.extend(inherited_perms)
+        
+        return list(set(permissions))  # Remove duplicates
+    
+    @staticmethod
+    def get_user_permissions(user: dict) -> List[str]:
+        """Get all permissions for a user (role + inherited + custom)"""
+        permissions = []
+        
+        # Get role permissions with inheritance
+        role_name = user.get('role_name', 'free_user')
+        permissions.extend(PermissionChecker.get_inherited_permissions(role_name))
         
         # Add custom permissions
         custom_permissions = user.get('custom_permissions', [])
         permissions.extend(custom_permissions)
+        
+        # Check for time-based permissions
+        time_based_perms = user.get('time_based_permissions', [])
+        for perm_entry in time_based_perms:
+            # Format: {"permission": "users.read", "expires_at": "2025-12-31T23:59:59"}
+            if isinstance(perm_entry, dict):
+                perm = perm_entry.get('permission')
+                expires_at = perm_entry.get('expires_at')
+                
+                # Check if not expired
+                if expires_at:
+                    try:
+                        expiry = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                        if datetime.utcnow() < expiry:
+                            permissions.append(perm)
+                    except (ValueError, AttributeError):
+                        pass  # Skip invalid entries
+                else:
+                    permissions.append(perm)  # No expiry
         
         return list(set(permissions))  # Remove duplicates
     
@@ -106,6 +142,73 @@ class RoleChecker:
     def is_premium_user(user: dict) -> bool:
         """Check if user is premium user or higher"""
         return RoleChecker.has_any_role(user, ['admin', 'moderator', 'premium_user'])
+    
+    @staticmethod
+    def get_role_hierarchy_level(role_name: str) -> int:
+        """Get hierarchy level (higher number = more privileges)"""
+        hierarchy = {
+            'admin': 4,
+            'moderator': 3,
+            'premium_user': 2,
+            'free_user': 1
+        }
+        return hierarchy.get(role_name, 0)
+    
+    @staticmethod
+    def is_higher_role(role1: str, role2: str) -> bool:
+        """Check if role1 has higher privileges than role2"""
+        return RoleChecker.get_role_hierarchy_level(role1) > RoleChecker.get_role_hierarchy_level(role2)
+
+class LimitChecker:
+    """Check role-based limits"""
+    
+    @staticmethod
+    def get_user_limit(user: dict, limit_name: str) -> Optional[int]:
+        """Get limit value for user's role (None = unlimited)"""
+        role_name = user.get('role_name', 'free_user')
+        role_limits = ROLE_LIMITS.get(role_name, {})
+        return role_limits.get(limit_name)
+    
+    @staticmethod
+    def check_limit(user: dict, limit_name: str, current_count: int) -> bool:
+        """Check if user has reached their limit"""
+        limit = LimitChecker.get_user_limit(user, limit_name)
+        
+        # None means unlimited
+        if limit is None:
+            return True
+        
+        # Check if under limit
+        return current_count < limit
+    
+    @staticmethod
+    def get_remaining(user: dict, limit_name: str, current_count: int) -> Optional[int]:
+        """Get remaining count before hitting limit (None = unlimited)"""
+        limit = LimitChecker.get_user_limit(user, limit_name)
+        
+        if limit is None:
+            return None  # Unlimited
+        
+        remaining = limit - current_count
+        return max(0, remaining)
+    
+    @staticmethod
+    def require_limit(user: dict, limit_name: str, current_count: int):
+        """Raise exception if limit exceeded"""
+        if not LimitChecker.check_limit(user, limit_name, current_count):
+            limit = LimitChecker.get_user_limit(user, limit_name)
+            role_name = user.get('role_name', 'free_user')
+            
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Limit exceeded. Your '{role_name}' role allows {limit} {limit_name}. Upgrade to premium for unlimited access."
+            )
+    
+    @staticmethod
+    def get_all_limits(user: dict) -> dict:
+        """Get all limits for user's role"""
+        role_name = user.get('role_name', 'free_user')
+        return ROLE_LIMITS.get(role_name, {})
 
 # ===== Authorization Dependencies =====
 

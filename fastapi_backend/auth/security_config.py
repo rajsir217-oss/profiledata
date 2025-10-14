@@ -118,6 +118,14 @@ def get_password_requirements() -> dict:
         "max_length": security_settings.PASSWORD_MAX_LENGTH
     }
 
+# ===== Role Hierarchy (Inheritance) =====
+ROLE_HIERARCHY = {
+    "admin": ["moderator", "premium_user", "free_user"],  # Admin inherits all
+    "moderator": ["premium_user", "free_user"],  # Moderator inherits premium + free
+    "premium_user": ["free_user"],  # Premium inherits free
+    "free_user": []  # Free user is base (no inheritance)
+}
+
 # ===== Default Permissions =====
 DEFAULT_PERMISSIONS = {
     "admin": [
@@ -162,6 +170,42 @@ DEFAULT_PERMISSIONS = {
         "favorites.read",
         "favorites.create"
     ]
+}
+
+# ===== Feature Limits by Role =====
+ROLE_LIMITS = {
+    "admin": {
+        "favorites_max": None,  # Unlimited
+        "shortlist_max": None,
+        "messages_per_day": None,
+        "profile_views_per_day": None,
+        "pii_requests_per_month": None,
+        "search_results_max": None
+    },
+    "moderator": {
+        "favorites_max": None,
+        "shortlist_max": None,
+        "messages_per_day": None,
+        "profile_views_per_day": None,
+        "pii_requests_per_month": None,
+        "search_results_max": None
+    },
+    "premium_user": {
+        "favorites_max": None,  # Unlimited
+        "shortlist_max": None,
+        "messages_per_day": None,
+        "profile_views_per_day": None,
+        "pii_requests_per_month": 10,
+        "search_results_max": 100
+    },
+    "free_user": {
+        "favorites_max": 10,
+        "shortlist_max": 5,
+        "messages_per_day": 5,
+        "profile_views_per_day": 20,
+        "pii_requests_per_month": 3,
+        "search_results_max": 20
+    }
 }
 
 # ===== Security Event Types =====

@@ -53,6 +53,48 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* Stat Capsules Container - Match logo height */
+.stat-capsules-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  max-height: 48px; /* Match logo container height */
+}
+
+/* Override stat capsule size in TopBar to be extra mini notification size */
+.stat-capsules-container .stat-capsule-small {
+  padding: 0.5px 3px !important;
+  font-size: 7px !important;
+  gap: 1px !important;
+  border-radius: 6px !important;
+  border-width: 0px !important;
+  min-height: 12px !important;
+  height: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(6px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.stat-capsules-container .stat-icon {
+  font-size: 7px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.stat-capsules-container .stat-count {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.4px !important;
+}
+
+/* Make the gap ultra compact in TopBar */
+.stat-capsules-container .stat-capsule-group.gap-compact {
+  gap: 2px !important;
+}
+
 /* Online Indicator */
 .online-indicator {
   display: flex;

@@ -5,6 +5,7 @@ import socketService from '../services/socketService';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
+import StatCapsuleGroup from './StatCapsuleGroup';
 import { getDisplayName } from '../utils/userDisplay';
 import './TopBar.css';
 
@@ -18,6 +19,11 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('light');
+  const [userStats, setUserStats] = useState({
+    views: 0,
+    likes: 0,
+    approvals: 0
+  });
   const navigate = useNavigate();
 
   // Detect current theme
@@ -53,6 +59,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
         try {
           const response = await api.get(`/profile/${username}?requester=${username}`);
           setUserProfile(response.data);
+          
+          // Load user stats for capsules
+          loadUserStats(username);
         } catch (error) {
           console.error('Error loading user profile:', error);
         }
@@ -152,6 +161,25 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     navigate('/test-dashboard');
   };
 
+  // Load user stats for capsules
+  const loadUserStats = async (username) => {
+    try {
+      // Fetch stats from various endpoints
+      const [viewsRes, favoritesRes] = await Promise.all([
+        api.get(`/profile-views/${username}`).catch(() => ({ data: { totalViews: 0 } })),
+        api.get(`/their-favorites/${username}`).catch(() => ({ data: { users: [] } }))
+      ]);
+
+      setUserStats({
+        views: viewsRes.data?.totalViews || 0,
+        likes: favoritesRes.data?.users?.length || 0,
+        approvals: 0 // Placeholder - can be connected to verification status
+      });
+    } catch (error) {
+      console.error('Error loading user stats:', error);
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -184,6 +212,21 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
             <Logo variant="modern" size="small" showText={true} theme="navbar" />
           </div>
+          
+          {/* Stat Capsules - Sized to fit logo height */}
+          <div className="stat-capsules-container">
+            <StatCapsuleGroup
+              stats={[
+                { icon: '👁️', count: userStats.views, variant: 'views', tooltip: 'Profile Views' },
+                { icon: '✓', count: userStats.approvals, variant: 'approvals', tooltip: 'Verified' },
+                { icon: '❤️', count: userStats.likes, variant: 'likes', tooltip: 'Favorites' }
+              ]}
+              direction="vertical"
+              size="small"
+              gap="compact"
+            />
+          </div>
+          
           {onlineCount > 0 && (
             <div className="online-indicator">
               <span className="online-dot">🟢</span>
