@@ -22,6 +22,7 @@ import Dashboard from './components/Dashboard';
 import Preferences from './components/Preferences';
 import PIIManagement from './components/PIIManagement';
 import UserManagement from './components/UserManagement';
+import ChangeAdminPassword from './components/ChangeAdminPassword';
 import { TestDashboard } from './test-dashboard';
 import ToastContainer from './components/ToastContainer';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -172,6 +173,7 @@ function App() {
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
+              <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
