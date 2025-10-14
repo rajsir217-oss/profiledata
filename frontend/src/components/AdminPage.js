@@ -361,25 +361,25 @@ const AdminPage = () => {
           <thead>
             <tr>
               <th onClick={() => handleSort('username')} style={{ cursor: 'pointer' }}>
-                Username {sortField === 'username' && (sortOrder === 'asc' ? '↑' : '↓')}
+                USERNAME {sortField === 'username' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('firstName')} style={{ cursor: 'pointer' }}>
-                Name {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                NAME {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>Age</th>
-              <th>Days Active</th>
+              <th>AGE</th>
+              <th>DAYS ACTIVE</th>
               <th onClick={() => handleSort('contactEmail')} style={{ cursor: 'pointer' }}>
-                Email {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
+                EMAIL {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>Contact</th>
-              <th>Sex</th>
-              <th>Location</th>
-              <th>Working</th>
-              <th>Images</th>
-              <th>Msgs Sent</th>
-              <th>Msgs Rcvd</th>
-              <th>Pending</th>
-              <th className="text-center">Actions</th>
+              <th>CONTACT</th>
+              <th>SEX</th>
+              <th>LOCATION</th>
+              <th>WORKING</th>
+              <th>IMAGES</th>
+              <th>MSGS SENT</th>
+              <th>MSGS RCVD</th>
+              <th>PENDING</th>
+              <th className="text-center">ACTIONS</th>
             </tr>
           </thead>
           <tbody>

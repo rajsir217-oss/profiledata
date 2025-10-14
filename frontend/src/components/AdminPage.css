@@ -75,8 +75,12 @@
 }
 
 .admin-table thead {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+.admin-table thead tr {
+  background: var(--primary-color) !important;
 }
 
 .admin-table thead th {
@@ -84,6 +88,8 @@
   font-weight: 600;
   border: none;
   white-space: nowrap;
+  background: var(--primary-color) !important;
+  color: white !important;
 }
 
 .admin-table thead th:hover {
@@ -777,4 +783,70 @@
     border-color: #6b7280 !important;
     color: #f9fafb !important;
   }
+}
+
+/* Theme-aware table headers */
+.theme-light .admin-table thead {
+  background: #6366f1 !important;
+}
+
+.theme-light .admin-table thead tr {
+  background: #6366f1 !important;
+}
+
+.theme-light .admin-table thead th {
+  background: #6366f1 !important;
+  color: #ffffff !important;
+}
+
+.theme-dark .admin-table thead {
+  background: #7c3aed !important;
+}
+
+.theme-dark .admin-table thead tr {
+  background: #7c3aed !important;
+}
+
+.theme-dark .admin-table thead th {
+  background: #7c3aed !important;
+  color: #ffffff !important;
+}
+
+.theme-light-pink .admin-table thead {
+  background: #ec4899 !important;
+}
+
+.theme-light-pink .admin-table thead tr {
+  background: #ec4899 !important;
+}
+
+.theme-light-pink .admin-table thead th {
+  background: #ec4899 !important;
+  color: #ffffff !important;
+}
+
+.theme-light-gray .admin-table thead {
+  background: #64748b !important;
+}
+
+.theme-light-gray .admin-table thead tr {
+  background: #64748b !important;
+}
+
+.theme-light-gray .admin-table thead th {
+  background: #64748b !important;
+  color: #ffffff !important;
+}
+
+.theme-ultra-light-gray .admin-table thead {
+  background: #475569 !important;
+}
+
+.theme-ultra-light-gray .admin-table thead tr {
+  background: #475569 !important;
+}
+
+.theme-ultra-light-gray .admin-table thead th {
+  background: #475569 !important;
+  color: #ffffff !important;
 }
