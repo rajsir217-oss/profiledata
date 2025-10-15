@@ -1815,6 +1815,122 @@ async def remove_from_exclusions(
 
 # ===== MESSAGING SYSTEM =====
 
+# IMPORTANT: Specific routes MUST come before generic /{username} routes!
+# Otherwise /messages/conversations matches /messages/{username} first
+
+@router.get("/messages/conversations")
+async def get_conversations_enhanced(
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Get list of all conversations with privacy checks"""
+    logger.info(f"💬 ========== GET /messages/conversations called for username={username} ==========")
+    
+    # Check if current user is admin
+    current_user = await db.users.find_one({"username": username})
+    is_admin = current_user and current_user.get("username") == "admin"
+    
+    try:
+        # Get unique conversations
+        # For non-admin users, filter out explicitly hidden messages (isVisible=False)
+        # But include messages where isVisible is True, null, or doesn't exist (old messages)
+        if not is_admin:
+            match_stage = {
+                "$and": [
+                    {"$or": [
+                        {"fromUsername": username},
+                        {"toUsername": username}
+                    ]},
+                    {"$or": [
+                        {"isVisible": {"$ne": False}},  # Include True, null, undefined
+                        {"isVisible": {"$exists": False}}  # Include old messages without field
+                    ]}
+                ]
+            }
+        else:
+            # Admin sees all messages
+            match_stage = {
+                "$or": [
+                    {"fromUsername": username},
+                    {"toUsername": username}
+                ]
+            }
+        
+        pipeline = [
+            {"$match": match_stage},
+            {
+                "$group": {
+                    "_id": {
+                        "$cond": [
+                            {"$eq": ["$fromUsername", username]},
+                            "$toUsername",
+                            "$fromUsername"
+                        ]
+                    },
+                    "lastMessage": {"$last": "$$ROOT"},
+                    "unreadCount": {
+                        "$sum": {
+                            "$cond": [
+                                {"$and": [
+                                    {"$eq": ["$toUsername", username]},
+                                    {"$eq": ["$isRead", False]}
+                                ]},
+                                1,
+                                0
+                            ]
+                        }
+                    }
+                }
+            },
+            {"$sort": {"lastMessage.createdAt": -1}}
+        ]
+        
+        conversations = await db.messages.aggregate(pipeline).to_list(100)
+        
+        # Get user details and check visibility
+        result = []
+        for conv in conversations:
+            other_username = conv["_id"]
+            
+            # Check visibility
+            is_visible = await check_message_visibility(username, other_username, db)
+            if not is_visible and not is_admin:
+                logger.info(f"⚠️ Skipping conversation with {other_username} - not visible")
+                continue
+            
+            user = await db.users.find_one({"username": other_username})
+            if not user:
+                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found in database")
+                continue
+            
+            # Build user profile
+            user.pop("password", None)
+            user["_id"] = str(user["_id"])
+            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            
+            # Serialize datetime
+            last_msg_time = conv["lastMessage"]["createdAt"]
+            if isinstance(last_msg_time, datetime):
+                last_msg_time = last_msg_time.isoformat()
+            
+            conv_data = {
+                "username": other_username,
+                "userProfile": user,
+                "lastMessage": conv["lastMessage"].get("content", ""),
+                "lastMessageTime": last_msg_time,
+                "unreadCount": conv["unreadCount"],
+                "isVisible": is_visible
+            }
+            result.append(conv_data)
+        
+        logger.info(f"✅ ========== Returning {len(result)} conversations for {username} ==========")
+        response = {"conversations": result}
+        logger.info(f"Response keys: {list(response.keys())}")
+        return response
+    except Exception as e:
+        logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/messages/poll/{username}")
 async def poll_messages(
     username: str,
@@ -2387,118 +2503,8 @@ async def get_conversation(
         logger.error(f"❌ Error fetching conversation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/messages/conversations")
-async def get_conversations_enhanced(
-    username: str = Query(...),
-    db = Depends(get_database)
-):
-    """Get list of all conversations with privacy checks"""
-    logger.info(f"💬 ========== GET /messages/conversations called for username={username} ==========")
-    
-    # Check if current user is admin
-    current_user = await db.users.find_one({"username": username})
-    is_admin = current_user and current_user.get("username") == "admin"
-    
-    try:
-        # Get unique conversations
-        # For non-admin users, filter out explicitly hidden messages (isVisible=False)
-        # But include messages where isVisible is True, null, or doesn't exist (old messages)
-        if not is_admin:
-            match_stage = {
-                "$and": [
-                    {"$or": [
-                        {"fromUsername": username},
-                        {"toUsername": username}
-                    ]},
-                    {"$or": [
-                        {"isVisible": {"$ne": False}},  # Include True, null, undefined
-                        {"isVisible": {"$exists": False}}  # Include old messages without field
-                    ]}
-                ]
-            }
-        else:
-            # Admin sees all messages
-            match_stage = {
-                "$or": [
-                    {"fromUsername": username},
-                    {"toUsername": username}
-                ]
-            }
-        
-        pipeline = [
-            {"$match": match_stage},
-            {
-                "$group": {
-                    "_id": {
-                        "$cond": [
-                            {"$eq": ["$fromUsername", username]},
-                            "$toUsername",
-                            "$fromUsername"
-                        ]
-                    },
-                    "lastMessage": {"$last": "$$ROOT"},
-                    "unreadCount": {
-                        "$sum": {
-                            "$cond": [
-                                {"$and": [
-                                    {"$eq": ["$toUsername", username]},
-                                    {"$eq": ["$isRead", False]}
-                                ]},
-                                1,
-                                0
-                            ]
-                        }
-                    }
-                }
-            },
-            {"$sort": {"lastMessage.createdAt": -1}}
-        ]
-        
-        conversations = await db.messages.aggregate(pipeline).to_list(100)
-        
-        # Get user details and check visibility
-        result = []
-        for conv in conversations:
-            other_username = conv["_id"]
-            
-            # Check visibility
-            is_visible = await check_message_visibility(username, other_username, db)
-            if not is_visible and not is_admin:
-                logger.info(f"⚠️ Skipping conversation with {other_username} - not visible")
-                continue
-            
-            user = await db.users.find_one({"username": other_username})
-            if not user:
-                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found in database")
-                continue
-            
-            # Build user profile
-            user.pop("password", None)
-            user["_id"] = str(user["_id"])
-            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
-            
-            # Serialize datetime
-            last_msg_time = conv["lastMessage"]["createdAt"]
-            if isinstance(last_msg_time, datetime):
-                last_msg_time = last_msg_time.isoformat()
-            
-            conv_data = {
-                "username": other_username,
-                "userProfile": user,
-                "lastMessage": conv["lastMessage"].get("content", ""),
-                "lastMessageTime": last_msg_time,
-                "unreadCount": conv["unreadCount"],
-                "isVisible": is_visible
-            }
-            result.append(conv_data)
-        
-        logger.info(f"✅ ========== Returning {len(result)} conversations for {username} ==========")
-        response = {"conversations": result}
-        logger.info(f"Response keys: {list(response.keys())}")
-        return response
-    except Exception as e:
-        logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+# NOTE: /messages/conversations endpoint has been moved to line 1821 
+# to ensure it matches BEFORE /messages/{username} generic route
 
 @router.delete("/shortlist/{target_username}")
 async def remove_from_shortlist(target_username: str, username: str = Query(...), db = Depends(get_database)):
