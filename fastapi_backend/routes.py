@@ -65,18 +65,29 @@ def safe_datetime_serialize(dt):
 
 # Helper function to remove consent metadata from user objects
 def remove_consent_metadata(user_dict):
-    """
-    Remove consent-related fields from user dictionary.
-    These are backend-only fields for legal/audit purposes and should not be exposed in API responses.
-    """
+    """Remove consent-related metadata fields (backend-only, not shown to frontend)"""
     consent_fields = [
-        "agreedToAge", "agreedToTerms", "agreedToPrivacy", 
-        "agreedToGuidelines", "agreedToDataProcessing", "agreedToMarketing",
-        "termsAgreedAt", "privacyAgreedAt", "consentIpAddress", "consentUserAgent"
+        "agreedToAge", "agreedToTerms", "agreedToPrivacy", "agreedToGuidelines",
+        "agreedToDataProcessing", "agreedToMarketing",
+        "termsAgreedAt", "privacyAgreedAt",
+        "consentIpAddress", "consentUserAgent"
     ]
     for field in consent_fields:
         user_dict.pop(field, None)
     return user_dict
+
+def parse_height_to_inches(height_str):
+    """Convert height string '5'8"' or '5 ft 8 in' to total inches"""
+    if not height_str:
+        return None
+    import re
+    # Match formats: "5'8"" or "5 ft 8 in" or "5'8\""
+    match = re.match(r"(\d+)['\s]+(ft\s+)?(\d+)[\"\s]*(in)?", str(height_str))
+    if match:
+        feet = int(match.group(1))
+        inches = int(match.group(3))
+        return feet * 12 + inches
+    return None
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
@@ -272,6 +283,7 @@ async def register_user(
         "dateOfBirth": dateOfBirth,  # Renamed from dob
         "gender": gender,  # Renamed from sex
         "height": height,
+        "heightInches": parse_height_to_inches(height),  # Numeric for searching
         # Preferences & Cultural Information
         "religion": religion,
         "languagesSpoken": json.loads(languagesSpoken) if languagesSpoken else [],
@@ -599,6 +611,7 @@ async def update_user_profile(
     
     if height is not None and height.strip():
         update_data["height"] = height.strip()
+        update_data["heightInches"] = parse_height_to_inches(height.strip())  # Numeric for searching
     
     # Regional/Cultural fields
     if religion is not None and religion.strip():
@@ -1170,30 +1183,33 @@ async def search_users(
     if gender:
         query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
 
-    # Age filter
+    # Age filter - Calculate DOB range from age range
+    # Note: Older age = earlier DOB, Younger age = later DOB
     if ageMin > 0 or ageMax > 0:
         from datetime import datetime, timedelta
         now = datetime.now()
 
+        # ageMax (younger) → person born MORE RECENTLY → DOB >= max_date
         if ageMax > 0:
             max_date = now - timedelta(days=ageMax * 365.25)
-            query["dob"] = {"$lte": max_date.strftime("%Y-%m-%d")}
+            query["dob"] = {"$gte": max_date.strftime("%Y-%m-%d")}
 
+        # ageMin (older) → person born LONGER AGO → DOB <= min_date
         if ageMin > 0:
             min_date = now - timedelta(days=ageMin * 365.25)
             if "dob" in query:
-                query["dob"]["$gte"] = min_date.strftime("%Y-%m-%d")
+                query["dob"]["$lte"] = min_date.strftime("%Y-%m-%d")
             else:
-                query["dob"] = {"$gte": min_date.strftime("%Y-%m-%d")}
+                query["dob"] = {"$lte": min_date.strftime("%Y-%m-%d")}
 
-    # Height filter
+    # Height filter - now using heightInches (numeric field)
     if heightMin > 0 or heightMax > 0:
         height_query = {}
         if heightMin > 0:
             height_query["$gte"] = heightMin
         if heightMax > 0:
             height_query["$lte"] = heightMax
-        query["height"] = height_query
+        query["heightInches"] = height_query
 
     # Other filters
     if location:
@@ -2264,6 +2280,51 @@ async def send_message_enhanced(
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/violations/{username}")
+async def get_user_violations(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get user's content violation count and status"""
+    logger.info(f"📊 Getting violation info for user '{username}'")
+    
+    # Count violations
+    violation_count = await db.content_violations.count_documents({
+        "username": username,
+        "type": "message_profanity"
+    })
+    
+    # Get user status
+    user = await db.users.find_one({"username": username})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    status = user.get("status", {})
+    account_status = status.get("status", "active")
+    
+    # Determine warning level
+    warning_level = "none"
+    warning_message = ""
+    
+    if violation_count >= 3:
+        warning_level = "banned"
+        warning_message = "Account banned due to repeated violations"
+    elif violation_count == 2:
+        warning_level = "suspended"
+        warning_message = f"Strike 2 of 3: Account suspended. Final warning before permanent ban."
+    elif violation_count == 1:
+        warning_level = "warning"
+        warning_message = f"Strike 1 of 3: Warning issued. Please maintain professional communication."
+    
+    return {
+        "username": username,
+        "violationCount": violation_count,
+        "warningLevel": warning_level,
+        "warningMessage": warning_message,
+        "accountStatus": account_status,
+        "suspendedUntil": status.get("until") if account_status == "suspended" else None
+    }
+
 @router.get("/messages/conversation/{other_username}")
 async def get_conversation(
     other_username: str,
@@ -2332,7 +2393,7 @@ async def get_conversations_enhanced(
     db = Depends(get_database)
 ):
     """Get list of all conversations with privacy checks"""
-    logger.info(f"💬 Getting conversations for {username}")
+    logger.info(f"💬 ========== GET /messages/conversations called for username={username} ==========")
     
     # Check if current user is admin
     current_user = await db.users.find_one({"username": username})
@@ -2340,16 +2401,32 @@ async def get_conversations_enhanced(
     
     try:
         # Get unique conversations
-        pipeline = [
-            {
-                "$match": {
-                    "$or": [
+        # For non-admin users, filter out explicitly hidden messages (isVisible=False)
+        # But include messages where isVisible is True, null, or doesn't exist (old messages)
+        if not is_admin:
+            match_stage = {
+                "$and": [
+                    {"$or": [
                         {"fromUsername": username},
                         {"toUsername": username}
-                    ],
-                    "isVisible": True if not is_admin else {"$in": [True, False]}
-                }
-            },
+                    ]},
+                    {"$or": [
+                        {"isVisible": {"$ne": False}},  # Include True, null, undefined
+                        {"isVisible": {"$exists": False}}  # Include old messages without field
+                    ]}
+                ]
+            }
+        else:
+            # Admin sees all messages
+            match_stage = {
+                "$or": [
+                    {"fromUsername": username},
+                    {"toUsername": username}
+                ]
+            }
+        
+        pipeline = [
+            {"$match": match_stage},
             {
                 "$group": {
                     "_id": {
@@ -2387,31 +2464,38 @@ async def get_conversations_enhanced(
             # Check visibility
             is_visible = await check_message_visibility(username, other_username, db)
             if not is_visible and not is_admin:
+                logger.info(f"⚠️ Skipping conversation with {other_username} - not visible")
                 continue
             
             user = await db.users.find_one({"username": other_username})
-            if user:
-                user.pop("password", None)
-                user["_id"] = str(user["_id"])
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
-                
-                # Serialize datetime
-                last_msg_time = conv["lastMessage"]["createdAt"]
-                if isinstance(last_msg_time, datetime):
-                    last_msg_time = last_msg_time.isoformat()
-                
-                conv_data = {
-                    "username": other_username,
-                    "userProfile": user,
-                    "lastMessage": conv["lastMessage"].get("content", ""),
-                    "lastMessageTime": last_msg_time,
-                    "unreadCount": conv["unreadCount"],
-                    "isVisible": is_visible
-                }
-                result.append(conv_data)
+            if not user:
+                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found in database")
+                continue
+            
+            # Build user profile
+            user.pop("password", None)
+            user["_id"] = str(user["_id"])
+            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            
+            # Serialize datetime
+            last_msg_time = conv["lastMessage"]["createdAt"]
+            if isinstance(last_msg_time, datetime):
+                last_msg_time = last_msg_time.isoformat()
+            
+            conv_data = {
+                "username": other_username,
+                "userProfile": user,
+                "lastMessage": conv["lastMessage"].get("content", ""),
+                "lastMessageTime": last_msg_time,
+                "unreadCount": conv["unreadCount"],
+                "isVisible": is_visible
+            }
+            result.append(conv_data)
         
-        logger.info(f"✅ Found {len(result)} conversations for {username}")
-        return {"conversations": result}
+        logger.info(f"✅ ========== Returning {len(result)} conversations for {username} ==========")
+        response = {"conversations": result}
+        logger.info(f"Response keys: {list(response.keys())}")
+        return response
     except Exception as e:
         logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

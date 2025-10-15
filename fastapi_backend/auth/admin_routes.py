@@ -171,6 +171,14 @@ async def manage_user(
         if action == "activate":
             update_data["status.status"] = USER_STATUS["ACTIVE"]
             event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
+            
+            # Clear all content violations when reactivating user
+            violation_result = await db.content_violations.delete_many({
+                "username": username,
+                "type": "message_profanity"
+            })
+            if violation_result.deleted_count > 0:
+                logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during activation")
         
         elif action == "deactivate":
             update_data["status.status"] = USER_STATUS["INACTIVE"]
@@ -361,6 +369,15 @@ async def update_user_status(
             "last_updated": datetime.utcnow().isoformat(),
             "updated_by": current_user.get("username")
         }
+        
+        # If changing to active from suspended/banned, clear violations
+        if request.status == 'active' and old_status_value in ['suspended', 'banned']:
+            violation_result = await db.content_violations.delete_many({
+                "username": username,
+                "type": "message_profanity"
+            })
+            if violation_result.deleted_count > 0:
+                logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during status change to active")
         
         # Update user status
         result = await db.users.update_one(
