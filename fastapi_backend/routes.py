@@ -15,7 +15,8 @@ from models import (
     Favorite, Shortlist, Exclusion, Message, MessageCreate,
     ProfileView, ProfileViewCreate, PIIRequest, PIIRequestCreate,
     PIIRequestResponse, PIIAccess, PIIAccessCreate,
-    UserPreferencesUpdate, UserPreferencesResponse
+    UserPreferencesUpdate, UserPreferencesResponse,
+    TestimonialCreate, TestimonialResponse
 )
 from database import get_database
 from auth.password_utils import PasswordManager
@@ -3522,6 +3523,283 @@ async def refresh_user_online(username: str):
     redis = get_redis_manager()
     success = redis.refresh_user_online(username)
     return {"username": username, "refreshed": success}
+
+# ==================== ROLE CONFIGURATION ====================
+
+@router.get("/roles/config")
+async def get_role_config(db = Depends(get_database)):
+    """Get role configuration (limits, permissions)"""
+    logger.info("📋 Getting role configuration")
+    
+    try:
+        # Get from database or return defaults
+        config = await db.role_config.find_one({"_id": "default"})
+        
+        if not config:
+            # Return default configuration
+            default_config = {
+                "limits": {
+                    "admin": {
+                        "favorites_max": -1,
+                        "shortlist_max": -1,
+                        "messages_per_day": -1,
+                        "profile_views_per_day": -1,
+                        "pii_requests_per_month": -1,
+                        "search_results_max": -1
+                    },
+                    "moderator": {
+                        "favorites_max": 50,
+                        "shortlist_max": 30,
+                        "messages_per_day": 100,
+                        "profile_views_per_day": 50,
+                        "pii_requests_per_month": 20,
+                        "search_results_max": 100
+                    },
+                    "premium_user": {
+                        "favorites_max": 30,
+                        "shortlist_max": 20,
+                        "messages_per_day": 50,
+                        "profile_views_per_day": 30,
+                        "pii_requests_per_month": 10,
+                        "search_results_max": 50
+                    },
+                    "free_user": {
+                        "favorites_max": 10,
+                        "shortlist_max": 5,
+                        "messages_per_day": 5,
+                        "profile_views_per_day": 20,
+                        "pii_requests_per_month": 3,
+                        "search_results_max": 20
+                    }
+                }
+            }
+            logger.info("✅ Returning default role configuration")
+            return default_config
+        
+        # Remove MongoDB _id from response
+        config.pop("_id", None)
+        logger.info("✅ Returning stored role configuration")
+        return config
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching role config: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/roles/config")
+async def update_role_config(
+    config: Dict[str, Any],
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Update role configuration (admin only)"""
+    logger.info(f"🔄 Updating role configuration by {username}")
+    
+    try:
+        # Check if user is admin
+        user = await db.users.find_one({"username": username})
+        if not user or username != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Validate config structure
+        if "limits" not in config:
+            raise HTTPException(status_code=400, detail="Config must contain 'limits' key")
+        
+        required_roles = ["admin", "moderator", "premium_user", "free_user"]
+        for role in required_roles:
+            if role not in config["limits"]:
+                raise HTTPException(status_code=400, detail=f"Missing limits for role: {role}")
+        
+        # Save to database
+        config["_id"] = "default"
+        config["updatedAt"] = datetime.utcnow()
+        config["updatedBy"] = username
+        
+        await db.role_config.replace_one(
+            {"_id": "default"},
+            config,
+            upsert=True
+        )
+        
+        logger.info(f"✅ Role configuration updated by {username}")
+        return {"message": "Role configuration updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating role config: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== TESTIMONIALS ====================
+
+@router.post("/testimonials")
+async def create_testimonial(
+    testimonial: TestimonialCreate,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Submit a new testimonial"""
+    logger.info(f"📝 Creating testimonial from {username}")
+    
+    try:
+        # Get user info
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Create testimonial document
+        testimonial_doc = {
+            "username": username,
+            "content": testimonial.content,
+            "rating": testimonial.rating or 5,
+            "isAnonymous": testimonial.isAnonymous or False,
+            "status": "pending",  # Admin approval required
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        
+        result = await db.testimonials.insert_one(testimonial_doc)
+        
+        logger.info(f"✅ Testimonial created: {result.inserted_id}")
+        return {
+            "message": "Testimonial submitted successfully! It will be visible after admin approval.",
+            "id": str(result.inserted_id)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error creating testimonial: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/testimonials")
+async def get_testimonials(
+    status: str = Query("approved", description="Filter by status: approved, pending, all"),
+    limit: int = Query(50, ge=1, le=100),
+    db = Depends(get_database)
+):
+    """Get testimonials (approved ones for public, all for admin)"""
+    logger.info(f"📋 Getting testimonials with status={status}")
+    
+    try:
+        # Build query
+        query = {}
+        if status != "all":
+            query["status"] = status
+        
+        # Get testimonials
+        testimonials_cursor = db.testimonials.find(query).sort("createdAt", -1).limit(limit)
+        testimonials = await testimonials_cursor.to_list(limit)
+        
+        # Format response
+        result = []
+        for t in testimonials:
+            # Get user info
+            user = await db.users.find_one({"username": t["username"]})
+            
+            if t.get("isAnonymous"):
+                display_name = "Anonymous User"
+                avatar = None
+            elif user:
+                display_name = f"{user.get('firstName', '')} {user.get('lastName', '')}".strip() or user["username"]
+                avatar = get_full_image_url(user.get("images", [None])[0]) if user.get("images") else None
+            else:
+                display_name = "Unknown User"
+                avatar = None
+            
+            result.append({
+                "id": str(t["_id"]),
+                "username": t["username"] if not t.get("isAnonymous") else "anonymous",
+                "displayName": display_name,
+                "avatar": avatar,
+                "content": t["content"],
+                "rating": t.get("rating", 5),
+                "isAnonymous": t.get("isAnonymous", False),
+                "status": t["status"],
+                "createdAt": t["createdAt"].isoformat() if isinstance(t["createdAt"], datetime) else t["createdAt"]
+            })
+        
+        logger.info(f"✅ Found {len(result)} testimonials")
+        return {"testimonials": result, "count": len(result)}
+    except Exception as e:
+        logger.error(f"❌ Error fetching testimonials: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/testimonials/{testimonial_id}/status")
+async def update_testimonial_status(
+    testimonial_id: str,
+    status: str = Query(..., description="New status: approved, rejected"),
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Update testimonial status (admin only)"""
+    logger.info(f"🔄 Updating testimonial {testimonial_id} status to {status}")
+    
+    try:
+        # Check if user is admin
+        user = await db.users.find_one({"username": username})
+        if not user or username != "admin":
+            raise HTTPException(status_code=403, detail="Admin access required")
+        
+        # Validate status
+        if status not in ["approved", "rejected", "pending"]:
+            raise HTTPException(status_code=400, detail="Invalid status")
+        
+        # Update testimonial
+        from bson import ObjectId
+        result = await db.testimonials.update_one(
+            {"_id": ObjectId(testimonial_id)},
+            {
+                "$set": {
+                    "status": status,
+                    "updatedAt": datetime.utcnow(),
+                    "updatedBy": username
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Testimonial not found")
+        
+        logger.info(f"✅ Testimonial {testimonial_id} status updated to {status}")
+        return {"message": f"Testimonial {status} successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating testimonial status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/testimonials/{testimonial_id}")
+async def delete_testimonial(
+    testimonial_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Delete testimonial (user can delete own, admin can delete any)"""
+    logger.info(f"🗑️ Deleting testimonial {testimonial_id}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Get testimonial
+        testimonial = await db.testimonials.find_one({"_id": ObjectId(testimonial_id)})
+        if not testimonial:
+            raise HTTPException(status_code=404, detail="Testimonial not found")
+        
+        # Check permissions
+        user = await db.users.find_one({"username": username})
+        is_admin = user and username == "admin"
+        is_owner = testimonial["username"] == username
+        
+        if not (is_admin or is_owner):
+            raise HTTPException(status_code=403, detail="Not authorized to delete this testimonial")
+        
+        # Delete
+        await db.testimonials.delete_one({"_id": ObjectId(testimonial_id)})
+        
+        logger.info(f"✅ Testimonial {testimonial_id} deleted")
+        return {"message": "Testimonial deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting testimonial: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== SSE Real-time Messaging Endpoints ====================
 

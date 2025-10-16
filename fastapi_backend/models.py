@@ -369,3 +369,27 @@ class UserPreferencesUpdate(BaseModel):
 
 class UserPreferencesResponse(BaseModel):
     themePreference: str
+
+# ===== TESTIMONIALS =====
+
+class TestimonialCreate(BaseModel):
+    """Model for creating a new testimonial"""
+    content: str = Field(..., min_length=10, max_length=500)
+    rating: Optional[int] = Field(5, ge=1, le=5)
+    isAnonymous: Optional[bool] = False
+
+class TestimonialResponse(BaseModel):
+    """Model for testimonial response"""
+    id: str
+    username: str
+    displayName: str  # Either real name or "Anonymous User"
+    avatar: Optional[str] = None
+    content: str
+    rating: int
+    isAnonymous: bool
+    status: str  # pending, approved, rejected
+    createdAt: datetime
+    
+    class Config:
+        populate_by_name = True
+        json_encoders = {datetime: lambda v: v.isoformat()}
