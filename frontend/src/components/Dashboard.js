@@ -58,6 +58,8 @@ const Dashboard = () => {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [dragSection, setDragSection] = useState(null);
+  const [draggedUser, setDraggedUser] = useState(null);
+  const [dropTargetSection, setDropTargetSection] = useState(null);
 
   useEffect(() => {
     const currentUser = localStorage.getItem('username');
@@ -281,7 +283,14 @@ const Dashboard = () => {
   const handleDragStart = (e, index, section) => {
     setDraggedIndex(index);
     setDragSection(section);
+    
+    // Store the dragged user data for cross-category moves
+    const sectionKey = getSectionDataKey(section);
+    const userData = dashboardData[sectionKey][index];
+    setDraggedUser(userData);
+    
     e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', section); // Store source section
     e.currentTarget.style.opacity = '0.5';
   };
 
@@ -290,6 +299,8 @@ const Dashboard = () => {
     setDraggedIndex(null);
     setDragOverIndex(null);
     setDragSection(null);
+    setDraggedUser(null);
+    setDropTargetSection(null);
   };
 
   const handleDragOver = (e, index) => {
@@ -300,39 +311,50 @@ const Dashboard = () => {
     }
   };
 
-  const handleDrop = async (e, dropIndex, section) => {
+  const handleDrop = async (e, dropIndex, targetSection) => {
     e.preventDefault();
     
-    if (draggedIndex === null || draggedIndex === dropIndex || dragSection !== section) {
+    if (draggedIndex === null || !draggedUser || !dragSection) {
       return;
     }
 
-    // Get current section data
-    const sectionKey = getSectionDataKey(section);
-    let currentData = [...dashboardData[sectionKey]];
-    
-    // Reorder the array
-    const draggedItem = currentData[draggedIndex];
-    currentData.splice(draggedIndex, 1);
-    currentData.splice(dropIndex, 0, draggedItem);
+    const sourceSection = dragSection;
+    const username = typeof draggedUser === 'string' ? draggedUser : draggedUser.username;
 
-    // Update state immediately
-    setDashboardData(prev => ({
-      ...prev,
-      [sectionKey]: currentData
-    }));
-    setDragOverIndex(null);
+    // Case 1: Same section - just reorder
+    if (sourceSection === targetSection) {
+      if (draggedIndex === dropIndex) return;
 
-    // Save order to backend
-    try {
-      const endpoint = getReorderEndpoint(section);
-      const order = currentData.map(item => 
-        typeof item === 'string' ? item : item.username
-      );
+      const sectionKey = getSectionDataKey(targetSection);
+      let currentData = [...dashboardData[sectionKey]];
       
-      await api.put(endpoint, order);
-    } catch (err) {
-      console.error('Error saving order:', err);
+      // Reorder the array
+      const draggedItem = currentData[draggedIndex];
+      currentData.splice(draggedIndex, 1);
+      currentData.splice(dropIndex, 0, draggedItem);
+
+      // Update state immediately
+      setDashboardData(prev => ({
+        ...prev,
+        [sectionKey]: currentData
+      }));
+      setDragOverIndex(null);
+
+      // Save order to backend
+      try {
+        const endpoint = getReorderEndpoint(targetSection);
+        const order = currentData.map(item => 
+          typeof item === 'string' ? item : item.username
+        );
+        
+        await api.put(endpoint, order);
+      } catch (err) {
+        console.error('Error saving order:', err);
+      }
+    }
+    // Case 2: Different section - move between categories
+    else {
+      await handleCrossCategoryMove(username, sourceSection, targetSection);
     }
   };
 
@@ -352,6 +374,54 @@ const Dashboard = () => {
       'myExclusions': `/exclusions/${currentUser}/reorder`
     };
     return mapping[section] || '';
+  };
+
+  // Handle cross-category drag & drop moves
+  const handleCrossCategoryMove = async (username, sourceSection, targetSection) => {
+    try {
+      console.log(`Moving ${username} from ${sourceSection} to ${targetSection}`);
+
+      // Define API operations for each section
+      const addOperations = {
+        'myFavorites': () => api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myShortlists': () => api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myExclusions': () => api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`)
+      };
+
+      const removeOperations = {
+        'myFavorites': () => api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myShortlists': () => api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myExclusions': () => api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`)
+      };
+
+      // Remove from source
+      if (removeOperations[sourceSection]) {
+        await removeOperations[sourceSection]();
+      }
+
+      // Add to target
+      if (addOperations[targetSection]) {
+        await addOperations[targetSection]();
+      }
+
+      // Update local state - remove from source
+      const sourceSectionKey = getSectionDataKey(sourceSection);
+      setDashboardData(prev => ({
+        ...prev,
+        [sourceSectionKey]: prev[sourceSectionKey].filter(item => {
+          const itemUsername = typeof item === 'string' ? item : item.username;
+          return itemUsername !== username;
+        })
+      }));
+
+      // Add to target (fetch fresh data to maintain consistency)
+      await loadDashboardData();
+
+      console.log(`Successfully moved ${username} from ${sourceSection} to ${targetSection}`);
+    } catch (err) {
+      console.error('Error moving between categories:', err);
+      alert(`Failed to move user: ${err.response?.data?.detail || err.message}`);
+    }
   };
 
   // Render user card using new UserCard component

@@ -179,6 +179,39 @@ const L3V3LMatches = () => {
       } else {
         await api.post(`/exclusions/${user.username}?username=${currentUsername}`);
         setExcludedUsers(prev => new Set(prev).add(user.username));
+        
+        // Auto-remove from favorites and shortlist when excluding
+        const wasInFavorites = favoritedUsers.has(user.username);
+        const wasInShortlist = shortlistedUsers.has(user.username);
+        
+        if (wasInFavorites) {
+          try {
+            await api.delete(`/favorites/${user.username}?username=${currentUsername}`);
+            setFavoritedUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(user.username);
+              return newSet;
+            });
+            console.log(`Auto-removed ${user.username} from favorites when excluding`);
+          } catch (err) {
+            console.error('Error removing from favorites during exclude:', err);
+          }
+        }
+        
+        if (wasInShortlist) {
+          try {
+            await api.delete(`/shortlist/${user.username}?username=${currentUsername}`);
+            setShortlistedUsers(prev => {
+              const newSet = new Set(prev);
+              newSet.delete(user.username);
+              return newSet;
+            });
+            console.log(`Auto-removed ${user.username} from shortlist when excluding`);
+          } catch (err) {
+            console.error('Error removing from shortlist during exclude:', err);
+          }
+        }
+        
         // Remove from matches
         setMatches(prev => prev.filter(u => u.username !== user.username));
       }
@@ -303,6 +336,21 @@ const L3V3LMatches = () => {
         <div className="filter-info">
           Showing {filteredMatches.length} of {matches.length} matches
         </div>
+      </div>
+
+      {/* Advanced Search Promotion Banner */}
+      <div className="cross-link-banner search-promo">
+        <div className="banner-icon">🔍</div>
+        <div className="banner-content">
+          <h5>🎯 Looking for Specific Criteria?</h5>
+          <p>Use our advanced search with 15+ filters to find exactly what you're looking for!</p>
+        </div>
+        <button 
+          className="btn btn-primary banner-cta"
+          onClick={() => navigate('/search')}
+        >
+          Try Advanced Search →
+        </button>
       </div>
 
       {/* Loading State */}

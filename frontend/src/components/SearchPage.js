@@ -1065,6 +1065,39 @@ const SearchPage = () => {
               console.log(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               setExcludedUsers(prev => new Set([...prev, targetUsername]));
+              
+              // Auto-remove from favorites and shortlist when excluding
+              const wasInFavorites = favoritedUsers.has(targetUsername);
+              const wasInShortlist = shortlistedUsers.has(targetUsername);
+              
+              if (wasInFavorites) {
+                try {
+                  await api.delete(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+                  setFavoritedUsers(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(targetUsername);
+                    return newSet;
+                  });
+                  console.log(`Auto-removed ${targetUsername} from favorites when excluding`);
+                } catch (err) {
+                  console.error('Error removing from favorites during exclude:', err);
+                }
+              }
+              
+              if (wasInShortlist) {
+                try {
+                  await api.delete(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+                  setShortlistedUsers(prev => {
+                    const newSet = new Set(prev);
+                    newSet.delete(targetUsername);
+                    return newSet;
+                  });
+                  console.log(`Auto-removed ${targetUsername} from shortlist when excluding`);
+                } catch (err) {
+                  console.error('Error removing from shortlist during exclude:', err);
+                }
+              }
+              
               setStatusMessage('✅ Added to exclusions');
               setTimeout(() => setStatusMessage(''), 3000);
             }
@@ -1703,6 +1736,21 @@ const SearchPage = () => {
                 </select>
               </div>
             </div>
+          </div>
+
+          {/* L3V3L Matches Promotion Banner */}
+          <div className="cross-link-banner l3v3l-promo">
+            <div className="banner-icon">🦋</div>
+            <div className="banner-content">
+              <h5>✨ Want AI-Powered Recommendations?</h5>
+              <p>Let our intelligent L3V3L algorithm find your most compatible matches based on 8 key dimensions!</p>
+            </div>
+            <button 
+              className="btn btn-primary banner-cta"
+              onClick={() => navigate('/l3v3l-matches')}
+            >
+              Try L3V3L Matches →
+            </button>
           </div>
 
           {loading && (

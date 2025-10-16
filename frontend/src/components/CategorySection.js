@@ -96,6 +96,31 @@ const CategorySection = ({
     }
   };
 
+  // Handle drop on section header for cross-category moves
+  const [isDragOverHeader, setIsDragOverHeader] = useState(false);
+
+  const handleHeaderDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOverHeader(true);
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleHeaderDragLeave = (e) => {
+    e.stopPropagation();
+    setIsDragOverHeader(false);
+  };
+
+  const handleHeaderDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOverHeader(false);
+    if (onDrop) {
+      // Drop at the end of the list for cross-category moves
+      onDrop(e, data.length, sectionKey);
+    }
+  };
+
   const count = data.length;
   const currentDraggedIndex = draggedIndex !== undefined ? draggedIndex : localDraggedIndex;
   const currentDragOverIndex = dragOverIndex !== undefined ? dragOverIndex : localDragOverIndex;
@@ -104,8 +129,11 @@ const CategorySection = ({
     <div className="category-section">
       {/* Header */}
       <div 
-        className="category-section-header"
+        className={`category-section-header ${isDragOverHeader ? 'drag-over-header' : ''}`}
         onClick={handleToggle}
+        onDragOver={handleHeaderDragOver}
+        onDragLeave={handleHeaderDragLeave}
+        onDrop={handleHeaderDrop}
         style={{ backgroundColor: color }}
       >
         <div className="category-section-title">

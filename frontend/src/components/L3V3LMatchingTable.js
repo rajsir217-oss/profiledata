@@ -27,6 +27,41 @@ const L3V3LMatchingTable = ({ matchingData }) => {
     return 'Low Match';
   };
 
+  // Personal Matching & Preferences categories
+  const personalMatchingCategories = [
+    {
+      title: '🎯 Partner Preferences',
+      score: matchingData.partnerPreferences || 0,
+      description: 'Age range, location, education preferences match'
+    },
+    {
+      title: '💼 Career Goals',
+      score: matchingData.careerGoals || 0,
+      description: 'Professional ambition & work-life balance alignment'
+    },
+    {
+      title: '👶 Family Plans',
+      score: matchingData.familyPlans || 0,
+      description: 'Children desires & family structure compatibility'
+    },
+    {
+      title: '🏠 Living Preferences',
+      score: matchingData.livingPreferences || 0,
+      description: 'City/suburban lifestyle & living arrangement match'
+    },
+    {
+      title: '💰 Financial Compatibility',
+      score: matchingData.financialCompatibility || 0,
+      description: 'Money management & financial goals alignment'
+    },
+    {
+      title: '❤️ Relationship Goals',
+      score: matchingData.relationshipGoals || 0,
+      description: 'Dating intentions & relationship timeline match'
+    }
+  ];
+
+  // L3V3L Core Values categories
   const matchCategories = [
     {
       title: '💕 Love',
@@ -80,9 +115,18 @@ const L3V3LMatchingTable = ({ matchingData }) => {
     }
   ];
 
-  // Calculate overall score
-  const overallScore = matchingData.overall || Math.round(
+  // Calculate section scores
+  const personalMatchScore = Math.round(
+    personalMatchingCategories.reduce((sum, cat) => sum + cat.score, 0) / personalMatchingCategories.length
+  );
+  
+  const l3v3lCoreScore = Math.round(
     matchCategories.reduce((sum, cat) => sum + cat.score, 0) / matchCategories.length
+  );
+
+  // Calculate overall score (weighted: 40% personal matching + 60% L3V3L core values)
+  const overallScore = matchingData.overall || Math.round(
+    (personalMatchScore * 0.4) + (l3v3lCoreScore * 0.6)
   );
 
   return (
@@ -101,7 +145,56 @@ const L3V3LMatchingTable = ({ matchingData }) => {
         Our AI algorithm analyzes these key dimensions to find your perfect match
       </p>
 
-      <div className="matching-grid">
+      {/* Personal Matching & Preferences Section */}
+      <div className="matching-subsection personal-matching">
+        <div className="subsection-header">
+          <h4>💫 Personal Matching & Preferences</h4>
+          <div className={`section-score-badge ${getMatchColor(personalMatchScore)}`}>
+            <span className="badge-score">{personalMatchScore}%</span>
+          </div>
+        </div>
+        <p className="subsection-subtitle">
+          Your specific preferences and relationship goals compatibility
+        </p>
+        <div className="matching-grid">
+          {personalMatchingCategories.map((category, index) => {
+            const colorClass = getMatchColor(category.score);
+            const matchLabel = getMatchLabel(category.score);
+
+            return (
+              <div key={index} className="matching-item">
+                <div className="matching-item-header">
+                  <span className="matching-title">{category.title}</span>
+                  <div className={`match-bubble ${colorClass}`}>
+                    <span className="bubble-score">{category.score}%</span>
+                  </div>
+                </div>
+                <div className="matching-progress-bar">
+                  <div 
+                    className={`matching-progress-fill ${colorClass}`}
+                    style={{ width: `${category.score}%` }}
+                  />
+                </div>
+                <p className="matching-description">{category.description}</p>
+                <span className={`match-label ${colorClass}`}>{matchLabel}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* L3V3L Core Values Section */}
+      <div className="matching-subsection l3v3l-core">
+        <div className="subsection-header">
+          <h4>💎 L3V3L Core Values</h4>
+          <div className={`section-score-badge ${getMatchColor(l3v3lCoreScore)}`}>
+            <span className="badge-score">{l3v3lCoreScore}%</span>
+          </div>
+        </div>
+        <p className="subsection-subtitle">
+          Foundational compatibility across Love, Loyalty, Laughter, Vulnerability & Elevation
+        </p>
+        <div className="matching-grid">
         {matchCategories.map((category, index) => {
           const colorClass = getMatchColor(category.score);
           const matchLabel = getMatchLabel(category.score);
@@ -125,8 +218,10 @@ const L3V3LMatchingTable = ({ matchingData }) => {
             </div>
           );
         })}
+        </div>
       </div>
 
+      {/* Match Level Guide */}
       <div className="matching-legend">
         <h4>Match Level Guide:</h4>
         <div className="legend-items">
