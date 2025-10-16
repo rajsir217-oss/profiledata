@@ -188,10 +188,24 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📨',
+        label: 'Contact Support',
+        subLabel: 'Manage user inquiries',
+        action: () => navigate('/admin/contact')
+      });
+      
+      items.push({
         icon: '🧪',
         label: 'Test Dashboard',
         subLabel: 'Run & schedule tests',
         action: () => navigate('/test-dashboard')
+      });
+
+      items.push({
+        icon: '🔧',
+        label: 'System Settings',
+        subLabel: 'Global configuration',
+        action: () => navigate('/admin/settings')
       });
     }
 
@@ -209,7 +223,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Add Settings before logout
     items.push({ 
       icon: '⚙️', 
-      label: 'Settings', 
+      label: 'My Settings', 
       subLabel: 'Preferences & Theme',
       action: () => navigate('/preferences'),
       disabled: !isActive
@@ -289,6 +303,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           <span className="footer-link" onClick={() => navigate('/about')}>About Us</span>
           <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => navigate('/trademark')}>Trademark</span>
+          <span className="footer-separator">|</span>
+          <span className="footer-link" onClick={() => navigate('/contact')}>📧 Contact Us</span>
         </div>
     </div>
   );

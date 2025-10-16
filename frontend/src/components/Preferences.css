@@ -252,12 +252,16 @@
 
 /* Password Change Form */
 .password-form {
-  max-width: 500px;
+  max-width: 100%;
   margin: 20px 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr) auto;
+  gap: 20px;
+  align-items: end;
 }
 
 .password-form .form-group {
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 .password-form label {
@@ -361,17 +365,18 @@
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  margin-top: 10px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  height: fit-content;
 }
 
 .btn-change-password:hover:not(:disabled) {
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
@@ -473,6 +478,8 @@
   
   .password-form {
     max-width: 100%;
+    grid-template-columns: 1fr;
+    gap: 15px;
   }
   
   .btn-change-password {
@@ -516,4 +523,318 @@
       opacity: 0;
     }
   }
+}
+
+/* ===== ADMIN-ONLY SECTIONS ===== */
+.admin-section {
+  border: 3px solid #fbbf24;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  position: relative;
+  margin-top: 20px;
+  overflow: visible;
+}
+
+.admin-section::before {
+  content: "ADMIN ONLY";
+  position: absolute;
+  top: -12px;
+  right: 20px;
+  background: #f59e0b;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  z-index: 1;
+}
+
+.help-text {
+  font-size: 13px;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.info-box {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 2px solid #93c5fd;
+  border-radius: 10px;
+  margin: 20px 0;
+}
+
+.info-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-text strong {
+  color: #1e40af;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.info-text ul {
+  margin: 0;
+  padding-left: 20px;
+  color: #1e3a8a;
+}
+
+.info-text li {
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.btn-save-settings {
+  margin-top: 20px;
+  padding: 14px 28px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-save-settings:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-save-settings:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Scheduler Jobs */
+.btn-add-job {
+  margin-bottom: 20px;
+  padding: 12px 24px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-add-job:hover {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.jobs-table {
+  overflow-x: auto;
+}
+
+.jobs-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.jobs-table th,
+.jobs-table td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.jobs-table th {
+  background: #f3f4f6;
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.jobs-table tbody tr:hover {
+  background: #f9fafb;
+}
+
+.job-status {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.job-status.enabled {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.job-status.disabled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.job-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover {
+  background: #e5e7eb;
+}
+
+.btn-icon.btn-danger:hover {
+  background: #fee2e2;
+}
+
+.no-jobs {
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  color: #1f2937;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+
+.btn-primary,
+.btn-secondary {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: #374151;
+  border: none;
+}
+
+.btn-secondary:hover {
+  background: #d1d5db;
+}
+
+/* Dark Mode - Admin Sections */
+body.theme-dark .admin-section {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+  border-color: #b45309;
+}
+
+body.theme-dark .info-box {
+  background: rgba(0, 0, 0, 0.3);
+  border-color: #3b82f6;
+}
+
+body.theme-dark .info-text strong {
+  color: #93c5fd;
+}
+
+body.theme-dark .info-text ul {
+  color: #bfdbfe;
+}
+
+body.theme-dark .jobs-table table {
+  background: #1f2937;
+}
+
+body.theme-dark .jobs-table th {
+  background: #111827;
+  color: #f9fafb;
+}
+
+body.theme-dark .jobs-table tbody tr:hover {
+  background: #374151;
+}
+
+body.theme-dark .jobs-table td {
+  color: #f9fafb;
+  border-bottom-color: #374151;
+}
+
+body.theme-dark .btn-icon:hover {
+  background: #374151;
+}
+
+body.theme-dark .modal-content {
+  background: #1f2937;
+  color: #f9fafb;
+}
+
+body.theme-dark .modal-content h3 {
+  color: #f9fafb;
+}
+
+body.theme-dark .form-group input,
+body.theme-dark .form-group select {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
 }

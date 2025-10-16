@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import './Preferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword } from '../api';
+import api from '../api';
 
 const Preferences = () => {
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
   const [isLoading, setIsLoading] = useState(true);
   const [showSaveMessage, setShowSaveMessage] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   
   // Password change state
   const [passwordData, setPasswordData] = useState({
@@ -85,38 +87,50 @@ const Preferences = () => {
     }
   ];
 
-  // Load theme from API on mount
-  useEffect(() => {
-    const loadTheme = async () => {
-      try {
-        const prefs = await getUserPreferences();
-        const themeId = prefs.themePreference || 'light-blue';
-        setSelectedTheme(themeId);
-      } catch (error) {
-        console.error('Failed to load theme from server:', error);
-        setSelectedTheme('light-blue'); // Use default on error
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadTheme();
-  }, []);
-
-  // Apply theme whenever it changes
-  useEffect(() => {
+  // Apply theme function
+  const applyTheme = (themeId) => {
     // Apply the theme to the body element
-    document.body.className = `theme-${selectedTheme}`;
+    document.body.className = `theme-${themeId}`;
     
     // Also update the root CSS variables
     const root = document.documentElement;
-    const theme = themes.find(t => t.id === selectedTheme);
+    const theme = themes.find(t => t.id === themeId);
     if (theme) {
       root.style.setProperty('--primary-color', theme.preview.primary);
       root.style.setProperty('--secondary-color', theme.preview.secondary);
       root.style.setProperty('--background-color', theme.preview.background);
       root.style.setProperty('--text-color', theme.preview.text);
     }
-  }, [selectedTheme, themes]);
+  };
+
+  // Load theme from API on mount
+  useEffect(() => {
+    const loadPreferences = async () => {
+      try {
+        const username = localStorage.getItem('username');
+        setCurrentUser(username);
+        
+        const response = await getUserPreferences(username);
+        setSelectedTheme(response.data.theme || 'light-blue');
+        applyTheme(response.data.theme || 'light-blue');
+      } catch (error) {
+        console.error('Error loading preferences:', error);
+        // If there's an error, apply default theme
+        applyTheme('light-blue');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Apply theme whenever it changes
+  useEffect(() => {
+    applyTheme(selectedTheme);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedTheme]);
 
   const handleThemeChange = async (themeId) => {
     setSelectedTheme(themeId);
@@ -212,7 +226,7 @@ const Preferences = () => {
   return (
     <div className="preferences-container">
       <div className="preferences-header">
-        <h1>⚙️ Settings</h1>
+        <h1>⚙️ My Settings</h1>
         <p>Customize your app experience</p>
       </div>
 
@@ -373,12 +387,7 @@ const Preferences = () => {
         </form>
         
         <div className="password-requirements">
-          <p><strong>Password Requirements:</strong></p>
-          <ul>
-            <li>Minimum 6 characters</li>
-            <li>Cannot be the same as current password</li>
-            <li>Cannot reuse recent passwords</li>
-          </ul>
+          <p><strong>Password Requirements:</strong> Minimum 6 characters; Cannot be the same as current password; Cannot reuse recent passwords</p>
         </div>
       </div>
     </div>

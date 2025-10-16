@@ -179,6 +179,56 @@ async def initialize_unified_scheduler(db: AsyncIOMotorDatabase):
         is_async=False  # It's a sync function
     )
     
+    # 3. Ticket Cleanup Job (every hour)
+    async def cleanup_expired_tickets():
+        """Delete tickets that have passed their scheduled deletion time"""
+        try:
+            from pathlib import Path
+            import os
+            
+            # Find tickets scheduled for deletion
+            now = datetime.utcnow()
+            tickets = await db.contact_tickets.find({
+                "scheduledDeleteAt": {"$lte": now}
+            }).to_list(length=None)
+            
+            if not tickets:
+                return
+            
+            logger.info(f"🗑️ Found {len(tickets)} tickets scheduled for deletion")
+            
+            for ticket in tickets:
+                try:
+                    # Delete attachments
+                    if ticket.get("attachments"):
+                        for attachment in ticket["attachments"]:
+                            try:
+                                file_path = Path(attachment.get('file_path', ''))
+                                if file_path.exists():
+                                    os.remove(file_path)
+                                    logger.info(f"✅ Deleted attachment: {file_path}")
+                            except Exception as file_err:
+                                logger.error(f"⚠️ Failed to delete file: {file_err}")
+                    
+                    # Delete ticket
+                    await db.contact_tickets.delete_one({"_id": ticket["_id"]})
+                    logger.info(f"✅ Deleted ticket: {ticket['_id']}")
+                    
+                except Exception as ticket_err:
+                    logger.error(f"❌ Error deleting ticket {ticket.get('_id')}: {ticket_err}")
+            
+            logger.info(f"✅ Ticket cleanup completed: {len(tickets)} tickets deleted")
+            
+        except Exception as e:
+            logger.error(f"❌ Error in ticket cleanup job: {e}", exc_info=True)
+    
+    unified_scheduler.add_job(
+        name="ticket_cleanup",
+        interval_seconds=3600,  # 1 hour
+        func=cleanup_expired_tickets,
+        is_async=True
+    )
+    
     # Start the scheduler in background
     asyncio.create_task(unified_scheduler.start())
     

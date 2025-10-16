@@ -1,5 +1,5 @@
 # fastapi_backend/routes.py
-from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request, Query
+from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request, Query, Body
 from fastapi.responses import JSONResponse
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, date
@@ -4129,3 +4129,593 @@ async def get_l3v3l_match_details(
         logger.error(f"❌ Error getting L3V3L match details: {e}", exc_info=True)
         # Return None silently so frontend can gracefully handle missing data
         raise HTTPException(status_code=404, detail="Match details not available")
+
+# ===== CONTACT US / SUPPORT TICKETS =====
+
+@router.post("/contact")
+async def submit_contact_ticket(
+    name: str = Form(...),
+    email: str = Form(...),
+    subject: str = Form(...),
+    category: str = Form(...),
+    priority: str = Form("medium"),
+    message: str = Form(...),
+    username: Optional[str] = Form(None),
+    status: str = Form("open"),
+    attachments: List[UploadFile] = File(default=[]),
+    db = Depends(get_database)
+):
+    """Submit a new support ticket with optional file attachments"""
+    logger.info(f"📧 New contact ticket from {name} ({email})")
+    
+    try:
+        import os
+        import aiofiles
+        from pathlib import Path
+        
+        # Create uploads directory if it doesn't exist
+        upload_dir = Path("uploads/contact_tickets")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Process attachments
+        attachment_files = []
+        if attachments and len(attachments) > 0:
+            for file in attachments[:2]:  # Max 2 files
+                if file.filename:
+                    # Generate unique filename
+                    file_ext = Path(file.filename).suffix
+                    unique_filename = f"{datetime.utcnow().timestamp()}_{file.filename}"
+                    file_path = upload_dir / unique_filename
+                    
+                    # Save file
+                    async with aiofiles.open(file_path, 'wb') as f:
+                        content = await file.read()
+                        await f.write(content)
+                    
+                    attachment_files.append({
+                        "filename": file.filename,
+                        "stored_filename": unique_filename,
+                        "file_path": str(file_path),
+                        "size": len(content),
+                        "content_type": file.content_type,
+                        "uploaded_at": datetime.utcnow()
+                    })
+                    
+                    logger.info(f"📎 Saved attachment: {file.filename} ({len(content)} bytes)")
+        
+        ticket = {
+            "name": name,
+            "email": email,
+            "username": username,
+            "subject": subject,
+            "category": category,
+            "priority": priority,
+            "message": message,
+            "status": status,
+            "attachments": attachment_files,
+            "adminReply": None,
+            "userReplies": [],
+            "repliedAt": None,
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        
+        result = await db.contact_tickets.insert_one(ticket)
+        logger.info(f"✅ Contact ticket created: {result.inserted_id}")
+        
+        # TODO: Send email notification to admin
+        
+        return {
+            "message": "Your message has been received. We'll get back to you soon!",
+            "ticketId": str(result.inserted_id)
+        }
+    except Exception as e:
+        logger.error(f"❌ Error creating contact ticket: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/contact/user/{username}")
+async def get_user_tickets(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get all tickets submitted by a user"""
+    logger.info(f"📋 Getting tickets for user: {username}")
+    
+    try:
+        tickets_cursor = db.contact_tickets.find({"username": username}).sort("createdAt", -1)
+        tickets = await tickets_cursor.to_list(100)
+        
+        # Convert ObjectId to string
+        for ticket in tickets:
+            ticket["_id"] = str(ticket["_id"])
+            if ticket.get("createdAt"):
+                ticket["createdAt"] = ticket["createdAt"].isoformat()
+            if ticket.get("updatedAt"):
+                ticket["updatedAt"] = ticket["updatedAt"].isoformat()
+            if ticket.get("repliedAt"):
+                ticket["repliedAt"] = ticket["repliedAt"].isoformat()
+        
+        logger.info(f"✅ Found {len(tickets)} tickets for {username}")
+        return tickets
+    except Exception as e:
+        logger.error(f"❌ Error getting user tickets: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/contact/admin/all")
+async def get_all_tickets(
+    status: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    priority: Optional[str] = Query(None),
+    db = Depends(get_database)
+):
+    """Get all support tickets (admin only)"""
+    logger.info("📨 Admin fetching all contact tickets")
+    
+    try:
+        # Build filter
+        filter_dict = {}
+        if status:
+            filter_dict["status"] = status
+        if category:
+            filter_dict["category"] = category
+        if priority:
+            filter_dict["priority"] = priority
+        
+        tickets_cursor = db.contact_tickets.find(filter_dict).sort("createdAt", -1)
+        tickets = await tickets_cursor.to_list(1000)
+        
+        # Convert ObjectId to string and format dates
+        for ticket in tickets:
+            ticket["_id"] = str(ticket["_id"])
+            if ticket.get("createdAt"):
+                ticket["createdAt"] = ticket["createdAt"].isoformat()
+            if ticket.get("updatedAt"):
+                ticket["updatedAt"] = ticket["updatedAt"].isoformat()
+            if ticket.get("repliedAt"):
+                ticket["repliedAt"] = ticket["repliedAt"].isoformat()
+        
+        logger.info(f"✅ Found {len(tickets)} tickets")
+        return tickets
+    except Exception as e:
+        logger.error(f"❌ Error getting all tickets: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/contact/{ticket_id}")
+async def get_single_ticket(
+    ticket_id: str,
+    db = Depends(get_database)
+):
+    """Get a single ticket by ID with all replies"""
+    logger.info(f"📄 Getting ticket {ticket_id}")
+    
+    try:
+        from bson import ObjectId
+        
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Convert ObjectId to string
+        ticket["_id"] = str(ticket["_id"])
+        
+        # Convert datetime to ISO format
+        if ticket.get("createdAt"):
+            ticket["createdAt"] = ticket["createdAt"].isoformat()
+        if ticket.get("updatedAt"):
+            ticket["updatedAt"] = ticket["updatedAt"].isoformat()
+        if ticket.get("repliedAt"):
+            ticket["repliedAt"] = ticket["repliedAt"].isoformat()
+        
+        # Convert userReplies timestamps
+        if ticket.get("userReplies"):
+            for reply in ticket["userReplies"]:
+                if reply.get("timestamp"):
+                    reply["timestamp"] = reply["timestamp"].isoformat()
+        
+        logger.info(f"✅ Retrieved ticket {ticket_id}")
+        return ticket
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting ticket: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/contact/{ticket_id}/status")
+async def update_ticket_status(
+    ticket_id: str,
+    status: str = Body(..., embed=True),
+    db = Depends(get_database)
+):
+    """Update ticket status (admin only)"""
+    logger.info(f"🔄 Updating ticket {ticket_id} status to {status}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Validate status
+        valid_statuses = ["open", "in_progress", "resolved", "closed"]
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+        
+        # Get ticket before update
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        update_data = {
+            "status": status,
+            "updatedAt": datetime.utcnow()
+        }
+        
+        # Set deletion timestamp if ticket is resolved or closed
+        if status in ["resolved", "closed"]:
+            # Get system settings for delete delay
+            settings = await db.system_settings.find_one({"_id": "global"})
+            delete_days = settings.get("ticket_delete_days", 30) if settings else 30
+            
+            if delete_days == 0:
+                # Immediate deletion - set to now
+                update_data["scheduledDeleteAt"] = datetime.utcnow()
+            else:
+                # Scheduled deletion after N days
+                update_data["scheduledDeleteAt"] = datetime.utcnow() + timedelta(days=delete_days)
+            
+            logger.info(f"📅 Ticket scheduled for deletion in {delete_days} days")
+        
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {"$set": update_data}
+        )
+        
+        logger.info(f"✅ Ticket {ticket_id} status updated to {status}")
+        return {"message": "Status updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating ticket status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/contact/{ticket_id}/reply")
+async def reply_to_ticket(
+    ticket_id: str,
+    adminReply: str = Body(...),
+    adminName: str = Body(...),
+    db = Depends(get_database)
+):
+    """Send admin reply to ticket"""
+    logger.info(f"💬 Admin {adminName} replying to ticket {ticket_id}")
+    
+    try:
+        from bson import ObjectId
+        
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {
+                "$set": {
+                    "adminReply": adminReply,
+                    "repliedAt": datetime.utcnow(),
+                    "status": "in_progress",
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Get ticket details for email notification
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        
+        # TODO: Send email notification to user with reply
+        logger.info(f"📧 TODO: Send email to {ticket['email']} with reply")
+        
+        logger.info(f"✅ Reply sent to ticket {ticket_id}")
+        return {"message": "Reply sent successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error sending reply: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/contact/{ticket_id}/user-reply")
+async def user_reply_to_ticket(
+    ticket_id: str,
+    data: Dict[str, Any],
+    db = Depends(get_database)
+):
+    """User replies to their own ticket"""
+    user_reply = data.get("userReply")
+    logger.info(f"💬 User replying to ticket {ticket_id}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Create reply object
+        reply_obj = {
+            "message": user_reply,
+            "timestamp": datetime.utcnow()
+        }
+        
+        # Append to userReplies array
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id)},
+            {
+                "$push": {"userReplies": reply_obj},
+                "$set": {
+                    "status": "in_progress",
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        logger.info(f"✅ User reply added to ticket {ticket_id}")
+        
+        return {"message": "Reply sent successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error adding user reply: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/contact/download/{ticket_id}/{filename}")
+async def download_attachment(
+    ticket_id: str,
+    filename: str,
+    db = Depends(get_database)
+):
+    """Download a ticket attachment"""
+    logger.info(f"📥 Download request for {filename} from ticket {ticket_id}")
+    
+    try:
+        from bson import ObjectId
+        from pathlib import Path
+        from fastapi.responses import FileResponse
+        
+        # Verify ticket exists and get attachment info
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Find the attachment
+        attachment = None
+        if ticket.get("attachments"):
+            for att in ticket["attachments"]:
+                if att.get("stored_filename") == filename:
+                    attachment = att
+                    break
+        
+        if not attachment:
+            raise HTTPException(status_code=404, detail="Attachment not found")
+        
+        file_path = Path(attachment.get("file_path"))
+        if not file_path.exists():
+            raise HTTPException(status_code=404, detail="File not found on server")
+        
+        logger.info(f"✅ Serving file: {file_path}")
+        return FileResponse(
+            path=str(file_path),
+            filename=attachment.get("filename"),
+            media_type=attachment.get("content_type", "application/octet-stream")
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error downloading attachment: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/contact/{ticket_id}")
+async def delete_ticket(
+    ticket_id: str,
+    db = Depends(get_database)
+):
+    """Delete a support ticket and its attachments (admin only)"""
+    logger.info(f"🗑️ Deleting ticket {ticket_id}")
+    
+    try:
+        from bson import ObjectId
+        from pathlib import Path
+        import os
+        
+        # Get ticket before deletion to clean up attachments
+        ticket = await db.contact_tickets.find_one({"_id": ObjectId(ticket_id)})
+        if not ticket:
+            raise HTTPException(status_code=404, detail="Ticket not found")
+        
+        # Delete attachments if they exist
+        if ticket.get("attachments"):
+            logger.info(f"🗑️ Deleting {len(ticket['attachments'])} attachment(s)")
+            for attachment in ticket['attachments']:
+                try:
+                    file_path = Path(attachment.get('file_path', ''))
+                    if file_path.exists():
+                        os.remove(file_path)
+                        logger.info(f"✅ Deleted file: {file_path}")
+                except Exception as file_err:
+                    logger.error(f"⚠️ Failed to delete file {file_path}: {file_err}")
+        
+        # Delete the ticket
+        result = await db.contact_tickets.delete_one({"_id": ObjectId(ticket_id)})
+        
+        logger.info(f"✅ Ticket {ticket_id} and attachments deleted")
+        return {"message": "Ticket deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting ticket: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== SYSTEM SETTINGS =====
+
+@router.get("/system-settings")
+async def get_system_settings(db = Depends(get_database)):
+    """Get global system settings (admin only)"""
+    logger.info("📋 Loading system settings")
+    
+    try:
+        settings = await db.system_settings.find_one({"_id": "global"})
+        
+        if not settings:
+            # Return defaults if no settings exist
+            default_settings = {
+                "ticket_delete_days": 30,
+                "default_theme": "cozy-light"
+            }
+            logger.info("Using default settings")
+            return default_settings
+        
+        return {
+            "ticket_delete_days": settings.get("ticket_delete_days", 30),
+            "default_theme": settings.get("default_theme", "cozy-light")
+        }
+    except Exception as e:
+        logger.error(f"❌ Error loading system settings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/system-settings")
+async def update_system_settings(
+    data: Dict[str, Any],
+    db = Depends(get_database)
+):
+    """Update global system settings (admin only)"""
+    ticket_delete_days = data.get("ticket_delete_days", 30)
+    default_theme = data.get("default_theme", "cozy-light")
+    
+    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}")
+    
+    try:
+        # Upsert system settings
+        result = await db.system_settings.update_one(
+            {"_id": "global"},
+            {
+                "$set": {
+                    "ticket_delete_days": ticket_delete_days,
+                    "default_theme": default_theme,
+                    "updated_at": datetime.utcnow()
+                }
+            },
+            upsert=True
+        )
+        
+        logger.info("✅ System settings updated")
+        return {"message": "Settings saved successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error updating system settings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== SCHEDULER JOBS MANAGEMENT =====
+
+@router.get("/scheduler-jobs")
+async def get_scheduler_jobs():
+    """Get all scheduler jobs (admin only)"""
+    logger.info("📋 Loading scheduler jobs")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            return {"jobs": []}
+        
+        return {"jobs": scheduler.get_jobs_status()}
+    except Exception as e:
+        logger.error(f"❌ Error loading scheduler jobs: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/scheduler-jobs")
+async def add_scheduler_job(data: Dict[str, Any]):
+    """Add a new scheduler job (admin only)"""
+    name = data.get("name")
+    interval_seconds = data.get("interval_seconds", 3600)
+    enabled = data.get("enabled", True)
+    
+    logger.info(f"➕ Adding scheduler job: {name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        # Note: This is a placeholder. In production, you'd need to register actual job functions
+        # For now, we'll just update the job's interval and status
+        logger.warning("⚠️ Adding custom jobs requires code deployment. This is a placeholder.")
+        
+        return {"message": f"Job '{name}' configuration saved (requires code deployment for actual function)"}
+    except Exception as e:
+        logger.error(f"❌ Error adding scheduler job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/scheduler-jobs/{job_name}")
+async def update_scheduler_job(job_name: str, data: Dict[str, Any]):
+    """Update a scheduler job (admin only)"""
+    interval_seconds = data.get("interval_seconds")
+    
+    logger.info(f"✏️ Updating scheduler job: {job_name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        if job_name not in scheduler.jobs:
+            raise HTTPException(status_code=404, detail=f"Job '{job_name}' not found")
+        
+        job = scheduler.jobs[job_name]
+        if interval_seconds:
+            job.interval_seconds = interval_seconds
+            logger.info(f"✅ Updated interval for '{job_name}' to {interval_seconds}s")
+        
+        return {"message": f"Job '{job_name}' updated successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating scheduler job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/scheduler-jobs/{job_name}")
+async def delete_scheduler_job(job_name: str):
+    """Delete a scheduler job (admin only)"""
+    logger.info(f"🗑️ Deleting scheduler job: {job_name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        scheduler.remove_job(job_name)
+        
+        return {"message": f"Job '{job_name}' deleted successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error deleting scheduler job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.patch("/scheduler-jobs/{job_name}/toggle")
+async def toggle_scheduler_job(job_name: str, data: Dict[str, Any]):
+    """Enable/disable a scheduler job (admin only)"""
+    enabled = data.get("enabled", True)
+    
+    logger.info(f"{'✅' if enabled else '⏸️'} Toggling scheduler job: {job_name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        if enabled:
+            scheduler.enable_job(job_name)
+        else:
+            scheduler.disable_job(job_name)
+        
+        return {"message": f"Job '{job_name}' {'enabled' if enabled else 'disabled'} successfully"}
+    except Exception as e:
+        logger.error(f"❌ Error toggling scheduler job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

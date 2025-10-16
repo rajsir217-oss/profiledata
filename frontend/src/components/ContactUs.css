@@ -1,0 +1,1055 @@
+/* ContactUs Page - Chat-style UI */
+
+.contact-page {
+  min-height: 100vh;
+  background: var(--background-color);
+  padding: 40px 20px;
+}
+
+.contact-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header */
+.contact-header {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.contact-header h1 {
+  font-size: 42px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 12px;
+}
+
+.contact-header p {
+  font-size: 18px;
+  color: #6c757d;
+}
+
+/* Layout */
+.contact-layout {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 30px;
+  align-items: start;
+}
+
+/* Chat Message Alerts */
+.chat-message {
+  display: flex;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  margin-bottom: 30px;
+  animation: slideInDown 0.5s ease;
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat-message .message-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.chat-message .message-content {
+  flex: 1;
+}
+
+.chat-message .message-content strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 16px;
+}
+
+.chat-message .message-content p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Form Section */
+.contact-form-section {
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+/* Chat Header - Theme-aware */
+.chat-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+.chat-avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+}
+
+.chat-title h3 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.chat-status {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Form */
+.contact-form {
+  padding: 32px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 24px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 15px;
+}
+
+.form-control {
+  width: 100%;
+  padding: 12px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 15px;
+  transition: all 0.3s ease;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+}
+
+textarea.form-control {
+  resize: vertical;
+  min-height: 120px;
+}
+
+.form-hint {
+  display: block;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* Category Grid */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.category-card {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.category-card:hover {
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.category-card.selected {
+  border-color: #667eea;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.category-label {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.category-desc {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+/* Priority Selector */
+.priority-selector {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.priority-option {
+  cursor: pointer;
+}
+
+.priority-option input[type="radio"] {
+  display: none;
+}
+
+.priority-badge {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.priority-option input[type="radio"]:checked + .priority-badge {
+  border-color: transparent;
+}
+
+.priority-badge.priority-low {
+  color: #3b82f6;
+}
+
+.priority-option input[type="radio"]:checked + .priority-badge.priority-low {
+  background: #3b82f6;
+  color: white;
+}
+
+.priority-badge.priority-medium {
+  color: #f59e0b;
+}
+
+.priority-option input[type="radio"]:checked + .priority-badge.priority-medium {
+  background: #f59e0b;
+  color: white;
+}
+
+.priority-badge.priority-high {
+  color: #f97316;
+}
+
+.priority-option input[type="radio"]:checked + .priority-badge.priority-high {
+  background: #f97316;
+  color: white;
+}
+
+.priority-badge.priority-urgent {
+  color: #ef4444;
+}
+
+.priority-option input[type="radio"]:checked + .priority-badge.priority-urgent {
+  background: #ef4444;
+  color: white;
+}
+
+/* L3V3L-specific styling */
+.cross-link-banner.l3v3l-promo {
+  background: linear-gradient(135deg, #fff9f0 0%, #fff 100%);
+  border-color: #ffe8cc;
+}
+
+.cross-link-banner.l3v3l-promo:hover {
+  border-color: #ffb84d;
+}
+
+.cross-link-banner.l3v3l-promo .banner-cta {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: none;
+}
+
+/* Submit Button - Theme-aware */
+.btn-submit {
+  width: 100%;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: none;
+  color: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-submit:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-submit:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Tickets Section */
+.tickets-section {
+  background: white;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  position: sticky;
+  top: 20px;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.tickets-section h3 {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.no-tickets {
+  text-align: center;
+  padding: 40px 20px;
+  color: #9ca3af;
+}
+
+.no-tickets-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.no-tickets p {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.no-tickets small {
+  font-size: 13px;
+  color: #6c757d;
+}
+
+/* Ticket Cards */
+.tickets-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.ticket-card {
+  padding: 16px;
+  border: 2px solid #e5e7eb;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.ticket-card:hover {
+  border-color: #667eea;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+  transform: translateY(-2px);
+}
+
+.ticket-card.selected {
+  border-color: #667eea;
+  background: #f0f4ff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.ticket-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ticket-status {
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-open {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-progress {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-resolved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-closed {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.ticket-date {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ticket-subject {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+}
+
+.ticket-category {
+  font-size: 13px;
+  color: #6c757d;
+  margin: 0 0 8px 0;
+}
+
+.ticket-message {
+  font-size: 13px;
+  color: #4b5563;
+  margin: 0 0 12px 0;
+  line-height: 1.5;
+}
+
+.admin-reply-preview {
+  background: #f0f9ff;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border-left: 3px solid #3b82f6;
+}
+
+.admin-reply-preview strong {
+  display: block;
+  font-size: 12px;
+  color: #1e40af;
+  margin-bottom: 4px;
+}
+
+.admin-reply-preview p {
+  margin: 0;
+  font-size: 13px;
+  color: #1e3a8a;
+}
+
+.ticket-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ticket-priority {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #f3f4f6;
+}
+
+.ticket-id {
+  font-size: 11px;
+  color: #9ca3af;
+  font-family: monospace;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .contact-layout {
+    grid-template-columns: 1fr;
+  }
+  
+  .tickets-section {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .contact-header h1 {
+    font-size: 32px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .category-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .priority-selector {
+    flex-direction: column;
+  }
+  
+  .priority-badge {
+    display: block;
+    text-align: center;
+  }
+}
+
+/* Dark Mode Support */
+body.theme-dark .contact-page {
+  background: var(--background-color);
+}
+
+body.theme-dark .contact-header h1 {
+  color: #f9fafb;
+}
+
+body.theme-dark .contact-header p {
+  color: #9ca3af;
+}
+
+body.theme-dark .contact-form-section {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+body.theme-dark .chat-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+body.theme-dark .contact-form {
+  background: #1f2937;
+}
+
+body.theme-dark .form-group label {
+  color: #f9fafb;
+}
+
+body.theme-dark .form-control {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+body.theme-dark .form-control:focus {
+  border-color: #667eea;
+  background: #374151;
+}
+
+body.theme-dark .form-hint {
+  color: #6b7280;
+}
+
+body.theme-dark .category-card {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+body.theme-dark .category-card:hover {
+  border-color: #667eea;
+  background: #374151;
+}
+
+body.theme-dark .category-card.selected {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: #667eea;
+}
+
+body.theme-dark .category-label {
+  color: #f9fafb;
+}
+
+body.theme-dark .category-desc {
+  color: #9ca3af;
+}
+
+body.theme-dark .priority-badge {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+body.theme-dark .tickets-section {
+  background: #1f2937;
+  border: 1px solid #374151;
+}
+
+body.theme-dark .tickets-section h3 {
+  color: #f9fafb;
+}
+
+body.theme-dark .no-tickets {
+  color: #6b7280;
+}
+
+body.theme-dark .ticket-card {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+body.theme-dark .ticket-card:hover {
+  border-color: #667eea;
+}
+
+body.theme-dark .ticket-subject {
+  color: #f9fafb;
+}
+
+body.theme-dark .ticket-category,
+body.theme-dark .ticket-message {
+  color: #9ca3af;
+}
+
+body.theme-dark .ticket-date,
+body.theme-dark .ticket-id {
+  color: #6b7280;
+}
+
+body.theme-dark .admin-reply-preview {
+  background: #1e3a5f;
+  border-left-color: #3b82f6;
+}
+
+body.theme-dark .admin-reply-preview strong {
+  color: #60a5fa;
+}
+
+body.theme-dark .admin-reply-preview p {
+  color: #93c5fd;
+}
+
+body.theme-dark .chat-message {
+  background: #374151;
+}
+
+/* Conversation Thread View */
+.ticket-thread {
+  margin-top: 24px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.thread-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+}
+
+.thread-header h3 {
+  margin: 0 0 4px 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.thread-id {
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.btn-close-thread {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-close-thread:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+}
+
+.thread-messages {
+  padding: 24px;
+  max-height: 500px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.thread-message {
+  padding: 16px;
+  border-radius: 12px;
+  max-width: 85%;
+  animation: messageSlideIn 0.3s ease;
+}
+
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.thread-message.user-message {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #e0f2fe 0%, #dbeafe 100%);
+  border: 1px solid #bfdbfe;
+}
+
+.thread-message.admin-message {
+  align-self: flex-start;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+}
+
+.message-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.message-header strong {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.message-time {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.message-body {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #374151;
+  white-space: pre-wrap;
+}
+
+.thread-reply-form {
+  padding: 20px 24px;
+  border-top: 2px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.reply-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  min-height: 100px;
+  margin-bottom: 12px;
+  transition: border-color 0.3s ease;
+}
+
+.reply-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btn-send-reply {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-send-reply:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
+}
+
+.btn-send-reply:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.thread-closed-notice {
+  padding: 16px 24px;
+  background: #fef3c7;
+  border-top: 2px solid #fde68a;
+  color: #92400e;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Dark Mode - Thread */
+body.theme-dark .ticket-thread {
+  background: #1f2937;
+}
+
+body.theme-dark .thread-reply-form {
+  background: #111827;
+  border-top-color: #374151;
+}
+
+body.theme-dark .reply-textarea {
+  background: #374151;
+  border-color: #4b5563;
+  color: #f9fafb;
+}
+
+body.theme-dark .message-header strong {
+  color: #f9fafb;
+}
+
+body.theme-dark .message-body {
+  color: #e5e7eb;
+}
+
+body.theme-dark .thread-closed-notice {
+  background: #92400e;
+  color: #fef3c7;
+}
+
+body.theme-dark .chat-message .message-content strong {
+  color: #f9fafb;
+}
+
+body.theme-dark .chat-message .message-content p {
+  color: #d1d5db;
+}
+
+/* File Upload */
+.file-upload-area {
+  margin-top: 8px;
+}
+
+.file-upload-label {
+  display: inline-block;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.file-upload-label:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.attachments-preview {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.attachment-name {
+  flex: 1;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-size {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.btn-remove-attachment {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-attachment:hover {
+  background: #dc2626;
+  transform: scale(1.1);
+}
+
+/* Disclaimer */
+.disclaimer-box {
+  display: flex;
+  gap: 12px;
+  padding: 16px;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 12px;
+  margin: 20px 0;
+}
+
+.disclaimer-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.disclaimer-content {
+  flex: 1;
+}
+
+.disclaimer-content strong {
+  display: block;
+  color: #92400e;
+  font-size: 15px;
+  margin-bottom: 6px;
+}
+
+.disclaimer-content p {
+  color: #78350f;
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* Dark Mode - File Upload & Disclaimer */
+body.theme-dark .attachment-item {
+  background: #374151;
+  border-color: #4b5563;
+}
+
+body.theme-dark .attachment-name {
+  color: #f9fafb;
+}
+
+body.theme-dark .disclaimer-box {
+  background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+  border-color: #b45309;
+}
+
+body.theme-dark .disclaimer-content strong {
+  color: #fef3c7;
+}
+
+body.theme-dark .disclaimer-content p {
+  color: #fde68a;
+}
+
+/* Message Attachments */
+.message-attachments {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.attachment-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  color: #1f2937;
+  text-decoration: none;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.attachment-link:hover {
+  background: rgba(255, 255, 255, 0.8);
+  border-color: #667eea;
+  transform: translateX(4px);
+}
+
+.att-size {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+/* Dark Mode - Message Attachments */
+body.theme-dark .message-attachments {
+  border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+body.theme-dark .attachment-link {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f9fafb;
+}
+
+body.theme-dark .attachment-link:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: #8b5cf6;
+}
