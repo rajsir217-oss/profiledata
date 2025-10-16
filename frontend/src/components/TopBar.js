@@ -24,6 +24,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     likes: 0,
     approvals: 0
   });
+  const [violations, setViolations] = useState(null);
   const navigate = useNavigate();
 
   // Detect current theme
@@ -62,6 +63,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           
           // Load user stats for capsules
           loadUserStats(username);
+          
+          // Load user violations
+          loadUserViolations(username);
         } catch (error) {
           console.error('Error loading user profile:', error);
         }
@@ -180,6 +184,35 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     }
   };
 
+  // Load user violations
+  const loadUserViolations = async (username) => {
+    try {
+      const response = await api.get(`/violations/${username}`);
+      if (response.data && response.data.violationCount > 0) {
+        setViolations(response.data);
+      } else {
+        setViolations(null); // Clear violations if count is 0
+      }
+    } catch (error) {
+      console.error('Error loading user violations:', error);
+    }
+  };
+
+  // Listen for violation updates
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleViolationUpdate = () => {
+      loadUserViolations(currentUser);
+    };
+
+    window.addEventListener('violationUpdate', handleViolationUpdate);
+
+    return () => {
+      window.removeEventListener('violationUpdate', handleViolationUpdate);
+    };
+  }, [currentUser]);
+
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -204,6 +237,16 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
 
   return (
     <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
+      {/* Violation Warning Banner */}
+      {violations && violations.violationCount > 0 && (
+        <div className={`violation-banner violation-${violations.warningLevel}`}>
+          <span className="violation-icon">
+            {violations.warningLevel === 'banned' ? '🚫' : violations.warningLevel === 'suspended' ? '⏸️' : '⚠️'}
+          </span>
+          <span className="violation-message">{violations.warningMessage}</span>
+          <span className="violation-count">{violations.violationCount}/3</span>
+        </div>
+      )}
       <div className="top-bar-content">
         <div className="top-bar-left">
           <button className="sidebar-toggle-btn" onClick={onSidebarToggle} title="Toggle Sidebar">

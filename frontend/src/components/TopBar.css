@@ -356,3 +356,119 @@
     font-size: 18px;
   }
 }
+
+/* Violation Warning Banner */
+.violation-banner {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 998;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.4s ease;
+}
+
+.top-bar.sidebar-open ~ * .violation-banner,
+.top-bar.sidebar-open + * .violation-banner {
+  left: 280px;
+  width: calc(100% - 280px);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Warning Level - Yellow */
+.violation-banner.violation-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%);
+  color: #664d03;
+  border-bottom: 2px solid #ff9800;
+}
+
+/* Suspended - Orange */
+.violation-banner.violation-suspended {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  color: white;
+  border-bottom: 2px solid #e55353;
+}
+
+/* Banned - Red */
+.violation-banner.violation-banned {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  border-bottom: 2px solid #b91c1c;
+}
+
+.violation-icon {
+  font-size: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.violation-message {
+  flex: 1;
+  text-align: center;
+}
+
+.violation-count {
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(5px);
+}
+
+/* Dark Theme Support */
+.theme-dark .violation-banner.violation-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.9) 0%, rgba(255, 235, 59, 0.9) 100%);
+}
+
+.theme-dark .violation-banner.violation-suspended {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(255, 135, 135, 0.95) 100%);
+}
+
+.theme-dark .violation-banner.violation-banned {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.95) 0%, rgba(239, 68, 68, 0.95) 100%);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .violation-banner {
+    font-size: 13px;
+    padding: 10px 15px;
+  }
+  
+  .violation-message {
+    font-size: 12px;
+  }
+  
+  .violation-count {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+}

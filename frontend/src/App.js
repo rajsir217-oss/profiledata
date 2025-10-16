@@ -20,6 +20,7 @@ import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
 import Preferences from './components/Preferences';
 import PIIManagement from './components/PIIManagement';
+import Testimonials from './components/Testimonials';
 import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
@@ -182,6 +183,7 @@ function App() {
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
+              <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
               <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />

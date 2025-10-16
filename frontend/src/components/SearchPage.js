@@ -30,8 +30,12 @@ const SearchPage = () => {
     gender: '', // Will be set to opposite gender after loading user profile
     ageMin: '',
     ageMax: '',
-    heightMin: '',
-    heightMax: '',
+    heightMinFeet: '',
+    heightMinInches: '',
+    heightMaxFeet: '',
+    heightMaxInches: '',
+    heightMin: '', // Kept for backward compatibility
+    heightMax: '', // Kept for backward compatibility
     location: '',
     education: '',
     occupation: '',
@@ -103,10 +107,94 @@ const SearchPage = () => {
         
         console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
         
-        // Set default search criteria to opposite gender (or empty if no gender)
+        // Calculate user's age from DOB
+        let userAge = null;
+        if (response.data.dob) {
+          const birthDate = new Date(response.data.dob);
+          const today = new Date();
+          userAge = today.getFullYear() - birthDate.getFullYear();
+          const monthDiff = today.getMonth() - birthDate.getMonth();
+          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+            userAge--;
+          }
+        }
+        
+        // Parse user's height from format "5'8"" into feet and inches
+        let userHeightFeet = null;
+        let userHeightInches = null;
+        let userHeightTotalInches = null;
+        if (response.data.height) {
+          const heightMatch = response.data.height.match(/(\d+)'(\d+)"/);
+          if (heightMatch) {
+            userHeightFeet = parseInt(heightMatch[1]);
+            userHeightInches = parseInt(heightMatch[2]);
+            userHeightTotalInches = userHeightFeet * 12 + userHeightInches;
+          }
+        }
+        
+        // Set default age range based on gender
+        let defaultAgeMin = '';
+        let defaultAgeMax = '';
+        if (userAge && userGender) {
+          if (userGender === 'male') {
+            // For male profile: Min = age - 3, Max = age + 1
+            defaultAgeMin = (userAge - 3).toString();
+            defaultAgeMax = (userAge + 1).toString();
+          } else if (userGender === 'female') {
+            // For female profile: Min = age - 1, Max = age + 3
+            defaultAgeMin = (userAge - 1).toString();
+            defaultAgeMax = (userAge + 3).toString();
+          }
+        }
+        
+        // Set default height range based on gender
+        let defaultHeightMinFeet = '';
+        let defaultHeightMinInches = '';
+        let defaultHeightMaxFeet = '';
+        let defaultHeightMaxInches = '';
+        
+        if (userHeightTotalInches && userGender) {
+          if (userGender === 'male') {
+            // For male profile: Min = user height - 3 inches, Max = user height
+            const minTotalInches = userHeightTotalInches - 3;
+            const maxTotalInches = userHeightTotalInches;
+            
+            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+            defaultHeightMinInches = (minTotalInches % 12).toString();
+            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+            defaultHeightMaxInches = (maxTotalInches % 12).toString();
+          } else if (userGender === 'female') {
+            // For female profile: Min = user height, Max = user height + 3 inches
+            const minTotalInches = userHeightTotalInches;
+            const maxTotalInches = userHeightTotalInches + 3;
+            
+            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+            defaultHeightMinInches = (minTotalInches % 12).toString();
+            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+            defaultHeightMaxInches = (maxTotalInches % 12).toString();
+          }
+        }
+        
+        console.log('📊 Default search criteria:', {
+          age: userAge,
+          ageMin: defaultAgeMin,
+          ageMax: defaultAgeMax,
+          heightMinFeet: defaultHeightMinFeet,
+          heightMinInches: defaultHeightMinInches,
+          heightMaxFeet: defaultHeightMaxFeet,
+          heightMaxInches: defaultHeightMaxInches
+        });
+        
+        // Set default search criteria with smart age/height defaults
         setSearchCriteria(prev => ({
           ...prev,
-          gender: oppositeGender
+          gender: oppositeGender,
+          ageMin: defaultAgeMin,
+          ageMax: defaultAgeMax,
+          heightMinFeet: defaultHeightMinFeet,
+          heightMinInches: defaultHeightMinInches,
+          heightMaxFeet: defaultHeightMaxFeet,
+          heightMaxInches: defaultHeightMaxInches
         }));
       } catch (err) {
         console.error('❌ Error loading current user profile:', err);
@@ -466,6 +554,7 @@ const SearchPage = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    console.log(`🔧 Input changed: ${name} = ${value}`);
     setSearchCriteria(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -480,6 +569,10 @@ const SearchPage = () => {
       ageMax: '',
       heightMin: '',
       heightMax: '',
+      heightMinFeet: '',
+      heightMinInches: '',
+      heightMaxFeet: '',
+      heightMaxInches: '',
       location: '',
       education: '',
       occupation: '',
@@ -511,8 +604,8 @@ const SearchPage = () => {
     if (searchCriteria.gender !== '') count++;
     if (searchCriteria.ageMin !== '') count++;
     if (searchCriteria.ageMax !== '') count++;
-    if (searchCriteria.heightMin !== '') count++;
-    if (searchCriteria.heightMax !== '') count++;
+    if (searchCriteria.heightMinFeet !== '' || searchCriteria.heightMinInches !== '') count++;
+    if (searchCriteria.heightMaxFeet !== '' || searchCriteria.heightMaxInches !== '') count++;
     if (searchCriteria.location !== '') count++;
     if (searchCriteria.education !== '') count++;
     if (searchCriteria.occupation !== '') count++;
@@ -538,6 +631,20 @@ const SearchPage = () => {
         page: page,
         limit: 500  // Get more results from backend to handle client-side filtering
       };
+      
+      // Convert feet/inches to total inches for height range
+      if (params.heightMinFeet !== '' && params.heightMinInches !== '') {
+        params.heightMin = parseInt(params.heightMinFeet) * 12 + parseInt(params.heightMinInches);
+      }
+      if (params.heightMaxFeet !== '' && params.heightMaxInches !== '') {
+        params.heightMax = parseInt(params.heightMaxFeet) * 12 + parseInt(params.heightMaxInches);
+      }
+      
+      // Remove feet/inches fields from params (not needed by API)
+      delete params.heightMinFeet;
+      delete params.heightMinInches;
+      delete params.heightMaxFeet;
+      delete params.heightMaxInches;
 
       Object.keys(params).forEach(key => {
         if (params[key] === '' || params[key] === false) {
@@ -545,7 +652,10 @@ const SearchPage = () => {
         }
       });
 
+      console.log('🔍 Search params being sent to backend:', params);
+
       const response = await api.get('/search', { params });
+      console.log('📊 Raw backend response:', response.data);
       const currentUser = localStorage.getItem('username');
       
       console.log('📊 Search response - Total users from backend:', response.data.users?.length || 0);
@@ -1043,33 +1153,40 @@ const SearchPage = () => {
 
       <div className="search-container">
         <div className={`search-filters ${filtersCollapsed ? 'collapsed' : ''}`}>
-          <div className="filters-header">
+          <div 
+            className="filters-header"
+            onClick={(e) => {
+              // Make entire header clickable for collapse/expand, except when clicking buttons
+              if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
+                setFiltersCollapsed(!filtersCollapsed);
+              }
+            }}
+            style={{ cursor: 'pointer' }}
+            title={filtersCollapsed ? "Click to show filters" : "Click to hide filters"}
+          >
             <div className="filters-header-left">
               <h4>
                 Search Filters
-                {hasActiveFilters() && (
-                  <span className="filters-count badge bg-info ms-2">
-                    {countActiveFilters()} active
-                  </span>
-                )}
               </h4>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => handleSearch(1)}
+                onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
                 disabled={loading}
                 title="Search"
               >
                 <span style={{ fontSize: '18px' }}>{loading ? '⟳' : '🔍'}</span>
+                <span style={{ marginLeft: '6px' }}>Search</span>
               </button>
               <button
                 type="button"
                 className={`btn btn-sm ${hasActiveFilters() ? 'btn-warning' : 'btn-outline-secondary'}`}
-                onClick={handleClearFilters}
+                onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
                 disabled={loading || !hasActiveFilters()}
                 title="Clear Filters"
               >
                 <span style={{ fontSize: '16px', fontWeight: 'bold' }}>✕</span>
+                <span style={{ marginLeft: '6px' }}>Clear Filters</span>
                 {hasActiveFilters() && (
                   <small className="badge bg-danger ms-1">{countActiveFilters()}</small>
                 )}
@@ -1078,14 +1195,14 @@ const SearchPage = () => {
             <div className="filter-actions">
               <button
                 className="btn btn-outline-secondary btn-sm"
-                onClick={() => setFiltersCollapsed(!filtersCollapsed)}
+                onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(!filtersCollapsed); }}
                 title={filtersCollapsed ? "Show filters" : "Hide filters"}
               >
                 {filtersCollapsed ? '▼ Show' : '▲ Hide'}
               </button>
               <button
                 className="btn btn-outline-primary btn-sm saved-search-btn"
-                onClick={() => setShowSavedSearches(!showSavedSearches)}
+                onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
                 title={savedSearches.length > 0 ? `${savedSearches.length} saved searches` : 'No saved searches'}
               >
                 {savedSearches.length > 0 ? (
@@ -1094,12 +1211,13 @@ const SearchPage = () => {
                     <span className="icon-top">🔍</span>
                   </span>
                 ) : '🔍'}
+                <span style={{ marginLeft: '6px' }}>Saved Searches</span>
                 {savedSearches.length > 0 && ` (${savedSearches.length})`}
               </button>
               <button
                 type="button"
                 className="btn btn-primary btn-sm"
-                onClick={() => setShowSaveModal(true)}
+                onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
                 title="Manage Saved Searches"
               >
                 💾 Manage
@@ -1161,6 +1279,13 @@ const SearchPage = () => {
                       name="gender"
                       value={searchCriteria.gender}
                       onChange={handleInputChange}
+                      readOnly={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
+                      disabled={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
+                      style={{
+                        cursor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'not-allowed' : 'pointer',
+                        backgroundColor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? '#f0f0f0' : 'rgba(255, 255, 255, 0.9)'
+                      }}
+                      title={(currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'Gender filter is locked to opposite gender' : ''}
                     >
                       <option value="">All</option>
                       <option value="male">Male</option>
@@ -1214,32 +1339,84 @@ const SearchPage = () => {
                 </div>
                 <div className="col-height-min">
                   <div className="form-group">
-                    <label>Height Range</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="heightMin"
-                      value={searchCriteria.heightMin}
-                      onChange={handleInputChange}
-                      min="48"
-                      max="84"
-                      placeholder="Min"
-                    />
+                    <label>Height Range (Min)</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <select
+                        className="form-control"
+                        name="heightMinFeet"
+                        value={searchCriteria.heightMinFeet}
+                        onChange={handleInputChange}
+                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                      >
+                        <option value="">Feet</option>
+                        <option value="4">4 ft</option>
+                        <option value="5">5 ft</option>
+                        <option value="6">6 ft</option>
+                        <option value="7">7 ft</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        name="heightMinInches"
+                        value={searchCriteria.heightMinInches}
+                        onChange={handleInputChange}
+                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                      >
+                        <option value="">Inch</option>
+                        <option value="0">0 in</option>
+                        <option value="1">1 in</option>
+                        <option value="2">2 in</option>
+                        <option value="3">3 in</option>
+                        <option value="4">4 in</option>
+                        <option value="5">5 in</option>
+                        <option value="6">6 in</option>
+                        <option value="7">7 in</option>
+                        <option value="8">8 in</option>
+                        <option value="9">9 in</option>
+                        <option value="10">10 in</option>
+                        <option value="11">11 in</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div className="col-height-max">
                   <div className="form-group">
-                    <label>&nbsp;</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="heightMax"
-                      value={searchCriteria.heightMax}
-                      onChange={handleInputChange}
-                      min="48"
-                      max="84"
-                      placeholder="Max"
-                    />
+                    <label>Height Range (Max)</label>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <select
+                        className="form-control"
+                        name="heightMaxFeet"
+                        value={searchCriteria.heightMaxFeet}
+                        onChange={handleInputChange}
+                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                      >
+                        <option value="">Feet</option>
+                        <option value="4">4 ft</option>
+                        <option value="5">5 ft</option>
+                        <option value="6">6 ft</option>
+                        <option value="7">7 ft</option>
+                      </select>
+                      <select
+                        className="form-control"
+                        name="heightMaxInches"
+                        value={searchCriteria.heightMaxInches}
+                        onChange={handleInputChange}
+                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                      >
+                        <option value="">Inch</option>
+                        <option value="0">0 in</option>
+                        <option value="1">1 in</option>
+                        <option value="2">2 in</option>
+                        <option value="3">3 in</option>
+                        <option value="4">4 in</option>
+                        <option value="5">5 in</option>
+                        <option value="6">6 in</option>
+                        <option value="7">7 in</option>
+                        <option value="8">8 in</option>
+                        <option value="9">9 in</option>
+                        <option value="10">10 in</option>
+                        <option value="11">11 in</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
                 <div className="col-body-type">
@@ -1260,7 +1437,7 @@ const SearchPage = () => {
               </div>
             </div>
 
-            {/* Row 2: Education | Occupation | Eating | Drinking | Smoking */}
+            {/* Row 2: Education | Occupation | Eating | Drinking | Smoking | Location | Days Back */}
             <div className="filter-section">
               <div className="row filter-row-2">
                 <div className="col-education">
@@ -1338,12 +1515,6 @@ const SearchPage = () => {
                     </select>
                   </div>
                 </div>
-              </div>
-            </div>
-
-            {/* Row 3: Location | Days Back */}
-            <div className="filter-section">
-              <div className="row filter-row-3">
                 <div className="col-location">
                   <div className="form-group">
                     <label>Location</label>
@@ -1510,21 +1681,24 @@ const SearchPage = () => {
                 <span className="toggle-label">Table grid lines</span>
               </div>
               
-              <label htmlFor="perPage" className="per-page-label">Show:</label>
-              <select 
-                id="perPage"
-                className="form-select form-select-sm per-page-select"
-                value={recordsPerPage}
-                onChange={(e) => {
-                  setRecordsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-              >
-                <option value="10">10 per page</option>
-                <option value="20">20 per page</option>
-                <option value="50">50 per page</option>
-                <option value="100">100 per page</option>
-              </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>Show:</span>
+                <select 
+                  id="perPage"
+                  className="form-select form-select-sm per-page-select"
+                  value={recordsPerPage}
+                  onChange={(e) => {
+                    setRecordsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: 'auto', minWidth: '130px' }}
+                >
+                  <option value="10">10 per page</option>
+                  <option value="20">20 per page</option>
+                  <option value="50">50 per page</option>
+                  <option value="100">100 per page</option>
+                </select>
+              </div>
             </div>
           </div>
 

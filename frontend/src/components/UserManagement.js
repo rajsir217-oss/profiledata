@@ -262,8 +262,12 @@ const UserManagement = () => {
       bValue = new Date(bValue || 0);
     }
 
+    // Ensure values are defined before string operations
+    aValue = aValue ?? '';
+    bValue = bValue ?? '';
+
     // String comparison
-    if (typeof aValue === 'string') {
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
       aValue = aValue.toLowerCase();
       bValue = bValue.toLowerCase();
     }

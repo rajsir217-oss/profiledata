@@ -67,12 +67,18 @@ const Messages = () => {
   }, [location, selectedUser, currentUsername]);
 
   const loadConversations = async () => {
+    console.log('📥 Messages.js: Loading conversations for:', currentUsername);
     try {
-      const response = await api.get(`/messages/conversations?username=${currentUsername}`);
+      const url = `/messages/conversations?username=${currentUsername}`;
+      console.log('📡 Messages.js: Making request to:', url);
+      const response = await api.get(url);
+      console.log('✅ Messages.js: Response received:', response.data);
+      console.log('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
       setConversations(response.data.conversations || []);
       setLoading(false);
     } catch (err) {
-      console.error('Error loading conversations:', err);
+      console.error('❌ Messages.js: Error loading conversations:', err);
+      console.error('❌ Messages.js: Error response:', err.response?.data);
       setError('Failed to load conversations');
       setLoading(false);
     }
@@ -114,7 +120,13 @@ const Messages = () => {
       await loadConversations();
     } catch (err) {
       console.error('Error sending message:', err);
-      setError('Failed to send message');
+      const errorMessage = err.response?.data?.detail || 'Failed to send message';
+      setError(errorMessage);
+      
+      // If it's a profanity violation (400 or 403 status), trigger violation reload
+      if (err.response?.status === 400 || err.response?.status === 403) {
+        window.dispatchEvent(new Event('violationUpdate'));
+      }
     }
   };
 

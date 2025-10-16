@@ -236,14 +236,9 @@
   grid-template-columns: 1fr 2fr 0.8fr 0.8fr 1fr 1fr 1.2fr;
 }
 
-/* Row 2: Education | Occupation | Eating | Drinking | Smoking */
+/* Row 2: Education | Occupation | Eating | Drinking | Smoking | Location | Days Back */
 .filter-row-2 {
-  grid-template-columns: 2fr 2fr 1fr 1fr 1fr;
-}
-
-/* Row 3: Location | Days Back */
-.filter-row-3 {
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: 1.2fr 1.2fr 0.8fr 0.8fr 0.8fr 2fr 0.8fr;
 }
 
 /* Column classes */

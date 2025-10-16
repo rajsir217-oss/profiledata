@@ -5,6 +5,65 @@
   max-width: 1400px;
   margin: 0 auto;
   animation: fadeIn 0.3s ease;
+  position: relative;
+}
+
+/* Notification Bubble */
+.notification-bubble {
+  position: fixed;
+  top: 80px;
+  right: 30px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  animation: slideInRight 0.3s ease, fadeOut 0.3s ease 2.7s;
+  min-width: 300px;
+  max-width: 500px;
+}
+
+.notification-bubble.success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.notification-bubble.error {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.notification-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.notification-message {
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
 }
 
 @keyframes fadeIn {
@@ -42,11 +101,12 @@
 
 /* Role Selector */
 .role-selector {
-  background: var(--card-bg, white);
+  background: var(--card-background, var(--surface-color, white));
   padding: 20px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   margin-bottom: 30px;
+  border: 1px solid var(--border-color, #e0e0e0);
 }
 
 .role-selector label {
@@ -64,9 +124,10 @@
 
 .role-button {
   padding: 15px 20px;
-  border: 2px solid #ddd;
+  border: 2px solid var(--border-color, #ddd);
   border-radius: 10px;
-  background: white;
+  background: var(--surface-color, white);
+  color: var(--text-color);
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
@@ -82,6 +143,9 @@
 
 .role-button.active {
   font-weight: 600;
+  border-color: var(--primary-color);
+  background: var(--card-background, var(--surface-color));
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .role-button-name {
@@ -101,7 +165,7 @@
   display: flex;
   gap: 10px;
   margin-bottom: 30px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
 }
 
 .tab-button {
@@ -119,7 +183,7 @@
 
 .tab-button:hover {
   color: var(--primary-color);
-  background: rgba(99, 102, 241, 0.05);
+  background: var(--hover-background, rgba(0, 0, 0, 0.03));
 }
 
 .tab-button.active {
@@ -130,11 +194,12 @@
 
 /* Content Area */
 .role-content {
-  background: var(--card-bg, white);
+  background: var(--card-background, var(--surface-color, white));
   padding: 30px;
   border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   min-height: 500px;
+  border: 1px solid var(--border-color, #e0e0e0);
 }
 
 .role-content h3 {
@@ -157,8 +222,8 @@
 }
 
 .permission-card {
-  background: var(--card-light-bg, #f8f9fa);
-  border: 1px solid #e5e7eb;
+  background: var(--surface-color, #f8f9fa);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 10px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -176,7 +241,7 @@
   gap: 10px;
   margin-bottom: 15px;
   padding-bottom: 10px;
-  border-bottom: 2px solid #e5e7eb;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
 }
 
 .resource-icon {
@@ -200,7 +265,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
 }
 
 .permission-list li:last-child {
@@ -214,7 +279,7 @@
 }
 
 .wildcard-badge {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   padding: 3px 8px;
   border-radius: 4px;
@@ -223,6 +288,82 @@
 }
 
 /* Limits Tab */
+.limits-tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 25px;
+  gap: 20px;
+}
+
+.limits-tab-header > div {
+  flex: 1;
+}
+
+.limits-tab-header h3 {
+  margin: 0 0 5px 0;
+}
+
+.btn-edit-limits {
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  white-space: nowrap;
+}
+
+.btn-edit-limits:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-save-limits {
+  padding: 10px 20px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-save-limits:hover:not(:disabled) {
+  background: #059669;
+  transform: translateY(-2px);
+}
+
+.btn-save-limits:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-cancel-limits {
+  padding: 10px 20px;
+  background: var(--surface-color, #f0f0f0);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.btn-cancel-limits:hover:not(:disabled) {
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
+}
+
 .limits-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -231,8 +372,8 @@
 }
 
 .limit-card {
-  background: var(--card-light-bg, #f8f9fa);
-  border: 1px solid #e5e7eb;
+  background: var(--surface-color, #f8f9fa);
+  border: 1px solid var(--border-color, #e5e7eb);
   border-radius: 10px;
   padding: 20px;
   transition: all 0.3s ease;
@@ -241,6 +382,45 @@
 .limit-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.limit-card.edit-mode {
+  border-color: var(--primary-color);
+  background: var(--card-background, var(--surface-color));
+}
+
+.limit-input {
+  width: 100px;
+  padding: 8px 12px;
+  border: 2px solid var(--primary-color);
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  background: var(--surface-color, white);
+  color: var(--text-color);
+  text-align: right;
+  transition: all 0.3s;
+}
+
+.limit-input:focus {
+  outline: none;
+  border-color: var(--secondary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.limit-input::placeholder {
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.limit-hint {
+  margin-top: 8px;
+  text-align: right;
+}
+
+.limit-hint small {
+  color: var(--text-muted);
+  font-size: 0.8rem;
 }
 
 .limit-header {
@@ -270,7 +450,7 @@
 .limit-bar {
   width: 100%;
   height: 8px;
-  background: #e5e7eb;
+  background: var(--border-color, #e5e7eb);
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 10px;
@@ -310,7 +490,7 @@
 }
 
 .hint-box {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   padding: 25px;
   border-radius: 12px;
@@ -346,8 +526,8 @@
 
 .hierarchy-card {
   width: 100%;
-  background: white;
-  border: 3px solid #e5e7eb;
+  background: var(--card-background, var(--surface-color, white));
+  border: 3px solid var(--border-color, #e5e7eb);
   border-radius: 12px;
   padding: 20px;
   cursor: pointer;
@@ -385,7 +565,7 @@
 .inherits-from {
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid var(--border-color, #e5e7eb);
 }
 
 .inherits-label {
@@ -412,7 +592,7 @@
 .base-role {
   margin-top: 15px;
   padding-top: 15px;
-  border-top: 2px solid #e5e7eb;
+  border-top: 2px solid var(--border-color, #e5e7eb);
   color: var(--text-muted);
   font-size: 0.9rem;
 }
@@ -425,15 +605,15 @@
 
 .inheritance-explanation {
   margin-top: 40px;
-  background: #f0f9ff;
+  background: var(--surface-color, #f0f9ff);
   padding: 25px;
   border-radius: 12px;
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid var(--primary-color, #3b82f6);
 }
 
 .inheritance-explanation h4 {
   margin-top: 0;
-  color: #1e40af;
+  color: var(--primary-color, #1e40af);
 }
 
 .inheritance-explanation ul {
@@ -443,7 +623,7 @@
 
 .inheritance-explanation li {
   margin-bottom: 10px;
-  color: #1e40af;
+  color: var(--text-color, #1e40af);
   line-height: 1.6;
 }
 
@@ -478,56 +658,33 @@
   .hierarchy-visual {
     max-width: 100%;
   }
-}
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .role-management {
-    --card-bg: #1f2937;
-    --card-light-bg: #374151;
-    --text-color: #f9fafb;
-    --text-muted: #9ca3af;
+  .limits-tab-header {
+    flex-direction: column;
   }
 
-  .role-button {
-    background: #374151;
-    border-color: #4b5563;
-    color: #f9fafb;
+  .edit-actions {
+    width: 100%;
   }
 
-  .permission-card,
-  .limit-card {
-    background: #374151;
-    border-color: #4b5563;
+  .btn-save-limits,
+  .btn-cancel-limits,
+  .btn-edit-limits {
+    width: 100%;
   }
 
-  .hierarchy-card {
-    background: #374151;
-    border-color: #4b5563;
+  .limit-input {
+    width: 80px;
+  }
+
+  .notification-bubble {
+    top: 70px;
+    right: 15px;
+    left: 15px;
+    min-width: auto;
+    max-width: none;
   }
 }
 
-/* Theme Variables */
-body.theme-dark .role-management {
-  --card-bg: #1f2937;
-  --card-light-bg: #374151;
-  --text-color: #f9fafb;
-  --text-muted: #9ca3af;
-}
-
-body.theme-dark .role-button {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f9fafb;
-}
-
-body.theme-dark .permission-card,
-body.theme-dark .limit-card {
-  background: #374151;
-  border-color: #4b5563;
-}
-
-body.theme-dark .hierarchy-card {
-  background: #374151;
-  border-color: #4b5563;
-}
+/* Theme-specific adjustments - all themes now use CSS variables from App.css */
+/* All colors now automatically adapt to the active theme through CSS variables */

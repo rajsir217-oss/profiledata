@@ -315,10 +315,10 @@ const Profile = () => {
       )}
 
       <div className="profile-header">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap' }}>
-          {/* Profile Avatar with KPI Bubbles */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
+          {/* Profile Avatar */}
           {isOwnProfile && (
-            <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
               {/* Main Avatar */}
               <div style={{
                 width: '120px',
@@ -340,95 +340,6 @@ const Profile = () => {
                 ) : (
                   <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
                 )}
-              </div>
-              
-              {/* KPI Bubbles positioned around avatar */}
-              {/* Top-left: Profile Views */}
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                left: '-20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                backgroundColor: '#fff3cd',
-                borderRadius: '20px',
-                border: '2px solid #ffc107',
-                boxShadow: '0 3px 10px rgba(255, 193, 7, 0.4)',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: '#856404',
-                whiteSpace: 'nowrap',
-                zIndex: 10
-              }}>
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: '#ffc107',
-                  boxShadow: '0 0 8px rgba(255, 193, 7, 0.8)'
-                }} />
-                <span>👁️ {kpiStats.profileViews}</span>
-              </div>
-
-              {/* Top-right: Shortlisted */}
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                right: '-20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                backgroundColor: '#d1ecf1',
-                borderRadius: '20px',
-                border: '2px solid #17a2b8',
-                boxShadow: '0 3px 10px rgba(23, 162, 184, 0.4)',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: '#0c5460',
-                whiteSpace: 'nowrap',
-                zIndex: 10
-              }}>
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: '#17a2b8',
-                  boxShadow: '0 0 8px rgba(23, 162, 184, 0.8)'
-                }} />
-                <span>📝 {kpiStats.shortlistedBy}</span>
-              </div>
-
-              {/* Bottom: Favorites */}
-              <div style={{
-                position: 'absolute',
-                bottom: '-10px',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '6px 10px',
-                backgroundColor: '#f8d7da',
-                borderRadius: '20px',
-                border: '2px solid #dc3545',
-                boxShadow: '0 3px 10px rgba(220, 53, 69, 0.4)',
-                fontSize: '11px',
-                fontWeight: '600',
-                color: '#721c24',
-                whiteSpace: 'nowrap',
-                zIndex: 10
-              }}>
-                <div style={{
-                  width: '10px',
-                  height: '10px',
-                  borderRadius: '50%',
-                  backgroundColor: '#dc3545',
-                  boxShadow: '0 0 8px rgba(220, 53, 69, 0.8)'
-                }} />
-                <span>❤️ {kpiStats.favoritedBy}</span>
               </div>
             </div>
           )}
@@ -460,6 +371,32 @@ const Profile = () => {
               </p>
             )}
           </div>
+          
+          {/* Floating Ribbon with Stats - Positioned before Edit Button */}
+          {isOwnProfile && (
+            <div className="stats-ribbon">
+              {/* Profile Views */}
+              <div className="stat-ribbon-item stat-views">
+                <span className="stat-icon">👁️</span>
+                <span className="stat-value">{kpiStats.profileViews}</span>
+                <div className="ribbon-flag"></div>
+              </div>
+              
+              {/* Shortlisted */}
+              <div className="stat-ribbon-item stat-shortlist">
+                <span className="stat-icon">📝</span>
+                <span className="stat-value">{kpiStats.shortlistedBy}</span>
+                <div className="ribbon-flag"></div>
+              </div>
+              
+              {/* Favorites */}
+              <div className="stat-ribbon-item stat-favorites">
+                <span className="stat-icon">❤️</span>
+                <span className="stat-value">{kpiStats.favoritedBy}</span>
+                <div className="ribbon-flag"></div>
+              </div>
+            </div>
+          )}
           
           {/* Edit Profile Button */}
           {isOwnProfile && (

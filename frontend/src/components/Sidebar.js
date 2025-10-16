@@ -124,13 +124,15 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: false, // Always enabled - users need to access their profile
         profileImage: true // Flag to render profile image instead of icon
       },
-      { 
-        icon: '💬', 
-        label: 'My Messages', 
-        subLabel: 'Chat with matches',
-        action: () => navigate('/messages'),
+            { 
+        icon: '🦋', 
+        label: 'My L3V3L Matches', 
+        subLabel: 'Love, Loyalty, Laughter+',
+        action: () => navigate('/l3v3l-matches'),
         disabled: !isActive
       },
+
+
       { 
         icon: '🔍', 
         label: 'Search Profiles', 
@@ -139,10 +141,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: !isActive
       },
       { 
-        icon: '🦋', 
-        label: 'My L3V3L Matches', 
-        subLabel: 'Love, Loyalty, Laughter+',
-        action: () => navigate('/l3v3l-matches'),
+        icon: '💬', 
+        label: 'My Messages', 
+        subLabel: 'Chat with matches',
+        action: () => navigate('/messages'),
         disabled: !isActive
       },
       { 
@@ -190,6 +192,17 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'Test Dashboard',
         subLabel: 'Run & schedule tests',
         action: () => navigate('/test-dashboard')
+      });
+    }
+
+    // Add Testimonials section (only for admin/moderator in main menu)
+    if (currentUser === 'admin' || localStorage.getItem('userRole') === 'moderator') {
+      items.push({ 
+        icon: '💬', 
+        label: 'Testimonials', 
+        subLabel: 'User feedback',
+        action: () => navigate('/testimonials'),
+        disabled: !isActive
       });
     }
 
@@ -262,6 +275,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Footer Links */}
         <div className="sidebar-footer">
+          {/* Show Testimonials in footer for non-admin/non-moderator users */}
+          {isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator' && (
+            <>
+              <span className="footer-link" onClick={() => navigate('/testimonials')}>💬 Testimonials</span>
+              <span className="footer-separator">|</span>
+            </>
+          )}
           <span className="footer-link" onClick={() => navigate('/l3v3l-info')}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => navigate('/privacy')}>Privacy</span>

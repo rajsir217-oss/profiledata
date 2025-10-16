@@ -1,15 +1,97 @@
 import React, { useState, useEffect } from 'react';
 import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions, getAllLimits, formatLimit } from '../utils/permissions';
+import api from '../api';
 import './RoleManagement.css';
 
 const RoleManagement = () => {
   const [selectedRole, setSelectedRole] = useState('free_user');
   const [activeTab, setActiveTab] = useState('permissions'); // permissions, limits, hierarchy
+  const [editMode, setEditMode] = useState(false);
+  const [roleConfig, setRoleConfig] = useState(null);
+  const [editedLimits, setEditedLimits] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState(null);
 
   const roles = ['admin', 'moderator', 'premium_user', 'free_user'];
 
   // Check if user has permission to view this page
-  if (!hasPermission('roles.read')) {
+  const currentUsername = localStorage.getItem('username');
+  const isAdmin = currentUsername === 'admin';
+
+  useEffect(() => {
+    loadRoleConfig();
+  }, []);
+
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 3000); // Auto-hide after 3 seconds
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ message, type });
+  };
+
+  const loadRoleConfig = async () => {
+    try {
+      const response = await api.get('/roles/config');
+      setRoleConfig(response.data);
+    } catch (error) {
+      console.error('Error loading role config:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditLimit = (limitName, value) => {
+    setEditedLimits(prev => ({
+      ...prev,
+      [selectedRole]: {
+        ...prev[selectedRole],
+        [limitName]: value === '' ? '' : parseInt(value)
+      }
+    }));
+  };
+
+  const handleSaveChanges = async () => {
+    setSaving(true);
+    try {
+      // Merge edited limits with existing config
+      const updatedConfig = {
+        limits: {
+          ...roleConfig.limits,
+          ...Object.keys(editedLimits).reduce((acc, role) => {
+            acc[role] = {
+              ...roleConfig.limits[role],
+              ...editedLimits[role]
+            };
+            return acc;
+          }, {})
+        }
+      };
+
+      await api.put(`/roles/config?username=${currentUsername}`, updatedConfig);
+      setRoleConfig(updatedConfig);
+      setEditedLimits({});
+      setEditMode(false);
+      showNotification('Role limits updated successfully!', 'success');
+    } catch (error) {
+      showNotification('Error updating limits: ' + (error.response?.data?.detail || error.message), 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedLimits({});
+    setEditMode(false);
+  };
+  
+  if (!isAdmin && !hasPermission('roles.read')) {
     return (
       <div className="role-management-error">
         <h2>Access Denied</h2>
@@ -75,54 +157,85 @@ const RoleManagement = () => {
   };
 
   const renderLimitsTab = () => {
-    const limits = getAllLimits();
-    
-    // Mock current counts for demonstration
-    const mockCounts = {
-      admin: { favorites_max: 0, shortlist_max: 0, messages_per_day: 0, profile_views_per_day: 0 },
-      moderator: { favorites_max: 0, shortlist_max: 0, messages_per_day: 0, profile_views_per_day: 0 },
-      premium_user: { favorites_max: 50, shortlist_max: 20, messages_per_day: 15, profile_views_per_day: 80 },
-      free_user: { favorites_max: 7, shortlist_max: 3, messages_per_day: 4, profile_views_per_day: 18 }
-    };
+    if (loading || !roleConfig) {
+      return <div className="limits-tab"><p>Loading limits...</p></div>;
+    }
 
-    const currentCounts = mockCounts[selectedRole] || {};
+    const limits = roleConfig.limits[selectedRole] || {};
+    const getCurrentLimit = (limitName) => {
+      if (editedLimits[selectedRole] && editedLimits[selectedRole][limitName] !== undefined) {
+        return editedLimits[selectedRole][limitName];
+      }
+      return limits[limitName];
+    };
 
     return (
       <div className="limits-tab">
-        <h3>Limits for {getRoleDisplayName(selectedRole)}</h3>
+        <div className="limits-tab-header">
+          <div>
+            <h3>Limits for {getRoleDisplayName(selectedRole)}</h3>
+            <p className="info-text">Configure resource limits for this role</p>
+          </div>
+          {isAdmin && !editMode && (
+            <button className="btn-edit-limits" onClick={() => setEditMode(true)}>
+              ✏️ Edit Limits
+            </button>
+          )}
+          {isAdmin && editMode && (
+            <div className="edit-actions">
+              <button className="btn-save-limits" onClick={handleSaveChanges} disabled={saving}>
+                {saving ? 'Saving...' : '💾 Save Changes'}
+              </button>
+              <button className="btn-cancel-limits" onClick={handleCancelEdit} disabled={saving}>
+                ❌ Cancel
+              </button>
+            </div>
+          )}
+        </div>
         
         <div className="limits-grid">
           {Object.entries(limits).map(([limitName, limitValue]) => {
-            const current = currentCounts[limitName] || 0;
-            const limit = limitValue;
-            const percentage = limit ? Math.min(100, (current / limit) * 100) : 0;
-            const isUnlimited = limit === null || limit === undefined;
+            const currentValue = getCurrentLimit(limitName);
+            const displayValue = currentValue === -1 ? 'Unlimited' : currentValue;
+            const isUnlimited = currentValue === -1;
 
             return (
-              <div key={limitName} className="limit-card">
+              <div key={limitName} className={`limit-card ${editMode ? 'edit-mode' : ''}`}>
                 <div className="limit-header">
                   <span className="limit-name">{limitName.replace(/_/g, ' ')}</span>
-                  <span className={`limit-value ${isUnlimited ? 'unlimited' : ''}`}>
-                    {formatLimit(limit)}
-                  </span>
+                  {!editMode && (
+                    <span className={`limit-value ${isUnlimited ? 'unlimited' : ''}`}>
+                      {displayValue}
+                    </span>
+                  )}
+                  {editMode && (
+                    <input
+                      type="number"
+                      className="limit-input"
+                      value={currentValue === -1 ? '' : currentValue}
+                      onChange={(e) => handleEditLimit(limitName, e.target.value)}
+                      placeholder="Unlimited"
+                      min="-1"
+                    />
+                  )}
                 </div>
                 
-                {!isUnlimited && (
-                  <>
-                    <div className="limit-bar">
-                      <div 
-                        className={`limit-bar-fill ${percentage >= 80 ? 'near-limit' : ''} ${percentage >= 100 ? 'at-limit' : ''}`}
-                        style={{ width: `${percentage}%` }}
-                      />
-                    </div>
-                    <div className="limit-stats">
-                      <span>Current: {current}</span>
-                      <span>Remaining: {Math.max(0, limit - current)}</span>
-                    </div>
-                  </>
+                {editMode && (
+                  <div className="limit-hint">
+                    <small>Use -1 for unlimited</small>
+                  </div>
                 )}
                 
-                {isUnlimited && (
+                {!editMode && !isUnlimited && (
+                  <div className="limit-bar">
+                    <div 
+                      className="limit-bar-fill"
+                      style={{ width: '0%' }}
+                    />
+                  </div>
+                )}
+                
+                {!editMode && isUnlimited && (
                   <div className="unlimited-indicator">
                     <span>✨ No restrictions</span>
                   </div>
@@ -132,14 +245,14 @@ const RoleManagement = () => {
           })}
         </div>
 
-        <div className="upgrade-hint">
-          {selectedRole === 'free_user' && (
+        {!editMode && selectedRole === 'free_user' && (
+          <div className="upgrade-hint">
             <div className="hint-box">
               <h4>💎 Upgrade to Premium</h4>
-              <p>Get unlimited favorites, shortlist, messages, and more!</p>
+              <p>Get more favorites, shortlist, messages, and more!</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -223,6 +336,16 @@ const RoleManagement = () => {
 
   return (
     <div className="role-management">
+      {/* Notification Bubble */}
+      {notification && (
+        <div className={`notification-bubble ${notification.type}`}>
+          <span className="notification-icon">
+            {notification.type === 'success' ? '✅' : '❌'}
+          </span>
+          <span className="notification-message">{notification.message}</span>
+        </div>
+      )}
+
       <div className="role-management-header">
         <h1>🎭 Role Management</h1>
         <p>View and understand role permissions, limits, and hierarchy</p>
