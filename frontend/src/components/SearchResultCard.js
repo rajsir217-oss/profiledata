@@ -48,15 +48,49 @@ const SearchResultCard = ({
   // Calculate age from DOB
   const calculateAge = (dob) => {
     if (!dob) return 'N/A';
-    const birthDate = new Date(dob);
-    const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-      age--;
+    try {
+      const birthDate = new Date(dob);
+      if (isNaN(birthDate.getTime())) return 'N/A';
+      const today = new Date();
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      return age > 0 && age < 120 ? age : 'N/A';
+    } catch (e) {
+      return 'N/A';
     }
-    return age;
   };
+  
+  // Get age - use provided age or calculate from DOB/dateOfBirth
+  const getAge = () => {
+    // First try to use provided age (must be a valid number)
+    if (typeof user.age === 'number' && user.age > 0) {
+      return user.age;
+    }
+    if (typeof user.age === 'string' && user.age !== 'N/A' && user.age !== '') {
+      const numAge = parseInt(user.age);
+      if (!isNaN(numAge) && numAge > 0) {
+        return numAge;
+      }
+    }
+    // Try to calculate from dob or dateOfBirth
+    const calculated = calculateAge(user.dob || user.dateOfBirth);
+    return calculated;
+  };
+  
+  // Always get age for display
+  const displayAge = getAge();
+  
+  // Only log if there's an issue with age
+  if (!displayAge || displayAge === 'N/A') {
+    console.log('⚠️ Age missing for user:', user.username || user.firstName, {
+      providedAge: user.age,
+      dob: user.dob,
+      dateOfBirth: user.dateOfBirth
+    });
+  }
 
   const handlePrevImage = (e) => {
     e.stopPropagation();
@@ -151,9 +185,10 @@ const SearchResultCard = ({
         
         {/* L3V3L Match Score Badge */}
         {user.matchScore && (
-          <div className="match-score-badge" title={user.compatibilityLevel}>
-            <div className="match-score-value">{Math.round(user.matchScore)}%</div>
-            <div className="match-score-label">L3V3L Match</div>
+          <div className="match-score-badge l3v3l-score-badge" title={user.compatibilityLevel}>
+            <span className="match-score-label-inline">L3V3L MATCH</span>
+            <span className="match-bullet">•</span>
+            <span className="match-score-value-inline">{Math.round(user.matchScore * 10) / 10}%</span>
           </div>
         )}
 
@@ -197,7 +232,7 @@ const SearchResultCard = ({
           <div className="row-info-column-1">
             <h6 className="row-name">
               {getDisplayName(user)}
-              <span className="age-badge-inline">{calculateAge(user.dob)}y</span>
+              {displayAge && displayAge !== 'N/A' && <span className="age-badge-inline">{displayAge}y</span>}
             </h6>
             <p className="row-detail"><strong>📍</strong> {user.location}</p>
             <p className="row-detail"><strong>📏</strong> {user.height}</p>
@@ -336,7 +371,14 @@ const SearchResultCard = ({
           <h6 className="card-title">
             {getDisplayName(user)}
           </h6>
-          <span className="age-badge">{calculateAge(user.dob)} years</span>
+          <div className="card-title-badges">
+            {user.matchScore && (
+              <span className="l3v3l-match-badge" title={user.compatibilityLevel}>
+                L3V3L MATCH • {Math.round(user.matchScore * 10) / 10}%
+              </span>
+            )}
+            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge} years</span>}
+          </div>
         </div>
 
         <div className="card-body">

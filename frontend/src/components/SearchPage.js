@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
@@ -962,7 +963,9 @@ const SearchPage = () => {
   };
 
   const handleProfileAction = async (e, targetUsername, action) => {
-    e.stopPropagation();
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
 
     const currentUser = localStorage.getItem('username');
     if (!currentUser) {
@@ -1718,174 +1721,36 @@ const SearchPage = () => {
           )}
 
           <div 
-            className={`${viewMode === 'cards' ? 'results-grid' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}
+            className={`${viewMode === 'cards' ? 'results-grid results-cards' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}
             style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
           >
             {currentRecords.map((user) => {
-              const isOnline = onlineUsers.has(user.username);
-              
-              // Row View
-              if (viewMode === 'rows') {
-                return (
-                  <div key={user.username} className="result-row">
-                    <div className="row-content" onClick={() => navigate(`/profile/${user.username}`)}>
-                      <div className="row-image">
-                        {renderProfileImage(user)}
-                      </div>
-                      <div className="row-info">
-                        <div className="row-header">
-                          <h5 className="row-name">{getDisplayName(user)}</h5>
-                          <div className="row-badges">
-                            {isOnline && <OnlineStatusBadge username={user.username} size="small" />}
-                            {user.dob && <span className="age-badge">{calculateAge(user.dob)} years</span>}
-                          </div>
-                        </div>
-                        <div className="row-details">
-                          <span><strong>📍</strong> {user.location}</span>
-                          <span><strong>🎓</strong> {user.education}</span>
-                          <span><strong>💼</strong> {user.occupation}</span>
-                          <span><strong>📏</strong> {user.height}</span>
-                        </div>
-                      </div>
-                      <div className="row-actions">
-                        <button
-                          className={`btn btn-sm ${favoritedUsers.has(user.username) ? 'btn-warning' : 'btn-outline-warning'}`}
-                          onClick={(e) => handleProfileAction(e, user.username, 'favorite')}
-                          title={favoritedUsers.has(user.username) ? 'Remove from Favorites' : 'Add to Favorites'}
-                        >
-                          {favoritedUsers.has(user.username) ? '⭐' : '☆'}
-                        </button>
-                        <button
-                          className={`btn btn-sm ${shortlistedUsers.has(user.username) ? 'btn-info' : 'btn-outline-info'}`}
-                          onClick={(e) => handleProfileAction(e, user.username, 'shortlist')}
-                          title={shortlistedUsers.has(user.username) ? 'Remove from Shortlist' : 'Add to Shortlist'}
-                        >
-                          📋
-                        </button>
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={(e) => handleProfileAction(e, user.username, 'message')}
-                          title="Send Message"
-                        >
-                          💬
-                        </button>
-                        <button
-                          className={`btn btn-sm ${excludedUsers.has(user.username) ? 'btn-danger' : 'btn-outline-danger'}`}
-                          onClick={(e) => handleProfileAction(e, user.username, 'exclude')}
-                          title={excludedUsers.has(user.username) ? 'Remove from Exclusions' : 'Exclude from Search'}
-                        >
-                          {excludedUsers.has(user.username) ? '🚫' : '❌'}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              
-              // Card View (existing)
               return (
-              <div key={user.username} className="result-card">
-                <div className="card">
-                  {/* Card Title Section with Purple Gradient */}
-                  <div className="card-title-section">
-                    <h6 className="card-title">
-                      {getDisplayName(user)}
-                    </h6>
-                    <span className="age-badge">{calculateAge(user.dob)} years</span>
-                  </div>
-
-                  <div className="card-body">
-                    <div className="d-flex gap-3 mb-3">
-                      <div className="profile-image-left">
-                        {renderProfileImage(user)}
-                      </div>
-
-                      <div className="user-details-right flex-grow-1">
-                        <div className="user-details">
-                          <p><strong>📍</strong> {user.location}</p>
-                          <p><strong>🎓</strong> {user.education}</p>
-                          <p><strong>💼</strong> {user.occupation}</p>
-                          <p><strong>📏</strong> {user.height}</p>
-
-                          <div className="pii-section">
-                            <p><strong>📧</strong> Email:
-                              {hasPiiAccess(user.username, 'contact_info') ? (
-                                <span className="pii-data"> {user.contactEmail}</span>
-                              ) : (
-                                <span className="pii-masked"> [Request Access] </span>
-                              )}
-                              {!hasPiiAccess(user.username, 'contact_info') && (
-                                <button
-                                  className="btn btn-sm btn-link pii-request-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openPIIRequestModal(user.username);
-                                  }}
-                                  disabled={isPiiRequestPending(user.username, 'contact_info')}
-                                >
-                                  {isPiiRequestPending(user.username, 'contact_info') ? (
-                                    <span className="badge bg-warning text-dark">📨 Sent</span>
-                                  ) : 'Request'}
-                                </button>
-                              )}
-                            </p>
-                            <p><strong>📱</strong> Phone:
-                              {hasPiiAccess(user.username, 'contact_info') ? (
-                                <span className="pii-data"> {user.contactNumber}</span>
-                              ) : (
-                                <span className="pii-masked"> [Request Access] </span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="user-badges">
-                          {user.religion && <span className="badge bg-info">{user.religion}</span>}
-                          {user.eatingPreference && <span className="badge bg-success">{user.eatingPreference}</span>}
-                          {user.bodyType && <span className="badge bg-warning">{user.bodyType}</span>}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="card-actions mt-3">
-                      <button
-                        className={`btn btn-sm ${favoritedUsers.has(user.username) ? 'btn-warning' : 'btn-outline-warning'} action-btn`}
-                        onClick={(e) => handleProfileAction(e, user.username, 'favorite')}
-                        title={favoritedUsers.has(user.username) ? 'Remove from Favorites' : 'Add to Favorites'}
-                      >
-                        {favoritedUsers.has(user.username) ? '⭐' : '☆'}
-                      </button>
-                      <button
-                        className={`btn btn-sm ${shortlistedUsers.has(user.username) ? 'btn-info' : 'btn-outline-info'} action-btn`}
-                        onClick={(e) => handleProfileAction(e, user.username, 'shortlist')}
-                        title={shortlistedUsers.has(user.username) ? 'Remove from Shortlist' : 'Add to Shortlist'}
-                      >
-                        {shortlistedUsers.has(user.username) ? '📋' : '📋'}
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-primary action-btn"
-                        onClick={(e) => handleProfileAction(e, user.username, 'message')}
-                        title="Send Message"
-                      >
-                        💬
-                      </button>
-                      <button
-                        className={`btn btn-sm ${excludedUsers.has(user.username) ? 'btn-danger' : 'btn-outline-danger'} action-btn`}
-                        onClick={(e) => handleProfileAction(e, user.username, 'exclude')}
-                        title={excludedUsers.has(user.username) ? 'Remove from Exclusions' : 'Exclude from Search'}
-                      >
-                        {excludedUsers.has(user.username) ? '🚫' : '❌'}
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => navigate(`/profile/${user.username}`)}
-                      >
-                        View Profile
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                <SearchResultCard
+                  key={user.username}
+                  user={user}
+                  currentUsername={localStorage.getItem('username')}
+                  onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                  onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                  onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
+                  onMessage={(u) => {
+                    setSelectedUserForMessage(u);
+                    setShowMessageModal(true);
+                  }}
+                  onPIIRequest={(u) => openPIIRequestModal(u.username)}
+                  isFavorited={favoritedUsers.has(user.username)}
+                  isShortlisted={shortlistedUsers.has(user.username)}
+                  isExcluded={excludedUsers.has(user.username)}
+                  hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
+                  hasImageAccess={hasPiiAccess(user.username, 'images')}
+                  isPiiRequestPending={isPiiRequestPending(user.username, 'contact_info')}
+                  isImageRequestPending={isPiiRequestPending(user.username, 'images')}
+                  viewMode={viewMode}
+                  showFavoriteButton={true}
+                  showShortlistButton={true}
+                  showExcludeButton={true}
+                  showMessageButton={true}
+                />
               );
             })}
           </div>

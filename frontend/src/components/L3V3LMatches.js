@@ -16,6 +16,7 @@ const L3V3LMatches = () => {
   const [matches, setMatches] = useState([]);
   const [error, setError] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
+  const [minMatchScore, setMinMatchScore] = useState(0); // Filter: minimum match score (0-100)
   
   // User interactions
   const [favoritedUsers, setFavoritedUsers] = useState(new Set());
@@ -76,28 +77,53 @@ const L3V3LMatches = () => {
 
   const loadUserPreferences = async () => {
     try {
-      // Load favorites
+      // Load favorites - API: GET /favorites/{username}
       const favResponse = await api.get(`/favorites/${currentUsername}`);
-      setFavoritedUsers(new Set(favResponse.data.map(u => u.username)));
+      const favorites = favResponse.data.favorites || favResponse.data || [];
+      setFavoritedUsers(new Set(favorites.map(u => u.username || u)));
 
-      // Load shortlist
+      // Load shortlist - API: GET /shortlist/{username}
       const shortlistResponse = await api.get(`/shortlist/${currentUsername}`);
-      setShortlistedUsers(new Set(shortlistResponse.data.map(u => u.username)));
+      const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
+      setShortlistedUsers(new Set(shortlist.map(u => u.username || u)));
 
-      // Load exclusions
+      // Load exclusions - API: GET /exclusions/{username}
       const exclusionsResponse = await api.get(`/exclusions/${currentUsername}`);
-      setExcludedUsers(new Set(exclusionsResponse.data.map(u => u.username)));
+      const exclusions = exclusionsResponse.data.exclusions || exclusionsResponse.data || [];
+      setExcludedUsers(new Set(exclusions.map(u => u.username || u)));
 
-      // Load PII access
-      const piiResponse = await api.get(`/pii-access-status?username=${currentUsername}`);
+      // Load PII access - using same approach as SearchPage
+      const [requestsResponse, accessResponse] = await Promise.all([
+        api.get(`/pii-requests/${currentUsername}/outgoing`),
+        api.get(`/pii-access/${currentUsername}/received`)
+      ]);
+
+      const requests = requestsResponse.data.requests || [];
+      const receivedAccess = accessResponse.data.access || [];
+      
       const piiMap = {};
-      piiResponse.data.forEach(access => {
-        piiMap[access.profile_owner] = {
-          hasContactAccess: access.has_contact_access,
-          hasImageAccess: access.has_image_access
-        };
+      
+      // Add received access grants
+      receivedAccess.forEach(access => {
+        const targetUsername = access.userProfile?.username;
+        if (targetUsername) {
+          piiMap[targetUsername] = {
+            hasContactAccess: access.accessTypes?.includes('contact_info'),
+            hasImageAccess: access.accessTypes?.includes('images')
+          };
+        }
       });
+      
       setPiiAccessMap(piiMap);
+      
+      // Track pending requests
+      const pendingSet = new Set();
+      requests.forEach(req => {
+        if (req.status === 'pending') {
+          pendingSet.add(req.profileUsername || req.requestedUsername);
+        }
+      });
+      setPendingPiiRequests(pendingSet);
 
     } catch (error) {
       console.error('Error loading user preferences:', error);
@@ -115,10 +141,7 @@ const L3V3LMatches = () => {
           return newSet;
         });
       } else {
-        await api.post('/favorites', {
-          username: currentUsername,
-          targetUsername: user.username
-        });
+        await api.post(`/favorites/${user.username}?username=${currentUsername}`);
         setFavoritedUsers(prev => new Set(prev).add(user.username));
       }
     } catch (error) {
@@ -136,10 +159,7 @@ const L3V3LMatches = () => {
           return newSet;
         });
       } else {
-        await api.post('/shortlist', {
-          username: currentUsername,
-          targetUsername: user.username
-        });
+        await api.post(`/shortlist/${user.username}?username=${currentUsername}`);
         setShortlistedUsers(prev => new Set(prev).add(user.username));
       }
     } catch (error) {
@@ -157,10 +177,7 @@ const L3V3LMatches = () => {
           return newSet;
         });
       } else {
-        await api.post('/exclusions', {
-          username: currentUsername,
-          targetUsername: user.username
-        });
+        await api.post(`/exclusions/${user.username}?username=${currentUsername}`);
         setExcludedUsers(prev => new Set(prev).add(user.username));
         // Remove from matches
         setMatches(prev => prev.filter(u => u.username !== user.username));
@@ -180,14 +197,19 @@ const L3V3LMatches = () => {
     setShowPIIRequestModal(true);
   };
 
-  const handlePIIRequestSubmit = async (requestData) => {
-    try {
-      await api.post('/pii-requests', requestData);
+  // Filter matches by minimum match score
+  const filteredMatches = matches.filter(user => {
+    const score = user.matchScore || 0;
+    return score >= minMatchScore;
+  });
+
+  const handlePIIRequestSuccess = () => {
+    // Reload PII access status after successful request
+    if (selectedUser) {
       setPendingPiiRequests(prev => new Set(prev).add(selectedUser.username));
-      setShowPIIRequestModal(false);
-    } catch (error) {
-      console.error('Error submitting PII request:', error);
     }
+    setShowPIIRequestModal(false);
+    setSelectedUser(null);
   };
 
   return (
@@ -203,17 +225,31 @@ const L3V3LMatches = () => {
         
         <div className="search-header-actions">
           <button
-            className="btn btn-outline-primary"
+            className="btn btn-outline-primary info-btn"
             onClick={() => navigate('/l3v3l-info')}
           >
-            ℹ️ What is L3V3L?
+            <span className="btn-icon">ℹ️</span>
+            <span className="btn-text">What is L3V3L?</span>
           </button>
-          <button
-            className="btn btn-sm btn-outline-secondary"
-            onClick={() => setViewMode(viewMode === 'cards' ? 'rows' : 'cards')}
-          >
-            {viewMode === 'cards' ? '📋 Row View' : '🎴 Card View'}
-          </button>
+          
+          <div className="view-toggle-group">
+            <button
+              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card View"
+            >
+              <span className="toggle-icon">⊞</span>
+              <span className="toggle-text">Cards</span>
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => setViewMode('rows')}
+              title="Row View"
+            >
+              <span className="toggle-icon">☰</span>
+              <span className="toggle-text">Rows</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -238,6 +274,37 @@ const L3V3LMatches = () => {
         </div>
       </div>
 
+      {/* Match Score Filter Slider */}
+      <div className="l3v3l-score-filter">
+        <div className="score-filter-content">
+          <label htmlFor="matchScoreSlider" className="score-filter-label">
+            <span className="filter-icon">🎯</span>
+            <span className="filter-text">Minimum L3V3L Match Score:</span>
+            <span className="filter-value">{minMatchScore}%</span>
+          </label>
+          <input
+            id="matchScoreSlider"
+            type="range"
+            min="0"
+            max="100"
+            step="5"
+            value={minMatchScore}
+            onChange={(e) => setMinMatchScore(Number(e.target.value))}
+            className="match-score-slider"
+          />
+          <div className="slider-labels">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
+        </div>
+        <div className="filter-info">
+          Showing {filteredMatches.length} of {matches.length} matches
+        </div>
+      </div>
+
       {/* Loading State */}
       {loading && (
         <div className="text-center py-5">
@@ -258,13 +325,13 @@ const L3V3LMatches = () => {
       {/* Results */}
       {!loading && !error && (
         <>
-          <div className="results-header">
-            <h5>
-              {matches.length > 0
-                ? `${matches.length} L3V3L Match${matches.length !== 1 ? 'es' : ''} Found`
-                : 'No matches found yet'}
-            </h5>
-          </div>
+          {filteredMatches.length === 0 && matches.length > 0 && (
+            <div className="no-results">
+              <div className="no-results-icon">🎯</div>
+              <h3>No matches at {minMatchScore}% or higher</h3>
+              <p>Try lowering the minimum match score to see more results.</p>
+            </div>
+          )}
 
           {matches.length === 0 && !loading && (
             <div className="no-results">
@@ -281,7 +348,7 @@ const L3V3LMatches = () => {
           )}
 
           <div className={`results-grid ${viewMode === 'rows' ? 'results-rows' : 'results-cards'}`}>
-            {matches.map((user) => {
+            {filteredMatches.map((user) => {
               const piiAccess = piiAccessMap[user.username] || {};
               return (
                 <SearchResultCard
@@ -300,6 +367,10 @@ const L3V3LMatches = () => {
                   hasImageAccess={piiAccess.hasImageAccess || false}
                   isPiiRequestPending={pendingPiiRequests.has(user.username)}
                   viewMode={viewMode}
+                  showFavoriteButton={true}
+                  showShortlistButton={true}
+                  showExcludeButton={true}
+                  showMessageButton={true}
                 />
               );
             })}
@@ -316,12 +387,17 @@ const L3V3LMatches = () => {
         />
       )}
 
-      {showPIIRequestModal && (
+      {showPIIRequestModal && selectedUser && (
         <PIIRequestModal
-          show={showPIIRequestModal}
-          onClose={() => setShowPIIRequestModal(false)}
-          targetUser={selectedUser}
-          onSubmit={handlePIIRequestSubmit}
+          isOpen={showPIIRequestModal}
+          profileUsername={selectedUser.username}
+          profileName={`${selectedUser.firstName || selectedUser.username}`}
+          onClose={() => {
+            setShowPIIRequestModal(false);
+            setSelectedUser(null);
+          }}
+          onSuccess={handlePIIRequestSuccess}
+          currentAccess={{}}
         />
       )}
     </div>

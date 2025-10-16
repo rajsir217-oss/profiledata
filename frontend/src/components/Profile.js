@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import api from "../api";
 import PIIRequestModal from "./PIIRequestModal";
 import onlineStatusService from "../services/onlineStatusService";
+import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import "./Profile.css";
 
 const Profile = () => {
@@ -22,6 +23,9 @@ const Profile = () => {
     shortlistedBy: 0,
     favoritedBy: 0
   });
+  
+  // L3V3L Matching Data
+  const [l3v3lMatchData, setL3v3lMatchData] = useState(null);
   
   console.log('📍 Profile component loaded for username:', username);
   
@@ -127,6 +131,41 @@ const Profile = () => {
       unsubscribe();
     };
   }, [username, currentUsername]);
+
+  // Fetch L3V3L matching data if viewing from matches page
+  useEffect(() => {
+    const fetchL3V3LMatchData = async () => {
+      // Only fetch if viewing someone else's profile
+      if (!currentUsername || isOwnProfile) return;
+      
+      try {
+        console.log('🦋 Fetching L3V3L match data for:', username);
+        const response = await api.get(`/l3v3l-match-details/${currentUsername}/${username}`);
+        
+        if (response.data && response.data.matchScore) {
+          setL3v3lMatchData({
+            overall: response.data.matchScore,
+            love: response.data.breakdown?.love || 0,
+            loyalty: response.data.breakdown?.loyalty || 0,
+            laughter: response.data.breakdown?.laughter || 0,
+            vulnerability: response.data.breakdown?.vulnerability || 0,
+            elevation: response.data.breakdown?.elevation || 0,
+            demographics: response.data.breakdown?.demographics || 0,
+            career: response.data.breakdown?.career || 0,
+            cultural: response.data.breakdown?.cultural || 0,
+            physical: response.data.breakdown?.physical || 0,
+            lifestyle: response.data.breakdown?.lifestyle || 0
+          });
+          console.log('✅ L3V3L match data loaded:', response.data);
+        }
+      } catch (error) {
+        // Silently fail - not all profiles will have L3V3L data
+        console.log('📝 No L3V3L match data available (this is normal if not accessed from L3V3L matches page)');
+      }
+    };
+    
+    fetchL3V3LMatchData();
+  }, [username, currentUsername, isOwnProfile]);
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
@@ -734,6 +773,11 @@ const Profile = () => {
           </div>
         )}
       </div>
+
+      {/* L3V3L Matching Breakdown Table */}
+      {l3v3lMatchData && !isOwnProfile && (
+        <L3V3LMatchingTable matchingData={l3v3lMatchData} />
+      )}
 
       {/* PII Request Modal */}
       <PIIRequestModal
