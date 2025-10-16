@@ -3939,21 +3939,29 @@ async def get_l3v3l_matches(
             
             # Filter by minimum score
             if match_result['total_score'] >= min_score:
-                # Prepare profile data
+                # Prepare profile data - consistent with SearchResultCard expectations
                 profile = {
                     'username': candidate['username'],
                     'profileId': candidate.get('profileId'),
                     'firstName': candidate.get('firstName'),
                     'lastName': candidate.get('lastName'),
-                    'age': calculate_age(candidate.get('dateOfBirth')),
+                    'age': calculate_age(candidate.get('dob')),  # MongoDB field is 'dob'
+                    'dob': candidate.get('dob'),  # For age calculation fallback
+                    'dateOfBirth': candidate.get('dob'),  # Also provide as dateOfBirth
                     'gender': candidate.get('gender'),
                     'height': candidate.get('height'),
                     'location': candidate.get('location'),
                     'state': candidate.get('state'),
                     'education': candidate.get('education'),
+                    'occupation': candidate.get('occupation'),
                     'religion': candidate.get('religion'),
-                    'images': [get_full_image_url(img) for img in candidate.get('images', [])][:1],  # Only first image
-                    'aboutMe': candidate.get('aboutMe', '')[:200] if candidate.get('aboutMe') else '',  # Truncate
+                    'bodyType': candidate.get('bodyType'),
+                    'eatingPreference': candidate.get('eatingPreference'),
+                    'images': [get_full_image_url(img) for img in candidate.get('images', [])],  # All images
+                    'aboutMe': candidate.get('aboutMe', '')[:200] if candidate.get('aboutMe') else '',
+                    'contactEmail': candidate.get('contactEmail'),
+                    'contactNumber': candidate.get('contactNumber'),
+                    # L3V3L specific data
                     'matchScore': match_result['total_score'],
                     'compatibilityLevel': match_result['compatibility_level'],
                     'matchReasons': match_result['match_reasons'],
@@ -4028,3 +4036,76 @@ async def get_match_score_between_users(
     except Exception as e:
         logger.error(f"❌ Error calculating match score: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/l3v3l-match-details/{viewer_username}/{target_username}")
+async def get_l3v3l_match_details(
+    viewer_username: str,
+    target_username: str,
+    db = Depends(get_database)
+):
+    """
+    Get detailed L3V3L matching breakdown between viewer and target user
+    Used when viewing a profile from L3V3L matches page
+    Returns detailed scores for each matching dimension
+    """
+    logger.info(f"🦋 Getting L3V3L match details: {viewer_username} -> {target_username}")
+    
+    try:
+        # Get both users
+        viewer = await db.users.find_one({"username": viewer_username})
+        target = await db.users.find_one({"username": target_username})
+        
+        if not viewer or not target:
+            raise HTTPException(status_code=404, detail="One or both users not found")
+        
+        viewer['_id'] = str(viewer['_id'])
+        target['_id'] = str(target['_id'])
+        
+        # Calculate comprehensive match score
+        match_result = matching_engine.calculate_match_score(viewer, target)
+        
+        # Extract component scores for detailed breakdown
+        component_scores = match_result.get('component_scores', {})
+        
+        # Build detailed breakdown with all dimensions
+        breakdown = {
+            'love': round(component_scores.get('l3v3l_values', {}).get('love_alignment', 0), 1),
+            'loyalty': round(component_scores.get('l3v3l_values', {}).get('loyalty_alignment', 0), 1),
+            'laughter': round(component_scores.get('l3v3l_values', {}).get('laughter_alignment', 0), 1),
+            'vulnerability': round(component_scores.get('l3v3l_values', {}).get('vulnerability_alignment', 0), 1),
+            'elevation': round(component_scores.get('l3v3l_values', {}).get('elevation_alignment', 0), 1),
+            'demographics': round(component_scores.get('demographics_score', 0), 1),
+            'career': round(component_scores.get('career_compatibility', 0), 1),
+            'cultural': round(component_scores.get('cultural_compatibility', 0), 1),
+            'physical': round(component_scores.get('physical_compatibility', 0), 1),
+            'lifestyle': round(component_scores.get('habits_personality', 0), 1)
+        }
+        
+        # Add ML prediction if available
+        ml_score = None
+        if ml_enhancer.is_trained:
+            ml_score = ml_enhancer.predict_compatibility(viewer, target)
+            blended_score = round(
+                (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3), 2
+            )
+        else:
+            blended_score = match_result['total_score']
+        
+        logger.info(f"✅ L3V3L match details: {blended_score}% overall")
+        
+        return {
+            "matchScore": round(blended_score, 1),
+            "compatibilityLevel": match_result.get('compatibility_level', 'Good Match'),
+            "breakdown": breakdown,
+            "matchReasons": match_result.get('match_reasons', []),
+            "mlEnabled": ml_enhancer.is_trained,
+            "mlScore": round(ml_score * 100, 2) if ml_score else None
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting L3V3L match details: {e}", exc_info=True)
+        # Return None silently so frontend can gracefully handle missing data
+        raise HTTPException(status_code=404, detail="Match details not available")
