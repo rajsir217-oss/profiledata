@@ -1697,6 +1697,26 @@ async def add_to_exclusions(
             detail="User already excluded"
         )
 
+    # AUTO-REMOVE from favorites and shortlist when adding to exclusions
+    try:
+        # Remove from favorites if present
+        favorites_result = await db.favorites.delete_one({
+            "userUsername": username,
+            "favoriteUsername": target_username
+        })
+        if favorites_result.deleted_count > 0:
+            logger.info(f"🗑️ Auto-removed {target_username} from {username}'s favorites (due to exclusion)")
+        
+        # Remove from shortlist if present
+        shortlist_result = await db.shortlist.delete_one({
+            "userUsername": username,
+            "shortlistUsername": target_username
+        })
+        if shortlist_result.deleted_count > 0:
+            logger.info(f"🗑️ Auto-removed {target_username} from {username}'s shortlist (due to exclusion)")
+    except Exception as e:
+        logger.warning(f"⚠️ Error auto-removing from favorites/shortlist: {e}")
+    
     # Add to exclusions
     exclusion = {
         "userUsername": username,
