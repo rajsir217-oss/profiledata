@@ -16,6 +16,7 @@ from test_management import router as test_router
 from auth.admin_routes import router as admin_router
 from auth.auth_routes import router as auth_router
 from cleanup_routes import router as cleanup_router
+from routes_dynamic_scheduler import router as dynamic_scheduler_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -51,6 +52,11 @@ async def lifespan(app: FastAPI):
     # Initialize SSE Manager
     await sse_manager.initialize()
     logger.info("✅ SSE Manager initialized for real-time messaging")
+    
+    # Initialize Job Templates for Dynamic Scheduler
+    from job_templates.registry import initialize_templates
+    initialize_templates()
+    logger.info("✅ Job Templates initialized")
     
     # Initialize Unified Scheduler (handles both cleanup and tests)
     db = get_database()  # Don't await - it's not async
@@ -136,6 +142,7 @@ app.include_router(test_router, prefix="/api/tests", tags=["tests"])
 app.include_router(admin_router)  # Admin routes (already has /api/admin prefix)
 app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
 app.include_router(cleanup_router)  # Cleanup and moderation routes
+app.include_router(dynamic_scheduler_router)  # Dynamic scheduler routes
 
 # Health check endpoint
 @app.get("/health")

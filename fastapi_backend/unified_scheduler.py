@@ -1,7 +1,27 @@
 # fastapi_backend/unified_scheduler.py
 """
-Unified Scheduler - Single scheduler engine for all background jobs
-Handles both test scheduling and data cleanup
+Unified Scheduler - THE ONLY scheduler engine for the entire application
+
+⚠️ CRITICAL: This is the SINGLE SOURCE OF TRUTH for all scheduled jobs.
+NO other scheduler instances should be created anywhere in the codebase.
+
+This scheduler handles:
+1. Static jobs (registered in code during initialization)
+   - Database cleanup
+   - Test scheduling  
+   - System maintenance
+
+2. Dynamic jobs (created through admin UI, stored in database)
+   - Template-based jobs (cleanup, email, export, backup, webhook, reports)
+   - User-defined schedules (interval or cron)
+
+Architecture:
+- Single global instance initialized at startup
+- Polls every 30 seconds for jobs ready to execute
+- Supports both sync and async job functions
+- Handles timeouts, retries, and error logging
+
+See /docs/SINGLE_SCHEDULER_ARCHITECTURE.md for complete documentation.
 """
 
 import asyncio
@@ -104,18 +124,21 @@ class UnifiedScheduler:
             
         self.is_running = True
         logger.info("🚀 Unified Scheduler started")
-        logger.info(f"📋 Total jobs: {len(self.jobs)}")
+        logger.info(f"📋 Total static jobs: {len(self.jobs)}")
         
         # Main scheduler loop
         while self.is_running:
             try:
-                # Check which jobs should run
+                # Check which static jobs should run
                 jobs_to_run = [job for job in self.jobs.values() if job.should_run()]
                 
                 if jobs_to_run:
-                    logger.debug(f"Running {len(jobs_to_run)} job(s)")
+                    logger.debug(f"Running {len(jobs_to_run)} static job(s)")
                     # Run jobs concurrently
                     await asyncio.gather(*[self.run_job(job) for job in jobs_to_run])
+                
+                # Check and run dynamic jobs from database
+                await self.check_dynamic_jobs()
                 
                 # Sleep for a short interval (check every 30 seconds)
                 await asyncio.sleep(30)
@@ -123,6 +146,36 @@ class UnifiedScheduler:
             except Exception as e:
                 logger.error(f"❌ Error in scheduler loop: {e}", exc_info=True)
                 await asyncio.sleep(60)  # Wait longer on error
+    
+    async def check_dynamic_jobs(self):
+        """Check for and execute dynamic jobs from database"""
+        try:
+            from services.job_registry import JobRegistryService
+            from services.job_executor import JobExecutor
+            
+            registry = JobRegistryService(self.db)
+            executor = JobExecutor(self.db)
+            
+            # Get jobs ready to run
+            jobs_to_run = await registry.get_jobs_ready_to_run()
+            
+            if jobs_to_run:
+                logger.info(f"📋 Found {len(jobs_to_run)} dynamic job(s) ready to run")
+                
+                for job in jobs_to_run:
+                    try:
+                        # Execute job
+                        logger.info(f"▶️ Executing dynamic job: {job['name']}")
+                        await executor.execute_job(job, triggered_by="scheduler")
+                        
+                        # Update job's next run time
+                        await registry.update_job_after_execution(job["_id"], {})
+                        
+                    except Exception as e:
+                        logger.error(f"❌ Error executing dynamic job {job['name']}: {e}", exc_info=True)
+        
+        except Exception as e:
+            logger.error(f"❌ Error checking dynamic jobs: {e}", exc_info=True)
     
     async def stop(self):
         """Stop the unified scheduler"""
@@ -159,90 +212,16 @@ async def initialize_unified_scheduler(db: AsyncIOMotorDatabase):
     unified_scheduler = UnifiedScheduler(db)
     
     # ===== Register Jobs =====
+    # ⚠️ MIGRATED: Legacy jobs have been migrated to Dynamic Scheduler
+    # These hardcoded registrations are now disabled.
+    # The jobs are now managed through the Dynamic Scheduler UI at /dynamic-scheduler
+    # 
+    # Migrated jobs:
+    # - data_cleanup → "Legacy: System Cleanup" (system_cleanup template)
+    # - test_scheduler → "Legacy: Test Scheduler" (test_scheduler template)
+    # - auto_delete_resolved_tickets → "Legacy: Auto Delete Resolved Tickets" (ticket_cleanup template)
     
-    # 1. Data Cleanup Job (every hour)
-    from cleanup_scheduler import CleanupScheduler
-    cleanup_instance = CleanupScheduler(db)
-    unified_scheduler.add_job(
-        name="data_cleanup",
-        interval_seconds=3600,  # 1 hour
-        func=cleanup_instance.run_cleanup_cycle,
-        is_async=True
-    )
-    
-    # 2. Test Scheduler Job (every minute)
-    from test_management import check_and_run_scheduled_tests
-    unified_scheduler.add_job(
-        name="test_scheduler",
-        interval_seconds=60,  # 1 minute
-        func=check_and_run_scheduled_tests,
-        is_async=False  # It's a sync function
-    )
-    
-    # 3. Ticket Cleanup Job (daily at 7pm)
-    async def cleanup_expired_tickets():
-        """Delete tickets that have passed their scheduled deletion time"""
-        try:
-            from pathlib import Path
-            import os
-            
-            # Find tickets scheduled for deletion
-            now = datetime.utcnow()
-            tickets = await db.contact_tickets.find({
-                "scheduledDeleteAt": {"$lte": now}
-            }).to_list(length=None)
-            
-            if not tickets:
-                logger.info("🗑️ No tickets scheduled for deletion")
-                return
-            
-            logger.info(f"🗑️ Found {len(tickets)} tickets scheduled for deletion")
-            
-            for ticket in tickets:
-                try:
-                    # Delete attachments
-                    if ticket.get("attachments"):
-                        for attachment in ticket["attachments"]:
-                            try:
-                                file_path = Path(attachment.get('file_path', ''))
-                                if file_path.exists():
-                                    os.remove(file_path)
-                                    logger.info(f"✅ Deleted attachment: {file_path}")
-                            except Exception as file_err:
-                                logger.error(f"⚠️ Failed to delete file: {file_err}")
-                    
-                    # Delete ticket
-                    await db.contact_tickets.delete_one({"_id": ticket["_id"]})
-                    logger.info(f"✅ Deleted ticket: {ticket['_id']}")
-                    
-                except Exception as ticket_err:
-                    logger.error(f"❌ Error deleting ticket {ticket.get('_id')}: {ticket_err}")
-            
-            logger.info(f"✅ Ticket cleanup completed: {len(tickets)} tickets deleted")
-            
-        except Exception as e:
-            logger.error(f"❌ Error in ticket cleanup job: {e}", exc_info=True)
-    
-    # Calculate next run time for 7pm (19:00 UTC)
-    from datetime import timedelta, time as dt_time
-    now = datetime.utcnow()
-    today_7pm = datetime.combine(now.date(), dt_time(19, 0))
-    
-    # If it's already past 7pm today, schedule for tomorrow at 7pm
-    if now >= today_7pm:
-        next_run = today_7pm + timedelta(days=1)
-    else:
-        next_run = today_7pm
-    
-    job = ScheduledJob(
-        name="auto_delete_resolved_tickets",
-        interval_seconds=86400,  # 24 hours (daily)
-        func=cleanup_expired_tickets,
-        is_async=True
-    )
-    job.next_run = next_run  # Set to run at 7pm
-    unified_scheduler.jobs["auto_delete_resolved_tickets"] = job
-    logger.info(f"📅 Scheduled job added: 'auto_delete_resolved_tickets' (runs daily at 7pm UTC, next run: {next_run})")
+    logger.info("ℹ️ Legacy hardcoded jobs are disabled - using Dynamic Scheduler instead")
     
     # Start the scheduler in background
     asyncio.create_task(unified_scheduler.start())

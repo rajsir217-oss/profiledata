@@ -4605,20 +4605,37 @@ async def update_system_settings(
         raise HTTPException(status_code=500, detail=str(e))
 
 # ===== SCHEDULER JOBS MANAGEMENT =====
+# ⚠️ DEPRECATED: These endpoints are deprecated and kept for backwards compatibility only.
+# Please use /api/admin/scheduler/* endpoints from routes_dynamic_scheduler.py instead.
+# The new Dynamic Scheduler provides template-based job management with better features.
+# These legacy endpoints will be removed in a future version.
 
 @router.get("/scheduler-jobs")
 async def get_scheduler_jobs():
-    """Get all scheduler jobs (admin only)"""
-    logger.info("📋 Loading scheduler jobs")
+    """
+    Get all scheduler jobs (admin only)
+    
+    ⚠️ DEPRECATED: This endpoint is deprecated. Please use /api/admin/scheduler/* endpoints instead.
+    The new Dynamic Scheduler provides template-based job management with better features.
+    """
+    logger.warning("⚠️ Deprecated endpoint /scheduler-jobs called. Use /api/admin/scheduler/* instead.")
     
     try:
         from unified_scheduler import get_unified_scheduler
         scheduler = get_unified_scheduler()
         
         if not scheduler:
-            return {"jobs": []}
+            return {
+                "jobs": [],
+                "_deprecated": True,
+                "_migration_notice": "This API is deprecated. Please migrate to /api/admin/scheduler/* endpoints for the new Dynamic Scheduler."
+            }
         
-        return {"jobs": scheduler.get_job_status()}
+        return {
+            "jobs": scheduler.get_job_status(),
+            "_deprecated": True,
+            "_migration_notice": "This API is deprecated. Please migrate to /api/admin/scheduler/* endpoints for the new Dynamic Scheduler."
+        }
     except Exception as e:
         logger.error(f"❌ Error loading scheduler jobs: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
