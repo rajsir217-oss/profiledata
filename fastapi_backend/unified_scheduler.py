@@ -179,7 +179,7 @@ async def initialize_unified_scheduler(db: AsyncIOMotorDatabase):
         is_async=False  # It's a sync function
     )
     
-    # 3. Ticket Cleanup Job (every hour)
+    # 3. Ticket Cleanup Job (daily at 7pm)
     async def cleanup_expired_tickets():
         """Delete tickets that have passed their scheduled deletion time"""
         try:
@@ -193,6 +193,7 @@ async def initialize_unified_scheduler(db: AsyncIOMotorDatabase):
             }).to_list(length=None)
             
             if not tickets:
+                logger.info("🗑️ No tickets scheduled for deletion")
                 return
             
             logger.info(f"🗑️ Found {len(tickets)} tickets scheduled for deletion")
@@ -222,12 +223,26 @@ async def initialize_unified_scheduler(db: AsyncIOMotorDatabase):
         except Exception as e:
             logger.error(f"❌ Error in ticket cleanup job: {e}", exc_info=True)
     
-    unified_scheduler.add_job(
-        name="ticket_cleanup",
-        interval_seconds=3600,  # 1 hour
+    # Calculate next run time for 7pm (19:00 UTC)
+    from datetime import timedelta, time as dt_time
+    now = datetime.utcnow()
+    today_7pm = datetime.combine(now.date(), dt_time(19, 0))
+    
+    # If it's already past 7pm today, schedule for tomorrow at 7pm
+    if now >= today_7pm:
+        next_run = today_7pm + timedelta(days=1)
+    else:
+        next_run = today_7pm
+    
+    job = ScheduledJob(
+        name="auto_delete_resolved_tickets",
+        interval_seconds=86400,  # 24 hours (daily)
         func=cleanup_expired_tickets,
         is_async=True
     )
+    job.next_run = next_run  # Set to run at 7pm
+    unified_scheduler.jobs["auto_delete_resolved_tickets"] = job
+    logger.info(f"📅 Scheduled job added: 'auto_delete_resolved_tickets' (runs daily at 7pm UTC, next run: {next_run})")
     
     # Start the scheduler in background
     asyncio.create_task(unified_scheduler.start())

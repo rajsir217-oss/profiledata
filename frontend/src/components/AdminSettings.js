@@ -12,6 +12,7 @@ const AdminSettings = () => {
   const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
+  const [showTooltip, setShowTooltip] = useState(false);
 
   // Scheduler Jobs
   const [schedulerJobs, setSchedulerJobs] = useState([]);
@@ -23,6 +24,9 @@ const AdminSettings = () => {
     interval_seconds: 3600,
     enabled: true
   });
+  const [showLogsModal, setShowLogsModal] = useState(false);
+  const [selectedJobLogs, setSelectedJobLogs] = useState(null);
+  const [jobLogs, setJobLogs] = useState([]);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -146,6 +150,22 @@ const AdminSettings = () => {
     }
   };
 
+  const handleViewLogs = async (jobName) => {
+    setSelectedJobLogs(jobName);
+    setShowLogsModal(true);
+    try {
+      const response = await api.get(`/scheduler-jobs/${jobName}/logs`);
+      setJobLogs(response.data.logs || []);
+    } catch (error) {
+      console.error('Error loading job logs:', error);
+      setJobLogs([{ 
+        timestamp: new Date().toISOString(), 
+        status: 'error', 
+        message: 'Failed to load logs: ' + (error.response?.data?.detail || error.message)
+      }]);
+    }
+  };
+
   if (loading) {
     return (
       <div className="admin-settings-page">
@@ -179,45 +199,61 @@ const AdminSettings = () => {
 
         <div className="settings-card">
           <div className="form-group">
-            <label htmlFor="ticketDeleteDays">Auto-Delete Period</label>
+            <div className="label-with-tooltip">
+              <label htmlFor="ticketDeleteDays">Auto-Delete Period</label>
+              <div className="tooltip-wrapper">
+                <span 
+                  className="info-tooltip-icon" 
+                  onClick={() => setShowTooltip(!showTooltip)}
+                >
+                  ℹ️
+                </span>
+                {showTooltip && (
+                  <>
+                    <div className="tooltip-backdrop" onClick={() => setShowTooltip(false)} />
+                    <div className="tooltip-bubble">
+                      <div className="tooltip-content">
+                        <strong>How it works:</strong>
+                        <ul>
+                          <li>When a ticket is marked as <strong>resolved</strong> or <strong>closed</strong>, a deletion timestamp is set</li>
+                          <li>A background job runs every hour to delete tickets past their scheduled deletion time</li>
+                          <li>All attachments are permanently deleted from the filesystem</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
             <p className="help-text">
               Resolved/closed tickets and attachments will be automatically deleted after this period.
             </p>
-            <select
-              id="ticketDeleteDays"
-              value={ticketDeleteDays}
-              onChange={(e) => setTicketDeleteDays(Number(e.target.value))}
-              disabled={savingTicketSettings}
-              className="form-control"
-            >
-              <option value={0}>Immediately (on resolve/close)</option>
-              <option value={7}>7 days after resolved</option>
-              <option value={14}>14 days after resolved</option>
-              <option value={30}>30 days after resolved (Recommended)</option>
-              <option value={60}>60 days after resolved</option>
-              <option value={90}>90 days after resolved</option>
-            </select>
-          </div>
-
-          <div className="info-box">
-            <div className="info-icon">ℹ️</div>
-            <div className="info-text">
-              <strong>How it works:</strong>
-              <ul>
-                <li>When a ticket is marked as <strong>resolved</strong> or <strong>closed</strong>, a deletion timestamp is set</li>
-                <li>A background job runs every hour to delete tickets past their scheduled deletion time</li>
-                <li>All attachments are permanently deleted from the filesystem</li>
-              </ul>
+            
+            <div className="settings-control-row">
+              <select
+                id="ticketDeleteDays"
+                value={ticketDeleteDays}
+                onChange={(e) => setTicketDeleteDays(Number(e.target.value))}
+                disabled={savingTicketSettings}
+                className="form-control"
+              >
+                <option value={0}>Immediately (on resolve/close)</option>
+                <option value={7}>7 days after resolved</option>
+                <option value={14}>14 days after resolved</option>
+                <option value={30}>30 days after resolved (Recommended)</option>
+                <option value={60}>60 days after resolved</option>
+                <option value={90}>90 days after resolved</option>
+              </select>
+              
+              <button
+                className="btn-save-settings"
+                onClick={handleSaveTicketSettings}
+                disabled={savingTicketSettings}
+              >
+                {savingTicketSettings ? '💾 Saving...' : '💾 Save Ticket Settings'}
+              </button>
             </div>
           </div>
-
-          <button
-            className="btn-save-settings"
-            onClick={handleSaveTicketSettings}
-            disabled={savingTicketSettings}
-          >
-            {savingTicketSettings ? '💾 Saving...' : '💾 Save Ticket Settings'}
-          </button>
         </div>
       </div>
 
@@ -265,6 +301,13 @@ const AdminSettings = () => {
                       <td className="job-actions">
                         <button
                           className="btn-icon"
+                          onClick={() => handleViewLogs(job.name)}
+                          title="View Logs"
+                        >
+                          📋
+                        </button>
+                        <button
+                          className="btn-icon"
                           onClick={() => handleToggleJob(job.name, !job.enabled)}
                           title={job.enabled ? 'Disable' : 'Enable'}
                         >
@@ -298,49 +341,129 @@ const AdminSettings = () => {
       {showJobModal && (
         <div className="modal-overlay" onClick={() => setShowJobModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingJob ? '✏️ Edit Job' : '➕ Add New Job'}</h3>
+            <div className="modal-header">
+              <h5 className="modal-title">{editingJob ? '✏️ Edit Job' : '➕ Add New Job'}</h5>
+              {/* <h3>{editingJob ? '✏️ Edit Job' : '➕ Add New Job'}</h3> */}
+              <button 
+                className="modal-close-btn" 
+                onClick={() => setShowJobModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
             
-            <div className="form-group">
-              <label>Job Name</label>
-              <input
-                type="text"
-                value={jobFormData.name}
-                onChange={(e) => setJobFormData({...jobFormData, name: e.target.value})}
-                placeholder="e.g., cleanup_old_data"
-                disabled={!!editingJob}
-                className="form-control"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Interval (seconds)</label>
-              <input
-                type="number"
-                value={jobFormData.interval_seconds}
-                onChange={(e) => setJobFormData({...jobFormData, interval_seconds: Number(e.target.value)})}
-                min="60"
-                className="form-control"
-              />
-              <p className="help-text">Minimum: 60 seconds (1 minute)</p>
-            </div>
-
-            <div className="form-group">
-              <label className="checkbox-label">
+            <form onSubmit={(e) => { e.preventDefault(); handleSaveJob(); }}>
+              <div className="form-group">
+                <label htmlFor="job-name">Job Name</label>
                 <input
-                  type="checkbox"
-                  checked={jobFormData.enabled}
-                  onChange={(e) => setJobFormData({...jobFormData, enabled: e.target.checked})}
+                  id="job-name"
+                  type="text"
+                  value={jobFormData.name}
+                  onChange={(e) => setJobFormData({...jobFormData, name: e.target.value})}
+                  placeholder="e.g., cleanup_old_data"
+                  disabled={!!editingJob}
+                  className="form-control"
+                  required
                 />
-                {' '}Enabled
-              </label>
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="job-interval">Interval (seconds)</label>
+                <input
+                  id="job-interval"
+                  type="number"
+                  value={jobFormData.interval_seconds}
+                  onChange={(e) => setJobFormData({...jobFormData, interval_seconds: Number(e.target.value)})}
+                  min="60"
+                  className="form-control"
+                  required
+                />
+                <p className="help-text">Minimum: 60 seconds (1 minute)</p>
+              </div>
+
+              <div className="form-group">
+                <label className="checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={jobFormData.enabled}
+                    onChange={(e) => setJobFormData({...jobFormData, enabled: e.target.checked})}
+                  />
+                  Enable this job
+                </label>
+              </div>
+            </form>
+
+            <div className="modal-actions">
+              <button type="button" className="btn-secondary" onClick={() => setShowJobModal(false)}>
+                Cancel
+              </button>
+              <button type="button" className="btn-primary" onClick={handleSaveJob}>
+                {editingJob ? '💾 Update Job' : '➕ Add Job'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Job Logs Modal */}
+      {showLogsModal && (
+        <div className="modal-overlay" onClick={() => setShowLogsModal(false)}>
+          <div className="modal-content logs-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h5 className="modal-title">📋 Job Logs: {selectedJobLogs}</h5>
+              <button 
+                className="modal-close-btn" 
+                onClick={() => setShowLogsModal(false)}
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body logs-content">
+              {jobLogs.length === 0 ? (
+                <div className="no-logs">
+                  <p>No logs available yet. This job hasn't run or logging is not enabled.</p>
+                </div>
+              ) : (
+                <div className="logs-list">
+                  {jobLogs.map((log, index) => (
+                    <div key={index} className={`log-entry log-${log.status}`}>
+                      <div className="log-header">
+                        <span className="log-timestamp">
+                          {new Date(log.timestamp).toLocaleString()}
+                        </span>
+                        <span className={`log-status-badge ${log.status}`}>
+                          {log.status === 'success' ? '✅ Success' : 
+                           log.status === 'error' ? '❌ Error' : 
+                           log.status === 'running' ? '⏳ Running' : '⚠️ Warning'}
+                        </span>
+                      </div>
+                      <div className="log-message">
+                        {log.message}
+                      </div>
+                      {log.details && (
+                        <div className="log-details">
+                          <pre>{JSON.stringify(log.details, null, 2)}</pre>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowJobModal(false)}>
-                Cancel
+              <button type="button" className="btn-secondary" onClick={() => setShowLogsModal(false)}>
+                Close
               </button>
-              <button className="btn-primary" onClick={handleSaveJob}>
-                {editingJob ? 'Update Job' : 'Add Job'}
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={() => handleViewLogs(selectedJobLogs)}
+              >
+                🔄 Refresh
               </button>
             </div>
           </div>

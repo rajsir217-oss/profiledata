@@ -4618,7 +4618,7 @@ async def get_scheduler_jobs():
         if not scheduler:
             return {"jobs": []}
         
-        return {"jobs": scheduler.get_jobs_status()}
+        return {"jobs": scheduler.get_job_status()}
     except Exception as e:
         logger.error(f"❌ Error loading scheduler jobs: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))

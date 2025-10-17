@@ -923,7 +923,6 @@ const RoleModal = ({ user, onClose, onAssign }) => {
               onClick={() => onAssign(user.username, selectedRole, reason)}
               className="action-btn-confirm"
               disabled={selectedRole === user.role_name}
-              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
             >
               🎭 Assign Role
             </button>
@@ -1114,7 +1113,6 @@ const BulkRoleModal = ({ userCount, onClose, onAssign }) => {
             <button
               onClick={() => onAssign(selectedRole, reason)}
               className="action-btn-confirm"
-              style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
             >
               🎭 Assign Role to {userCount} Users
             </button>
