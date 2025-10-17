@@ -413,10 +413,16 @@
   transition: all 0.3s ease;
 }
 
-.btn-add-job:hover {
+.btn-add-job:hover:not(:disabled) {
   background: var(--success-hover);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(var(--success-color), 0.3);
+}
+
+.btn-add-job:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--success-color);
 }
 
 /* Jobs Table */

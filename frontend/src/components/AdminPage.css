@@ -454,7 +454,7 @@
 
 /* Modal Header with Gradient */
 .status-modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
@@ -549,6 +549,7 @@
   flex-direction: column;
   gap: 10px;
   margin-bottom: 20px;
+  /*  */
 }
 
 .status-radio-option {
@@ -561,18 +562,19 @@
   cursor: pointer;
   transition: all 0.2s ease;
   background: var(--input-bg);
+  /* background: var(--primary-color); */
 }
 
 .status-radio-option:hover {
   border-color: var(--primary-color);
-  background: var(--hover-bg);
+  background: var(--hover-background);
   transform: translateX(4px);
 }
 
 .status-radio-option.selected {
   border-color: var(--primary-color);
-  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  background: var(--selected-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .status-radio-option input[type="radio"] {
@@ -636,7 +638,7 @@
 .status-reason textarea:focus {
   outline: none;
   border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
 .status-reason textarea::placeholder {
@@ -667,7 +669,7 @@
 }
 
 .status-modal-footer .btn-cancel:hover {
-  background: var(--hover-bg);
+  background: var(--hover-background);
   border-color: var(--text-secondary);
 }
 
@@ -675,18 +677,19 @@
   padding: 10px 24px;
   border: none;
   border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .status-modal-footer .btn-confirm:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0.95;
 }
 
 .status-modal-footer .btn-confirm:disabled {
@@ -701,9 +704,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-.theme-light .status-modal-header {
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%) !important;
-}
 
 .theme-light .status-modal-body {
   background: white !important;
@@ -714,23 +714,12 @@
   color: #1f2937 !important;
 }
 
-.theme-light .status-modal-footer .btn-confirm {
-  background: linear-gradient(135deg, #6366f1 0%, #818cf8 100%) !important;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3) !important;
-}
-
-.theme-light .status-modal-footer .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4) !important;
-}
 
 .theme-light-pink .status-modal {
   background: white !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-.theme-light-pink .status-modal-header {
-  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%) !important;
-}
 
 .theme-light-pink .status-modal-body {
   background: white !important;
@@ -741,56 +730,26 @@
   color: #1f2937 !important;
 }
 
-.theme-light-pink .status-modal-footer .btn-confirm {
-  background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%) !important;
-  box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3) !important;
-}
-
-.theme-light-pink .status-modal-footer .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.4) !important;
-}
 
 .theme-light-gray .status-modal {
   background: white !important;
 }
 
-.theme-light-gray .status-modal-header {
-  background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%) !important;
-}
 
 .theme-light-gray .status-modal-body {
   background: white !important;
 }
 
-.theme-light-gray .status-modal-footer .btn-confirm {
-  background: linear-gradient(135deg, #64748b 0%, #94a3b8 100%) !important;
-  box-shadow: 0 4px 12px rgba(100, 116, 139, 0.3) !important;
-}
-
-.theme-light-gray .status-modal-footer .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(100, 116, 139, 0.4) !important;
-}
 
 .theme-ultra-light-gray .status-modal {
   background: white !important;
 }
 
-.theme-ultra-light-gray .status-modal-header {
-  background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
-}
 
 .theme-ultra-light-gray .status-modal-body {
   background: white !important;
 }
 
-.theme-ultra-light-gray .status-modal-footer .btn-confirm {
-  background: linear-gradient(135deg, #475569 0%, #64748b 100%) !important;
-  box-shadow: 0 4px 12px rgba(71, 85, 105, 0.3) !important;
-}
-
-.theme-ultra-light-gray .status-modal-footer .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(71, 85, 105, 0.4) !important;
-}
 
 /* Cozy Night (Dark) Theme */
 .theme-dark .status-modal {
@@ -798,9 +757,6 @@
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
-.theme-dark .status-modal-header {
-  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%) !important;
-}
 
 .theme-dark .status-modal-body {
   background: #2a2438 !important;
@@ -812,105 +768,6 @@
 
 .theme-dark .status-modal-body .current-status {
   color: #e5e7eb !important;
-}
-
-.theme-dark .status-modal-footer .btn-confirm {
-  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%) !important;
-  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3) !important;
-}
-
-.theme-dark .status-modal-footer .btn-confirm:hover:not(:disabled) {
-  box-shadow: 0 6px 20px rgba(124, 58, 237, 0.4) !important;
-}
-
-/* Dark Mode Adjustments (browser preference) */
-@media (prefers-color-scheme: dark) {
-  .status-modal {
-    background: #1f2937 !important;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-  }
-  
-  .status-modal-header {
-    background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%) !important;
-  }
-  
-  .status-modal-body {
-    background: #1f2937 !important;
-  }
-  
-  .status-modal-body h3 {
-    color: #f9fafb !important;
-  }
-  
-  .status-modal-body .current-status {
-    color: #9ca3af !important;
-  }
-  
-  .status-modal-body .current-status strong {
-    color: #8b5cf6 !important;
-  }
-  
-  .status-modal-body p {
-    color: #9ca3af;
-  }
-  
-  .status-radio-option {
-    background: #374151 !important;
-    border-color: #4b5563 !important;
-  }
-  
-  .status-radio-option:hover {
-    background: #4b5563 !important;
-    border-color: #667eea !important;
-  }
-  
-  .status-radio-option.selected {
-    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%) !important;
-    border-color: #667eea !important;
-  }
-  
-  .status-radio-option .status-info strong {
-    color: #f3f4f6 !important;
-  }
-  
-  .status-radio-option .status-info span {
-    color: #9ca3af !important;
-  }
-  
-  .status-reason label {
-    color: #e5e7eb !important;
-  }
-  
-  .status-reason textarea {
-    background: #374151 !important;
-    border-color: #4b5563 !important;
-    color: #f9fafb !important;
-  }
-  
-  .status-reason textarea:focus {
-    border-color: #667eea !important;
-    background: #374151 !important;
-  }
-  
-  .status-reason textarea::placeholder {
-    color: #6b7280 !important;
-  }
-  
-  .status-modal-footer {
-    border-top-color: #374151 !important;
-  }
-  
-  .btn-cancel {
-    background: #374151 !important;
-    border-color: #4b5563 !important;
-    color: #d1d5db !important;
-  }
-  
-  .btn-cancel:hover {
-    background: #4b5563 !important;
-    border-color: #6b7280 !important;
-    color: #f9fafb !important;
-  }
 }
 
 /* Theme-aware table headers */

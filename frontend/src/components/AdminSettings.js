@@ -278,8 +278,30 @@ const AdminSettings = () => {
           <p className="section-description">Manage background jobs and scheduled tasks</p>
         </div>
 
-        <button className="btn-add-job" onClick={handleAddJob}>
-          ➕ Add New Job
+        {/* Info box showing available jobs */}
+        <div className="info-box">
+          <div className="info-icon">ℹ️</div>
+          <div className="info-text">
+            <strong>Available Scheduler Jobs</strong>
+            <ul>
+              <li><strong>data_cleanup</strong> - Removes old/expired data (runs every hour)</li>
+              <li><strong>test_scheduler</strong> - Checks and runs scheduled tests (runs every minute)</li>
+              <li><strong>auto_delete_resolved_tickets</strong> - Deletes old resolved support tickets (runs daily at 7pm UTC)</li>
+            </ul>
+            <p style={{marginTop: '10px', fontSize: '13px', color: '#1e40af'}}>
+              💡 <em>These jobs are configured in the backend code. Adding new jobs requires code deployment.</em>
+            </p>
+          </div>
+        </div>
+
+        <button 
+          className="btn-add-job" 
+          onClick={handleAddJob}
+          disabled={true}
+          title="Adding custom jobs requires backend code deployment"
+          style={{opacity: 0.5, cursor: 'not-allowed'}}
+        >
+          ➕ Add New Job (Disabled)
         </button>
 
         {loadingJobs ? (
