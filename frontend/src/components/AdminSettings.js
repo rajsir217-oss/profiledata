@@ -150,6 +150,20 @@ const AdminSettings = () => {
     }
   };
 
+  const handleRunJob = async (jobName) => {
+    if (!window.confirm(`Run job "${jobName}" now?`)) {
+      return;
+    }
+    try {
+      const response = await api.post(`/scheduler-jobs/${jobName}/run`);
+      alert(response.data.message || 'Job started successfully!');
+      await loadSchedulerJobs();
+    } catch (error) {
+      console.error('Error running job:', error);
+      alert('Failed to run job: ' + (error.response?.data?.detail || error.message));
+    }
+  };
+
   const handleViewLogs = async (jobName) => {
     setSelectedJobLogs(jobName);
     setShowLogsModal(true);
@@ -307,11 +321,18 @@ const AdminSettings = () => {
                           📋
                         </button>
                         <button
+                          className="btn-icon btn-success"
+                          onClick={() => handleRunJob(job.name)}
+                          title="Run Now"
+                        >
+                          ▶️
+                        </button>
+                        <button
                           className="btn-icon"
                           onClick={() => handleToggleJob(job.name, !job.enabled)}
                           title={job.enabled ? 'Disable' : 'Enable'}
                         >
-                          {job.enabled ? '⏸️' : '▶️'}
+                          {job.enabled ? '⏸️' : '⏯️'}
                         </button>
                         <button
                           className="btn-icon"

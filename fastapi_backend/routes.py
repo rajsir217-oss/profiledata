@@ -4719,3 +4719,89 @@ async def toggle_scheduler_job(job_name: str, data: Dict[str, Any]):
     except Exception as e:
         logger.error(f"❌ Error toggling scheduler job: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/scheduler-jobs/{job_name}/run")
+async def run_scheduler_job(job_name: str, db = Depends(get_database)):
+    """Manually run a scheduler job on demand (admin only)"""
+    logger.info(f"▶️ Manual run requested for job: {job_name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        # Check if job exists
+        if job_name not in scheduler.jobs:
+            raise HTTPException(status_code=404, detail=f"Job '{job_name}' not found")
+        
+        job = scheduler.jobs[job_name]
+        
+        # Run the job asynchronously in the background
+        import asyncio
+        asyncio.create_task(scheduler.run_job(job))
+        
+        logger.info(f"✅ Job '{job_name}' started manually")
+        
+        # Log the manual run to database
+        try:
+            await db.job_logs.insert_one({
+                "job_name": job_name,
+                "timestamp": datetime.utcnow(),
+                "status": "started",
+                "message": "Job started manually by admin",
+                "details": None
+            })
+        except Exception as log_err:
+            logger.warning(f"Failed to log manual run: {log_err}")
+        
+        return {
+            "message": f"Job '{job_name}' started successfully",
+            "status": "running"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error running scheduler job: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/scheduler-jobs/{job_name}/logs")
+async def get_job_logs(job_name: str, db = Depends(get_database)):
+    """Get execution logs for a specific scheduler job (admin only)"""
+    logger.info(f"📋 Loading logs for job: {job_name}")
+    
+    try:
+        from unified_scheduler import get_unified_scheduler
+        scheduler = get_unified_scheduler()
+        
+        if not scheduler:
+            raise HTTPException(status_code=500, detail="Scheduler not initialized")
+        
+        # Check if job exists
+        if job_name not in scheduler.jobs:
+            raise HTTPException(status_code=404, detail=f"Job '{job_name}' not found")
+        
+        # Get logs from database (job_logs collection)
+        logs_cursor = db.job_logs.find(
+            {"job_name": job_name}
+        ).sort("timestamp", -1).limit(50)
+        
+        logs = []
+        async for log in logs_cursor:
+            logs.append({
+                "timestamp": log.get("timestamp"),
+                "status": log.get("status", "unknown"),
+                "message": log.get("message", ""),
+                "details": log.get("details")
+            })
+        
+        logger.info(f"✅ Loaded {len(logs)} log entries for job: {job_name}")
+        return {"logs": logs}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error loading job logs: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
