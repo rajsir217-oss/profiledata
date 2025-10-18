@@ -1187,6 +1187,97 @@
   transition: all 0.2s ease;
 }
 
+/* Enhanced Active State Styling for Favorites and Shortlist */
+
+/* Favorite Button - Active (Filled Star) */
+.action-btn.btn-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  border: 2px solid #ff9800 !important;
+  color: white !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4) !important;
+  transform: scale(1.05);
+  animation: favoriteGlow 2s ease-in-out infinite;
+}
+
+.action-btn.btn-warning:hover {
+  background: linear-gradient(135deg, #ffb300 0%, #ff8f00 100%) !important;
+  box-shadow: 0 6px 16px rgba(255, 193, 7, 0.7), 0 0 25px rgba(255, 193, 7, 0.5) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Favorite Button - Inactive (Empty Star) */
+.action-btn.btn-outline-warning {
+  background: transparent !important;
+  border: 2px solid #ddd !important;
+  color: #999 !important;
+  font-size: 18px !important;
+  opacity: 0.6;
+}
+
+.action-btn.btn-outline-warning:hover {
+  background: rgba(255, 193, 7, 0.1) !important;
+  border-color: #ffc107 !important;
+  color: #ffc107 !important;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Shortlist Button - Active (Filled) */
+.action-btn.btn-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+  border: 2px solid #138496 !important;
+  color: white !important;
+  font-size: 18px !important;
+  font-weight: bold !important;
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.6), 0 0 20px rgba(23, 162, 184, 0.4) !important;
+  transform: scale(1.05);
+  animation: shortlistGlow 2s ease-in-out infinite;
+}
+
+.action-btn.btn-info:hover {
+  background: linear-gradient(135deg, #138496 0%, #117a8b 100%) !important;
+  box-shadow: 0 6px 16px rgba(23, 162, 184, 0.7), 0 0 25px rgba(23, 162, 184, 0.5) !important;
+  transform: scale(1.1) !important;
+}
+
+/* Shortlist Button - Inactive (Outline) */
+.action-btn.btn-outline-info {
+  background: transparent !important;
+  border: 2px solid #ddd !important;
+  color: #999 !important;
+  font-size: 18px !important;
+  opacity: 0.6;
+}
+
+.action-btn.btn-outline-info:hover {
+  background: rgba(23, 162, 184, 0.1) !important;
+  border-color: #17a2b8 !important;
+  color: #17a2b8 !important;
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+/* Glow animations */
+@keyframes favoriteGlow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.8), 0 0 30px rgba(255, 193, 7, 0.6);
+  }
+}
+
+@keyframes shortlistGlow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.6), 0 0 20px rgba(23, 162, 184, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(23, 162, 184, 0.8), 0 0 30px rgba(23, 162, 184, 0.6);
+  }
+}
+
 /* PII Data Masking */
 .pii-section {
   border-top: 1px solid #eee;

@@ -340,7 +340,7 @@ const SearchResultCard = ({
                 }}
                 title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
               >
-                📋
+                {isShortlisted ? '✓📋' : '📋'}
               </button>
             )}
             
@@ -384,10 +384,11 @@ const SearchResultCard = ({
             )}
             
             <button
-              className="btn btn-sm btn-outline-primary"
+              className="btn btn-sm btn-outline-primary action-btn"
               onClick={() => navigate(`/profile/${user.username}`)}
+              title="View Profile"
             >
-              View
+              👁️
             </button>
           </div>
         </div>
@@ -495,7 +496,7 @@ const SearchResultCard = ({
                 }}
                 title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
               >
-                📋
+                {isShortlisted ? '✓📋' : '📋'}
               </button>
             )}
             
@@ -539,10 +540,11 @@ const SearchResultCard = ({
             )}
             
             <button
-              className="btn btn-sm btn-outline-primary"
+              className="btn btn-sm btn-outline-primary action-btn"
               onClick={() => navigate(`/profile/${user.username}`)}
+              title="View Profile"
             >
-              View Profile
+              👁️
             </button>
           </div>
         </div>

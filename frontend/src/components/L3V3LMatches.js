@@ -240,8 +240,20 @@ const L3V3LMatches = () => {
     }
   };
 
-  const handleMessage = (user) => {
-    setSelectedUser(user);
+  const handleMessage = async (user) => {
+    // If user object doesn't have full profile data, fetch it
+    if (!user.firstName && !user.location && user.username) {
+      try {
+        const response = await api.get(`/profile/${user.username}?requester=${currentUsername}`);
+        setSelectedUser(response.data);
+      } catch (err) {
+        console.error('Error loading user profile:', err);
+        // Fallback to existing user object
+        setSelectedUser(user);
+      }
+    } else {
+      setSelectedUser(user);
+    }
     setShowMessageModal(true);
   };
 

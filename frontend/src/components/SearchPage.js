@@ -1150,6 +1150,25 @@ const SearchPage = () => {
     }
   };
 
+  // Handle message button click
+  const handleMessage = async (user) => {
+    const currentUser = localStorage.getItem('username');
+    // If user object doesn't have full profile data, fetch it
+    if (!user.firstName && !user.location && user.username) {
+      try {
+        const response = await api.get(`/profile/${user.username}?requester=${currentUser}`);
+        setSelectedUserForMessage(response.data);
+      } catch (err) {
+        console.error('Error loading user profile:', err);
+        // Fallback to existing user object
+        setSelectedUserForMessage(user);
+      }
+    } else {
+      setSelectedUserForMessage(user);
+    }
+    setShowMessageModal(true);
+  };
+
   const filteredUsers = users.filter(user => {
     // Exclude users who have been excluded by current user
     if (excludedUsers.has(user.username)) {
@@ -1801,10 +1820,7 @@ const SearchPage = () => {
                   onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
                   onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
                   onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
-                  onMessage={(u) => {
-                    setSelectedUserForMessage(u);
-                    setShowMessageModal(true);
-                  }}
+                  onMessage={handleMessage}
                   onPIIRequest={(u) => openPIIRequestModal(u.username)}
                   isFavorited={favoritedUsers.has(user.username)}
                   isShortlisted={shortlistedUsers.has(user.username)}

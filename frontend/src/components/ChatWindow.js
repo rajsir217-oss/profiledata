@@ -55,7 +55,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
             <img src={otherUser.images[0]} alt={otherUser.username} className="chat-avatar" />
           ) : (
             <div className="chat-avatar-placeholder">
-              {otherUser.firstName?.[0] || otherUser.username[0].toUpperCase()}
+              {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
             </div>
           )}
           <div className="chat-user-details">
@@ -96,7 +96,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
                       <img src={otherUser.images[0]} alt={otherUser.username} />
                     ) : (
                       <div className="avatar-small">
-                        {otherUser.firstName?.[0] || otherUser.username[0].toUpperCase()}
+                        {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
                   </div>

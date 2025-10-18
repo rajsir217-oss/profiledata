@@ -180,10 +180,23 @@ const Dashboard = () => {
     navigate(`/profile/${username}`);
   };
 
-  const handleMessageUser = (username, userProfile = null) => {
-    // Open message modal instead of navigating
-    const userToMessage = userProfile || { username };
-    setSelectedUserForMessage(userToMessage);
+  const handleMessageUser = async (username, userProfile = null) => {
+    // If we have a userProfile with complete data, use it
+    if (userProfile && userProfile.firstName && userProfile.location) {
+      setSelectedUserForMessage(userProfile);
+      setShowMessageModal(true);
+      return;
+    }
+    
+    // Otherwise, fetch the full profile
+    try {
+      const response = await api.get(`/profile/${username}?requester=${currentUser}`);
+      setSelectedUserForMessage(response.data);
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+      // Fallback to basic user object
+      setSelectedUserForMessage(userProfile || { username });
+    }
     setShowMessageModal(true);
   };
 

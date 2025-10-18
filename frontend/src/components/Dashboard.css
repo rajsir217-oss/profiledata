@@ -297,28 +297,41 @@
   justify-content: space-around;
   padding-top: 10px;
   border-top: 1px solid #e0e0e0;
+  gap: 6px;
 }
 
+/* Enhanced Button Styling for Consistency */
 .btn-message,
 .btn-view-profile,
 .btn-remove {
-  background: transparent;
-  border: none;
+  background: white;
+  border: 2px solid #ddd;
   font-size: 20px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  padding: 5px 10px;
-  border-radius: 5px;
+  transition: all 0.2s ease;
+  padding: 8px 12px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 40px;
 }
 
 .btn-message:hover {
-  background: rgba(102, 126, 234, 0.1);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-color: #667eea;
+  color: white;
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-view-profile:hover {
-  background: rgba(102, 126, 234, 0.1);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
+  border-color: #17a2b8;
+  color: white;
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
 }
 
 .btn-remove {
@@ -326,8 +339,63 @@
 }
 
 .btn-remove:hover {
-  background: rgba(231, 76, 60, 0.1);
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+  border-color: #dc3545;
+  color: white;
   transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+/* Active states for button types similar to SearchResultCard */
+.user-action-btn.btn-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  border: 2px solid #ff9800 !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4) !important;
+  transform: scale(1.05);
+  animation: favoriteGlow 2s ease-in-out infinite;
+}
+
+.user-action-btn.btn-outline-warning {
+  background: transparent !important;
+  border: 2px solid #ddd !important;
+  color: #999 !important;
+  opacity: 0.6;
+}
+
+.user-action-btn.btn-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+  border: 2px solid #138496 !important;
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.6), 0 0 20px rgba(23, 162, 184, 0.4) !important;
+  transform: scale(1.05);
+  animation: shortlistGlow 2s ease-in-out infinite;
+}
+
+.user-action-btn.btn-outline-info {
+  background: transparent !important;
+  border: 2px solid #ddd !important;
+  color: #999 !important;
+  opacity: 0.6;
+}
+
+/* Glow animations */
+@keyframes favoriteGlow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(255, 193, 7, 0.8), 0 0 30px rgba(255, 193, 7, 0.6);
+  }
+}
+
+@keyframes shortlistGlow {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(23, 162, 184, 0.6), 0 0 20px rgba(23, 162, 184, 0.4);
+  }
+  50% {
+    box-shadow: 0 4px 16px rgba(23, 162, 184, 0.8), 0 0 30px rgba(23, 162, 184, 0.6);
+  }
 }
 
 /* Empty Section */
