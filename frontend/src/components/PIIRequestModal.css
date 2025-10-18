@@ -9,10 +9,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 10000; /* Increased to be above all other elements */
   padding: 20px;
   animation: fadeIn 0.2s ease;
   overflow: auto; /* Allow scrolling if modal is too tall */
+  pointer-events: auto; /* Ensure overlay captures clicks */
 }
 
 /* PII Modal */

@@ -6,6 +6,8 @@ const Preferences = () => {
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
   const [showSaveMessage, setShowSaveMessage] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Password change state
   const [passwordData, setPasswordData] = useState({

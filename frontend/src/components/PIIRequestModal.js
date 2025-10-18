@@ -20,6 +20,9 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   // Initialize selected types with already granted access or pending requests
   useEffect(() => {
     if (isOpen) {
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+      
       const alreadyGrantedOrPending = piiTypes
         .filter(type => {
           const status = requestStatus[type.value];
@@ -28,12 +31,20 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         .map(type => type.value);
       setSelectedTypes(alreadyGrantedOrPending);
     } else {
+      // Re-enable body scroll when modal closes
+      document.body.style.overflow = 'unset';
+      
       // Reset when modal closes
       setSelectedTypes([]);
       setMessage('');
       setError('');
       setSuccessMessage('');
     }
+    
+    // Cleanup function to ensure scroll is restored
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, requestStatus]);
 
@@ -121,7 +132,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
           alignItems: 'flex-start',
           gap: '10px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 2000,
+          zIndex: 10001,
           animation: 'slideInRight 0.3s ease-out'
         }}>
           <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
@@ -171,7 +182,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
           alignItems: 'flex-start',
           gap: '10px',
           boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 2000,
+          zIndex: 10001,
           animation: 'slideInRight 0.3s ease-out'
         }}>
           <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>

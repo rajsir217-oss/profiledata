@@ -472,11 +472,14 @@ const L3V3LMatches = () => {
       )}
 
       {/* Modals */}
-      {showMessageModal && (
+      {showMessageModal && selectedUser && (
         <MessageModal
-          show={showMessageModal}
-          onClose={() => setShowMessageModal(false)}
-          recipient={selectedUser}
+          isOpen={showMessageModal}
+          onClose={() => {
+            setShowMessageModal(false);
+            setSelectedUser(null);
+          }}
+          profile={selectedUser}
         />
       )}
 

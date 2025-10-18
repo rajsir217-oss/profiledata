@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
+import MessageModal from './MessageModal';
+import PIIRequestModal from './PIIRequestModal';
 import './SearchPage.css';
 
 const Shortlist = () => {
@@ -10,7 +12,19 @@ const Shortlist = () => {
   const [error, setError] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
   const [piiRequests, setPiiRequests] = useState({});
+  const [piiAccessMap, setPiiAccessMap] = useState({});
+  const [piiRequestsMap, setPiiRequestsMap] = useState({});
+  
+  // Message modal state
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  
+  // PII Request modal state
+  const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
+  const [selectedUserForPII, setSelectedUserForPII] = useState(null);
+  
   const navigate = useNavigate();
+  const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
     loadShortlist();
@@ -46,22 +60,46 @@ const Shortlist = () => {
       ]);
 
       const requests = requestsResponse.data.requests || [];
-      const receivedAccess = accessResponse.data.receivedAccess || [];
+      const receivedAccess = accessResponse.data.receivedAccess || accessResponse.data.access || [];
       const requestStatus = {};
+      const piiMap = {};
+      const piiReqMap = {};
 
+      // Track detailed request status
       requests.forEach(req => {
-        const targetUsername = req.profileUsername || req.requestedUsername;
-        requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
+        const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
+        if (targetUsername && req.requestType) {
+          if (!piiReqMap[targetUsername]) {
+            piiReqMap[targetUsername] = {};
+          }
+          piiReqMap[targetUsername][req.requestType] = req.status;
+          requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
+        }
       });
 
+      // Track approved access
       receivedAccess.forEach(access => {
-        const targetUsername = access.userProfile.username;
-        access.accessTypes.forEach(accessType => {
-          requestStatus[`${targetUsername}_${accessType}`] = 'approved';
-        });
+        const targetUsername = access.userProfile?.username;
+        if (targetUsername) {
+          piiMap[targetUsername] = {
+            hasContactAccess: access.accessTypes?.includes('contact_info'),
+            hasImageAccess: access.accessTypes?.includes('images'),
+            hasDobAccess: access.accessTypes?.includes('dob'),
+            hasLinkedInAccess: access.accessTypes?.includes('linkedin_url')
+          };
+          access.accessTypes?.forEach(accessType => {
+            requestStatus[`${targetUsername}_${accessType}`] = 'approved';
+            if (!piiReqMap[targetUsername]) {
+              piiReqMap[targetUsername] = {};
+            }
+            piiReqMap[targetUsername][accessType] = 'approved';
+          });
+        }
       });
 
       setPiiRequests(requestStatus);
+      setPiiAccessMap(piiMap);
+      setPiiRequestsMap(piiReqMap);
     } catch (err) {
       console.error('Error loading PII requests:', err);
     }
@@ -84,7 +122,26 @@ const Shortlist = () => {
   };
 
   const handlePIIRequest = (user) => {
-    navigate(`/profile/${user.username}`);
+    setSelectedUserForPII(user);
+    setShowPIIRequestModal(true);
+  };
+
+  const handlePIIRequestSuccess = async () => {
+    await loadPiiRequests();
+    setShowPIIRequestModal(false);
+    setSelectedUserForPII(null);
+  };
+
+  const getPIIRequestStatus = (username) => {
+    const userRequests = piiRequestsMap[username] || {};
+    const userAccess = piiAccessMap[username] || {};
+    
+    return {
+      images: userRequests.images || (userAccess.hasImageAccess ? 'approved' : null),
+      contact_info: userRequests.contact_info || (userAccess.hasContactAccess ? 'approved' : null),
+      dob: userRequests.dob || (userAccess.hasDobAccess ? 'approved' : null),
+      linkedin_url: userRequests.linkedin_url || (userAccess.hasLinkedInAccess ? 'approved' : null)
+    };
   };
 
   const removeFromShortlist = async (user) => {
@@ -103,7 +160,8 @@ const Shortlist = () => {
   };
 
   const handleMessage = (user) => {
-    navigate(`/messages?user=${user.username}`);
+    setSelectedUser(user);
+    setShowMessageModal(true);
   };
 
   if (loading) return <div className="text-center py-4"><div className="spinner-border"></div></div>;
@@ -140,6 +198,7 @@ const Shortlist = () => {
                 hasImageAccess={hasImageAccess(user.username)}
                 isPiiRequestPending={isPiiRequestPending(user.username)}
                 isImageRequestPending={isImageRequestPending(user.username)}
+                piiRequestStatus={getPIIRequestStatus(user.username)}
                 showFavoriteButton={false}
                 showShortlistButton={false}
                 showExcludeButton={false}
@@ -151,6 +210,34 @@ const Shortlist = () => {
           </div>
         )}
       </div>
+      
+      {/* Message Modal */}
+      {showMessageModal && selectedUser && (
+        <MessageModal
+          isOpen={showMessageModal}
+          profile={selectedUser}
+          onClose={() => {
+            setShowMessageModal(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
+
+      {/* PII Request Modal */}
+      {showPIIRequestModal && selectedUserForPII && (
+        <PIIRequestModal
+          isOpen={showPIIRequestModal}
+          profileUsername={selectedUserForPII.username}
+          profileName={`${selectedUserForPII.firstName || selectedUserForPII.username}`}
+          onClose={() => {
+            setShowPIIRequestModal(false);
+            setSelectedUserForPII(null);
+          }}
+          onSuccess={handlePIIRequestSuccess}
+          currentAccess={piiAccessMap[selectedUserForPII.username] || {}}
+          requestStatus={getPIIRequestStatus(selectedUserForPII.username)}
+        />
+      )}
     </div>
   );
 };

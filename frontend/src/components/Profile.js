@@ -46,6 +46,7 @@ const Profile = () => {
     contact_info: false,
     dob: false
   });
+  const [piiRequestStatus, setPiiRequestStatus] = useState({});
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   
@@ -183,17 +184,37 @@ const Profile = () => {
     }
     
     try {
-      const [imagesRes, contactRes, dobRes] = await Promise.all([
+      const [imagesRes, contactRes, dobRes, linkedinRes] = await Promise.all([
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_info`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=dob`)
+        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=dob`),
+        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
       ]);
       
       setPiiAccess({
         images: imagesRes.data.hasAccess,
         contact_info: contactRes.data.hasAccess,
-        dob: dobRes.data.hasAccess
+        dob: dobRes.data.hasAccess,
+        linkedin_url: linkedinRes.data.hasAccess
       });
+      
+      // Check pending request status for each type
+      const requestStatus = {};
+      const piiTypes = ['images', 'contact_info', 'dob', 'linkedin_url'];
+      
+      for (const type of piiTypes) {
+        if (imagesRes.data.hasAccess && type === 'images') {
+          requestStatus[type] = 'approved';
+        } else if (contactRes.data.hasAccess && type === 'contact_info') {
+          requestStatus[type] = 'approved';
+        } else if (dobRes.data.hasAccess && type === 'dob') {
+          requestStatus[type] = 'approved';
+        } else if (linkedinRes.data.hasAccess && type === 'linkedin_url') {
+          requestStatus[type] = 'approved';
+        }
+      }
+      
+      setPiiRequestStatus(requestStatus);
     } catch (err) {
       console.error("Error checking PII access:", err);
     }
@@ -926,6 +947,7 @@ const Profile = () => {
         profileUsername={username}
         profileName={`${user.firstName} ${user.lastName}`}
         currentAccess={piiAccess}
+        requestStatus={piiRequestStatus}
         onClose={() => setShowPIIRequestModal(false)}
         onSuccess={() => {
           setSuccessMessage('Request sent successfully!');
