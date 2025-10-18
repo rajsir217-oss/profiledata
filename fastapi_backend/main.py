@@ -17,6 +17,7 @@ from auth.admin_routes import router as admin_router
 from auth.auth_routes import router as auth_router
 from cleanup_routes import router as cleanup_router
 from routes_dynamic_scheduler import router as dynamic_scheduler_router
+from routes_meta_admin import router as meta_admin_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -143,6 +144,7 @@ app.include_router(admin_router)  # Admin routes (already has /api/admin prefix)
 app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
 app.include_router(cleanup_router)  # Cleanup and moderation routes
 app.include_router(dynamic_scheduler_router)  # Dynamic scheduler routes
+app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Meta fields admin routes
 
 # Health check endpoint
 @app.get("/health")

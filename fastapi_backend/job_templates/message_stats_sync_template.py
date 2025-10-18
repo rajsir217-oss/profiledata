@@ -3,37 +3,25 @@ Message Statistics Sync Template
 JobTemplate wrapper for the message stats sync job
 """
 
-from .base import JobTemplate
+from typing import Dict, Any, Tuple, Optional
+from .base import JobTemplate, JobExecutionContext, JobResult
 from . import message_stats_sync
+import time
 
 
 class MessageStatsSyncTemplate(JobTemplate):
     """Template for syncing user message statistics"""
     
-    def __init__(self):
-        super().__init__(
-            template_type="message_stats_sync",
-            template_name="Message Statistics Sync",
-            description="Automatically sync user message counts with actual database records",
-            category="maintenance",
-            default_timeout=600,  # 10 minutes
-            default_parameters={}
-        )
+    template_type = "message_stats_sync"
+    template_name = "Message Statistics Sync"
+    template_description = "Automatically sync user message counts with actual database records"
+    category = "maintenance"
+    icon = "📊"
+    estimated_duration = "5-10 minutes"
+    resource_usage = "medium"
+    risk_level = "low"
     
-    async def execute(self, db, parameters: dict = None):
-        """
-        Execute the message stats sync job
-        
-        Args:
-            db: MongoDB database instance
-            parameters: Job parameters (optional)
-        
-        Returns:
-            dict: Execution results
-        """
-        return await message_stats_sync.execute(db, parameters)
-    
-    def get_parameter_schema(self) -> dict:
+    def get_schema(self) -> Dict[str, Any]:
         """
         Get JSON schema for job parameters
         
@@ -43,18 +31,61 @@ class MessageStatsSyncTemplate(JobTemplate):
         return {
             "type": "object",
             "properties": {},
+            "required": [],
             "additionalProperties": False
         }
     
-    def validate_parameters(self, parameters: dict) -> tuple[bool, str]:
+    def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """
         Validate job parameters
         
         Args:
-            parameters: Parameters to validate
+            params: Parameters to validate
         
         Returns:
             tuple: (is_valid, error_message)
         """
         # No parameters required, always valid
-        return True, ""
+        return True, None
+    
+    async def execute(self, context: JobExecutionContext) -> JobResult:
+        """
+        Execute the message stats sync job
+        
+        Args:
+            context: Job execution context
+        
+        Returns:
+            JobResult with execution details
+        """
+        start_time = time.time()
+        
+        try:
+            context.log("INFO", "Starting message statistics sync")
+            
+            # Execute the sync job
+            result = await message_stats_sync.execute(context.db, context.parameters)
+            
+            duration = time.time() - start_time
+            
+            # Convert result to JobResult
+            return JobResult(
+                status="success" if result.get("status") == "completed" else "failed",
+                message=result.get("message", "Message stats synced successfully"),
+                details=result,
+                records_processed=result.get("total_users", 0),
+                records_affected=result.get("users_synced", 0),
+                errors=[f"{result.get('errors', 0)} users had errors"] if result.get('errors', 0) > 0 else [],
+                duration_seconds=duration
+            )
+            
+        except Exception as e:
+            duration = time.time() - start_time
+            context.log("ERROR", f"Message stats sync failed: {str(e)}")
+            
+            return JobResult(
+                status="failed",
+                message=f"Failed to sync message statistics: {str(e)}",
+                errors=[str(e)],
+                duration_seconds=duration
+            )

@@ -509,6 +509,23 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     
     user = mask_user_pii(user, requester, access_granted)
     
+    # Include visible meta fields if enabled
+    if user.get('metaFieldsVisibleToPublic', False):
+        user['visibleMetaFields'] = {
+            'idVerified': user.get('idVerified', False),
+            'emailVerified': user.get('emailVerified', False),
+            'phoneVerified': user.get('phoneVerified', False),
+            'employmentVerified': user.get('employmentVerified', False),
+            'educationVerified': user.get('educationVerified', False),
+            'backgroundCheckStatus': user.get('backgroundCheckStatus'),
+            'isPremium': user.get('isPremium', False),
+            'premiumStatus': user.get('premiumStatus', 'free'),
+            'isFeatured': user.get('isFeatured', False),
+            'isStaffPick': user.get('isStaffPick', False),
+            'profileRank': user.get('profileRank'),
+            'trustScore': user.get('trustScore', 50),
+        }
+    
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     return user
 

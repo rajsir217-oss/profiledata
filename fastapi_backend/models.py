@@ -100,6 +100,73 @@ class UserBase(BaseModel):
     privacyAgreedAt: Optional[datetime] = None
     consentIpAddress: Optional[str] = None
     consentUserAgent: Optional[str] = None
+    
+    # ===== PHASE 1: ESSENTIAL META FIELDS =====
+    # Verification Status
+    idVerified: bool = False
+    idVerifiedAt: Optional[datetime] = None
+    idVerifiedBy: Optional[str] = None  # Admin username
+    emailVerified: bool = False
+    emailVerifiedAt: Optional[datetime] = None
+    phoneVerified: bool = False
+    phoneVerifiedAt: Optional[datetime] = None
+    
+    # Premium Status
+    isPremium: bool = False
+    premiumStatus: str = "free"  # "free", "premium", "elite", "vip"
+    premiumActivatedAt: Optional[datetime] = None
+    premiumExpiresAt: Optional[datetime] = None
+    
+    # Profile Quality
+    profileCompleteness: int = 0  # 0-100 percentage
+    trustScore: int = 50  # 0-100, starts at 50 (neutral)
+    lastActiveAt: Optional[datetime] = None
+    
+    # ===== PHASE 2: ENHANCED TRUST =====
+    # Professional Verification
+    employmentVerified: bool = False
+    employmentVerifiedAt: Optional[datetime] = None
+    employmentVerificationSource: Optional[str] = None
+    educationVerified: bool = False
+    educationVerifiedAt: Optional[datetime] = None
+    educationVerificationSource: Optional[str] = None
+    
+    # Background & Safety
+    backgroundCheckStatus: str = "none"  # "none", "pending", "passed", "failed"
+    backgroundCheckCompletedAt: Optional[datetime] = None
+    
+    # Profile Quality Score
+    profileQualityScore: int = 0  # 0-100
+    
+    # Moderation
+    moderationStatus: str = "approved"  # "pending", "approved", "flagged", "suspended"
+    moderatedBy: Optional[str] = None
+    moderatedAt: Optional[datetime] = None
+    
+    # ===== PHASE 3: GAMIFICATION =====
+    # Badges & Achievements
+    badges: List[str] = []  # ["early_adopter", "popular", "responsive", "complete_profile"]
+    achievementPoints: int = 0
+    
+    # Profile Ranking
+    profileRank: Optional[str] = None  # "Rising Star", "Top 1%", "Most Viewed"
+    isFeatured: bool = False
+    featuredUntil: Optional[datetime] = None
+    isStaffPick: bool = False
+    
+    # Engagement Metrics
+    profileViews: int = 0
+    profileViewsThisMonth: int = 0
+    uniqueViewersCount: int = 0
+    responseRate: float = 0.0  # 0-100%
+    replyTimeAverage: Optional[int] = None  # Minutes
+    activeDays: int = 0
+    shortlistCount: int = 0
+    favoriteCount: int = 0
+    
+    # Admin Controls
+    metaFieldsVisibility: dict = {}  # Controls which meta fields are visible {"idVerified": true, "isPremium": false}
+    metaFieldsVisibleToPublic: bool = False  # Default hidden, admin can enable
 
     @validator('username')
     def username_alphanumeric(cls, v):
@@ -166,6 +233,36 @@ class UserBase(BaseModel):
         valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
         if v and v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
+        return v
+    
+    @validator('premiumStatus')
+    def validate_premium_status(cls, v):
+        if v and v not in ['free', 'premium', 'elite', 'vip']:
+            raise ValueError('Premium status must be: free, premium, elite, or vip')
+        return v
+    
+    @validator('backgroundCheckStatus')
+    def validate_background_check(cls, v):
+        if v and v not in ['none', 'pending', 'passed', 'failed']:
+            raise ValueError('Background check status must be: none, pending, passed, or failed')
+        return v
+    
+    @validator('moderationStatus')
+    def validate_moderation_status(cls, v):
+        if v and v not in ['pending', 'approved', 'flagged', 'suspended']:
+            raise ValueError('Moderation status must be: pending, approved, flagged, or suspended')
+        return v
+    
+    @validator('trustScore', 'profileCompleteness', 'profileQualityScore')
+    def validate_score(cls, v):
+        if v and (v < 0 or v > 100):
+            raise ValueError('Score must be between 0 and 100')
+        return v
+    
+    @validator('responseRate')
+    def validate_response_rate(cls, v):
+        if v and (v < 0 or v > 100):
+            raise ValueError('Response rate must be between 0 and 100')
         return v
 
 class UserCreate(UserBase):

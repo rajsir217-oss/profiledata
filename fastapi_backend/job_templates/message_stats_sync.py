@@ -10,6 +10,9 @@ This job recalculates and updates:
 Recommended Schedule: Daily at 2 AM (cron: 0 2 * * *)
 """
 
+from datetime import datetime
+
+
 async def execute(db, params=None):
     """
     Sync message statistics for all users
@@ -81,7 +84,7 @@ async def execute(db, params=None):
                         'messagesSent': sent_count,
                         'messagesReceived': received_count,
                         'pendingReplies': pending_count,
-                        'messageStatsLastSynced': db.get_current_timestamp()
+                        'messageStatsLastSynced': datetime.utcnow()
                     }}
                 )
                 
