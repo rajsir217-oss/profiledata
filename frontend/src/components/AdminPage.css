@@ -113,6 +113,11 @@
   color: var(--text-color);
 }
 
+/* Prevent wrapping for contact numbers */
+.admin-table tbody td:nth-child(6) {
+  white-space: nowrap;
+}
+
 .admin-table tbody td strong {
   color: var(--primary-color);
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import axios from 'axios';
 import './AdminPage.css';
+import MetaFieldsModal from './MetaFieldsModal';
 
 // Create admin API client without baseURL prefix
 const adminApi = axios.create({
@@ -29,6 +30,7 @@ const AdminPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [genderFilter, setGenderFilter] = useState(''); // Gender filter
   const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending for faster loading
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
@@ -43,6 +45,7 @@ const AdminPage = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [selectedUserForMeta, setSelectedUserForMeta] = useState(null);
 
   // Multi-layer security check
   useEffect(() => {
@@ -90,6 +93,11 @@ const AdminPage = () => {
       setUsers(response.data.users || []);
       
       console.log(`✅ Loaded ${response.data.users?.length || 0} users`);
+      // Debug: Check if first user has sex field
+      if (response.data.users?.[0]) {
+        console.log('🔍 First user data:', response.data.users[0]);
+        console.log('🔍 Sex field:', response.data.users[0].sex);
+      }
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Failed to load users. ' + (err.response?.data?.detail || err.message));
@@ -253,7 +261,11 @@ const AdminPage = () => {
       const userStatus = user.status?.status || user.status || 'pending';
       const matchesStatus = !statusFilter || userStatus === statusFilter;
       
-      return matchesSearch && matchesStatus;
+      // Apply gender filter (case-insensitive, check multiple field names)
+      const userGender = user.sex || user.gender || user.Sex || '';
+      const matchesGender = !genderFilter || userGender.toLowerCase() === genderFilter.toLowerCase();
+      
+      return matchesSearch && matchesStatus && matchesGender;
     });
 
     filtered.sort((a, b) => {
@@ -284,7 +296,7 @@ const AdminPage = () => {
   // Reset to page 1 when search/filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, statusFilter, sortField, sortOrder]);
+  }, [searchTerm, genderFilter, statusFilter, sortField, sortOrder]);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -374,6 +386,17 @@ const AdminPage = () => {
           
           <select
             className="form-select"
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value)}
+            style={{ flex: 1, maxWidth: '200px' }}
+          >
+            <option value="">All Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+          
+          <select
+            className="form-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             style={{ flex: 1, maxWidth: '250px' }}
@@ -413,9 +436,8 @@ const AdminPage = () => {
                 EMAIL {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th>CONTACT</th>
-              <th>SEX</th>
+              <th>GENDER</th>
               <th>LOCATION</th>
-              <th>WORKING</th>
               <th>IMAGES</th>
               <th>MSGS SENT</th>
               <th>MSGS RCVD</th>
@@ -426,7 +448,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="14" className="text-center text-muted py-4">
+                <td colSpan="13" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -445,13 +467,8 @@ const AdminPage = () => {
                   </td>
                   <td>{user.contactEmail}</td>
                   <td>{user.contactNumber}</td>
-                  <td>{user.sex}</td>
+                  <td>{user.sex || user.gender || user.Sex || '-'}</td>
                   <td>{user.location}</td>
-                  <td>
-                    <span className={`badge ${user.workingStatus === 'Yes' ? 'bg-success' : 'bg-secondary'}`}>
-                      {user.workingStatus}
-                    </span>
-                  </td>
                   <td>
                     <span className="badge bg-info">{user.images?.length || 0}</span>
                   </td>
@@ -471,21 +488,28 @@ const AdminPage = () => {
                         onClick={() => navigate(`/profile/${user.username}`)}
                         title="View Profile"
                       >
-                        👁️ View
+                        👁️
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-info"
+                        onClick={() => setSelectedUserForMeta(user.username)}
+                        title="Meta Fields"
+                      >
+                        🎖️
                       </button>
                       <button
                         className="btn btn-sm btn-outline-warning"
                         onClick={() => handleEditStatus(user)}
                         title="Edit Status"
                       >
-                        ✏️ Edit
+                        ✏️
                       </button>
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => handleDeleteClick(user)}
                         title="Delete Profile"
                       >
-                        🗑️ Delete
+                        🗑️
                       </button>
                     </div>
                   </td>
@@ -861,6 +885,17 @@ const AdminPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Meta Fields Modal */}
+      {selectedUserForMeta && (
+        <MetaFieldsModal
+          username={selectedUserForMeta}
+          onClose={() => {
+            setSelectedUserForMeta(null);
+            loadAllUsers(); // Refresh user list when modal closes
+          }}
+        />
       )}
     </div>
   );

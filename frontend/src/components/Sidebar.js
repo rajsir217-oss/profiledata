@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
-import { getDisplayName, getShortName } from '../utils/userDisplay';
+import { getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
@@ -200,11 +200,18 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         subLabel: 'Run & schedule tests',
         action: () => navigate('/test-dashboard')
       });
+      
+      items.push({
+        icon: '🗓️',
+        label: 'Scheduler & Jobs',
+        subLabel: 'Manage automated tasks',
+        action: () => navigate('/dynamic-scheduler')
+      });
 
       items.push({
-        icon: '🔧',
-        label: 'System Settings',
-        subLabel: 'Global configuration',
+        icon: '⚙️',
+        label: 'System Configuration',
+        subLabel: 'Settings & preferences',
         action: () => navigate('/admin/settings')
       });
     }

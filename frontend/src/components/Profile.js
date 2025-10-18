@@ -409,6 +409,77 @@ const Profile = () => {
                 }}>{user.profileId}</span>
               </p>
             )}
+            
+            {/* Meta Field Badges */}
+            {user.visibleMetaFields && (
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '6px',
+                marginTop: '12px'
+              }}>
+                {/* Verification Badges */}
+                {user.visibleMetaFields.idVerified && (
+                  <span className="meta-badge verification" title="ID Verified">
+                    ✓ ID Verified
+                  </span>
+                )}
+                {user.visibleMetaFields.phoneVerified && (
+                  <span className="meta-badge verification" title="Phone Verified">
+                    📱 Phone
+                  </span>
+                )}
+                {user.visibleMetaFields.emailVerified && (
+                  <span className="meta-badge verification" title="Email Verified">
+                    📧 Email
+                  </span>
+                )}
+                {user.visibleMetaFields.employmentVerified && (
+                  <span className="meta-badge verification" title="Employment Verified">
+                    💼 Employment
+                  </span>
+                )}
+                {user.visibleMetaFields.educationVerified && (
+                  <span className="meta-badge verification" title="Education Verified">
+                    🎓 Education
+                  </span>
+                )}
+                {user.visibleMetaFields.backgroundCheckStatus === 'passed' && (
+                  <span className="meta-badge verification" title="Background Checked">
+                    🛡️ Verified
+                  </span>
+                )}
+                
+                {/* Premium Badges */}
+                {user.visibleMetaFields.isPremium && (
+                  <span className="meta-badge premium" title={`${user.visibleMetaFields.premiumStatus} Member`}>
+                    💎 {user.visibleMetaFields.premiumStatus === 'vip' ? 'VIP' : user.visibleMetaFields.premiumStatus === 'elite' ? 'Elite' : 'Premium'}
+                  </span>
+                )}
+                {user.visibleMetaFields.isFeatured && (
+                  <span className="meta-badge featured" title="Featured Profile">
+                    🚀 Featured
+                  </span>
+                )}
+                {user.visibleMetaFields.isStaffPick && (
+                  <span className="meta-badge staff-pick" title="Staff Pick">
+                    🎖️ Staff Pick
+                  </span>
+                )}
+                
+                {/* Achievement Badges */}
+                {user.visibleMetaFields.profileRank && (
+                  <span className="meta-badge achievement" title="Profile Rank">
+                    🏆 {user.visibleMetaFields.profileRank}
+                  </span>
+                )}
+                {user.visibleMetaFields.trustScore >= 80 && (
+                  <span className="meta-badge trust" title={`Trust Score: ${user.visibleMetaFields.trustScore}`}>
+                    ⭐ Trusted
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           
           {/* Floating Ribbon with Stats - Positioned before Edit Button */}

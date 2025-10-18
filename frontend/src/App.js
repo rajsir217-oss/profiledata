@@ -28,6 +28,7 @@ import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
 import { TestDashboard } from './test-dashboard';
+import DynamicScheduler from './components/DynamicScheduler';
 import ToastContainer from './components/ToastContainer';
 import L3V3LInfo from './components/L3V3LInfo';
 import L3V3LMatches from './components/L3V3LMatches';
@@ -206,6 +207,7 @@ function App() {
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
+              <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
             </Routes>
           </div>
           </div>

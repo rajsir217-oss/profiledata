@@ -483,3 +483,72 @@
     font-size: 15px !important;
   }
 }
+
+/* Meta Field Badges */
+.meta-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.meta-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Verification Badges - Green */
+.meta-badge.verification {
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  color: #155724;
+  border: 1px solid #28a745;
+}
+
+/* Premium Badges - Gold */
+.meta-badge.premium {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
+  color: #856404;
+  border: 1px solid #ffc107;
+}
+
+/* Featured Badge - Purple */
+.meta-badge.featured {
+  background: linear-gradient(135deg, #e7d4f7 0%, #d1b3e8 100%);
+  color: #6f42c1;
+  border: 1px solid #9c6fd9;
+}
+
+/* Staff Pick - Blue */
+.meta-badge.staff-pick {
+  background: linear-gradient(135deg, #cfe2ff 0%, #b8daff 100%);
+  color: #004085;
+  border: 1px solid #0d6efd;
+}
+
+/* Achievement - Orange */
+.meta-badge.achievement {
+  background: linear-gradient(135deg, #ffe5d0 0%, #ffd4a8 100%);
+  color: #7a4f01;
+  border: 1px solid #fd7e14;
+}
+
+/* Trust Badge - Teal */
+.meta-badge.trust {
+  background: linear-gradient(135deg, #d1ecf1 0%, #bee5eb 100%);
+  color: #0c5460;
+  border: 1px solid #17a2b8;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .meta-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+}

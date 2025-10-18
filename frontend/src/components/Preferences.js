@@ -110,9 +110,10 @@ const Preferences = () => {
         const username = localStorage.getItem('username');
         setCurrentUser(username);
         
-        const response = await getUserPreferences(username);
-        setSelectedTheme(response.data.theme || 'light-blue');
-        applyTheme(response.data.theme || 'light-blue');
+        const prefs = await getUserPreferences(username);
+        const theme = prefs?.themePreference || 'light-blue';
+        setSelectedTheme(theme);
+        applyTheme(theme);
       } catch (error) {
         console.error('Error loading preferences:', error);
         // If there's an error, apply default theme
