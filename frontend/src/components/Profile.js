@@ -130,6 +130,7 @@ const Profile = () => {
       window.removeEventListener('focus', handleFocus);
       unsubscribe();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username, currentUsername]);
 
   // Fetch L3V3L matching data if viewing from matches page
@@ -751,11 +752,80 @@ const Profile = () => {
         <div className="profile-section">
           <h3>🎯 Partner Matching Criteria</h3>
           <div className="profile-info">
-            {user.partnerCriteria.ageRange && (user.partnerCriteria.ageRange.min || user.partnerCriteria.ageRange.max) && (
-              <p><strong>Preferred Age Range:</strong> {user.partnerCriteria.ageRange.min || '?'} - {user.partnerCriteria.ageRange.max || '?'} years</p>
+            {user.partnerCriteria.ageRangeRelative ? (
+              <p>
+                <strong>Preferred Age Range:</strong>{' '}
+                {(() => {
+                  const userAge = (() => {
+                    if (!user.dob && !user.dateOfBirth) return null;
+                    const birthDate = new Date(user.dob || user.dateOfBirth);
+                    const today = new Date();
+                    let age = today.getFullYear() - birthDate.getFullYear();
+                    const monthDiff = today.getMonth() - birthDate.getMonth();
+                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                      age--;
+                    }
+                    return age;
+                  })();
+                  
+                  if (!userAge) return 'Not specified';
+                  
+                  const minAge = userAge + (user.partnerCriteria.ageRangeRelative.minOffset || 0);
+                  const maxAge = userAge + (user.partnerCriteria.ageRangeRelative.maxOffset || 0);
+                  const minText = user.partnerCriteria.ageRangeRelative.minOffset === 0 ? 'same age' : `${Math.abs(user.partnerCriteria.ageRangeRelative.minOffset)} ${user.partnerCriteria.ageRangeRelative.minOffset < 0 ? 'year(s) younger' : 'year(s) older'}`;
+                  const maxText = user.partnerCriteria.ageRangeRelative.maxOffset === 0 ? 'same age' : `${Math.abs(user.partnerCriteria.ageRangeRelative.maxOffset)} ${user.partnerCriteria.ageRangeRelative.maxOffset < 0 ? 'year(s) younger' : 'year(s) older'}`;
+                  
+                  return `${minAge}-${maxAge} years (${minText} to ${maxText})`;
+                })()}
+              </p>
+            ) : user.partnerCriteria.ageRange && (user.partnerCriteria.ageRange.min || user.partnerCriteria.ageRange.max) && (
+              <p>
+                <strong>Preferred Age Range:</strong>{' '}
+                {user.partnerCriteria.ageRange.min || 'Any'} - {user.partnerCriteria.ageRange.max || 'Any'} years
+              </p>
             )}
-            {user.partnerCriteria.heightRange && (
-              <p><strong>Preferred Height Range:</strong> {user.partnerCriteria.heightRange.minFeet || '?'}'{user.partnerCriteria.heightRange.minInches || '0'}" - {user.partnerCriteria.heightRange.maxFeet || '?'}'{user.partnerCriteria.heightRange.maxInches || '0'}"</p>
+            {user.partnerCriteria.heightRangeRelative ? (
+              <p>
+                <strong>Preferred Height Range:</strong>{' '}
+                {(() => {
+                  if (!user.height) return 'Not specified';
+                  
+                  // Parse user's height (e.g., "5'8\"" or "5'8")
+                  const heightMatch = user.height.match(/(\d+)'(\d+)/);
+                  if (!heightMatch) return 'Not specified';
+                  
+                  const userHeightInches = (parseInt(heightMatch[1]) * 12) + parseInt(heightMatch[2]);
+                  const minInches = userHeightInches + (user.partnerCriteria.heightRangeRelative.minInches || 0);
+                  const maxInches = userHeightInches + (user.partnerCriteria.heightRangeRelative.maxInches || 0);
+                  
+                  const minFeet = Math.floor(minInches / 12);
+                  const minRemainInches = minInches % 12;
+                  const maxFeet = Math.floor(maxInches / 12);
+                  const maxRemainInches = maxInches % 12;
+                  
+                  const minText = user.partnerCriteria.heightRangeRelative.minInches === 0 ? 'same height' : `${Math.abs(user.partnerCriteria.heightRangeRelative.minInches)} in ${user.partnerCriteria.heightRangeRelative.minInches < 0 ? 'shorter' : 'taller'}`;
+                  const maxText = user.partnerCriteria.heightRangeRelative.maxInches === 0 ? 'same height' : `${Math.abs(user.partnerCriteria.heightRangeRelative.maxInches)} in ${user.partnerCriteria.heightRangeRelative.maxInches < 0 ? 'shorter' : 'taller'}`;
+                  
+                  return `${minFeet}'${minRemainInches}" - ${maxFeet}'${maxRemainInches}" (${minText} to ${maxText})`;
+                })()}
+              </p>
+            ) : user.partnerCriteria.heightRange && (
+              <>
+                {(user.partnerCriteria.heightRange.minFeet || user.partnerCriteria.heightRange.maxFeet) ? (
+                  <p>
+                    <strong>Preferred Height Range:</strong>{' '}
+                    {user.partnerCriteria.heightRange.minFeet ? 
+                      `${user.partnerCriteria.heightRange.minFeet}'${user.partnerCriteria.heightRange.minInches || 0}"` : 
+                      'Any'} 
+                    {' - '}
+                    {user.partnerCriteria.heightRange.maxFeet ? 
+                      `${user.partnerCriteria.heightRange.maxFeet}'${user.partnerCriteria.heightRange.maxInches || 0}"` : 
+                      'Any'}
+                  </p>
+                ) : (
+                  <p><strong>Preferred Height Range:</strong> Not specified</p>
+                )}
+              </>
             )}
             {user.partnerCriteria.educationLevel && user.partnerCriteria.educationLevel.length > 0 && (
               <p><strong>Preferred Education:</strong> {user.partnerCriteria.educationLevel.join(', ')}</p>

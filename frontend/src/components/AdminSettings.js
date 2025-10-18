@@ -5,7 +5,6 @@ import './AdminSettings.css';
 
 const AdminSettings = () => {
   const navigate = useNavigate();
-  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   
   // Ticket Management Settings
@@ -13,6 +12,7 @@ const AdminSettings = () => {
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
   const [showTooltip, setShowTooltip] = useState(false);
+  const [theme, setTheme] = useState('light');
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -20,7 +20,6 @@ const AdminSettings = () => {
       navigate('/');
       return;
     }
-    setCurrentUser(username);
     loadSettings();
   }, [navigate]);
 

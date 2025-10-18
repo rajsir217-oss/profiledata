@@ -4,6 +4,33 @@ import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector }
 import Logo from "./Logo";
 
 const Register = () => {
+  // Helper function to calculate age from DOB
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+  
+  // Helper function to convert height to inches
+  const heightToInches = (feet, inches) => {
+    const f = parseInt(feet) || 0;
+    const i = parseInt(inches) || 0;
+    return (f * 12) + i;
+  };
+  
+  // Helper function to convert inches to feet'inches" format
+  const inchesToHeightString = (totalInches) => {
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    return `${feet}'${inches}"`;
+  };
+
   const [formData, setFormData] = useState({
     // Basic Information
     username: "",
@@ -46,13 +73,15 @@ const Register = () => {
     partnerPreference: "",
     // Partner Matching Criteria
     partnerCriteria: {
-      ageRange: { min: "", max: "" },
+      ageRange: { min: "", max: "" }, // Legacy - kept for backward compatibility
+      ageRangeRelative: { minOffset: 0, maxOffset: 5 }, // NEW: Relative age preference
       heightRange: {
         minFeet: "",
         minInches: "",
         maxFeet: "",
         maxInches: ""
-      },
+      }, // Legacy
+      heightRangeRelative: { minInches: 0, maxInches: 6 }, // NEW: Relative height in inches
       educationLevel: [],
       profession: [],
       languages: [],
@@ -93,9 +122,7 @@ const Register = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
-  const [checkingEmail, setCheckingEmail] = useState(false);
   const usernameCheckTimeout = useRef(null);
-  const emailCheckTimeout = useRef(null);
 
   // Sample description carousel states
   const [aboutMeSampleIndex, setAboutMeSampleIndex] = useState(0);  // Renamed from aboutYouSampleIndex
@@ -186,23 +213,7 @@ const Register = () => {
     }
   };
 
-  // Check if email exists in database (by trying to find any user with that email)
-  const checkEmailAvailability = async (email) => {
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return; // Don't check if email is invalid
-    }
-
-    try {
-      setCheckingEmail(true);
-      // We'll use the register endpoint validation - if email exists, backend will return 409
-      // For now, we'll just show a note that email will be validated on submit
-      // In a production app, you'd want a dedicated endpoint to check email availability
-    } catch (error) {
-      // Handle errors
-    } finally {
-      setCheckingEmail(false);
-    }
-  };
+  // Email availability check is handled by backend during registration
 
   // Generate username from first and last name
   const generateUsername = (firstName, lastName) => {
@@ -249,7 +260,7 @@ const Register = () => {
         }));
       }
     }
-  }, [formData.firstName, formData.lastName]);
+  }, [formData.firstName, formData.lastName, formData.username]);
 
   // Debounced username check effect
   useEffect(() => {
@@ -1467,43 +1478,139 @@ const Register = () => {
           )}
         </div>
         
-        {/* Age and Height Range */}
-        <div className="row mb-3">
-          <div className="col-md-4">
-            <label className="form-label">Preferred Age Range</label>
-            <div className="row">
-              <div className="col-6">
-                <input
-                  type="number"
-                  className="form-control"
-                  placeholder="Min (e.g., 25)"
-                  value={formData.partnerCriteria.ageRange.min}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      ageRange: { ...prev.partnerCriteria.ageRange, min: e.target.value }
-                    }
-                  }))}
-                />
-              </div>
-              <div className="col-6">
-                <input
-                  type="number"
-                  className="form-control"
-                  placeholder="Max (e.g., 35)"
-                  value={formData.partnerCriteria.ageRange.max}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      ageRange: { ...prev.partnerCriteria.ageRange, max: e.target.value }
-                    }
-                  }))}
-                />
-              </div>
+        {/* Age Preference - Relative to Your Age */}
+        <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
+          <h6 style={{ color: 'var(--text-color, #333)', marginBottom: '12px' }}>💝 Age Preference (relative to your age)</h6>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">How much younger?</label>
+              <select
+                className="form-control"
+                value={formData.partnerCriteria.ageRangeRelative.minOffset}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, minOffset: parseInt(e.target.value) }
+                  }
+                }))}
+              >
+                <option value="0">Same age</option>
+                <option value="-1">1 year younger</option>
+                <option value="-2">2 years younger</option>
+                <option value="-3">3 years younger</option>
+                <option value="-5">5 years younger</option>
+                <option value="-10">10 years younger</option>
+                <option value="-15">15 years younger</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">How much older?</label>
+              <select
+                className="form-control"
+                value={formData.partnerCriteria.ageRangeRelative.maxOffset}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, maxOffset: parseInt(e.target.value) }
+                  }
+                }))}
+              >
+                <option value="0">Same age</option>
+                <option value="1">1 year older</option>
+                <option value="2">2 years older</option>
+                <option value="3">3 years older</option>
+                <option value="5">5 years older</option>
+                <option value="10">10 years older</option>
+                <option value="15">15 years older</option>
+                <option value="20">20 years older</option>
+              </select>
             </div>
           </div>
+          {formData.dateOfBirth && (
+            <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+              📊 <strong>Preview:</strong> Looking for ages{' '}
+              <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
+              <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
+              (based on your age: {calculateAge(formData.dateOfBirth)})
+            </div>
+          )}
+          {!formData.dateOfBirth && (
+            <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
+              ⚠️ Please set your date of birth above to see age preview
+            </div>
+          )}
+        </div>
+
+        {/* Height Preference - Relative to Your Height */}
+        <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
+          <h6 style={{ color: 'var(--text-color, #333)', marginBottom: '12px' }}>📏 Height Preference (relative to your height)</h6>
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">How much shorter?</label>
+              <select
+                className="form-control"
+                value={formData.partnerCriteria.heightRangeRelative.minInches}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, minInches: parseInt(e.target.value) }
+                  }
+                }))}
+              >
+                <option value="0">Same height as mine</option>
+                <option value="-1">1 inch shorter</option>
+                <option value="-2">2 inches shorter</option>
+                <option value="-3">3 inches shorter</option>
+                <option value="-4">4 inches shorter</option>
+                <option value="-6">6 inches shorter</option>
+                <option value="-12">1 foot shorter</option>
+                <option value="-24">2 feet shorter</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">How much taller?</label>
+              <select
+                className="form-control"
+                value={formData.partnerCriteria.heightRangeRelative.maxInches}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, maxInches: parseInt(e.target.value) }
+                  }
+                }))}
+              >
+                <option value="0">Same height as mine</option>
+                <option value="1">1 inch taller</option>
+                <option value="2">2 inches taller</option>
+                <option value="3">3 inches taller</option>
+                <option value="4">4 inches taller</option>
+                <option value="6">6 inches taller</option>
+                <option value="12">1 foot taller</option>
+                <option value="24">2 feet taller</option>
+              </select>
+            </div>
+          </div>
+          {(formData.heightFeet && formData.heightInches !== '') && (
+            <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+              📊 <strong>Preview:</strong> Looking for heights{' '}
+              <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.minInches)}</strong> to{' '}
+              <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.maxInches)}</strong>{' '}
+              (based on your height: {formData.heightFeet}'{formData.heightInches}")
+            </div>
+          )}
+          {!(formData.heightFeet && formData.heightInches !== '') && (
+            <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
+              ⚠️ Please set your height above to see height preview
+            </div>
+          )}
+        </div>
+
+        {/* Remaining static height fields for backward compatibility - hide these */}
+        <div className="row mb-3" style={{ display: 'none' }}>
           <div className="col-md-4">
             <label className="form-label">Minimum Height</label>
             <div className="row">

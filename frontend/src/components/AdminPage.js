@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
 import axios from 'axios';
 import './AdminPage.css';
 import MetaFieldsModal from './MetaFieldsModal';
@@ -81,9 +80,10 @@ const AdminPage = () => {
     if (checkAdminAccess()) {
       loadAllUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const loadAllUsers = async () => {
+  const loadAllUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
@@ -110,7 +110,7 @@ const AdminPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
   const handleEditStatus = (user) => {
     setSelectedUserForStatus(user);
@@ -128,7 +128,7 @@ const AdminPage = () => {
       setSuccessMsg('');
       
       // Update user status via API
-      const response = await adminApi.patch(`/api/admin/users/${selectedUserForStatus.username}/status`, {
+      await adminApi.patch(`/api/admin/users/${selectedUserForStatus.username}/status`, {
         status: selectedStatus
       });
       
@@ -160,7 +160,7 @@ const AdminPage = () => {
       setError('');
       setSuccessMsg('');
 
-      const response = await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
+      await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
       
       setSuccessMsg(`✅ User "${deleteConfirm.username}" deleted successfully`);
       setDeleteConfirm(null);

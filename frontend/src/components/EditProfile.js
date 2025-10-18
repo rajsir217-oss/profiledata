@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import ProfilePreview from './ProfilePreview';
+import ImageManager from './ImageManager';
 import { EducationHistory, WorkExperience, TextAreaWithSamples, HeightSelector, GenderSelector } from './shared';
 import './EditProfile.css';
 
@@ -12,6 +13,33 @@ const EditProfile = () => {
   const [deleting, setDeleting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  
+  // Helper function to calculate age from DOB
+  const calculateAge = (dob) => {
+    if (!dob) return null;
+    const birthDate = new Date(dob);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      age--;
+    }
+    return age;
+  };
+  
+  // Helper function to convert height to inches
+  const heightToInches = (feet, inches) => {
+    const f = parseInt(feet) || 0;
+    const i = parseInt(inches) || 0;
+    return (f * 12) + i;
+  };
+  
+  // Helper function to convert inches to feet'inches" format
+  const inchesToHeightString = (totalInches) => {
+    const feet = Math.floor(totalInches / 12);
+    const inches = totalInches % 12;
+    return `${feet}'${inches}"`;
+  };
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
@@ -66,8 +94,10 @@ const EditProfile = () => {
     linkedinUrl: '',
     // Partner Criteria (will be object)
     partnerCriteria: {
-      ageRange: { min: '', max: '' },
-      heightRange: { minFeet: '', minInches: '', maxFeet: '', maxInches: '' },
+      ageRange: { min: '', max: '' }, // Legacy - kept for backward compatibility
+      ageRangeRelative: { minOffset: 0, maxOffset: 5 }, // NEW: Relative age preference
+      heightRange: { minFeet: '', minInches: '', maxFeet: '', maxInches: '' }, // Legacy
+      heightRangeRelative: { minInches: 0, maxInches: 6 }, // NEW: Relative height in inches
       educationLevel: [],
       profession: [],
       location: [],
@@ -83,7 +113,7 @@ const EditProfile = () => {
   const [educationHistory, setEducationHistory] = useState([]);
   const [workExperience, setWorkExperience] = useState([]);
 
-  const [images, setImages] = useState([]);
+  const [newImages, setNewImages] = useState([]); // Renamed from images for clarity
   const [existingImages, setExistingImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
@@ -248,20 +278,7 @@ const EditProfile = () => {
     setErrorMsg('');
   };
 
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + existingImages.length - imagesToDelete.length > 5) {
-      setErrorMsg('❌ Maximum 5 images allowed in total');
-      return;
-    }
-    setImages(files);
-    setErrorMsg('');
-  };
-
-  const handleRemoveExistingImage = (imageUrl) => {
-    setImagesToDelete(prev => [...prev, imageUrl]);
-    setExistingImages(prev => prev.filter(img => img !== imageUrl));
-  };
+  // handleImageChange removed - now handled by ImageManager component
 
   // Education and Work Experience handlers are now in shared components
 
@@ -322,22 +339,19 @@ const EditProfile = () => {
       }
       
       // Add new images
-      images.forEach(img => data.append('images', img));
+      newImages.forEach(img => data.append('images', img));
       
       // Add images to delete
       if (imagesToDelete.length > 0) {
         data.append('imagesToDelete', JSON.stringify(imagesToDelete));
       }
       
-      // Log what we're sending
-      console.log('📤 Sending update request for:', username);
-      console.log('📝 Form fields being sent:');
-      for (let [key, value] of data.entries()) {
-        if (key !== 'images') {
-          console.log(`  ${key}: ${value}`);
-        }
+      // Add image order (to preserve profile pic selection and ordering)
+      if (existingImages.length > 0) {
+        data.append('imageOrder', JSON.stringify(existingImages));
+        console.log(`📋 Image order being sent: ${JSON.stringify(existingImages)}`);
       }
-      console.log(`📸 Images: ${images.length} new file(s)`);
+      console.log(`📸 Images: ${newImages.length} new file(s)`);
       console.log(`🗑️ Images to delete: ${imagesToDelete.length}`, imagesToDelete);
       
       // Send update request with proper headers
@@ -349,6 +363,10 @@ const EditProfile = () => {
       
       console.log('✅ Update response:', response.data);
       setSuccessMsg('✅ ' + response.data.message);
+      
+      // Clear new images and images to delete after successful upload
+      setNewImages([]);
+      setImagesToDelete([]);
       
       // Redirect after short delay
       setTimeout(() => {
@@ -1061,130 +1079,135 @@ const EditProfile = () => {
           <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
           <p className="text-muted mb-3">Specify your preferences for a potential partner</p>
           
-          {/* Age Range */}
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label">Minimum Age</label>
-              <input
-                type="number"
-                className="form-control"
-                name="partnerCriteria.ageRange.min"
-                value={formData.partnerCriteria.ageRange.min}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    ageRange: { ...prev.partnerCriteria.ageRange, min: e.target.value }
-                  }
-                }))}
-                placeholder="e.g., 25"
-              />
+          {/* Age Range - Relative to Your Age */}
+          <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
+            <h6 style={{ color: 'var(--text-color, #333)', marginBottom: '12px' }}>💝 Age Preference (relative to your age)</h6>
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label className="form-label">How much younger?</label>
+                <select
+                  className="form-control"
+                  value={formData.partnerCriteria.ageRangeRelative.minOffset}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: {
+                      ...prev.partnerCriteria,
+                      ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, minOffset: parseInt(e.target.value) }
+                    }
+                  }))}
+                >
+                  <option value="0">Same age</option>
+                  <option value="-1">1 year younger</option>
+                  <option value="-2">2 years younger</option>
+                  <option value="-3">3 years younger</option>
+                  <option value="-5">5 years younger</option>
+                  <option value="-10">10 years younger</option>
+                  <option value="-15">15 years younger</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">How much older?</label>
+                <select
+                  className="form-control"
+                  value={formData.partnerCriteria.ageRangeRelative.maxOffset}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: {
+                      ...prev.partnerCriteria,
+                      ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, maxOffset: parseInt(e.target.value) }
+                    }
+                  }))}
+                >
+                  <option value="0">Same age</option>
+                  <option value="1">1 year older</option>
+                  <option value="2">2 years older</option>
+                  <option value="3">3 years older</option>
+                  <option value="5">5 years older</option>
+                  <option value="10">10 years older</option>
+                  <option value="15">15 years older</option>
+                  <option value="20">20 years older</option>
+                </select>
+              </div>
             </div>
-            <div className="col-md-6">
-              <label className="form-label">Maximum Age</label>
-              <input
-                type="number"
-                className="form-control"
-                name="partnerCriteria.ageRange.max"
-                value={formData.partnerCriteria.ageRange.max}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    ageRange: { ...prev.partnerCriteria.ageRange, max: e.target.value }
-                  }
-                }))}
-                placeholder="e.g., 35"
-              />
-            </div>
+            {formData.dob && (
+              <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+                📊 <strong>Preview:</strong> Looking for ages{' '}
+                <strong>{calculateAge(formData.dob) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
+                <strong>{calculateAge(formData.dob) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
+                (based on your age: {calculateAge(formData.dob)})
+              </div>
+            )}
+            {!formData.dob && (
+              <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
+                ⚠️ Please set your date of birth above to see age preview
+              </div>
+            )}
           </div>
 
-          {/* Height Range */}
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label">Minimum Height</label>
-              <div className="row">
-                <div className="col-6">
-                  <select
-                    className="form-control"
-                    value={formData.partnerCriteria.heightRange.minFeet}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      partnerCriteria: {
-                        ...prev.partnerCriteria,
-                        heightRange: { ...prev.partnerCriteria.heightRange, minFeet: e.target.value }
-                      }
-                    }))}
-                  >
-                    <option value="">Feet</option>
-                    <option value="4">4 ft</option>
-                    <option value="5">5 ft</option>
-                    <option value="6">6 ft</option>
-                    <option value="7">7 ft</option>
-                  </select>
-                </div>
-                <div className="col-6">
-                  <select
-                    className="form-control"
-                    value={formData.partnerCriteria.heightRange.minInches}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      partnerCriteria: {
-                        ...prev.partnerCriteria,
-                        heightRange: { ...prev.partnerCriteria.heightRange, minInches: e.target.value }
-                      }
-                    }))}
-                  >
-                    <option value="">Inches</option>
-                    {[...Array(12)].map((_, i) => (
-                      <option key={i} value={i}>{i} in</option>
-                    ))}
-                  </select>
-                </div>
+          {/* Height Range - Relative to Your Height */}
+          <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
+            <h6 style={{ color: 'var(--text-color, #333)', marginBottom: '12px' }}>📏 Height Preference (relative to your height)</h6>
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label className="form-label">How much shorter?</label>
+                <select
+                  className="form-control"
+                  value={formData.partnerCriteria.heightRangeRelative.minInches}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: {
+                      ...prev.partnerCriteria,
+                      heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, minInches: parseInt(e.target.value) }
+                    }
+                  }))}
+                >
+                  <option value="0">Same height as mine</option>
+                  <option value="-1">1 inch shorter</option>
+                  <option value="-2">2 inches shorter</option>
+                  <option value="-3">3 inches shorter</option>
+                  <option value="-4">4 inches shorter</option>
+                  <option value="-6">6 inches shorter</option>
+                  <option value="-12">1 foot shorter</option>
+                  <option value="-24">2 feet shorter</option>
+                </select>
+              </div>
+              <div className="col-md-6">
+                <label className="form-label">How much taller?</label>
+                <select
+                  className="form-control"
+                  value={formData.partnerCriteria.heightRangeRelative.maxInches}
+                  onChange={(e) => setFormData(prev => ({
+                    ...prev,
+                    partnerCriteria: {
+                      ...prev.partnerCriteria,
+                      heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, maxInches: parseInt(e.target.value) }
+                    }
+                  }))}
+                >
+                  <option value="0">Same height as mine</option>
+                  <option value="1">1 inch taller</option>
+                  <option value="2">2 inches taller</option>
+                  <option value="3">3 inches taller</option>
+                  <option value="4">4 inches taller</option>
+                  <option value="6">6 inches taller</option>
+                  <option value="12">1 foot taller</option>
+                  <option value="24">2 feet taller</option>
+                </select>
               </div>
             </div>
-            <div className="col-md-6">
-              <label className="form-label">Maximum Height</label>
-              <div className="row">
-                <div className="col-6">
-                  <select
-                    className="form-control"
-                    value={formData.partnerCriteria.heightRange.maxFeet}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      partnerCriteria: {
-                        ...prev.partnerCriteria,
-                        heightRange: { ...prev.partnerCriteria.heightRange, maxFeet: e.target.value }
-                      }
-                    }))}
-                  >
-                    <option value="">Feet</option>
-                    <option value="4">4 ft</option>
-                    <option value="5">5 ft</option>
-                    <option value="6">6 ft</option>
-                    <option value="7">7 ft</option>
-                  </select>
-                </div>
-                <div className="col-6">
-                  <select
-                    className="form-control"
-                    value={formData.partnerCriteria.heightRange.maxInches}
-                    onChange={(e) => setFormData(prev => ({
-                      ...prev,
-                      partnerCriteria: {
-                        ...prev.partnerCriteria,
-                        heightRange: { ...prev.partnerCriteria.heightRange, maxInches: e.target.value }
-                      }
-                    }))}
-                  >
-                    <option value="">Inches</option>
-                    {[...Array(12)].map((_, i) => (
-                      <option key={i} value={i}>{i} in</option>
-                    ))}
-                  </select>
-                </div>
+            {formData.height && (
+              <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+                📊 <strong>Preview:</strong> Looking for heights{' '}
+                <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.minInches)}</strong> to{' '}
+                <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.maxInches)}</strong>{' '}
+                (based on your height: {formData.height})
               </div>
-            </div>
+            )}
+            {!formData.height && (
+              <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
+                ⚠️ Please set your height above to see height preview
+              </div>
+            )}
           </div>
 
           {/* Education Level & Profession */}
@@ -1407,49 +1430,16 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Existing Images */}
-          {existingImages.length > 0 && (
-            <div className="mb-3">
-              <label className="form-label">Current Images</label>
-              <div className="row">
-                {existingImages.map((img, idx) => (
-                  <div key={idx} className="col-md-3 mb-3">
-                    <div className="position-relative">
-                      <img
-                        src={img}
-                        alt={`Profile ${idx + 1}`}
-                        className="img-thumbnail"
-                        style={{ width: '100%', height: '150px', objectFit: 'cover' }}
-                      />
-                      <button
-                        type="button"
-                        className="btn btn-danger btn-sm position-absolute top-0 end-0 m-1"
-                        onClick={() => handleRemoveExistingImage(img)}
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* New Images Upload */}
-          <div className="mb-3">
-            <label className="form-label">Upload New Images (Max 5 total)</label>
-            <input
-              type="file"
-              className="form-control"
-              multiple
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-            <small className="text-muted">
-              Current: {existingImages.length} | New: {images.length} | 
-              Total: {existingImages.length + images.length}
-            </small>
-          </div>
+          {/* Image Manager - Drag & Drop with Profile Pic Selection */}
+          <ImageManager
+            existingImages={existingImages}
+            setExistingImages={setExistingImages}
+            imagesToDelete={imagesToDelete}
+            setImagesToDelete={setImagesToDelete}
+            newImages={newImages}
+            setNewImages={setNewImages}
+            onError={setErrorMsg}
+          />
 
           {/* Action Buttons */}
           <div className="d-flex justify-content-between align-items-center mt-4 gap-2">

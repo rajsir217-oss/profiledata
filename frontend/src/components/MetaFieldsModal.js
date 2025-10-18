@@ -9,6 +9,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
 
   useEffect(() => {
     loadMetaFields();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [username]);
 
   // Auto-dismiss toast notifications

@@ -582,6 +582,7 @@ async def update_user_profile(
     partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
     images: List[UploadFile] = File(default=[]),
     imagesToDelete: Optional[str] = Form(None),
+    imageOrder: Optional[str] = Form(None),  # NEW: JSON array of image URLs in desired order
     db = Depends(get_database)
 ):
     """Update user profile"""
@@ -784,10 +785,55 @@ async def update_user_profile(
                 detail=f"Failed to save images: {str(e)}"
             )
     
+    # Handle image reordering if provided
+    if imageOrder and existing_images:
+        try:
+            # Parse imageOrder JSON array
+            ordered_urls = json.loads(imageOrder)
+            logger.info(f"🔄 Reordering {len(ordered_urls)} images from imageOrder")
+            logger.info(f"   Current existing_images: {existing_images}")
+            logger.info(f"   Requested order: {ordered_urls}")
+            
+            # Convert full URLs to relative paths for matching
+            def extract_relative_path(url):
+                """Extract relative path from full URL"""
+                if '/uploads/' in url:
+                    return url.split('/uploads/')[-1]
+                return url
+            
+            # Create mapping of relative paths to maintain order
+            ordered_paths = []
+            for url in ordered_urls:
+                rel_path = extract_relative_path(url)
+                if rel_path in existing_images:
+                    ordered_paths.append(rel_path)
+                else:
+                    logger.warning(f"   ⚠️ Image {rel_path} not found in existing_images")
+            
+            # Add any images that weren't in the order list (shouldn't happen, but safety)
+            for img in existing_images:
+                if img not in ordered_paths:
+                    ordered_paths.append(img)
+                    logger.warning(f"   ⚠️ Image {img} not in imageOrder, appending to end")
+            
+            # Check if order actually changed
+            if ordered_paths != existing_images:
+                existing_images = ordered_paths
+                images_modified = True
+                logger.info(f"✅ Images reordered successfully: {existing_images}")
+            else:
+                logger.info(f"ℹ️ Image order unchanged")
+        except Exception as e:
+            logger.error(f"❌ Failed to reorder images: {e}", exc_info=True)
+            # Continue with original order if reordering fails
+    
     # Update images field if modified
     if images_modified:
         update_data["images"] = existing_images
         logger.info(f"📸 Final image count: {len(existing_images)}")
+        logger.info(f"📸 Images field in update_data: {existing_images}")
+    else:
+        logger.info(f"ℹ️ Images not modified, not updating images field")
     
     # Check if there's anything to update
     if not update_data:
@@ -800,6 +846,9 @@ async def update_user_profile(
     # Update timestamp
     from datetime import datetime
     update_data["updatedAt"] = datetime.utcnow().isoformat()
+    
+    # Log what's being updated
+    logger.info(f"📝 update_data keys: {list(update_data.keys())}")
     
     # Update in database
     try:

@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './Preferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword } from '../api';
-import api from '../api';
 
 const Preferences = () => {
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
-  const [isLoading, setIsLoading] = useState(true);
   const [showSaveMessage, setShowSaveMessage] = useState(false);
   const [fadeOut, setFadeOut] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
   
   // Password change state
   const [passwordData, setPasswordData] = useState({
