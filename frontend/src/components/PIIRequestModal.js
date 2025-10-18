@@ -25,6 +25,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         .map(type => type.value);
       setSelectedTypes(alreadyGranted);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, currentAccess]);
 
   const handleToggleType = (type) => {
@@ -56,6 +57,11 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         message: message.trim() || null
       });
 
+      // Call parent success handler FIRST to update status immediately
+      if (onSuccess) {
+        await onSuccess();
+      }
+      
       // Show success message
       setSuccessMessage(`Request sent successfully to ${profileName}!`);
       
@@ -67,9 +73,6 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         // Reset form
         setSelectedTypes([]);
         setMessage('');
-        
-        // Call parent success handler
-        if (onSuccess) onSuccess();
       }, 2000);
     } catch (err) {
       console.error('Error creating PII request:', err);

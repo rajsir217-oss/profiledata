@@ -734,6 +734,11 @@
   row-gap: 8px; /* Very tight vertical spacing */
   margin-bottom: 30px;
   width: 100%;
+  min-width: 0; /* Allow grid items to shrink below minimum content size */
+}
+
+.results-grid > * {
+  min-width: 0; /* Prevent grid items from overflowing */
 }
 
 /* Row View */
@@ -843,14 +848,32 @@
 }
 
 .result-card .card {
-  border: none;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border: none !important; /* Remove all borders */
+  border-width: 0 !important; /* Force border width to 0 */
+  outline: none !important; /* Remove outline */
+  border-radius: 12px !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important; /* Single shadow only */
   transition: all 0.3s ease;
   height: 100%;
   overflow: hidden;
   width: 100%;
+  min-width: 0; /* Allow card to shrink */
   background: var(--card-background, white) !important; /* Force theme-aware background */
+  background-clip: padding-box !important; /* Clip background to padding box */
+  margin: 0 !important; /* No margin */
+  padding: 0 !important; /* No padding on card itself */
+}
+
+/* Override Bootstrap card default borders */
+.result-card .card::before,
+.result-card .card::after {
+  display: none;
+}
+
+/* Remove any inherited Bootstrap border styles */
+.result-card > div {
+  border: none !important;
+  border-width: 0 !important;
 }
 
 .result-card .card:hover {
@@ -866,7 +889,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 2px solid #e0e0e0;
+  border-bottom: none; /* Remove border that creates double border effect */
+  margin: 0; /* Remove any margin */
 }
 
 .result-card .card-title {
@@ -1009,8 +1033,11 @@
 /* Profile card layout with separator - Redesigned */
 .result-card .card-body {
   padding: 0 !important;
+  margin: 0 !important; /* Remove any margin */
   display: flex;
   flex-direction: column;
+  border-radius: 12px; /* Match card border-radius */
+  overflow: hidden; /* Clip contents to rounded corners */
 }
 
 .result-card .d-flex.gap-3 {
@@ -1020,6 +1047,7 @@
   display: flex !important; /* Force flex container */
   flex-direction: row !important; /* Explicit horizontal layout */
   align-items: stretch !important; /* Make children same height */
+  flex-wrap: nowrap; /* Prevent wrapping on desktop */
 }
 
 .profile-image-left {
@@ -1171,6 +1199,22 @@
   font-style: italic;
 }
 
+.pii-request-pending {
+  color: var(--warning-color, #ff9800) !important;
+  font-weight: 600 !important;
+  font-style: normal !important;
+  animation: pendingPulse 2s ease-in-out infinite;
+}
+
+@keyframes pendingPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 .pii-data {
   color: var(--text-color, #333);
   font-weight: 500;
@@ -1196,6 +1240,19 @@
   justify-content: center;
   border-radius: 12px;
   pointer-events: none;
+}
+
+.image-access-overlay p {
+  margin-bottom: 10px;
+  font-weight: 500;
+  text-align: center;
+  padding: 0 10px;
+}
+
+.image-access-overlay p:contains("Request Sent"),
+.image-access-overlay p:has-text("Request Sent") {
+  color: var(--warning-color, #ff9800);
+  font-weight: 600;
 }
 
 .image-access-overlay button {
@@ -1456,6 +1513,40 @@
     /* Max 2 columns on tablets */
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
   }
+  
+  /* Make profile image section responsive on tablets */
+  .profile-image-left {
+    width: 140px;
+    min-width: 140px;
+    max-width: 140px;
+  }
+  
+  .profile-image-left img,
+  .profile-image-left .profile-thumbnail-placeholder {
+    min-height: 140px;
+  }
+}
+
+@media (max-width: 900px) {
+  /* Stack profile cards earlier on medium screens */
+  .profile-image-left {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+  }
+  
+  .profile-image-left img,
+  .profile-image-left .profile-thumbnail-placeholder {
+    min-height: 120px;
+  }
+  
+  .user-details-right {
+    font-size: 11px;
+  }
+  
+  .user-details p {
+    font-size: 11px;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1537,20 +1628,30 @@
   }
 
   /* Mobile layout - stack vertically */
+  .result-card .d-flex.gap-3 {
+    flex-direction: column !important;
+  }
+  
   .profile-image-left {
     width: 100%;
     min-width: unset;
-    margin-bottom: 15px;
+    max-width: unset;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color, #e0e0e0);
+    padding: 15px;
   }
 
-  .profile-thumbnail,
-  .profile-thumbnail-placeholder {
-    width: 160px;
-    height: 160px;
+  .profile-image-left img,
+  .profile-image-left .profile-thumbnail-placeholder {
+    width: 160px !important;
+    height: 160px !important;
+    min-height: 160px;
+    margin: 0 auto;
   }
 
   .user-details-right {
     align-items: stretch;
+    padding: 15px;
   }
 
   .user-details-right .user-details {

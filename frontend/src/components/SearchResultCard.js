@@ -115,7 +115,9 @@ const SearchResultCard = ({
             <span className="no-image-icon">🔒</span>
           </div>
           <div className="image-access-overlay">
-            <p className="text-muted small">Images Locked</p>
+            <p className="text-muted small">
+              {isImageRequestPending ? '📨 Request Sent - Awaiting Approval' : 'Images Locked'}
+            </p>
             {onPIIRequest && (
               <button
                 className="btn btn-sm btn-primary"
@@ -124,6 +126,7 @@ const SearchResultCard = ({
                   onPIIRequest(user);
                 }}
                 disabled={isImageRequestPending}
+                style={isImageRequestPending ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
               >
                 {isImageRequestPending ? (
                   <span className="badge bg-warning text-dark">📨 Request Sent</span>
@@ -400,6 +403,8 @@ const SearchResultCard = ({
                     <strong>📧</strong> Email:
                     {hasPiiAccess ? (
                       <span className="pii-data"> {user.contactEmail}</span>
+                    ) : isPiiRequestPending ? (
+                      <span className="pii-masked pii-request-pending"> [Request Sent 📨] </span>
                     ) : (
                       <span className="pii-masked"> [Request Access] </span>
                     )}
@@ -422,6 +427,8 @@ const SearchResultCard = ({
                     <strong>📱</strong> Phone:
                     {hasPiiAccess ? (
                       <span className="pii-data"> {user.contactNumber}</span>
+                    ) : isPiiRequestPending ? (
+                      <span className="pii-masked pii-request-pending"> [Request Sent 📨] </span>
                     ) : (
                       <span className="pii-masked"> [Request Access] </span>
                     )}
