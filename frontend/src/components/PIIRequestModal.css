@@ -180,10 +180,32 @@
 .access-badge {
   font-size: 12px;
   font-weight: 500;
-  color: #4caf50;
+  color: var(--success-color, #4caf50);
   background: rgba(76, 175, 80, 0.1);
   padding: 2px 8px;
   border-radius: 12px;
+}
+
+.pending-badge {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--warning-color, #ff9800);
+  background: rgba(255, 152, 0, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+
+.pii-type-option.pending {
+  border-color: var(--warning-color, #ff9800);
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.03) 0%, rgba(251, 140, 0, 0.03) 100%);
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.pii-type-option.pending:hover {
+  transform: none;
+  border-color: var(--warning-color, #ff9800);
+  background: linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(251, 140, 0, 0.05) 100%);
 }
 
 .pii-type-description {

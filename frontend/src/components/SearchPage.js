@@ -7,13 +7,13 @@ import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
-import { getDisplayName } from '../utils/userDisplay';
 import './SearchPage.css';
 
 const SearchPage = () => {
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
   const [imageErrors, setImageErrors] = useState({});
+  // eslint-disable-next-line no-unused-vars
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Main application state
@@ -63,6 +63,7 @@ const SearchPage = () => {
   });
 
   // Saved searches state
+  // eslint-disable-next-line no-unused-vars
   const [saveSearchName, setSaveSearchName] = useState('');
   const [savedSearches, setSavedSearches] = useState([]);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
@@ -324,18 +325,22 @@ const SearchPage = () => {
 
       // First, add all outgoing requests with their status
       requests.forEach(req => {
-        // Handle both old (requestedUsername) and new (profileUsername) field names
-        const targetUsername = req.profileUsername || req.requestedUsername;
-        requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
+        // Handle different response formats
+        const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
+        if (targetUsername && req.requestType) {
+          requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
+        }
       });
 
       // Then, add all received access (these are approved grants)
       receivedAccess.forEach(access => {
-        const targetUsername = access.userProfile.username;
-        // Mark all access types as 'approved' since they're in pii_access collection
-        access.accessTypes.forEach(accessType => {
-          requestStatus[`${targetUsername}_${accessType}`] = 'approved';
-        });
+        const targetUsername = access?.userProfile?.username;
+        if (targetUsername && access?.accessTypes) {
+          // Mark all access types as 'approved' since they're in pii_access collection
+          access.accessTypes.forEach(accessType => {
+            requestStatus[`${targetUsername}_${accessType}`] = 'approved';
+          });
+        }
       });
 
       console.log('📊 PII Access Status:', requestStatus);
@@ -365,6 +370,7 @@ const SearchPage = () => {
     });
   };
 
+  // eslint-disable-next-line no-unused-vars
   const renderProfileImage = (user) => {
     const currentIndex = imageIndices[user.username] || 0;
     const currentImage = user.images && user.images.length > currentIndex ? user.images[currentIndex] : null;
@@ -474,6 +480,7 @@ const SearchPage = () => {
   const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
   const bodyTypeOptions = ['', 'Slim', 'Athletic', 'Average', 'Curvy'];
 
+  // eslint-disable-next-line no-unused-vars
   const loadUserFavorites = async () => {
     try {
       const username = localStorage.getItem('username');
@@ -494,6 +501,7 @@ const SearchPage = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const loadUserShortlist = async () => {
     try {
       const username = localStorage.getItem('username');
@@ -514,6 +522,7 @@ const SearchPage = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const loadUserExclusions = async () => {
     try {
       const username = localStorage.getItem('username');
@@ -938,11 +947,12 @@ const SearchPage = () => {
     const user = users.find(u => u.username === targetUsername);
     if (!user) return;
 
-    // Set current PII access status
+    // Set current PII access status - pass actual status values
     setCurrentPIIAccess({
-      images: hasPiiAccess(targetUsername, 'images'),
-      contact_info: hasPiiAccess(targetUsername, 'contact_info'),
-      dob: hasPiiAccess(targetUsername, 'dob')
+      images: piiRequests[`${targetUsername}_images`] === 'approved',
+      contact_info: piiRequests[`${targetUsername}_contact_info`] === 'approved',
+      dob: piiRequests[`${targetUsername}_dob`] === 'approved',
+      linkedin_url: piiRequests[`${targetUsername}_linkedin_url`] === 'approved'
     });
 
     setSelectedUserForPII(user);
@@ -960,6 +970,16 @@ const SearchPage = () => {
 
   const isPiiRequestPending = (targetUsername, requestType) => {
     return piiRequests[`${targetUsername}_${requestType}`] === 'pending';
+  };
+
+  // Get PII request status for all types
+  const getPIIRequestStatus = (targetUsername) => {
+    return {
+      images: piiRequests[`${targetUsername}_images`],
+      contact_info: piiRequests[`${targetUsername}_contact_info`],
+      dob: piiRequests[`${targetUsername}_dob`],
+      linkedin_url: piiRequests[`${targetUsername}_linkedin_url`]
+    };
   };
 
   const handleProfileAction = async (e, targetUsername, action) => {
@@ -1793,6 +1813,7 @@ const SearchPage = () => {
                   hasImageAccess={hasPiiAccess(user.username, 'images')}
                   isPiiRequestPending={isPiiRequestPending(user.username, 'contact_info')}
                   isImageRequestPending={isPiiRequestPending(user.username, 'images')}
+                  piiRequestStatus={getPIIRequestStatus(user.username)}
                   viewMode={viewMode}
                   showFavoriteButton={true}
                   showShortlistButton={true}
@@ -1851,6 +1872,7 @@ const SearchPage = () => {
           profileUsername={selectedUserForPII.username}
           profileName={`${selectedUserForPII.firstName || selectedUserForPII.username}`}
           currentAccess={currentPIIAccess}
+          requestStatus={getPIIRequestStatus(selectedUserForPII.username)}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);

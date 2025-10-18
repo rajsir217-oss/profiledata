@@ -32,6 +32,7 @@ const SearchResultCard = ({
   hasImageAccess = false, // For images
   isPiiRequestPending = false,
   isImageRequestPending = false,
+  piiRequestStatus = {}, // Object with status for each PII type
   showFavoriteButton = true,
   showShortlistButton = true,
   showExcludeButton = true,
@@ -44,6 +45,39 @@ const SearchResultCard = ({
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+
+  // Calculate PII request status summary
+  const getPIIStatusSummary = () => {
+    const piiTypes = ['images', 'contact_info', 'dob', 'linkedin_url'];
+    let approved = 0;
+    let pending = 0;
+
+    piiTypes.forEach(type => {
+      const status = piiRequestStatus[type];
+      if (status === 'approved') approved++;
+      else if (status === 'pending') pending++;
+    });
+
+    if (approved === 0 && pending === 0) {
+      return { text: 'Request Access', className: '' };
+    }
+    
+    if (approved > 0 && pending === 0) {
+      return { text: `✓ ${approved} Granted`, className: 'pii-status-approved' };
+    }
+    
+    if (pending > 0 && approved === 0) {
+      return { text: `📨 ${pending} Pending`, className: 'pii-status-pending' };
+    }
+    
+    // Mixed status
+    return { 
+      text: `✓ ${approved} • 📨 ${pending}`, 
+      className: 'pii-status-mixed' 
+    };
+  };
+
+  const piiStatus = getPIIStatusSummary();
 
   // Calculate age from DOB
   const calculateAge = (dob) => {
@@ -120,17 +154,13 @@ const SearchResultCard = ({
             </p>
             {onPIIRequest && (
               <button
-                className="btn btn-sm btn-primary"
+                className={`btn btn-sm btn-primary ${piiStatus.className}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   onPIIRequest(user);
                 }}
-                disabled={isImageRequestPending}
-                style={isImageRequestPending ? { opacity: 0.6, cursor: 'not-allowed' } : {}}
               >
-                {isImageRequestPending ? (
-                  <span className="badge bg-warning text-dark">📨 Request Sent</span>
-                ) : 'Request Access'}
+                {piiStatus.text}
               </button>
             )}
           </div>
@@ -263,14 +293,14 @@ const SearchResultCard = ({
                   <span className="pii-masked-sm">[Locked]</span>
                   {onPIIRequest && (
                     <button
-                      className="btn btn-xs btn-link pii-btn-xs"
+                      className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onPIIRequest(user);
                       }}
-                      disabled={isPiiRequestPending}
+                      title={piiStatus.text}
                     >
-                      {isPiiRequestPending ? '📨' : 'Request'}
+                      {piiStatus.text}
                     </button>
                   )}
                 </>
@@ -410,16 +440,13 @@ const SearchResultCard = ({
                     )}
                     {!hasPiiAccess && onPIIRequest && (
                       <button
-                        className="btn btn-sm btn-link pii-request-btn"
+                        className={`btn btn-sm btn-link pii-request-btn ${piiStatus.className}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           onPIIRequest(user);
                         }}
-                        disabled={isPiiRequestPending}
                       >
-                        {isPiiRequestPending ? (
-                          <span className="badge bg-warning text-dark">📨 Sent</span>
-                        ) : 'Request'}
+                        {piiStatus.text}
                       </button>
                     )}
                   </p>

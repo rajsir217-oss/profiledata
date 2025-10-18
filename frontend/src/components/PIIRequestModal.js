@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './PIIRequestModal.css';
 
-const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, currentAccess = {} }) => {
+const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, currentAccess = {}, requestStatus = {} }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -17,16 +17,25 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     { value: 'linkedin_url', label: '🔗 LinkedIn Profile', description: 'LinkedIn profile URL' }
   ];
 
-  // Initialize selected types with already granted access
+  // Initialize selected types with already granted access or pending requests
   useEffect(() => {
     if (isOpen) {
-      const alreadyGranted = piiTypes
-        .filter(type => currentAccess[type.value])
+      const alreadyGrantedOrPending = piiTypes
+        .filter(type => {
+          const status = requestStatus[type.value];
+          return status === 'approved' || status === 'pending';
+        })
         .map(type => type.value);
-      setSelectedTypes(alreadyGranted);
+      setSelectedTypes(alreadyGrantedOrPending);
+    } else {
+      // Reset when modal closes
+      setSelectedTypes([]);
+      setMessage('');
+      setError('');
+      setSuccessMessage('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, currentAccess]);
+  }, [isOpen, requestStatus]);
 
   const handleToggleType = (type) => {
     setSelectedTypes(prev =>
@@ -39,11 +48,14 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Filter out already granted access
-    const typesToRequest = selectedTypes.filter(type => !currentAccess[type]);
+    // Filter out already granted access AND pending requests
+    const typesToRequest = selectedTypes.filter(type => {
+      const status = requestStatus[type];
+      return status !== 'approved' && status !== 'pending';
+    });
     
     if (typesToRequest.length === 0) {
-      setError('You already have access to all selected information');
+      setError('You already have access to all selected information or requests are pending');
       return;
     }
 
@@ -186,20 +198,23 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
             <label className="section-label">Select information to request:</label>
             
             {piiTypes.map(type => {
-              const hasAccess = currentAccess[type.value];
+              const status = requestStatus[type.value]; // 'approved', 'pending', or null
+              const hasAccess = status === 'approved';
+              const isPending = status === 'pending';
+              const isDisabled = hasAccess || isPending;
               const isSelected = selectedTypes.includes(type.value);
               
               return (
                 <div
                   key={type.value}
-                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''}`}
-                  onClick={() => !hasAccess && handleToggleType(type.value)}
+                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''}`}
+                  onClick={() => !isDisabled && handleToggleType(type.value)}
                 >
                   <div className="pii-type-checkbox">
                     <input
                       type="checkbox"
                       checked={isSelected}
-                      disabled={hasAccess}
+                      disabled={isDisabled}
                       onChange={() => handleToggleType(type.value)}
                       onClick={(e) => e.stopPropagation()}
                     />
@@ -208,6 +223,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                     <div className="pii-type-label">
                       {type.label}
                       {hasAccess && <span className="access-badge">✅ Already Granted</span>}
+                      {isPending && <span className="pending-badge">📨 Request Sent</span>}
                     </div>
                     <div className="pii-type-description">{type.description}</div>
                   </div>
@@ -241,11 +257,17 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
             <button
               type="submit"
               className="btn-submit"
-              disabled={submitting || selectedTypes.filter(t => !currentAccess[t]).length === 0}
+              disabled={submitting || selectedTypes.filter(t => {
+                const status = requestStatus[t];
+                return status !== 'approved' && status !== 'pending';
+              }).length === 0}
             >
               {submitting 
                 ? 'Sending...' 
-                : `Send Request (${selectedTypes.filter(t => !currentAccess[t]).length})`
+                : `Send Request (${selectedTypes.filter(t => {
+                    const status = requestStatus[t];
+                    return status !== 'approved' && status !== 'pending';
+                  }).length})`
               }
             </button>
           </div>

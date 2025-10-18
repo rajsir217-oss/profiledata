@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { searchUsers } from '../api';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
@@ -24,6 +23,7 @@ const L3V3LMatches = () => {
   const [excludedUsers, setExcludedUsers] = useState(new Set());
   const [piiAccessMap, setPiiAccessMap] = useState({});
   const [pendingPiiRequests, setPendingPiiRequests] = useState(new Set());
+  const [piiRequestsMap, setPiiRequestsMap] = useState({}); // Detailed status per request type
 
   // Modals
   const [showMessageModal, setShowMessageModal] = useState(false);
@@ -34,6 +34,7 @@ const L3V3LMatches = () => {
   useEffect(() => {
     fetchL3V3LMatches();
     loadUserPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchL3V3LMatches = async () => {
@@ -99,9 +100,22 @@ const L3V3LMatches = () => {
       ]);
 
       const requests = requestsResponse.data.requests || [];
-      const receivedAccess = accessResponse.data.access || [];
+      const receivedAccess = accessResponse.data.receivedAccess || accessResponse.data.access || [];
       
       const piiMap = {};
+      const piiRequestsMap = {};
+      
+      // Track both approved access AND pending requests
+      requests.forEach(req => {
+        const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
+        if (targetUsername && req.requestType) {
+          if (!piiRequestsMap[targetUsername]) {
+            piiRequestsMap[targetUsername] = {};
+          }
+          // API returns requestType (singular) not requestTypes (plural)
+          piiRequestsMap[targetUsername][req.requestType] = req.status;
+        }
+      });
       
       // Add received access grants
       receivedAccess.forEach(access => {
@@ -109,18 +123,24 @@ const L3V3LMatches = () => {
         if (targetUsername) {
           piiMap[targetUsername] = {
             hasContactAccess: access.accessTypes?.includes('contact_info'),
-            hasImageAccess: access.accessTypes?.includes('images')
+            hasImageAccess: access.accessTypes?.includes('images'),
+            hasDobAccess: access.accessTypes?.includes('dob'),
+            hasLinkedInAccess: access.accessTypes?.includes('linkedin_url')
           };
         }
       });
       
       setPiiAccessMap(piiMap);
+      setPiiRequestsMap(piiRequestsMap); // Save detailed request status
       
-      // Track pending requests
+      // Track pending requests (for backward compatibility)
       const pendingSet = new Set();
       requests.forEach(req => {
         if (req.status === 'pending') {
-          pendingSet.add(req.profileUsername || req.requestedUsername);
+          const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
+          if (targetUsername) {
+            pendingSet.add(targetUsername);
+          }
         }
       });
       setPendingPiiRequests(pendingSet);
@@ -230,17 +250,41 @@ const L3V3LMatches = () => {
     setShowPIIRequestModal(true);
   };
 
+  // Get current PII access for a user
+  const getCurrentPIIAccess = (username) => {
+    const userAccess = piiAccessMap[username] || {};
+    const hasPendingRequest = pendingPiiRequests.has(username);
+    
+    return {
+      images: userAccess.hasImageAccess || hasPendingRequest,
+      contact_info: userAccess.hasContactAccess || hasPendingRequest,
+      dob: hasPendingRequest, // Assuming pending requests cover all types
+      linkedin_url: hasPendingRequest
+    };
+  };
+
+  // Get PII request status for all types (for button display)
+  const getPIIRequestStatus = (username) => {
+    const userRequests = piiRequestsMap[username] || {};
+    const userAccess = piiAccessMap[username] || {};
+    
+    return {
+      images: userRequests.images || (userAccess.hasImageAccess ? 'approved' : null),
+      contact_info: userRequests.contact_info || (userAccess.hasContactAccess ? 'approved' : null),
+      dob: userRequests.dob || (userAccess.hasDobAccess ? 'approved' : null),
+      linkedin_url: userRequests.linkedin_url || (userAccess.hasLinkedInAccess ? 'approved' : null)
+    };
+  };
+
   // Filter matches by minimum match score
   const filteredMatches = matches.filter(user => {
     const score = user.matchScore || 0;
     return score >= minMatchScore;
   });
 
-  const handlePIIRequestSuccess = () => {
+  const handlePIIRequestSuccess = async () => {
     // Reload PII access status after successful request
-    if (selectedUser) {
-      setPendingPiiRequests(prev => new Set(prev).add(selectedUser.username));
-    }
+    await loadUserPreferences();
     setShowPIIRequestModal(false);
     setSelectedUser(null);
   };
@@ -414,6 +458,7 @@ const L3V3LMatches = () => {
                   hasPiiAccess={piiAccess.hasContactAccess || false}
                   hasImageAccess={piiAccess.hasImageAccess || false}
                   isPiiRequestPending={pendingPiiRequests.has(user.username)}
+                  piiRequestStatus={getPIIRequestStatus(user.username)}
                   viewMode={viewMode}
                   showFavoriteButton={true}
                   showShortlistButton={true}
@@ -445,7 +490,8 @@ const L3V3LMatches = () => {
             setSelectedUser(null);
           }}
           onSuccess={handlePIIRequestSuccess}
-          currentAccess={{}}
+          currentAccess={getCurrentPIIAccess(selectedUser.username)}
+          requestStatus={getPIIRequestStatus(selectedUser.username)}
         />
       )}
     </div>
