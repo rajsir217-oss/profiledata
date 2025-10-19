@@ -30,6 +30,7 @@ import RoleManagement from './components/RoleManagement';
 import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
 import ToastContainer from './components/ToastContainer';
+import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
 import L3V3LMatches from './components/L3V3LMatches';
 import LogoShowcase from './components/LogoShowcase';
@@ -214,6 +215,7 @@ function App() {
         </div>
       </div>
       <ToastContainer />
+      <PIIAccessRefreshNotification />
     </Router>
   );
 }

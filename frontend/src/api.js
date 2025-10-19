@@ -162,6 +162,171 @@ export const changePassword = async (passwordData) => {
   }
 };
 
+// Image Access API - uses separate axios instance to avoid baseURL conflicts
+const imageAccessApi = axios.create({
+  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+});
+
+// Add auth token interceptor for imageAccessApi
+imageAccessApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+export const imageAccess = {
+  // Get image privacy settings for a user
+  getSettings: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/settings`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create or update image privacy settings
+  updateSettings: async (username, settings) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/${username}/settings`, settings);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Batch update image settings
+  batchUpdateSettings: async (username, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/${username}/settings/batch`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Check if viewer has access to an image
+  checkAccess: async (imageId, viewerUsername) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${imageId}/check-access`, {
+        params: { viewerUsername }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get accessible images for a profile
+  getAccessibleImages: async (ownerUsername, viewerUsername) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/profile/${ownerUsername}/accessible`, {
+        params: { viewerUsername }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Request access to images
+  requestAccess: async (requestData) => {
+    try {
+      const response = await imageAccessApi.post('/api/image-access/request-access', requestData);
+      return response.data;
+    } catch (error) {
+      console.error('API Error in requestAccess:', error);
+      if (error.response) {
+        // Server responded with error
+        throw error;
+      } else if (error.request) {
+        // Request made but no response
+        throw new Error('No response from server. Please check if the backend is running.');
+      } else {
+        // Something else happened
+        throw error;
+      }
+    }
+  },
+
+  // Request renewal of access
+  requestRenewal: async (requestData) => {
+    try {
+      const response = await imageAccessApi.post('/api/image-access/request-renewal', requestData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get pending requests for owner
+  getPendingRequests: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/requests/pending`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get sent requests by requester
+  getSentRequests: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/requests/sent`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Approve access request
+  approveRequest: async (requestId, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/requests/${requestId}/approve`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reject access request
+  rejectRequest: async (requestId, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/requests/${requestId}/reject`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Revoke access for a user
+  revokeAccess: async (imageId, username) => {
+    try {
+      const response = await imageAccessApi.delete(`/api/image-access/${imageId}/revoke/${username}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get access analytics for an image
+  getAnalytics: async (imageId) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${imageId}/analytics`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  }
+};
+
 export default api;
 
 

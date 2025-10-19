@@ -18,6 +18,8 @@ from auth.auth_routes import router as auth_router
 from cleanup_routes import router as cleanup_router
 from routes_dynamic_scheduler import router as dynamic_scheduler_router
 from routes_meta_admin import router as meta_admin_router
+from routes_image_access import router as image_access_router
+from routes_pii_access import router as pii_access_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -145,6 +147,8 @@ app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
 app.include_router(cleanup_router)  # Cleanup and moderation routes
 app.include_router(dynamic_scheduler_router)  # Dynamic scheduler routes
 app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Meta fields admin routes
+app.include_router(image_access_router)  # Image access routes (already has /api/image-access prefix)
+app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
 
 # Health check endpoint
 @app.get("/health")

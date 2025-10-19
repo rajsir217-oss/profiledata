@@ -4,6 +4,7 @@ import api from '../api';
 import MessageModal from './MessageModal';
 import CategorySection from './CategorySection';
 import UserCard from './UserCard';
+import AccessRequestManager from './AccessRequestManager';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import './Dashboard.css';
@@ -37,6 +38,7 @@ const Dashboard = () => {
   const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
   
   // Online users state
+  // eslint-disable-next-line no-unused-vars
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   
   // Current user profile for display name
@@ -59,6 +61,7 @@ const Dashboard = () => {
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [dragSection, setDragSection] = useState(null);
   const [draggedUser, setDraggedUser] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [dropTargetSection, setDropTargetSection] = useState(null);
 
   useEffect(() => {
@@ -140,7 +143,7 @@ const Dashboard = () => {
         api.get(`/shortlist/${user}`),
         api.get(`/profile-views/${user}`),
         api.get(`/exclusions/${user}`),
-        api.get(`/pii-requests/${user}?type=received`),
+        api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
         api.get(`/their-favorites/${user}`),
         api.get(`/their-shortlists/${user}`)
       ]);
@@ -441,27 +444,36 @@ const Dashboard = () => {
   const renderUserCard = (user, removeHandler = null, removeIcon = '❌') => {
     if (!user) return null;
 
+    // Handle different data structures (regular users vs PII requests)
+    // PII requests have requesterProfile nested inside
+    const username = user.username || user.viewerProfile?.username || user.userProfile?.username || user.requesterProfile?.username;
+    const displayUser = user.requesterProfile ? {
+      ...user.requesterProfile,
+      requestedData: user.requested_data, // Add requested PII types
+      requestedAt: user.requested_at      // Add timestamp
+    } : user;
+
     // Build actions array
     const actions = [
-      { icon: '💬', label: 'Message', onClick: () => handleMessageUser(user.username || user.viewerProfile?.username || user.userProfile?.username, user) },
-      { icon: '👁️', label: 'View', onClick: () => handleProfileClick(user.username || user.viewerProfile?.username || user.userProfile?.username) }
+      { icon: '💬', label: 'Message', onClick: () => handleMessageUser(username, displayUser) },
+      { icon: '👁️', label: 'View', onClick: () => handleProfileClick(username) }
     ];
 
     if (removeHandler) {
       actions.push({ 
         icon: removeIcon, 
         label: 'Remove', 
-        onClick: () => removeHandler(user.username || user.viewerProfile?.username || user.userProfile?.username) 
+        onClick: () => removeHandler(username) 
       });
     }
 
     return (
       <UserCard
-        user={user}
+        user={displayUser}
         variant="dashboard"
         viewMode={viewMode}
         actions={actions}
-        onClick={() => handleProfileClick(user.username || user.viewerProfile?.username || user.userProfile?.username)}
+        onClick={() => handleProfileClick(username)}
       />
     );
   };
@@ -561,6 +573,31 @@ const Dashboard = () => {
           <h2 className="column-title">Others' Activities</h2>
           {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
           {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+          
+          {/* Image Access Requests Section */}
+          <CategorySection
+            title="Image Access Requests"
+            icon="📬"
+            color="#10b981"
+            count={0}
+            isExpanded={false}
+            onToggle={() => {}}
+          >
+            <div style={{ padding: '16px' }}>
+              <AccessRequestManager
+                username={currentUser}
+                onRequestProcessed={(action, request) => {
+                  // Show success message
+                  if (action === 'approved') {
+                    console.log(`✅ Access approved for ${request.requesterUsername}`);
+                  } else if (action === 'rejected') {
+                    console.log(`❌ Access rejected for ${request.requesterUsername}`);
+                  }
+                }}
+              />
+            </div>
+          </CategorySection>
+          
           {renderSection('Their Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
           {renderSection('Their Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
         </div>

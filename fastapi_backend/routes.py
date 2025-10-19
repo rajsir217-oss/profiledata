@@ -14,7 +14,8 @@ from models import (
     UserCreate, UserResponse, LoginRequest, Token,
     Favorite, Shortlist, Exclusion, Message, MessageCreate,
     ProfileView, ProfileViewCreate, PIIRequest, PIIRequestCreate,
-    PIIRequestResponse, PIIAccess, PIIAccessCreate,
+    PIIRequestResponse, PIIRequestApprove, PIIRequestReject,
+    PIIAccess, PIIAccessCreate,
     UserPreferencesUpdate, UserPreferencesResponse,
     TestimonialCreate, TestimonialResponse
 )
@@ -3159,6 +3160,7 @@ async def get_outgoing_pii_requests(
 async def approve_pii_request(
     request_id: str,
     username: str = Query(...),
+    approve_data: PIIRequestApprove = Body(default=PIIRequestApprove()),
     db = Depends(get_database)
 ):
     """Approve a PII request and grant access"""
@@ -3180,13 +3182,19 @@ async def approve_pii_request(
         if request["status"] != "pending":
             raise HTTPException(status_code=400, detail=f"Request already {request['status']}")
         
+        # Calculate expiry date if duration specified
+        expires_at = None
+        if approve_data.durationDays:
+            expires_at = datetime.utcnow() + timedelta(days=approve_data.durationDays)
+        
         # Update request status
         await db.pii_requests.update_one(
             {"_id": ObjectId(request_id)},
             {
                 "$set": {
                     "status": "approved",
-                    "respondedAt": datetime.utcnow()
+                    "respondedAt": datetime.utcnow(),
+                    "responseMessage": approve_data.responseMessage
                 }
             }
         )
@@ -3197,14 +3205,17 @@ async def approve_pii_request(
             "grantedToUsername": request["requesterUsername"],
             "accessType": request["requestType"],
             "grantedAt": datetime.utcnow(),
+            "expiresAt": expires_at,
             "isActive": True,
             "createdAt": datetime.utcnow()
         }
         
+        logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
         
-        logger.info(f"✅ PII request approved and access granted")
-        return {"message": "Request approved and access granted"}
+        logger.info(f"✅ PII request approved and access granted (expires: {expires_at or 'never'})")
+        logger.info(f"🔑 Access granted: {username} → {request['requesterUsername']} for {request['requestType']}")
+        return {"message": "Request approved and access granted", "expiresAt": expires_at}
     
     except Exception as e:
         logger.error(f"❌ Error approving PII request: {e}", exc_info=True)
@@ -3214,6 +3225,7 @@ async def approve_pii_request(
 async def reject_pii_request(
     request_id: str,
     username: str = Query(...),
+    reject_data: PIIRequestReject = Body(default=PIIRequestReject()),
     db = Depends(get_database)
 ):
     """Reject a PII request"""
@@ -3237,7 +3249,8 @@ async def reject_pii_request(
             {
                 "$set": {
                     "status": "rejected",
-                    "respondedAt": datetime.utcnow()
+                    "respondedAt": datetime.utcnow(),
+                    "responseMessage": reject_data.responseMessage
                 }
             }
         )
@@ -3418,11 +3431,19 @@ async def get_received_access(
                     "username": granter,
                     "accessTypes": [],
                     "grantedAt": access["grantedAt"],
-                    "accessIds": []
+                    "expiresAt": access.get("expiresAt"),  # ✅ Include expiry
+                    "accessIds": [],
+                    "accessDetails": {}
                 }
             
             user_access_map[granter]["accessTypes"].append(access["accessType"])
             user_access_map[granter]["accessIds"].append(str(access["_id"]))
+            # Store detailed access info for each type
+            user_access_map[granter]["accessDetails"][access["accessType"]] = {
+                "grantedAt": access["grantedAt"],
+                "expiresAt": access.get("expiresAt"),
+                "accessId": str(access["_id"])
+            }
         
         # Get user details
         result = []
@@ -3437,7 +3458,16 @@ async def get_received_access(
                     "userProfile": user,
                     "accessTypes": access_info["accessTypes"],
                     "grantedAt": access_info["grantedAt"].isoformat(),
-                    "accessIds": access_info["accessIds"]
+                    "expiresAt": access_info["expiresAt"].isoformat() if access_info.get("expiresAt") else None,
+                    "accessIds": access_info["accessIds"],
+                    "accessDetails": {
+                        k: {
+                            "grantedAt": v["grantedAt"].isoformat(),
+                            "expiresAt": v["expiresAt"].isoformat() if v.get("expiresAt") else None,
+                            "accessId": v["accessId"]
+                        }
+                        for k, v in access_info["accessDetails"].items()
+                    }
                 })
         
         logger.info(f"✅ Found {len(result)} users who granted access")
@@ -3507,18 +3537,24 @@ async def check_pii_access(
                 }
         
         # Check for active access
-        access = await db.pii_access.find_one({
+        query = {
             "granterUsername": profile_owner,
             "grantedToUsername": requester,
             "accessType": access_type,
             "isActive": True
-        })
+        }
+        
+        logger.info(f"🔍 Checking PII access with query: {query}")
+        access = await db.pii_access.find_one(query)
+        logger.info(f"🔍 Found access record: {access is not None}")
         
         has_access = access is not None
         
         # Check if expired
         if has_access and access.get("expiresAt"):
+            logger.info(f"⏰ Access expires at: {access['expiresAt']} (now: {datetime.utcnow()})")
             if access["expiresAt"] < datetime.utcnow():
+                logger.info(f"❌ Access has expired!")
                 has_access = False
                 # Mark as inactive
                 await db.pii_access.update_one(
@@ -3526,6 +3562,7 @@ async def check_pii_access(
                     {"$set": {"isActive": False}}
                 )
         
+        logger.info(f"✅ Final access decision for {requester} → {profile_owner}/{access_type}: {has_access}")
         return {
             "hasAccess": has_access,
             "accessType": access_type

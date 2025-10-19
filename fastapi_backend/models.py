@@ -434,6 +434,13 @@ class PIIRequestResponse(BaseModel):
     message: Optional[str] = None
     respondedAt: Optional[datetime] = None
 
+class PIIRequestApprove(BaseModel):
+    responseMessage: Optional[str] = None
+    durationDays: Optional[int] = None  # Days until access expires, None = permanent
+
+class PIIRequestReject(BaseModel):
+    responseMessage: Optional[str] = None
+
 class PIIAccess(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     granterUsername: str  # Who granted access

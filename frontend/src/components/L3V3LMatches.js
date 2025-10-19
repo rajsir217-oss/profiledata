@@ -4,6 +4,7 @@ import api from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
+import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import './SearchPage.css';
 
 const L3V3LMatches = () => {
@@ -36,6 +37,27 @@ const L3V3LMatches = () => {
     loadUserPreferences();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Listen for PII access changes (grant/revoke)
+  useEffect(() => {
+    const cleanup = onPIIAccessChange(async (detail) => {
+      const { targetUsername, ownerUsername } = detail;
+      
+      console.log('🔔 L3V3L Matches - PII Access Change:', detail);
+      
+      // If someone granted or revoked access to the current user
+      // Or if current user's access was revoked
+      if (targetUsername === currentUsername || ownerUsername === currentUsername) {
+        console.log('🔄 Refreshing PII access status in L3V3L Matches...');
+        
+        // Reload user preferences to get updated access status
+        await loadUserPreferences();
+      }
+    });
+    
+    // Cleanup listener on unmount
+    return cleanup;
+  }, [currentUsername]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const fetchL3V3LMatches = async () => {
     setLoading(true);
@@ -93,26 +115,42 @@ const L3V3LMatches = () => {
       const exclusions = exclusionsResponse.data.exclusions || exclusionsResponse.data || [];
       setExcludedUsers(new Set(exclusions.map(u => u.username || u)));
 
-      // Load PII access - using same approach as SearchPage
-      const [requestsResponse, accessResponse] = await Promise.all([
-        api.get(`/pii-requests/${currentUsername}/outgoing`),
-        api.get(`/pii-access/${currentUsername}/received`)
-      ]);
-
-      const requests = requestsResponse.data.requests || [];
-      const receivedAccess = accessResponse.data.receivedAccess || accessResponse.data.access || [];
+      // Load PII access - Load outgoing requests and received access
+      let requests = [];
+      let receivedAccess = [];
+      
+      try {
+        console.log('🚀 Loading PII requests and access for:', currentUsername);
+        
+        const [requestsResponse, accessResponse] = await Promise.all([
+          api.get(`/pii-requests/${currentUsername}/outgoing`),
+          api.get(`/pii-access/${currentUsername}/received`)
+        ]);
+        
+        console.log('✅ Got PII responses!', { 
+          requests: requestsResponse.data,
+          access: accessResponse.data 
+        });
+        
+        requests = requestsResponse.data.requests || [];
+        receivedAccess = accessResponse.data.receivedAccess || accessResponse.data.access || [];
+      } catch (err) {
+        console.error('Error loading PII access:', err);
+        // Continue with empty arrays if fetch fails
+      }
       
       const piiMap = {};
       const piiRequestsMap = {};
       
       // Track both approved access AND pending requests
       requests.forEach(req => {
-        const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
+        // Backend returns profileOwner as nested object with username
+        const targetUsername = req.profileOwner?.username || req.profileUsername;
         if (targetUsername && req.requestType) {
           if (!piiRequestsMap[targetUsername]) {
             piiRequestsMap[targetUsername] = {};
           }
-          // API returns requestType (singular) not requestTypes (plural)
+          console.log(`📋 PII Request: ${targetUsername} - ${req.requestType} = ${req.status}`);
           piiRequestsMap[targetUsername][req.requestType] = req.status;
         }
       });

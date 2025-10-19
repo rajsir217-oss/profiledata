@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../api";
+import api, { imageAccess } from "../api";
 import PIIRequestModal from "./PIIRequestModal";
+import ProfileImage from "./ProfileImage";
+import ImageAccessRequestModal from "./ImageAccessRequestModal";
 import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
+import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import "./Profile.css";
 
 const Profile = () => {
@@ -50,6 +53,13 @@ const Profile = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   
+  // Image Access states (new privacy system)
+  const [accessibleImages, setAccessibleImages] = useState([]);
+  const [showImageAccessModal, setShowImageAccessModal] = useState(false);
+  const [selectedImageForAccess, setSelectedImageForAccess] = useState(null);
+  const [isFavorited, setIsFavorited] = useState(false);
+  const [isShortlisted, setIsShortlisted] = useState(false);
+  
   const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
@@ -81,6 +91,12 @@ const Profile = () => {
           
           // Check PII access
           await checkPIIAccess();
+          
+          // Load accessible images with privacy settings
+          await loadAccessibleImages();
+          
+          // Check user relationship (favorites/shortlist)
+          await checkUserRelationship();
           
           // Check initial online status using service
           const online = await onlineStatusService.isUserOnline(username);
@@ -191,6 +207,13 @@ const Profile = () => {
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
       ]);
       
+      console.log('🔍 PII Access Check Results:', {
+        images: imagesRes.data.hasAccess,
+        contact_info: contactRes.data.hasAccess,
+        dob: dobRes.data.hasAccess,
+        linkedin_url: linkedinRes.data.hasAccess
+      });
+      
       setPiiAccess({
         images: imagesRes.data.hasAccess,
         contact_info: contactRes.data.hasAccess,
@@ -217,6 +240,173 @@ const Profile = () => {
       setPiiRequestStatus(requestStatus);
     } catch (err) {
       console.error("Error checking PII access:", err);
+    }
+  };
+
+  // Load accessible images with privacy settings and expiry info
+  const loadAccessibleImages = async () => {
+    if (isOwnProfile || !currentUsername) {
+      // Owner sees all images normally
+      return;
+    }
+
+    try {
+      // Fetch PII access info to get expiry details
+      const accessResponse = await api.get(`/pii-access/${currentUsername}/received`);
+      const receivedAccess = accessResponse.data.receivedAccess || [];
+      
+      // Find access record for this profile owner
+      const accessRecord = receivedAccess.find(
+        access => access.userProfile?.username === username && 
+                  access.accessTypes?.includes('images')
+      );
+      
+      if (accessRecord && user.images?.length > 0) {
+        // Get expiry info from accessDetails for images
+        const imageAccessDetails = accessRecord.accessDetails?.images || {};
+        
+        // Create image objects with access details
+        const imagesWithAccess = user.images.map((img, idx) => ({
+          imageId: `${username}-img-${idx}`,
+          imageUrl: img,
+          imageOrder: idx,
+          isProfilePic: idx === 0,
+          hasAccess: true,
+          accessDetails: {
+            grantedAt: imageAccessDetails.grantedAt,
+            expiresAt: imageAccessDetails.expiresAt
+          }
+        }));
+        
+        console.log('📸 Loaded images with access details:', {
+          accessRecord,
+          imageAccessDetails,
+          imagesWithAccess
+        });
+        setAccessibleImages(imagesWithAccess);
+      } else {
+        console.log('📸 No access record found or no images available');
+        setAccessibleImages([]);
+      }
+    } catch (err) {
+      console.error("Error loading accessible images:", err);
+      setAccessibleImages([]);
+    }
+  };
+  
+  // Listen for PII access changes (when owner grants/revokes access)
+  useEffect(() => {
+    const cleanup = onPIIAccessChange(async (detail) => {
+      const { action, targetUsername, ownerUsername } = detail;
+      
+      console.log('🔔 PII Access Change Event Received:', detail);
+      
+      // If this is about access to the current profile we're viewing
+      if (ownerUsername === username && targetUsername === currentUsername) {
+        console.log('🔄 Refreshing access for current profile...');
+        
+        // Reload PII access status
+        await checkPIIAccess();
+        
+        // Reload accessible images
+        await loadAccessibleImages();
+        
+        // Show success message
+        if (action === 'granted') {
+          setSuccessMessage('🎉 Access granted! Images are now visible.');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        } else if (action === 'revoked') {
+          setSuccessMessage('Access has been revoked.');
+          setTimeout(() => setSuccessMessage(''), 5000);
+        }
+      }
+    });
+    
+    // Cleanup listener on unmount
+    return cleanup;
+  }, [username, currentUsername]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-load accessible images when PII access is granted
+  useEffect(() => {
+    if (piiAccess.images && !isOwnProfile && user && user.images?.length > 0) {
+      console.log('🔄 Auto-loading accessible images with expiry details...');
+      loadAccessibleImages();
+    }
+  }, [piiAccess.images, user, isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Check if user has favorited/shortlisted this profile
+  const checkUserRelationship = async () => {
+    if (isOwnProfile || !currentUsername) return;
+
+    try {
+      const [favResponse, shortlistResponse] = await Promise.all([
+        api.get(`/favorites/${currentUsername}`),
+        api.get(`/shortlist/${currentUsername}`)
+      ]);
+
+      const favorites = favResponse.data.favorites || favResponse.data || [];
+      const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
+
+      setIsFavorited(favorites.some(u => (u.username || u) === username));
+      setIsShortlisted(shortlist.some(u => (u.username || u) === username));
+    } catch (err) {
+      console.error("Error checking user relationship:", err);
+    }
+  };
+
+  // Handle access request
+  const handleRequestAccess = (image) => {
+    setSelectedImageForAccess(image);
+    setShowImageAccessModal(true);
+  };
+
+  // Handle renewal request
+  const handleRenewAccess = (image) => {
+    setSelectedImageForAccess(image);
+    setShowImageAccessModal(true);
+  };
+
+  // Submit access request
+  const handleSubmitAccessRequest = async (requestData) => {
+    try {
+      // Validate we have necessary data
+      if (!currentUsername) {
+        setError('You must be logged in to request access');
+        return;
+      }
+
+      if (!user.images || user.images.length === 0) {
+        setError('No images to request access for');
+        return;
+      }
+
+      console.log('Submitting access request:', {
+        requesterUsername: currentUsername,
+        ownerUsername: username,
+        imageCount: user.images.length
+      });
+
+      const response = await imageAccess.requestAccess({
+        requesterUsername: currentUsername,
+        ownerUsername: username,
+        imageIds: user.images.map((img, idx) => `${username}-img-${idx}`),
+        message: requestData.message || ''
+      });
+
+      console.log('Access request response:', response);
+
+      setSuccessMessage('✅ Access request sent successfully!');
+      setShowImageAccessModal(false);
+      setSelectedImageForAccess(null);
+      setTimeout(() => setSuccessMessage(''), 5000);
+      
+      // Refresh accessible images
+      await loadAccessibleImages();
+    } catch (err) {
+      console.error('Error requesting access:', err);
+      console.error('Error details:', err.response?.data);
+      setError(err.response?.data?.message || 'Failed to send access request');
+      setTimeout(() => setError(''), 5000);
     }
   };
 
@@ -562,7 +752,11 @@ const Profile = () => {
             <>
               <button
                 className="btn-request-access"
-                onClick={() => setShowPIIRequestModal(true)}
+                onClick={async () => {
+                  console.log('📋 Opening PII Request Modal - Refreshing access status...');
+                  await checkPIIAccess(); // Refresh access status before opening modal
+                  setShowPIIRequestModal(true);
+                }}
               >
                 🔒 Request Private Information Access
               </button>
@@ -701,7 +895,10 @@ const Profile = () => {
               <p>LinkedIn profile is private</p>
               <button
                 className="btn-request-small"
-                onClick={() => setShowPIIRequestModal(true)}
+                onClick={async () => {
+                  await checkPIIAccess();
+                  setShowPIIRequestModal(true);
+                }}
               >
                 Request Access
               </button>
@@ -877,47 +1074,105 @@ const Profile = () => {
 
       {/* Profile Images Section */}
       <div className="profile-section">
-        <h3>📷 Photos</h3>
-        {isOwnProfile || piiAccess.images ? (
-          user.images?.length > 0 ? (
-            <div
-              id="profileCarousel"
-              className="carousel slide profile-carousel"
-              data-bs-ride="carousel"
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+          <h3 style={{ margin: 0 }}>📷 Photos</h3>
+          {!isOwnProfile && currentUsername && (
+            <button
+              onClick={async () => {
+                console.log('🔄 Manual refresh triggered');
+                await checkPIIAccess();
+                await loadAccessibleImages();
+              }}
+              style={{
+                padding: '6px 12px',
+                fontSize: '12px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                background: 'white',
+                color: '#667eea',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+              title="Refresh image access status"
             >
-              <div className="carousel-inner">
-                {user.images.map((img, idx) => (
-                  <div
-                    key={idx}
-                    className={`carousel-item ${idx === 0 ? "active" : ""}`}
-                  >
-                    <img
-                      src={img}
-                      className="d-block w-100"
-                      alt={`Slide ${idx + 1}`}
-                      style={{ maxHeight: "500px", objectFit: "cover" }}
-                    />
-                  </div>
-                ))}
-              </div>
-              <button
-                className="carousel-control-prev"
-                type="button"
-                data-bs-target="#profileCarousel"
-                data-bs-slide="prev"
-              >
-                <span className="carousel-control-prev-icon" aria-hidden="true" />
-                <span className="visually-hidden">Previous</span>
-              </button>
-              <button
-                className="carousel-control-next"
-                type="button"
-                data-bs-target="#profileCarousel"
-                data-bs-slide="next"
-              >
-                <span className="carousel-control-next-icon" aria-hidden="true" />
-                <span className="visually-hidden">Next</span>
-              </button>
+              🔄 Refresh
+            </button>
+          )}
+        </div>
+        {isOwnProfile ? (
+          user.images?.length > 0 ? (
+            <div className="images-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+              gap: '16px',
+              marginTop: '16px'
+            }}>
+              {user.images.map((img, idx) => (
+                <div key={idx} style={{ aspectRatio: '1', maxWidth: '400px' }}>
+                  <img
+                    src={img}
+                    alt={`${user.firstName}'s profile ${idx + 1}`}
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover', 
+                      borderRadius: '12px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                  {idx === 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '12px',
+                      left: '12px',
+                      background: 'linear-gradient(135deg, #ffc107, #ff9800)',
+                      color: 'white',
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '11px',
+                      fontWeight: '700',
+                      boxShadow: '0 2px 8px rgba(255, 193, 7, 0.4)'
+                    }}>
+                      ⭐ Profile Picture
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="no-data">No photos available</p>
+          )
+        ) : piiAccess.images ? (
+          user.images?.length > 0 ? (
+            <div className="images-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+              gap: '16px',
+              marginTop: '16px'
+            }}>
+              {(accessibleImages.length > 0 ? accessibleImages : 
+                user.images?.map((img, idx) => ({
+                  imageId: `${username}-img-${idx}`,
+                  imageUrl: img,
+                  imageOrder: idx,
+                  isProfilePic: idx === 0,
+                  hasAccess: piiAccess.images, // ✅ Use PII access status
+                  initialVisibility: { type: 'clear' } // ✅ Show clear if has access
+                }))
+              ).map((image, idx) => (
+                <ProfileImage
+                  key={image.imageId || idx}
+                  image={image}
+                  viewerUsername={currentUsername}
+                  profileOwnerUsername={username}
+                  isFavorited={isFavorited}
+                  isShortlisted={isShortlisted}
+                  onRequestAccess={handleRequestAccess}
+                  onRenewAccess={handleRenewAccess}
+                />
+              ))}
             </div>
           ) : (
             <p className="no-data">No photos available</p>
@@ -941,6 +1196,22 @@ const Profile = () => {
         <L3V3LMatchingTable matchingData={l3v3lMatchData} />
       )}
 
+      {/* Image Access Request Modal */}
+      {showImageAccessModal && (
+        <ImageAccessRequestModal
+          isOpen={showImageAccessModal}
+          onClose={() => {
+            setShowImageAccessModal(false);
+            setSelectedImageForAccess(null);
+          }}
+          ownerName={user.firstName}
+          ownerUsername={username}
+          imageCount={user.images?.length || 0}
+          requestType={selectedImageForAccess?.hasAccess ? 'renewal' : 'initial'}
+          onSubmit={handleSubmitAccessRequest}
+        />
+      )}
+
       {/* PII Request Modal */}
       <PIIRequestModal
         isOpen={showPIIRequestModal}
@@ -949,10 +1220,14 @@ const Profile = () => {
         currentAccess={piiAccess}
         requestStatus={piiRequestStatus}
         onClose={() => setShowPIIRequestModal(false)}
+        onRefresh={() => {
+          console.log('🔄 PIIRequestModal requested refresh');
+          checkPIIAccess(); // Refresh access status when modal opens
+        }}
         onSuccess={() => {
           setSuccessMessage('Request sent successfully!');
           setTimeout(() => setSuccessMessage(''), 5000); // Auto-hide after 5 seconds
-          checkPIIAccess(); // Refresh access status
+          checkPIIAccess(); // Refresh access status after submit
         }}
       />
     </div>

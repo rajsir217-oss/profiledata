@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { emitPIIAccessChange } from '../utils/piiAccessEvents';
+import ImageManagerModal from './ImageManagerModal';
 import './PIIManagement.css';
 
 const PIIManagement = () => {
@@ -21,7 +23,90 @@ const PIIManagement = () => {
   const [rejectedIncoming, setRejectedIncoming] = useState([]);
   const [rejectedOutgoing, setRejectedOutgoing] = useState([]);
   
+  // ImageManager modal state
+  const [showImageManager, setShowImageManager] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [ownerImages, setOwnerImages] = useState([]);
+  
   const currentUsername = localStorage.getItem('username');
+
+  const loadAllData = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    
+    try {
+      // Load PII Access data (granted/received/revoked)
+      const [grantedRes, receivedRes, revokedRes] = await Promise.all([
+        api.get(`/pii-access/${currentUsername}/granted`),
+        api.get(`/pii-access/${currentUsername}/received`),
+        api.get(`/pii-access/${currentUsername}/revoked`)
+      ]);
+
+      setGrantedAccess(grantedRes.data.grantedAccess || []);
+      setReceivedAccess(receivedRes.data.receivedAccess || []);
+      setRevokedAccess(revokedRes.data.grantedAccess || []);
+      
+      // Load PII Requests (incoming/outgoing)
+      try {
+        const [incomingRes, outgoingRes] = await Promise.all([
+          api.get(`/pii-requests/${currentUsername}/incoming`),
+          api.get(`/pii-requests/${currentUsername}/outgoing`)
+        ]);
+        
+        // Map incoming requests (have requesterProfile)
+        const mapIncomingRequest = (req) => ({
+          id: req.id,
+          requestType: req.requestType,
+          requestedInfo: [req.requestType],
+          requesterUsername: req.requesterProfile?.username,
+          requesterProfile: req.requesterProfile,
+          profileOwner: null,
+          requestedAt: req.requestedAt,
+          respondedAt: req.respondedAt,
+          status: req.status,
+          message: req.message
+        });
+        
+        // Map outgoing requests (have profileOwner)
+        const mapOutgoingRequest = (req) => ({
+          id: req.id,
+          requestType: req.requestType,
+          requestedInfo: [req.requestType],
+          requesterUsername: null,
+          requesterProfile: null,
+          profileOwner: req.profileOwner,
+          requestedAt: req.requestedAt,
+          respondedAt: req.respondedAt,
+          status: req.status,
+          message: req.message
+        });
+        
+        const incoming = (incomingRes.data.requests || []).map(mapIncomingRequest);
+        const outgoing = (outgoingRes.data.requests || []).map(mapOutgoingRequest);
+        
+        // Filter by status
+        setIncomingRequests(incoming.filter(r => r.status === 'pending'));
+        setOutgoingRequests(outgoing.filter(r => r.status === 'pending'));
+        
+        // Split history into rejected incoming/outgoing
+        setRejectedIncoming(incoming.filter(r => r.status === 'rejected'));
+        setRejectedOutgoing(outgoing.filter(r => r.status === 'rejected'));
+      } catch (requestErr) {
+        console.error('Error loading image access requests:', requestErr);
+        // Continue even if requests fail
+        setIncomingRequests([]);
+        setOutgoingRequests([]);
+        setRejectedIncoming([]);
+        setRejectedOutgoing([]);
+      }
+      
+    } catch (err) {
+      console.error('Error loading PII data:', err);
+      setError('Failed to load PII management data');
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUsername]);
 
   useEffect(() => {
     if (!currentUsername) {
@@ -29,67 +114,120 @@ const PIIManagement = () => {
       return;
     }
     loadAllData();
-  }, [currentUsername]);
+  }, [currentUsername, navigate, loadAllData]);
 
-  const loadAllData = async () => {
-    setLoading(true);
-    setError('');
+  const handleRevokeAccess = async (accessIds, username, accessTypes) => {
+    // TODO: Replace with custom confirmation component (no browser modals per user preference)
+    // For now, proceed directly with revoke
     
     try {
-      const [grantedRes, receivedRes, incomingRes, outgoingRes, revokedRes, rejectedInRes, rejectedOutRes] = await Promise.all([
-        api.get(`/pii-access/${currentUsername}/granted`),
-        api.get(`/pii-access/${currentUsername}/received`),
-        api.get(`/pii-requests/${currentUsername}/incoming?status_filter=pending`),
-        api.get(`/pii-requests/${currentUsername}/outgoing?status_filter=pending`),
-        api.get(`/pii-access/${currentUsername}/revoked`),
-        api.get(`/pii-requests/${currentUsername}/incoming?status_filter=rejected`),
-        api.get(`/pii-requests/${currentUsername}/outgoing?status_filter=rejected`)
-      ]);
-
-      setGrantedAccess(grantedRes.data.grantedAccess || []);
-      setReceivedAccess(receivedRes.data.receivedAccess || []);
-      setIncomingRequests(incomingRes.data.requests || []);
-      setOutgoingRequests(outgoingRes.data.requests || []);
+      console.log('🔓 Revoking access for:', username, 'AccessIDs:', accessIds);
       
-      setRevokedAccess(revokedRes.data.grantedAccess || []);
-      setRejectedIncoming(rejectedInRes.data.requests || []);
-      setRejectedOutgoing(rejectedOutRes.data.requests || []);
-    } catch (err) {
-      console.error('Error loading PII data:', err);
-      setError('Failed to load PII management data');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleRevokeAccess = async (accessIds, username) => {
-    if (!window.confirm(`Revoke all access for ${username}?`)) return;
-
-    try {
-      // Revoke all access types for this user
+      // Revoke ALL access types using PII access endpoint
       await Promise.all(
         accessIds.map(id => api.delete(`/pii-access/${id}?username=${currentUsername}`))
       );
+      
+      console.log('✅ Access revoked successfully');
       
       // Reload data
       await loadAllData();
       setSuccessMessage(`Access revoked for ${username} successfully.`);
       setTimeout(() => setSuccessMessage(''), 5000);
+      
+      // Emit event to notify other components
+      emitPIIAccessChange('revoked', username, currentUsername);
     } catch (err) {
       console.error('Error revoking access:', err);
       setError('Failed to revoke access');
     }
   };
 
-  const handleApproveRequest = async (requestId) => {
+  const handleApproveRequest = async (request, requesterProfile) => {
+    // Check if this is a photo request - if so, open ImageManager
+    console.log('🔍 Approve Request Debug:', {
+      request,
+      requestedInfo: request.requestedInfo,
+      requestType: request.requestType,
+      requesterProfile
+    });
+    
+    const requestedInfo = Array.isArray(request.requestedInfo) ? request.requestedInfo : [];
+    const requestType = request.requestType || '';
+    
+    // Check multiple possible field names for photo requests
+    const isPhotoRequest = 
+      requestedInfo.includes('images') || 
+      requestedInfo.includes('photos') ||
+      requestType === 'images' ||
+      requestType === 'photos' ||
+      requestType.toLowerCase().includes('photo');
+    
+    console.log('📸 Is Photo Request?', isPhotoRequest);
+    
+    if (isPhotoRequest) {
+      // Open ImageManager modal for photo requests
+      try {
+        // Fetch owner's images
+        const profileRes = await api.get(`/profile/${currentUsername}`);
+        setOwnerImages(profileRes.data.images || []);
+        setSelectedRequest({ request, requesterProfile });
+        setShowImageManager(true);
+      } catch (err) {
+        console.error('Error loading owner images:', err);
+        setError('Failed to load images');
+      }
+      return;
+    }
+    
+    // For non-photo requests, approve directly (permanent access)
     try {
-      await api.put(`/pii-requests/${requestId}/approve?username=${currentUsername}`);
+      await api.put(`/pii-requests/${request.id}/approve?username=${currentUsername}`, {});
       await loadAllData();
       setSuccessMessage('Request approved! Access granted successfully.');
       setTimeout(() => setSuccessMessage(''), 5000);
+      
+      // Emit event to notify other components
+      emitPIIAccessChange('granted', requesterProfile.username, currentUsername);
     } catch (err) {
       console.error('Error approving request:', err);
+      console.error('Error details:', err.response?.data);
       setError('Failed to approve request');
+    }
+  };
+  
+  const handleImageAccessGrant = async ({ durationDays, noExpiration, responseMessage }) => {
+    if (!selectedRequest) return;
+    
+    const { request, requesterProfile } = selectedRequest;
+    
+    try {
+      // Approve the PII request with duration - backend will grant access automatically
+      const approvalData = {
+        responseMessage,
+        durationDays: noExpiration ? null : durationDays
+      };
+      
+      await api.put(`/pii-requests/${request.id}/approve?username=${currentUsername}`, approvalData);
+      
+      // Close modal
+      setShowImageManager(false);
+      setSelectedRequest(null);
+      
+      // Reload data
+      await loadAllData();
+      setSuccessMessage(
+        `Image access granted to ${requesterProfile.firstName}${
+          noExpiration ? ' (permanent)' : ` for ${durationDays} day${durationDays > 1 ? 's' : ''}`
+        }`
+      );
+      setTimeout(() => setSuccessMessage(''), 5000);
+      
+      // Emit event to notify other components
+      emitPIIAccessChange('granted', requesterProfile.username, currentUsername);
+    } catch (err) {
+      console.error('Error granting image access:', err);
+      setError('Failed to grant image access. Please try again.');
     }
   };
 
@@ -185,7 +323,7 @@ const PIIManagement = () => {
               className="btn-revoke"
               onClick={(e) => {
                 e.stopPropagation(); // Prevent card click
-                handleRevokeAccess(item.accessIds, profile.username);
+                handleRevokeAccess(item.accessIds, profile.username, item.accessTypes);
               }}
             >
               🚫 Revoke Access
@@ -200,6 +338,12 @@ const PIIManagement = () => {
     const profile = isIncoming ? request.requesterProfile : request.profileOwner;
     const badge = getStatusBadge(request.status);
 
+    // Safety check - if profile is undefined, skip rendering
+    if (!profile) {
+      console.error('Missing profile data for request:', request);
+      return null;
+    }
+
     return (
       <div 
         key={request.id} 
@@ -212,12 +356,12 @@ const PIIManagement = () => {
               <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
             ) : (
               <div className="access-avatar-placeholder">
-                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
+                {profile.firstName?.[0] || profile.username?.[0]?.toUpperCase() || '?'}
               </div>
             )}
             <div>
-              <h4>{profile.firstName || profile.username}</h4>
-              <p className="access-username">@{profile.username}</p>
+              <h4>{profile.firstName || profile.username || 'Unknown'}</h4>
+              <p className="access-username">@{profile.username || 'unknown'}</p>
             </div>
           </div>
           <span className={`status-badge ${badge.class}`}>{badge.label}</span>
@@ -245,7 +389,7 @@ const PIIManagement = () => {
                   className="btn-approve"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleApproveRequest(request.id);
+                    handleApproveRequest(request, profile);
                   }}
                 >
                   ✅ Approve
@@ -698,6 +842,20 @@ const PIIManagement = () => {
           </div>
         )}
       </div>
+      
+      {/* ImageManager Modal for photo access grants */}
+      {showImageManager && selectedRequest && (
+        <ImageManagerModal
+          isOpen={showImageManager}
+          onClose={() => {
+            setShowImageManager(false);
+            setSelectedRequest(null);
+          }}
+          requester={selectedRequest.requesterProfile}
+          ownerImages={ownerImages}
+          onGrant={handleImageAccessGrant}
+        />
+      )}
     </div>
   );
 };

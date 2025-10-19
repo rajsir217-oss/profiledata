@@ -7,6 +7,7 @@ import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
+import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import './SearchPage.css';
 
 const SearchPage = () => {
@@ -350,6 +351,17 @@ const SearchPage = () => {
     }
   };
 
+  // Listen for PII access changes (grant/revoke)
+  useEffect(() => {
+    const cleanup = onPIIAccessChange((detail) => {
+      console.log('🔔 PII Access changed in search page:', detail);
+      // Reload PII requests to update badges
+      loadPiiRequests();
+    });
+    
+    return cleanup;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handlePrevImage = (username, e) => {
     e.stopPropagation();
     setImageIndices(prev => ({
@@ -446,15 +458,17 @@ const SearchPage = () => {
               className="image-nav-btn prev-btn"
               onClick={(e) => handlePrevImage(user.username, e)}
               disabled={currentIndex === 0}
+              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
             >
-              ‹
+              {'<'}
             </button>
             <button
               className="image-nav-btn next-btn"
               onClick={(e) => handleNextImage(user.username, e, users)}
               disabled={currentIndex === user.images.length - 1}
+              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
             >
-              ›
+              {'>'}
             </button>
             <div className="image-counter">
               {currentIndex + 1}/{user.images.length}
@@ -1892,6 +1906,10 @@ const SearchPage = () => {
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);
+          }}
+          onRefresh={() => {
+            console.log('🔄 PIIRequestModal requested refresh in SearchPage');
+            loadPiiRequests(); // Refresh PII status when modal opens
           }}
           onSuccess={handlePIIRequestSuccess}
         />

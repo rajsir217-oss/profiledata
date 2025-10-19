@@ -215,15 +215,6 @@ const SearchResultCard = ({
         <div className="status-badge-absolute">
           <OnlineStatusBadge username={user.username} size="medium" />
         </div>
-        
-        {/* L3V3L Match Score Badge */}
-        {user.matchScore && (
-          <div className="match-score-badge l3v3l-score-badge" title={user.compatibilityLevel}>
-            <span className="match-score-label-inline">L3V3L MATCH</span>
-            <span className="match-bullet">•</span>
-            <span className="match-score-value-inline">{Math.round(user.matchScore * 10) / 10}%</span>
-          </div>
-        )}
 
         {/* Image Navigation */}
         {user.images && user.images.length > 1 && (
@@ -232,15 +223,17 @@ const SearchResultCard = ({
               className="image-nav-btn prev-btn"
               onClick={handlePrevImage}
               disabled={currentImageIndex === 0}
+              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
             >
-              ‹
+              {'<'}
             </button>
             <button
               className="image-nav-btn next-btn"
               onClick={handleNextImage}
               disabled={currentImageIndex === user.images.length - 1}
+              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
             >
-              ›
+              {'>'}
             </button>
             <div className="image-counter">
               {currentImageIndex + 1}/{user.images.length}

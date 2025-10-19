@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './PIIRequestModal.css';
 
-const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, currentAccess = {}, requestStatus = {} }) => {
+const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, onRefresh, currentAccess = {}, requestStatus = {} }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -20,16 +20,31 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   // Initialize selected types with already granted access or pending requests
   useEffect(() => {
     if (isOpen) {
-      // Prevent body scroll when modal is open
+      // Disable body scroll when modal is open
       document.body.style.overflow = 'hidden';
+      
+      // ✅ Request parent to refresh PII status when modal opens
+      if (onRefresh) {
+        console.log('🔄 PIIRequestModal opened - triggering status refresh...');
+        onRefresh(); // This should trigger checkPIIAccess in parent
+      }
+      
+      console.log('🔍 PIIRequestModal opened for:', profileUsername);
+      console.log('📊 Current request status:', requestStatus);
       
       const alreadyGrantedOrPending = piiTypes
         .filter(type => {
           const status = requestStatus[type.value];
+          console.log(`  ${type.label}: status = ${status || 'none'}`);
           return status === 'approved' || status === 'pending';
         })
-        .map(type => type.value);
-      setSelectedTypes(alreadyGrantedOrPending);
+        .map(type => type.label)
+        .join(', ');
+      
+      if (alreadyGrantedOrPending) {
+        console.log('✅ Already granted/pending:', alreadyGrantedOrPending);
+      }
+      
     } else {
       // Re-enable body scroll when modal closes
       document.body.style.overflow = 'unset';
@@ -45,8 +60,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     return () => {
       document.body.style.overflow = 'unset';
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, requestStatus]);
+    // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const handleToggleType = (type) => {
     setSelectedTypes(prev =>
