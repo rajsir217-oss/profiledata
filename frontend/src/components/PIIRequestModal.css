@@ -98,10 +98,52 @@
 
 .section-label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-color, #333);
+  margin-bottom: 0;
+}
+
+/* Section Header with Select All buttons */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 12px;
+}
+
+.select-all-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-select-all,
+.btn-deselect-all {
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color, #e0e0e0);
+  background: var(--surface-color, white);
+  color: var(--text-color, #333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.btn-select-all:hover {
+  background: var(--primary-color, #667eea);
+  color: white;
+  border-color: var(--primary-color, #667eea);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+}
+
+.btn-deselect-all:hover {
+  background: var(--danger-color, #dc3545);
+  color: white;
+  border-color: var(--danger-color, #dc3545);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
 }
 
 /* PII Types Section */
@@ -111,40 +153,43 @@
 
 .pii-type-option {
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 16px;
-  border: 2px solid var(--border-color, #e0e0e0);
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border: 2px solid var(--border-color, #e5e7eb);
   border-radius: 12px;
   margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.2s ease;
   background: var(--surface-color, white);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pii-type-option:hover {
   border-color: var(--primary-color, #667eea);
-  background: var(--hover-background, #f8f9ff);
-  transform: translateX(4px);
+  background: var(--hover-background, rgba(102, 126, 234, 0.02));
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .pii-type-option.selected {
-  border-color: var(--primary-color, #667eea);
-  background: var(--selected-background, rgba(102, 126, 234, 0.1));
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+  border-color: var(--success-color, #10b981);
+  background: rgba(16, 185, 129, 0.05);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .pii-type-option.has-access {
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(69, 160, 73, 0.05) 100%);
-  border-color: #4caf50;
+  border-color: var(--success-color, #10b981);
+  background: rgba(16, 185, 129, 0.05);
   cursor: not-allowed;
-  opacity: 0.8;
+  opacity: 0.95;
 }
 
 .pii-type-option.has-access:hover {
   transform: none;
-  border-color: #4caf50;
-  background: linear-gradient(135deg, rgba(76, 175, 80, 0.05) 0%, rgba(69, 160, 73, 0.05) 100%);
+  border-color: var(--success-color, #10b981);
+  background: rgba(16, 185, 129, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .pii-type-checkbox {
@@ -153,10 +198,11 @@
 }
 
 .pii-type-checkbox input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+  width: 22px;
+  height: 22px;
   cursor: pointer;
-  accent-color: var(--primary-color, #667eea);
+  accent-color: var(--success-color, #10b981);
+  border-radius: 6px;
 }
 
 .pii-type-checkbox input[type="checkbox"]:disabled {
@@ -171,7 +217,7 @@
 .pii-type-label {
   font-size: 16px;
   font-weight: 600;
-  color: var(--text-color, #333);
+  color: var(--text-color, #1f2937);
   margin-bottom: 4px;
   display: flex;
   align-items: center;
@@ -179,39 +225,29 @@
 }
 
 .access-badge {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--success-color, #4caf50);
-  background: rgba(76, 175, 80, 0.1);
-  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: var(--success-color, #10b981);
+  padding: 4px 10px;
   border-radius: 12px;
+  margin-left: 8px;
 }
 
 .pending-badge {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--warning-color, #ff9800);
-  background: rgba(255, 152, 0, 0.1);
-  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning-dark, #92400e);
+  background: var(--warning-light, #fef3c7);
+  padding: 4px 10px;
   border-radius: 12px;
-}
-
-.pii-type-option.pending {
-  border-color: var(--warning-color, #ff9800);
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.03) 0%, rgba(251, 140, 0, 0.03) 100%);
-  cursor: not-allowed;
-  opacity: 0.8;
-}
-
-.pii-type-option.pending:hover {
-  transform: none;
-  border-color: var(--warning-color, #ff9800);
-  background: linear-gradient(135deg, rgba(255, 152, 0, 0.05) 0%, rgba(251, 140, 0, 0.05) 100%);
+  margin-left: 8px;
 }
 
 .pii-type-description {
-  font-size: 13px;
-  color: var(--text-secondary, #666);
+  font-size: 14px;
+  color: var(--text-secondary, #6b7280);
+  line-height: 1.4;
 }
 
 /* Message Section */
@@ -266,13 +302,14 @@
 
 .pii-modal-body .pii-modal-actions .btn-cancel,
 .pii-modal-body .pii-modal-actions .btn-submit {
-  padding: 10px 20px !important;
-  border-radius: 8px;
+  padding: 12px 28px !important;
+  border-radius: 10px;
   font-size: 14px !important;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   flex: 0 0 auto !important; /* Don't grow or shrink */
+  border: none;
   max-width: 180px !important; /* Prevent buttons from being too wide */
   min-width: 100px !important; /* Ensure minimum readable width */
   white-space: nowrap !important; /* Prevent text wrapping */
@@ -286,25 +323,26 @@
 }
 
 .pii-modal-body .pii-modal-actions .btn-cancel {
-  background: var(--surface-color, #f5f5f5) !important;
-  color: var(--text-secondary, #666) !important;
-  border: 1px solid var(--border-color, #e0e0e0) !important; /* Add visible border */
+  background: var(--text-secondary, #6b7280) !important;
+  color: white !important;
+  border: none !important;
 }
 
 .pii-modal-body .pii-modal-actions .btn-cancel:hover:not(:disabled) {
-  background: var(--hover-background, #e0e0e0) !important;
+  background: var(--text-muted, #4b5563) !important;
   transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .pii-modal-body .pii-modal-actions .btn-submit {
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%) !important;
   color: white !important;
-  border: 1px solid transparent !important; /* Transparent border for consistent sizing */
+  border: none !important;
 }
 
 .pii-modal-body .pii-modal-actions .btn-submit:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(102, 126, 234, 0.5);
 }
 
 .pii-modal-body .pii-modal-actions .btn-submit:disabled,

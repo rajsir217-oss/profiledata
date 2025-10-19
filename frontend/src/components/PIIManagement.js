@@ -30,6 +30,15 @@ const PIIManagement = () => {
   
   const currentUsername = localStorage.getItem('username');
 
+  // Handle tab change with backend refresh
+  const handleTabChange = async (tabName) => {
+    console.log(`🔄 Switching to tab: ${tabName} - Refreshing data from backend...`);
+    setActiveTab(tabName);
+    setLoading(true); // Show loading state
+    await loadAllData(); // Refresh data from backend
+    console.log(`✅ Tab ${tabName} data refreshed`);
+  };
+
   const loadAllData = useCallback(async () => {
     setLoading(true);
     setError('');
@@ -196,16 +205,18 @@ const PIIManagement = () => {
     }
   };
   
-  const handleImageAccessGrant = async ({ durationDays, noExpiration, responseMessage }) => {
+  const handleImageAccessGrant = async ({ pictureDurations, responseMessage }) => {
     if (!selectedRequest) return;
     
     const { request, requesterProfile } = selectedRequest;
     
     try {
-      // Approve the PII request with duration - backend will grant access automatically
+      console.log('📸 Granting image access with durations:', pictureDurations);
+      
+      // Approve the PII request with individual picture durations
       const approvalData = {
         responseMessage,
-        durationDays: noExpiration ? null : durationDays
+        pictureDurations  // Send individual durations for each picture
       };
       
       await api.put(`/pii-requests/${request.id}/approve?username=${currentUsername}`, approvalData);
@@ -216,17 +227,29 @@ const PIIManagement = () => {
       
       // Reload data
       await loadAllData();
-      setSuccessMessage(
-        `Image access granted to ${requesterProfile.firstName}${
-          noExpiration ? ' (permanent)' : ` for ${durationDays} day${durationDays > 1 ? 's' : ''}`
-        }`
-      );
+      
+      // Create success message
+      const hasOnetime = Object.values(pictureDurations).some(d => d === 'onetime');
+      const hasPermanent = Object.values(pictureDurations).some(d => d === 'permanent');
+      const hasTimed = Object.values(pictureDurations).some(d => typeof d === 'number');
+      
+      let accessMsg = 'Image access granted to ' + requesterProfile.firstName;
+      if (hasOnetime && !hasTimed && !hasPermanent) {
+        accessMsg += ' (one-time view only)';
+      } else if (hasPermanent && !hasTimed && !hasOnetime) {
+        accessMsg += ' (permanent access)';
+      } else {
+        accessMsg += ' with custom durations';
+      }
+      
+      setSuccessMessage(accessMsg);
       setTimeout(() => setSuccessMessage(''), 5000);
       
       // Emit event to notify other components
       emitPIIAccessChange('granted', requesterProfile.username, currentUsername);
     } catch (err) {
       console.error('Error granting image access:', err);
+      console.error('Error details:', err.response?.data);
       setError('Failed to grant image access. Please try again.');
     }
   };
@@ -561,7 +584,7 @@ const PIIManagement = () => {
       <div className="pii-tabs">
         <button
           className={`pii-tab ${activeTab === 'granted' ? 'active' : ''}`}
-          onClick={() => setActiveTab('granted')}
+          onClick={() => handleTabChange('granted')}
         >
           <span className="tab-icon">🔓</span>
           <span className="tab-label">Access I've Granted</span>
@@ -569,7 +592,7 @@ const PIIManagement = () => {
         </button>
         <button
           className={`pii-tab ${activeTab === 'received' ? 'active' : ''}`}
-          onClick={() => setActiveTab('received')}
+          onClick={() => handleTabChange('received')}
         >
           <span className="tab-icon">✅</span>
           <span className="tab-label">Access I Have</span>
@@ -577,7 +600,7 @@ const PIIManagement = () => {
         </button>
         <button
           className={`pii-tab ${activeTab === 'requests' ? 'active' : ''}`}
-          onClick={() => setActiveTab('requests')}
+          onClick={() => handleTabChange('requests')}
         >
           <span className="tab-icon">📬</span>
           <span className="tab-label">Pending Requests</span>
@@ -585,7 +608,7 @@ const PIIManagement = () => {
         </button>
         <button
           className={`pii-tab ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => setActiveTab('history')}
+          onClick={() => handleTabChange('history')}
         >
           <span className="tab-icon">📜</span>
           <span className="tab-label">History</span>

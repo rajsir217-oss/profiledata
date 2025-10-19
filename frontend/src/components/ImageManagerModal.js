@@ -2,27 +2,41 @@ import React, { useState } from 'react';
 import './ImageManagerModal.css';
 
 const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant }) => {
-  const [duration, setDuration] = useState(3); // Default 3 days
-  const [noExpiration, setNoExpiration] = useState(false);
   const [message, setMessage] = useState('');
   const [granting, setGranting] = useState(false);
+  
+  // Individual duration for each picture (default: one-time view)
+  const [pictureDurations, setPictureDurations] = useState(
+    ownerImages?.reduce((acc, img, idx) => {
+      acc[idx] = 'onetime'; // default to one-time view
+      return acc;
+    }, {}) || {}
+  );
 
   const durationOptions = [
-    { value: 1, label: '1 day', description: 'Quick preview access' },
-    { value: 2, label: '2 days', description: 'Short-term access' },
-    { value: 3, label: '3 days', description: 'Recommended', recommended: true },
-    { value: 4, label: '4 days', description: 'Extended preview' },
-    { value: 5, label: '5 days', description: 'Almost a week' },
-    { value: 10, label: '10 days', description: 'Medium-term access' },
-    { value: 30, label: '30 days', description: 'One month' },
+    { value: 'onetime', label: 'One-time view only' },
+    { value: 1, label: '1 day' },
+    { value: 2, label: '2 days' },
+    { value: 3, label: '3 days (Recommended)' },
+    { value: 4, label: '4 days' },
+    { value: 5, label: '5 days' },
+    { value: 10, label: '10 days' },
+    { value: 30, label: '30 days' },
+    { value: 'permanent', label: 'No expiration' },
   ];
+
+  const handleDurationChange = (pictureIndex, value) => {
+    setPictureDurations(prev => ({
+      ...prev,
+      [pictureIndex]: value
+    }));
+  };
 
   const handleGrant = async () => {
     setGranting(true);
     try {
       await onGrant({
-        durationDays: noExpiration ? null : duration,
-        noExpiration,
+        pictureDurations,
         responseMessage: message
       });
       onClose();
@@ -34,8 +48,12 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
   };
 
   const handleCancel = () => {
-    setDuration(3);
-    setNoExpiration(false);
+    setPictureDurations(
+      ownerImages?.reduce((acc, img, idx) => {
+        acc[idx] = 'onetime';
+        return acc;
+      }, {}) || {}
+    );
     setMessage('');
     onClose();
   };
@@ -74,45 +92,48 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
             </p>
           </div>
 
-          <div className="duration-selector">
-            <h4>⏰ Expiration Duration</h4>
-            <p className="section-description">Choose how long they can view your photos</p>
+          <div className="picture-access-selector">
+            <h4>📸 Select Access Duration for Each Photo</h4>
+            <p className="section-description">Choose how long they can view each photo individually</p>
 
-            <div className="duration-options">
-              {durationOptions.map(option => (
-                <label 
-                  key={option.value} 
-                  className={`duration-option ${duration === option.value && !noExpiration ? 'selected' : ''} ${option.recommended ? 'recommended' : ''}`}
-                >
-                  <input
-                    type="radio"
-                    name="duration"
-                    checked={duration === option.value && !noExpiration}
-                    onChange={() => {
-                      setDuration(option.value);
-                      setNoExpiration(false);
-                    }}
-                  />
-                  <div className="option-content">
-                    <span className="option-label">{option.label}</span>
-                    <span className="option-description">{option.description}</span>
-                    {option.recommended && <span className="recommended-badge">✓ Recommended</span>}
-                  </div>
-                </label>
-              ))}
-
-              <label className={`duration-option permanent ${noExpiration ? 'selected' : ''}`}>
-                <input
-                  type="radio"
-                  name="duration"
-                  checked={noExpiration}
-                  onChange={() => setNoExpiration(true)}
-                />
-                <div className="option-content">
-                  <span className="option-label">♾️ No expiration</span>
-                  <span className="option-description">Permanent access (until revoked)</span>
-                </div>
-              </label>
+            <div className="picture-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Photo</th>
+                    <th>Access Duration</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ownerImages && ownerImages.map((image, index) => (
+                    <tr key={index}>
+                      <td className="picture-label">
+                        <img 
+                          src={image} 
+                          alt={`Photo ${index + 1}`} 
+                          className="picture-thumbnail"
+                        />
+                        <div className="picture-text">
+                          <span className="picture-name">Picture {index + 1}</span>
+                        </div>
+                      </td>
+                      <td className="picture-dropdown">
+                        <select
+                          value={pictureDurations[index] || 'onetime'}
+                          onChange={(e) => handleDurationChange(index, e.target.value)}
+                          className="duration-select"
+                        >
+                          {durationOptions.map(option => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
 
@@ -131,22 +152,6 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
             <span className="char-count">{message.length}/200</span>
           </div>
 
-          <div className="preview-section">
-            <div className="preview-icon">ℹ️</div>
-            <div className="preview-info">
-              {!noExpiration ? (
-                <>
-                  <strong>Access will expire in {duration} day{duration > 1 ? 's' : ''}</strong>
-                  <p>They'll see a countdown badge (⏰ {duration}d) and can request renewal before expiry.</p>
-                </>
-              ) : (
-                <>
-                  <strong>Permanent access granted</strong>
-                  <p>They can view your photos anytime until you manually revoke access.</p>
-                </>
-              )}
-            </div>
-          </div>
         </div>
 
         <div className="modal-footer">

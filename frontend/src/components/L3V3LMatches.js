@@ -142,20 +142,20 @@ const L3V3LMatches = () => {
       const piiMap = {};
       const piiRequestsMap = {};
       
-      // Track both approved access AND pending requests
+      // Track ONLY pending requests (approved must be in receivedAccess to be truly active)
       requests.forEach(req => {
         // Backend returns profileOwner as nested object with username
         const targetUsername = req.profileOwner?.username || req.profileUsername;
-        if (targetUsername && req.requestType) {
+        if (targetUsername && req.requestType && req.status === 'pending') {
           if (!piiRequestsMap[targetUsername]) {
             piiRequestsMap[targetUsername] = {};
           }
-          console.log(`📋 PII Request: ${targetUsername} - ${req.requestType} = ${req.status}`);
-          piiRequestsMap[targetUsername][req.requestType] = req.status;
+          console.log(`📋 PII Request: ${targetUsername} - ${req.requestType} = pending`);
+          piiRequestsMap[targetUsername][req.requestType] = 'pending';
         }
       });
       
-      // Add received access grants
+      // Add received ACTIVE access grants (isActive: true from backend)
       receivedAccess.forEach(access => {
         const targetUsername = access.userProfile?.username;
         if (targetUsername) {
@@ -165,6 +165,15 @@ const L3V3LMatches = () => {
             hasDobAccess: access.accessTypes?.includes('dob'),
             hasLinkedInAccess: access.accessTypes?.includes('linkedin_url')
           };
+          
+          // Also add to piiRequestsMap as 'approved' for consistency
+          if (!piiRequestsMap[targetUsername]) {
+            piiRequestsMap[targetUsername] = {};
+          }
+          access.accessTypes?.forEach(accessType => {
+            console.log(`✅ PII Access: ${targetUsername} - ${accessType} = approved (active)`);
+            piiRequestsMap[targetUsername][accessType] = 'approved';
+          });
         }
       });
       

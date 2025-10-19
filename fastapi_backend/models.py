@@ -1,6 +1,6 @@
 # fastapi_backend/models.py
 from pydantic import BaseModel, EmailStr, Field, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 from bson import ObjectId
 
@@ -437,6 +437,7 @@ class PIIRequestResponse(BaseModel):
 class PIIRequestApprove(BaseModel):
     responseMessage: Optional[str] = None
     durationDays: Optional[int] = None  # Days until access expires, None = permanent
+    pictureDurations: Optional[Dict[str, Any]] = None  # Individual durations for each picture {0: 'onetime', 1: 3, 2: 'permanent', ...}
 
 class PIIRequestReject(BaseModel):
     responseMessage: Optional[str] = None

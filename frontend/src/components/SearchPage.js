@@ -323,21 +323,25 @@ const SearchPage = () => {
       const requests = requestsResponse.data.requests || [];
       const receivedAccess = accessResponse.data.receivedAccess || [];
       const requestStatus = {};
+      
+      console.log('🔍 PII API Responses:');
+      console.log('  Requests:', requests);
+      console.log('  Received Access:', receivedAccess);
 
-      // First, add all outgoing requests with their status
+      // First, add ONLY pending requests (not approved ones - those must be in receivedAccess)
       requests.forEach(req => {
         // Handle different response formats
         const targetUsername = req.profileUsername || req.requestedUsername || req.profileOwner?.username;
-        if (targetUsername && req.requestType) {
-          requestStatus[`${targetUsername}_${req.requestType}`] = req.status;
+        if (targetUsername && req.requestType && req.status === 'pending') {
+          requestStatus[`${targetUsername}_${req.requestType}`] = 'pending';
         }
       });
 
-      // Then, add all received access (these are approved grants)
+      // Then, add all received ACTIVE access (these are truly approved grants)
       receivedAccess.forEach(access => {
         const targetUsername = access?.userProfile?.username;
         if (targetUsername && access?.accessTypes) {
-          // Mark all access types as 'approved' since they're in pii_access collection
+          // Mark all access types as 'approved' ONLY if in receivedAccess (isActive: true)
           access.accessTypes.forEach(accessType => {
             requestStatus[`${targetUsername}_${accessType}`] = 'approved';
           });

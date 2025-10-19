@@ -60,8 +60,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     return () => {
       document.body.style.overflow = 'unset';
     };
-    // eslint-disable-line react-hooks/exhaustive-deps
-  }, [isOpen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, onRefresh]);
 
   const handleToggleType = (type) => {
     setSelectedTypes(prev =>
@@ -69,6 +69,39 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
+  };
+
+  const handleSelectAll = () => {
+    // Get all locked types (already approved/pending - can't be deselected)
+    const lockedTypes = piiTypes
+      .filter(type => {
+        const status = requestStatus[type.value];
+        return status === 'approved' || status === 'pending';
+      })
+      .map(type => type.value);
+    
+    // Get all available types (not locked)
+    const availableTypes = piiTypes
+      .filter(type => {
+        const status = requestStatus[type.value];
+        return status !== 'approved' && status !== 'pending';
+      })
+      .map(type => type.value);
+    
+    // Select all: locked + available
+    setSelectedTypes([...lockedTypes, ...availableTypes]);
+  };
+
+  const handleDeselectAll = () => {
+    // Keep only the approved/pending items (can't be deselected)
+    const lockedTypes = piiTypes
+      .filter(type => {
+        const status = requestStatus[type.value];
+        return status === 'approved' || status === 'pending';
+      })
+      .map(type => type.value);
+    
+    setSelectedTypes(lockedTypes);
   };
 
   const handleSubmit = async (e) => {
@@ -221,7 +254,25 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
 
         <form onSubmit={handleSubmit} className="pii-modal-body">
           <div className="pii-types-section">
-            <label className="section-label">Select information to request:</label>
+            <div className="section-header">
+              <label className="section-label">Select information to request:</label>
+              <div className="select-all-buttons">
+                <button
+                  type="button"
+                  className="btn-select-all"
+                  onClick={handleSelectAll}
+                >
+                  Select All
+                </button>
+                <button
+                  type="button"
+                  className="btn-deselect-all"
+                  onClick={handleDeselectAll}
+                >
+                  Deselect All
+                </button>
+              </div>
+            </div>
             
             {piiTypes.map(type => {
               const status = requestStatus[type.value]; // 'approved', 'pending', or null

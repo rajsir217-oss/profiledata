@@ -21,17 +21,36 @@ async def get_received_pii_access(
         logger.info(f"📥 Fetching received PII access for {username}")
         
         # Find all PII access grants where this user is the grantedTo
-        access_grants = await db.piiaccess.find({
-            "grantedTo": username,
-            "status": "active"
+        access_grants = await db.pii_access.find({
+            "grantedToUsername": username,
+            "isActive": True
         }).to_list(length=None)
         
-        logger.info(f"✅ Found {len(access_grants)} received PII access grants")
+        logger.info(f"✅ Found {len(access_grants)} ACTIVE received PII access grants for {username}")
+        for grant in access_grants:
+            logger.info(f"   - From {grant.get('granterUsername')}: {grant.get('accessType')} (isActive: {grant.get('isActive')})")
+        
+        # Group by granterUsername and aggregate accessTypes
+        grouped_access = {}
+        for grant in access_grants:
+            granter = grant.get("granterUsername")
+            access_type = grant.get("accessType")
+            
+            if granter and access_type:
+                if granter not in grouped_access:
+                    grouped_access[granter] = {
+                        "userProfile": {"username": granter},
+                        "accessTypes": []
+                    }
+                grouped_access[granter]["accessTypes"].append(access_type)
+        
+        # Convert to list
+        formatted_access = list(grouped_access.values())
         
         return {
             "success": True,
-            "receivedAccess": access_grants,
-            "access": access_grants  # Alternative key for compatibility
+            "receivedAccess": formatted_access,
+            "access": formatted_access  # Alternative key for compatibility
         }
         
     except Exception as error:
@@ -54,9 +73,9 @@ async def get_granted_pii_access(
         logger.info(f"📤 Fetching granted PII access by {username}")
         
         # Find all PII access grants where this user is the owner
-        access_grants = await db.piiaccess.find({
-            "ownerUsername": username,
-            "status": "active"
+        access_grants = await db.pii_access.find({
+            "granterUsername": username,
+            "isActive": True
         }).to_list(length=None)
         
         logger.info(f"✅ Found {len(access_grants)} granted PII access")

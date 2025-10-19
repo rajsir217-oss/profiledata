@@ -4,6 +4,7 @@
   background: var(--card-bg, white);
   border-radius: 12px;
   padding: 16px;
+  padding-bottom: 12px;
   cursor: pointer;
   transition: all 0.3s ease;
   border: 1px solid #e5e7eb;
@@ -11,6 +12,7 @@
   flex-direction: column;
   gap: 12px;
   position: relative;
+  overflow: visible;
 }
 
 .user-card:hover {
@@ -117,10 +119,14 @@
 /* Actions Section */
 .user-card-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-end;
-  padding-top: 8px;
+  padding-top: 12px;
+  padding-bottom: 8px;
   border-top: 1px solid #e5e7eb;
+  margin-top: auto;
+  min-height: 56px;
+  align-items: center;
 }
 
 .user-action-btn {

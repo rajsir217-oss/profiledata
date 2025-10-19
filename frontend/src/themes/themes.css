@@ -47,6 +47,8 @@
   --info-hover: #c7d2fe;
   --danger-light: #ffebee;
   --danger-hover: #ffcdd2;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   /* Typography - Friendly fonts */
   --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, sans-serif;
@@ -196,6 +198,8 @@ body.theme-dark {
   --info-hover: #5b21b6;
   --danger-light: #7f1d1d;
   --danger-hover: #991b1b;
+  --warning-light: #78350f;
+  --warning-dark: #fef3c7;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -364,6 +368,8 @@ body.theme-light-pink {
   --info-hover: #fbcfe8;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -471,6 +477,8 @@ body.theme-light-gray {
   --info-hover: #bfdbfe;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -544,6 +552,8 @@ body.theme-ultra-light-gray {
   --info-hover: #bae6fd;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);

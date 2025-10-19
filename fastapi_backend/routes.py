@@ -3199,7 +3199,7 @@ async def approve_pii_request(
             }
         )
         
-        # Grant access
+        # Grant access - handle individual picture durations for image access
         access_data = {
             "granterUsername": username,
             "grantedToUsername": request["requesterUsername"],
@@ -3209,6 +3209,33 @@ async def approve_pii_request(
             "isActive": True,
             "createdAt": datetime.utcnow()
         }
+        
+        # Add picture-specific durations if provided (for image access)
+        if approve_data.pictureDurations and request["requestType"] == "images":
+            logger.info(f"📸 Processing individual picture durations: {approve_data.pictureDurations}")
+            picture_access = {}
+            
+            for idx, duration in approve_data.pictureDurations.items():
+                if duration == 'onetime':
+                    picture_access[idx] = {
+                        "duration": "onetime",
+                        "viewedAt": None,  # Track when one-time view is used
+                        "isExpired": False
+                    }
+                elif duration == 'permanent':
+                    picture_access[idx] = {
+                        "duration": "permanent",
+                        "expiresAt": None
+                    }
+                elif isinstance(duration, (int, str)) and str(duration).isdigit():
+                    days = int(duration)
+                    picture_access[idx] = {
+                        "duration": days,
+                        "expiresAt": datetime.utcnow() + timedelta(days=days)
+                    }
+            
+            access_data["pictureDurations"] = picture_access
+            logger.info(f"🖼️ Picture access configured: {picture_access}")
         
         logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
