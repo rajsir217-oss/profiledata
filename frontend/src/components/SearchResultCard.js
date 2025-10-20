@@ -145,28 +145,17 @@ const SearchResultCard = ({
     if (!isOwnProfile && !hasImageAccess) {
       return (
         <div className="profile-image-container">
-          <div className="profile-thumbnail-placeholder">
-            <span className="no-image-icon">🔒</span>
-          </div>
-          <div className="image-access-overlay">
-            <p className="text-muted small">
-              {isImageRequestPending ? '📨 Request Sent - Awaiting Approval' : 'Images Locked'}
-            </p>
-            {onPIIRequest && (
-              <button
-                className={`btn btn-sm btn-primary ${piiStatus.className}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onPIIRequest(user);
-                }}
-              >
-                {piiStatus.text}
-              </button>
-            )}
-          </div>
-          {/* Online Status Badge */}
-          <div className="status-badge-absolute">
-            <OnlineStatusBadge username={user.username} size="medium" />
+          <div className="profile-thumbnail-locked">
+            <div className="locked-overlay">
+              <span className="no-image-icon">👤</span>
+              <p className="text-muted small">
+                {isImageRequestPending ? '📨 Request Sent - Awaiting Approval' : 'Images Locked'}
+              </p>
+            </div>
+            {/* Online Status Badge */}
+            <div className="status-badge-absolute">
+              <OnlineStatusBadge username={user.username} size="medium" />
+            </div>
           </div>
         </div>
       );
@@ -435,9 +424,9 @@ const SearchResultCard = ({
                         e.stopPropagation();
                         onPIIRequest(user);
                       }}
-                      title="Request access to contact info"
+                      title={`Request access to contact info (${piiStatus.text})`}
                     >
-                      🔒 {piiStatus.text}
+                      🔒
                     </button>
                   </div>
                 )}
