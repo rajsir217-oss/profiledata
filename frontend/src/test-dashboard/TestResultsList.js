@@ -112,34 +112,35 @@ const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
       <div className="results-grid">
         {resultsArray.map((result) => (
           <div key={result.id} className="result-card">
-            <div className="result-header">
-              <div className="result-header-content" onClick={() => toggleExpanded(result.id)}>
-                <div className="result-info">
-                  <span className="result-type">{result.test_type}</span>
-                  <span className="result-timestamp">
-                    {new Date(result.timestamp).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="result-status">
-                  <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(result.status) }}
-                  >
-                    {getStatusIcon(result.status)} {result.status}
-                  </span>
+            <div className="result-header" onClick={() => toggleExpanded(result.id)}>
+              <div className="result-left">
+                <div className="result-type">{result.test_type}</div>
+                <div className="result-timestamp">
+                  {new Date(result.timestamp).toLocaleString()}
                 </div>
               </div>
-              {isAdmin && (
-                <button
-                  className="btn btn-delete"
-                  onClick={() => handleDeleteResult(result.id)}
-                  disabled={deletingId === result.id}
-                  title="Admin only: Delete this test result"
+              
+              <div className="result-right">
+                <span
+                  className="result-status-badge"
+                  style={{ backgroundColor: getStatusColor(result.status) }}
                 >
-                  {deletingId === result.id ? '...' : '🗑️'}
-                </button>
-              )}
+                  {getStatusIcon(result.status)} {result.status}
+                </span>
+                {isAdmin && (
+                  <button
+                    className="btn btn-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteResult(result.id);
+                    }}
+                    disabled={deletingId === result.id}
+                    title="Admin only: Delete this test result"
+                  >
+                    {deletingId === result.id ? '...' : '🗑️'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="result-summary">
