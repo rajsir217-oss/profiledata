@@ -20,6 +20,7 @@ import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
 import Preferences from './components/Preferences';
 import PIIManagement from './components/PIIManagement';
+import NotificationPreferences from './components/NotificationPreferences';
 import Testimonials from './components/Testimonials';
 import ContactUs from './components/ContactUs';
 import AdminContactManagement from './components/AdminContactManagement';
@@ -205,6 +206,7 @@ function App() {
               <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
+              <Route path="/notifications" element={<ProtectedRoute><NotificationPreferences /></ProtectedRoute>} />
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />

@@ -154,6 +154,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/pii-management'),
         disabled: !isActive
       },
+      { 
+        icon: '🔔', 
+        label: 'Notifications', 
+        subLabel: 'Manage preferences',
+        action: () => navigate('/notifications'),
+        disabled: !isActive
+      },
     ];
 
     // Add Admin section for admin user
