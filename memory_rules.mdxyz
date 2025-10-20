@@ -1,0 +1,70 @@
+Make a permanent memory for project:"profiledata"
+
+## 🧠 **CORE RULES & REQUIREMENTS**
+
+### **1. Theme-Aware CSS (CRITICAL - ALWAYS ENFORCE)**
+- ❌ **NEVER** use hardcoded colors like `#667eea`, `#333`, `rgb()`
+- ✅ **ALWAYS** use CSS variables: `var(--primary-color)`, `var(--text-color)`, etc.
+- 📋 5 Themes: Cozy Light, Dark, Light Pink, Light Gray, Ultra Light Gray
+- 🎨 Variables: `--primary-color`, `--secondary-color`, `--background-color`, `--text-color`, `--border-color`, `--success-color`, `--danger-color`, `--warning-light`, `--warning-dark`, etc.
+
+### **2. Component Synchronization Requirements**
+
+**UserCard & SearchResultCard MUST stay identical:**
+- Look & feel (styling, colors, spacing including action button placement and sizes)
+- Functionalities (buttons, actions)
+- PII access display (badges, status indicators)
+- Files: `UserCard.js/css`, `SearchResultCard.js/css`
+
+**Dashboard, SearchPage & L3V3LMatches MUST be consistent:**
+- Same user card components and its css styles and actions and functionalities
+- Same filter panels
+- Same PII access handling
+- Same action handlers (favorite, shortlist, exclude, message, PII request)
+
+---
+
+## 🏗️ **PROJECT STRUCTURE**
+
+### **Frontend** (`/frontend/`)
+```
+/src
+  /components  - React components (48 files)
+  /themes      - themes.css (5 themes)
+  /services    - API, socket services
+  /utils       - Utility functions
+  api.js       - Axios client
+```
+
+**Key Pages:** Dashboard, SearchPage, L3V3LMatches, Profile, Register, EditProfile, PIIManagement
+
+**Key Components:** UserCard, SearchResultCard, ImageManagerModal, PIIRequestModal, MessageModal
+
+### **Backend** (`/fastapi_backend/`)
+```
+main.py         - FastAPI entry point
+routes.py       - Main routes
+routes_*.py     - Feature routes (PII, images, messages)
+database.py     - MongoDB connection
+models.py       - Pydantic models
+```
+
+
+
+## 🗄️ **DATABASE COLLECTIONS**
+- `users` - User profiles
+- `pii_requests` - PII access requests
+- `pii_access` - Active grants (now with `pictureDurations`)
+- `favorites`, `shortlist`, `exclusions` - User interactions
+- `messages` - User messages
+- `dynamic_jobs` - Scheduler jobs
+
+---
+
+## 🎨 **TECH STACK**
+- **Frontend**: React, Axios, Socket.IO
+- **Backend**: FastAPI, Motor (async MongoDB), Redis
+- **Database**: MongoDB
+- **Real-time**: Socket.IO + SSE
+- **Auth**: JWT via [auth/jwt_auth.py](cci:7://file:///Users/rajsiripuram02/opt/appsrc/profiledata/fastapi_backend/Users/rajsiripuram02/opt/appsrc/profiledata/fastapi_backend/auth/jwt_auth.py:0:0-0:0), `auth/password_utils.py`
+
