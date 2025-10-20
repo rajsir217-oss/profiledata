@@ -142,18 +142,19 @@
 }
 
 .jobs-table thead {
-  background: var(--surface-color);
-  border-bottom: 2px solid var(--divider-color);
+  background: var(--primary-color) !important;
+  border-bottom: 2px solid var(--primary-color);
 }
 
 .jobs-table th {
   padding: 1rem;
   text-align: left;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: white !important; /* Ensure visibility on primary color background */
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  background: var(--primary-color) !important;
 }
 
 .jobs-table tbody tr {
