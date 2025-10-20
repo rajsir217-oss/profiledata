@@ -110,7 +110,7 @@
   padding: 12px 15px;
   vertical-align: middle;
   border-bottom: 1px solid var(--border-color);
-  color: var(--text-color);
+  color: var(--text-color) !important; /* Force visibility */
 }
 
 /* Prevent wrapping for contact numbers */
@@ -715,128 +715,57 @@
 }
 
 .theme-light .status-modal-body h3,
-.theme-light .status-modal-body .current-status {
-  color: #1f2937 !important;
+.theme-light .status-modal-body .current-status,
+.theme-light-pink .status-modal-body h3,
+.theme-light-pink .status-modal-body .current-status {
+  color: var(--text-color) !important;
 }
 
-
-.theme-light-pink .status-modal {
-  background: white !important;
+.theme-light-pink .status-modal,
+.theme-light-gray .status-modal,
+.theme-ultra-light-gray .status-modal {
+  background: var(--card-background) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
 }
 
-
-.theme-light-pink .status-modal-body {
-  background: white !important;
-}
-
-.theme-light-pink .status-modal-body h3,
-.theme-light-pink .status-modal-body .current-status {
-  color: #1f2937 !important;
-}
-
-
-.theme-light-gray .status-modal {
-  background: white !important;
-}
-
-
-.theme-light-gray .status-modal-body {
-  background: white !important;
-}
-
-
-.theme-ultra-light-gray .status-modal {
-  background: white !important;
-}
-
-
+.theme-light-pink .status-modal-body,
+.theme-light-gray .status-modal-body,
 .theme-ultra-light-gray .status-modal-body {
-  background: white !important;
+  background: var(--card-background) !important;
 }
-
 
 /* Cozy Night (Dark) Theme */
 .theme-dark .status-modal {
-  background: #2a2438 !important;
+  background: var(--card-background) !important;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
 }
 
-
 .theme-dark .status-modal-body {
-  background: #2a2438 !important;
+  background: var(--card-background) !important;
 }
 
-.theme-dark .status-modal-body h3 {
-  color: #f9fafb !important;
-}
-
+.theme-dark .status-modal-body h3,
 .theme-dark .status-modal-body .current-status {
-  color: #e5e7eb !important;
+  color: var(--text-color) !important;
 }
 
-/* Theme-aware table headers */
-.theme-light .admin-table thead {
-  background: #6366f1 !important;
+/* Theme-aware table headers - using CSS variables */
+/* Headers already use var(--primary-color) from line 78-92, no hardcoded overrides needed */
+
+/* Ensure tbody text is always visible regardless of background */
+.admin-table tbody td {
+  color: var(--text-color) !important;
 }
 
-.theme-light .admin-table thead tr {
-  background: #6366f1 !important;
+/* For light backgrounds, ensure dark text */
+.theme-light .admin-table tbody td,
+.theme-light-pink .admin-table tbody td,
+.theme-light-gray .admin-table tbody td,
+.theme-ultra-light-gray .admin-table tbody td {
+  color: var(--text-color) !important;
 }
 
-.theme-light .admin-table thead th {
-  background: #6366f1 !important;
-  color: #ffffff !important;
-}
-
-.theme-dark .admin-table thead {
-  background: #7c3aed !important;
-}
-
-.theme-dark .admin-table thead tr {
-  background: #7c3aed !important;
-}
-
-.theme-dark .admin-table thead th {
-  background: #7c3aed !important;
-  color: #ffffff !important;
-}
-
-.theme-light-pink .admin-table thead {
-  background: #ec4899 !important;
-}
-
-.theme-light-pink .admin-table thead tr {
-  background: #ec4899 !important;
-}
-
-.theme-light-pink .admin-table thead th {
-  background: #ec4899 !important;
-  color: #ffffff !important;
-}
-
-.theme-light-gray .admin-table thead {
-  background: #64748b !important;
-}
-
-.theme-light-gray .admin-table thead tr {
-  background: #64748b !important;
-}
-
-.theme-light-gray .admin-table thead th {
-  background: #64748b !important;
-  color: #ffffff !important;
-}
-
-.theme-ultra-light-gray .admin-table thead {
-  background: #475569 !important;
-}
-
-.theme-ultra-light-gray .admin-table thead tr {
-  background: #475569 !important;
-}
-
-.theme-ultra-light-gray .admin-table thead th {
-  background: #475569 !important;
-  color: #ffffff !important;
+/* For dark backgrounds, ensure light text */
+.theme-dark .admin-table tbody td {
+  color: var(--text-color) !important;
 }
