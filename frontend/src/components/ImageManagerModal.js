@@ -110,7 +110,7 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
                       <td className="picture-label">
                         <img 
                           src={image} 
-                          alt={`Photo ${index + 1}`} 
+                          alt={`${requester?.firstName || 'User'}'s profile ${index + 1}`} 
                           className="picture-thumbnail"
                         />
                         <div className="picture-text">
