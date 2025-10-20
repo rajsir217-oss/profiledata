@@ -113,6 +113,16 @@
   color: var(--text-color) !important; /* Force visibility */
 }
 
+/* Nuclear option: Ensure text is ALWAYS visible on light backgrounds */
+.admin-table tbody td:not(.text-center) {
+  color: #1f2937 !important; /* Dark gray text for maximum visibility */
+}
+
+/* Dark theme exception */
+.theme-dark .admin-table tbody td:not(.text-center) {
+  color: #f9fafb !important; /* Light text for dark background */
+}
+
 /* Prevent wrapping for contact numbers */
 .admin-table tbody td:nth-child(6) {
   white-space: nowrap;
