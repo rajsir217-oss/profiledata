@@ -141,7 +141,14 @@ class NotificationPreferences(BaseModel):
     )
     
     # Quiet hours
-    quietHours: QuietHours = Field(default_factory=QuietHours)
+    quietHours: QuietHours = Field(
+        default_factory=lambda: QuietHours(
+            enabled=True,
+            start="22:00",
+            end="08:00",
+            timezone="UTC"
+        )
+    )
     
     # Rate limiting
     rateLimit: Dict[NotificationChannel, RateLimit] = Field(

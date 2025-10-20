@@ -327,6 +327,85 @@ export const imageAccess = {
   }
 };
 
+// Notifications API - uses separate axios instance to avoid baseURL conflicts
+const notificationsApi = axios.create({
+  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+});
+
+// Add auth token interceptor for notificationsApi
+notificationsApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    console.log(`🔑 Notifications API ${config.method.toUpperCase()} ${config.url}`, {
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+    });
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ No token found in localStorage for notifications API');
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+notificationsApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      console.error('Unauthorized access to notifications API - token may be invalid or expired');
+      // Don't auto-redirect - let the main API interceptor handle it
+      // This prevents double redirects when multiple APIs fail
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const notifications = {
+  // Get notification preferences
+  getPreferences: async () => {
+    try {
+      const response = await notificationsApi.get('/api/notifications/preferences');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update notification preferences
+  updatePreferences: async (preferences) => {
+    try {
+      console.log('📤 Updating preferences:', preferences);
+      const response = await notificationsApi.put('/api/notifications/preferences', preferences);
+      console.log('✅ Update successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        message: error.message
+      });
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reset to defaults
+  resetPreferences: async () => {
+    try {
+      const response = await notificationsApi.post('/api/notifications/preferences/reset');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  }
+};
+
 export default api;
 
 

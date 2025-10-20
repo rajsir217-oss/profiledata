@@ -47,6 +47,8 @@ class NotificationService:
     
     async def create_default_preferences(self, username: str) -> NotificationPreferences:
         """Create default preferences for new user"""
+        from models.notification_models import QuietHours, SMSOptimization
+        
         default_prefs = NotificationPreferences(
             username=username,
             channels={
@@ -61,7 +63,20 @@ class NotificationService:
                     NotificationTrigger.PROFILE_VIEW: "daily",
                     NotificationTrigger.NEW_MESSAGE: "hourly"
                 }
-            }
+            },
+            quietHours=QuietHours(
+                enabled=True,
+                start="22:00",
+                end="08:00",
+                timezone="UTC",
+                exceptions=[NotificationTrigger.PII_REQUEST, NotificationTrigger.SUSPICIOUS_LOGIN]
+            ),
+            smsOptimization=SMSOptimization(
+                verifiedUsersOnly=True,
+                priorityOnly=False,
+                costLimit=100.00,
+                dailyLimit=10
+            )
         )
         
         await self.preferences_collection.insert_one(default_prefs.dict())

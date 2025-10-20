@@ -58,7 +58,7 @@ class EmailNotifierTemplate(JobTemplate):
             "testEmail": None
         }
     
-    def get_param_schema(self) -> Dict[str, Any]:
+    def get_schema(self) -> Dict[str, Any]:
         """Get parameter schema for UI"""
         return {
             "batchSize": {

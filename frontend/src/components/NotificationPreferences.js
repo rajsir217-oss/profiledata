@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import { notifications } from '../api';
 import './NotificationPreferences.css';
 
 const NotificationPreferences = () => {
@@ -7,6 +7,7 @@ const NotificationPreferences = () => {
   const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState(null);
   const [toast, setToast] = useState(null);
+  const [authError, setAuthError] = useState(false);
 
   // Notification triggers grouped by category
   const triggers = {
@@ -45,16 +46,40 @@ const NotificationPreferences = () => {
   const channels = ['email', 'sms', 'push'];
 
   useEffect(() => {
+    // Debug: Check authentication
+    const token = localStorage.getItem('token');
+    const username = localStorage.getItem('username');
+    console.log('🔐 Auth check:', { 
+      hasToken: !!token, 
+      tokenPreview: token?.substring(0, 20) + '...',
+      username 
+    });
+    
     fetchPreferences();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchPreferences = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/notifications/preferences');
-      setPreferences(response.data);
+      console.log('📡 Fetching notification preferences...');
+      const data = await notifications.getPreferences();
+      console.log('✅ Preferences loaded:', data);
+      setPreferences(data);
     } catch (error) {
-      showToast('Failed to load preferences', 'error');
+      console.error('❌ Failed to load preferences:', error);
+      console.error('Error details:', {
+        status: error.response?.status,
+        message: error.response?.data?.detail || error.message
+      });
+      
+      // Show more helpful error message
+      if (error.response?.status === 401) {
+        setAuthError(true);
+        showToast('Session expired. Please log in again.', 'error');
+      } else {
+        showToast('Failed to load preferences', 'error');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,7 +123,7 @@ const NotificationPreferences = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await api.put('/notifications/preferences', {
+      await notifications.updatePreferences({
         channels: preferences.channels,
         quietHours: preferences.quietHours,
         smsOptimization: preferences.smsOptimization
@@ -116,7 +141,7 @@ const NotificationPreferences = () => {
     
     try {
       setSaving(true);
-      await api.post('/notifications/preferences/reset');
+      await notifications.resetPreferences();
       await fetchPreferences();
       showToast('Preferences reset to defaults', 'success');
     } catch (error) {
@@ -147,7 +172,23 @@ const NotificationPreferences = () => {
       <div className="notification-preferences">
         <div className="error-container">
           <p>❌ Failed to load notification preferences</p>
-          <button onClick={fetchPreferences}>Retry</button>
+          {authError ? (
+            <div>
+              <p style={{ marginTop: '10px', color: 'var(--warning-color)' }}>
+                🔒 Your session has expired
+              </p>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+                <button onClick={() => window.location.href = '/login'}>
+                  🔑 Log In Again
+                </button>
+                <button onClick={fetchPreferences} className="secondary">
+                  🔄 Retry
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button onClick={fetchPreferences}>Retry</button>
+          )}
         </div>
       </div>
     );

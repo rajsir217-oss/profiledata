@@ -19,7 +19,7 @@ from models.notification_models import (
 )
 from services.notification_service import NotificationService
 from database import get_database
-from auth import get_current_user
+from auth.jwt_auth import get_current_user_dependency as get_current_user
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -35,26 +35,29 @@ def get_notification_service(db=Depends(get_database)) -> NotificationService:
 
 @router.get("/preferences", response_model=NotificationPreferences)
 async def get_notification_preferences(
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
-    """Get user's notification preferences"""
-    prefs = await service.get_preferences(current_user)
+    """Get user's notification preferences (creates defaults if not found)"""
+    print(f"✅ GET /preferences - User: {current_user.get('username')}")
+    prefs = await service.get_preferences(current_user["username"])
     if not prefs:
-        raise HTTPException(status_code=404, detail="Preferences not found")
+        # Auto-create default preferences for new users
+        prefs = await service.create_default_preferences(current_user["username"])
     return prefs
 
 
 @router.put("/preferences", response_model=NotificationResponse)
 async def update_notification_preferences(
     updates: NotificationPreferencesUpdate,
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Update user's notification preferences"""
+    print(f"✅ PUT /preferences - User: {current_user.get('username')}, Updates: {updates.dict(exclude_unset=True)}")
     try:
         prefs = await service.update_preferences(
-            current_user,
+            current_user["username"],
             updates.dict(exclude_unset=True)
         )
         return NotificationResponse(
@@ -63,6 +66,7 @@ async def update_notification_preferences(
             data=prefs.dict()
         )
     except Exception as e:
+        print(f"❌ PUT /preferences - Error: {e}")
         return NotificationResponse(
             success=False,
             message="Failed to update preferences",
@@ -72,16 +76,16 @@ async def update_notification_preferences(
 
 @router.post("/preferences/reset", response_model=NotificationResponse)
 async def reset_notification_preferences(
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Reset preferences to defaults"""
     try:
         # Delete existing preferences
-        await service.preferences_collection.delete_one({"username": current_user})
+        await service.preferences_collection.delete_one({"username": current_user["username"]})
         
         # Create new defaults
-        prefs = await service.create_default_preferences(current_user)
+        prefs = await service.create_default_preferences(current_user["username"])
         
         return NotificationResponse(
             success=True,
@@ -103,7 +107,7 @@ async def reset_notification_preferences(
 @router.post("/send", response_model=NotificationResponse)
 async def send_notification(
     notification: NotificationQueueCreate,
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """
@@ -135,12 +139,12 @@ async def send_notification(
 async def get_notification_queue(
     status: Optional[str] = Query(None),
     limit: int = Query(50, le=100),
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification queue (admin only or user's own notifications)"""
     # TODO: Add admin check
-    query = {"username": current_user}
+    query = {"username": current_user["username"]}
     
     if status:
         query["status"] = status
@@ -157,7 +161,7 @@ async def get_notification_queue(
 @router.delete("/queue/{notification_id}", response_model=NotificationResponse)
 async def cancel_notification(
     notification_id: str,
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Cancel a pending notification"""
@@ -165,7 +169,7 @@ async def cancel_notification(
         result = await service.queue_collection.update_one(
             {
                 "_id": notification_id,
-                "username": current_user,
+                "username": current_user["username"],
                 "status": {"$in": ["pending", "scheduled"]}
             },
             {"$set": {"status": "cancelled", "updatedAt": datetime.utcnow()}}
@@ -195,7 +199,7 @@ async def get_notification_analytics(
     trigger: Optional[NotificationTrigger] = Query(None),
     channel: Optional[NotificationChannel] = Query(None),
     days: int = Query(30, ge=1, le=365),
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification analytics for current user"""
@@ -203,7 +207,7 @@ async def get_notification_analytics(
     start_date = end_date - timedelta(days=days)
     
     stats = await service.get_analytics(
-        username=current_user,
+        username=current_user["username"],
         trigger=trigger,
         channel=channel,
         start_date=start_date,
@@ -211,7 +215,7 @@ async def get_notification_analytics(
     )
     
     return NotificationAnalytics(
-        username=current_user,
+        username=current_user["username"],
         trigger=trigger,
         channel=channel,
         startDate=start_date,
@@ -225,12 +229,12 @@ async def get_global_analytics(
     trigger: Optional[NotificationTrigger] = Query(None),
     channel: Optional[NotificationChannel] = Query(None),
     days: int = Query(30, ge=1, le=365),
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get global notification analytics (admin only)"""
     # TODO: Add admin check
-    if current_user != "admin":
+    if current_user["username"] != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     end_date = datetime.utcnow()
@@ -294,13 +298,13 @@ async def track_notification_click(
 
 @router.post("/unsubscribe", response_model=NotificationResponse)
 async def unsubscribe_all(
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Unsubscribe from all notifications"""
     try:
         await service.update_preferences(
-            current_user,
+            current_user["username"],
             {
                 "channels": {},  # Clear all channel preferences
                 "updatedAt": datetime.utcnow()
@@ -322,19 +326,19 @@ async def unsubscribe_all(
 @router.post("/unsubscribe/{trigger}", response_model=NotificationResponse)
 async def unsubscribe_trigger(
     trigger: NotificationTrigger,
-    current_user: str = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
     """Unsubscribe from specific notification type"""
     try:
-        prefs = await service.get_preferences(current_user)
+        prefs = await service.get_preferences(current_user["username"])
         
         # Remove trigger from channels
         if trigger in prefs.channels:
             del prefs.channels[trigger]
         
         await service.update_preferences(
-            current_user,
+            current_user["username"],
             {"channels": prefs.channels, "updatedAt": datetime.utcnow()}
         )
         

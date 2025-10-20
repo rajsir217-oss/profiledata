@@ -66,9 +66,10 @@ const ProtectedRoute = ({ children }) => {
   const isOwnProfile = location.pathname === `/profile/${currentUsername}`;
   const isEditProfile = location.pathname === '/edit-profile';
   const isPreferences = location.pathname === '/preferences';
+  const isNotifications = location.pathname === '/notifications';
   
-  // Allow access to own profile, edit profile, and preferences regardless of status
-  if (isOwnProfile || isEditProfile || isPreferences) {
+  // Allow access to own profile, edit profile, preferences, and notifications regardless of status
+  if (isOwnProfile || isEditProfile || isPreferences || isNotifications) {
     return children;
   }
 

@@ -60,6 +60,9 @@ models.py       - Pydantic models
 - `dynamic_jobs` - Scheduler jobs
 
 ---
+## 🎨 **SCHEDULING ENGINE**
+- Make sure only dynamic jobs are used
+- Make sure only one scheduler engine is used
 
 ## 🎨 **TECH STACK**
 - **Frontend**: React, Axios, Socket.IO
