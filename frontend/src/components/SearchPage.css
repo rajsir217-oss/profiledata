@@ -2765,3 +2765,226 @@
     padding: 5px 12px;
   }
 }
+
+/* ========================================
+   CLEANER SEARCH CARD REDESIGN - 2025
+   ======================================== */
+
+/* Detail lines with better spacing */
+.detail-line {
+  margin: 6px 0 !important;
+  font-size: 14px !important;
+  line-height: 1.6 !important;
+  color: var(--text-secondary) !important;
+}
+
+/* Compact badges - subtle and minimal */
+.user-badges-compact {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.badge-subtle {
+  background: var(--surface-color) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  font-size: 12px !important;
+  padding: 4px 10px !important;
+  border-radius: 4px !important;
+  font-weight: 500 !important;
+}
+
+/* Compact PII Section */
+.pii-section-compact {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider-color);
+}
+
+.btn-pii-request {
+  background: var(--info-light) !important;
+  color: var(--info-color) !important;
+  border: 1px solid var(--info-color) !important;
+  padding: 6px 14px !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-pii-request:hover {
+  background: var(--info-color) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pii-granted-compact {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--divider-color);
+}
+
+.pii-status-badge {
+  background: var(--success-light) !important;
+  color: var(--success-color) !important;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+/* ========================================
+   CLEANER ACTION BUTTONS LAYOUT
+   ======================================== */
+
+.card-actions-clean {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 0 0 0;
+  border-top: 1px solid var(--divider-color);
+  margin-top: 16px;
+}
+
+.actions-primary {
+  display: flex;
+  gap: 10px;
+  flex: 1;
+}
+
+.btn-action-primary {
+  flex: 1;
+  background: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 150px;
+}
+
+.btn-action-primary:hover {
+  background: var(--primary-color) !important;
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-action-secondary {
+  flex: 1;
+  background: var(--surface-color) !important;
+  color: var(--primary-color) !important;
+  border: 1px solid var(--primary-color) !important;
+  padding: 10px 16px !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: 150px;
+}
+
+.btn-action-secondary:hover {
+  background: var(--primary-color) !important;
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.actions-secondary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-icon {
+  background: var(--surface-color) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-color) !important;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  background: var(--hover-background) !important;
+  border-color: var(--primary-color) !important;
+  transform: scale(1.1);
+}
+
+.btn-icon.active {
+  background: var(--primary-color) !important;
+  color: white !important;
+  border-color: var(--primary-color) !important;
+}
+
+.btn-icon-danger {
+  color: var(--danger-color) !important;
+}
+
+.btn-icon-danger:hover {
+  background: var(--danger-light) !important;
+  border-color: var(--danger-color) !important;
+}
+
+.btn-icon-danger.active {
+  background: var(--danger-color) !important;
+  color: white !important;
+}
+
+/* Card spacing improvements */
+.result-card {
+  margin-bottom: 24px !important; /* More space between cards */
+}
+
+.result-card .card {
+  border: 1px solid var(--border-color) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06) !important; /* Softer shadow */
+  transition: all 0.3s ease !important;
+}
+
+.result-card .card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-2px);
+}
+
+.result-card .card-body {
+  padding: 24px !important; /* More breathing room */
+}
+
+/* Softer header gradient */
+.card-title-section {
+  background: linear-gradient(135deg, 
+    var(--primary-color) 0%, 
+    var(--secondary-color) 100%) !important;
+  padding: 14px 20px !important; /* Slightly more padding */
+  border-radius: 12px 12px 0 0 !important;
+}

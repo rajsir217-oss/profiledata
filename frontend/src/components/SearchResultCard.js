@@ -416,129 +416,107 @@ const SearchResultCard = ({
 
             <div className="user-details-right flex-grow-1">
               <div className="user-details">
-                <p><strong>📍</strong> {user.location}</p>
-                <p><strong>🎓</strong> {user.education}</p>
-                <p><strong>💼</strong> {user.occupation}</p>
-                <p><strong>📏</strong> {user.height}</p>
+                <p className="detail-line"><strong>📍</strong> {user.location}</p>
+                <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
+                <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
 
-                {/* PII Section */}
-                <div className="pii-section">
-                  <p>
-                    <strong>📧</strong> Email:
-                    {hasPiiAccess ? (
-                      <span className="pii-data"> {user.contactEmail}</span>
-                    ) : isPiiRequestPending ? (
-                      <span className="pii-masked pii-request-pending"> [Request Sent 📨] </span>
-                    ) : (
-                      <span className="pii-masked"> [Request Access] </span>
-                    )}
-                    {!hasPiiAccess && onPIIRequest && (
-                      <button
-                        className={`btn btn-sm btn-link pii-request-btn ${piiStatus.className}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPIIRequest(user);
-                        }}
-                      >
-                        {piiStatus.text}
-                      </button>
-                    )}
-                  </p>
-                  <p>
-                    <strong>📱</strong> Phone:
-                    {hasPiiAccess ? (
-                      <span className="pii-data"> {user.contactNumber}</span>
-                    ) : isPiiRequestPending ? (
-                      <span className="pii-masked pii-request-pending"> [Request Sent 📨] </span>
-                    ) : (
-                      <span className="pii-masked"> [Request Access] </span>
-                    )}
-                  </p>
+                {/* Simplified badges - max 2 priority tags */}
+                <div className="user-badges-compact">
+                  {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
+                  {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
                 </div>
-              </div>
 
-              <div className="user-badges">
-                {user.religion && <span className="badge bg-info">{user.religion}</span>}
-                {user.eatingPreference && <span className="badge bg-success">{user.eatingPreference}</span>}
-                {user.bodyType && <span className="badge bg-warning">{user.bodyType}</span>}
+                {/* PII Section - Cleaner */}
+                {!hasPiiAccess && onPIIRequest && (
+                  <div className="pii-section-compact">
+                    <button
+                      className={`btn-pii-request ${piiStatus.className}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPIIRequest(user);
+                      }}
+                      title="Request access to contact info"
+                    >
+                      🔒 {piiStatus.text}
+                    </button>
+                  </div>
+                )}
+                {hasPiiAccess && (
+                  <div className="pii-granted-compact">
+                    <span className="pii-status-badge">✓ Contact Info Granted</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
 
-          {/* Action Buttons */}
-          <div className="card-actions mt-3">
-            {showFavoriteButton && onFavorite && (
+          {/* Action Buttons - Simplified & Cleaner */}
+          <div className="card-actions-clean">
+            {/* Primary Actions */}
+            <div className="actions-primary">
               <button
-                className={`btn btn-sm ${isFavorited ? 'btn-warning' : 'btn-outline-warning'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite(user);
-                }}
-                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+                className="btn-action-primary"
+                onClick={() => navigate(`/profile/${user.username}`)}
+                title="View Full Profile"
               >
-                {isFavorited ? '⭐' : '☆'}
+                👁️ View Profile
               </button>
-            )}
+              
+              {showMessageButton && onMessage && (
+                <button
+                  className="btn-action-secondary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMessage(user);
+                  }}
+                  title="Send Message"
+                >
+                  💬 Message
+                </button>
+              )}
+            </div>
             
-            {showShortlistButton && onShortlist && (
-              <button
-                className={`btn btn-sm ${isShortlisted ? 'btn-info' : 'btn-outline-info'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShortlist(user);
-                }}
-                title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
-              >
-                {isShortlisted ? '✓📋' : '📋'}
-              </button>
-            )}
-            
-            {showMessageButton && onMessage && (
-              <button
-                className="btn btn-sm btn-outline-primary action-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMessage(user);
-                }}
-                title="Send Message"
-              >
-                💬
-              </button>
-            )}
-            
-            {showExcludeButton && onExclude && (
-              <button
-                className={`btn btn-sm ${isExcluded ? 'btn-danger' : 'btn-outline-danger'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExclude(user);
-                }}
-                title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
-              >
-                {isExcluded ? '🚫' : '❌'}
-              </button>
-            )}
-            
-            {showRemoveButton && onRemove && (
-              <button
-                className="btn btn-sm btn-outline-danger action-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(user);
-                }}
-                title={removeButtonLabel}
-              >
-                {removeButtonIcon}
-              </button>
-            )}
-            
-            <button
-              className="btn btn-sm btn-outline-primary action-btn"
-              onClick={() => navigate(`/profile/${user.username}`)}
-              title="View Profile"
-            >
-              👁️
-            </button>
+            {/* Secondary Actions (Icon Only) */}
+            <div className="actions-secondary">
+              {showFavoriteButton && onFavorite && (
+                <button
+                  className={`btn-icon ${isFavorited ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onFavorite(user);
+                  }}
+                  title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+                >
+                  {isFavorited ? '⭐' : '☆'}
+                </button>
+              )}
+              
+              {showShortlistButton && onShortlist && (
+                <button
+                  className={`btn-icon ${isShortlisted ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShortlist(user);
+                  }}
+                  title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+                >
+                  {isShortlisted ? '✓' : '📋'}
+                </button>
+              )}
+              
+              {showExcludeButton && onExclude && (
+                <button
+                  className={`btn-icon btn-icon-danger ${isExcluded ? 'active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onExclude(user);
+                  }}
+                  title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+                >
+                  ❌
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
