@@ -154,13 +154,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/pii-management'),
         disabled: !isActive
       },
-      { 
-        icon: '🔔', 
-        label: 'Notifications', 
-        subLabel: 'Manage preferences',
-        action: () => navigate('/notifications'),
-        disabled: !isActive
-      },
     ];
 
     // Add Admin section for admin user
@@ -237,8 +230,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Add Settings before logout
     items.push({ 
       icon: '⚙️', 
-      label: 'My Settings', 
-      subLabel: 'Preferences & Theme',
+      label: 'Settings', 
+      subLabel: 'Preferences, Theme & Notifications',
       action: () => navigate('/preferences'),
       disabled: !isActive
     });

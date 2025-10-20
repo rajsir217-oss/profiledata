@@ -900,3 +900,189 @@ textarea {
 .theme-light-pink ::-webkit-scrollbar-thumb:hover {
   background: #ffaed0;
 }
+/* ========================================
+   ULTRA LIGHT GREEN THEME
+   ======================================== */
+body.theme-ultra-light-green {
+  /* Primary Colors - Fresh emerald green */
+  --primary-color: #10b981;
+  --secondary-color: #34d399;
+  --accent-color: #059669;
+  
+  /* Background Colors - Very light green tints */
+  --background-color: #f0fdf4;
+  --surface-color: #ffffff;
+  --card-background: #f9fdfb;
+  --hover-background: #d1fae5;
+  --active-background: #a7f3d0;
+  --selected-background: #d1fae5;
+  
+  /* Text Colors - Dark green for contrast */
+  --text-color: #064e3b;
+  --text-secondary: #047857;
+  --text-muted: #6b7280;
+  
+  /* Border Colors - Subtle green */
+  --border-color: #d1fae5;
+  --divider-color: #a7f3d0;
+  
+  /* Input Colors */
+  --input-bg: #ffffff;
+  --input-border: #d1fae5;
+  --input-focus: #10b981;
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --success-light: #d1fae5;
+  --success-hover: #059669;
+  --danger-color: #ef4444;
+  --danger-light: #fee2e2;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  --info-light: #dbeafe;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(16, 185, 129, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+  
+  /* Font */
+  font-family: var(--font-family);
+}
+
+.theme-ultra-light-green .dashboard-container,
+.theme-ultra-light-green .search-page,
+.theme-ultra-light-green .profile-container,
+.theme-ultra-light-green .unified-preferences-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-light-green .preferences-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .user-card,
+.theme-ultra-light-green .dashboard-section,
+.theme-ultra-light-green .stat-card,
+.theme-ultra-light-green .search-filters,
+.theme-ultra-light-green .settings-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-light-green .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-light-green .sidebar-item {
+  color: var(--text-color);
+}
+
+.theme-ultra-light-green .sidebar-item:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+}
+
+.theme-ultra-light-green .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border: 1px solid var(--primary-color);
+  color: white;
+}
+
+.theme-ultra-light-green .btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+}
+
+.theme-ultra-light-green .stat-value {
+  color: var(--primary-color);
+}
+
+.theme-ultra-light-green input:focus,
+.theme-ultra-light-green select:focus,
+.theme-ultra-light-green textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+}
+
+.theme-ultra-light-green .section-count {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.theme-ultra-light-green .online-badge {
+  color: #10b981;
+  background: white;
+}
+
+/* Scrollbar styling for ultra light green theme */
+.theme-ultra-light-green ::-webkit-scrollbar {
+  width: 12px;
+  background: #f0fdf4;
+}
+
+.theme-ultra-light-green ::-webkit-scrollbar-thumb {
+  background: #a7f3d0;
+  border-radius: 6px;
+}
+
+.theme-ultra-light-green ::-webkit-scrollbar-thumb:hover {
+  background: #6ee7b7;
+}
+
+/* Tab buttons */
+.theme-ultra-light-green .tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Theme card selected state */
+.theme-ultra-light-green .theme-card.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Toast notifications */
+.theme-ultra-light-green .toast-notification.success {
+  background: var(--success-color);
+}
+
+/* Table headers for admin pages */
+.theme-ultra-light-green .admin-table thead,
+.theme-ultra-light-green .admin-table th {
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+.theme-ultra-light-green .admin-table tbody td {
+  color: var(--text-color) !important;
+}
+
+/* Match score badges */
+.theme-ultra-light-green .match-score-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Excellent"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Great"] {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Good"] {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
+}
+
+/* Buttons */
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.email {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.sms {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.push {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}

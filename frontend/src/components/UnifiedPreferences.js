@@ -8,7 +8,6 @@ const UnifiedPreferences = () => {
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
-  const [currentUser, setCurrentUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -44,11 +43,11 @@ const UnifiedPreferences = () => {
       preview: { primary: '#a78bfa', secondary: '#c4b5fd', background: '#1a1625', text: '#e5e7eb' }
     },
     {
-      id: 'rose',
+      id: 'light-pink',
       name: 'Rose Garden',
       icon: '🌹',
       description: 'Romantic rose-tinted theme',
-      preview: { primary: '#f43f5e', secondary: '#fb7185', background: '#fff5f7', text: '#374151' }
+      preview: { primary: '#ec4899', secondary: '#f9a8d4', background: '#fff5f7', text: '#374151' }
     },
     {
       id: 'light-gray',
@@ -63,6 +62,13 @@ const UnifiedPreferences = () => {
       icon: '🤍',
       description: 'Ultra minimal white theme',
       preview: { primary: '#9ca3af', secondary: '#d1d5db', background: '#ffffff', text: '#111827' }
+    },
+    {
+      id: 'ultra-light-green',
+      name: 'Fresh Green',
+      icon: '🌿',
+      description: 'Clean and fresh light green theme',
+      preview: { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' }
     }
   ];
 
@@ -105,14 +111,10 @@ const UnifiedPreferences = () => {
   useEffect(() => {
     const loadAccountPreferences = async () => {
       try {
-        const username = localStorage.getItem('username');
-        if (username) {
-          const userPrefs = await getUserPreferences(username);
-          setCurrentUser(username);
-          if (userPrefs.theme) {
-            setSelectedTheme(userPrefs.theme);
-            document.documentElement.className = `theme-${userPrefs.theme}`;
-          }
+        const userPrefs = await getUserPreferences();
+        if (userPrefs.themePreference) {
+          setSelectedTheme(userPrefs.themePreference);
+          // Theme is already applied by App.js, no need to reapply here
         }
       } catch (error) {
         console.error('Error loading preferences:', error);
@@ -151,10 +153,12 @@ const UnifiedPreferences = () => {
   // Theme change handler
   const handleThemeChange = async (themeId) => {
     setSelectedTheme(themeId);
-    document.documentElement.className = `theme-${themeId}`;
+    // Apply theme to body element (CSS uses body.theme-*)
+    document.body.className = `theme-${themeId}`;
     
     try {
-      await updateUserPreferences(currentUser, { theme: themeId });
+      await updateUserPreferences({ themePreference: themeId });
+      console.log('✅ Theme saved to database:', themeId);
       showToast('Theme updated successfully!', 'success');
     } catch (error) {
       console.error('Error saving theme:', error);
@@ -180,7 +184,10 @@ const UnifiedPreferences = () => {
     setPasswordMessage({ type: '', text: '' });
 
     try {
-      await changePassword(currentUser, passwordData.currentPassword, passwordData.newPassword);
+      await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
       setPasswordMessage({ type: 'success', text: 'Password changed successfully!' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showToast('Password changed successfully!', 'success');
