@@ -439,34 +439,30 @@ const SearchResultCard = ({
             </div>
           </div>
 
-          {/* Action Buttons - Simplified & Cleaner */}
+          {/* Action Buttons - All Icons for Consistency */}
           <div className="card-actions-clean">
-            {/* Primary Actions */}
-            <div className="actions-primary">
+            {/* All actions as icon buttons */}
+            <div className="actions-all-icons">
               <button
-                className="btn-action-primary"
+                className="btn-icon btn-icon-primary"
                 onClick={() => navigate(`/profile/${user.username}`)}
                 title="View Full Profile"
               >
-                👁️ View Profile
+                👁️
               </button>
               
               {showMessageButton && onMessage && (
                 <button
-                  className="btn-action-secondary"
+                  className="btn-icon btn-icon-primary"
                   onClick={(e) => {
                     e.stopPropagation();
                     onMessage(user);
                   }}
                   title="Send Message"
                 >
-                  💬 Message
+                  💬
                 </button>
               )}
-            </div>
-            
-            {/* Secondary Actions (Icon Only) */}
-            <div className="actions-secondary">
               {showFavoriteButton && onFavorite && (
                 <button
                   className={`btn-icon ${isFavorited ? 'active' : ''}`}
