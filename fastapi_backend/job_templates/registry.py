@@ -146,6 +146,8 @@ def initialize_templates():
     from .test_scheduler import TestSchedulerTemplate
     from .ticket_cleanup import TicketCleanupTemplate
     from .message_stats_sync_template import MessageStatsSyncTemplate
+    from .email_notifier_template import EmailNotifierTemplate
+    from .sms_notifier_template import SMSNotifierTemplate
     
     registry = get_template_registry()
     
@@ -164,6 +166,10 @@ def initialize_templates():
     
     # Register maintenance job templates
     registry.register(MessageStatsSyncTemplate())
+    
+    # Register notification job templates
+    registry.register(EmailNotifierTemplate())
+    registry.register(SMSNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

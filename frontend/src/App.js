@@ -18,7 +18,7 @@ import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
 import Dashboard from './components/Dashboard';
-import Preferences from './components/Preferences';
+import UnifiedPreferences from './components/UnifiedPreferences';
 import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
 import ContactUs from './components/ContactUs';
@@ -48,9 +48,10 @@ import { getUserPreferences } from './api';
 const themes = {
   'light-blue': { primary: '#6366f1', secondary: '#a78bfa', background: '#fffbf7', text: '#374151' },
   'dark': { primary: '#a78bfa', secondary: '#c4b5fd', background: '#1a1625', text: '#e5e7eb' },
-  'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fdf2f8', text: '#4a5568' },
-  'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f8fafc', text: '#1e293b' },
-  'ultra-light-gray': { primary: '#475569', secondary: '#64748b', background: '#fcfcfd', text: '#0f172a' }
+  'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fff5f7', text: '#374151' },
+  'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f9fafb', text: '#1f2937' },
+  'ultra-light-gray': { primary: '#475569', secondary: '#64748b', background: '#fcfcfd', text: '#0f172a' },
+  'ultra-light-green': { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' }
 };
 
 const applyTheme = (themeId) => {
@@ -187,7 +188,7 @@ function App() {
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
-              <Route path="/preferences" element={<ProtectedRoute><Preferences /></ProtectedRoute>} />
+              <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
               <Route path="/admin/contact" element={<ProtectedRoute><AdminContactManagement /></ProtectedRoute>} />
@@ -205,6 +206,7 @@ function App() {
               <Route path="/messages" element={<ProtectedRoute><Messages /></ProtectedRoute>} />
               <Route path="/requests" element={<ProtectedRoute><Requests /></ProtectedRoute>} />
               <Route path="/pii-management" element={<ProtectedRoute><PIIManagement /></ProtectedRoute>} />
+              <Route path="/notifications" element={<Navigate to="/preferences" replace />} />
               <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />

@@ -10,6 +10,16 @@ This module provides enterprise-grade security features including:
 - Audit logging
 """
 
+# Legacy auth functions (for backward compatibility)
+from .legacy_auth import (
+    verify_password,
+    get_password_hash,
+    create_access_token,
+    get_current_user,
+    pwd_context,
+    oauth2_scheme
+)
+
 from .security_config import security_settings, SecuritySettings
 from .security_models import (
     EnhancedUser,
@@ -51,6 +61,14 @@ from .authorization import (
 )
 
 __all__ = [
+    # Legacy auth functions (backward compatibility)
+    'verify_password',
+    'get_password_hash',
+    'create_access_token',
+    'get_current_user',
+    'pwd_context',
+    'oauth2_scheme',
+    
     # Config
     'security_settings',
     'SecuritySettings',

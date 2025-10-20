@@ -1,0 +1,309 @@
+"""
+Email Notifier Job Template
+Processes email notification queue and sends emails
+"""
+
+import asyncio
+from datetime import datetime
+from typing import Dict, Any
+from pymongo.database import Database
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.image import MIMEImage
+import os
+
+from services.notification_service import NotificationService
+from models.notification_models import (
+    NotificationChannel,
+    NotificationStatus,
+    NotificationPriority
+)
+
+
+class EmailNotifierJob:
+    """Job to process and send email notifications"""
+    
+    # Job metadata
+    job_name = "email_notifier"
+    description = "Process email notification queue and send emails"
+    default_schedule = "every 5 minutes"
+    timeout = 300  # 5 minutes
+    
+    # Default parameters
+    default_parameters = {
+        "batchSize": 100,
+        "priority": ["critical", "high", "medium", "low"],
+        "respectQuietHours": True,
+        "testMode": False,
+        "testEmail": None
+    }
+    
+    def __init__(self, db: Database, parameters: Dict[str, Any]):
+        self.db = db
+        self.params = {**self.default_parameters, **parameters}
+        self.service = NotificationService(db)
+        
+        # Email configuration from environment
+        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
+        self.smtp_user = os.getenv("SMTP_USER")
+        self.smtp_password = os.getenv("SMTP_PASSWORD")
+        self.from_email = os.getenv("FROM_EMAIL", "noreply@datingapp.com")
+        self.from_name = os.getenv("FROM_NAME", "L3V3L Dating")
+        
+    async def execute(self) -> Dict[str, Any]:
+        """Execute the email notifier job"""
+        start_time = datetime.utcnow()
+        sent_count = 0
+        failed_count = 0
+        errors = []
+        
+        try:
+            # Get pending email notifications
+            notifications = await self.service.get_pending_notifications(
+                channel=NotificationChannel.EMAIL,
+                limit=self.params["batchSize"]
+            )
+            
+            if not notifications:
+                return {
+                    "success": True,
+                    "message": "No pending email notifications",
+                    "sentCount": 0,
+                    "failedCount": 0
+                }
+            
+            # Send emails
+            for notification in notifications:
+                try:
+                    # Skip if test mode and not test email
+                    if self.params["testMode"] and self.params.get("testEmail"):
+                        # Override recipient for testing
+                        recipient_email = self.params["testEmail"]
+                    else:
+                        # Get user email from database
+                        user = await self.db.users.find_one({"username": notification.username})
+                        if not user or not user.get("email"):
+                            raise Exception("User email not found")
+                        recipient_email = user["email"]
+                    
+                    # Render email content
+                    subject, body = await self._render_email(notification)
+                    
+                    # Send email
+                    await self._send_email(
+                        to_email=recipient_email,
+                        subject=subject,
+                        body=body,
+                        notification=notification
+                    )
+                    
+                    # Mark as sent
+                    await self.service.mark_as_sent(
+                        notification._id,
+                        NotificationChannel.EMAIL,
+                        success=True
+                    )
+                    
+                    # Log notification
+                    await self.service.log_notification(
+                        username=notification.username,
+                        trigger=notification.trigger,
+                        channel=NotificationChannel.EMAIL,
+                        priority=notification.priority,
+                        subject=subject,
+                        preview=body[:100],
+                        cost=0.0  # Email is free
+                    )
+                    
+                    sent_count += 1
+                    
+                except Exception as e:
+                    # Mark as failed
+                    await self.service.mark_as_sent(
+                        notification._id,
+                        NotificationChannel.EMAIL,
+                        success=False,
+                        error=str(e)
+                    )
+                    
+                    failed_count += 1
+                    errors.append(f"{notification.username}: {str(e)}")
+            
+            duration = (datetime.utcnow() - start_time).total_seconds()
+            
+            return {
+                "success": True,
+                "message": f"Processed {len(notifications)} email notifications",
+                "sentCount": sent_count,
+                "failedCount": failed_count,
+                "duration": duration,
+                "errors": errors[:10]  # Limit error list
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "message": "Email notifier job failed",
+                "error": str(e),
+                "sentCount": sent_count,
+                "failedCount": failed_count
+            }
+    
+    async def _render_email(self, notification) -> tuple:
+        """Render email subject and body from template"""
+        # Get template from database
+        template = await self.db.notification_templates.find_one({
+            "trigger": notification.trigger,
+            "channel": NotificationChannel.EMAIL,
+            "active": True
+        })
+        
+        if not template:
+            # Use default template
+            subject = f"New {notification.trigger} notification"
+            body = f"You have a new {notification.trigger} event."
+        else:
+            # Render template with variables
+            subject = self.service.render_template(
+                template.get("subject", ""),
+                notification.templateData
+            )
+            body = self.service.render_template(
+                template.get("bodyTemplate", ""),
+                notification.templateData
+            )
+        
+        return subject, body
+    
+    async def _send_email(
+        self,
+        to_email: str,
+        subject: str,
+        body: str,
+        notification
+    ) -> None:
+        """Send email via SMTP"""
+        if not self.smtp_user or not self.smtp_password:
+            raise Exception("SMTP credentials not configured")
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['From'] = f"{self.from_name} <{self.from_email}>"
+        msg['To'] = to_email
+        msg['Subject'] = subject
+        
+        # Add HTML part
+        html_body = self._create_html_email(body, notification)
+        msg.attach(MIMEText(html_body, 'html'))
+        
+        # Send via SMTP
+        with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+            server.starttls()
+            server.login(self.smtp_user, self.smtp_password)
+            server.send_message(msg)
+    
+    def _create_html_email(self, body: str, notification) -> str:
+        """Create HTML email with styling"""
+        # Get app URLs
+        app_url = os.getenv("APP_URL", "https://app.datingsite.com")
+        preferences_url = f"{app_url}/settings/notifications"
+        unsubscribe_url = f"{app_url}/api/notifications/unsubscribe/{notification.trigger}"
+        
+        # Add tracking pixel
+        tracking_pixel = f'<img src="{app_url}/api/notifications/track/open/{notification._id}" width="1" height="1" />'
+        
+        html = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 20px;
+                }}
+                .header {{
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 30px;
+                    text-align: center;
+                    border-radius: 12px 12px 0 0;
+                }}
+                .content {{
+                    background: #ffffff;
+                    padding: 30px;
+                    border: 1px solid #e0e0e0;
+                }}
+                .button {{
+                    display: inline-block;
+                    background: #667eea;
+                    color: white;
+                    padding: 12px 30px;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    margin: 20px 0;
+                }}
+                .footer {{
+                    background: #f5f5f5;
+                    padding: 20px;
+                    text-align: center;
+                    font-size: 12px;
+                    color: #666;
+                    border-radius: 0 0 12px 12px;
+                }}
+                .footer a {{
+                    color: #667eea;
+                    text-decoration: none;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>💜 {self.from_name}</h1>
+            </div>
+            <div class="content">
+                {body}
+            </div>
+            <div class="footer">
+                <p>
+                    You received this email because you enabled {notification.trigger} notifications.
+                </p>
+                <p>
+                    <a href="{preferences_url}">Manage Preferences</a> | 
+                    <a href="{unsubscribe_url}">Unsubscribe</a>
+                </p>
+                <p style="color: #999; font-size: 10px;">
+                    © 2025 {self.from_name}. All rights reserved.
+                </p>
+            </div>
+            {tracking_pixel}
+        </body>
+        </html>
+        """
+        
+        return html
+
+
+# Required function for job template system
+async def execute_job(db: Database, parameters: Dict[str, Any]) -> Dict[str, Any]:
+    """Entry point for job execution"""
+    job = EmailNotifierJob(db, parameters)
+    return await job.execute()
+
+
+# Job template registration info
+JOB_INFO = {
+    "name": EmailNotifierJob.job_name,
+    "description": EmailNotifierJob.description,
+    "default_schedule": EmailNotifierJob.default_schedule,
+    "timeout": EmailNotifierJob.timeout,
+    "parameters": EmailNotifierJob.default_parameters,
+    "category": "notifications"
+}

@@ -230,8 +230,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Add Settings before logout
     items.push({ 
       icon: '⚙️', 
-      label: 'My Settings', 
-      subLabel: 'Preferences & Theme',
+      label: 'Settings', 
+      subLabel: 'Preferences, Theme & Notifications',
       action: () => navigate('/preferences'),
       disabled: !isActive
     });

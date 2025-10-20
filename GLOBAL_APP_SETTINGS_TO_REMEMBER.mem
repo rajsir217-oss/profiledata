@@ -1,0 +1,778 @@
+# GLOBAL APP SETTINGS TO REMEMBER
+# Memory Dump Document - Reference for Critical Settings
+# Last Updated: October 20, 2025
+
+## 📋 TABLE OF CONTENTS
+1. [Authentication System](#authentication-system)
+2. [Configuration Settings](#configuration-settings)
+3. [Database Architecture](#database-architecture)
+4. [Theme System](#theme-system)
+5. [API Patterns](#api-patterns)
+6. [Notification System](#notification-system)
+7. [Scheduler Architecture](#scheduler-architecture)
+8. [UI/UX Standards](#uiux-standards)
+9. [Testing Requirements](#testing-requirements)
+10. [Security Settings](#security-settings)
+11. [Component Consistency](#component-consistency)
+12. [File Structure](#file-structure)
+
+---
+
+## 🔐 AUTHENTICATION SYSTEM
+
+### Critical Rule: SINGLE AUTH SYSTEM ONLY
+**NEVER use multiple auth functions. ONE system for entire app.**
+
+### Correct Import (ALWAYS)
+```python
+from auth.jwt_auth import get_current_user_dependency as get_current_user
+```
+
+### Correct Usage
+```python
+@router.get("/endpoint")
+async def my_endpoint(
+    current_user: dict = Depends(get_current_user),  # Returns dict
+    db = Depends(get_database)
+):
+    username = current_user["username"]  # Dict access
+    role = current_user.get("role", "free_user")
+```
+
+### NEVER Use
+```python
+# ❌ WRONG - Legacy auth
+from auth import get_current_user
+
+# ❌ WRONG - Different type
+current_user: TokenData = Depends(get_current_user)
+
+# ❌ WRONG - Attribute access
+username = current_user.username
+```
+
+### Auth Files
+- **USE:** `/auth/jwt_auth.py` - Primary auth system
+- **NEVER USE:** `/auth/legacy_auth.py` - Backward compatibility only
+
+### Frontend Auth
+```javascript
+// Token storage
+localStorage.setItem('token', access_token);
+localStorage.setItem('username', username);
+
+// API calls auto-include token via interceptor
+import api from '../api';
+const response = await api.get('/endpoint');
+```
+
+### Token Settings
+- **Expiration:** 30 minutes (default)
+- **Algorithm:** HS256
+- **Secret Key:** In config.py (CHANGE IN PRODUCTION!)
+- **Storage:** localStorage (frontend)
+
+---
+
+## ⚙️ CONFIGURATION SETTINGS
+
+### Location: `/fastapi_backend/config.py`
+
+```python
+class Settings(BaseSettings):
+    # Database
+    mongodb_url: str = "mongodb://localhost:27017"
+    database_name: str = "matrimonialDB"
+    
+    # JWT
+    secret_key: str = "default_secret_key_for_testing"
+    algorithm: str = "HS256"
+    access_token_expire_minutes: int = 30
+    
+    # URLs
+    frontend_url: str = "http://localhost:3000"
+    backend_url: str = "http://localhost:8000"
+    
+    # File Upload
+    upload_dir: str = "uploads"
+```
+
+### Environment Variables (.env)
+```bash
+MONGODB_URL=mongodb://localhost:27017
+DATABASE_NAME=matrimonialDB
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+```
+
+---
+
+## 🗄️ DATABASE ARCHITECTURE
+
+### MongoDB Connection
+- **URL:** mongodb://localhost:27017
+- **Database:** matrimonialDB
+- **Driver:** motor (async)
+
+### Key Collections
+```python
+# Users & Auth
+db.users                    # User profiles
+db.sessions                 # Active sessions
+
+# Matching & Interactions
+db.favorites                # User favorites
+db.shortlist                # User shortlists
+db.exclusions              # Excluded users
+db.profile_views           # Profile view tracking
+
+# Messaging
+db.messages                # Direct messages
+db.conversations           # Conversation threads
+
+# PII & Privacy
+db.pii_requests            # PII access requests
+db.pii_access              # Granted PII access
+db.image_access            # Image access control
+
+# Notifications
+db.notification_preferences  # User notification settings
+db.notification_queue       # Pending notifications
+db.notification_log         # Sent notification history
+db.notification_templates   # Email/SMS templates
+
+# Scheduling
+db.dynamic_jobs            # Scheduled jobs (database-driven)
+db.job_executions          # Job execution history
+
+# Admin
+db.contact_tickets         # Contact form submissions
+db.test_results            # Test execution results
+db.meta_fields             # Dynamic field definitions
+```
+
+### Database Access Pattern
+```python
+from database import get_database
+
+async def my_function(db = Depends(get_database)):
+    users = db.users
+    result = await users.find_one({"username": username})
+```
+
+---
+
+## 🎨 THEME SYSTEM
+
+### CRITICAL: NEVER Use Hardcoded Colors
+
+### Correct Usage
+```css
+/* ✅ ALWAYS use CSS variables */
+background: var(--primary-color);
+color: var(--text-color);
+border: 1px solid var(--border-color);
+
+/* Gradients */
+background: linear-gradient(135deg, 
+  var(--primary-color) 0%, 
+  var(--secondary-color) 100%
+);
+```
+
+### Available Themes
+1. **Cozy Light** (default)
+2. **Dark**
+3. **Rose**
+4. **Light Gray**
+5. **Ultra Light Gray**
+
+### Theme Variables (`/frontend/src/themes/themes.css`)
+```css
+/* Colors */
+--primary-color          /* Main theme color */
+--secondary-color        /* Secondary theme color */
+--accent-color           /* Accent highlights */
+
+/* Backgrounds */
+--background-color       /* Page background */
+--surface-color          /* Card/section background */
+--card-background        /* Card backgrounds */
+--input-bg               /* Input field backgrounds */
+
+/* Text */
+--text-color             /* Primary text */
+--text-secondary         /* Secondary text */
+--text-muted             /* Muted/disabled text */
+
+/* Borders */
+--border-color           /* Default borders */
+--divider-color          /* Divider lines */
+
+/* Interactive */
+--hover-background       /* Hover state background */
+--active-background      /* Active state background */
+--selected-background    /* Selected item background */
+
+/* Status */
+--success-color          /* Success indicators */
+--danger-color           /* Error/danger indicators */
+--warning-color          /* Warning indicators */
+--info-color             /* Info indicators */
+```
+
+### Theme Switching
+```javascript
+// ThemeContext.js
+const themes = ['cozy-light', 'dark', 'rose', 'light-gray', 'ultra-light-gray'];
+localStorage.setItem('theme', selectedTheme);
+document.documentElement.className = `theme-${selectedTheme}`;
+```
+
+---
+
+## 🌐 API PATTERNS
+
+### Backend Routes Structure
+```
+/api/users/*              # Main user routes (routes.py)
+/api/auth/*               # Authentication (auth_routes.py)
+/api/admin/*              # Admin routes (admin_routes.py)
+/api/scheduler/*          # Dynamic scheduler (routes_dynamic_scheduler.py)
+/api/notifications/*      # Notifications (routers/notifications.py)
+/api/tests/*              # Test management (test_management.py)
+/api/image-access/*       # Image access (routes_image_access.py)
+/api/pii-access/*         # PII access (routes_pii_access.py)
+```
+
+### Frontend API Structure
+```javascript
+// Main API (baseURL: /api/users)
+import api from '../api';
+
+// Custom APIs (different baseURL)
+import { imageAccess } from '../api';     // Image access API
+import { notifications } from '../api';   // Notifications API
+
+// All have auth token interceptor
+```
+
+### Standard Response Format
+```javascript
+// Success
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": {...}
+}
+
+// Error
+{
+  "success": false,
+  "message": "Error message",
+  "error": "Detailed error"
+}
+```
+
+### CORS Settings (`main.py`)
+```python
+allow_origins=[
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001"
+],
+allow_credentials=True,
+allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+allow_headers=["*"]
+```
+
+---
+
+## 🔔 NOTIFICATION SYSTEM
+
+### Architecture
+- **Service:** NotificationService
+- **Queue:** notification_queue collection
+- **Templates:** notification_templates collection
+- **Channels:** Email, SMS, Push (planned)
+- **Job Templates:** EmailNotifierTemplate, SMSNotifierTemplate
+
+### Triggers (25+ types)
+```python
+# Match events
+NEW_MATCH, MUTUAL_FAVORITE, SHORTLIST_ADDED, MATCH_MILESTONE
+
+# Activity
+PROFILE_VIEW, FAVORITED, PROFILE_VISIBILITY_SPIKE, SEARCH_APPEARANCE
+
+# Messages
+NEW_MESSAGE, MESSAGE_READ, CONVERSATION_COLD
+
+# PII
+PII_REQUEST, PII_GRANTED, PII_DENIED, PII_EXPIRING, SUSPICIOUS_LOGIN
+
+# Engagement
+UNREAD_MESSAGES, NEW_USERS_MATCHING, PROFILE_INCOMPLETE, UPLOAD_PHOTOS
+```
+
+### Default Settings
+```python
+quietHours = QuietHours(
+    enabled=True,
+    start="22:00",
+    end="08:00",
+    timezone="UTC"
+)
+
+smsOptimization = SMSOptimization(
+    verifiedUsersOnly=True,
+    priorityOnly=False,
+    costLimit=100.00,
+    dailyLimit=10
+)
+```
+
+### Endpoints
+```
+GET  /api/notifications/preferences
+PUT  /api/notifications/preferences
+POST /api/notifications/preferences/reset
+POST /api/notifications/send
+GET  /api/notifications/queue
+GET  /api/notifications/analytics
+```
+
+---
+
+## 📅 SCHEDULER ARCHITECTURE
+
+### CRITICAL: Dynamic Jobs Only
+
+**Rules:**
+1. ✅ ALL jobs in `dynamic_jobs` collection (database)
+2. ✅ ONE scheduler: `unified_scheduler.py`
+3. ❌ NO hardcoded jobs in code
+4. ❌ NO Python `schedule` library for new jobs
+
+### Architecture
+```
+Job Templates (code)
+    ↓
+Job Instances (database)
+    ↓
+Unified Scheduler (polls every 30s)
+    ↓
+Job Executor (runs with templates)
+    ↓
+Execution History (database)
+```
+
+### Job Templates
+```python
+# Location: /job_templates/
+- base.py                    # Base template class
+- registry.py                # Template registration
+- database_cleanup.py        # Cleanup jobs
+- data_export.py            # Export jobs
+- email_notifier_template.py # Email notifications
+- sms_notifier_template.py  # SMS notifications
+- system_cleanup.py         # System maintenance
+- ticket_cleanup.py         # Ticket cleanup
+```
+
+### Creating New Scheduled Jobs
+1. Create template in `/job_templates/`
+2. Register in `registry.py`
+3. Create job via Dynamic Scheduler UI
+4. Runs automatically via unified_scheduler
+
+### UI Location
+`http://localhost:3000/dynamic-scheduler`
+
+---
+
+## 🎭 UI/UX STANDARDS
+
+### 1. Toast Notifications (MANDATORY)
+
+**NEVER use:**
+- ❌ `alert()`
+- ❌ `window.confirm()`
+- ❌ `prompt()`
+
+**ALWAYS use:**
+- ✅ Toast component (`/components/Toast.js`)
+
+```javascript
+setToast({ message: 'Success!', type: 'success' });
+setToast({ message: 'Error occurred', type: 'error' });
+setToast({ message: 'Warning', type: 'warning' });
+setToast({ message: 'Info', type: 'info' });
+```
+
+### 2. Protected Routes
+
+**Pattern:**
+```javascript
+// ProtectedRoute.js checks:
+1. User logged in? (localStorage has token)
+2. User status active? (fetch from profile)
+3. Allow own profile/preferences regardless of status
+4. Block other features if not active
+```
+
+**Allowed regardless of status:**
+```javascript
+const isOwnProfile = location.pathname === `/profile/${username}`;
+const isEditProfile = location.pathname === '/edit-profile';
+const isPreferences = location.pathname === '/preferences';
+const isNotifications = location.pathname === '/notifications';
+```
+
+### 3. Component Consistency
+
+**Critical Pages MUST have identical:**
+- `/l3v3l-matches` - SearchResultCard
+- `/search` - SearchResultCard
+- `/dashboard` - UserCard
+- `/favorites` - SearchResultCard
+- `/shortlist` - SearchResultCard
+
+**Same on all pages:**
+- Button styling (favorite ⭐, shortlist ✓📋, message 💬)
+- Icons usage
+- Active/inactive states
+- Hover effects
+- Action handlers
+- Modal behavior
+
+### 4. Admin Table Headers
+
+**Standard pattern:**
+```css
+.table-name thead {
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+.table-name th {
+  background: var(--primary-color) !important;
+  color: white !important;  /* MUST be explicit */
+}
+```
+
+---
+
+## 🧪 TESTING REQUIREMENTS
+
+### Backend Tests
+```python
+# Location: /tests/
+# Run: pytest
+# Coverage: 70% minimum, 85% target
+
+# Required tests:
+- Unit tests for functions
+- API endpoint tests (GET, POST, PUT, DELETE)
+- Database operation tests
+- Error handling tests
+- Edge case tests
+- Auth/authorization tests
+```
+
+### Frontend Tests
+```javascript
+// Location: /components/<Component>.test.js
+// Run: npm test
+// Coverage: 70% minimum
+
+// Required tests:
+- Component renders
+- User interactions
+- API call mocking
+- State changes
+- Conditional rendering
+- Error states
+```
+
+### Test Template
+```python
+# Backend
+def test_feature_success(test_client):
+    response = test_client.get("/endpoint")
+    assert response.status_code == 200
+
+def test_feature_unauthorized(test_client):
+    response = test_client.get("/endpoint")
+    assert response.status_code == 401
+```
+
+---
+
+## 🔒 SECURITY SETTINGS
+
+### JWT Configuration
+- **Secret Key:** MUST change in production
+- **Algorithm:** HS256
+- **Expiration:** 30 minutes (configurable)
+- **Storage:** localStorage (frontend)
+
+### Password Security
+- **Hashing:** bcrypt
+- **Max Length:** 72 bytes (bcrypt limit)
+- **Validation:** Handled by PasswordManager
+
+### CORS
+- **Development:** localhost:3000, 3001
+- **Production:** Set specific domains
+- **Credentials:** Enabled (required for auth)
+
+### PII Security
+- **Masking:** Profile data masked for non-owners
+- **Access Control:** Database-tracked permissions
+- **Request Flow:** Request → Approval → Access grant
+
+---
+
+## 🏗️ COMPONENT CONSISTENCY
+
+### Critical Components
+```
+UserCard.js / UserCard.css
+SearchResultCard.js / SearchPage.css
+MessageModal.js
+PIIRequestModal.js
+```
+
+### Button States (ALL pages)
+```css
+/* Favorite - Active */
+.btn-warning { gradient, glowing, scale(1.05) }
+
+/* Favorite - Inactive */
+.btn-outline-warning { transparent, dull, no glow }
+
+/* Shortlist - Active */
+.btn-info { gradient, glowing, scale(1.05) }
+
+/* Shortlist - Inactive */
+.btn-outline-info { transparent, dull, no glow }
+```
+
+### Icons (Consistent)
+- Favorite: ⭐ (active) / ☆ (inactive)
+- Shortlist: ✓📋 (active) / 📋 (inactive)
+- Message: 💬
+- View: 👁️
+- Exclude: 🚫 (active) / ❌ (inactive)
+
+---
+
+## 📁 FILE STRUCTURE
+
+### Backend (`/fastapi_backend/`)
+```
+├── auth/                      # Authentication modules
+│   ├── jwt_auth.py           # PRIMARY AUTH ✅
+│   ├── legacy_auth.py        # LEGACY (don't use)
+│   └── security_config.py
+├── models/                    # Pydantic models
+│   ├── user_models.py
+│   └── notification_models.py
+├── services/                  # Business logic
+│   ├── notification_service.py
+│   ├── job_registry.py
+│   └── job_executor.py
+├── routers/                   # Additional routers
+│   └── notifications.py
+├── job_templates/            # Scheduler templates
+├── tests/                    # Test files
+├── routes.py                 # Main routes
+├── config.py                 # Global settings
+├── main.py                   # App entry point
+└── database.py               # DB connection
+```
+
+### Frontend (`/frontend/src/`)
+```
+├── components/               # React components
+│   ├── UserCard.js
+│   ├── SearchResultCard.js
+│   ├── Dashboard.js
+│   ├── SearchPage.js
+│   └── NotificationPreferences.js
+├── themes/                   # Theme system
+│   └── themes.css
+├── api.js                    # API configuration
+└── App.js                    # Main app
+```
+
+---
+
+## 🚨 COMMON MISTAKES TO AVOID
+
+### Authentication
+❌ Using `from auth import get_current_user`
+❌ Type hint `TokenData` instead of `dict`
+❌ Accessing `current_user.username` instead of `current_user["username"]`
+
+### Theme
+❌ Hardcoded colors: `#667eea`
+❌ Using `@media (prefers-color-scheme: dark)`
+❌ Forgetting `var(--primary-color)`
+
+### Scheduler
+❌ Adding hardcoded jobs in unified_scheduler.py
+❌ Using Python `schedule` library
+❌ Multiple scheduler instances
+
+### UI/UX
+❌ Using `alert()` or `window.confirm()`
+❌ Inconsistent button styles across pages
+❌ Different icons for same action
+
+### API
+❌ Forgetting auth interceptor for custom API instances
+❌ Not handling 401 errors properly
+❌ Mixing different auth systems
+
+---
+
+## 📋 PRE-COMMIT CHECKLIST
+
+Before ANY code change:
+
+### Authentication
+- [ ] Using correct auth import from `jwt_auth.py`?
+- [ ] Type hint is `dict` not `TokenData`?
+- [ ] Accessing with `["username"]` not `.username`?
+
+### Theme
+- [ ] All colors use CSS variables?
+- [ ] No hardcoded hex colors (#...)?
+- [ ] Tested in all 5 themes?
+
+### Tests
+- [ ] Tests written for new features?
+- [ ] Backend tests cover success + error cases?
+- [ ] Frontend tests cover interactions?
+
+### Consistency
+- [ ] If changing cards, updated BOTH UserCard AND SearchResultCard?
+- [ ] Button styles identical across all pages?
+- [ ] Icons consistent everywhere?
+
+### Documentation
+- [ ] Updated relevant .md files?
+- [ ] Added comments for complex logic?
+- [ ] Updated API documentation?
+
+---
+
+## 🎯 QUICK REFERENCE
+
+### When Adding New Protected Endpoint
+1. Copy auth import from `routes.py` line 24
+2. Use `current_user: dict = Depends(get_current_user)`
+3. Access with `current_user["username"]`
+4. Test with logged-in user
+
+### When Adding New UI Component
+1. Use theme variables for ALL colors
+2. Test in all 5 themes
+3. Use Toast for notifications
+4. Write component tests
+
+### When Adding Scheduled Job
+1. Create template in `/job_templates/`
+2. Register in `registry.py`
+3. Create job via Dynamic Scheduler UI
+4. Test execution
+
+### When Fixing Auth Issues
+1. Check which `get_current_user` is imported
+2. Verify token in localStorage
+3. Check token expiration
+4. Confirm backend is using correct auth
+
+---
+
+## 📞 TROUBLESHOOTING GUIDE
+
+### 401 Unauthorized
+- Check: Token expired?
+- Check: Using correct auth function?
+- Check: Token in Authorization header?
+- Check: Secret key matches?
+
+### 404 Not Found
+- Check: Route registered in main.py?
+- Check: Correct baseURL in frontend?
+- Check: API prefix matches?
+
+### Theme Not Working
+- Check: Using CSS variables?
+- Check: All 5 themes have the variable?
+- Check: Theme class on document root?
+
+### Scheduler Not Running
+- Check: Job in `dynamic_jobs` collection?
+- Check: Job enabled?
+- Check: `nextRunAt` is in past?
+- Check: unified_scheduler running?
+
+---
+
+## 🔄 RECENT FIXES (Oct 20, 2025)
+
+### Authentication Integration Bug
+- **Issue:** Notifications using wrong auth function
+- **Fix:** Changed to `jwt_auth.get_current_user_dependency`
+- **Files:** `/routers/notifications.py`
+
+### Notification 500 Error
+- **Issue:** QuietHours missing required fields
+- **Fix:** Added default values in model and service
+- **Files:** `/models/notification_models.py`, `/services/notification_service.py`
+
+### Import Conflicts
+- **Issue:** Both `models.py` and `models/` directory existed
+- **Fix:** Renamed to `user_models.py`, created `__init__.py`
+- **Files:** `/models/`
+
+---
+
+## 💾 VERSION INFO
+
+- **Last Updated:** October 20, 2025
+- **App Version:** 1.0.0
+- **Python:** 3.12
+- **FastAPI:** Latest
+- **React:** Latest
+- **MongoDB:** 7.x
+- **Node:** 18+
+
+---
+
+## 📝 NOTES
+
+This document captures the GLOBAL settings and patterns that MUST be followed.
+When in doubt, refer to this document.
+When updating, keep this document in sync.
+
+**Primary Reference Files:**
+- `/fastapi_backend/routes.py` (line 24) - Auth pattern
+- `/fastapi_backend/config.py` - Global config
+- `/frontend/src/themes/themes.css` - Theme variables
+- `/fastapi_backend/routers/notifications.py` - Recent auth fix example
+
+**Memory Tags:**
+#global-settings #authentication #configuration #theme #api-patterns 
+#notifications #scheduler #ui-ux #testing #security #consistency
+
+---
+
+END OF MEMORY DUMP
