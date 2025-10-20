@@ -421,7 +421,7 @@ const AdminPage = () => {
 
       {/* Users Table */}
       <div className="table-responsive">
-        <table className="table table-hover admin-table">
+        <table className="table-hover admin-table">
           <thead>
             <tr>
               <th onClick={() => handleSort('username')} style={{ cursor: 'pointer' }}>
