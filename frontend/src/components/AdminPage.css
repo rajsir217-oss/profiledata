@@ -97,12 +97,17 @@
 }
 
 .admin-table tbody tr {
-  background: white !important; /* Force white background for visibility */
+  background: var(--surface-color) !important; /* Theme-aware background */
   transition: all 0.2s ease;
 }
 
+/* Alternating row colors for better readability */
+.admin-table tbody tr:nth-child(even) {
+  background: var(--card-background) !important;
+}
+
 .admin-table tbody tr:hover {
-  background: #f3f4f6 !important; /* Light gray on hover */
+  background: var(--hover-background) !important; /* Theme-aware hover */
   transform: scale(1.01);
 }
 
@@ -110,20 +115,8 @@
   padding: 12px 15px;
   vertical-align: middle;
   border-bottom: 1px solid var(--border-color);
-  color: #1f2937 !important; /* Force dark text */
-}
-
-/* Dark theme overrides */
-.theme-dark .admin-table tbody tr {
-  background: #1f2937 !important; /* Dark background */
-}
-
-.theme-dark .admin-table tbody tr:hover {
-  background: #374151 !important; /* Lighter dark on hover */
-}
-
-.theme-dark .admin-table tbody td {
-  color: #f9fafb !important; /* Light text for dark theme */
+  color: var(--text-color) !important; /* Theme-aware text */
+  font-weight: 500; /* Make text slightly bolder for better visibility */
 }
 
 /* Prevent wrapping for contact numbers */
