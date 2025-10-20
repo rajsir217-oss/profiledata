@@ -142,6 +142,7 @@
   letter-spacing: 0.5px;
   cursor: pointer;
   background: var(--primary-color) !important;
+  color: white !important; /* Ensure text is visible on primary color background */
 }
 
 .users-table th:nth-child(6),
@@ -1370,163 +1371,15 @@
   transform: none;
 }
 
-/* Dark Theme Support - Cozy Night (Purple Theme) */
-.theme-dark .user-management-container {
-  background: #1e1b2e !important;
-}
+/* ========================================
+   THEME-AWARE STYLING - NO HARDCODED COLORS
+   All colors now use CSS variables from themes.css
+   ======================================== */
 
-.theme-dark .users-table-container {
-  background: #2a2740 !important;
-  border: 1px solid #4b4563 !important;
-}
-
-.theme-dark .user-management-header {
-  background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%) !important;
-}
-
-.theme-dark .user-management-header h1 {
-  color: #ffffff !important;
-}
-
-.theme-dark .user-management-header p {
-  color: rgba(255, 255, 255, 0.9) !important;
-}
-
-/* Table Headers */
-.theme-dark .users-table thead {
-  background: #7c3aed !important;
-}
-
-.theme-dark .users-table thead tr {
-  background: #7c3aed !important;
-}
-
-.theme-dark .users-table thead th {
-  color: #ffffff !important;
-  background: #7c3aed !important;
-}
-
-.theme-dark .users-table th {
-  background: #7c3aed !important;
-  color: #ffffff !important;
-}
-
-/* Table Body */
-.theme-dark .users-table tbody tr {
-  background: #3a3450 !important;
-  border-color: #4b4563 !important;
-}
-
-.theme-dark .users-table tbody tr:hover {
-  background: #4a4060 !important;
-}
-
-.theme-dark .users-table tbody td {
-  color: #f3f4f6 !important;
-  border-color: #4b4563 !important;
-}
-
-.theme-dark .users-table {
-  background: #3a3450 !important;
-  border-color: #4b4563 !important;
-}
-
-/* Search and Filters */
-.theme-dark .user-management-filters input,
-.theme-dark .user-management-filters select {
-  background: #2a2740 !important;
-  color: #f3f4f6 !important;
-  border-color: #4b4563 !important;
-}
-
-.theme-dark .user-management-filters input::placeholder {
-  color: #d1d5db !important;
-}
-
-/* Buttons */
-.theme-dark .btn-refresh {
-  background: #a78bfa !important;
-}
-
-.theme-dark .btn-refresh:hover {
-  background: #7c3aed !important;
-}
-
-.theme-dark .btn-page {
-  background: #a78bfa !important;
-}
-
-.theme-dark .btn-page:hover {
-  background: #7c3aed !important;
-}
-
-.theme-dark .btn-page:disabled {
-  background: #4a4060 !important;
-  opacity: 0.5;
-  color: #d1d5db !important;
-}
-
-/* Pagination */
-.theme-dark .page-info {
-  color: #f3f4f6;
-}
-
-/* Messages */
-.theme-dark .error-message {
-  background: rgba(239, 68, 68, 0.2) !important;
-  color: #fca5a5 !important;
-  border-color: rgba(239, 68, 68, 0.3) !important;
-}
-
-.theme-dark .success-message {
-  background: rgba(34, 197, 94, 0.2) !important;
-  color: #86efac !important;
-  border-color: rgba(34, 197, 94, 0.3) !important;
-}
-
-/* Bulk Actions */
-.theme-dark .bulk-actions-bar {
-  background: #3a3450 !important;
-  border-color: #4b4563 !important;
-}
-
-.theme-dark .bulk-selected-count {
-  color: #f3f4f6;
-}
-
-.theme-dark .bulk-role {
-  background: #a78bfa !important;
-}
-
-.theme-dark .bulk-role:hover {
-  background: #7c3aed !important;
-}
-
-/* Cleanup Modal */
-.theme-dark .cleanup-modal {
-  background: #3a3450 !important;
-}
-
-.theme-dark .cleanup-modal-body {
-  background: #3a3450 !important;
-}
-
-.theme-dark .cleanup-title h3 {
-  color: #f3f4f6 !important;
-}
-
-.theme-dark .cleanup-description {
-  color: #d1d5db !important;
-}
-
-.theme-dark .cleanup-label {
-  color: #f3f4f6 !important;
-}
-
-.theme-dark .cleanup-select {
-  background-color: #1e1b2e !important;
-  border-color: #a78bfa !important;
-  color: #ffffff !important;
+/* Tables already use theme variables - no overrides needed */
+/* Headers use var(--primary-color) with white text */
+/* Body uses var(--card-background) and var(--text-color) */
+/* All automatically adapt to all 5 themes */
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23a78bfa' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
   font-weight: 500;
 }
