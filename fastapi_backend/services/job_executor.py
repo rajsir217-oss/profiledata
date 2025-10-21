@@ -191,7 +191,27 @@ class JobExecutor:
         """Get execution record by ID"""
         execution = await self.executions_collection.find_one({"_id": ObjectId(execution_id)})
         if execution:
-            execution["_id"] = str(execution["_id"])
+            execution = self._serialize_execution(execution)
+        return execution
+    
+    def _serialize_execution(self, execution: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert execution document to serializable dictionary with snake_case fields"""
+        execution["_id"] = str(execution["_id"])
+        
+        # Map camelCase to snake_case for frontend
+        field_mapping = {
+            "jobId": "job_id",
+            "startedAt": "started_at",
+            "completedAt": "completed_at",
+            "durationSeconds": "duration_seconds",
+            "triggeredBy": "triggered_by",
+            "executionHost": "execution_host"
+        }
+        
+        for camel, snake in field_mapping.items():
+            if camel in execution:
+                execution[snake] = execution[camel]
+        
         return execution
     
     async def _send_notifications(

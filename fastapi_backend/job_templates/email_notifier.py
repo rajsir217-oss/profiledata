@@ -19,6 +19,7 @@ from models.notification_models import (
     NotificationStatus,
     NotificationPriority
 )
+from config import settings
 
 
 class EmailNotifierJob:
@@ -44,13 +45,13 @@ class EmailNotifierJob:
         self.params = {**self.default_parameters, **parameters}
         self.service = NotificationService(db)
         
-        # Email configuration from environment
-        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USER")
-        self.smtp_password = os.getenv("SMTP_PASSWORD")
-        self.from_email = os.getenv("FROM_EMAIL", "noreply@datingapp.com")
-        self.from_name = os.getenv("FROM_NAME", "L3V3L Dating")
+        # Email configuration from config settings
+        self.smtp_host = settings.smtp_host or "smtp.gmail.com"
+        self.smtp_port = settings.smtp_port or 587
+        self.smtp_user = settings.smtp_user
+        self.smtp_password = settings.smtp_password
+        self.from_email = settings.from_email or "noreply@l3v3l.com"
+        self.from_name = settings.from_name or "L3V3L Dating"
         
     async def execute(self) -> Dict[str, Any]:
         """Execute the email notifier job"""
@@ -83,9 +84,14 @@ class EmailNotifierJob:
                         recipient_email = self.params["testEmail"]
                     else:
                         # Get user email from database
+                        self.log(f"Looking up email for user: {notification.username}")
                         user = await self.db.users.find_one({"username": notification.username})
+                        self.log(f"Found user: {user is not None}")
+                        if user:
+                            self.log(f"User has email field: {'email' in user}")
+                            self.log(f"Email value: {user.get('email', 'NONE')}")
                         if not user or not user.get("email"):
-                            raise Exception("User email not found")
+                            raise Exception(f"User email not found (user={'exists' if user else 'not found'}, email={user.get('email') if user else 'N/A'})")
                         recipient_email = user["email"]
                     
                     # Render email content

@@ -299,6 +299,29 @@ class JobRegistryService:
     def _serialize_job(self, job_doc: Dict[str, Any]) -> Dict[str, Any]:
         """Convert MongoDB document to serializable dictionary"""
         job_doc["_id"] = str(job_doc["_id"])
+        
+        # Map camelCase MongoDB fields to snake_case for frontend
+        if "templateType" in job_doc:
+            job_doc["template_type"] = job_doc["templateType"]
+        if "scheduleType" in job_doc:
+            job_doc["schedule_type"] = job_doc["scheduleType"]
+        if "intervalSeconds" in job_doc:
+            job_doc["interval_seconds"] = job_doc["intervalSeconds"]
+        if "cronExpression" in job_doc:
+            job_doc["cron_expression"] = job_doc["cronExpression"]
+        if "createdAt" in job_doc:
+            job_doc["created_at"] = job_doc["createdAt"]
+        if "updatedAt" in job_doc:
+            job_doc["updated_at"] = job_doc["updatedAt"]
+        if "nextRunAt" in job_doc:
+            job_doc["next_run_at"] = job_doc["nextRunAt"]
+        if "lastRunAt" in job_doc:
+            job_doc["last_run_at"] = job_doc["lastRunAt"]
+        if "lastStatus" in job_doc:
+            job_doc["last_status"] = job_doc["lastStatus"]
+        if "executionCount" in job_doc:
+            job_doc["execution_count"] = job_doc["executionCount"]
+        
         return job_doc
     
     async def get_job_executions(
@@ -324,7 +347,25 @@ class JobRegistryService:
         
         executions = await self.executions_collection.find(query).sort("started_at", -1).limit(limit).to_list(length=limit)
         
-        for execution in executions:
-            execution["_id"] = str(execution["_id"])
+        # Serialize executions with field mapping
+        return [self._serialize_execution(execution) for execution in executions]
+    
+    def _serialize_execution(self, execution: Dict[str, Any]) -> Dict[str, Any]:
+        """Convert execution document to serializable dictionary with snake_case fields"""
+        execution["_id"] = str(execution["_id"])
         
-        return executions
+        # Map camelCase to snake_case for frontend
+        field_mapping = {
+            "jobId": "job_id",
+            "startedAt": "started_at",
+            "completedAt": "completed_at",
+            "durationSeconds": "duration_seconds",
+            "triggeredBy": "triggered_by",
+            "executionHost": "execution_host"
+        }
+        
+        for camel, snake in field_mapping.items():
+            if camel in execution:
+                execution[snake] = execution[camel]
+        
+        return execution

@@ -135,8 +135,10 @@ class NotificationService:
         )
         
         # Create queue item
+        # Exclude fields we're going to override to avoid duplicate keyword argument error
+        create_dict = create_data.dict(exclude={'scheduledFor', 'status'})
         queue_item = NotificationQueueItem(
-            **create_data.dict(),
+            **create_dict,
             scheduledFor=scheduled_for,
             status=NotificationStatus.PENDING if scheduled_for is None else NotificationStatus.SCHEDULED
         )
