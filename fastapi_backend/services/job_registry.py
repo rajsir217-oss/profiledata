@@ -7,6 +7,7 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
+from pymongo import ReturnDocument
 import logging
 from croniter import croniter
 
@@ -177,13 +178,19 @@ class JobRegistryService:
             
             # Update timestamps and version
             updates["updated_at"] = datetime.utcnow()
-            updates["$inc"] = {"version": 1}
             
-            # Update in database
+            # Update in database with proper MongoDB operators
+            update_doc = {
+                "$set": updates,
+                "$inc": {"version": 1}
+            }
+            
+            logger.debug(f"Updating job {job_id} with: {update_doc}")
+            
             result = await self.jobs_collection.find_one_and_update(
                 {"_id": ObjectId(job_id)},
-                {"$set": {k: v for k, v in updates.items() if k != "$inc"}, **updates},
-                return_document=True
+                update_doc,
+                return_document=ReturnDocument.AFTER
             )
             
             if result:
@@ -252,14 +259,18 @@ class JobRegistryService:
             next_run_at = self._calculate_next_run(job["schedule"])
             
             # Update job
+            update_fields = {
+                "last_run_at": datetime.utcnow(),
+                "next_run_at": next_run_at
+            }
+            
+            # Update last status if provided in execution result
+            if "status" in execution_result:
+                update_fields["lastStatus"] = execution_result["status"]
+            
             await self.jobs_collection.update_one(
                 {"_id": ObjectId(job_id)},
-                {
-                    "$set": {
-                        "last_run_at": datetime.utcnow(),
-                        "next_run_at": next_run_at
-                    }
-                }
+                {"$set": update_fields}
             )
             
             logger.debug(f"Updated job {job['name']} - Next run: {next_run_at}")
@@ -319,6 +330,7 @@ class JobRegistryService:
             job_doc["last_run_at"] = job_doc["lastRunAt"]
         if "lastStatus" in job_doc:
             job_doc["last_status"] = job_doc["lastStatus"]
+            job_doc["last_run_status"] = job_doc["lastStatus"]  # Also map to last_run_status for frontend
         if "executionCount" in job_doc:
             job_doc["execution_count"] = job_doc["executionCount"]
         

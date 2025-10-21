@@ -145,7 +145,7 @@ class NotificationService:
         
         result = await self.queue_collection.insert_one(queue_item.dict())
         queue_item_dict = queue_item.dict()
-        queue_item_dict["_id"] = result.inserted_id
+        queue_item_dict["_id"] = str(result.inserted_id)  # Convert ObjectId to string
         
         return NotificationQueueItem(**queue_item_dict)
     
@@ -170,6 +170,9 @@ class NotificationService:
         notifications = []
         
         async for doc in cursor:
+            # Convert ObjectId to string for JSON serialization
+            if "_id" in doc:
+                doc["_id"] = str(doc["_id"])
             notifications.append(NotificationQueueItem(**doc))
         
         return notifications

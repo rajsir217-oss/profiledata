@@ -1,29 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import './JobCreationModal.css';
 
-const JobCreationModal = ({ templates, onClose, onSubmit }) => {
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    template_type: '',
-    parameters: {},
-    schedule: {
-      type: 'interval',
-      interval_seconds: 3600,
-      expression: '0 * * * *',
-      timezone: 'UTC'
-    },
-    enabled: true,
-    timeout_seconds: 3600,
-    retry_policy: {
-      max_retries: 3,
-      retry_delay_seconds: 300
-    },
-    notifications: {
-      on_success: [],
-      on_failure: []
+const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
+  const isEditMode = !!editJob;
+  const [step, setStep] = useState(isEditMode ? 2 : 1); // Skip template selection in edit mode
+  const [formData, setFormData] = useState(() => {
+    const initialData = editJob || {
+      name: '',
+      description: '',
+      template_type: '',
+      parameters: {},
+      schedule: {
+        type: 'interval',
+        interval_seconds: 3600,
+        expression: '0 * * * *',
+        timezone: 'UTC'
+      },
+      enabled: true,
+      timeout_seconds: 3600,
+      retry_policy: {
+        max_retries: 3,
+        retry_delay_seconds: 300
+      },
+      notifications: {
+        on_success: [],
+        on_failure: []
+      }
+    };
+    
+    if (editJob) {
+      console.log('🔧 Modal initialized with editJob:', editJob);
+      console.log('📋 Form data initialized:', initialData);
     }
+    
+    return initialData;
   });
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [paramErrors, setParamErrors] = useState({});
@@ -36,8 +46,8 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
       const template = templates.find(t => t.type === formData.template_type);
       setSelectedTemplate(template);
       
-      // Initialize parameters with defaults
-      if (template?.parameters_schema?.properties) {
+      // Initialize parameters with defaults ONLY in create mode
+      if (!isEditMode && template?.parameters_schema?.properties) {
         const defaultParams = {};
         Object.entries(template.parameters_schema.properties).forEach(([key, schema]) => {
           if (schema.default !== undefined) {
@@ -47,7 +57,7 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
         setFormData(prev => ({ ...prev, parameters: defaultParams }));
       }
     }
-  }, [formData.template_type, templates]);
+  }, [formData.template_type, templates, isEditMode]);
 
   const handleNext = () => {
     if (step === 1 && !formData.template_type) {
@@ -237,13 +247,16 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
       <p className="step-description">Select a job template to get started</p>
       
       <div className="template-grid">
-        {templates.map(template => (
+        {templates.map((template, index) => (
           <div
             key={template.type}
             className={`template-card ${formData.template_type === template.type ? 'selected' : ''}`}
             onClick={() => setFormData(prev => ({ ...prev, template_type: template.type }))}
           >
-            <div className="template-icon">{template.icon}</div>
+            <div className="template-number">{index + 1}</div>
+            <div className="template-icon-container">
+              <div className="template-icon">{template.icon}</div>
+            </div>
             <div className="template-info">
               <h4>{template.name}</h4>
               <p>{template.description}</p>
@@ -434,17 +447,19 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Create New Job</h2>
+          <h2>{isEditMode ? '✏️ Edit Job' : 'Create New Job'}</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
         
-        <div className="modal-progress">
-          {[1, 2, 3, 4].map(s => (
-            <div key={s} className={`progress-step ${s <= step ? 'active' : ''} ${s < step ? 'completed' : ''}`}>
-              {s < step ? '✓' : s}
-            </div>
-          ))}
-        </div>
+        {!isEditMode && (
+          <div className="modal-progress">
+            {[1, 2, 3, 4].map(s => (
+              <div key={s} className={`progress-step ${s <= step ? 'active' : ''} ${s < step ? 'completed' : ''}`}>
+                {s < step ? '✓' : s}
+              </div>
+            ))}
+          </div>
+        )}
         
         <div className="modal-body">
           {step === 1 && renderStep1()}
@@ -460,7 +475,7 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
         </div>
         
         <div className="modal-footer">
-          {step > 1 && (
+          {step > (isEditMode ? 2 : 1) && (
             <button className="btn btn-secondary" onClick={handleBack}>
               ← Back
             </button>
@@ -476,7 +491,10 @@ const JobCreationModal = ({ templates, onClose, onSubmit }) => {
               onClick={handleSubmit}
               disabled={submitting}
             >
-              {submitting ? 'Creating...' : '✓ Create Job'}
+              {submitting 
+                ? (isEditMode ? 'Updating...' : 'Creating...') 
+                : (isEditMode ? '✓ Update Job' : '✓ Create Job')
+              }
             </button>
           )}
         </div>

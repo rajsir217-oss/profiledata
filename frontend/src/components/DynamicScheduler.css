@@ -176,6 +176,10 @@
   font-size: 0.9rem;
 }
 
+.jobs-table td:first-child {
+  min-width: 130px;
+}
+
 /* Job Name */
 .job-name {
   display: flex;
@@ -195,12 +199,15 @@
 
 /* Badges */
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .status-badge.enabled {
@@ -213,8 +220,40 @@
   color: var(--text-muted);
 }
 
+.status-badge.status-success {
+  background: var(--success-light);
+  color: var(--success-color);
+}
+
+.status-badge.status-failed {
+  background: var(--danger-light);
+  color: var(--danger-color);
+}
+
+.status-badge.status-running {
+  background: var(--info-light);
+  color: var(--info-color);
+}
+
+.status-badge.status-timeout {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--warning-color);
+}
+
+.status-badge.status-partial {
+  background: rgba(255, 193, 7, 0.2);
+  color: var(--warning-color);
+}
+
+.status-badge.status-unknown {
+  background: var(--hover-background);
+  color: var(--text-secondary);
+}
+
 .template-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.85rem;

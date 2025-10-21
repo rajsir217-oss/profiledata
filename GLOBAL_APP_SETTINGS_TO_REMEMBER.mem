@@ -1,20 +1,111 @@
 # GLOBAL APP SETTINGS TO REMEMBER
 # Memory Dump Document - Reference for Critical Settings
-# Last Updated: October 20, 2025
+# Last Updated: October 21, 2025, 9:36 AM
 
 ## 📋 TABLE OF CONTENTS
-1. [Authentication System](#authentication-system)
-2. [Configuration Settings](#configuration-settings)
-3. [Database Architecture](#database-architecture)
-4. [Theme System](#theme-system)
-5. [API Patterns](#api-patterns)
-6. [Notification System](#notification-system)
-7. [Scheduler Architecture](#scheduler-architecture)
-8. [UI/UX Standards](#uiux-standards)
-9. [Testing Requirements](#testing-requirements)
-10. [Security Settings](#security-settings)
-11. [Component Consistency](#component-consistency)
-12. [File Structure](#file-structure)
+1. [File Management Protocol](#file-management-protocol) 🆕
+2. [Admin Settings Integration](#admin-settings-integration) 🆕
+3. [Authentication System](#authentication-system)
+4. [Configuration Settings](#configuration-settings)
+5. [Database Architecture](#database-architecture)
+6. [Theme System](#theme-system)
+7. [API Patterns](#api-patterns)
+8. [Notification System](#notification-system)
+9. [Scheduler Architecture](#scheduler-architecture)
+10. [UI/UX Standards](#uiux-standards)
+11. [Testing Requirements](#testing-requirements)
+12. [Security Settings](#security-settings)
+13. [Component Consistency](#component-consistency)
+14. [File Structure](#file-structure)
+15. [Sidebar Navigation](#sidebar-navigation)
+16. [Dashboard Features](#dashboard-features)
+
+---
+
+## 📁 FILE MANAGEMENT PROTOCOL
+
+### ⚠️ MANDATORY: Never Delete Old Files Immediately
+
+**When creating new files that replace existing ones:**
+
+1. **Rename old files** with `.toberemoved` extension
+2. **Keep them** in the same directory as reference
+3. **Create new replacement** files with the intended name
+4. **Document what was replaced** in commit/notes
+
+### Example:
+```bash
+# Old file exists: Preferences.js
+# Creating new file: UnifiedPreferences.js (replacement)
+
+# Step 1: Rename old file
+mv Preferences.js Preferences.js.toberemoved
+mv Preferences.css Preferences.css.toberemoved
+
+# Step 2: Create new files
+# UnifiedPreferences.js (already created)
+```
+
+### Benefits:
+- ✅ User can review for functionality discrepancies
+- ✅ Easy to compare old vs new implementation
+- ✅ Safe rollback if new version has issues
+- ✅ Clear audit trail of what was replaced
+- ✅ Marked files won't be imported/bundled by webpack
+
+### When to Delete .toberemoved Files:
+- After user reviews and confirms new version works
+- After testing period (e.g., 1-2 weeks)
+- When explicitly requested by user
+- Bulk delete: `find . -name "*.toberemoved" -delete`
+
+### Files Already Using This Pattern:
+- `Preferences.js.toberemoved` → Replaced by `UnifiedPreferences.js` (Oct 21, 2025)
+- `Preferences.css.toberemoved` → Replaced by `UnifiedPreferences.css` (Oct 21, 2025)
+
+### Auto-apply This Rule For:
+- Component replacements (React files)
+- Stylesheet replacements (CSS files)
+- Route/endpoint refactors (Python files)
+- Configuration file updates
+- Any file being deprecated/replaced
+
+**DO NOT delete old files without explicit user permission.**
+
+---
+
+## ⚙️ ADMIN SETTINGS INTEGRATION
+
+### Merged /admin/settings into /preferences
+
+**Route:** `/preferences` (uses `UnifiedPreferences.js`)
+
+**Tabs:**
+1. **🎨 Account Settings** - Theme selection, profile settings (all users)
+2. **🔔 Notifications** - Notification preferences (all users)
+3. **⚙️ System Config** - Admin-only settings (admin users only)
+
+### Implementation Details:
+
+**UnifiedPreferences.js:**
+- Checks `localStorage.getItem('username') === 'admin'`
+- Shows/hides System Config tab based on admin status
+- Integrates ticket cleanup settings from old AdminSettings
+
+**System Config Tab Features:**
+- 🎫 Ticket Management
+  - Auto-delete period for resolved/closed tickets
+  - Options: Immediately, 7, 14, 30, 60, 90 days
+  - Includes tooltip explaining how it works
+
+**Files:**
+- **Active:** `/components/UnifiedPreferences.js`
+- **Active:** `/components/UnifiedPreferences.css`
+- **Deprecated:** `/components/Preferences.js.toberemoved`
+- **Deprecated:** `/components/Preferences.css.toberemoved`
+- **Removed from sidebar:** "System Configuration" menu item
+
+**Benefit:** All settings consolidated in one place, cleaner navigation
 
 ---
 
@@ -396,15 +487,19 @@ Execution History (database)
 
 ## 🎭 UI/UX STANDARDS
 
-### 1. Toast Notifications (MANDATORY)
+### 1. Toast Notifications (MANDATORY) ⚠️ CRITICAL RULE
 
-**NEVER use:**
-- ❌ `alert()`
-- ❌ `window.confirm()`
-- ❌ `prompt()`
+**⛔ ABSOLUTELY NEVER USE BROWSER NATIVE DIALOGS:**
+- ❌ `alert()` - Use toast notifications
+- ❌ `window.confirm()` - Use custom confirmation UI with toast feedback
+- ❌ `prompt()` - Use inline input forms
+- ❌ Any browser-native modal windows
 
-**ALWAYS use:**
-- ✅ Toast component (`/components/Toast.js`)
+**✅ ALWAYS USE INSTEAD:**
+- ✅ Toast component (`/components/Toast.js`) for notifications
+- ✅ Custom modal components with proper styling for complex dialogs
+- ✅ Inline confirmation UI with undo options
+- ✅ Status badges and messages within the UI
 
 ```javascript
 setToast({ message: 'Success!', type: 'success' });
@@ -545,7 +640,30 @@ UserCard.js / UserCard.css
 SearchResultCard.js / SearchPage.css
 MessageModal.js
 PIIRequestModal.js
+DeleteButton.js / DeleteButton.css  # NEW - Reusable delete component
 ```
+
+### Reusable DeleteButton (NEW - Oct 21, 2025)
+**MANDATORY: Use DeleteButton for ALL delete actions**
+
+```jsx
+import DeleteButton from './DeleteButton';
+
+<DeleteButton
+  onDelete={() => deleteItem(id)}
+  itemName="notification"
+  size="medium"  // small | medium | large
+/>
+```
+
+**Features:**
+- ✅ 2-click confirmation (no browser modals!)
+- ✅ Visual feedback (grows, turns red, pulses)
+- ✅ Auto-resets after 3 seconds
+- ✅ Fully accessible
+- ✅ Mobile-optimized
+
+**Usage:** Notification queue, favorites, shortlist, messages, all delete actions
 
 ### Button States (ALL pages)
 ```css
@@ -612,6 +730,87 @@ PIIRequestModal.js
 
 ---
 
+## 🧭 SIDEBAR NAVIGATION
+
+### Simple Toggle Pattern (No Pin Feature)
+
+**Toggle Button (in TopBar):**
+- Positioned before "Matrimonial Profile" title
+- 40x40px with rounded corners (35x35px on mobile)
+- Semi-transparent white background with white border
+- Shows hamburger icon (☰) always
+- CSS class: `.sidebar-toggle-btn`
+
+**State Management (in App.js):**
+- Single `isSidebarCollapsed` state (starts as true/collapsed)
+- Simple toggle function switches between open/closed
+- No pin functionality - simpler and cleaner
+
+**Sidebar Behavior:**
+- Starts collapsed (left: -280px)
+- Click hamburger to toggle open/closed (left: 0 when open)
+- No overlay - sidebar stays open until toggled again
+- No pin button - removed for simplicity
+- Content doesn't shift - sidebar overlays content
+
+**CSS Classes:**
+- `.sidebar.open` when expanded
+- Smooth transitions (0.3s ease)
+- No pin-related styles
+- No overlay styles
+
+**Layout (Flexbox):**
+```css
+.app-wrapper { display: flex; }
+.sidebar { position: relative; width: 0; }
+.sidebar.open { width: 280px; }
+.app-layout { flex: 1; }
+```
+
+**Responsive:**
+- Desktop/Tablet: Sidebar pushes content using flexbox
+- Mobile (<576px): Sidebar uses `position: fixed` to overlay
+
+---
+
+## 📊 DASHBOARD FEATURES
+
+### Landing Page After Login (8 Sections)
+
+**My Activities (Can Remove):**
+1. **My Messages** - Delete conversation (🗑️ button)
+2. **My Favorites** - Remove from favorites (💔 button)
+3. **My Shortlists** - Remove from shortlist (📤 button)
+4. **My Exclusions** - Unblock user (✅ button)
+
+**Others' Activities:**
+5. **Profile Views** - Clear view history (🗑️ button)
+6. **PII Requests** - Cancel request (❌ button)
+7. **Their Favorites** - No remove (they control this)
+8. **Their Shortlists** - No remove (they control this)
+
+**Implementation:**
+- Component: `/frontend/src/components/Dashboard.js`
+- Remove handlers for each category with custom confirmation UI (NOT browser confirm!)
+- `renderUserCard` accepts removeHandler and removeIcon parameters
+- `renderSection` passes handlers to cards
+- UI shows 3 action buttons per card: Message (💬), View (👁️), Remove (varies)
+- **Custom confirmation component** before any remove action (NOT `window.confirm()`)
+- Dashboard updates immediately after successful removal with toast notification
+- Responsive grid layout maintained
+
+**Remove Handlers:**
+```javascript
+handleRemoveFromFavorites()  // DELETE /favorites/{target}
+handleRemoveFromShortlist()  // DELETE /shortlist/{target}
+handleRemoveFromExclusions() // DELETE /exclusions/{target}
+handleDeleteMessage()        // UI only (needs backend)
+handleClearViewHistory()     // UI only (needs backend)
+handleCancelPIIRequest()     // UI only (needs backend)
+```
+
+---
+
 ## 🚨 COMMON MISTAKES TO AVOID
 
 ### Authentication
@@ -664,6 +863,11 @@ Before ANY code change:
 - [ ] If changing cards, updated BOTH UserCard AND SearchResultCard?
 - [ ] Button styles identical across all pages?
 - [ ] Icons consistent everywhere?
+
+### UI/UX
+- [ ] NO `alert()`, `confirm()`, or `prompt()` used?
+- [ ] Using toast notifications for feedback?
+- [ ] Custom confirmation UI (NOT browser dialogs)?
 
 ### Documentation
 - [ ] Updated relevant .md files?
@@ -726,19 +930,35 @@ Before ANY code change:
 
 ---
 
-## 🔄 RECENT FIXES (Oct 20, 2025)
+## 🔄 RECENT UPDATES
 
-### Authentication Integration Bug
+### October 21, 2025 - Admin Settings Consolidation
+- **Change:** Merged `/admin/settings` into `/preferences`
+- **Implementation:** Added 3rd tab "System Config" in UnifiedPreferences
+- **Files Changed:**
+  - `/components/UnifiedPreferences.js` - Added admin tab
+  - `/components/Sidebar.js` - Removed System Config menu item
+  - `/components/Preferences.js` → `.toberemoved`
+  - `/components/Preferences.css` → `.toberemoved`
+- **Result:** All settings now in one consolidated page
+
+### October 21, 2025 - File Management Protocol
+- **New Rule:** Never delete replaced files immediately
+- **Protocol:** Rename with `.toberemoved` extension
+- **Benefit:** User can review for functionality discrepancies
+- **Command:** `find . -name "*.toberemoved"` to list all
+
+### October 20, 2025 - Authentication Integration Bug
 - **Issue:** Notifications using wrong auth function
 - **Fix:** Changed to `jwt_auth.get_current_user_dependency`
 - **Files:** `/routers/notifications.py`
 
-### Notification 500 Error
+### October 20, 2025 - Notification 500 Error
 - **Issue:** QuietHours missing required fields
 - **Fix:** Added default values in model and service
 - **Files:** `/models/notification_models.py`, `/services/notification_service.py`
 
-### Import Conflicts
+### October 20, 2025 - Import Conflicts
 - **Issue:** Both `models.py` and `models/` directory existed
 - **Fix:** Renamed to `user_models.py`, created `__init__.py`
 - **Files:** `/models/`
@@ -747,7 +967,7 @@ Before ANY code change:
 
 ## 💾 VERSION INFO
 
-- **Last Updated:** October 20, 2025
+- **Last Updated:** October 21, 2025, 9:36 AM
 - **App Version:** 1.0.0
 - **Python:** 3.12
 - **FastAPI:** Latest
@@ -772,6 +992,32 @@ When updating, keep this document in sync.
 **Memory Tags:**
 #global-settings #authentication #configuration #theme #api-patterns 
 #notifications #scheduler #ui-ux #testing #security #consistency
+#file-management #admin-settings #sidebar #dashboard
+
+---
+
+## 📌 QUICK SUMMARY
+
+**What This Document Contains:**
+- ✅ 16 major sections covering all critical app patterns
+- ✅ File management protocol (NEW - Oct 21, 2025)
+- ✅ Admin settings consolidation (NEW - Oct 21, 2025)
+- ✅ Single authentication system (MANDATORY)
+- ✅ Theme system (7 themes including Ultra Black)
+- ✅ Component consistency rules (5 pages)
+- ✅ Toast notifications (NO browser alerts)
+- ✅ Testing requirements (85%+ coverage)
+- ✅ Scheduler architecture (Dynamic jobs)
+- ✅ Troubleshooting guides
+
+**Total Lines:** 900+  
+**Last Full Update:** October 21, 2025, 9:36 AM  
+**Maintained By:** AI Assistant (Cascade)  
+
+**Usage:**
+Reference this file before making ANY code changes.
+Update this file when new patterns/rules are established.
+Share with team members for consistency.
 
 ---
 

@@ -153,6 +153,9 @@ async def get_notification_queue(
     notifications = []
     
     async for doc in cursor:
+        # Convert ObjectId to string for JSON serialization
+        if "_id" in doc:
+            doc["_id"] = str(doc["_id"])
         notifications.append(NotificationQueueItem(**doc))
     
     return notifications
@@ -161,27 +164,52 @@ async def get_notification_queue(
 @router.delete("/queue/{notification_id}", response_model=NotificationResponse)
 async def cancel_notification(
     notification_id: str,
+    hard_delete: bool = Query(False, description="If true, permanently delete from database"),
     current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
-    """Cancel a pending notification"""
+    """Cancel or permanently delete a notification"""
     try:
-        result = await service.queue_collection.update_one(
-            {
-                "_id": notification_id,
-                "username": current_user["username"],
-                "status": {"$in": ["pending", "scheduled"]}
-            },
-            {"$set": {"status": "cancelled", "updatedAt": datetime.utcnow()}}
-        )
+        from bson import ObjectId
         
-        if result.matched_count == 0:
-            raise HTTPException(status_code=404, detail="Notification not found or already sent")
+        # Convert string ID to ObjectId
+        try:
+            obj_id = ObjectId(notification_id)
+        except:
+            raise HTTPException(status_code=400, detail="Invalid notification ID")
         
-        return NotificationResponse(
-            success=True,
-            message="Notification cancelled successfully"
-        )
+        if hard_delete:
+            # Hard delete: Remove from database entirely
+            result = await service.queue_collection.delete_one({
+                "_id": obj_id,
+                "username": current_user["username"]
+            })
+            
+            if result.deleted_count == 0:
+                raise HTTPException(status_code=404, detail="Notification not found")
+            
+            return NotificationResponse(
+                success=True,
+                message="Notification permanently deleted"
+            )
+        else:
+            # Soft delete: Mark as cancelled
+            result = await service.queue_collection.update_one(
+                {
+                    "_id": obj_id,
+                    "username": current_user["username"],
+                    "status": {"$in": ["pending", "scheduled"]}
+                },
+                {"$set": {"status": "cancelled", "updatedAt": datetime.utcnow()}}
+            )
+            
+            if result.matched_count == 0:
+                raise HTTPException(status_code=404, detail="Notification not found or already sent")
+            
+            return NotificationResponse(
+                success=True,
+                message="Notification cancelled successfully"
+            )
     except Exception as e:
         return NotificationResponse(
             success=False,

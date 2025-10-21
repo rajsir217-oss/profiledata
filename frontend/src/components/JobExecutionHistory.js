@@ -28,11 +28,36 @@ const JobExecutionHistory = ({ job, onClose }) => {
         }
       });
       const data = await response.json();
+      console.log('📊 Executions loaded:', data.executions?.length || 0);
+      if (data.executions && data.executions.length > 0) {
+        console.log('📊 First execution:', data.executions[0]);
+        console.log('📊 First execution status:', data.executions[0]?.status);
+      }
       setExecutions(data.executions || []);
     } catch (err) {
       console.error('Error loading executions:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteExecution = async (executionId) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`http://localhost:8000/api/admin/scheduler/executions/${executionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      // Reload executions after delete
+      loadExecutions();
+      
+      // Show success message (add toast later if needed)
+      console.log('Execution record deleted successfully');
+    } catch (err) {
+      console.error('Error deleting execution:', err);
     }
   };
 
@@ -45,6 +70,9 @@ const JobExecutionHistory = ({ job, onClose }) => {
         }
       });
       const data = await response.json();
+      console.log('📊 Execution details loaded:', data.execution);
+      console.log('📊 Status field:', data.execution?.status);
+      console.log('📊 All fields:', Object.keys(data.execution || {}));
       setSelectedExecution(data.execution);
     } catch (err) {
       console.error('Error loading execution details:', err);
@@ -127,8 +155,9 @@ const JobExecutionHistory = ({ job, onClose }) => {
               <div className="details-grid">
                 <div className="detail-card">
                   <label>Status</label>
-                  <span className={`status-badge ${getStatusClass(selectedExecution.status)}`}>
-                    {getStatusIcon(selectedExecution.status)} {selectedExecution.status}
+                  {/* <span className={`status-badge ${getStatusClass(selectedExecution.status || 'unknown')}`}> */}
+                   <span>
+                     {getStatusIcon(selectedExecution.status || 'unknown')} {selectedExecution.status || 'unknown'}
                   </span>
                 </div>
                 <div className="detail-card">
@@ -232,20 +261,30 @@ const JobExecutionHistory = ({ job, onClose }) => {
                     {executions.map(execution => (
                       <tr key={execution._id}>
                         <td>
-                          <span className={`status-badge ${getStatusClass(execution.status)}`}>
-                            {getStatusIcon(execution.status)} {execution.status}
+                          {/* <span className={`status-badge ${getStatusClass(execution.status || 'unknown')}`}> */}
+                            <span>
+                              {getStatusIcon(execution.status || 'unknown')} {execution.status || 'unknown'}
                           </span>
                         </td>
                         <td>{formatDate(execution.started_at)}</td>
                         <td>{formatDuration(execution.duration_seconds)}</td>
                         <td>{execution.triggered_by}</td>
                         <td>
-                          <button
-                            className="btn-view"
-                            onClick={() => loadExecutionDetails(execution._id)}
-                          >
-                            👁️ View
-                          </button>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button
+                              className="btn-view"
+                              onClick={() => loadExecutionDetails(execution._id)}
+                            >
+                              👁️ View
+                            </button>
+                            <button
+                              className="btn-icon danger"
+                              title="Delete Execution"
+                              onClick={() => handleDeleteExecution(execution._id)}
+                            >
+                              🗑️
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

@@ -13,6 +13,7 @@ import os
 from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
 from models.notification_models import NotificationChannel
+from config import settings
 
 
 class EmailNotifierTemplate(JobTemplate):
@@ -29,13 +30,13 @@ class EmailNotifierTemplate(JobTemplate):
     risk_level = "low"
     
     def __init__(self):
-        # Email configuration from environment
-        self.smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-        self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
-        self.smtp_user = os.getenv("SMTP_USER")
-        self.smtp_password = os.getenv("SMTP_PASSWORD")
-        self.from_email = os.getenv("FROM_EMAIL", "noreply@datingapp.com")
-        self.from_name = os.getenv("FROM_NAME", "L3V3L Dating")
+        # Email configuration from settings (reads from .env)
+        self.smtp_host = settings.smtp_host or "smtp.gmail.com"
+        self.smtp_port = settings.smtp_port or 587
+        self.smtp_user = settings.smtp_user
+        self.smtp_password = settings.smtp_password
+        self.from_email = settings.from_email or "noreply@datingapp.com"
+        self.from_name = settings.from_name or "L3V3L Dating"
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
@@ -215,8 +216,16 @@ class EmailNotifierTemplate(JobTemplate):
     
     async def _send_email(self, to_email: str, subject: str, body: str, notification) -> None:
         """Send email via SMTP"""
+        # Debug logging
+        print(f"DEBUG: SMTP Configuration:")
+        print(f"  Host: {self.smtp_host}")
+        print(f"  Port: {self.smtp_port}")
+        print(f"  User: {self.smtp_user}")
+        print(f"  Password: {'SET' if self.smtp_password else 'NOT SET'}")
+        print(f"  From: {self.from_email}")
+        
         if not self.smtp_user or not self.smtp_password:
-            raise Exception("SMTP credentials not configured")
+            raise Exception(f"SMTP credentials not configured (user={self.smtp_user}, pass={'SET' if self.smtp_password else 'NOT SET'})")
         
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{self.from_name} <{self.from_email}>"
@@ -226,10 +235,12 @@ class EmailNotifierTemplate(JobTemplate):
         html_body = self._create_html_email(body, notification)
         msg.attach(MIMEText(html_body, 'html'))
         
+        print(f"DEBUG: Sending email to {to_email}...")
         with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
             server.starttls()
             server.login(self.smtp_user, self.smtp_password)
             server.send_message(msg)
+        print(f"DEBUG: Email sent successfully!")
     
     def _create_html_email(self, body: str, notification) -> str:
         """Create HTML email with styling"""

@@ -202,18 +202,20 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '🔔',
+        label: 'Notification Tester',
+        subLabel: 'Test & debug notifications',
+        action: () => navigate('/notification-tester')
+      });
+      
+      items.push({
         icon: '🗓️',
         label: 'Scheduler & Jobs',
         subLabel: 'Manage automated tasks',
         action: () => navigate('/dynamic-scheduler')
       });
 
-      items.push({
-        icon: '⚙️',
-        label: 'System Configuration',
-        subLabel: 'Settings & preferences',
-        action: () => navigate('/admin/settings')
-      });
+      // System Configuration moved to Settings page as a tab
     }
 
     // Add Testimonials section (only for admin/moderator in main menu)

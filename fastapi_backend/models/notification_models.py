@@ -194,6 +194,7 @@ class NotificationPreferencesUpdate(BaseModel):
 
 class NotificationQueueItem(BaseModel):
     """Item in notification queue"""
+    id: Optional[str] = Field(None, alias="_id", description="Notification ID")
     username: str = Field(..., description="Recipient username")
     trigger: NotificationTrigger = Field(..., description="Notification trigger type")
     priority: NotificationPriority = Field(default=NotificationPriority.MEDIUM)
@@ -221,6 +222,7 @@ class NotificationQueueItem(BaseModel):
     
     class Config:
         use_enum_values = True
+        populate_by_name = True
 
 
 class NotificationQueueCreate(BaseModel):

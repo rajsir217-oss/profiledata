@@ -119,13 +119,20 @@
   font-size: 0.9rem;
 }
 
+.executions-table td:first-child {
+  min-width: 130px;
+}
+
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
   padding: 0.4rem 0.8rem;
   border-radius: 6px;
   font-size: 0.85rem;
   font-weight: 600;
   white-space: nowrap;
+  vertical-align: middle;
 }
 
 .status-badge.status-success {

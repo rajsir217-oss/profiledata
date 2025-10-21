@@ -167,8 +167,9 @@
   display: flex;
   gap: var(--spacing-sm);
   justify-content: flex-end;
-  padding-top: var(--spacing-lg);
-  border-top: 1px solid var(--border-color);
+  padding: var(--spacing-lg);
+  border-top: 2px solid var(--border-color);
+  background: var(--card-background);
 }
 
 /* ========================================

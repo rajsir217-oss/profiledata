@@ -11,6 +11,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedJob, setSelectedJob] = useState(null);
+  const [editJob, setEditJob] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [filterTemplate, setFilterTemplate] = useState('');
@@ -114,6 +115,11 @@ const DynamicScheduler = ({ currentUser }) => {
         }
       });
       const data = await response.json();
+      console.log('📋 Jobs loaded:', data.jobs?.length || 0);
+      if (data.jobs && data.jobs.length > 0) {
+        console.log('📋 First job fields:', Object.keys(data.jobs[0]));
+        console.log('📋 First job data:', data.jobs[0]);
+      }
       setJobs(data.jobs || []);
       setTotalPages(data.pages || 1);
     } catch (err) {
@@ -150,8 +156,70 @@ const DynamicScheduler = ({ currentUser }) => {
       setShowCreateModal(false);
       setRefreshTrigger(prev => prev + 1);
       loadSchedulerStatus();
+      setToast({ type: 'success', message: 'Job created successfully!' });
     } catch (err) {
       console.error('Error creating job:', err);
+      throw err;
+    }
+  };
+
+  const handleEditJob = (job) => {
+    // Ensure all required fields exist with proper structure
+    const jobData = {
+      ...job,
+      schedule: job.schedule || {
+        type: 'interval',
+        interval_seconds: 3600,
+        expression: '0 * * * *',
+        timezone: 'UTC'
+      },
+      retry_policy: job.retry_policy || {
+        max_retries: 3,
+        retry_delay_seconds: 300
+      },
+      notifications: job.notifications || {
+        on_success: [],
+        on_failure: []
+      },
+      parameters: job.parameters || {}
+    };
+    
+    console.log('📝 Editing job with data:', jobData);
+    setEditJob(jobData);
+    setShowCreateModal(true);
+  };
+
+  const handleUpdateJob = async (jobData) => {
+    try {
+      const cleanedData = {
+        ...jobData,
+        parameters: Object.fromEntries(
+          Object.entries(jobData.parameters).filter(([_, v]) => v !== undefined && v !== null)
+        )
+      };
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${editJob._id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(cleanedData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Failed to update job');
+      }
+      
+      setShowCreateModal(false);
+      setEditJob(null);
+      setRefreshTrigger(prev => prev + 1);
+      loadSchedulerStatus();
+      setToast({ type: 'success', message: 'Job updated successfully!' });
+    } catch (err) {
+      console.error('Error updating job:', err);
       throw err;
     }
   };
@@ -167,19 +235,29 @@ const DynamicScheduler = ({ currentUser }) => {
         },
         body: JSON.stringify({ enabled: !currentEnabled })
       });
-      if (!response.ok) throw new Error('Failed to toggle job');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Backend error:', errorData);
+        
+        if (response.status === 401) {
+          throw new Error('Session expired. Please login again.');
+        }
+        
+        throw new Error(errorData.detail || 'Failed to toggle job');
+      }
+      
       setToast({ message: `Job ${!currentEnabled ? 'enabled' : 'disabled'} successfully`, type: 'success' });
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error toggling job:', err);
-      setToast({ message: 'Failed to update job status', type: 'error' });
+      setToast({ message: err.message || 'Failed to update job status', type: 'error' });
     }
   };
 
   const handleDeleteJob = async (jobId, jobName) => {
-    if (!window.confirm(`Are you sure you want to delete the job "${jobName}"?`)) {
-      return;
-    }
+    // Show immediate feedback
+    setToast({ message: `Deleting job "${jobName}"...`, type: 'info' });
     
     try {
       const token = localStorage.getItem('token');
@@ -189,20 +267,30 @@ const DynamicScheduler = ({ currentUser }) => {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error('Failed to delete job');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Backend error:', errorData);
+        
+        if (response.status === 401) {
+          throw new Error('Session expired. Please login again.');
+        }
+        
+        throw new Error(errorData.detail || 'Failed to delete job');
+      }
+      
       setToast({ message: `Job "${jobName}" deleted successfully`, type: 'success' });
       setRefreshTrigger(prev => prev + 1);
       loadSchedulerStatus();
     } catch (err) {
       console.error('Error deleting job:', err);
-      setToast({ message: 'Failed to delete job', type: 'error' });
+      setToast({ message: err.message || 'Failed to delete job', type: 'error' });
     }
   };
 
   const handleRunJob = async (jobId, jobName) => {
-    if (!window.confirm(`Manually run the job "${jobName}" now?`)) {
-      return;
-    }
+    // Show immediate feedback
+    setToast({ message: `Starting job "${jobName}"...`, type: 'info' });
     
     try {
       const token = localStorage.getItem('token');
@@ -212,12 +300,26 @@ const DynamicScheduler = ({ currentUser }) => {
           'Authorization': `Bearer ${token}`
         }
       });
-      if (!response.ok) throw new Error('Failed to run job');
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Backend error:', errorData);
+        
+        // Handle authentication error
+        if (response.status === 401) {
+          throw new Error('Session expired. Please login again.');
+        }
+        
+        throw new Error(errorData.detail || 'Failed to run job');
+      }
+      
+      const result = await response.json();
+      console.log('✅ Job started:', result);
       setToast({ message: `Job "${jobName}" execution started`, type: 'success' });
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error running job:', err);
-      setToast({ message: 'Failed to start job execution', type: 'error' });
+      setToast({ message: err.message || 'Failed to start job execution', type: 'error' });
     }
   };
 
@@ -247,6 +349,28 @@ const DynamicScheduler = ({ currentUser }) => {
     }
     
     return 'Unknown schedule';
+  };
+
+  const getLastRunStatusIcon = (status) => {
+    switch (status) {
+      case 'success': return '✅';
+      case 'failed': return '❌';
+      case 'running': return '⏳';
+      case 'timeout': return '⏱️';
+      case 'partial': return '⚠️';
+      default: return '❓';
+    }
+  };
+
+  const getLastRunStatusClass = (status) => {
+    switch (status) {
+      case 'success': return 'status-success';
+      case 'failed': return 'status-failed';
+      case 'running': return 'status-running';
+      case 'timeout': return 'status-timeout';
+      case 'partial': return 'status-partial';
+      default: return 'status-unknown';
+    }
   };
 
   const getTemplateIcon = (templateType) => {
@@ -380,9 +504,15 @@ const DynamicScheduler = ({ currentUser }) => {
                 {jobs.map(job => (
                   <tr key={job._id}>
                     <td>
-                      <span className={`status-badge ${job.enabled ? 'enabled' : 'disabled'}`}>
-                        {job.enabled ? '✅ Enabled' : '⏸️ Disabled'}
-                      </span>
+                      {job.last_run_status ? (
+                        <span className={` ${getLastRunStatusClass(job.last_run_status)}`}>
+                          {getLastRunStatusIcon(job.last_run_status)} {job.last_run_status}
+                        </span>
+                      ) : (
+                        <span className="status-unknown">
+                          ⚫ Never run
+                        </span>
+                      )}
                     </td>
                     <td>
                       <div className="job-name">
@@ -413,6 +543,13 @@ const DynamicScheduler = ({ currentUser }) => {
                           onClick={() => handleViewHistory(job)}
                         >
                           📊
+                        </button>
+                        <button 
+                          className="btn-icon" 
+                          title="Edit Job"
+                          onClick={() => handleEditJob(job)}
+                        >
+                          ✏️
                         </button>
                         <button 
                           className="btn-icon" 
@@ -461,8 +598,12 @@ const DynamicScheduler = ({ currentUser }) => {
       {showCreateModal && (
         <JobCreationModal
           templates={templates}
-          onClose={() => setShowCreateModal(false)}
-          onSubmit={handleCreateJob}
+          editJob={editJob}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditJob(null);
+          }}
+          onSubmit={editJob ? handleUpdateJob : handleCreateJob}
         />
       )}
 

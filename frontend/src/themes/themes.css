@@ -20,6 +20,11 @@
   --input-bg: #ffffff;
   --error-bg: #fee2e2;
   
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #ffffff;
+  --bs-modal-color: #1f2937;
+  --bs-modal-border-color: #f3f4f6;
+  
   /* Text Colors - Softer contrast */
   --text-color: #1f2937;
   --text-secondary: #6b7280;
@@ -96,6 +101,11 @@ body.theme-light-blue {
   --input-bg: #ffffff;
   --error-bg: #fee2e2;
   
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #faf9ff;
+  --bs-modal-color: #374151;
+  --bs-modal-border-color: #f9fafb;
+  
   /* Text Colors - Soft contrast */
   --text-color: #374151;
   --text-secondary: #6b7280;
@@ -170,6 +180,11 @@ body.theme-dark {
   --card-bg: #3a3450;
   --input-bg: #2a2740;
   --error-bg: #3f1d1d;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #3a3450;
+  --bs-modal-color: #f3f4f6;
+  --bs-modal-border-color: #4b4563;
   
   /* Text Colors - Better contrast */
   --text-color: #f3f4f6;
@@ -341,6 +356,11 @@ body.theme-light-pink {
   --surface-color: #fce7f3;
   --card-background: #fef6fb; /* Ultra light pink-purple */
   
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fef6fb;
+  --bs-modal-color: #4a5568;
+  --bs-modal-border-color: #fed7e2;
+  
   /* Text Colors - Gentle contrast */
   --text-color: #4a5568;
   --text-secondary: #718096;
@@ -450,6 +470,11 @@ body.theme-light-gray {
   --surface-color: #f1f5f9;
   --card-background: #f9fafb; /* Ultra light gray with subtle warmth */
   
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #f9fafb;
+  --bs-modal-color: #1e293b;
+  --bs-modal-border-color: #e2e8f0;
+  
   /* Text Colors - Balanced contrast */
   --text-color: #1e293b;
   --text-secondary: #64748b;
@@ -524,6 +549,11 @@ body.theme-ultra-light-gray {
   --background-color: #fcfcfd;
   --surface-color: #fafbfc;
   --card-background: #fdfeff; /* Almost white with cool tint */
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fdfeff;
+  --bs-modal-color: #0f172a;
+  --bs-modal-border-color: #f1f5f9;
   
   /* Text Colors - Gentle contrast */
   --text-color: #0f172a;
@@ -917,6 +947,11 @@ body.theme-ultra-light-green {
   --active-background: #a7f3d0;
   --selected-background: #d1fae5;
   
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #f9fdfb;
+  --bs-modal-color: #065f46;
+  --bs-modal-border-color: #d1fae5;
+  
   /* Text Colors - Dark green for contrast */
   --text-color: #064e3b;
   --text-secondary: #047857;
@@ -1085,4 +1120,280 @@ body.theme-ultra-light-green {
 
 .theme-ultra-light-green .channel-toggle input:checked + .channel-icon.push {
   background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+/* ========================================
+   ULTRA BLACK THEME - Pure Black OLED
+   ======================================== */
+body.theme-ultra-black {
+  /* Primary Colors - Vibrant contrast on black */
+  --primary-color: #00d4ff;
+  --secondary-color: #7c3aed;
+  --accent-color: #ff0080;
+  
+  /* Backgrounds - True blacks for OLED */
+  --background-color: #000000;
+  --surface-color: #0a0a0a;
+  --card-background: #111111;
+  --card-bg: #111111;
+  --input-bg: #0a0a0a;
+  --error-bg: #1a0000;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #111111;
+  --bs-modal-color: #e5e5e5;
+  --bs-modal-border-color: #1f1f1f;
+  
+  /* Text Colors - High contrast */
+  --text-color: #e5e5e5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  
+  /* Borders & Dividers - Subtle */
+  --border-color: #1f1f1f;
+  --divider-color: #171717;
+  
+  /* Interactive States - Subtle glow */
+  --hover-background: #1a1a1a;
+  --active-background: #262626;
+  --selected-background: rgba(0, 212, 255, 0.15);
+  
+  /* Status Colors - Vibrant for contrast */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #00d4ff;
+  
+  /* Button State Colors */
+  --success-light: #064e3b;
+  --success-hover: #059669;
+  --info-light: #082f49;
+  --info-hover: #0284c7;
+  --danger-light: #450a0a;
+  --danger-hover: #dc2626;
+  --warning-light: #451a03;
+  --warning-hover: #d97706;
+  
+  /* Input Colors */
+  --input-border: #262626;
+  --input-focus: #00d4ff;
+  
+  /* Shadow - Minimal, no need on pure black */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 212, 255, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 212, 255, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 212, 255, 0.15);
+  
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+/* Component Overrides for Ultra Black */
+.theme-ultra-black .dashboard-container,
+.theme-ultra-black .search-page,
+.theme-ultra-black .profile-container,
+.theme-ultra-black .preferences-container {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .dashboard-header,
+.theme-ultra-black .preferences-header {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+}
+
+.theme-ultra-black .user-card,
+.theme-ultra-black .dashboard-section,
+.theme-ultra-black .stat-card,
+.theme-ultra-black .search-filters,
+.theme-ultra-black .preferences-section,
+.theme-ultra-black .card {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .sidebar {
+  background: var(--surface-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-black .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.theme-ultra-black .sidebar-item {
+  color: var(--text-secondary);
+}
+
+.theme-ultra-black .sidebar-item:hover {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--primary-color);
+}
+
+.theme-ultra-black input,
+.theme-ultra-black select,
+.theme-ultra-black textarea {
+  background: var(--input-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-black input::placeholder,
+.theme-ultra-black textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.theme-ultra-black .btn-primary {
+  background: var(--primary-color);
+  color: #000000;
+  border-color: var(--primary-color);
+}
+
+.theme-ultra-black .section-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.theme-ultra-black .empty-section {
+  background: var(--card-background);
+  color: var(--text-secondary);
+}
+
+/* SearchPage Ultra Black Overrides */
+.theme-ultra-black .search-filters,
+.theme-ultra-black .search-results,
+.theme-ultra-black .result-card .card,
+.theme-ultra-black .result-row {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .search-form,
+.theme-ultra-black .saved-searches {
+  background: var(--surface-color) !important;
+}
+
+.theme-ultra-black .form-control,
+.theme-ultra-black .form-select,
+.theme-ultra-black .per-page-select {
+  background-color: var(--input-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-ultra-black .row-name,
+.theme-ultra-black .result-card .card-title {
+  color: var(--primary-color) !important;
+}
+
+.theme-ultra-black .row-details,
+.theme-ultra-black .form-group label,
+.theme-ultra-black .form-check-label {
+  color: var(--text-secondary) !important;
+}
+
+.theme-ultra-black .saved-search-item {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .saved-search-item:hover {
+  background: var(--hover-background) !important;
+}
+
+.theme-ultra-black .toggle-label {
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .toggle-container {
+  background: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Admin pages Ultra Black */
+.theme-ultra-black .admin-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-black .admin-header {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+}
+
+.theme-ultra-black .admin-table {
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .admin-table thead,
+.theme-ultra-black .admin-table th {
+  background: var(--surface-color) !important;
+  color: var(--primary-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-ultra-black .admin-table tbody tr {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-black .admin-table tbody tr:hover {
+  background: var(--hover-background);
+}
+
+.theme-ultra-black .admin-table tbody td {
+  color: var(--text-color) !important;
+  border-color: var(--border-color);
+}
+
+/* Match score badges */
+.theme-ultra-black .match-score-badge {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Excellent"] {
+  background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Great"] {
+  background: linear-gradient(135deg, #00d4ff 0%, #0084ff 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Good"] {
+  background: linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%);
+  color: #ffffff;
+}
+
+/* Buttons for Ultra Black */
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.email {
+  background: linear-gradient(135deg, #00d4ff, #0084ff);
+}
+
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.sms {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.push {
+  background: linear-gradient(135deg, #ff0080, #c4007d);
+}
+
+/* Scrollbar styling for Ultra Black */
+.theme-ultra-black ::-webkit-scrollbar {
+  width: 12px;
+  background: #000000;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 6px;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb:hover {
+  background: #404040;
 }

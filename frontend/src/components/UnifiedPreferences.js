@@ -1,14 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
+import api from '../api';
 
 const UnifiedPreferences = () => {
   const [activeTab, setActiveTab] = useState('account');
   const [toast, setToast] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Admin Settings State
+  const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
+  const [savingTicketSettings, setSavingTicketSettings] = useState(false);
+  const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [adminSettingsLoading, setAdminSettingsLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -141,9 +150,55 @@ const UnifiedPreferences = () => {
       }
     };
 
+    const checkAdminStatus = () => {
+      const username = localStorage.getItem('username');
+      console.log('🔍 Checking admin status - Username:', username);
+      console.log('🔍 Is Admin?', username === 'admin');
+      setIsAdmin(username === 'admin');
+    };
+
     fetchNotificationPreferences();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    checkAdminStatus();
   }, []);
+
+  const loadAdminSettings = async () => {
+    try {
+      setAdminSettingsLoading(true);
+      const response = await api.get('/system-settings');
+      const days = response.data.ticket_delete_days;
+      setTicketDeleteDays(days !== undefined && days !== null ? days : 30);
+    } catch (error) {
+      console.error('Error loading admin settings:', error);
+      setTicketDeleteDays(30);
+    } finally {
+      setAdminSettingsLoading(false);
+    }
+  };
+
+  const handleSaveTicketSettings = async () => {
+    try {
+      setSavingTicketSettings(true);
+      setTicketSettingsMessage({ type: '', text: '' });
+
+      await api.put('/system-settings', {
+        ticket_delete_days: ticketDeleteDays
+      });
+
+      setTicketSettingsMessage({ type: 'success', text: '✅ Settings saved successfully!' });
+      setTimeout(() => setTicketSettingsMessage({ type: '', text: '' }), 3000);
+    } catch (error) {
+      console.error('Error saving ticket settings:', error);
+      setTicketSettingsMessage({ type: 'error', text: '⚠️ Failed to save settings' });
+    } finally {
+      setSavingTicketSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'admin' && isAdmin) {
+      loadAdminSettings();
+    }
+  }, [activeTab, isAdmin]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -300,6 +355,14 @@ const UnifiedPreferences = () => {
         >
           🔔 Notifications
         </button>
+        {isAdmin && (
+          <button
+            className={`tab-button ${activeTab === 'admin' ? 'active' : ''}`}
+            onClick={() => setActiveTab('admin')}
+          >
+            ⚙️ System Config
+          </button>
+        )}
       </div>
 
       {/* Account Settings Tab */}
@@ -523,6 +586,135 @@ const UnifiedPreferences = () => {
           {toast.type === 'success' && '✓ '}
           {toast.type === 'error' && '✕ '}
           {toast.message}
+        </div>
+      )}
+
+      {/* Admin Settings Tab */}
+      {activeTab === 'admin' && isAdmin && (
+        <div className="tab-content admin-settings">
+          <h2>⚙️ System Configuration</h2>
+          <p className="section-description">Configure global system settings and preferences</p>
+          
+          <div className="info-banner" style={{
+            background: 'var(--info-light)',
+            border: '1px solid var(--info-color)',
+            borderRadius: '12px',
+            padding: '16px',
+            marginBottom: '24px',
+            display: 'flex',
+            gap: '12px',
+            alignItems: 'center'
+          }}>
+            <span style={{ fontSize: '1.3rem' }}>ℹ️</span>
+            <span>Looking for scheduler jobs? Visit the <strong>Dynamic Scheduler</strong> page for advanced job management.</span>
+          </div>
+
+          {adminSettingsLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <div className="loading-spinner"></div>
+              <p>Loading system settings...</p>
+            </div>
+          ) : (
+            <div className="settings-card">
+              <h3>🎫 Ticket Management</h3>
+              <p>Configure automatic cleanup for resolved support tickets</p>
+              
+              {ticketSettingsMessage.text && (
+                <div className={`alert alert-${ticketSettingsMessage.type}`} style={{ marginTop: '16px' }}>
+                  {ticketSettingsMessage.text}
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label htmlFor="ticketDeleteDays" style={{ fontWeight: '600' }}>Auto-Delete Period</label>
+                  <div style={{ position: 'relative' }}>
+                    <span 
+                      onClick={() => setShowTooltip(!showTooltip)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '4px 8px',
+                        borderRadius: '50%',
+                        background: 'var(--info-light)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ℹ️
+                    </span>
+                    {showTooltip && (
+                      <>
+                        <div 
+                          onClick={() => setShowTooltip(false)}
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '0',
+                          marginTop: '8px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          minWidth: '300px',
+                          maxWidth: '400px'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: '8px' }}>How it works:</strong>
+                          <ul style={{ marginLeft: '20px', lineHeight: '1.6' }}>
+                            <li>When a ticket is marked as <strong>resolved</strong> or <strong>closed</strong>, a deletion timestamp is set</li>
+                            <li>A background job runs every hour to delete tickets past their scheduled deletion time</li>
+                            <li>All attachments are permanently deleted from the filesystem</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Resolved/closed tickets and attachments will be automatically deleted after this period.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    id="ticketDeleteDays"
+                    value={ticketDeleteDays}
+                    onChange={(e) => setTicketDeleteDays(Number(e.target.value))}
+                    disabled={savingTicketSettings}
+                    className="form-control"
+                    style={{ flex: '1', minWidth: '250px' }}
+                  >
+                    <option value={0}>Immediately (on resolve/close)</option>
+                    <option value={7}>7 days after resolved</option>
+                    <option value={14}>14 days after resolved</option>
+                    <option value={30}>30 days after resolved (Recommended)</option>
+                    <option value={60}>60 days after resolved</option>
+                    <option value={90}>90 days after resolved</option>
+                  </select>
+                  
+                  <button
+                    onClick={handleSaveTicketSettings}
+                    disabled={savingTicketSettings}
+                    className="btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

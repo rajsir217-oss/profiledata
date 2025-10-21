@@ -104,6 +104,11 @@ class JobExecutor:
             # Update execution record
             await self._update_execution_record(execution_id, result, context, job)
             
+            # Update job with last run status
+            from services.job_registry import JobRegistryService
+            job_registry = JobRegistryService(self.db)
+            await job_registry.update_job_after_execution(job_id, {"status": result.status})
+            
             # Send notifications if configured
             await self._send_notifications(job, result, context)
             
@@ -123,6 +128,11 @@ class JobExecutor:
             
             # Update execution record
             await self._update_execution_record(execution_id, result, None, job)
+            
+            # Update job with last run status
+            from services.job_registry import JobRegistryService
+            job_registry = JobRegistryService(self.db)
+            await job_registry.update_job_after_execution(job_id, {"status": result.status})
             
             return await self._get_execution_record(execution_id)
     
@@ -197,6 +207,10 @@ class JobExecutor:
     def _serialize_execution(self, execution: Dict[str, Any]) -> Dict[str, Any]:
         """Convert execution document to serializable dictionary with snake_case fields"""
         execution["_id"] = str(execution["_id"])
+        
+        # Ensure status field is present (already in snake_case)
+        if "status" not in execution:
+            execution["status"] = "unknown"
         
         # Map camelCase to snake_case for frontend
         field_mapping = {

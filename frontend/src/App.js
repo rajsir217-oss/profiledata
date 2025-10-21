@@ -29,6 +29,7 @@ import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
 import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
+import NotificationTester from './components/NotificationTester';
 import ToastContainer from './components/ToastContainer';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -211,6 +212,7 @@ function App() {
               <Route path="/role-management" element={<ProtectedRoute><RoleManagement /></ProtectedRoute>} />
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
+              <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
             </Routes>
           </div>
           </div>
