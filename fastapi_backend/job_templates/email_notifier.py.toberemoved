@@ -28,7 +28,7 @@ class EmailNotifierJob:
     # Job metadata
     job_name = "email_notifier"
     description = "Process email notification queue and send emails"
-    default_schedule = "every 5 minutes"
+    default_schedule = "every 1 minute"  # Fast mode for testing! Use 5 min in production
     timeout = 300  # 5 minutes
     
     # Default parameters
@@ -87,12 +87,20 @@ class EmailNotifierJob:
                         self.log(f"Looking up email for user: {notification.username}")
                         user = await self.db.users.find_one({"username": notification.username})
                         self.log(f"Found user: {user is not None}")
-                        if user:
-                            self.log(f"User has email field: {'email' in user}")
-                            self.log(f"Email value: {user.get('email', 'NONE')}")
-                        if not user or not user.get("email"):
-                            raise Exception(f"User email not found (user={'exists' if user else 'not found'}, email={user.get('email') if user else 'N/A'})")
-                        recipient_email = user["email"]
+                        
+                        if not user:
+                            raise Exception(f"User '{notification.username}' not found in database")
+                        
+                        # Check both 'email' and 'contactEmail' fields
+                        email_field = user.get("email")
+                        contactEmail_field = user.get("contactEmail")
+                        self.log(f"DB Fields - email: {email_field or 'NOT SET'}, contactEmail: {contactEmail_field or 'NOT SET'}")
+                        
+                        recipient_email = email_field or contactEmail_field
+                        self.log(f"✅ Using email: {recipient_email}")
+                        
+                        if not recipient_email:
+                            raise Exception(f"User '{notification.username}' has no email address (checked 'email' and 'contactEmail' fields)")
                     
                     # Render email content
                     subject, body = await self._render_email(notification)

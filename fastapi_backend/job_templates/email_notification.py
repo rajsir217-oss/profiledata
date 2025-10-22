@@ -12,11 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class EmailNotificationTemplate(JobTemplate):
-    """Template for sending scheduled email notifications"""
+    """Template for sending bulk email notifications"""
     
     template_type = "email_notification"
-    template_name = "Email Notification"
-    template_description = "Send scheduled email notifications to specified recipients"
+    template_name = "Bulk Email Notification"
+    template_description = "Send bulk emails to specified recipients (not for notification queue)"
     category = "notifications"
     icon = "📧"
     estimated_duration = "1-5 minutes"

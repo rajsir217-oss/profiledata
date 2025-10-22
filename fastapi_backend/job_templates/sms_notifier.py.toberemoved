@@ -25,7 +25,7 @@ class SMSNotifierJob:
     # Job metadata
     job_name = "sms_notifier"
     description = "Process SMS notification queue (cost-optimized)"
-    default_schedule = "every 10 minutes"
+    default_schedule = "every 2 minutes"  # Fast mode for testing! Use 10 min in production
     timeout = 600  # 10 minutes
     
     # Default parameters
@@ -120,11 +120,25 @@ class SMSNotifierJob:
                     # Get user phone
                     if self.params["testMode"] and self.params.get("testPhone"):
                         phone = self.params["testPhone"]
+                        self.log(f"🧪 Test mode - using phone: {phone}")
                     else:
+                        self.log(f"Looking up phone for user: {notification.username}")
                         user = await self.db.users.find_one({"username": notification.username})
-                        if not user or not user.get("phone"):
-                            raise Exception("User phone not found")
-                        phone = user["phone"]
+                        self.log(f"Found user: {user is not None}")
+                        
+                        if not user:
+                            raise Exception(f"User '{notification.username}' not found in database")
+                        
+                        # Check both 'phone' and 'contactNumber' fields
+                        phone_field = user.get("phone")
+                        contactNumber_field = user.get("contactNumber")
+                        self.log(f"DB Fields - phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
+                        
+                        phone = phone_field or contactNumber_field
+                        self.log(f"✅ Using phone: {phone}")
+                        
+                        if not phone:
+                            raise Exception(f"User '{notification.username}' has no phone number (checked 'phone' and 'contactNumber' fields)")
                     
                     # Render SMS content
                     message = await self._render_sms(notification)

@@ -160,11 +160,25 @@ class SMSNotifierTemplate(JobTemplate):
                     # Get recipient phone
                     if params.get("testMode") and params.get("testPhone"):
                         phone = params["testPhone"]
+                        context.log("info", f"🧪 Test mode - using phone: {phone}")
                     else:
+                        context.log("info", f"Looking up phone for user: {notification.username}")
                         user = await context.db.users.find_one({"username": notification.username})
-                        if not user or not user.get("phone"):
-                            raise Exception("User phone not found")
-                        phone = user["phone"]
+                        context.log("info", f"Found user: {user is not None}")
+                        
+                        if not user:
+                            raise Exception(f"User '{notification.username}' not found in database")
+                        
+                        # Check both 'phone' and 'contactNumber' fields
+                        phone_field = user.get("phone")
+                        contactNumber_field = user.get("contactNumber")
+                        context.log("info", f"DB Fields - phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
+                        
+                        phone = phone_field or contactNumber_field
+                        context.log("info", f"✅ Using phone: {phone}")
+                        
+                        if not phone:
+                            raise Exception(f"User '{notification.username}' has no phone number (checked 'phone' and 'contactNumber' fields)")
                     
                     # Render SMS
                     message = await self._render_sms(service, notification, context.db)

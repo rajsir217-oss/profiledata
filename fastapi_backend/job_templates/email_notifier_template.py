@@ -123,11 +123,25 @@ class EmailNotifierTemplate(JobTemplate):
                     # Get recipient email
                     if params.get("testMode") and params.get("testEmail"):
                         recipient_email = params["testEmail"]
+                        context.log("info", f"🧪 Test mode - using email: {recipient_email}")
                     else:
+                        context.log("info", f"Looking up email for user: {notification.username}")
                         user = await context.db.users.find_one({"username": notification.username})
-                        if not user or not user.get("email"):
-                            raise Exception("User email not found")
-                        recipient_email = user["email"]
+                        context.log("info", f"Found user: {user is not None}")
+                        
+                        if not user:
+                            raise Exception(f"User '{notification.username}' not found in database")
+                        
+                        # Check both 'email' and 'contactEmail' fields
+                        email_field = user.get("email")
+                        contactEmail_field = user.get("contactEmail")
+                        context.log("info", f"DB Fields - email: {email_field or 'NOT SET'}, contactEmail: {contactEmail_field or 'NOT SET'}")
+                        
+                        recipient_email = email_field or contactEmail_field
+                        context.log("info", f"✅ Using email: {recipient_email}")
+                        
+                        if not recipient_email:
+                            raise Exception(f"User '{notification.username}' has no email address (checked 'email' and 'contactEmail' fields)")
                     
                     # Render email
                     subject, body = await self._render_email(service, notification, context.db)
