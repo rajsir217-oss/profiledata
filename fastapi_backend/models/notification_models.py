@@ -245,6 +245,7 @@ class NotificationLog(BaseModel):
     trigger: NotificationTrigger = Field(..., description="Trigger type")
     channel: NotificationChannel = Field(..., description="Delivery channel")
     priority: NotificationPriority
+    status: NotificationStatus = Field(default=NotificationStatus.SENT, description="Final delivery status")
     
     # Timing
     createdAt: datetime = Field(default_factory=datetime.utcnow)
@@ -335,6 +336,12 @@ class NotificationAnalytics(BaseModel):
     # Date range
     startDate: datetime
     endDate: datetime
+    
+    # Queue Metrics (for Event Queue Manager)
+    queued: int = 0
+    processing: int = 0
+    success_24h: int = 0
+    failed_24h: int = 0
     
     # Metrics
     totalSent: int = 0

@@ -52,10 +52,23 @@ class NotificationService:
         default_prefs = NotificationPreferences(
             username=username,
             channels={
+                # Matches
                 NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+                NotificationTrigger.FAVORITED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                NotificationTrigger.SHORTLIST_ADDED: [NotificationChannel.EMAIL],
+                
+                # Messages
                 NotificationTrigger.NEW_MESSAGE: [NotificationChannel.SMS, NotificationChannel.PUSH],
-                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
+                
+                # Profile Activity
                 NotificationTrigger.PROFILE_VIEW: [NotificationChannel.PUSH],
+                
+                # PII/Privacy
+                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+                NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
             },
             frequency={
                 "instant": [NotificationTrigger.NEW_MATCH, NotificationTrigger.PII_REQUEST],
@@ -185,6 +198,8 @@ class NotificationService:
         error: Optional[str] = None
     ) -> None:
         """Mark notification as sent"""
+        from bson import ObjectId
+        
         update = {
             "status": NotificationStatus.SENT if success else NotificationStatus.FAILED,
             "updatedAt": datetime.utcnow(),
@@ -195,8 +210,15 @@ class NotificationService:
         if error:
             update["error"] = error
         
+        # Convert string ID to ObjectId
+        try:
+            obj_id = ObjectId(notification_id)
+        except:
+            # If not a valid ObjectId, treat as string
+            obj_id = notification_id
+        
         await self.queue_collection.update_one(
-            {"_id": notification_id},
+            {"_id": obj_id},
             {"$set": update}
         )
     
@@ -281,6 +303,7 @@ class NotificationService:
         trigger: NotificationTrigger,
         channel: NotificationChannel,
         priority: NotificationPriority,
+        status: NotificationStatus = NotificationStatus.SENT,
         subject: Optional[str] = None,
         preview: Optional[str] = None,
         cost: float = 0.0
@@ -291,6 +314,7 @@ class NotificationService:
             trigger=trigger,
             channel=channel,
             priority=priority,
+            status=status,
             subject=subject,
             preview=preview,
             cost=cost,
@@ -467,3 +491,47 @@ class NotificationService:
             return next_send_time.astimezone(pytz.utc)
         
         return scheduled_for
+    
+    # ============================================
+    # Convenience Methods
+    # ============================================
+    
+    async def queue_notification(
+        self,
+        username: str,
+        trigger: str,
+        channels: List[str],
+        template_data: Optional[Dict[str, Any]] = None,
+        priority: str = "medium"  # Changed from "normal" to valid enum value
+    ) -> Optional[NotificationQueueItem]:
+        """Simple helper to queue a notification"""
+        try:
+            # Convert string trigger to enum
+            trigger_enum = NotificationTrigger(trigger)
+            
+            # Convert string channels to enums
+            channel_enums = [NotificationChannel(ch) for ch in channels]
+            
+            # Convert priority string to enum
+            priority_enum = NotificationPriority(priority)
+            
+            # Create queue item
+            queue_data = NotificationQueueCreate(
+                username=username,
+                trigger=trigger_enum,
+                channels=channel_enums,
+                templateData=template_data or {},
+                priority=priority_enum,
+                scheduledFor=None
+            )
+            
+            # Enqueue
+            return await self.enqueue_notification(queue_data)
+            
+        except ValueError as e:
+            # Invalid enum value
+            print(f"Invalid notification parameter: {e}")
+            return None
+        except Exception as e:
+            print(f"Error queuing notification: {e}")
+            return None

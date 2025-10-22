@@ -142,9 +142,18 @@ async def get_notification_queue(
     current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
-    """Get notification queue (admin only or user's own notifications)"""
-    # TODO: Add admin check
-    query = {"username": current_user["username"]}
+    """Get notification queue (admin sees all, regular users see only theirs)"""
+    # Build query based on user role
+    query = {}
+    
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    # Non-admins only see their own notifications
+    if not is_admin:
+        query["username"] = current_user["username"]
+    # Admins see all notifications (no username filter)
     
     if status:
         query["status"] = status
@@ -178,12 +187,15 @@ async def cancel_notification(
         except:
             raise HTTPException(status_code=400, detail="Invalid notification ID")
         
+        # Build query - admin can delete any notification, users can only delete their own
+        is_admin = current_user.get("username") == "admin"
+        base_query = {"_id": obj_id}
+        if not is_admin:
+            base_query["username"] = current_user["username"]
+        
         if hard_delete:
             # Hard delete: Remove from database entirely
-            result = await service.queue_collection.delete_one({
-                "_id": obj_id,
-                "username": current_user["username"]
-            })
+            result = await service.queue_collection.delete_one(base_query)
             
             if result.deleted_count == 0:
                 raise HTTPException(status_code=404, detail="Notification not found")
@@ -194,12 +206,9 @@ async def cancel_notification(
             )
         else:
             # Soft delete: Mark as cancelled
+            query = {**base_query, "status": {"$in": ["pending", "scheduled"]}}
             result = await service.queue_collection.update_one(
-                {
-                    "_id": obj_id,
-                    "username": current_user["username"],
-                    "status": {"$in": ["pending", "scheduled"]}
-                },
+                query,
                 {"$set": {"status": "cancelled", "updatedAt": datetime.utcnow()}}
             )
             
@@ -230,24 +239,46 @@ async def get_notification_analytics(
     current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
-    """Get notification analytics for current user"""
+    """Get notification analytics (admin sees global, users see their own)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
     end_date = datetime.utcnow()
     start_date = end_date - timedelta(days=days)
     
+    # Admins get global stats, regular users get their own
+    username = None if is_admin else current_user["username"]
+    
     stats = await service.get_analytics(
-        username=current_user["username"],
+        username=username,
         trigger=trigger,
         channel=channel,
         start_date=start_date,
         end_date=end_date
     )
     
+    # Add queue counts for Event Queue Manager
+    queue_query = {"username": username} if username else {}
+    queued = await service.queue_collection.count_documents({**queue_query, "status": {"$in": ["pending", "scheduled"]}})
+    processing = await service.queue_collection.count_documents({**queue_query, "status": "processing"})
+    
+    # Count recent logs for 24h stats
+    yesterday = datetime.utcnow() - timedelta(days=1)
+    log_query = {"username": username, "createdAt": {"$gte": yesterday}} if username else {"createdAt": {"$gte": yesterday}}
+    success_24h = await service.log_collection.count_documents({**log_query, "status": {"$in": ["sent", "delivered"]}})
+    failed_24h = await service.log_collection.count_documents({**log_query, "status": "failed"})
+    
     return NotificationAnalytics(
-        username=current_user["username"],
+        username=username,
         trigger=trigger,
         channel=channel,
         startDate=start_date,
         endDate=end_date,
+        queued=queued,
+        processing=processing,
+        success_24h=success_24h,
+        failed_24h=failed_24h,
         **stats
     )
 
@@ -282,6 +313,71 @@ async def get_global_analytics(
         endDate=end_date,
         **stats
     )
+
+
+# ============================================
+# Notification Logs Endpoint
+# ============================================
+
+@router.get("/logs")
+async def get_notification_logs(
+    current_user: dict = Depends(get_current_user),
+    limit: int = Query(100, ge=1, le=500),
+    skip: int = Query(0, ge=0),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Get notification logs (sent notifications history)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    # Build query based on role
+    query = {} if is_admin else {"username": current_user["username"]}
+    
+    logs = await service.db["notification_log"].find(
+        query
+    ).sort("sent_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    # Serialize ObjectId
+    for log in logs:
+        log["_id"] = str(log["_id"])
+    
+    return logs
+
+
+@router.delete("/logs/{log_id}")
+async def delete_notification_log(
+    log_id: str,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Delete a notification log entry"""
+    try:
+        from bson import ObjectId
+        
+        # Convert string ID to ObjectId
+        try:
+            obj_id = ObjectId(log_id)
+        except:
+            raise HTTPException(status_code=400, detail="Invalid log ID")
+        
+        # Admin can delete any log, users can only delete their own
+        is_admin = current_user.get("username") == "admin"
+        query = {"_id": obj_id}
+        if not is_admin:
+            query["username"] = current_user["username"]
+        
+        result = await service.db["notification_log"].delete_one(query)
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Log entry not found")
+        
+        return {"success": True, "message": "Log entry deleted"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # ============================================

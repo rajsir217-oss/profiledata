@@ -9,7 +9,6 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from pymongo import ReturnDocument
 import logging
-from croniter import croniter
 
 logger = logging.getLogger(__name__)
 
@@ -295,13 +294,28 @@ class JobRegistryService:
             return datetime.utcnow() + timedelta(seconds=interval_seconds)
         
         elif schedule_type == "cron":
+            # Simplified cron handling without croniter dependency
+            # Most jobs should use interval scheduling instead
+            # For basic cron patterns, convert to approximate intervals:
             cron_expression = schedule.get("expression", "0 * * * *")
-            timezone = schedule.get("timezone", "UTC")
             
-            # Use croniter to calculate next run
-            base_time = datetime.utcnow()
-            cron = croniter(cron_expression, base_time)
-            return cron.get_next(datetime)
+            # Parse basic patterns
+            if cron_expression.startswith("*/"):
+                # Every N minutes: */5 * * * * = every 5 minutes
+                parts = cron_expression.split()
+                if parts[0].startswith("*/"):
+                    minutes = int(parts[0][2:])
+                    return datetime.utcnow() + timedelta(minutes=minutes)
+            
+            # Default fallback patterns
+            if cron_expression == "0 * * * *":  # Every hour
+                return datetime.utcnow() + timedelta(hours=1)
+            elif cron_expression == "0 0 * * *":  # Daily at midnight
+                return datetime.utcnow() + timedelta(days=1)
+            
+            # Default to 1 hour for unsupported patterns
+            logger.warning(f"Unsupported cron pattern: {cron_expression}, using 1 hour interval")
+            return datetime.utcnow() + timedelta(hours=1)
         
         else:
             # Default to 1 hour interval

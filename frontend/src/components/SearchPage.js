@@ -215,9 +215,20 @@ const SearchPage = () => {
           api.get(`/exclusions/${username}`)
         ]);
         
-        setFavoritedUsers(new Set(favResponse.data.favorites || []));
-        setShortlistedUsers(new Set(shortlistResponse.data.shortlist || []));
-        setExcludedUsers(new Set(exclusionsResponse.data.exclusions || []));
+        // Extract usernames from user objects (backend returns full user objects)
+        const favoriteUsernames = (favResponse.data.favorites || []).map(u => u.username);
+        const shortlistUsernames = (shortlistResponse.data.shortlist || []).map(u => u.username);
+        const exclusionUsernames = (exclusionsResponse.data.exclusions || []).map(u => u.username);
+        
+        setFavoritedUsers(new Set(favoriteUsernames));
+        setShortlistedUsers(new Set(shortlistUsernames));
+        setExcludedUsers(new Set(exclusionUsernames));
+        
+        console.log('✅ Loaded user interactions:', {
+          favorites: favoriteUsernames.length,
+          shortlist: shortlistUsernames.length,
+          exclusions: exclusionUsernames.length
+        });
       } catch (err) {
         console.error('Error loading user data:', err);
       }
@@ -1037,10 +1048,18 @@ const SearchPage = () => {
             setError(''); // Clear any previous errors
           } catch (err) {
             console.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
-            const errorMsg = `Failed to ${isCurrentlyFavorited ? 'remove from' : 'add to'} favorites. ` + (err.response?.data?.detail || err.message);
-            setError(errorMsg);
-            setStatusMessage(`❌ ${errorMsg}`);
-            setTimeout(() => setStatusMessage(''), 3000);
+            
+            // Handle 409 Conflict (already exists)
+            if (err.response?.status === 409) {
+              setFavoritedUsers(prev => new Set([...prev, targetUsername]));
+              setStatusMessage('ℹ️ Already in favorites');
+              setTimeout(() => setStatusMessage(''), 3000);
+            } else {
+              const errorMsg = `Failed to ${isCurrentlyFavorited ? 'remove from' : 'add to'} favorites. ` + (err.response?.data?.detail || err.message);
+              setError(errorMsg);
+              setStatusMessage(`❌ ${errorMsg}`);
+              setTimeout(() => setStatusMessage(''), 3000);
+            }
           }
           break;
 
@@ -1068,10 +1087,18 @@ const SearchPage = () => {
             setError(''); // Clear any previous errors
           } catch (err) {
             console.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
-            const errorMsg = `Failed to ${isCurrentlyShortlisted ? 'remove from' : 'add to'} shortlist. ` + (err.response?.data?.detail || err.message);
-            setError(errorMsg);
-            setStatusMessage(`❌ ${errorMsg}`);
-            setTimeout(() => setStatusMessage(''), 3000);
+            
+            // Handle 409 Conflict (already exists)
+            if (err.response?.status === 409) {
+              setShortlistedUsers(prev => new Set([...prev, targetUsername]));
+              setStatusMessage('ℹ️ Already in shortlist');
+              setTimeout(() => setStatusMessage(''), 3000);
+            } else {
+              const errorMsg = `Failed to ${isCurrentlyShortlisted ? 'remove from' : 'add to'} shortlist. ` + (err.response?.data?.detail || err.message);
+              setError(errorMsg);
+              setStatusMessage(`❌ ${errorMsg}`);
+              setTimeout(() => setStatusMessage(''), 3000);
+            }
           }
           break;
 

@@ -214,6 +214,20 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         subLabel: 'Manage automated tasks',
         action: () => navigate('/dynamic-scheduler')
       });
+      
+      items.push({
+        icon: '📧',
+        label: 'Template Manager',
+        subLabel: 'Email & SMS templates',
+        action: () => navigate('/template-manager')
+      });
+      
+      items.push({
+        icon: '📊',
+        label: 'Event Queue',
+        subLabel: 'Track notification events',
+        action: () => navigate('/event-queue-manager')
+      });
 
       // System Configuration moved to Settings page as a tab
     }

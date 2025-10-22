@@ -1573,6 +1573,19 @@ async def add_to_favorites(username: str, target_username: str, db = Depends(get
     try:
         await db.favorites.insert_one(favorite)
         logger.info(f"✅ Added to favorites: {username} → {target_username}")
+        
+        # Dispatch event (handles notifications automatically)
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.FAVORITE_ADDED,
+                actor_username=username,
+                target_username=target_username
+            )
+        except Exception as event_err:
+            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
         return {"message": "Added to favorites successfully"}
     except Exception as e:
         logger.error(f"❌ Error adding to favorites: {e}", exc_info=True)
@@ -1592,6 +1605,19 @@ async def remove_from_favorites(target_username: str, username: str = Query(...)
         raise HTTPException(status_code=404, detail="Favorite not found")
 
     logger.info(f"✅ Removed from favorites: {username} → {target_username}")
+    
+    # Dispatch event
+    try:
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
+        dispatcher = get_event_dispatcher(db)
+        await dispatcher.dispatch(
+            event_type=UserEventType.FAVORITE_REMOVED,
+            actor_username=username,
+            target_username=target_username
+        )
+    except Exception as event_err:
+        logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+    
     return {"message": "Removed from favorites successfully"}
 
 @router.get("/favorites/{username}")
@@ -1684,6 +1710,20 @@ async def add_to_shortlist(
     try:
         await db.shortlists.insert_one(shortlist_item)
         logger.info(f"✅ Added to shortlist: {username} → {target_username}")
+        
+        # Dispatch event (handles notifications automatically)
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.SHORTLIST_ADDED,
+                actor_username=username,
+                target_username=target_username,
+                metadata={"notes": notes}
+            )
+        except Exception as event_err:
+            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
         return {"message": "Added to shortlist successfully"}
     except Exception as e:
         logger.error(f"❌ Error adding to shortlist: {e}", exc_info=True)
@@ -1795,6 +1835,20 @@ async def add_to_exclusions(
     try:
         await db.exclusions.insert_one(exclusion)
         logger.info(f"✅ Added to exclusions: {username} → {target_username}")
+        
+        # Dispatch event (no notification - privacy)
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.USER_EXCLUDED,
+                actor_username=username,
+                target_username=target_username,
+                metadata={"reason": reason}
+            )
+        except Exception as event_err:
+            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
         return {"message": "Added to exclusions successfully"}
     except Exception as e:
         logger.error(f"❌ Error adding to exclusions: {e}", exc_info=True)
@@ -1891,6 +1945,19 @@ async def remove_from_exclusions(
             )
 
         logger.info(f"✅ Removed '{target_username}' from exclusions for '{username}'")
+        
+        # Dispatch event
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.USER_UNEXCLUDED,
+                actor_username=username,
+                target_username=target_username
+            )
+        except Exception as event_err:
+            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
         return {"message": "Removed from exclusions successfully"}
     except HTTPException:
         raise
@@ -2632,6 +2699,19 @@ async def remove_from_shortlist(target_username: str, username: str = Query(...)
             )
 
         logger.info(f"✅ Removed '{target_username}' from shortlist for '{username}'")
+        
+        # Dispatch event
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.SHORTLIST_REMOVED,
+                actor_username=username,
+                target_username=target_username
+            )
+        except Exception as event_err:
+            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
         return {"message": "Removed from shortlist successfully"}
     except HTTPException:
         raise
