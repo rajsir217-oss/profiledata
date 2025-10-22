@@ -188,7 +188,7 @@ class SMSNotifierTemplate(JobTemplate):
                     
                     # Mark as sent
                     await service.mark_as_sent(
-                        str(notification.dict().get("_id")),
+                        notification.id,  # Use .id field directly
                         NotificationChannel.SMS,
                         success=True
                     )
@@ -208,7 +208,7 @@ class SMSNotifierTemplate(JobTemplate):
                     
                 except Exception as e:
                     await service.mark_as_sent(
-                        str(notification.dict().get("_id")),
+                        notification.id,  # Use .id field directly
                         NotificationChannel.SMS,
                         success=False,
                         error=str(e)

@@ -200,27 +200,39 @@ class NotificationService:
         """Mark notification as sent"""
         from bson import ObjectId
         
-        update = {
+        # Build update document with separate operators
+        set_fields = {
             "status": NotificationStatus.SENT if success else NotificationStatus.FAILED,
             "updatedAt": datetime.utcnow(),
-            "lastAttempt": datetime.utcnow(),
-            "$inc": {"attempts": 1}
+            "lastAttempt": datetime.utcnow()
         }
         
         if error:
-            update["error"] = error
+            set_fields["error"] = error
+        
+        update_doc = {
+            "$set": set_fields,
+            "$inc": {"attempts": 1}
+        }
         
         # Convert string ID to ObjectId
         try:
             obj_id = ObjectId(notification_id)
-        except:
+        except Exception as e:
             # If not a valid ObjectId, treat as string
+            print(f"⚠️ Warning: Could not convert to ObjectId: {notification_id}, error: {e}")
             obj_id = notification_id
         
-        await self.queue_collection.update_one(
+        # Debug logging
+        print(f"🔍 Updating queue item: _id={obj_id}, status={set_fields['status']}")
+        
+        result = await self.queue_collection.update_one(
             {"_id": obj_id},
-            {"$set": update}
+            update_doc
         )
+        
+        # Debug logging
+        print(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
     
     # ============================================
     # Template Rendering

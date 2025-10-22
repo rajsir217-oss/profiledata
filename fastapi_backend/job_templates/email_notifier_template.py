@@ -149,9 +149,9 @@ class EmailNotifierTemplate(JobTemplate):
                     # Send email
                     await self._send_email(recipient_email, subject, body, notification)
                     
-                    # Mark as sent
+                    # Mark as sent (use notification.id directly)
                     await service.mark_as_sent(
-                        str(notification.dict().get("_id")),
+                        notification.id,  # Use .id field directly, not dict()
                         NotificationChannel.EMAIL,
                         success=True
                     )
@@ -171,7 +171,7 @@ class EmailNotifierTemplate(JobTemplate):
                     
                 except Exception as e:
                     await service.mark_as_sent(
-                        str(notification.dict().get("_id")),
+                        notification.id,  # Use .id field directly
                         NotificationChannel.EMAIL,
                         success=False,
                         error=str(e)

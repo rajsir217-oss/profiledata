@@ -155,8 +155,12 @@ async def get_notification_queue(
         query["username"] = current_user["username"]
     # Admins see all notifications (no username filter)
     
+    # Filter by status - default to only show pending/scheduled (not sent/failed)
     if status:
         query["status"] = status
+    else:
+        # Only show items that haven't been sent yet
+        query["status"] = {"$in": ["pending", "scheduled", "processing"]}
     
     cursor = service.queue_collection.find(query).limit(limit)
     notifications = []
