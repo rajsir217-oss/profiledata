@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EventQueueManager.css';
-import Toast from './Toast';
+import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 
 const EventQueueManager = () => {
@@ -10,7 +10,7 @@ const EventQueueManager = () => {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'logs'
-  const [toast, setToast] = useState(null);
+  const toast = useToast();
   const [filters, setFilters] = useState({
     status: 'all',
     trigger: 'all',
@@ -99,7 +99,7 @@ const EventQueueManager = () => {
       const token = localStorage.getItem('token');
       
       if (!token) {
-        setToast({ type: 'error', message: 'Not authenticated. Please log in.' });
+        toast.error('Not authenticated. Please log in.');
         setTimeout(() => window.location.href = '/login', 2000);
         return;
       }
@@ -114,7 +114,7 @@ const EventQueueManager = () => {
     } catch (err) {
       console.error('Error loading data:', err);
       const message = err.message || 'Failed to load data';
-      setToast({ type: 'error', message });
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -151,10 +151,10 @@ const EventQueueManager = () => {
       }
 
       loadData();
-      setToast({ type: 'success', message: `${activeTab === 'queue' ? 'Queue item' : 'Log entry'} deleted` });
+      toast.success(`${activeTab === 'queue' ? 'Queue item' : 'Log entry'} deleted`);
     } catch (err) {
       console.error('Error deleting item:', err);
-      setToast({ type: 'error', message: err.message || 'Failed to delete item' });
+      toast.error(err.message || 'Failed to delete item');
     }
   };
 
@@ -169,10 +169,10 @@ const EventQueueManager = () => {
       if (!response.ok) throw new Error('Failed to retry');
 
       loadData();
-      setToast({ type: 'success', message: 'Notification queued for retry' });
+      toast.success('Notification queued for retry');
     } catch (err) {
       console.error('Error retrying:', err);
-      setToast({ type: 'error', message: 'Failed to retry notification' });
+      toast.error('Failed to retry notification');
     }
   };
 
@@ -199,7 +199,7 @@ const EventQueueManager = () => {
 
   const handleBulkDelete = () => {
     if (selectedItems.size === 0) {
-      setToast({ type: 'error', message: 'No items selected' });
+      toast.error('No items selected');
       return;
     }
     setShowBulkDeleteModal(true);
@@ -237,13 +237,13 @@ const EventQueueManager = () => {
       loadData();
       
       if (failCount > 0) {
-        setToast({ type: 'warning', message: `⚠️ Deleted ${successCount} of ${count} item(s). ${failCount} failed.` });
+        toast.warning(`⚠️ Deleted ${successCount} of ${count} item(s). ${failCount} failed.`);
       } else {
-        setToast({ type: 'success', message: `✅ Deleted ${count} item(s)` });
+        toast.success(`✅ Deleted ${count} item(s)`);
       }
     } catch (err) {
       console.error('Error bulk deleting:', err);
-      setToast({ type: 'error', message: 'Failed to delete items' });
+      toast.error('Failed to delete items');
     }
   };
 
@@ -634,13 +634,7 @@ const EventQueueManager = () => {
       )}
 
       {/* Toast */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* Toast notifications handled by ToastContainer in App.js */}
     </div>
   );
 };

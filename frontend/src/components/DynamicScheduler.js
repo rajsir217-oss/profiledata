@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
-import Toast from './Toast';
+import useToast from '../hooks/useToast';
 
 const DynamicScheduler = ({ currentUser }) => {
   const [jobs, setJobs] = useState([]);
@@ -19,7 +19,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [toast, setToast] = useState(null);
+  const toast = useToast();
 
   // Load templates on mount
   useEffect(() => {
@@ -182,7 +182,7 @@ const DynamicScheduler = ({ currentUser }) => {
       setShowCreateModal(false);
       setRefreshTrigger(prev => prev + 1);
       loadSchedulerStatus();
-      setToast({ type: 'success', message: 'Job created successfully!' });
+      toast.success('Job created successfully!');
     } catch (err) {
       console.error('Error creating job:', err);
       throw err;
@@ -243,7 +243,7 @@ const DynamicScheduler = ({ currentUser }) => {
       setEditJob(null);
       setRefreshTrigger(prev => prev + 1);
       loadSchedulerStatus();
-      setToast({ type: 'success', message: 'Job updated successfully!' });
+      toast.success('Job updated successfully!');
     } catch (err) {
       console.error('Error updating job:', err);
       throw err;
@@ -273,17 +273,17 @@ const DynamicScheduler = ({ currentUser }) => {
         throw new Error(errorData.detail || 'Failed to toggle job');
       }
       
-      setToast({ message: `Job ${!currentEnabled ? 'enabled' : 'disabled'} successfully`, type: 'success' });
+      toast.success(`Job ${!currentEnabled ? 'enabled' : 'disabled'} successfully`);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error toggling job:', err);
-      setToast({ message: err.message || 'Failed to update job status', type: 'error' });
+      toast.error(err.message || 'Failed to update job status');
     }
   };
 
   const handleDeleteJob = async (jobId, jobName) => {
     // Show immediate feedback
-    setToast({ message: `Deleting job "${jobName}"...`, type: 'info' });
+    toast.info(`Deleting job "${jobName}"...`);
     
     try {
       const token = localStorage.getItem('token');
@@ -305,18 +305,18 @@ const DynamicScheduler = ({ currentUser }) => {
         throw new Error(errorData.detail || 'Failed to delete job');
       }
       
-      setToast({ message: `Job "${jobName}" deleted successfully`, type: 'success' });
+      toast.success(`Job "${jobName}" deleted successfully`);
       setRefreshTrigger(prev => prev + 1);
       loadSchedulerStatus();
     } catch (err) {
       console.error('Error deleting job:', err);
-      setToast({ message: err.message || 'Failed to delete job', type: 'error' });
+      toast.error(err.message || 'Failed to delete job');
     }
   };
 
   const handleRunJob = async (jobId, jobName) => {
     // Show immediate feedback
-    setToast({ message: `Starting job "${jobName}"...`, type: 'info' });
+    toast.info(`Starting job "${jobName}"...`);
     
     try {
       const token = localStorage.getItem('token');
@@ -341,11 +341,11 @@ const DynamicScheduler = ({ currentUser }) => {
       
       const result = await response.json();
       console.log('✅ Job started:', result);
-      setToast({ message: `Job "${jobName}" execution started`, type: 'success' });
+      toast.success(`Job "${jobName}" execution started`);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
       console.error('Error running job:', err);
-      setToast({ message: err.message || 'Failed to start job execution', type: 'error' });
+      toast.error(err.message || 'Failed to start job execution');
     }
   };
 
@@ -643,14 +643,7 @@ const DynamicScheduler = ({ currentUser }) => {
         />
       )}
 
-      {/* Toast Notification */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* Toast notifications handled by ToastContainer in App.js */}
     </div>
   );
 };

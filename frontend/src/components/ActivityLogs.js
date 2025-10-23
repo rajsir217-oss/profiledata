@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './ActivityLogs.css';
-import Toast from './Toast';
+import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 
 const ActivityLogs = () => {
@@ -10,7 +10,7 @@ const ActivityLogs = () => {
   const [logs, setLogs] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState(null);
+  const toast = useToast();
   
   // Filters
   const [filters, setFilters] = useState({
@@ -96,7 +96,7 @@ const ActivityLogs = () => {
       setSelectAll(false);
     } catch (error) {
       console.error('Error loading logs:', error);
-      setToast({ type: 'error', message: 'Failed to load activity logs' });
+      toast.error('Failed to load activity logs');
     } finally {
       setLoading(false);
     }
@@ -165,10 +165,10 @@ const ActivityLogs = () => {
       a.click();
       window.URL.revokeObjectURL(url);
       
-      setToast({ type: 'success', message: `Exported ${total} logs as ${format.toUpperCase()}` });
+      toast.success(`Exported ${total} logs as ${format.toUpperCase()}`);
     } catch (error) {
       console.error('Export error:', error);
-      setToast({ type: 'error', message: 'Export failed' });
+      toast.error('Export failed');
     }
   };
   
@@ -184,11 +184,11 @@ const ActivityLogs = () => {
       if (!response.ok) throw new Error('Failed to cleanup');
       
       const data = await response.json();
-      setToast({ type: 'success', message: `Deleted ${data.deleted_count} old logs` });
+      toast.success(`Deleted ${data.deleted_count} old logs`);
       loadLogs();
     } catch (error) {
       console.error('Error cleaning up logs:', error);
-      setToast({ type: 'error', message: 'Failed to cleanup logs' });
+      toast.error('Failed to cleanup logs');
     }
   };
   
@@ -203,11 +203,11 @@ const ActivityLogs = () => {
       
       if (!response.ok) throw new Error('Failed to delete log');
       
-      setToast({ type: 'success', message: 'Activity log deleted' });
+      toast.success('Activity log deleted');
       loadLogs();
     } catch (error) {
       console.error('Error deleting log:', error);
-      setToast({ type: 'error', message: 'Failed to delete log' });
+      toast.error('Failed to delete log');
     }
   };
   
@@ -229,11 +229,11 @@ const ActivityLogs = () => {
       if (!response.ok) throw new Error('Failed to delete logs');
       
       const data = await response.json();
-      setToast({ type: 'success', message: `Deleted ${data.deleted_count} logs` });
+      toast.success(`Deleted ${data.deleted_count} logs`);
       loadLogs();
     } catch (error) {
       console.error('Error deleting logs:', error);
-      setToast({ type: 'error', message: 'Failed to delete logs' });
+      toast.error('Failed to delete logs');
     }
   };
   
@@ -299,7 +299,7 @@ const ActivityLogs = () => {
   
   return (
     <div className="activity-logs">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {/* Toast notifications handled by ToastContainer in App.js */}
       
       <div className="logs-header">
         <h1>📊 Activity Logs</h1>

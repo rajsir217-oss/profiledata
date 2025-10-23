@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './NotificationManagement.css';
-import Toast from './Toast';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
 
 const NotificationManagement = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'templates'
-  const [toast, setToast] = useState(null);
 
   // Admin-only protection
   useEffect(() => {
@@ -26,7 +24,7 @@ const NotificationManagement = () => {
 
   return (
     <div className="notification-management">
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {/* Toast notifications handled by ToastContainer in App.js */}
       
       <div className="notification-management-header">
         <h1>🔔 Notification Management</h1>

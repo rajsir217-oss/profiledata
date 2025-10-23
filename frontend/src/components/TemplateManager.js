@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './TemplateManager.css';
-import Toast from './Toast';
+import useToast from '../hooks/useToast';
 import ScheduleNotificationModal from './ScheduleNotificationModal';
 import ScheduleListModal from './ScheduleListModal';
 
@@ -15,7 +15,7 @@ const TemplateManager = () => {
   const [showScheduleListModal, setShowScheduleListModal] = useState(false);
   const [scheduleTemplate, setScheduleTemplate] = useState(null);
   const [scheduledNotifications, setScheduledNotifications] = useState([]);
-  const [toast, setToast] = useState(null);
+  const toast = useToast();
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterChannel, setFilterChannel] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,7 +91,7 @@ const TemplateManager = () => {
       setTemplates(templateArray);
     } catch (err) {
       console.error('❌ Error loading templates:', err);
-      setToast({ type: 'error', message: 'Failed to load templates' });
+      toast.error('Failed to load templates');
     } finally {
       setLoading(false);
     }
@@ -220,10 +220,10 @@ const TemplateManager = () => {
       setShowEditModal(false);
       setEditTemplate(null);
       loadTemplates();
-      setToast({ type: 'success', message: 'Template saved successfully!' });
+      toast.success('Template saved successfully!');
     } catch (err) {
       console.error('Error saving template:', err);
-      setToast({ type: 'error', message: 'Failed to save template' });
+      toast.error('Failed to save template');
     }
   };
 
@@ -250,13 +250,10 @@ const TemplateManager = () => {
       if (!response.ok) throw new Error('Failed to toggle template');
 
       loadTemplates();
-      setToast({ 
-        type: 'success', 
-        message: `Template ${!currentActive ? 'enabled' : 'disabled'}` 
-      });
+      toast.success(`Template ${!currentActive ? 'enabled' : 'disabled'}`);
     } catch (err) {
       console.error('Error toggling template:', err);
-      setToast({ type: 'error', message: 'Failed to toggle template' });
+      toast.error('Failed to toggle template');
     }
   };
 
@@ -305,10 +302,10 @@ const TemplateManager = () => {
 
       if (!response.ok) throw new Error('Failed to send test notification');
 
-      setToast({ type: 'success', message: 'Test notification sent! Check your email.' });
+      toast.success('Test notification sent! Check your email.');
     } catch (err) {
       console.error('Error sending test:', err);
-      setToast({ type: 'error', message: 'Failed to send test notification' });
+      toast.error('Failed to send test notification');
     }
   };
 
@@ -737,7 +734,7 @@ const TemplateManager = () => {
             setScheduleTemplate(null);
           }}
           onSchedule={(result) => {
-            setToast({ message: 'Notification scheduled successfully!', type: 'success' });
+            toast.success('Notification scheduled successfully!');
             loadTemplates();
             loadScheduledNotifications(); // Reload to update tooltips
           }}
@@ -760,13 +757,7 @@ const TemplateManager = () => {
       )}
 
       {/* Toast */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      {/* Toast notifications handled by ToastContainer in App.js */}
     </div>
   );
 };
