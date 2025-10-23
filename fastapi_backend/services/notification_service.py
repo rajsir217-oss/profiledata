@@ -542,8 +542,14 @@ class NotificationService:
             
         except ValueError as e:
             # Invalid enum value
-            print(f"Invalid notification parameter: {e}")
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Invalid notification parameter for {username}/{trigger}: {e}")
             return None
         except Exception as e:
-            print(f"Error queuing notification: {e}")
+            import logging
+            import traceback
+            logger = logging.getLogger(__name__)
+            logger.error(f"❌ Error queuing notification for {username}/{trigger}: {e}")
+            logger.error(traceback.format_exc())
             return None
