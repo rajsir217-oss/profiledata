@@ -2927,6 +2927,19 @@ async def track_profile_view(
             except Exception as log_err:
                 logger.warning(f"⚠️ Failed to log activity: {log_err}")
             
+            # Dispatch event for notifications (only on first view to avoid spam)
+            if new_count <= 3:  # Notify first 3 views only
+                try:
+                    from services.event_dispatcher import get_event_dispatcher, UserEventType
+                    dispatcher = get_event_dispatcher(db)
+                    await dispatcher.dispatch(
+                        event_type=UserEventType.PROFILE_VIEWED,
+                        actor_username=profile_view.viewedByUsername,
+                        target_username=profile_view.profileUsername
+                    )
+                except Exception as dispatch_err:
+                    logger.warning(f"⚠️ Failed to dispatch profile view event: {dispatch_err}")
+            
             return {
                 "message": "Profile view updated",
                 "viewCount": new_count,
@@ -2959,6 +2972,18 @@ async def track_profile_view(
                 )
             except Exception as log_err:
                 logger.warning(f"⚠️ Failed to log activity: {log_err}")
+            
+            # Dispatch event for notifications (first view)
+            try:
+                from services.event_dispatcher import get_event_dispatcher, UserEventType
+                dispatcher = get_event_dispatcher(db)
+                await dispatcher.dispatch(
+                    event_type=UserEventType.PROFILE_VIEWED,
+                    actor_username=profile_view.viewedByUsername,
+                    target_username=profile_view.profileUsername
+                )
+            except Exception as dispatch_err:
+                logger.warning(f"⚠️ Failed to dispatch profile view event: {dispatch_err}")
             
             return {
                 "message": "Profile view tracked",
@@ -3360,6 +3385,18 @@ async def approve_pii_request(
         logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
         
+        # Dispatch event for notifications
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.PII_GRANTED,
+                actor_username=username,  # The granter
+                target_username=request['requesterUsername']  # The requester (gets notified)
+            )
+        except Exception as dispatch_err:
+            logger.warning(f"⚠️ Failed to dispatch PII granted event: {dispatch_err}")
+        
         logger.info(f"✅ PII request approved and access granted (expires: {expires_at or 'never'})")
         logger.info(f"🔑 Access granted: {username} → {request['requesterUsername']} for {request['requestType']}")
         return {"message": "Request approved and access granted", "expiresAt": expires_at}
@@ -3401,6 +3438,18 @@ async def reject_pii_request(
                 }
             }
         )
+        
+        # Dispatch event for notifications
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.PII_REJECTED,
+                actor_username=username,  # The rejecter
+                target_username=request['requesterUsername']  # The requester (gets notified)
+            )
+        except Exception as dispatch_err:
+            logger.warning(f"⚠️ Failed to dispatch PII rejected event: {dispatch_err}")
         
         logger.info(f"✅ PII request rejected")
         return {"message": "Request rejected"}
