@@ -1,0 +1,68 @@
+/* StatCapsuleGroup Component Styles */
+
+.stat-capsule-group {
+  display: flex;
+}
+
+/* Direction */
+.stat-capsule-group-vertical {
+  flex-direction: column;
+}
+
+.stat-capsule-group-horizontal {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+/* Gap Variants */
+.stat-capsule-group.gap-compact {
+  gap: 6px;
+}
+
+.stat-capsule-group.gap-normal {
+  gap: 10px;
+}
+
+.stat-capsule-group.gap-spacious {
+  gap: 16px;
+}
+
+/* Alignment */
+.stat-capsule-group.align-start {
+  align-items: flex-start;
+}
+
+.stat-capsule-group.align-center {
+  align-items: center;
+}
+
+.stat-capsule-group.align-end {
+  align-items: flex-end;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stat-capsule-group.gap-normal {
+    gap: 8px;
+  }
+  
+  .stat-capsule-group.gap-spacious {
+    gap: 12px;
+  }
+  
+  .stat-capsule-group-horizontal {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-capsule-group.gap-normal {
+    gap: 6px;
+  }
+  
+  .stat-capsule-group.gap-spacious {
+    gap: 10px;
+  }
+}

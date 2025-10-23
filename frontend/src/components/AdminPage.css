@@ -1,17 +1,30 @@
-/* Admin Page Container */
+/* Admin Page Container
 .admin-page {
   padding: 20px;
-  max-width: 1400px;
+  max-width: 100%;
+  margin: 0 auto;
+  background: var(--background-color);
+  min-height: 100vh;
+} */
+
+
+/* Search Page Styles */
+.admin-page {
+  padding: 20px;
+  max-width: 100%;
+  background: var(--background-color);
+  /* background: transparent; */
 }
+
 
 /* Admin Header */
 .admin-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   padding: 30px;
   border-radius: 15px;
   color: white;
   margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-lg);
 }
 
 .admin-header h2 {
@@ -40,29 +53,34 @@
   padding: 12px 20px;
   border-radius: 25px;
   border: 2px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.9);
+  background: var(--input-bg);
+  color: var(--text-color);
   font-size: 16px;
   transition: all 0.3s ease;
 }
 
 .search-bar input:focus {
-  background: white;
-  border-color: white;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  background: var(--card-background);
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
   outline: none;
 }
 
 /* Admin Table */
 .admin-table {
-  background: white;
+  background: var(--card-background);
   border-radius: 10px;
   overflow: hidden;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .admin-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+.admin-table thead tr {
+  background: var(--primary-color) !important;
 }
 
 .admin-table thead th {
@@ -70,6 +88,8 @@
   font-weight: 600;
   border: none;
   white-space: nowrap;
+  background: var(--primary-color) !important;
+  color: white !important;
 }
 
 .admin-table thead th:hover {
@@ -77,22 +97,35 @@
 }
 
 .admin-table tbody tr {
+  background: var(--surface-color) !important; /* Theme-aware background */
   transition: all 0.2s ease;
 }
 
+/* Alternating row colors for better readability */
+.admin-table tbody tr:nth-child(even) {
+  background: var(--card-background) !important;
+}
+
 .admin-table tbody tr:hover {
-  background: rgba(102, 126, 234, 0.05);
+  background: var(--hover-background) !important; /* Theme-aware hover */
   transform: scale(1.01);
 }
 
 .admin-table tbody td {
   padding: 12px 15px;
   vertical-align: middle;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-color) !important; /* Theme-aware text */
+  font-weight: 500; /* Make text slightly bolder for better visibility */
+}
+
+/* Prevent wrapping for contact numbers */
+.admin-table tbody td:nth-child(6) {
+  white-space: nowrap;
 }
 
 .admin-table tbody td strong {
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 /* Action Buttons */
@@ -110,19 +143,19 @@
 }
 
 .admin-table .btn-outline-primary:hover {
-  background: #667eea;
+  background: var(--info-color);
   color: white;
   transform: translateY(-2px);
 }
 
 .admin-table .btn-outline-warning:hover {
-  background: #ffc107;
+  background: var(--warning-color);
   color: white;
   transform: translateY(-2px);
 }
 
 .admin-table .btn-outline-danger:hover {
-  background: #dc3545;
+  background: var(--danger-color);
   color: white;
   transform: translateY(-2px);
 }
@@ -159,7 +192,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-background, white);
   padding: 30px;
   border-radius: 15px;
   max-width: 500px;
@@ -180,13 +213,13 @@
 }
 
 .modal-content h4 {
-  color: #dc3545;
+  color: var(--danger-color);
   margin-bottom: 20px;
   font-weight: 600;
 }
 
 .modal-content p {
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
   margin-bottom: 10px;
 }
@@ -206,13 +239,13 @@
 }
 
 .admin-page .alert-success {
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
-  color: #155724;
+  background: var(--success-color);
+  color: white;
 }
 
 .admin-page .alert-danger {
-  background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
-  color: #721c24;
+  background: var(--danger-color);
+  color: white;
 }
 
 /* Loading Spinner */
@@ -236,7 +269,7 @@
 
 /* Ensure table takes full width and is scrollable */
 .admin-table {
-  background: white;
+  background: var(--card-background, white);
   border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -316,7 +349,7 @@
 
 /* Pagination Styles */
 .pagination-container {
-  background: white;
+  background: var(--card-background, white);
   padding: 20px;
   border-radius: 10px;
   margin-top: 20px;
@@ -329,7 +362,7 @@
 }
 
 .pagination-info {
-  color: #666;
+  color: var(--text-secondary, #666);
   font-weight: 500;
   font-size: 14px;
 }
@@ -348,7 +381,7 @@
 }
 
 .page-ellipsis {
-  color: #999;
+  color: var(--text-muted);
   padding: 5px 10px;
   font-weight: 500;
 }
@@ -405,4 +438,340 @@
     margin-top: 0;
     margin-bottom: 8px;
   }
+}
+
+/* ===== STATUS MODAL DESIGN ===== */
+
+.status-modal {
+  background: var(--card-bg);
+  border-radius: 16px;
+  max-width: 450px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-50px) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Modal Header with Gradient */
+.status-modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+}
+
+.status-modal-header .user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.status-modal-header .user-avatar {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+}
+
+.status-modal-header .user-details h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.status-modal-header .user-details p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.9;
+}
+
+.status-modal-header .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.status-modal-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Modal Body */
+.status-modal-body {
+  padding: 28px 24px;
+  background: var(--card-bg);
+}
+
+.status-modal-body h3 {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-modal-body .current-status {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 24px 0;
+}
+
+.status-modal-body .current-status strong {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+/* Status Radio Group */
+.status-radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  /*  */
+}
+
+.status-radio-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--input-bg);
+  /* background: var(--primary-color); */
+}
+
+.status-radio-option:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateX(4px);
+}
+
+.status-radio-option.selected {
+  border-color: var(--primary-color);
+  background: var(--selected-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-radio-option input[type="radio"] {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.status-radio-option .status-icon {
+  font-size: 24px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.status-radio-option .status-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.status-radio-option .status-info strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.status-radio-option .status-info span {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* Reason Textarea */
+.status-reason {
+  margin-top: 20px;
+}
+
+.status-reason label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.status-reason textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  background: var(--input-bg);
+  color: var(--text-color);
+  transition: all 0.2s ease;
+}
+
+.status-reason textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+
+.status-reason textarea::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.6;
+}
+
+/* Modal Footer */
+.status-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+}
+
+.status-modal-footer .btn-cancel {
+  padding: 10px 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-color);
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-modal-footer .btn-cancel:hover {
+  background: var(--hover-background);
+  border-color: var(--text-secondary);
+}
+
+.status-modal-footer .btn-confirm {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.status-modal-footer .btn-confirm:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+  opacity: 0.95;
+}
+
+.status-modal-footer .btn-confirm:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Theme-aware Modal Styling */
+.theme-light .status-modal {
+  background: white !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+
+.theme-light .status-modal-body {
+  background: white !important;
+}
+
+.theme-light .status-modal-body h3,
+.theme-light .status-modal-body .current-status,
+.theme-light-pink .status-modal-body h3,
+.theme-light-pink .status-modal-body .current-status {
+  color: var(--text-color) !important;
+}
+
+.theme-light-pink .status-modal,
+.theme-light-gray .status-modal,
+.theme-ultra-light-gray .status-modal {
+  background: var(--card-background) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+}
+
+.theme-light-pink .status-modal-body,
+.theme-light-gray .status-modal-body,
+.theme-ultra-light-gray .status-modal-body {
+  background: var(--card-background) !important;
+}
+
+/* Cozy Night (Dark) Theme */
+.theme-dark .status-modal {
+  background: var(--card-background) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.theme-dark .status-modal-body {
+  background: var(--card-background) !important;
+}
+
+.theme-dark .status-modal-body h3,
+.theme-dark .status-modal-body .current-status {
+  color: var(--text-color) !important;
+}
+
+/* Theme-aware table headers - using CSS variables */
+/* Headers already use var(--primary-color) from line 78-92, no hardcoded overrides needed */
+
+/* Ensure tbody text is always visible regardless of background */
+.admin-table tbody td {
+  color: var(--text-color) !important;
+}
+
+/* For light backgrounds, ensure dark text */
+.theme-light .admin-table tbody td,
+.theme-light-pink .admin-table tbody td,
+.theme-light-gray .admin-table tbody td,
+.theme-ultra-light-gray .admin-table tbody td {
+  color: var(--text-color) !important;
+}
+
+/* For dark backgrounds, ensure light text */
+.theme-dark .admin-table tbody td {
+  color: var(--text-color) !important;
 }

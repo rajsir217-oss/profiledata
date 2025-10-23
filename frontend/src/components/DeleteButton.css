@@ -1,0 +1,157 @@
+/**
+ * DeleteButton Styles
+ * Reusable 2-click delete button with consistent UX
+ */
+
+.delete-button {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  white-space: nowrap;
+  font-family: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.delete-button:hover:not(.disabled):not(.confirming) {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+.delete-button:active:not(.disabled) {
+  transform: scale(0.95);
+}
+
+/* Size Variants */
+.delete-btn-small {
+  padding: 4px 8px;
+  font-size: 14px;
+}
+
+.delete-btn-medium {
+  padding: 8px 12px;
+  font-size: 18px;
+}
+
+.delete-btn-large {
+  padding: 12px 16px;
+  font-size: 22px;
+}
+
+/* Confirming State */
+.delete-button.confirming {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+  font-weight: 600;
+  transform: scale(1.2);
+  animation: pulse-delete 0.5s ease infinite;
+}
+
+.delete-button.confirming.delete-btn-small {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.delete-button.confirming.delete-btn-medium {
+  padding: 10px 16px;
+  font-size: 14px;
+}
+
+.delete-button.confirming.delete-btn-large {
+  padding: 14px 20px;
+  font-size: 16px;
+}
+
+.delete-button.confirming:hover:not(.disabled) {
+  background: #c82333;
+  transform: scale(1.25);
+  animation: pulse-delete-fast 0.3s ease infinite;
+}
+
+/* Disabled State */
+.delete-button.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Content */
+.confirm-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon {
+  display: inline-block;
+}
+
+.confirm-icon {
+  display: inline-block;
+}
+
+.confirm-text {
+  display: inline-block;
+}
+
+/* Pulse Animation */
+@keyframes pulse-delete {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+  }
+}
+
+@keyframes pulse-delete-fast {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.9);
+  }
+  50% {
+    box-shadow: 0 0 0 12px rgba(220, 53, 69, 0);
+  }
+}
+
+/* Focus State (for accessibility) */
+.delete-button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+/* Theme Support */
+[data-theme="dark"] .delete-button {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="dark"] .delete-button:hover:not(.disabled):not(.confirming) {
+  border-color: var(--danger-color);
+}
+
+/* Mobile Optimization */
+@media (max-width: 768px) {
+  .delete-button {
+    min-width: 44px; /* iOS minimum touch target */
+    min-height: 44px;
+  }
+
+  .delete-btn-small {
+    min-width: 36px;
+    min-height: 36px;
+  }
+}
+
+/* Print - Hide delete buttons */
+@media print {
+  .delete-button {
+    display: none;
+  }
+}

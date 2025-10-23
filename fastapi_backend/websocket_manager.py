@@ -21,12 +21,44 @@ user_sessions = {}
 @sio.event
 async def connect(sid, environ):
     """Handle client connection"""
-    logger.info(f"🔌 Client connected: {sid}")
+    from redis_manager import get_redis_manager
+    
+    # Get username from query parameters (Socket.IO connection)
+    query_string = environ.get('QUERY_STRING', '')
+    username = None
+    
+    # Parse query string to get username
+    if query_string:
+        from urllib.parse import parse_qs
+        params = parse_qs(query_string)
+        username = params.get('username', [None])[0]
+    
+    if username:
+        online_users[username] = sid
+        user_sessions[sid] = username
+        
+        # Mark user as online in Redis
+        redis = get_redis_manager()
+        success = redis.set_user_online(username)
+        
+        logger.info(f"🟢 User '{username}' connected (sid: {sid})")
+        logger.info(f"   Redis set_user_online result: {success}")
+        logger.info(f"   Total online users: {len(online_users)}")
+        
+        # Broadcast user online status to all other clients
+        await sio.emit('user_online', {'username': username}, skip_sid=sid)
+        await broadcast_online_count()
+        logger.info(f"   Broadcasted online status for '{username}'")
+    else:
+        logger.warning(f"⚠️ Connection without username (sid: {sid})")
+        
     await sio.emit('connection_established', {'sid': sid}, room=sid)
 
 @sio.event
 async def disconnect(sid):
     """Handle client disconnection"""
+    from redis_manager import get_redis_manager
+    
     logger.info(f"🔌 Client disconnected: {sid}")
     
     # Remove user from online list
@@ -36,61 +68,69 @@ async def disconnect(sid):
             del online_users[username]
         del user_sessions[sid]
         
-        # Broadcast user went offline
+        # Mark user as offline in Redis
+        redis = get_redis_manager()
+        success = redis.set_user_offline(username)
+        
+        logger.info(f"⚪ User '{username}' went offline")
+        logger.info(f"   Redis set_user_offline result: {success}")
+        logger.info(f"   Remaining online users: {len(online_users)}")
+        
         await broadcast_online_count()
         await sio.emit('user_offline', {'username': username})
-        logger.info(f"👋 User {username} went offline")
-
-@sio.event
-async def user_online(sid, data):
-    """User comes online"""
-    username = data.get('username')
-    if not username:
-        return
-    
-    # Store user session
-    user_sessions[sid] = username
-    online_users[username] = sid
-    
-    logger.info(f"✅ User {username} is now online")
-    
-    # Broadcast to all clients
-    await broadcast_online_count()
-    await sio.emit('user_online', {'username': username})
-
-@sio.event
-async def user_typing(sid, data):
-    """User is typing a message"""
-    username = data.get('username')
-    to_username = data.get('to')
-    
-    if to_username in online_users:
-        target_sid = online_users[to_username]
-        await sio.emit('user_typing', {
-            'from': username,
-            'isTyping': data.get('isTyping', True)
-        }, room=target_sid)
+        logger.info(f"   Broadcasted offline status for '{username}'")
 
 @sio.event
 async def send_message(sid, data):
     """Send real-time message"""
+    from redis_manager import get_redis_manager
+    
     from_username = data.get('from')
     to_username = data.get('to')
     message = data.get('message')
+    message_id = data.get('id')
     
     logger.info(f"💬 Real-time message: {from_username} → {to_username}")
     
-    # Send to recipient if online
+    # Store message in Redis
+    redis = get_redis_manager()
+    redis.send_message(from_username, to_username, message, message_id)
+    
+    # Send to recipient if online via WebSocket
     if to_username in online_users:
         target_sid = online_users[to_username]
         await sio.emit('new_message', {
+            'id': message_id,
             'from': from_username,
             'message': message,
             'timestamp': datetime.utcnow().isoformat()
         }, room=target_sid)
-        logger.info(f"✅ Message delivered to {to_username}")
+        logger.info(f"✅ Message delivered to {to_username} via WebSocket")
     else:
-        logger.info(f"📭 User {to_username} is offline, message stored in DB")
+        logger.info(f"📭 User {to_username} is offline, message stored in Redis")
+
+@sio.event
+async def typing(sid, data):
+    """Handle typing indicator"""
+    from redis_manager import get_redis_manager
+    
+    from_username = data.get('from')
+    to_username = data.get('to')
+    is_typing = data.get('isTyping', True)
+    
+    redis = get_redis_manager()
+    if is_typing:
+        redis.set_typing(from_username, to_username)
+    else:
+        redis.clear_typing(from_username, to_username)
+    
+    # Send to recipient if online
+    if to_username in online_users:
+        target_sid = online_users[to_username]
+        await sio.emit('user_typing', {
+            'from': from_username,
+            'isTyping': is_typing
+        }, room=target_sid)
 
 @sio.event
 async def get_online_users(sid, data):
@@ -120,13 +160,20 @@ async def broadcast_to_all(event_type, data):
     await sio.emit(event_type, data)
 
 def get_online_users_list():
-    """Get current online users"""
-    return list(online_users.keys())
+    """Get current online users from Redis"""
+    from redis_manager import get_redis_manager
+    redis = get_redis_manager()
+    return redis.get_online_users()
 
 def get_online_count():
-    """Get count of online users"""
-    return len(online_users)
+    """Get count of online users from Redis"""
+    from redis_manager import get_redis_manager
+    redis = get_redis_manager()
+    users = redis.get_online_users()
+    return len(users)
 
 def is_user_online(username):
-    """Check if specific user is online"""
-    return username in online_users
+    """Check if specific user is online in Redis"""
+    from redis_manager import get_redis_manager
+    redis = get_redis_manager()
+    return redis.is_user_online(username)

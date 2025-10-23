@@ -19,13 +19,17 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle token refresh
+// Add response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      console.warn('🔒 Session expired - redirecting to login');
+      // Clear all auth data
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      // Redirect to login
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -120,6 +124,306 @@ export const getMessages = async (userId) => {
     return response.data;
   } catch (error) {
     throw error.response?.data || error.message;
+  }
+};
+
+// User Preferences API
+export const getUserPreferences = async () => {
+  try {
+    const response = await api.get('/preferences');
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const updateUserPreferences = async (preferences) => {
+  try {
+    const response = await api.put('/preferences', preferences);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Change Password API
+export const changePassword = async (passwordData) => {
+  try {
+    const authApi = axios.create({
+      baseURL: process.env.REACT_APP_API_URL?.replace('/api/users', '/api/auth') || 'http://localhost:8000/api/auth',
+    });
+    
+    // Add auth token
+    const token = localStorage.getItem('token');
+    if (token) {
+      authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    }
+    
+    const response = await authApi.post('/change-password', passwordData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+// Image Access API - uses separate axios instance to avoid baseURL conflicts
+const imageAccessApi = axios.create({
+  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+});
+
+// Add auth token interceptor for imageAccessApi
+imageAccessApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for 401 handling
+imageAccessApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      console.warn('🔒 Image Access API: Session expired - redirecting to login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const imageAccess = {
+  // Get image privacy settings for a user
+  getSettings: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/settings`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Create or update image privacy settings
+  updateSettings: async (username, settings) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/${username}/settings`, settings);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Batch update image settings
+  batchUpdateSettings: async (username, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/${username}/settings/batch`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Check if viewer has access to an image
+  checkAccess: async (imageId, viewerUsername) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${imageId}/check-access`, {
+        params: { viewerUsername }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get accessible images for a profile
+  getAccessibleImages: async (ownerUsername, viewerUsername) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/profile/${ownerUsername}/accessible`, {
+        params: { viewerUsername }
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Request access to images
+  requestAccess: async (requestData) => {
+    try {
+      const response = await imageAccessApi.post('/api/image-access/request-access', requestData);
+      return response.data;
+    } catch (error) {
+      console.error('API Error in requestAccess:', error);
+      if (error.response) {
+        // Server responded with error
+        throw error;
+      } else if (error.request) {
+        // Request made but no response
+        throw new Error('No response from server. Please check if the backend is running.');
+      } else {
+        // Something else happened
+        throw error;
+      }
+    }
+  },
+
+  // Request renewal of access
+  requestRenewal: async (requestData) => {
+    try {
+      const response = await imageAccessApi.post('/api/image-access/request-renewal', requestData);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get pending requests for owner
+  getPendingRequests: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/requests/pending`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get sent requests by requester
+  getSentRequests: async (username) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/requests/sent`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Approve access request
+  approveRequest: async (requestId, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/requests/${requestId}/approve`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reject access request
+  rejectRequest: async (requestId, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/requests/${requestId}/reject`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Revoke access for a user
+  revokeAccess: async (imageId, username) => {
+    try {
+      const response = await imageAccessApi.delete(`/api/image-access/${imageId}/revoke/${username}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Get access analytics for an image
+  getAnalytics: async (imageId) => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${imageId}/analytics`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  }
+};
+
+// Notifications API - uses separate axios instance to avoid baseURL conflicts
+const notificationsApi = axios.create({
+  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+});
+
+// Add auth token interceptor for notificationsApi
+notificationsApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    console.log(`🔑 Notifications API ${config.method.toUpperCase()} ${config.url}`, {
+      hasToken: !!token,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none'
+    });
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      console.warn('⚠️ No token found in localStorage for notifications API');
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for error handling
+notificationsApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      console.warn('🔒 Notifications API: Session expired - redirecting to login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export const notifications = {
+  // Get notification preferences
+  getPreferences: async () => {
+    try {
+      const response = await notificationsApi.get('/api/notifications/preferences');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Update notification preferences
+  updatePreferences: async (preferences) => {
+    try {
+      console.log('📤 Updating preferences:', preferences);
+      const response = await notificationsApi.put('/api/notifications/preferences', preferences);
+      console.log('✅ Update successful:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Update failed:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        headers: error.response?.headers,
+        message: error.message
+      });
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Reset to defaults
+  resetPreferences: async () => {
+    try {
+      const response = await notificationsApi.post('/api/notifications/preferences/reset');
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   }
 };
 

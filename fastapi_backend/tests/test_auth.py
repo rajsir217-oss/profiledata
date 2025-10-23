@@ -4,10 +4,9 @@ from unittest.mock import patch
 from jose import JWTError, jwt
 from config import settings
 from auth import (
-    verify_password,
-    get_password_hash,
-    create_access_token,
-    get_current_user
+    PasswordManager,
+    JWTManager,
+    get_current_user_dependency
 )
 from models import TokenData, UserCreate
 
@@ -18,51 +17,51 @@ class TestPasswordFunctions:
     def test_get_password_hash(self):
         """Test password hashing."""
         password = "testpassword123"
-        hashed = get_password_hash(password)
+        hashed = PasswordManager.hash_password(password)
 
         assert hashed != password  # Should be hashed
         assert len(hashed) > 0  # Should not be empty
 
         # Test that the same password produces different hashes
-        hashed2 = get_password_hash(password)
+        hashed2 = PasswordManager.hash_password(password)
         assert hashed != hashed2  # bcrypt adds salt
 
     def test_verify_password_correct(self):
         """Test password verification with correct password."""
         password = "testpassword123"
-        hashed = get_password_hash(password)
+        hashed = PasswordManager.hash_password(password)
 
-        assert verify_password(password, hashed) is True
+        assert PasswordManager.verify_password(password, hashed) is True
 
     def test_verify_password_incorrect(self):
         """Test password verification with incorrect password."""
         password = "testpassword123"
         wrong_password = "wrongpassword"
-        hashed = get_password_hash(password)
+        hashed = PasswordManager.hash_password(password)
 
-        assert verify_password(wrong_password, hashed) is False
+        assert PasswordManager.verify_password(wrong_password, hashed) is False
 
     def test_verify_password_with_unicode(self):
         """Test password verification with unicode characters."""
         password = "testpasswörd123"
-        hashed = get_password_hash(password)
+        hashed = PasswordManager.hash_password(password)
 
-        assert verify_password(password, hashed) is True
+        assert PasswordManager.verify_password(password, hashed) is True
 
     def test_password_truncation(self):
         """Test that passwords are properly truncated for bcrypt."""
         # Create a very long password
         long_password = "a" * 100
-        hashed = get_password_hash(long_password)
+        hashed = PasswordManager.hash_password(long_password)
 
         # Should still work
-        assert verify_password(long_password, hashed) is True
+        assert PasswordManager.verify_password(long_password, hashed) is True
 
         # Test with a password that has unicode that might be truncated
         unicode_password = "パスワード123" * 10  # Japanese characters
-        hashed_unicode = get_password_hash(unicode_password)
+        hashed_unicode = PasswordManager.hash_password(unicode_password)
 
-        assert verify_password(unicode_password, hashed_unicode) is True
+        assert PasswordManager.verify_password(unicode_password, hashed_unicode) is True
 
 
 class TestJWTTokenFunctions:
@@ -71,7 +70,7 @@ class TestJWTTokenFunctions:
     def test_create_access_token(self):
         """Test creating a basic access token."""
         data = {"sub": "testuser"}
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         assert isinstance(token, str)
         assert len(token) > 0
@@ -80,7 +79,7 @@ class TestJWTTokenFunctions:
         """Test creating a token with custom expiry."""
         data = {"sub": "testuser"}
         expires_delta = timedelta(hours=1)
-        token = create_access_token(data, expires_delta)
+        token = JWTManager.create_access_token(data, expires_delta)
 
         assert isinstance(token, str)
         assert len(token) > 0
@@ -88,7 +87,7 @@ class TestJWTTokenFunctions:
     def test_create_access_token_without_sub(self):
         """Test creating a token without 'sub' field."""
         data = {"username": "testuser"}  # No 'sub' field
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         assert isinstance(token, str)
         assert len(token) > 0
@@ -100,7 +99,7 @@ class TestJWTTokenFunctions:
         mock_settings.algorithm = "HS256"
 
         data = {"sub": "testuser"}
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         assert isinstance(token, str)
         assert len(token) > 0
@@ -118,7 +117,7 @@ class TestGetCurrentUser:
 
         # Create a valid token
         data = {"sub": "testuser"}
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         # Mock the dependency to return our token
         async def mock_oauth2_scheme():
@@ -154,7 +153,7 @@ class TestGetCurrentUser:
 
         # Create a token that expires immediately
         data = {"sub": "testuser"}
-        expired_token = create_access_token(data, expires_delta=timedelta(seconds=-1))
+        expired_token = JWTManager.create_access_token(data, expires_delta=timedelta(seconds=-1))
 
         with pytest.raises(Exception) as exc_info:
             # Run in event loop since get_current_user is async
@@ -171,7 +170,7 @@ class TestGetCurrentUser:
 
         # Create token without 'sub' field
         data = {"username": "testuser"}
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         with pytest.raises(Exception) as exc_info:
             # Run in event loop since get_current_user is async
@@ -189,7 +188,7 @@ class TestGetCurrentUser:
 
         # Create token with original secret
         data = {"sub": "testuser"}
-        token = create_access_token(data)
+        token = JWTManager.create_access_token(data)
 
         # Try to decode with different secret
         mock_settings.secret_key = "different_secret_key"
@@ -210,10 +209,10 @@ class TestIntegrationScenarios:
         """Test complete authentication flow."""
         # 1. Hash a password
         password = "testpassword123"
-        hashed = get_password_hash(password)
+        hashed = PasswordManager.hash_password(password)
 
         # 2. Verify the password
-        assert verify_password(password, hashed) is True
+        assert PasswordManager.verify_password(password, hashed) is True
 
         # 3. Create a token for the user with mocked settings
         with patch('auth.settings') as mock_settings:
@@ -221,7 +220,7 @@ class TestIntegrationScenarios:
             mock_settings.algorithm = "HS256"
 
             data = {"sub": "testuser"}
-            token = create_access_token(data)
+            token = JWTManager.create_access_token(data)
 
             # 4. Extract user from token (simulate)
             # Use the same mocked settings for decoding

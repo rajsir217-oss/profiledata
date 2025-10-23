@@ -14,10 +14,9 @@ from datetime import datetime, timedelta
 from main import app
 from database import get_database
 
-client = TestClient(app)
 
 @pytest.fixture
-async def test_users(test_db):
+def test_users(test_db):
     """Create test users for profile view testing"""
     users = [
         {
@@ -43,14 +42,16 @@ async def test_users(test_db):
         }
     ]
     
-    await test_db.users.insert_many(users)
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(test_db.users.insert_many(users))
     return users
 
 @pytest.fixture
-async def cleanup_profile_views(test_db):
+def cleanup_profile_views(test_db):
     """Clean up profile views after each test"""
     yield
-    await test_db.profile_views.delete_many({})
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(test_db.profile_views.delete_many({}))
 
 class TestProfileViewTracking:
     """Test profile view tracking functionality"""
@@ -163,7 +164,7 @@ class TestGetProfileViews:
     """Test retrieving profile views"""
     
     @pytest.fixture
-    async def sample_views(self, test_db, test_users):
+    def sample_views(self, test_db, test_users):
         """Create sample profile views"""
         views = [
             {
@@ -179,7 +180,8 @@ class TestGetProfileViews:
                 "createdAt": datetime.utcnow() - timedelta(hours=2)
             }
         ]
-        await test_db.profile_views.insert_many(views)
+        import asyncio
+        asyncio.get_event_loop().run_until_complete(test_db.profile_views.insert_many(views))
         return views
     
     def test_get_profile_views_success(self, test_users, sample_views, cleanup_profile_views):
@@ -241,7 +243,7 @@ class TestProfileViewCount:
     """Test profile view count statistics"""
     
     @pytest.fixture
-    async def multiple_views(self, test_db, test_users):
+    def multiple_views(self, test_db, test_users):
         """Create multiple views including duplicates"""
         views = [
             {
@@ -263,7 +265,8 @@ class TestProfileViewCount:
                 "createdAt": datetime.utcnow()
             }
         ]
-        await test_db.profile_views.insert_many(views)
+        import asyncio
+        asyncio.get_event_loop().run_until_complete(test_db.profile_views.insert_many(views))
         return views
     
     def test_get_view_count_success(self, test_users, multiple_views, cleanup_profile_views):

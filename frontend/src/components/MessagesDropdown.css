@@ -1,0 +1,321 @@
+/* Messages Dropdown Backdrop */
+.messages-dropdown-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  z-index: 1998;
+}
+
+/* Messages Dropdown Container */
+.messages-dropdown {
+  position: absolute;
+  top: 55px;
+  right: 0;
+  width: 380px;
+  max-height: 500px;
+  background: var(--card-background, white);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  z-index: 1999;
+  display: flex;
+  flex-direction: column;
+  animation: slideDown 0.3s ease;
+}
+
+/* Arrow pointing to message icon */
+.messages-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  right: 10px;
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid var(--primary-color, #667eea);
+}
+
+.messages-dropdown::after {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 11px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 9px solid var(--card-background, white);
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Header */
+.messages-dropdown-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  border-radius: 12px 12px 0 0;
+}
+
+.messages-dropdown-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: white;
+}
+
+.close-dropdown-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-dropdown-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Dropdown Body */
+.messages-dropdown-body {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.messages-dropdown-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.messages-dropdown-body::-webkit-scrollbar-track {
+  background: var(--surface-color, #f0f0f0);
+}
+
+.messages-dropdown-body::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 3px;
+}
+
+.messages-dropdown-body::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted, #999);
+}
+
+/* Loading State */
+.messages-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  gap: 12px;
+  color: var(--text-secondary, #666);
+}
+
+.messages-loading span {
+  font-size: 14px;
+}
+
+/* No Conversations */
+.no-conversations {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.no-conversations-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.no-conversations p {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  color: var(--text-secondary, #666);
+  font-weight: 500;
+}
+
+.no-conversations small {
+  font-size: 13px;
+  color: #999;
+}
+
+/* Conversations List */
+.conversation-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+.conversation-item:last-child {
+  border-bottom: none;
+}
+
+.conversation-item:hover {
+  background: var(--hover-background, #f5f7fa);
+}
+
+/* Conversation Avatar */
+.conversation-avatar-container {
+  position: relative;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.conversation-avatar,
+.conversation-avatar-placeholder {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+}
+
+.conversation-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conversation-avatar-placeholder {
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+/* Conversation Info / Details */
+.conversation-info,
+.conversation-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.conversation-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.conversation-name {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  font-size: 15px;
+}
+
+.unread-badge {
+  background: #f44336;
+  color: white;
+  border-radius: 10px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 18px;
+  text-align: center;
+}
+
+.conversation-message {
+  margin: 0 0 4px 0;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-time {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+}
+
+.conversation-status-badge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+}
+
+/* Dropdown Footer */
+.messages-dropdown-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color, #e0e0e0);
+  text-align: center;
+}
+
+.view-all-link {
+  color: var(--primary-color, #667eea);
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.view-all-link:hover {
+  color: var(--secondary-color, #764ba2);
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .messages-dropdown {
+    width: 360px;
+  }
+}
+
+@media (max-width: 480px) {
+  .messages-dropdown {
+    position: fixed;
+    top: 65px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+  
+  .messages-dropdown::before {
+    right: 60px;
+  }
+  
+  .messages-dropdown::after {
+    right: 61px;
+  }
+  
+  .conversation-item {
+    padding: 10px 15px;
+  }
+  
+  .conversation-avatar,
+  .conversation-avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+}

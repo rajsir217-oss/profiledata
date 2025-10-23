@@ -5,10 +5,11 @@
   left: 0;
   right: 0;
   height: 60px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: visible;
 }
 
 .top-bar.sidebar-open {
@@ -24,12 +25,74 @@
   height: 100%;
   padding: 0 30px;
   max-width: 100%;
+  overflow: visible;
 }
 
 .top-bar-left {
   display: flex;
   align-items: center;
   gap: 15px;
+}
+
+.app-logo {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  padding: 4px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-logo:hover {
+  transform: scale(1.05);
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Stat Capsules Container - Match logo height */
+.stat-capsules-container {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  max-height: 48px; /* Match logo container height */
+}
+
+/* Override stat capsule size in TopBar to be extra mini notification size */
+.stat-capsules-container .stat-capsule-small {
+  padding: 0.5px 3px !important;
+  font-size: 7px !important;
+  gap: 1px !important;
+  border-radius: 6px !important;
+  border-width: 0px !important;
+  min-height: 12px !important;
+  height: 12px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(6px) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+.stat-capsules-container .stat-icon {
+  font-size: 7px !important;
+  line-height: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.stat-capsules-container .stat-count {
+  font-size: 7px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  letter-spacing: -0.4px !important;
+}
+
+/* Make the gap ultra compact in TopBar */
+.stat-capsules-container .stat-capsule-group.gap-compact {
+  gap: 2px !important;
 }
 
 /* Online Indicator */
@@ -104,6 +167,8 @@
   display: flex;
   align-items: center;
   gap: 15px;
+  overflow: visible;
+  position: relative;
 }
 
 /* User Info */
@@ -125,12 +190,97 @@
 
 .user-icon {
   font-size: 20px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.topbar-profile-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.topbar-profile-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 50%;
 }
 
 .user-name {
   color: white;
   font-weight: 500;
   font-size: 14px;
+}
+
+/* Messages Icon Container */
+.messages-icon-container {
+  position: relative;
+  overflow: visible;
+  z-index: 2000;
+}
+
+.btn-messages {
+  position: relative;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  font-size: 22px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.btn-messages:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
+}
+
+.btn-messages:active {
+  transform: scale(0.95);
+}
+
+.unread-count-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid #667eea;
+  animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+  }
 }
 
 /* Buttons */
@@ -204,5 +354,121 @@
   
   .top-bar h1 {
     font-size: 18px;
+  }
+}
+
+/* Violation Warning Banner */
+.violation-banner {
+  position: fixed;
+  top: 60px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 998;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideDown 0.4s ease;
+}
+
+.top-bar.sidebar-open ~ * .violation-banner,
+.top-bar.sidebar-open + * .violation-banner {
+  left: 280px;
+  width: calc(100% - 280px);
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Warning Level - Yellow */
+.violation-banner.violation-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ffeb3b 100%);
+  color: #664d03;
+  border-bottom: 2px solid #ff9800;
+}
+
+/* Suspended - Orange */
+.violation-banner.violation-suspended {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ff8787 100%);
+  color: white;
+  border-bottom: 2px solid #e55353;
+}
+
+/* Banned - Red */
+.violation-banner.violation-banned {
+  background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  color: white;
+  border-bottom: 2px solid #b91c1c;
+}
+
+.violation-icon {
+  font-size: 20px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.violation-message {
+  flex: 1;
+  text-align: center;
+}
+
+.violation-count {
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  backdrop-filter: blur(5px);
+}
+
+/* Dark Theme Support */
+.theme-dark .violation-banner.violation-warning {
+  background: linear-gradient(135deg, rgba(255, 193, 7, 0.9) 0%, rgba(255, 235, 59, 0.9) 100%);
+}
+
+.theme-dark .violation-banner.violation-suspended {
+  background: linear-gradient(135deg, rgba(255, 107, 107, 0.95) 0%, rgba(255, 135, 135, 0.95) 100%);
+}
+
+.theme-dark .violation-banner.violation-banned {
+  background: linear-gradient(135deg, rgba(220, 38, 38, 0.95) 0%, rgba(239, 68, 68, 0.95) 100%);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .violation-banner {
+    font-size: 13px;
+    padding: 10px 15px;
+  }
+  
+  .violation-message {
+    font-size: 12px;
+  }
+  
+  .violation-count {
+    font-size: 11px;
+    padding: 3px 10px;
   }
 }

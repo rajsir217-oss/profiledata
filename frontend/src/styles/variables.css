@@ -1,0 +1,143 @@
+/* ========================================
+   CSS CUSTOM PROPERTIES (VARIABLES)
+   Theme-independent system variables
+   ======================================== */
+
+:root {
+  /* ========================================
+     Z-INDEX LAYERS
+     ======================================== */
+  --z-base: 1;
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-offcanvas: 1060;
+  --z-popover: 1070;
+  --z-tooltip: 1080;
+  --z-notification: 1090;
+  --z-toast: 1100;
+
+  /* ========================================
+     TRANSITIONS & ANIMATIONS
+     ======================================== */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.3s ease;
+  --transition-slow: 0.5s ease;
+  --transition-smooth: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+  /* ========================================
+     LAYOUT DIMENSIONS
+     ======================================== */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 60px;
+  --topbar-height: 60px;
+  --footer-height: 80px;
+  --card-max-width: 400px;
+  --modal-max-width: 600px;
+  --modal-lg-width: 800px;
+  --modal-sm-width: 400px;
+  --container-max-width: 1400px;
+
+  /* ========================================
+     BREAKPOINTS (for JavaScript usage)
+     ======================================== */
+  --breakpoint-xs: 0px;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  --breakpoint-xxl: 1400px;
+
+  /* ========================================
+     GRID SYSTEM
+     ======================================== */
+  --grid-gap: 20px;
+  --grid-gap-sm: 10px;
+  --grid-gap-lg: 32px;
+
+  /* ========================================
+     FORM CONTROLS
+     ======================================== */
+  --input-height: 44px;
+  --input-height-sm: 36px;
+  --input-height-lg: 52px;
+  --input-border-width: 2px;
+  --input-focus-ring-size: 4px;
+
+  /* ========================================
+     COMPONENT SIZES
+     ======================================== */
+  --avatar-xs: 24px;
+  --avatar-sm: 32px;
+  --avatar-md: 40px;
+  --avatar-lg: 60px;
+  --avatar-xl: 100px;
+  --avatar-2xl: 150px;
+
+  --icon-xs: 12px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-xl: 32px;
+
+  --badge-height: 20px;
+  --badge-min-width: 20px;
+
+  /* ========================================
+     OPACITY LEVELS
+     ======================================== */
+  --opacity-disabled: 0.5;
+  --opacity-hover: 0.8;
+  --opacity-muted: 0.6;
+  --opacity-overlay: 0.5;
+
+  /* ========================================
+     BACKDROP FILTERS
+     ======================================== */
+  --backdrop-blur-sm: blur(4px);
+  --backdrop-blur-md: blur(8px);
+  --backdrop-blur-lg: blur(12px);
+
+  /* ========================================
+     IMAGE FILTERS
+     ======================================== */
+  --filter-grayscale: grayscale(1);
+  --filter-blur: blur(8px);
+  --filter-brightness-low: brightness(0.7);
+  --filter-brightness-high: brightness(1.2);
+}
+
+/* ========================================
+   PRINT STYLES
+   ======================================== */
+@media print {
+  :root {
+    --shadow-sm: none;
+    --shadow-md: none;
+    --shadow-lg: none;
+  }
+}
+
+/* ========================================
+   REDUCED MOTION
+   ======================================== */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0.01ms;
+    --transition-base: 0.01ms;
+    --transition-slow: 0.01ms;
+    --transition-smooth: 0.01ms;
+    --transition-bounce: 0.01ms;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

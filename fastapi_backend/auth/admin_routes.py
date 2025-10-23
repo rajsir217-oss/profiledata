@@ -4,9 +4,18 @@ Admin Management Endpoints - User, Role, and Permission Management
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 from bson import ObjectId
+import sys
+import os
+import logging
+import re
+
+# Add parent directory to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from database import get_database
 from .jwt_auth import get_current_user_dependency
 from .authorization import require_admin, PermissionChecker, RoleChecker
@@ -16,7 +25,10 @@ from .security_models import (
 )
 from .security_config import DEFAULT_PERMISSIONS, USER_STATUS, SECURITY_EVENTS
 from .password_utils import PasswordManager
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> dev
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
@@ -26,7 +38,7 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 @router.get("/users", dependencies=[Depends(require_admin)])
 async def get_all_users(
     page: int = Query(1, ge=1),
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=10000),
     status: Optional[str] = None,
     role: Optional[str] = None,
     search: Optional[str] = None,
@@ -163,6 +175,14 @@ async def manage_user(
         if action == "activate":
             update_data["status.status"] = USER_STATUS["ACTIVE"]
             event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
+            
+            # Clear all content violations when reactivating user
+            violation_result = await db.content_violations.delete_many({
+                "username": username,
+                "type": "message_profanity"
+            })
+            if violation_result.deleted_count > 0:
+                logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during activation")
         
         elif action == "deactivate":
             update_data["status.status"] = USER_STATUS["INACTIVE"]
@@ -308,6 +328,105 @@ async def assign_role_to_user(
         raise
     except Exception as e:
         logger.error(f"Error assigning role: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ===== STATUS MANAGEMENT =====
+
+class StatusUpdateRequest(BaseModel):
+    status: str
+
+@router.patch("/users/{username}/status", dependencies=[Depends(require_admin)])
+async def update_user_status(
+    username: str,
+    request: StatusUpdateRequest,
+    current_user: dict = Depends(require_admin),
+    db = Depends(get_database)
+):
+    """
+    Update user account status (Admin only)
+    Valid statuses: pending, active, inactive, suspended, banned
+    """
+    try:
+        # Validate status
+        valid_statuses = ['pending', 'active', 'inactive', 'suspended', 'banned']
+        if request.status not in valid_statuses:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+            )
+        
+        # Find user
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Get old status
+        old_status = user.get('status', {})
+        if isinstance(old_status, dict):
+            old_status_value = old_status.get('status', 'pending')
+        else:
+            old_status_value = old_status or 'pending'
+        
+        # Prepare status update
+        status_update = {
+            "status": request.status,
+            "last_updated": datetime.utcnow().isoformat(),
+            "updated_by": current_user.get("username")
+        }
+        
+        # If changing to active from suspended/banned, clear violations
+        if request.status == 'active' and old_status_value in ['suspended', 'banned']:
+            violation_result = await db.content_violations.delete_many({
+                "username": username,
+                "type": "message_profanity"
+            })
+            if violation_result.deleted_count > 0:
+                logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during status change to active")
+        
+        # Update user status
+        result = await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "status": status_update,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=400, detail="Failed to update status")
+        
+        # Log audit event
+        await db.audit_logs.insert_one({
+            "user_id": str(user["_id"]),
+            "username": username,
+            "action": "status_change",
+            "resource": "user",
+            "resource_id": str(user["_id"]),
+            "status": "success",
+            "details": {
+                "old_status": old_status_value,
+                "new_status": request.status,
+                "performed_by": current_user.get("username")
+            },
+            "timestamp": datetime.utcnow(),
+            "severity": "warning" if request.status in ["suspended", "banned"] else "info"
+        })
+        
+        logger.info(f"✅ Admin {current_user.get('username')} changed status for '{username}' from '{old_status_value}' to '{request.status}'")
+        
+        return {
+            "message": f"Status updated to '{request.status}' successfully",
+            "username": username,
+            "old_status": old_status_value,
+            "new_status": request.status
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/users/{username}/grant-permissions", dependencies=[Depends(require_admin)])
@@ -568,4 +687,136 @@ async def force_password_reset(
         raise
     except Exception as e:
         logger.error(f"Error forcing password reset: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== IMAGE VALIDATION =====
+
+@router.post("/users/{username}/validate-images", dependencies=[Depends(require_admin)])
+async def validate_user_images_endpoint(
+    username: str,
+    db = Depends(get_database)
+):
+    """
+    Validate all images for a specific user (Admin only)
+    Checks for inappropriate content, image quality, and legal compliance
+    """
+    try:
+        from image_validator import validate_user_images
+        
+        logger.info(f"🔍 Admin validating images for user: {username}")
+        
+        result = await validate_user_images(db, username)
+        
+        if 'error' in result:
+            raise HTTPException(status_code=404, detail=result['error'])
+        
+        return result
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error validating user images: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/validate-all-images", dependencies=[Depends(require_admin)])
+async def validate_all_users_images(
+    limit: int = Query(100, ge=1, le=1000),
+    db = Depends(get_database)
+):
+    """
+    Validate images for all users (Admin only)
+    Useful for bulk validation after deployment
+    """
+    try:
+        from image_validator import validate_user_images
+        
+        logger.info(f"🔍 Admin running bulk image validation (limit: {limit})")
+        
+        # Get all users
+        users_cursor = db.users.find({}).limit(limit)
+        users = await users_cursor.to_list(length=limit)
+        
+        results = []
+        stats = {
+            'total_users': 0,
+            'total_images': 0,
+            'flagged_users': 0,
+            'users_needing_review': []
+        }
+        
+        for user in users:
+            username = user.get('username')
+            if not username:
+                continue
+            
+            result = await validate_user_images(db, username)
+            
+            if 'error' not in result:
+                stats['total_users'] += 1
+                stats['total_images'] += result.get('total_images', 0)
+                
+                if result.get('validation_summary', {}).get('needs_review', False):
+                    stats['flagged_users'] += 1
+                    stats['users_needing_review'].append({
+                        'username': username,
+                        'total_images': result.get('total_images', 0),
+                        'invalid_images': result.get('validation_summary', {}).get('invalid_images', 0),
+                        'flagged_images': result.get('validation_summary', {}).get('flagged_images', 0)
+                    })
+                
+                results.append({
+                    'username': username,
+                    'summary': result.get('validation_summary', {})
+                })
+        
+        logger.info(f"✅ Bulk validation complete: {stats['total_users']} users, {stats['flagged_users']} flagged")
+        
+        return {
+            'stats': stats,
+            'results': results
+        }
+    
+    except Exception as e:
+        logger.error(f"Error in bulk validation: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/users/{username}/image-validation-status", dependencies=[Depends(require_admin)])
+async def get_image_validation_status(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get image validation status for a user (Admin only)"""
+    try:
+        user = await db.users.find_one({'username': username})
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        validation_status = user.get('imageValidation', {
+            'last_validated': None,
+            'summary': {
+                'total_images': len(user.get('images', [])),
+                'valid_images': 0,
+                'invalid_images': 0,
+                'flagged_images': 0,
+                'needs_review': False,
+                'all_verified': False
+            },
+            'needs_review': False,
+            'all_verified': False
+        })
+        
+        return {
+            'username': username,
+            'validation_status': validation_status,
+            'total_images': len(user.get('images', []))
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting validation status: {e}")
         raise HTTPException(status_code=500, detail=str(e))

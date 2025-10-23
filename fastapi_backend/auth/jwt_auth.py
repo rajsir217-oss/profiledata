@@ -95,7 +95,9 @@ class JWTManager:
         """Get token expiry datetime"""
         exp_timestamp = payload.get("exp")
         if exp_timestamp:
-            return datetime.fromtimestamp(exp_timestamp)
+            # Use UTC timezone to match token creation
+            from datetime import timezone
+            return datetime.fromtimestamp(exp_timestamp, tz=timezone.utc)
         return None
     
     @staticmethod
@@ -103,7 +105,9 @@ class JWTManager:
         """Check if token is expired"""
         expiry = JWTManager.get_token_expiry(payload)
         if expiry:
-            return datetime.utcnow() >= expiry
+            # Compare timezone-aware datetimes
+            from datetime import timezone
+            return datetime.now(timezone.utc) >= expiry
         return True
 
 class AuthenticationService:
@@ -143,8 +147,23 @@ class AuthenticationService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
+        # Special handling for hardcoded admin user
+        if username == "admin":
+            return {
+                "username": "admin",
+                "firstName": "Admin",
+                "lastName": "User",
+                "email": "admin@system.com",
+                "contactEmail": "admin@system.com",
+                "role": "admin",
+                "role_name": "admin",
+                "permissions": ["all"],
+                "status": {"status": "active"},
+                "_id": "admin"
+            }
+        
         # Get user from database (if db provided)
-        if db:
+        if db is not None:
             user = await db.users.find_one({"username": username})
             if user is None:
                 raise HTTPException(
@@ -258,5 +277,5 @@ async def get_current_user_dependency(
 ) -> Dict:
     """Dependency to get current user from token"""
     from database import get_database
-    db = await get_database()
+    db = get_database()  # Not async - returns database directly
     return await AuthenticationService.get_current_user(credentials, db)

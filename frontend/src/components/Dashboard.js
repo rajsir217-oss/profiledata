@@ -2,7 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import MessageModal from './MessageModal';
+import CategorySection from './CategorySection';
+import UserCard from './UserCard';
+import AccessRequestManager from './AccessRequestManager';
 import socketService from '../services/socketService';
+import { getDisplayName } from '../utils/userDisplay';
+import useToast from '../hooks/useToast';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -10,6 +15,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const currentUser = localStorage.getItem('username');
+  const toast = useToast();
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -34,18 +40,31 @@ const Dashboard = () => {
   const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
   
   // Online users state
+  // eslint-disable-next-line no-unused-vars
   const [onlineUsers, setOnlineUsers] = useState(new Set());
+  
+  // Current user profile for display name
+  const [userProfile, setUserProfile] = useState(null);
   
   const [activeSections, setActiveSections] = useState({
     myMessages: true,
     myFavorites: true,
     myShortlists: true,
     myViews: true,
-    myExclusions: false,
+    myExclusions: true,
     myRequests: true,
     theirFavorites: true,
     theirShortlists: true
   });
+
+  // View mode and drag-drop states
+  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const [dragSection, setDragSection] = useState(null);
+  const [draggedUser, setDraggedUser] = useState(null);
+  // eslint-disable-next-line no-unused-vars
+  const [dropTargetSection, setDropTargetSection] = useState(null);
 
   useEffect(() => {
     const currentUser = localStorage.getItem('username');
@@ -53,8 +72,23 @@ const Dashboard = () => {
       navigate('/login');
       return;
     }
-
-    loadDashboardData(currentUser);
+    
+    // Load user profile for display name
+    const loadUserProfile = async () => {
+      try {
+        const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
+        setUserProfile(response.data);
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+      }
+    };
+    
+    loadUserProfile();
+    
+    // Small delay to ensure token is set after login
+    const timer = setTimeout(() => {
+      loadDashboardData(currentUser);
+    }, 100);
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
@@ -73,14 +107,26 @@ const Dashboard = () => {
     socketService.on('user_offline', handleUserOffline);
     
     return () => {
+      clearTimeout(timer);
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
     };
   }, [navigate]);
 
-  const loadDashboardData = async (currentUser) => {
+  const loadDashboardData = async (username) => {
+    // Use passed username or get from localStorage
+    const user = username || localStorage.getItem('username');
+    
+    if (!user) {
+      setError('No user logged in');
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     setError('');
+    
+    console.log('Loading dashboard for user:', user);
     
     try {
       // Load all dashboard data
@@ -94,14 +140,14 @@ const Dashboard = () => {
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
-        api.get(`/api/messages/conversations?username=${currentUser}`),
-        api.get(`/favorites/${currentUser}`),
-        api.get(`/shortlist/${currentUser}`),
-        api.get(`/profile-views/${currentUser}`),
-        api.get(`/exclusions/${currentUser}`),
-        api.get(`/pii-requests/${currentUser}?type=received`),
-        api.get(`/their-favorites/${currentUser}`),
-        api.get(`/their-shortlists/${currentUser}`)
+        api.get(`/messages/conversations?username=${user}`),
+        api.get(`/favorites/${user}`),
+        api.get(`/shortlist/${user}`),
+        api.get(`/profile-views/${user}`),
+        api.get(`/exclusions/${user}`),
+        api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
+        api.get(`/their-favorites/${user}`),
+        api.get(`/their-shortlists/${user}`)
       ]);
 
       setDashboardData({
@@ -122,7 +168,14 @@ const Dashboard = () => {
       });
     } catch (err) {
       console.error('Error loading dashboard data:', err);
-      setError('Failed to load dashboard data');
+      console.error('Error details:', err.response?.data || err.message);
+      
+      const errorMessage = err.response?.data?.detail || 
+                          err.response?.data?.message || 
+                          err.message || 
+                          'Failed to load dashboard data';
+      
+      setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -132,10 +185,23 @@ const Dashboard = () => {
     navigate(`/profile/${username}`);
   };
 
-  const handleMessageUser = (username, userProfile = null) => {
-    // Open message modal instead of navigating
-    const userToMessage = userProfile || { username };
-    setSelectedUserForMessage(userToMessage);
+  const handleMessageUser = async (username, userProfile = null) => {
+    // If we have a userProfile with complete data, use it
+    if (userProfile && userProfile.firstName && userProfile.location) {
+      setSelectedUserForMessage(userProfile);
+      setShowMessageModal(true);
+      return;
+    }
+    
+    // Otherwise, fetch the full profile
+    try {
+      const response = await api.get(`/profile/${username}?requester=${currentUser}`);
+      setSelectedUserForMessage(response.data);
+    } catch (err) {
+      console.error('Error loading user profile:', err);
+      // Fallback to basic user object
+      setSelectedUserForMessage(userProfile || { username });
+    }
     setShowMessageModal(true);
   };
 
@@ -231,139 +297,213 @@ const Dashboard = () => {
     }
   };
 
-  const renderUserCard = (user, showActions = true, removeHandler = null, removeIcon = '❌') => {
-    // Handle different data structures
-    // - Profile views: user.viewerProfile
-    // - Conversations: user.userProfile
-    // - Others: user directly
-    if (!user) return null;
+  // Drag and drop handlers
+  const handleDragStart = (e, index, section) => {
+    setDraggedIndex(index);
+    setDragSection(section);
     
-    const profileData = user.viewerProfile || user.userProfile || user;
-    const username = profileData?.username || user.username;
-    const viewedAt = user.viewedAt; // For profile views
-    const lastMessage = user.lastMessage; // For conversations
-    const lastMessageTime = user.lastMessageTime; // For conversations
+    // Store the dragged user data for cross-category moves
+    const sectionKey = getSectionDataKey(section);
+    const userData = dashboardData[sectionKey][index];
+    setDraggedUser(userData);
     
-    // Safety check
-    if (!username) {
-      console.warn('User card missing username:', user);
-      return null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', section); // Store source section
+    e.currentTarget.style.opacity = '0.5';
+  };
+
+  const handleDragEnd = (e) => {
+    e.currentTarget.style.opacity = '1';
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setDragSection(null);
+    setDraggedUser(null);
+    setDropTargetSection(null);
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedIndex !== index) {
+      setDragOverIndex(index);
     }
+  };
+
+  const handleDrop = async (e, dropIndex, targetSection) => {
+    e.preventDefault();
     
-    const isOnline = onlineUsers.has(username);
-    
+    if (draggedIndex === null || !draggedUser || !dragSection) {
+      return;
+    }
+
+    const sourceSection = dragSection;
+    const username = typeof draggedUser === 'string' ? draggedUser : draggedUser.username;
+
+    // Case 1: Same section - just reorder
+    if (sourceSection === targetSection) {
+      if (draggedIndex === dropIndex) return;
+
+      const sectionKey = getSectionDataKey(targetSection);
+      let currentData = [...dashboardData[sectionKey]];
+      
+      // Reorder the array
+      const draggedItem = currentData[draggedIndex];
+      currentData.splice(draggedIndex, 1);
+      currentData.splice(dropIndex, 0, draggedItem);
+
+      // Update state immediately
+      setDashboardData(prev => ({
+        ...prev,
+        [sectionKey]: currentData
+      }));
+      setDragOverIndex(null);
+
+      // Save order to backend
+      try {
+        const endpoint = getReorderEndpoint(targetSection);
+        const order = currentData.map(item => 
+          typeof item === 'string' ? item : item.username
+        );
+        
+        await api.put(endpoint, order);
+      } catch (err) {
+        console.error('Error saving order:', err);
+      }
+    }
+    // Case 2: Different section - move between categories
+    else {
+      await handleCrossCategoryMove(username, sourceSection, targetSection);
+    }
+  };
+
+  const getSectionDataKey = (section) => {
+    const mapping = {
+      'myFavorites': 'myFavorites',
+      'myShortlists': 'myShortlists',
+      'myExclusions': 'myExclusions'
+    };
+    return mapping[section] || section;
+  };
+
+  const getReorderEndpoint = (section) => {
+    const mapping = {
+      'myFavorites': `/favorites/${currentUser}/reorder`,
+      'myShortlists': `/shortlist/${currentUser}/reorder`,
+      'myExclusions': `/exclusions/${currentUser}/reorder`
+    };
+    return mapping[section] || '';
+  };
+
+  // Handle cross-category drag & drop moves
+  const handleCrossCategoryMove = async (username, sourceSection, targetSection) => {
+    try {
+      console.log(`Moving ${username} from ${sourceSection} to ${targetSection}`);
+
+      // Define API operations for each section
+      const addOperations = {
+        'myFavorites': () => api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myShortlists': () => api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myExclusions': () => api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`)
+      };
+
+      const removeOperations = {
+        'myFavorites': () => api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myShortlists': () => api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`),
+        'myExclusions': () => api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`)
+      };
+
+      // Remove from source
+      if (removeOperations[sourceSection]) {
+        await removeOperations[sourceSection]();
+      }
+
+      // Add to target
+      if (addOperations[targetSection]) {
+        await addOperations[targetSection]();
+      }
+
+      // Update local state - remove from source
+      const sourceSectionKey = getSectionDataKey(sourceSection);
+      setDashboardData(prev => ({
+        ...prev,
+        [sourceSectionKey]: prev[sourceSectionKey].filter(item => {
+          const itemUsername = typeof item === 'string' ? item : item.username;
+          return itemUsername !== username;
+        })
+      }));
+
+      // Add to target (fetch fresh data to maintain consistency)
+      await loadDashboardData();
+
+      console.log(`Successfully moved ${username} from ${sourceSection} to ${targetSection}`);
+    } catch (err) {
+      console.error('Error moving between categories:', err);
+      toast.error(`Failed to move user: ${err.response?.data?.detail || err.message}`);
+    }
+  };
+
+  // Render user card using new UserCard component
+  const renderUserCard = (user, removeHandler = null, removeIcon = '❌') => {
+    if (!user) return null;
+
+    // Handle different data structures (regular users vs PII requests)
+    // PII requests have requesterProfile nested inside
+    const username = user.username || user.viewerProfile?.username || user.userProfile?.username || user.requesterProfile?.username;
+    const displayUser = user.requesterProfile ? {
+      ...user.requesterProfile,
+      requestedData: user.requested_data, // Add requested PII types
+      requestedAt: user.requested_at      // Add timestamp
+    } : user;
+
+    // Build actions array
+    const actions = [
+      { icon: '💬', label: 'Message', onClick: () => handleMessageUser(username, displayUser) },
+      { icon: '👁️', label: 'View', onClick: () => handleProfileClick(username) }
+    ];
+
+    if (removeHandler) {
+      actions.push({ 
+        icon: removeIcon, 
+        label: 'Remove', 
+        onClick: () => removeHandler(username) 
+      });
+    }
+
     return (
-      <div key={username} className="user-card" onClick={() => handleProfileClick(username)}>
-        <div className="user-card-header">
-          <div className="user-avatar">
-            {profileData?.images?.[0] || profileData?.profileImage ? (
-              <img src={profileData.images?.[0] || profileData.profileImage} alt={username} />
-            ) : (
-              <div className="avatar-placeholder">
-                {profileData?.firstName?.[0] || username?.[0]?.toUpperCase() || '?'}
-              </div>
-            )}
-            {/* Online status indicator */}
-            <div className={`status-bulb ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online' : 'Offline'}>
-              {isOnline ? '🟢' : '⚪'}
-            </div>
-          </div>
-        </div>
-        
-        <div className="user-card-body">
-          <h4 className="username">{profileData?.firstName || username}</h4>
-          {profileData?.age && <p className="user-age">{profileData.age} years</p>}
-          {profileData?.location && <p className="user-location">📍 {profileData.location}</p>}
-          {profileData?.occupation && <p className="user-occupation">💼 {profileData.occupation}</p>}
-          {viewedAt && (
-            <p className="last-seen">
-              Viewed: {new Date(viewedAt).toLocaleString()}
-              {user.viewCount > 1 && <span className="view-count-badge"> ({user.viewCount}x)</span>}
-            </p>
-          )}
-          {lastMessage && (
-            <p className="last-seen">
-              {lastMessage.length > 30 ? lastMessage.substring(0, 30) + '...' : lastMessage}
-            </p>
-          )}
-          {profileData?.lastSeen && !viewedAt && !lastMessage && (
-            <p className="last-seen">Last seen: {new Date(profileData.lastSeen).toLocaleDateString()}</p>
-          )}
-        </div>
-        
-        {showActions && (
-          <div className="user-card-actions">
-            <button 
-              className="btn-message"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleMessageUser(username, profileData);
-              }}
-              title="Send Message"
-            >
-              💬
-            </button>
-            <button 
-              className="btn-view-profile"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleProfileClick(username);
-              }}
-              title="View Profile"
-            >
-              👁️
-            </button>
-            {removeHandler && (
-              <button 
-                className="btn-remove"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  removeHandler(username);
-                }}
-                title="Remove"
-              >
-                {removeIcon}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+      <UserCard
+        user={displayUser}
+        variant="dashboard"
+        viewMode={viewMode}
+        actions={actions}
+        onClick={() => handleProfileClick(username)}
+      />
     );
   };
 
+  // Render section using new CategorySection component
   const renderSection = (title, data, sectionKey, icon, color, removeHandler = null, removeIcon = '❌') => {
-    const isExpanded = activeSections[sectionKey];
-    const count = data.length;
+    const isDraggable = ['myFavorites', 'myShortlists', 'myExclusions'].includes(sectionKey);
     
     return (
-      <div className="dashboard-section">
-        <div 
-          className="section-header"
-          onClick={() => toggleSection(sectionKey)}
-          style={{ backgroundColor: color }}
-        >
-          <div className="section-title">
-            <span className="section-icon">{icon}</span>
-            <h3>{title}</h3>
-            <span className="section-count">{count}</span>
-          </div>
-          <span className="expand-icon">{isExpanded ? '▼' : '▶'}</span>
-        </div>
-        
-        {isExpanded && (
-          <div className="section-content">
-            {data.length > 0 ? (
-              <div className="user-cards-grid">
-                {data.map(user => renderUserCard(user, true, removeHandler, removeIcon))}
-              </div>
-            ) : (
-              <div className="empty-section">
-                <p>No {title.toLowerCase()} yet</p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <CategorySection
+        title={title}
+        icon={icon}
+        color={color}
+        data={data}
+        sectionKey={sectionKey}
+        isExpanded={activeSections[sectionKey]}
+        onToggle={toggleSection}
+        onRender={(user) => renderUserCard(user, removeHandler, removeIcon)}
+        isDraggable={isDraggable}
+        viewMode={viewMode}
+        emptyMessage={`No ${title.toLowerCase()} yet`}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
+        draggedIndex={draggedIndex}
+        dragOverIndex={dragOverIndex}
+      />
     );
   };
 
@@ -380,7 +520,7 @@ const Dashboard = () => {
     return (
       <div className="dashboard-error">
         <p>{error}</p>
-        <button onClick={loadDashboardData}>Retry</button>
+        <button onClick={() => loadDashboardData(currentUser)}>Retry</button>
       </div>
     );
   }
@@ -388,15 +528,36 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-header">
-        <h1>My Dashboard</h1>
-        <p>Welcome back, {currentUser}!</p>
-        <button 
-          className="btn-refresh"
-          onClick={loadDashboardData}
-          title="Refresh Dashboard"
-        >
-          🔄 Refresh
-        </button>
+        <div className="header-left">
+          <h1>My Dashboard</h1>
+          <p>Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</p>
+        </div>
+        <div className="header-actions">
+          {/* View Mode Toggle */}
+          <div className="view-mode-toggle">
+            <button
+              className={`btn-view-mode ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card View"
+            >
+              ⊞ Cards
+            </button>
+            <button
+              className={`btn-view-mode ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => setViewMode('rows')}
+              title="Row View"
+            >
+              ☰ Rows
+            </button>
+          </div>
+          <button 
+            className="btn-refresh"
+            onClick={() => loadDashboardData(currentUser)}
+            title="Refresh Dashboard"
+          >
+            🔄 Refresh
+          </button>
+        </div>
       </div>
 
       <div className="dashboard-grid">
@@ -414,6 +575,31 @@ const Dashboard = () => {
           <h2 className="column-title">Others' Activities</h2>
           {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
           {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+          
+          {/* Image Access Requests Section */}
+          <CategorySection
+            title="Image Access Requests"
+            icon="📬"
+            color="#10b981"
+            count={0}
+            isExpanded={false}
+            onToggle={() => {}}
+          >
+            <div style={{ padding: '16px' }}>
+              <AccessRequestManager
+                username={currentUser}
+                onRequestProcessed={(action, request) => {
+                  // Show success message
+                  if (action === 'approved') {
+                    console.log(`✅ Access approved for ${request.requesterUsername}`);
+                  } else if (action === 'rejected') {
+                    console.log(`❌ Access rejected for ${request.requesterUsername}`);
+                  }
+                }}
+              />
+            </div>
+          </CategorySection>
+          
           {renderSection('Their Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
           {renderSection('Their Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
         </div>

@@ -4,6 +4,7 @@
   min-height: 100vh;
   position: relative;
   overflow: hidden;
+  background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
 }
 
 /* App Layout - Uses absolute positioning to work with sidebar */
@@ -15,7 +16,7 @@
   bottom: 0;
   padding-top: 70px;
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background-color: #f5f7fa;
+  background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
 }
 
@@ -98,6 +99,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: var(--background-color, #ffffff); /* Theme-aware global background */
 }
 
 * {

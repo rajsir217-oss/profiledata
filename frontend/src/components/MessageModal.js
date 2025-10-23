@@ -7,48 +7,112 @@ import './MessageModal.css';
 const MessageModal = ({ isOpen, profile, onClose }) => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(false);
   const currentUsername = localStorage.getItem('username');
 
   useEffect(() => {
     if (isOpen && profile) {
       loadConversation();
+      checkOnlineStatus();
       
-      // Listen for real-time messages
+      // Listen for real-time messages via WebSocket
       const handleNewMessage = (data) => {
-        console.log('💬 MessageModal: New message received:', data);
+        console.log('💬 MessageModal: New message via WebSocket');
+        console.log('   From:', data.from, 'To:', data.to);
+        console.log('   Current conversation with:', profile.username);
+        console.log('   Current user:', currentUsername);
         
-        // If message is from the profile user we're chatting with
-        if (data.from === profile.username) {
-          const newMessage = {
-            from_username: data.from,
-            to_username: currentUsername,
-            message: data.message,
-            timestamp: data.timestamp,
-            is_read: false
-          };
-          setMessages(prev => [...prev, newMessage]);
+        // Check if this message is part of the current conversation
+        const isFromThem = data.from === profile.username && (data.to === currentUsername || !data.to);
+        const isFromUs = data.from === currentUsername && data.to === profile.username;
+        
+        console.log('   Is from them?', isFromThem);
+        console.log('   Is from us?', isFromUs);
+        
+        if (isFromThem || isFromUs) {
+          console.log('✅ Message is part of current conversation, adding to UI');
+          
+          // Check if message already exists (prevent duplicates)
+          setMessages(prev => {
+            const exists = prev.some(msg => 
+              msg.from_username === data.from && 
+              msg.to_username === data.to &&
+              msg.message === data.message &&
+              Math.abs(new Date(msg.timestamp) - new Date(data.timestamp)) < 1000
+            );
+            
+            if (exists) {
+              console.log('⚠️ Message already exists, skipping');
+              return prev;
+            }
+            
+            console.log('➕ Adding message to state');
+            return [...prev, {
+              from_username: data.from,
+              to_username: data.to,
+              message: data.message,
+              timestamp: data.timestamp,
+              is_read: false
+            }];
+          });
+        } else {
+          console.log('⏭️ Message not for current conversation, ignoring');
+        }
+      };
+
+      // Listen for online status changes
+      const handleUserOnline = (data) => {
+        if (data.username === profile.username) {
+          setIsOnline(true);
+        }
+      };
+
+      const handleUserOffline = (data) => {
+        if (data.username === profile.username) {
+          setIsOnline(false);
         }
       };
 
       socketService.on('new_message', handleNewMessage);
+      socketService.on('user_online', handleUserOnline);
+      socketService.on('user_offline', handleUserOffline);
 
       return () => {
         socketService.off('new_message', handleNewMessage);
+        socketService.off('user_online', handleUserOnline);
+        socketService.off('user_offline', handleUserOffline);
       };
     }
   }, [isOpen, profile, currentUsername]);
 
-  const loadConversation = async () => {
+  const checkOnlineStatus = async () => {
     if (!profile?.username) return;
     
+    try {
+      const online = await socketService.isUserOnline(profile.username);
+      setIsOnline(online);
+    } catch (error) {
+      console.error('Error checking online status:', error);
+    }
+  };
+
+  const loadConversation = async () => {
+    if (!profile?.username) {
+      console.warn('⚠️ No profile username, skipping conversation load');
+      return;
+    }
+    
+    console.log('📥 Loading conversation with:', profile.username);
     setLoading(true);
     try {
       const response = await api.get(
-        `/api/messages/conversation/${profile.username}?username=${currentUsername}`
+        `/messages/conversation/${profile.username}?username=${currentUsername}`
       );
+      console.log('✅ Conversation loaded:', response.data.messages?.length || 0, 'messages');
       setMessages(response.data.messages || []);
     } catch (err) {
-      console.error('Error loading conversation:', err);
+      console.error('❌ Error loading conversation:', err);
+      console.error('Error details:', err.response?.data || err.message);
     } finally {
       setLoading(false);
     }
@@ -58,8 +122,9 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
     if (!content.trim() || !profile?.username) return;
 
     try {
+      // Save message to database via API
       const response = await api.post(
-        `/api/messages/send?username=${currentUsername}`,
+        `/messages/send?username=${currentUsername}`,
         {
           toUsername: profile.username,
           content: content.trim()
@@ -69,9 +134,13 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       const newMsg = response.data.data;
       setMessages(prev => [...prev, newMsg]);
       
-      // Send real-time notification via WebSocket
-      console.log('📤 MessageModal: Sending real-time message via WebSocket');
-      socketService.sendMessage(profile.username, content.trim());
+      // Also send via WebSocket for real-time delivery
+      if (socketService.isConnected()) {
+        socketService.sendMessage(profile.username, content.trim());
+        console.log('✅ Message sent via WebSocket for real-time delivery');
+      } else {
+        console.warn('⚠️ WebSocket not connected, message saved to DB only');
+      }
     } catch (err) {
       console.error('Error sending message:', err);
     }
@@ -90,13 +159,17 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
       <div className="message-modal">
         <div className="message-modal-header">
           <div className="modal-user-info">
-            {profile?.images?.[0] ? (
-              <img src={profile.images[0]} alt={profile.username} className="modal-avatar" />
-            ) : (
-              <div className="modal-avatar-placeholder">
-                {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
-              </div>
-            )}
+            <div className="modal-avatar-container">
+              {profile?.images?.[0] ? (
+                <img src={profile.images[0]} alt={profile.username} className="modal-avatar" />
+              ) : (
+                <div className="modal-avatar-placeholder">
+                  {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
+                </div>
+              )}
+              <div className={`online-status-indicator ${isOnline ? '' : 'offline'}`} 
+                   title={isOnline ? 'Online' : 'Offline'} />
+            </div>
             <div>
               <h3>{profile?.firstName || profile?.username}</h3>
               <p>{profile?.location || 'Location not specified'}</p>

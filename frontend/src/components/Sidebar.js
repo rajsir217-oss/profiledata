@@ -1,23 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import api from '../api';
+import socketService from '../services/socketService';
+import { getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  const [userStatus, setUserStatus] = useState('active'); // Default to active
   const navigate = useNavigate();
 
-  // Check login status on mount and listen for changes
+  // Check login status and user activation status
   useEffect(() => {
-    const checkLoginStatus = () => {
+    const checkLoginStatus = async () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
+      const status = localStorage.getItem('userStatus');
+      
       if (username && token) {
         setIsLoggedIn(true);
         setCurrentUser(username);
+        setUserStatus(status || 'pending');
+        
+        // Load user profile for display name (pass requester to avoid PII masking)
+        try {
+          const response = await api.get(`/profile/${username}?requester=${username}`);
+          setUserProfile(response.data);
+        } catch (error) {
+          console.error('Error loading user profile:', error);
+        }
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
+        setUserProfile(null);
+        setUserStatus('pending');
       }
     };
 
@@ -37,9 +55,26 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     navigate('/login');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const username = currentUser;
+    
+    // Disconnect WebSocket
+    console.log('🔌 Disconnecting WebSocket');
+    socketService.disconnect();
+    
+    // Mark user as offline (non-blocking beacon)
+    if (username) {
+      navigator.sendBeacon(
+        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        ''
+      );
+    }
+    
     localStorage.removeItem('username');
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userStatus');
+    localStorage.removeItem('appTheme'); // Clear theme cache
     setIsLoggedIn(false);
     setCurrentUser(null);
     
@@ -51,6 +86,11 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
+    // Check if user is activated (admin is always active)
+    const isActive = currentUser === 'admin' || userStatus === 'active';
+    // Debug logging removed - uncomment if needed for debugging
+    // console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus, isActive });
+    
     if (!isLoggedIn) {
       return [
         { 
@@ -66,81 +106,66 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       ];
     }
 
+    // isActive already declared above with debug logging
+
     const items = [
       { 
         icon: '🏠', 
         label: 'My Dashboard', 
         subLabel: 'Overview & Activity',
-        action: () => navigate('/dashboard')
+        action: () => navigate('/dashboard'),
+        disabled: !isActive
       },
       { 
         icon: '👤', 
-        label: currentUser || '(profile picture)', 
+        label: userProfile ? getShortName(userProfile) : (currentUser || 'Profile'), 
         subLabel: 'Profile data',
-        action: () => navigate(`/profile/${currentUser}`)
+        action: () => navigate(`/profile/${currentUser}`),
+        disabled: false, // Always enabled - users need to access their profile
+        profileImage: true // Flag to render profile image instead of icon
       },
-      { 
-        icon: '🔒', 
-        label: 'Privacy & Data', 
-        subLabel: 'Manage PII access',
-        action: () => navigate('/pii-management')
+            { 
+        icon: '🦋', 
+        label: 'My L3V3L Matches', 
+        subLabel: 'Love, Loyalty, Laughter+',
+        action: () => navigate('/l3v3l-matches'),
+        disabled: !isActive
       },
-      { 
-        icon: '⚙️', 
-        label: 'My Preferences', 
-        subLabel: 'Theme & Settings',
-        action: () => navigate('/preferences')
-      },
+
+
       { 
         icon: '🔍', 
         label: 'Search Profiles', 
         subLabel: 'Find matches',
-        action: () => navigate('/search')
-      },
-      { 
-        icon: '🔍', 
-        label: 'My matching criteria', 
-        action: () => navigate('/matching-criteria')
-      },
-      { 
-        icon: '💑', 
-        label: 'My top 3 matches', 
-        action: () => navigate('/top-matches')
-      },
-      { 
-        icon: '⭐', 
-        label: 'My Favorites', 
-        subLabel: 'Profiles I liked',
-        action: () => navigate('/favorites')
-      },
-      { 
-        icon: '📋', 
-        label: 'My Shortlist', 
-        subLabel: 'Profiles to consider',
-        action: () => navigate('/shortlist')
-      },
-      { 
-        icon: '❌', 
-        label: 'My Exclusions', 
-        subLabel: 'Profiles to hide',
-        action: () => navigate('/exclusions')
+        action: () => navigate('/search'),
+        disabled: !isActive
       },
       { 
         icon: '💬', 
         label: 'My Messages', 
         subLabel: 'Chat with matches',
-        action: () => navigate('/messages')
+        action: () => navigate('/messages'),
+        disabled: !isActive
       },
       { 
-        icon: '📨', 
-        label: 'My Requests', 
-        subLabel: 'PII access requests',
-        action: () => navigate('/requests')
+        icon: '🔒', 
+        label: 'Privacy & Data', 
+        subLabel: 'Manage PII access',
+        action: () => navigate('/pii-management'),
+        disabled: !isActive
       },
     ];
 
-    // Add Admin Dashboard for admin user
+    // Add Admin section for admin user
     if (currentUser === 'admin') {
+      items.push({
+        icon: '━━━',
+        label: 'ADMIN SECTION',
+        subLabel: '',
+        action: () => {},
+        isHeader: true
+      });
+      
       items.push({
         icon: '🔐',
         label: 'Admin Dashboard',
@@ -149,12 +174,83 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '👥',
+        label: 'User Management',
+        subLabel: 'Manage users',
+        action: () => navigate('/user-management')
+      });
+      
+      items.push({
+        icon: '🎭',
+        label: 'Role Management',
+        subLabel: 'Roles & Permissions',
+        action: () => navigate('/role-management')
+      });
+      
+      items.push({
+        icon: '📨',
+        label: 'Contact Support',
+        subLabel: 'Manage user inquiries',
+        action: () => navigate('/admin/contact')
+      });
+      
+      items.push({
         icon: '🧪',
         label: 'Test Dashboard',
         subLabel: 'Run & schedule tests',
         action: () => navigate('/test-dashboard')
       });
+      
+      items.push({
+        icon: '📊',
+        label: 'Activity Logs',
+        subLabel: 'Monitor user activities',
+        action: () => navigate('/activity-logs')
+      });
+      
+      items.push({
+        icon: '🔔',
+        label: 'Notification Tester',
+        subLabel: 'Test & debug notifications',
+        action: () => navigate('/notification-tester')
+      });
+      
+      items.push({
+        icon: '🗓️',
+        label: 'Scheduler & Jobs',
+        subLabel: 'Manage automated tasks',
+        action: () => navigate('/dynamic-scheduler')
+      });
+      
+      items.push({
+        icon: '🔔',
+        label: 'Notification Management',
+        subLabel: 'Queue, logs & templates',
+        action: () => navigate('/notification-management')
+      });
+
+      // System Configuration moved to Settings page as a tab
     }
+
+    // Add Testimonials section (only for admin/moderator in main menu)
+    if (currentUser === 'admin' || localStorage.getItem('userRole') === 'moderator') {
+      items.push({ 
+        icon: '💬', 
+        label: 'Testimonials', 
+        subLabel: 'User feedback',
+        action: () => navigate('/testimonials'),
+        disabled: !isActive
+      });
+    }
+
+    // Add Settings before logout
+    items.push({ 
+      icon: '⚙️', 
+      label: 'Settings', 
+      subLabel: 'Preferences, Theme & Notifications',
+      action: () => navigate('/preferences'),
+      disabled: !isActive
+    });
 
     // Add logout at the end
     items.push({ 
@@ -167,6 +263,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   };
 
   const menuItems = buildMenuItems();
+  // console.log('📋 Menu Items Count:', menuItems.length);
 
   return (
     <div 
@@ -175,30 +272,62 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Menu Items */}
         <div className="sidebar-menu">
+          {menuItems.length === 0 && (
+            <div style={{padding: '20px', color: '#666'}}>
+              No menu items available
+            </div>
+          )}
           {menuItems.map((item, index) => (
             <div 
               key={index} 
-              className="menu-item"
-              onClick={item.action}
+              className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
+              onClick={item.disabled ? undefined : item.action}
+              title={item.disabled ? 'Please activate your account to access this feature' : ''}
             >
-              <div className="menu-icon">{item.icon}</div>
+              {item.profileImage ? (
+                <div className="menu-icon profile-icon">
+                  {userProfile?.images?.[0] ? (
+                    <img src={userProfile.images[0]} alt={currentUser} className="profile-avatar" />
+                  ) : (
+                    <div className="profile-avatar-placeholder">
+                      {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="menu-icon">{item.icon}</div>
+              )}
               <div className="menu-content">
                 <div className="menu-label">{item.label}</div>
                 {item.subLabel && (
                   <div className="menu-sublabel">{item.subLabel}</div>
                 )}
               </div>
+              {item.disabled && (
+                <div className="disabled-badge">🔒</div>
+              )}
             </div>
           ))}
         </div>
 
         {/* Footer Links */}
         <div className="sidebar-footer">
-          <a href="#privacy" className="footer-link">Privacy</a>
+          {/* Show Testimonials in footer for non-admin/non-moderator users */}
+          {isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator' && (
+            <>
+              <span className="footer-link" onClick={() => navigate('/testimonials')}>💬 Testimonials</span>
+              <span className="footer-separator">|</span>
+            </>
+          )}
+          <span className="footer-link" onClick={() => navigate('/l3v3l-info')}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
-          <a href="#about" className="footer-link">about us</a>
+          <span className="footer-link" onClick={() => navigate('/privacy')}>Privacy</span>
           <span className="footer-separator">|</span>
-          <a href="#trademark" className="footer-link">Registed Trade mark</a>
+          <span className="footer-link" onClick={() => navigate('/about')}>About Us</span>
+          <span className="footer-separator">|</span>
+          <span className="footer-link" onClick={() => navigate('/trademark')}>Trademark</span>
+          <span className="footer-separator">|</span>
+          <span className="footer-link" onClick={() => navigate('/contact')}>📧 Contact Us</span>
         </div>
     </div>
   );

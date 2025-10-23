@@ -16,10 +16,9 @@ from datetime import datetime
 from main import app
 from database import get_database
 
-client = TestClient(app)
 
 @pytest.fixture
-async def search_test_users(test_db):
+def search_test_users(test_db):
     """Create diverse set of users for search testing"""
     users = [
         {
@@ -94,11 +93,12 @@ async def search_test_users(test_db):
         }
     ]
     
-    await test_db.users.insert_many(users)
+    import asyncio
+    asyncio.get_event_loop().run_until_complete(test_db.users.insert_many(users))
     return users
 
 @pytest.fixture
-async def cleanup_search(test_db):
+def cleanup_search(test_db):
     """Clean up after search tests"""
     yield
     # Cleanup is handled by test_db fixture

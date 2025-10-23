@@ -1,7 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import axios from 'axios';
 import './AdminPage.css';
+import MetaFieldsModal from './MetaFieldsModal';
+
+// Create admin API client without baseURL prefix
+const adminApi = axios.create({
+  baseURL: 'http://localhost:8000'
+});
+
+// Add auth token interceptor
+adminApi.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const AdminPage = () => {
   const navigate = useNavigate();
@@ -11,10 +29,22 @@ const AdminPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [genderFilter, setGenderFilter] = useState(''); // Gender filter
+  const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending for faster loading
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
   const [recordsPerPage] = useState(20);
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [selectedUserForStatus, setSelectedUserForStatus] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState('');
+  const [statusChangeReason, setStatusChangeReason] = useState('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [selectedUserForMeta, setSelectedUserForMeta] = useState(null);
 
   // Multi-layer security check
   useEffect(() => {
@@ -32,7 +62,6 @@ const AdminPage = () => {
       // Security Layer 2: Check if user is admin
       if (username !== 'admin') {
         console.warn(`⚠️ Unauthorized access attempt by user: ${username}`);
-        alert('🚫 Access Denied: Admin privileges required');
         navigate('/');
         return false;
       }
@@ -50,35 +79,72 @@ const AdminPage = () => {
     if (checkAdminAccess()) {
       loadAllUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const loadAllUsers = async () => {
+  const loadAllUsers = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
-      // Fetch all users - you'll need to create this endpoint
-      const response = await api.get('/admin/users');
+      // Fetch all users
+      const response = await adminApi.get('/api/admin/users?limit=1000');
       setUsers(response.data.users || []);
       
       console.log(`✅ Loaded ${response.data.users?.length || 0} users`);
+      // Debug: Check if first user has sex field
+      if (response.data.users?.[0]) {
+        console.log('🔍 First user data:', response.data.users[0]);
+        console.log('🔍 Sex field:', response.data.users[0].sex);
+      }
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Failed to load users. ' + (err.response?.data?.detail || err.message));
       
       // If unauthorized, redirect
       if (err.response?.status === 401 || err.response?.status === 403) {
-        alert('🚫 Access Denied: Admin privileges required');
         navigate('/');
       }
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const handleEdit = (username) => {
-    // Navigate to edit page for specific user
-    navigate(`/admin/edit/${username}`);
+  const handleEditStatus = (user) => {
+    setSelectedUserForStatus(user);
+    const currentStatus = user.status?.status || user.status || 'pending';
+    setSelectedStatus(currentStatus);
+    setStatusChangeReason('');
+    setShowStatusModal(true);
+  };
+  
+  const handleStatusChange = async () => {
+    if (!selectedUserForStatus || !selectedStatus) return;
+    
+    try {
+      setError('');
+      setSuccessMsg('');
+      
+      // Update user status via API
+      await adminApi.patch(`/api/admin/users/${selectedUserForStatus.username}/status`, {
+        status: selectedStatus
+      });
+      
+      setSuccessMsg(`✅ Status updated to "${selectedStatus}" for ${selectedUserForStatus.username}`);
+      setShowStatusModal(false);
+      setSelectedUserForStatus(null);
+      setSelectedStatus('');
+      setStatusChangeReason('');
+      
+      // Reload users list
+      loadAllUsers();
+      
+      // Auto-hide success message
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      console.error('Error updating status:', err);
+      setError('Failed to update status. ' + (err.response?.data?.detail || err.message));
+    }
   };
 
   const handleDeleteClick = (user) => {
@@ -92,7 +158,7 @@ const AdminPage = () => {
       setError('');
       setSuccessMsg('');
 
-      const response = await api.delete(`/profile/${deleteConfirm.username}`);
+      await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
       
       setSuccessMsg(`✅ User "${deleteConfirm.username}" deleted successfully`);
       setDeleteConfirm(null);
@@ -103,6 +169,42 @@ const AdminPage = () => {
       console.error('Error deleting user:', err);
       setError('Failed to delete user. ' + (err.response?.data?.detail || err.message));
       setDeleteConfirm(null);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordError('');
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError('All fields are required');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('New password must be at least 6 characters');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('New passwords do not match');
+      return;
+    }
+
+    try {
+      await adminApi.post('/api/admin/change-password', {
+        currentPassword,
+        newPassword
+      });
+
+      setSuccessMsg('✅ Password changed successfully!');
+      setShowPasswordModal(false);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (err) {
+      console.error('Error changing password:', err);
+      setPasswordError(err.response?.data?.detail || 'Failed to change password');
     }
   };
 
@@ -144,12 +246,24 @@ const AdminPage = () => {
   const getFilteredAndSortedUsers = () => {
     let filtered = users.map(calculateComputedFields).filter(user => {
       const searchLower = searchTerm.toLowerCase();
-      return (
+      
+      // Apply search filter
+      const matchesSearch = (
         user.username?.toLowerCase().includes(searchLower) ||
         user.firstName?.toLowerCase().includes(searchLower) ||
         user.lastName?.toLowerCase().includes(searchLower) ||
         user.contactEmail?.toLowerCase().includes(searchLower)
       );
+      
+      // Apply status filter
+      const userStatus = user.status?.status || user.status || 'pending';
+      const matchesStatus = !statusFilter || userStatus === statusFilter;
+      
+      // Apply gender filter (case-insensitive, check multiple field names)
+      const userGender = user.sex || user.gender || user.Sex || '';
+      const matchesGender = !genderFilter || userGender.toLowerCase() === genderFilter.toLowerCase();
+      
+      return matchesSearch && matchesStatus && matchesGender;
     });
 
     filtered.sort((a, b) => {
@@ -180,7 +294,7 @@ const AdminPage = () => {
   // Reset to page 1 when search/filter changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, sortField, sortOrder]);
+  }, [searchTerm, genderFilter, statusFilter, sortField, sortOrder]);
 
   const handlePageChange = (pageNumber) => {
     setCurrentPage(pageNumber);
@@ -240,8 +354,8 @@ const AdminPage = () => {
           </div>
           <div className="d-flex align-items-center gap-2">
             <button
-              className="btn btn-warning btn-sm"
-              onClick={() => navigate('/admin/change-password')}
+              className="btn btn-warning"
+              onClick={() => setShowPasswordModal(true)}
               title="Change Admin Password"
             >
               🔒 Change Password
@@ -257,49 +371,82 @@ const AdminPage = () => {
         {error && <div className="alert alert-danger">{error}</div>}
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
-        {/* Search Bar */}
-        <div className="search-bar mb-4">
+        {/* Search and Filter Bar */}
+        <div className="search-filter-bar mb-4 d-flex gap-3">
           <input
             type="text"
             className="form-control"
             placeholder="🔍 Search by username, name, or email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
+            style={{ flex: 2 }}
           />
+          
+          <select
+            className="form-select"
+            value={genderFilter}
+            onChange={(e) => setGenderFilter(e.target.value)}
+            style={{ flex: 1, maxWidth: '200px' }}
+          >
+            <option value="">All Gender</option>
+            <option value="Male">Male</option>
+            <option value="Female">Female</option>
+          </select>
+          
+          <select
+            className="form-select"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            style={{ flex: 1, maxWidth: '250px' }}
+          >
+            <option value="">All Status</option>
+            <option value="pending">Pending Verification</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+            <option value="suspended">Suspended</option>
+            <option value="banned">Banned</option>
+          </select>
+          
+          <button
+            className="btn btn-primary"
+            onClick={loadAllUsers}
+            title="Refresh List"
+          >
+            🔄 Refresh
+          </button>
         </div>
       </div>
 
       {/* Users Table */}
       <div className="table-responsive">
-        <table className="table table-hover admin-table">
+        <table className="table-hover admin-table">
           <thead>
             <tr>
               <th onClick={() => handleSort('username')} style={{ cursor: 'pointer' }}>
-                Username {sortField === 'username' && (sortOrder === 'asc' ? '↑' : '↓')}
+                USERNAME {sortField === 'username' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
               <th onClick={() => handleSort('firstName')} style={{ cursor: 'pointer' }}>
-                Name {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                NAME {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>Age</th>
-              <th>Days Active</th>
+              <th>AGE</th>
+              <th>DAYS ACTIVE</th>
               <th onClick={() => handleSort('contactEmail')} style={{ cursor: 'pointer' }}>
-                Email {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
+                EMAIL {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>Contact</th>
-              <th>Sex</th>
-              <th>Location</th>
-              <th>Working</th>
-              <th>Images</th>
-              <th>Msgs Sent</th>
-              <th>Msgs Rcvd</th>
-              <th>Pending</th>
-              <th className="text-center">Actions</th>
+              <th>CONTACT</th>
+              <th>GENDER</th>
+              <th>LOCATION</th>
+              <th>IMAGES</th>
+              <th>MSGS SENT</th>
+              <th>MSGS RCVD</th>
+              <th>PENDING</th>
+              <th className="text-center">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="14" className="text-center text-muted py-4">
+                <td colSpan="13" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -318,13 +465,8 @@ const AdminPage = () => {
                   </td>
                   <td>{user.contactEmail}</td>
                   <td>{user.contactNumber}</td>
-                  <td>{user.sex}</td>
+                  <td>{user.sex || user.gender || user.Sex || '-'}</td>
                   <td>{user.location}</td>
-                  <td>
-                    <span className={`badge ${user.workingStatus === 'Yes' ? 'bg-success' : 'bg-secondary'}`}>
-                      {user.workingStatus}
-                    </span>
-                  </td>
                   <td>
                     <span className="badge bg-info">{user.images?.length || 0}</span>
                   </td>
@@ -344,21 +486,28 @@ const AdminPage = () => {
                         onClick={() => navigate(`/profile/${user.username}`)}
                         title="View Profile"
                       >
-                        👁️ View
+                        👁️
+                      </button>
+                      <button
+                        className="btn btn-sm btn-outline-info"
+                        onClick={() => setSelectedUserForMeta(user.username)}
+                        title="Meta Fields"
+                      >
+                        🎖️
                       </button>
                       <button
                         className="btn btn-sm btn-outline-warning"
-                        onClick={() => handleEdit(user.username)}
-                        title="Edit Profile"
+                        onClick={() => handleEditStatus(user)}
+                        title="Edit Status"
                       >
-                        ✏️ Edit
+                        ✏️
                       </button>
                       <button
                         className="btn btn-sm btn-outline-danger"
                         onClick={() => handleDeleteClick(user)}
                         title="Delete Profile"
                       >
-                        🗑️ Delete
+                        🗑️
                       </button>
                     </div>
                   </td>
@@ -411,6 +560,140 @@ const AdminPage = () => {
         </div>
       )}
 
+      {/* Status Edit Modal */}
+      {showStatusModal && selectedUserForStatus && (
+        <div className="modal-overlay" onClick={() => setShowStatusModal(false)}>
+          <div className="status-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header with User Info */}
+            <div className="status-modal-header">
+              <div className="user-info">
+                <div className="user-avatar">
+                  {selectedUserForStatus.username.charAt(0).toUpperCase()}
+                </div>
+                <div className="user-details">
+                  <h4>{selectedUserForStatus.username}</h4>
+                  <p>{selectedUserForStatus.contactEmail || 'No email'}</p>
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setShowStatusModal(false)}>
+                ✕
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="status-modal-body">
+              <h3>🔐 Change User Status</h3>
+              <p className="current-status">
+                Select a new status for this user. Current status: <strong>{selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending'}</strong>
+              </p>
+              
+              {/* Status Options */}
+              <div className="status-radio-group">
+                <label className={`status-radio-option ${selectedStatus === 'pending' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="pending"
+                    checked={selectedStatus === 'pending'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⏳</div>
+                  <div className="status-info">
+                    <strong>Pending Verification</strong>
+                    <span>Awaiting approval or verification</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'active' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="active"
+                    checked={selectedStatus === 'active'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">✅</div>
+                  <div className="status-info">
+                    <strong>Active</strong>
+                    <span>Full access to all features</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'inactive' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="inactive"
+                    checked={selectedStatus === 'inactive'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⚪</div>
+                  <div className="status-info">
+                    <strong>Inactive</strong>
+                    <span>Account dormant or on hold</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'suspended' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="suspended"
+                    checked={selectedStatus === 'suspended'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⏸️</div>
+                  <div className="status-info">
+                    <strong>Suspended</strong>
+                    <span>Temporarily restricted access</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'banned' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="banned"
+                    checked={selectedStatus === 'banned'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">🚫</div>
+                  <div className="status-info">
+                    <strong>Banned</strong>
+                    <span>Permanently blocked from access</span>
+                  </div>
+                </label>
+              </div>
+              
+              {/* Reason (Optional) */}
+              <div className="status-reason">
+                <label>Reason (optional)</label>
+                <textarea
+                  placeholder="Enter reason for status change..."
+                  value={statusChangeReason}
+                  onChange={(e) => setStatusChangeReason(e.target.value)}
+                  rows="3"
+                />
+              </div>
+              
+              {/* Footer Buttons */}
+              <div className="status-modal-footer">
+                <button className="btn-cancel" onClick={() => setShowStatusModal(false)}>
+                  Cancel
+                </button>
+                <button 
+                  className="btn-confirm" 
+                  onClick={handleStatusChange}
+                  disabled={selectedStatus === (selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending')}
+                >
+                  🔐 Update Status
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
@@ -442,6 +725,175 @@ const AdminPage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showPasswordModal && (
+        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
+          <div className="status-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="status-modal-header">
+              <div className="user-info">
+                <div className="user-avatar">
+                  🔐
+                </div>
+                <div className="user-details">
+                  <h4>Change Admin Password</h4>
+                  <p>Update your admin account password</p>
+                </div>
+              </div>
+              <button 
+                className="close-btn" 
+                onClick={() => setShowPasswordModal(false)}
+                title="Close"
+              >
+                ✕
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="status-modal-body">
+              <h3>🔒 Password Settings</h3>
+              <p className="current-status">
+                Enter your current password and choose a new secure password.
+              </p>
+
+              {passwordError && (
+                <div style={{ 
+                  background: 'rgba(239, 68, 68, 0.1)', 
+                  color: '#ef4444', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  marginBottom: '16px',
+                  border: '1px solid rgba(239, 68, 68, 0.3)'
+                }}>
+                  ⚠️ {passwordError}
+                </div>
+              )}
+
+              {/* Current Password */}
+              <div className="status-reason" style={{ marginTop: '0' }}>
+                <label>Current Password</label>
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary-color)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-color)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* New Password */}
+              <div className="status-reason">
+                <label>New Password</label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password (min. 6 characters)"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary-color)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-color)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Confirm Password */}
+              <div className="status-reason">
+                <label>Confirm New Password</label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontFamily: 'inherit',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = 'var(--primary-color)';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = 'var(--border-color)';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="status-modal-footer">
+                <button className="btn-cancel" onClick={() => {
+                  setShowPasswordModal(false);
+                  setPasswordError('');
+                  setCurrentPassword('');
+                  setNewPassword('');
+                  setConfirmPassword('');
+                }}>
+                  Cancel
+                </button>
+                <button 
+                  className="btn-confirm" 
+                  onClick={handleChangePassword}
+                  disabled={!currentPassword || !newPassword || !confirmPassword}
+                >
+                  🔒 Change Password
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Meta Fields Modal */}
+      {selectedUserForMeta && (
+        <MetaFieldsModal
+          username={selectedUserForMeta}
+          onClose={() => {
+            setSelectedUserForMeta(null);
+            loadAllUsers(); // Refresh user list when modal closes
+          }}
+        />
       )}
     </div>
   );

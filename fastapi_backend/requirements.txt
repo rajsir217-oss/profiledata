@@ -13,6 +13,15 @@ aiofiles==23.2.1
 schedule==1.2.2
 python-socketio==5.11.0
 aiohttp==3.9.1
+redis==5.0.1
+hiredis==2.3.2
+sse-starlette==1.6.5
+redis[hiredis]==5.0.1
+
+# Machine Learning dependencies (for L3V3L matching algorithm)
+numpy==2.3.3
+scikit-learn==1.7.2
+Pillow==11.0.0  # Image processing and validation
 
 # Testing dependencies
 pytest==8.0.0

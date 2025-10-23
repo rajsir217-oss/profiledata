@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { deleteTestResult, clearAllTestResults } from './testApi';
+import toastService from '../services/toastService';
 
 const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
   const [expandedResult, setExpandedResult] = useState(null);
@@ -44,38 +45,35 @@ const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
     const remainingSeconds = seconds % 60;
     return `${minutes}m ${remainingSeconds.toFixed(1)}s`;
   };
-
   const toggleExpanded = (resultId) => {
     setExpandedResult(expandedResult === resultId ? null : resultId);
   };
 
   const handleDeleteResult = async (resultId) => {
-    if (window.confirm('Are you sure you want to delete this test result?')) {
-      try {
-        setDeletingId(resultId);
-        await deleteTestResult(resultId);
-        onRefresh();
-      } catch (error) {
-        console.error('Failed to delete test result:', error);
-        alert('Failed to delete test result');
-      } finally {
-        setDeletingId(null);
-      }
+    try {
+      setDeletingId(resultId);
+      await deleteTestResult(resultId);
+      onRefresh();
+      toastService.success('Test result deleted successfully');
+    } catch (error) {
+      console.error('Failed to delete test result:', error);
+      toastService.error('Failed to delete test result');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   const handleClearAllResults = async () => {
-    if (window.confirm('Are you sure you want to delete ALL test results? This action cannot be undone.')) {
-      try {
-        setClearingAll(true);
-        await clearAllTestResults();
-        onRefresh();
-      } catch (error) {
-        console.error('Failed to clear all test results:', error);
-        alert('Failed to clear all test results');
-      } finally {
-        setClearingAll(false);
-      }
+    try {
+      setClearingAll(true);
+      await clearAllTestResults();
+      onRefresh();
+      toastService.success('All test results cleared successfully');
+    } catch (error) {
+      console.error('Failed to clear all results:', error);
+      toastService.error('Failed to clear all results');
+    } finally {
+      setClearingAll(false);
     }
   };
 
@@ -114,34 +112,35 @@ const TestResultsList = ({ testResults, onRefresh, isAdmin = false }) => {
       <div className="results-grid">
         {resultsArray.map((result) => (
           <div key={result.id} className="result-card">
-            <div className="result-header">
-              <div className="result-header-content" onClick={() => toggleExpanded(result.id)}>
-                <div className="result-info">
-                  <span className="result-type">{result.test_type}</span>
-                  <span className="result-timestamp">
-                    {new Date(result.timestamp).toLocaleString()}
-                  </span>
-                </div>
-
-                <div className="result-status">
-                  <span
-                    className="status-badge"
-                    style={{ backgroundColor: getStatusColor(result.status) }}
-                  >
-                    {getStatusIcon(result.status)} {result.status}
-                  </span>
+            <div className="result-header" onClick={() => toggleExpanded(result.id)}>
+              <div className="result-left">
+                <div className="result-type">{result.test_type}</div>
+                <div className="result-timestamp">
+                  {new Date(result.timestamp).toLocaleString()}
                 </div>
               </div>
-              {isAdmin && (
-                <button
-                  className="btn btn-delete"
-                  onClick={() => handleDeleteResult(result.id)}
-                  disabled={deletingId === result.id}
-                  title="Admin only: Delete this test result"
+              
+              <div className="result-right">
+                <span
+                  className="result-status-badge"
+                  style={{ backgroundColor: getStatusColor(result.status) }}
                 >
-                  {deletingId === result.id ? '...' : '🗑️'}
-                </button>
-              )}
+                  {getStatusIcon(result.status)} {result.status}
+                </span>
+                {isAdmin && (
+                  <button
+                    className="btn btn-delete"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteResult(result.id);
+                    }}
+                    disabled={deletingId === result.id}
+                    title="Admin only: Delete this test result"
+                  >
+                    {deletingId === result.id ? '...' : '🗑️'}
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="result-summary">

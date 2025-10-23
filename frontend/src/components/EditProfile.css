@@ -1,7 +1,14 @@
 /* Edit Profile Container */
-.edit-profile-container {
+/* .edit-profile-container {
   max-width: 900px;
   padding: 20px;
+} */
+
+.edit-profile-container {
+  padding: 20px;
+  max-width: 100%;
+  background: var(--background-color);
+  /* background: transparent; */
 }
 
 .edit-profile-container .card {
@@ -12,7 +19,7 @@
 /* Form Styling */
 .edit-profile-container .form-label {
   font-weight: 600;
-  color: #333;
+  color: var(--text-color, #333);
   margin-bottom: 8px;
 }
 
@@ -127,7 +134,7 @@
 }
 
 .modal-content {
-  background: white;
+  background: var(--card-background, white);
   padding: 30px;
   border-radius: 15px;
   max-width: 500px;
@@ -154,7 +161,7 @@
 }
 
 .modal-content p {
-  color: #666;
+  color: var(--text-secondary, #666);
   line-height: 1.6;
   margin-bottom: 0;
 }
@@ -240,7 +247,7 @@
 
 /* Header */
 .edit-profile-container h3 {
-  color: #333;
+  color: var(--text-color, #333);
   font-weight: 600;
   margin: 0;
 }

@@ -10,11 +10,21 @@ from pathlib import Path
 import logging
 import time
 
-from database import connect_to_mongo, close_mongo_connection
+from database import connect_to_mongo, close_mongo_connection, get_database
 from routes import router
 from test_management import router as test_router
+from auth.admin_routes import router as admin_router
+from auth.auth_routes import router as auth_router
+from routes_dynamic_scheduler import router as dynamic_scheduler_router
+from routes_meta_admin import router as meta_admin_router
+from routes_image_access import router as image_access_router
+from routes_pii_access import router as pii_access_router
+from routers.notifications import router as notifications_router
+from routers.activity_logs import router as activity_logs_router
 from config import settings
 from websocket_manager import sio
+from sse_manager import sse_manager
+from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -35,11 +45,59 @@ async def lifespan(app: FastAPI):
     # Connect to MongoDB
     await connect_to_mongo()
     
+    # Connect to Redis
+    from redis_manager import redis_manager
+    redis_connected = redis_manager.connect()
+    if redis_connected:
+        logger.info("✅ Redis connected successfully")
+    else:
+        logger.warning("⚠️ Redis connection failed - online status features may not work")
+    
+    # Initialize SSE Manager
+    await sse_manager.initialize()
+    logger.info("✅ SSE Manager initialized for real-time messaging")
+    
+    # Initialize Job Templates for Dynamic Scheduler
+    from job_templates.registry import initialize_templates
+    initialize_templates()
+    logger.info("✅ Job Templates initialized")
+    
+    # Initialize Unified Scheduler (handles both cleanup and tests)
+    db = get_database()  # Don't await - it's not async
+    await initialize_unified_scheduler(db)
+    logger.info("✅ Unified Scheduler initialized")
+    
+    # Initialize Activity Logger
+    from services.activity_logger import initialize_activity_logger
+    await initialize_activity_logger(db)
+    logger.info("✅ Activity Logger initialized")
+    
     yield
     
     # Shutdown
     logger.info("👋 Shutting down FastAPI application...")
+    
+    # Stop unified scheduler
+    await shutdown_unified_scheduler()
+    
+    # Cleanup activity logger
+    from services.activity_logger import get_activity_logger
+    try:
+        activity_logger = get_activity_logger()
+        await activity_logger.cleanup()
+        logger.info("✅ Activity Logger cleaned up")
+    except:
+        pass
+    
     await close_mongo_connection()
+    
+    # Close SSE Manager
+    await sse_manager.close()
+    logger.info("🔌 SSE Manager closed")
+    
+    # Disconnect Redis
+    from redis_manager import redis_manager
+    redis_manager.disconnect()
 
 app = FastAPI(
     title="Matrimonial Profile API",
@@ -64,7 +122,7 @@ app.add_middleware(
         "http://127.0.0.1:3001"
     ],
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 
@@ -96,9 +154,18 @@ async def log_requests(request: Request, call_next):
         duration = time.time() - start_time
         logger.error(f"❌ Error processing {request.method} {request.url.path} - Duration: {duration:.3f}s - Error: {e}", exc_info=True)
         raise
+
 # Include routers
 app.include_router(router)
 app.include_router(test_router, prefix="/api/tests", tags=["tests"])
+app.include_router(admin_router)  # Admin routes (already has /api/admin prefix)
+app.include_router(auth_router)   # Auth routes (already has /api/auth prefix)
+app.include_router(dynamic_scheduler_router)  # Dynamic scheduler routes
+app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Meta fields admin routes
+app.include_router(image_access_router)  # Image access routes (already has /api/image-access prefix)
+app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
+app.include_router(notifications_router)  # Notification routes (already has /api/notifications prefix)
+app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
 
 # Health check endpoint
 @app.get("/health")

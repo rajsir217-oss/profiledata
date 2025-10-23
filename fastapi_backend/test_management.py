@@ -14,7 +14,7 @@ import os
 from fastapi import APIRouter, HTTPException, BackgroundTasks, Depends
 from pydantic import BaseModel
 import uuid
-import schedule
+# import schedule  # No longer needed - using UnifiedScheduler
 import threading
 
 router = APIRouter()
@@ -778,42 +778,33 @@ def check_and_run_scheduled_tests():
         print(f"Error in scheduler: {e}")
 
 def run_scheduler():
-    """Background thread that runs the scheduler."""
-    global scheduler_running
-    scheduler_running = True
+    """
+    DEPRECATED: This function is no longer used.
+    Test scheduling is now handled by the UnifiedScheduler in unified_scheduler.py
     
-    print("Test scheduler started")
-    
-    # Run check every minute
-    schedule.every(1).minutes.do(check_and_run_scheduled_tests)
-    
-    # Also check immediately on startup
-    check_and_run_scheduled_tests()
-    
-    while scheduler_running:
-        schedule.run_pending()
-        time.sleep(30)  # Check every 30 seconds
-    
-    print("Test scheduler stopped")
+    The UnifiedScheduler automatically calls check_and_run_scheduled_tests()
+    every minute as a registered job.
+    """
+    pass
 
 def start_scheduler():
-    """Start the scheduler background thread."""
-    global scheduler_thread
+    """
+    DEPRECATED: This function is no longer used.
+    Test scheduling is now handled by the UnifiedScheduler in unified_scheduler.py
     
-    if scheduler_thread is None or not scheduler_thread.is_alive():
-        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-        scheduler_thread.start()
-        print("Scheduler thread started")
+    No need to start a separate scheduler thread. The UnifiedScheduler handles
+    all background jobs including test scheduling.
+    """
+    pass
 
 def stop_scheduler():
-    """Stop the scheduler background thread."""
-    global scheduler_running, scheduler_thread
-    
-    scheduler_running = False
-    if scheduler_thread:
-        scheduler_thread.join(timeout=5)
-        scheduler_thread = None
-    print("Scheduler thread stopped")
+    """
+    DEPRECATED: This function is no longer used.
+    Test scheduling is now handled by the UnifiedScheduler in unified_scheduler.py
+    """
+    pass
 
-# Start the scheduler when the module is imported
-start_scheduler()
+# NOTE: Scheduler initialization removed - now handled by UnifiedScheduler
+# The UnifiedScheduler in unified_scheduler.py automatically registers and runs
+# the check_and_run_scheduled_tests() function every minute.
+# This ensures we have only ONE scheduler engine throughout the application.

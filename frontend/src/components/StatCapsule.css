@@ -1,0 +1,189 @@
+/* StatCapsule Component Styles */
+
+.stat-capsule {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  backdrop-filter: blur(4px);
+  cursor: default;
+  user-select: none;
+}
+
+/* Size Variants */
+.stat-capsule-small {
+  padding: 4px 10px;
+  font-size: 12px;
+  gap: 4px;
+  border-radius: 16px;
+}
+
+.stat-capsule-medium {
+  padding: 6px 14px;
+  font-size: 14px;
+  gap: 6px;
+  border-radius: 20px;
+}
+
+.stat-capsule-large {
+  padding: 8px 18px;
+  font-size: 16px;
+  gap: 8px;
+  border-radius: 24px;
+}
+
+/* Color Variants */
+.stat-capsule-views {
+  background: linear-gradient(135deg, #FFD93D 0%, #F6C90E 100%);
+  color: #5A4A00;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-capsule-likes {
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF1744 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-capsule-approvals {
+  background: linear-gradient(135deg, #4ECDC4 0%, #44A08D 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.stat-capsule-l3v3l {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.stat-capsule-default {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.stat-capsule-custom {
+  color: white;
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+/* Icon */
+.stat-icon {
+  font-size: 1.1em;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+/* Count */
+.stat-count {
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* Label */
+.stat-label {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Clickable */
+.stat-capsule.clickable {
+  cursor: pointer;
+}
+
+.stat-capsule.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stat-capsule.clickable:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation */
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.stat-capsule.animate {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Hover Effects */
+.stat-capsule-views:hover {
+  background: linear-gradient(135deg, #FFDD4A 0%, #F7CF1E 100%);
+  transform: scale(1.02);
+}
+
+.stat-capsule-likes:hover {
+  background: linear-gradient(135deg, #FF7AB0 0%, #FF2554 100%);
+  transform: scale(1.02);
+}
+
+.stat-capsule-approvals:hover {
+  background: linear-gradient(135deg, #5EDCD3 0%, #52B3A8 100%);
+  transform: scale(1.02);
+}
+
+.stat-capsule-l3v3l:hover {
+  background: linear-gradient(135deg, #7690f7 0%, #8A5CB7 100%);
+  transform: scale(1.02);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .stat-capsule {
+    padding: 5px 12px;
+    font-size: 13px;
+    gap: 5px;
+  }
+  
+  .stat-capsule-small {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
+  .stat-capsule-large {
+    padding: 6px 14px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stat-capsule {
+    padding: 4px 10px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  
+  .stat-icon {
+    font-size: 1em;
+  }
+}
+
+/* Dark Mode Support */
+body.theme-dark .stat-capsule {
+  border-color: rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.theme-dark .stat-capsule.clickable:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}

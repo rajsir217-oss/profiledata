@@ -55,7 +55,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
             <img src={otherUser.images[0]} alt={otherUser.username} className="chat-avatar" />
           ) : (
             <div className="chat-avatar-placeholder">
-              {otherUser.firstName?.[0] || otherUser.username[0].toUpperCase()}
+              {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
             </div>
           )}
           <div className="chat-user-details">
@@ -63,6 +63,14 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
             <p>{otherUser.location || 'Location not specified'}</p>
           </div>
         </div>
+      </div>
+
+      {/* Community Guidelines Banner */}
+      <div className="chat-guidelines-banner">
+        <span className="guidelines-icon">⚠️</span>
+        <span className="guidelines-text">
+          <strong>Be Professional.</strong> No vulgar or abusive language. Violations result in immediate suspension or ban.
+        </span>
       </div>
 
       {/* Messages Area */}
@@ -74,8 +82,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
           </div>
         ) : (
           messages.map((msg, index) => {
-            const isOwnMessage = msg.fromUsername === currentUsername;
-            const showAvatar = index === 0 || messages[index - 1].fromUsername !== msg.fromUsername;
+            const isOwnMessage = (msg.fromUsername || msg.from_username) === currentUsername;
+            const showAvatar = index === 0 || (messages[index - 1].fromUsername || messages[index - 1].from_username) !== (msg.fromUsername || msg.from_username);
             
             return (
               <div
@@ -88,7 +96,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
                       <img src={otherUser.images[0]} alt={otherUser.username} />
                     ) : (
                       <div className="avatar-small">
-                        {otherUser.firstName?.[0] || otherUser.username[0].toUpperCase()}
+                        {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
                       </div>
                     )}
                   </div>
@@ -96,8 +104,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
                 {!isOwnMessage && !showAvatar && <div className="message-avatar-spacer" />}
                 
                 <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>
-                  <p>{msg.content}</p>
-                  <span className="message-time">{formatTime(msg.createdAt)}</span>
+                  <p>{msg.content || msg.message}</p>
+                  <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
                 </div>
               </div>
             );

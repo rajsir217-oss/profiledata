@@ -1,0 +1,513 @@
+# Quick Context Reference
+**Feed this to Cascade to refresh memory on ProfileData app architecture**  
+**Last Updated:** Oct 22, 2025
+
+---
+Read QUICK_CONTEXT_REFERENCE.md to refresh your context
+
+
+## 🔴 CRITICAL MANDATORY RULES
+
+### 1. ⚠️ NO Browser Modals EVER
+```javascript
+// ❌ NEVER USE
+alert(), confirm(), prompt()
+
+// ✅ ALWAYS USE
+<Toast message="Success!" type="success" />
+// Custom modals with proper styling
+// 2-click delete pattern (DeleteButton component)
+```
+
+### 2. 🔐 SINGLE Auth System Only
+```python
+# ✅ CORRECT - Use everywhere
+from auth.jwt_auth import get_current_user_dependency as get_current_user
+
+@router.get("/endpoint")
+async def endpoint(
+    current_user: dict = Depends(get_current_user),  # Returns dict
+    ...
+):
+    username = current_user["username"]  # Dict access
+```
+
+**NEVER USE:** `from auth import get_current_user` (legacy)
+
+### 3. 🎨 NO Hardcoded Colors
+```css
+/* ✅ ALWAYS use variables */
+background: var(--primary-color);
+color: var(--text-color);
+border: 1px solid var(--border-color);
+
+/* Gradients */
+background: linear-gradient(135deg, 
+  var(--primary-color) 0%, 
+  var(--secondary-color) 100%
+);
+```
+
+**Available Themes:** Cozy Light (default), Dark, Rose, Light Gray, Ultra Light Gray
+
+### 4. 📁 Never Delete Files Immediately
+```bash
+# When replacing files:
+mv OldComponent.js OldComponent.js.toberemoved
+# Create new file
+# Keep .toberemoved files for user review
+```
+
+---
+
+## 🏗️ Architecture Quick Facts
+
+### Stack
+- **Backend:** FastAPI + Python 3.12 + Motor (async MongoDB)
+- **Frontend:** React + React Router
+- **Database:** MongoDB (matrimonialDB)
+- **Auth:** JWT (HS256, 30min expiry)
+
+### Key Directories
+```
+/fastapi_backend/
+  ├── auth/jwt_auth.py          ← PRIMARY AUTH
+  ├── models/                    ← Pydantic models
+  ├── services/                  ← Business logic
+  ├── routers/                   ← Additional routes
+  ├── job_templates/             ← Scheduler templates
+  ├── routes.py                  ← Main routes
+  ├── config.py                  ← Settings
+  └── main.py                    ← Entry point
+
+/frontend/src/
+  ├── components/                ← React components
+  ├── themes/themes.css          ← Theme variables
+  └── api.js                     ← API config
+```
+
+### API Routes
+```
+/api/users/*              → routes.py (main)
+/api/auth/*               → auth_routes.py
+/api/notifications/*      → routers/notifications.py
+/api/scheduler/*          → routes_dynamic_scheduler.py
+/api/activity-logs/*      → routers/activity_logs.py (NEW)
+```
+
+---
+
+## 🔔 Notification System (FULLY OPERATIONAL - Oct 22, 2025)
+
+### Critical Bug Fixes Applied
+**Problem:** End-to-end flow broken - queue never cleared
+
+**KEY FIX:** `notification.id` NOT `notification.dict().get("_id")`
+- Pydantic field alias bug - dict() returns None for _id
+- Fixed in email_notifier_template.py & sms_notifier_template.py
+
+**Database Field Names:**
+```python
+# DB has contactEmail & contactNumber, NOT email & phone
+email = user.get("email") or user.get("contactEmail")
+phone = user.get("phone") or user.get("contactNumber")
+```
+
+**MongoDB Update Syntax:**
+```python
+# ✅ CORRECT
+update_doc = {
+    "$set": {"status": "sent", "updatedAt": datetime.utcnow()},
+    "$inc": {"attempts": 1}
+}
+```
+
+### Architecture
+- **Queue:** `notification_queue` collection
+- **Log:** `notification_log` collection
+- **Templates:** `notification_templates` collection
+- **Job Templates:** email_notifier_template.py, sms_notifier_template.py
+- **UI:** Event Queue Manager (admin-only)
+
+### Status Mapping (Frontend)
+```javascript
+const statusMap = {
+    'pending': 'queued',
+    'sent': 'sent',
+    'failed': 'failed'
+};
+```
+
+---
+
+## 📅 Scheduler (Dynamic Jobs Only)
+
+### Rules
+- ✅ ALL jobs in `dynamic_jobs` MongoDB collection
+- ✅ ONE scheduler: unified_scheduler.py
+- ❌ NO hardcoded jobs in code
+- ❌ NO Python `schedule` library
+
+### Job Templates
+Located in `/job_templates/`:
+- email_notifier_template.py
+- sms_notifier_template.py
+- scheduled_notification_processor_template.py (NEW - Oct 22)
+- weekly_digest_notifier_template.py
+- system_cleanup.py, ticket_cleanup.py, etc.
+
+### UI
+`http://localhost:3000/dynamic-scheduler`
+
+---
+
+## 🎯 Component Consistency
+
+### MUST Keep in Sync
+- `UserCard.js` (Dashboard)
+- `SearchResultCard.js` (Search, L3V3L, Favorites, Shortlist)
+
+**Same everywhere:**
+- Button styles, icons, hover effects
+- Action handlers, modal behavior
+- Active/inactive states
+
+### Reusable Components
+```jsx
+// DeleteButton - Use for ALL delete actions
+<DeleteButton
+  onDelete={() => deleteItem(id)}
+  itemName="notification"
+  size="medium"
+/>
+```
+
+### Standard Icons
+- Favorite: ⭐ (active) / ☆ (inactive)
+- Shortlist: ✓📋 (active) / 📋 (inactive)
+- Message: 💬
+- Delete: 🗑️
+
+---
+
+## ⚙️ Key Collections (MongoDB)
+
+```
+users, sessions, favorites, shortlist, exclusions
+profile_views, messages, conversations
+pii_requests, pii_access, image_access
+notification_preferences, notification_queue, notification_log
+notification_templates, scheduled_notifications (NEW)
+dynamic_jobs, job_executions
+activity_logs (NEW - 30 day TTL)
+contact_tickets, test_results
+```
+
+---
+
+## 🔒 Security Essentials
+
+### JWT Config
+```python
+secret_key = "CHANGE_IN_PRODUCTION"
+algorithm = "HS256"
+access_token_expire_minutes = 30
+```
+
+### Token Storage (Frontend)
+```javascript
+localStorage.setItem('token', access_token);
+localStorage.setItem('username', username);
+```
+
+### CORS (main.py)
+```python
+allow_origins=["http://localhost:3000", "http://localhost:3001"]
+allow_credentials=True
+```
+
+---
+
+## 🎨 Theme CSS Variables (themes.css)
+
+### Colors
+```css
+--primary-color, --secondary-color, --accent-color
+```
+
+### Backgrounds
+```css
+--background-color, --surface-color, --card-background, --input-bg
+```
+
+### Text
+```css
+--text-color, --text-secondary, --text-muted
+```
+
+### Interactive
+```css
+--hover-background, --active-background, --selected-background
+```
+
+### Status
+```css
+--success-color, --danger-color, --warning-color, --info-color
+--success-light, --danger-light, --warning-light, --info-light
+```
+
+---
+
+## 🧭 Navigation & UI
+
+### Sidebar (Simple Toggle)
+- Starts collapsed (left: -280px)
+- Click hamburger (☰) to toggle
+- No overlay, no pin feature
+- Flexbox layout pushes content
+
+### Admin Settings Consolidated
+**Route:** `/preferences` (UnifiedPreferences.js)
+
+**Tabs:**
+1. 🎨 Account Settings (all users)
+2. 🔔 Notifications (all users)
+3. ⚙️ System Config (admin only)
+
+---
+
+## 📋 Recent Updates (Oct 22, 2025)
+
+### ✅ Scheduled Notifications System (Option B)
+- Complete scheduling infrastructure (one-time + recurring)
+- Schedule management UI (ScheduleListModal)
+- 2-click delete pattern (no browser modals)
+- ⏰ button with tooltips and badge counts
+- Visual indicators (pulsing gradient for active schedules)
+
+### ✅ Activity Logger
+- Full implementation with 30-day TTL
+- Activity Logs UI component (admin-only)
+- Fixed MongoDB index conflict bug
+
+### ✅ Notification System Bug Fixes
+- 13 critical bugs fixed (see detailed list above)
+- End-to-end flow now working
+- Queue cleanup operational
+
+---
+
+## 🚨 Common Mistakes to Avoid
+
+### Authentication
+- ❌ `from auth import get_current_user` (legacy)
+- ❌ `current_user.username` (attribute access)
+- ❌ `current_user: TokenData` (wrong type)
+
+### Theme
+- ❌ Hardcoded colors: `#667eea`
+- ❌ `@media (prefers-color-scheme: dark)`
+- ❌ Forgetting `var(--primary-color)`
+
+### UI/UX
+- ❌ `alert()`, `window.confirm()`, `prompt()`
+- ❌ Inconsistent button styles
+- ❌ Different icons for same action
+
+### Scheduler
+- ❌ Hardcoded jobs in code
+- ❌ Multiple scheduler instances
+- ❌ Using Python `schedule` library
+
+---
+
+## ⚡ Quick Reference Commands
+
+### Start Services
+```bash
+# Backend
+cd fastapi_backend
+./bstart.sh  # or: uvicorn main:app --reload
+
+# Frontend
+cd frontend
+npm start    # or: ./fstart.sh
+```
+
+### MongoDB
+```bash
+# Check queue
+mongosh matrimonialDB --eval "db.notification_queue.find({}).limit(5)"
+
+# Check logs
+mongosh matrimonialDB --eval "db.notification_log.find({}).limit(5)"
+
+# Clear queue (testing)
+mongosh matrimonialDB --eval "db.notification_queue.deleteMany({})"
+```
+
+### Git
+```bash
+# Current branch
+git branch --show-current
+
+# Status
+git status --short
+
+# Commit
+git add -A
+git commit -m "feat: description"
+
+# Merge to dev
+git checkout dev
+git merge feature-branch --no-ff
+git push origin dev
+```
+
+---
+
+## 📞 Troubleshooting
+
+### 401 Unauthorized
+- Token expired?
+- Using correct auth function?
+- Token in Authorization header?
+
+### 404 Not Found
+- Route registered in main.py?
+- Correct baseURL?
+- API prefix matches?
+
+### Theme Not Working
+- Using CSS variables?
+- All 5 themes have the variable?
+- Theme class on document root?
+
+### Scheduler Not Running
+- Job in `dynamic_jobs` collection?
+- Job enabled?
+- `nextRunAt` in past?
+
+---
+
+## 📦 Core Dependencies
+
+### Backend
+```python
+fastapi, uvicorn, motor, pydantic
+python-jose[cryptography], passlib[bcrypt]
+python-multipart, jinja2
+croniter (for scheduled notifications)
+```
+
+### Frontend
+```javascript
+react, react-router-dom, axios
+@fullcalendar/react (optional - for calendar view)
+```
+
+---
+
+## 💾 Environment Variables (.env)
+
+```bash
+# Database
+MONGODB_URL=mongodb://localhost:27017
+DATABASE_NAME=matrimonialDB
+
+# JWT
+SECRET_KEY=your-secret-key-here
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# URLs
+FRONTEND_URL=http://localhost:3000
+BACKEND_URL=http://localhost:8000
+
+# Email (optional)
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASSWORD=
+FROM_EMAIL=
+FROM_NAME=
+
+# SMS (optional)
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=
+TWILIO_AUTH_TOKEN=
+TWILIO_FROM_PHONE=
+```
+
+---
+
+## 🎯 Key Files to Reference
+
+**Auth Pattern:**
+- `/fastapi_backend/routes.py` (line 24)
+
+**Config:**
+- `/fastapi_backend/config.py`
+
+**Themes:**
+- `/frontend/src/themes/themes.css`
+
+**Recent Fix Examples:**
+- `/fastapi_backend/routers/notifications.py` (auth fix)
+- `/fastapi_backend/job_templates/email_notifier_template.py` (notification.id fix)
+
+---
+
+## 📝 Testing
+
+### Backend
+```bash
+pytest  # 70% minimum, 85% target
+```
+
+### Frontend
+```bash
+npm test  # 70% minimum
+```
+
+### Required Tests
+- Unit tests (success + error cases)
+- API endpoint tests (GET, POST, PUT, DELETE)
+- Auth/authorization tests
+- Component render tests
+- User interaction tests
+
+---
+
+## 🔗 Important Routes
+
+```
+/login              → Login.js
+/register           → Register.js
+/dashboard          → Dashboard.js
+/search             → SearchPage.js
+/l3v3l-matches      → L3V3LMatches.js
+/profile/:username  → Profile.js
+/edit-profile       → EditProfile.js
+/preferences        → UnifiedPreferences.js (consolidated)
+/messages           → Messages.js
+/dynamic-scheduler  → DynamicScheduler.js (admin-only)
+/event-queue-manager → EventQueueManager.js (admin-only)
+/activity-logs      → ActivityLogs.js (admin-only)
+```
+
+---
+
+## ✅ Pre-Commit Checklist
+
+- [ ] Using correct auth import?
+- [ ] All colors use CSS variables?
+- [ ] No `alert()`, `confirm()`, `prompt()`?
+- [ ] Tests written?
+- [ ] Both UserCard & SearchResultCard updated (if card change)?
+- [ ] Documentation updated?
+
+---
+
+**END OF QUICK REFERENCE**  
+**Use this to quickly refresh memory on ProfileData app structure and standards**
+

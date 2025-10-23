@@ -16,6 +16,14 @@
   --background-color: #fefefe;
   --surface-color: #faf8f5;
   --card-background: #ffffff;
+  --card-bg: #ffffff; /* Alias for card-background */
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #ffffff;
+  --bs-modal-color: #1f2937;
+  --bs-modal-border-color: #f3f4f6;
   
   /* Text Colors - Softer contrast */
   --text-color: #1f2937;
@@ -36,6 +44,16 @@
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #6366f1;
+  
+  /* Button State Colors */
+  --success-light: #d1fae5;
+  --success-hover: #a7f3d0;
+  --info-light: #e0e7ff;
+  --info-hover: #c7d2fe;
+  --danger-light: #ffebee;
+  --danger-hover: #ffcdd2;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   /* Typography - Friendly fonts */
   --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, sans-serif;
@@ -75,10 +93,18 @@ body.theme-light-blue {
   --secondary-color: #a78bfa;
   --accent-color: #f59e0b;
   
-  /* Backgrounds - Warm whites */
+  /* Backgrounds - Warm whites with purple tint */
   --background-color: #fffbf7;
   --surface-color: #fef6ee;
-  --card-background: #ffffff;
+  --card-background: #faf9ff; /* Ultra light purple */
+  --card-bg: #faf9ff;
+  --input-bg: #ffffff;
+  --error-bg: #fee2e2;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #faf9ff;
+  --bs-modal-color: #374151;
+  --bs-modal-border-color: #f9fafb;
   
   /* Text Colors - Soft contrast */
   --text-color: #374151;
@@ -147,30 +173,48 @@ body.theme-dark {
   --secondary-color: #c4b5fd;
   --accent-color: #fbbf24;
   
-  /* Backgrounds - Warm darks */
-  --background-color: #1a1625;
-  --surface-color: #221f2e;
-  --card-background: #2a2438;
+  /* Backgrounds - Lighter, warmer darks */
+  --background-color: #1e1b2e;
+  --surface-color: #2a2740;
+  --card-background: #3a3450; /* Lighter purple tint for better visibility */
+  --card-bg: #3a3450;
+  --input-bg: #2a2740;
+  --error-bg: #3f1d1d;
   
-  /* Text Colors - Softer contrast */
-  --text-color: #e5e7eb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #3a3450;
+  --bs-modal-color: #f3f4f6;
+  --bs-modal-border-color: #4b4563;
   
-  /* Borders & Dividers - Subtle */
-  --border-color: #374151;
-  --divider-color: #2a2438;
+  /* Text Colors - Better contrast */
+  --text-color: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   
-  /* Interactive States - Warm glow */
-  --hover-background: #3a3548;
-  --active-background: #4a4558;
-  --selected-background: rgba(167, 139, 250, 0.15);
+  /* Borders & Dividers - More visible */
+  --border-color: #4b4563;
+  --divider-color: #3a3548;
+  
+  /* Interactive States - Warmer, more visible glow */
+  --hover-background: #4a4060;
+  --active-background: #5a5070;
+  --selected-background: rgba(167, 139, 250, 0.2);
   
   /* Status Colors - Softer */
   --success-color: #10b981;
   --danger-color: #ef4444;
   --warning-color: #fbbf24;
   --info-color: #a78bfa;
+  
+  /* Button State Colors */
+  --success-light: #065f46;
+  --success-hover: #047857;
+  --info-light: #4c1d95;
+  --info-hover: #5b21b6;
+  --danger-light: #7f1d1d;
+  --danger-hover: #991b1b;
+  --warning-light: #78350f;
+  --warning-dark: #fef3c7;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -247,6 +291,57 @@ body.theme-dark {
   color: var(--text-secondary);
 }
 
+/* SearchPage Dark Theme Overrides */
+.theme-dark .search-filters,
+.theme-dark .search-results,
+.theme-dark .result-card .card,
+.theme-dark .result-row {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-dark .search-form,
+.theme-dark .saved-searches {
+  background: var(--surface-color) !important;
+}
+
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-dark .per-page-select {
+  background-color: var(--surface-color) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-dark .row-name,
+.theme-dark .result-card .card-title {
+  color: white !important;
+}
+
+.theme-dark .row-details,
+.theme-dark .form-group label,
+.theme-dark .form-check-label {
+  color: var(--text-secondary) !important;
+}
+
+.theme-dark .saved-search-item {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-dark .saved-search-item:hover {
+  background: var(--hover-background) !important;
+}
+
+.theme-dark .toggle-label {
+  color: var(--text-color) !important;
+}
+
+.theme-dark .toggle-container {
+  background: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
 /* ========================================
    COZY ROSE THEME
    ======================================== */
@@ -259,7 +354,12 @@ body.theme-light-pink {
   /* Backgrounds - Soft pink tones */
   --background-color: #fdf2f8;
   --surface-color: #fce7f3;
-  --card-background: #ffffff;
+  --card-background: #fef6fb; /* Ultra light pink-purple */
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fef6fb;
+  --bs-modal-color: #4a5568;
+  --bs-modal-border-color: #fed7e2;
   
   /* Text Colors - Gentle contrast */
   --text-color: #4a5568;
@@ -280,6 +380,16 @@ body.theme-light-pink {
   --danger-color: #ef4444;
   --warning-color: #fbbf24;
   --info-color: #ec4899;
+  
+  /* Button State Colors */
+  --success-light: #d1fae5;
+  --success-hover: #a7f3d0;
+  --info-light: #fce7f3;
+  --info-hover: #fbcfe8;
+  --danger-light: #fee2e2;
+  --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -355,10 +465,15 @@ body.theme-light-gray {
   --secondary-color: #94a3b8;
   --accent-color: #3b82f6;
   
-  /* Backgrounds - Clean grays */
+  /* Backgrounds - Clean grays with subtle tint */
   --background-color: #f8fafc;
   --surface-color: #f1f5f9;
-  --card-background: #ffffff;
+  --card-background: #f9fafb; /* Ultra light gray with subtle warmth */
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #f9fafb;
+  --bs-modal-color: #1e293b;
+  --bs-modal-border-color: #e2e8f0;
   
   /* Text Colors - Balanced contrast */
   --text-color: #1e293b;
@@ -379,6 +494,16 @@ body.theme-light-gray {
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #3b82f6;
+  
+  /* Button State Colors */
+  --success-light: #d1fae5;
+  --success-hover: #a7f3d0;
+  --info-light: #dbeafe;
+  --info-hover: #bfdbfe;
+  --danger-light: #fee2e2;
+  --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -420,10 +545,15 @@ body.theme-ultra-light-gray {
   --secondary-color: #64748b;
   --accent-color: #0ea5e9;
   
-  /* Backgrounds - Maximum whitespace */
+  /* Backgrounds - Maximum whitespace with subtle tint */
   --background-color: #fcfcfd;
   --surface-color: #fafbfc;
-  --card-background: #ffffff;
+  --card-background: #fdfeff; /* Almost white with cool tint */
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #fdfeff;
+  --bs-modal-color: #0f172a;
+  --bs-modal-border-color: #f1f5f9;
   
   /* Text Colors - Gentle contrast */
   --text-color: #0f172a;
@@ -444,6 +574,16 @@ body.theme-ultra-light-gray {
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
   --info-color: #0ea5e9;
+  
+  /* Button State Colors */
+  --success-light: #d1fae5;
+  --success-hover: #a7f3d0;
+  --info-light: #e0f2fe;
+  --info-hover: #bae6fd;
+  --danger-light: #fee2e2;
+  --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-dark: #92400e;
   
   background-color: var(--background-color);
   color: var(--text-color);
@@ -789,4 +929,471 @@ textarea {
 
 .theme-light-pink ::-webkit-scrollbar-thumb:hover {
   background: #ffaed0;
+}
+/* ========================================
+   ULTRA LIGHT GREEN THEME
+   ======================================== */
+body.theme-ultra-light-green {
+  /* Primary Colors - Fresh emerald green */
+  --primary-color: #10b981;
+  --secondary-color: #34d399;
+  --accent-color: #059669;
+  
+  /* Background Colors - Very light green tints */
+  --background-color: #f0fdf4;
+  --surface-color: #ffffff;
+  --card-background: #f9fdfb;
+  --hover-background: #d1fae5;
+  --active-background: #a7f3d0;
+  --selected-background: #d1fae5;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #f9fdfb;
+  --bs-modal-color: #065f46;
+  --bs-modal-border-color: #d1fae5;
+  
+  /* Text Colors - Dark green for contrast */
+  --text-color: #064e3b;
+  --text-secondary: #047857;
+  --text-muted: #6b7280;
+  
+  /* Border Colors - Subtle green */
+  --border-color: #d1fae5;
+  --divider-color: #a7f3d0;
+  
+  /* Input Colors */
+  --input-bg: #ffffff;
+  --input-border: #d1fae5;
+  --input-focus: #10b981;
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --success-light: #d1fae5;
+  --success-hover: #059669;
+  --danger-color: #ef4444;
+  --danger-light: #fee2e2;
+  --warning-color: #f59e0b;
+  --info-color: #3b82f6;
+  --info-light: #dbeafe;
+  
+  /* Shadow */
+  --shadow-sm: 0 1px 2px 0 rgba(16, 185, 129, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(16, 185, 129, 0.1);
+  
+  /* Font */
+  font-family: var(--font-family);
+}
+
+.theme-ultra-light-green .dashboard-container,
+.theme-ultra-light-green .search-page,
+.theme-ultra-light-green .profile-container,
+.theme-ultra-light-green .unified-preferences-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-light-green .preferences-header {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .user-card,
+.theme-ultra-light-green .dashboard-section,
+.theme-ultra-light-green .stat-card,
+.theme-ultra-light-green .search-filters,
+.theme-ultra-light-green .settings-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-light-green .sidebar {
+  background: var(--card-background);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-light-green .sidebar-item {
+  color: var(--text-color);
+}
+
+.theme-ultra-light-green .sidebar-item:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+}
+
+.theme-ultra-light-green .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+  border: 1px solid var(--primary-color);
+  color: white;
+}
+
+.theme-ultra-light-green .btn-primary:hover {
+  background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+}
+
+.theme-ultra-light-green .stat-value {
+  color: var(--primary-color);
+}
+
+.theme-ultra-light-green input:focus,
+.theme-ultra-light-green select:focus,
+.theme-ultra-light-green textarea:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+}
+
+.theme-ultra-light-green .section-count {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.theme-ultra-light-green .online-badge {
+  color: #10b981;
+  background: white;
+}
+
+/* Scrollbar styling for ultra light green theme */
+.theme-ultra-light-green ::-webkit-scrollbar {
+  width: 12px;
+  background: #f0fdf4;
+}
+
+.theme-ultra-light-green ::-webkit-scrollbar-thumb {
+  background: #a7f3d0;
+  border-radius: 6px;
+}
+
+.theme-ultra-light-green ::-webkit-scrollbar-thumb:hover {
+  background: #6ee7b7;
+}
+
+/* Tab buttons */
+.theme-ultra-light-green .tab-button.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+}
+
+/* Theme card selected state */
+.theme-ultra-light-green .theme-card.selected {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* Toast notifications */
+.theme-ultra-light-green .toast-notification.success {
+  background: var(--success-color);
+}
+
+/* Table headers for admin pages */
+.theme-ultra-light-green .admin-table thead,
+.theme-ultra-light-green .admin-table th {
+  background: var(--primary-color) !important;
+  color: white !important;
+}
+
+.theme-ultra-light-green .admin-table tbody td {
+  color: var(--text-color) !important;
+}
+
+/* Match score badges */
+.theme-ultra-light-green .match-score-badge {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Excellent"] {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Great"] {
+  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+}
+
+.theme-ultra-light-green .match-score-badge[title*="Good"] {
+  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
+}
+
+/* Buttons */
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.email {
+  background: linear-gradient(135deg, #3b82f6, #2563eb);
+}
+
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.sms {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.theme-ultra-light-green .channel-toggle input:checked + .channel-icon.push {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+/* ========================================
+   ULTRA BLACK THEME - Pure Black OLED
+   ======================================== */
+body.theme-ultra-black {
+  /* Primary Colors - Vibrant contrast on black */
+  --primary-color: #00d4ff;
+  --secondary-color: #7c3aed;
+  --accent-color: #ff0080;
+  
+  /* Backgrounds - True blacks for OLED */
+  --background-color: #000000;
+  --surface-color: #0a0a0a;
+  --card-background: #111111;
+  --card-bg: #111111;
+  --input-bg: #0a0a0a;
+  --error-bg: #1a0000;
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #111111;
+  --bs-modal-color: #e5e5e5;
+  --bs-modal-border-color: #1f1f1f;
+  
+  /* Text Colors - High contrast */
+  --text-color: #e5e5e5;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  
+  /* Borders & Dividers - Subtle */
+  --border-color: #1f1f1f;
+  --divider-color: #171717;
+  
+  /* Interactive States - Subtle glow */
+  --hover-background: #1a1a1a;
+  --active-background: #262626;
+  --selected-background: rgba(0, 212, 255, 0.15);
+  
+  /* Status Colors - Vibrant for contrast */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #00d4ff;
+  
+  /* Button State Colors */
+  --success-light: #064e3b;
+  --success-hover: #059669;
+  --info-light: #082f49;
+  --info-hover: #0284c7;
+  --danger-light: #450a0a;
+  --danger-hover: #dc2626;
+  --warning-light: #451a03;
+  --warning-hover: #d97706;
+  
+  /* Input Colors */
+  --input-border: #262626;
+  --input-focus: #00d4ff;
+  
+  /* Shadow - Minimal, no need on pure black */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 212, 255, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 212, 255, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 212, 255, 0.15);
+  
+  /* Typography */
+  --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  
+  background-color: var(--background-color);
+  color: var(--text-color);
+  font-family: var(--font-family);
+}
+
+/* Component Overrides for Ultra Black */
+.theme-ultra-black .dashboard-container,
+.theme-ultra-black .search-page,
+.theme-ultra-black .profile-container,
+.theme-ultra-black .preferences-container {
+  background: var(--background-color);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .dashboard-header,
+.theme-ultra-black .preferences-header {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+}
+
+.theme-ultra-black .user-card,
+.theme-ultra-black .dashboard-section,
+.theme-ultra-black .stat-card,
+.theme-ultra-black .search-filters,
+.theme-ultra-black .preferences-section,
+.theme-ultra-black .card {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .sidebar {
+  background: var(--surface-color);
+  border-right: 1px solid var(--border-color);
+}
+
+.theme-ultra-black .stat-value {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.theme-ultra-black .sidebar-item {
+  color: var(--text-secondary);
+}
+
+.theme-ultra-black .sidebar-item:hover {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--primary-color);
+}
+
+.theme-ultra-black input,
+.theme-ultra-black select,
+.theme-ultra-black textarea {
+  background: var(--input-bg);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-black input::placeholder,
+.theme-ultra-black textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.theme-ultra-black .btn-primary {
+  background: var(--primary-color);
+  color: #000000;
+  border-color: var(--primary-color);
+}
+
+.theme-ultra-black .section-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+.theme-ultra-black .empty-section {
+  background: var(--card-background);
+  color: var(--text-secondary);
+}
+
+/* SearchPage Ultra Black Overrides */
+.theme-ultra-black .search-filters,
+.theme-ultra-black .search-results,
+.theme-ultra-black .result-card .card,
+.theme-ultra-black .result-row {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .search-form,
+.theme-ultra-black .saved-searches {
+  background: var(--surface-color) !important;
+}
+
+.theme-ultra-black .form-control,
+.theme-ultra-black .form-select,
+.theme-ultra-black .per-page-select {
+  background-color: var(--input-bg) !important;
+  color: var(--text-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-ultra-black .row-name,
+.theme-ultra-black .result-card .card-title {
+  color: var(--primary-color) !important;
+}
+
+.theme-ultra-black .row-details,
+.theme-ultra-black .form-group label,
+.theme-ultra-black .form-check-label {
+  color: var(--text-secondary) !important;
+}
+
+.theme-ultra-black .saved-search-item {
+  background: var(--card-background) !important;
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .saved-search-item:hover {
+  background: var(--hover-background) !important;
+}
+
+.theme-ultra-black .toggle-label {
+  color: var(--text-color) !important;
+}
+
+.theme-ultra-black .toggle-container {
+  background: var(--surface-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+/* Admin pages Ultra Black */
+.theme-ultra-black .admin-container {
+  background: var(--background-color);
+}
+
+.theme-ultra-black .admin-header {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+}
+
+.theme-ultra-black .admin-table {
+  background: var(--card-background);
+  color: var(--text-color);
+}
+
+.theme-ultra-black .admin-table thead,
+.theme-ultra-black .admin-table th {
+  background: var(--surface-color) !important;
+  color: var(--primary-color) !important;
+  border-color: var(--border-color) !important;
+}
+
+.theme-ultra-black .admin-table tbody tr {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.theme-ultra-black .admin-table tbody tr:hover {
+  background: var(--hover-background);
+}
+
+.theme-ultra-black .admin-table tbody td {
+  color: var(--text-color) !important;
+  border-color: var(--border-color);
+}
+
+/* Match score badges */
+.theme-ultra-black .match-score-badge {
+  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Excellent"] {
+  background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Great"] {
+  background: linear-gradient(135deg, #00d4ff 0%, #0084ff 100%);
+  color: #000000;
+}
+
+.theme-ultra-black .match-score-badge[title*="Good"] {
+  background: linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%);
+  color: #ffffff;
+}
+
+/* Buttons for Ultra Black */
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.email {
+  background: linear-gradient(135deg, #00d4ff, #0084ff);
+}
+
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.sms {
+  background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.theme-ultra-black .channel-toggle input:checked + .channel-icon.push {
+  background: linear-gradient(135deg, #ff0080, #c4007d);
+}
+
+/* Scrollbar styling for Ultra Black */
+.theme-ultra-black ::-webkit-scrollbar {
+  width: 12px;
+  background: #000000;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb {
+  background: #262626;
+  border-radius: 6px;
+}
+
+.theme-ultra-black ::-webkit-scrollbar-thumb:hover {
+  background: #404040;
 }
