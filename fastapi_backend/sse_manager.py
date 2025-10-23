@@ -7,6 +7,7 @@ Uses Redis pub/sub for message broadcasting
 import asyncio
 import json
 import logging
+import os
 from datetime import datetime
 from typing import AsyncGenerator, Dict, Set
 import redis
@@ -20,15 +21,26 @@ class SSEManager:
         self.redis_client = None
         self.pubsub = None
         self.active_connections: Dict[str, Set[asyncio.Queue]] = {}
-        self.redis_url = "redis://localhost:6379"
+        # Use environment variable for Redis URL (supports Docker container names)
+        self.redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
         
     async def initialize(self):
         """Initialize Redis connection for pub/sub"""
         try:
+            # Parse Redis URL from environment variable
+            # Format: redis://host:port or redis://localhost:6379
+            redis_url = self.redis_url.replace('redis://', '')
+            if ':' in redis_url:
+                host, port = redis_url.split(':')
+                port = int(port)
+            else:
+                host = redis_url
+                port = 6379
+            
             # Use standard Redis client for simplicity
             self.redis_client = redis.Redis(
-                host='localhost',
-                port=6379,
+                host=host,
+                port=port,
                 decode_responses=True
             )
             self.redis_client.ping()

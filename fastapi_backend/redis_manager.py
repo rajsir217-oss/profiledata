@@ -5,6 +5,7 @@ Handles online/offline status and messaging with Redis
 import redis
 import json
 import logging
+import os
 from typing import List, Dict, Optional, Set
 from datetime import datetime, timedelta
 
@@ -432,7 +433,17 @@ class RedisManager:
 
 
 # Global Redis manager instance
-redis_manager = RedisManager()
+# Parse Redis URL from environment variable (format: redis://host:port)
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+redis_host_port = redis_url.replace('redis://', '')
+if ':' in redis_host_port:
+    redis_host, redis_port = redis_host_port.split(':')
+    redis_port = int(redis_port)
+else:
+    redis_host = redis_host_port
+    redis_port = 6379
+
+redis_manager = RedisManager(host=redis_host, port=redis_port)
 
 
 def get_redis_manager() -> RedisManager:
