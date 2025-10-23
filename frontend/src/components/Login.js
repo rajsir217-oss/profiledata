@@ -61,11 +61,72 @@ const Login = () => {
   };
 
   return (
-    <div className="card p-4 shadow" style={{ maxWidth: '400px', margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-        <Logo variant="modern" size="medium" showText={true} theme="light" />
-      </div>
-      <h3 className="text-center mb-4">Welcome Back!</h3>
+    <div className="login-page-wrapper" style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
+      backgroundSize: '400% 400%',
+      animation: 'gradientShift 15s ease infinite',
+      padding: '20px',
+      position: 'relative',
+      overflow: 'hidden'
+    }}>
+      {/* Animated floating hearts */}
+      <div style={{
+        position: 'absolute',
+        top: '10%',
+        left: '15%',
+        fontSize: '2rem',
+        opacity: 0.1,
+        animation: 'float 6s ease-in-out infinite'
+      }}>💕</div>
+      <div style={{
+        position: 'absolute',
+        top: '70%',
+        right: '20%',
+        fontSize: '2.5rem',
+        opacity: 0.1,
+        animation: 'float 8s ease-in-out infinite 1s'
+      }}>💖</div>
+      <div style={{
+        position: 'absolute',
+        bottom: '15%',
+        left: '25%',
+        fontSize: '1.8rem',
+        opacity: 0.1,
+        animation: 'float 7s ease-in-out infinite 2s'
+      }}>❤️</div>
+      
+      <style>{`
+        @keyframes gradientShift {
+          0% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotate(0deg); }
+          50% { transform: translateY(-20px) rotate(10deg); }
+        }
+      `}</style>
+      
+      <div className="card p-4 shadow-lg" style={{ 
+        maxWidth: '400px', 
+        width: '100%',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '20px',
+        border: '1px solid rgba(255, 255, 255, 0.3)'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <Logo variant="modern" size="medium" showText={true} theme="light" />
+        </div>
+        <h3 className="text-center mb-4" style={{ 
+          color: '#667eea',
+          fontWeight: '600',
+          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}>Welcome Back!</h3>
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
@@ -113,6 +174,7 @@ const Login = () => {
         <small className="text-muted">
           Forgot password? Change it from <Link to="/preferences">Settings</Link> after logging in.
         </small>
+      </div>
       </div>
     </div>
   );
