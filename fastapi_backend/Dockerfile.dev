@@ -20,5 +20,5 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Development server with auto-reload
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Development server with auto-reload (using socket_app for WebSocket support)
+CMD ["uvicorn", "main:socket_app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
