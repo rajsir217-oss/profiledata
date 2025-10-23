@@ -3196,12 +3196,12 @@ async def create_pii_request(
             return {"message": "No new requests created (already pending or access granted)"}
         
         # Dispatch event to trigger notification
-        from services.event_dispatcher import get_event_dispatcher
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
         dispatcher = get_event_dispatcher(db)
-        await dispatcher.dispatch_event(
-            event_type="pii_requested",
-            actor=username,
-            target=request_data.profileUsername,
+        await dispatcher.dispatch(
+            event_type=UserEventType.PII_REQUESTED,
+            actor_username=username,
+            target_username=request_data.profileUsername,
             metadata={"request_types": request_data.requestTypes}
         )
         
