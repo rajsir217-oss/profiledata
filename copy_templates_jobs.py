@@ -108,6 +108,38 @@ Remember to respect their privacy!
         "active": True,
         "createdAt": datetime.utcnow(),
         "updatedAt": datetime.utcnow()
+    },
+    {
+        "trigger": "weekly_digest",
+        "channel": "email",
+        "category": "Engagement",
+        "subject": "Your Weekly L3V3L Match Summary",
+        "body": """Hi {recipient.firstName},
+
+Here is your weekly summary:
+
+📊 This Week:
+- New Matches: {stats.newMatches}
+- Profile Views: {stats.profileViews}
+- Messages Received: {stats.unreadMessages}
+- Mutual Matches: {stats.mutualMatches}
+
+🔥 Top Activity:
+{match.firstName} from {match.location} viewed your profile {stats.viewCount} times!
+
+💡 Tip: Complete your profile to get more matches.
+
+View Dashboard: {app.profileUrl}
+Browse Matches: {app.matchUrl}
+
+Stay active to find your perfect match!
+
+Best regards,
+The L3V3L Team
+""",
+        "active": True,
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow()
     }
 ]
 
@@ -119,7 +151,7 @@ for template in templates:
     result = db.notification_templates.insert_one(template)
     print(f"✅ Created template: {template['trigger']} ({template['channel']})")
 
-print(f"\n📧 Total templates created: {len(templates)}")
+print(f"\n📧 Total templates created: {len(templates)} (includes weekly digest)")
 
 # ============================================================================
 # DYNAMIC SCHEDULER JOBS
@@ -186,6 +218,22 @@ jobs = [
         "updatedAt": datetime.utcnow(),
         "lastRun": None,
         "nextRun": datetime.utcnow()
+    },
+    {
+        "name": "Weekly Digest Emails",
+        "description": "Send weekly summary emails to all active users",
+        "template_type": "weekly_digest_notifier",
+        "schedule_type": "cron",
+        "cron_expression": "0 9 * * 1",  # Every Monday at 9 AM
+        "enabled": True,
+        "parameters": {
+            "send_to": "all_active_users",
+            "max_batch_size": 500
+        },
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow(),
+        "lastRun": None,
+        "nextRun": datetime.utcnow()
     }
 ]
 
@@ -197,7 +245,7 @@ for job in jobs:
     result = db.dynamic_jobs.insert_one(job)
     print(f"✅ Created job: {job['name']}")
 
-print(f"\n⚙️ Total jobs created: {len(jobs)}")
+print(f"\n⚙️ Total jobs created: {len(jobs)} (includes weekly digest job)")
 
 # ============================================================================
 # SUMMARY
