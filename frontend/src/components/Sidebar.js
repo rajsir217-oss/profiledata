@@ -216,17 +216,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '📧',
-        label: 'Template Manager',
-        subLabel: 'Email & SMS templates',
-        action: () => navigate('/template-manager')
-      });
-      
-      items.push({
-        icon: '📊',
-        label: 'Event Queue',
-        subLabel: 'Track notification events',
-        action: () => navigate('/event-queue-manager')
+        icon: '🔔',
+        label: 'Notification Management',
+        subLabel: 'Queue, logs & templates',
+        action: () => navigate('/notification-management')
       });
 
       // System Configuration moved to Settings page as a tab

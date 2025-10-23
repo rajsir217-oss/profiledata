@@ -45,6 +45,7 @@ const EventQueueManager = () => {
       // Token expired or invalid - redirect to login
       localStorage.removeItem('token');
       localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
       window.location.href = '/login';
       throw new Error('Session expired. Please log in again.');
     }
@@ -62,6 +63,7 @@ const EventQueueManager = () => {
     if (response.status === 401) {
       localStorage.removeItem('token');
       localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
       window.location.href = '/login';
       throw new Error('Session expired. Please log in again.');
     }

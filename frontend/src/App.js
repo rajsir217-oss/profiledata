@@ -30,8 +30,7 @@ import RoleManagement from './components/RoleManagement';
 import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
 import NotificationTester from './components/NotificationTester';
-import TemplateManager from './components/TemplateManager';
-import EventQueueManager from './components/EventQueueManager';
+import NotificationManagement from './components/NotificationManagement';
 import ToastContainer from './components/ToastContainer';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -215,8 +214,10 @@ function App() {
               <Route path="/test-dashboard" element={<ProtectedRoute><TestDashboard /></ProtectedRoute>} />
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
-              <Route path="/template-manager" element={<ProtectedRoute><TemplateManager /></ProtectedRoute>} />
-              <Route path="/event-queue-manager" element={<ProtectedRoute><EventQueueManager /></ProtectedRoute>} />
+              <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
+              {/* Legacy routes - redirect to unified page */}
+              <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
+              <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />
             </Routes>
           </div>
           </div>

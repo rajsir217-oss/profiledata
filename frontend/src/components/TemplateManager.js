@@ -61,6 +61,15 @@ const TemplateManager = () => {
         }
       });
 
+      if (response.status === 401) {
+        // Session expired - redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
+
       if (!response.ok) throw new Error('Failed to load templates');
 
       const data = await response.json();
@@ -105,6 +114,14 @@ const TemplateManager = () => {
         })
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
+
       if (!response.ok) throw new Error('Failed to save template');
 
       setShowEditModal(false);
@@ -128,6 +145,14 @@ const TemplateManager = () => {
         },
         body: JSON.stringify({ active: !currentActive })
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
 
       if (!response.ok) throw new Error('Failed to toggle template');
 

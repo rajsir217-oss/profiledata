@@ -19,13 +19,17 @@ api.interceptors.request.use(
   }
 );
 
-// Add response interceptor to handle token refresh
+// Add response interceptor to handle token expiration
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      console.warn('🔒 Session expired - redirecting to login');
+      // Clear all auth data
       localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      // Redirect to login
       window.location.href = '/login';
     }
     return Promise.reject(error);
@@ -177,6 +181,21 @@ imageAccessApi.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Add response interceptor for 401 handling
+imageAccessApi.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    if (error.response?.status === 401) {
+      console.warn('🔒 Image Access API: Session expired - redirecting to login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      window.location.href = '/login';
+    }
     return Promise.reject(error);
   }
 );
@@ -357,9 +376,11 @@ notificationsApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.error('Unauthorized access to notifications API - token may be invalid or expired');
-      // Don't auto-redirect - let the main API interceptor handle it
-      // This prevents double redirects when multiple APIs fail
+      console.warn('🔒 Notifications API: Session expired - redirecting to login');
+      localStorage.removeItem('token');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userRole');
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
