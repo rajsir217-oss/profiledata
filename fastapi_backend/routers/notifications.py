@@ -683,7 +683,7 @@ async def delete_template(
 # Scheduled Notifications Endpoints
 # ========================================
 
-@router.get("/scheduled", response_model=List[ScheduledNotification])
+@router.get("/scheduled")
 async def get_scheduled_notifications(
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
     current_user: dict = Depends(get_current_user),
@@ -706,11 +706,16 @@ async def get_scheduled_notifications(
         scheduled = []
         
         async for doc in cursor:
-            if "_id" in doc:
-                doc["_id"] = str(doc["_id"])
-            scheduled.append(ScheduledNotification(**doc))
+            doc["_id"] = str(doc["_id"])
+            # Set defaults for optional fields to prevent validation errors
+            doc.setdefault("templateData", {})
+            doc.setdefault("enabled", True)
+            doc.setdefault("runCount", 0)
+            doc.setdefault("timezone", "UTC")
+            doc.setdefault("maxRecipients", 0)
+            scheduled.append(doc)
         
-        return scheduled
+        return {"success": True, "scheduled": scheduled}
         
     except Exception as e:
         print(f"❌ Error fetching scheduled notifications: {e}")
