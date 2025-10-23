@@ -2912,6 +2912,21 @@ async def track_profile_view(
             )
             new_count = existing_view.get("viewCount", 1) + 1
             logger.info(f"✅ Incremented profile view count to {new_count}")
+            
+            # Log activity
+            try:
+                from services.activity_logger import get_activity_logger
+                from models.activity_models import ActivityType
+                activity_logger = get_activity_logger()
+                await activity_logger.log_activity(
+                    username=profile_view.viewedByUsername,
+                    action_type=ActivityType.PROFILE_VIEWED,
+                    target_username=profile_view.profileUsername,
+                    metadata={"view_count": new_count, "first_view": False}
+                )
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log activity: {log_err}")
+            
             return {
                 "message": "Profile view updated",
                 "viewCount": new_count,
@@ -2930,6 +2945,21 @@ async def track_profile_view(
             
             result = await db.profile_views.insert_one(view_data)
             logger.info(f"✅ Profile view tracked: {profile_view.viewedByUsername} → {profile_view.profileUsername}")
+            
+            # Log activity
+            try:
+                from services.activity_logger import get_activity_logger
+                from models.activity_models import ActivityType
+                activity_logger = get_activity_logger()
+                await activity_logger.log_activity(
+                    username=profile_view.viewedByUsername,
+                    action_type=ActivityType.PROFILE_VIEWED,
+                    target_username=profile_view.profileUsername,
+                    metadata={"view_count": 1, "first_view": True}
+                )
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log activity: {log_err}")
+            
             return {
                 "message": "Profile view tracked",
                 "id": str(result.inserted_id),

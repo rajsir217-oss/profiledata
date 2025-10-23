@@ -31,6 +31,7 @@ import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
 import NotificationTester from './components/NotificationTester';
 import NotificationManagement from './components/NotificationManagement';
+import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -215,6 +216,7 @@ function App() {
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
+              <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />

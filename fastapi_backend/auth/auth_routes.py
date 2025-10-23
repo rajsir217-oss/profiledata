@@ -233,6 +233,21 @@ async def login(
                 details={"reason": "Invalid password", "failed_attempts": failed_attempts}
             )
             
+            # Log activity
+            try:
+                from services.activity_logger import get_activity_logger
+                from models.activity_models import ActivityType
+                activity_logger = get_activity_logger()
+                await activity_logger.log_activity(
+                    username=request.username,
+                    action_type=ActivityType.FAILED_LOGIN,
+                    ip_address=http_request.client.host,
+                    user_agent=http_request.headers.get("user-agent"),
+                    metadata={"reason": "invalid_password", "failed_attempts": failed_attempts}
+                )
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log activity: {log_err}")
+            
             raise HTTPException(status_code=401, detail="Invalid username or password")
         
         # Check MFA if enabled
@@ -294,6 +309,21 @@ async def login(
             ip_address=http_request.client.host,
             user_agent=http_request.headers.get("user-agent")
         )
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=request.username,
+                action_type=ActivityType.USER_LOGIN,
+                ip_address=http_request.client.host,
+                user_agent=http_request.headers.get("user-agent"),
+                metadata={"remember_me": request.remember_me}
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log activity: {log_err}")
         
         logger.info(f"User logged in: {request.username}")
         

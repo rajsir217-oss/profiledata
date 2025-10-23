@@ -202,6 +202,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📊',
+        label: 'Activity Logs',
+        subLabel: 'Monitor user activities',
+        action: () => navigate('/activity-logs')
+      });
+      
+      items.push({
         icon: '🔔',
         label: 'Notification Tester',
         subLabel: 'Test & debug notifications',
