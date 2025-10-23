@@ -23,7 +23,6 @@ import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
 import ContactUs from './components/ContactUs';
 import AdminContactManagement from './components/AdminContactManagement';
-import AdminSettings from './components/AdminSettings';
 import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
@@ -195,7 +194,7 @@ function App() {
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
               <Route path="/admin/contact" element={<ProtectedRoute><AdminContactManagement /></ProtectedRoute>} />
-              <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+              <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
               <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
