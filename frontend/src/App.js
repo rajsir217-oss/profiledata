@@ -7,7 +7,6 @@ import Profile from './components/Profile';
 import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
-import ShortLists from './components/ShortLists';
 import SearchPage from './components/SearchPage';
 import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
@@ -198,7 +197,7 @@ function App() {
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
               <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
-              <Route path="/shortlists" element={<ProtectedRoute><ShortLists /></ProtectedRoute>} />
+              {/* Removed /shortlists route - was placeholder. Use /shortlist for functional component */}
               <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
               {/* MyLists removed - functionality merged into Dashboard */}
               <Route path="/my-lists" element={<Navigate to="/dashboard" replace />} />
