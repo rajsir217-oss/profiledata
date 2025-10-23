@@ -52,12 +52,39 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     const checkLoginStatus = async () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
+      
       if (username && token) {
-        setIsLoggedIn(true);
-        setCurrentUser(username);
-        
-        // Load user profile for display name (pass requester to avoid PII masking)
+        // SECURITY: Verify token matches username to prevent session contamination
         try {
+          // Decode JWT payload (format: header.payload.signature)
+          const payloadBase64 = token.split('.')[1];
+          const payload = JSON.parse(atob(payloadBase64));
+          const tokenUsername = payload.sub; // JWT subject claim contains username
+          
+          // Check if token username matches stored username
+          if (tokenUsername !== username) {
+            console.error('❌ SECURITY: Token/username mismatch detected!');
+            console.error('   Stored username:', username);
+            console.error('   Token username:', tokenUsername);
+            console.error('   Logging out for security...');
+            
+            // Clear contaminated session
+            localStorage.removeItem('username');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userStatus');
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            setUserProfile(null);
+            return;
+          }
+          
+          // Token matches username - proceed with login
+          console.log('✅ Token validation passed for user:', username);
+          setIsLoggedIn(true);
+          setCurrentUser(username);
+          
+          // Load user profile for display name (pass requester to avoid PII masking)
           const response = await api.get(`/profile/${username}?requester=${username}`);
           setUserProfile(response.data);
           
@@ -67,7 +94,15 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           // Load user violations
           loadUserViolations(username);
         } catch (error) {
-          console.error('Error loading user profile:', error);
+          console.error('❌ Error validating token or loading profile:', error);
+          // Invalid token - clear session
+          localStorage.removeItem('username');
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userStatus');
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          setUserProfile(null);
         }
       } else {
         setIsLoggedIn(false);
