@@ -39,6 +39,25 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
   const [paramErrors, setParamErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [schedulePreset, setSchedulePreset] = useState('custom');
+  const [scheduleDay, setScheduleDay] = useState('Monday');
+  const [scheduleTime, setScheduleTime] = useState('09:00');
+
+  // Check for preselected template from Template Manager
+  useEffect(() => {
+    if (!isEditMode && templates.length > 0 && !formData.template_type) {
+      const preselectedType = localStorage.getItem('preselectedTemplateType');
+      if (preselectedType) {
+        console.log('🎯 Auto-selecting template:', preselectedType);
+        setFormData(prev => ({ ...prev, template_type: preselectedType }));
+        // Move to step 2 automatically
+        setStep(2);
+        // Clear the flag
+        localStorage.removeItem('preselectedTemplateType');
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates, isEditMode]);
 
   // Load selected template
   useEffect(() => {
@@ -314,67 +333,203 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
     </div>
   );
 
+  const applySchedulePreset = (preset) => {
+    setSchedulePreset(preset);
+    let cronExpression = '';
+    
+    switch (preset) {
+      case 'hourly':
+        cronExpression = '0 * * * *'; // Every hour
+        break;
+      case 'daily':
+        const [dailyHour, dailyMinute] = scheduleTime.split(':');
+        cronExpression = `${dailyMinute} ${dailyHour} * * *`;
+        break;
+      case 'weekly':
+        const [weeklyHour, weeklyMinute] = scheduleTime.split(':');
+        const dayMap = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+        cronExpression = `${weeklyMinute} ${weeklyHour} * * ${dayMap[scheduleDay]}`;
+        break;
+      case 'monthly':
+        const [monthlyHour, monthlyMinute] = scheduleTime.split(':');
+        cronExpression = `${monthlyMinute} ${monthlyHour} 1 * *`; // 1st of month
+        break;
+      case 'custom':
+        cronExpression = formData.schedule.expression;
+        break;
+      default:
+        cronExpression = '0 * * * *';
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      schedule: { ...prev.schedule, type: 'cron', expression: cronExpression }
+    }));
+  };
+
   const renderStep3 = () => (
     <div className="modal-step">
       <h3>Step 3: Set Schedule</h3>
       <p className="step-description">Define when this job should run</p>
       
+      {/* Quick Presets */}
       <div className="form-group">
-        <label>Schedule Type</label>
-        <select
-          value={formData.schedule.type}
-          onChange={(e) => setFormData(prev => ({
-            ...prev,
-            schedule: { ...prev.schedule, type: e.target.value }
-          }))}
-        >
-          <option value="interval">Interval (Every X seconds)</option>
-          <option value="cron">Cron Expression</option>
-        </select>
+        <label>Schedule Preset</label>
+        <div className="schedule-presets">
+          <button
+            type="button"
+            className={`preset-btn ${schedulePreset === 'hourly' ? 'active' : ''}`}
+            onClick={() => applySchedulePreset('hourly')}
+          >
+            ⏰ Hourly
+          </button>
+          <button
+            type="button"
+            className={`preset-btn ${schedulePreset === 'daily' ? 'active' : ''}`}
+            onClick={() => applySchedulePreset('daily')}
+          >
+            📅 Daily
+          </button>
+          <button
+            type="button"
+            className={`preset-btn ${schedulePreset === 'weekly' ? 'active' : ''}`}
+            onClick={() => applySchedulePreset('weekly')}
+          >
+            📆 Weekly
+          </button>
+          <button
+            type="button"
+            className={`preset-btn ${schedulePreset === 'monthly' ? 'active' : ''}`}
+            onClick={() => applySchedulePreset('monthly')}
+          >
+            🗓️ Monthly
+          </button>
+          <button
+            type="button"
+            className={`preset-btn ${schedulePreset === 'custom' ? 'active' : ''}`}
+            onClick={() => setSchedulePreset('custom')}
+          >
+            ⚙️ Custom
+          </button>
+        </div>
       </div>
       
-      {formData.schedule.type === 'interval' ? (
+      {/* Day/Time Pickers for Weekly/Monthly */}
+      {schedulePreset === 'weekly' && (
         <div className="form-group">
-          <label>Interval (seconds)</label>
-          <input
-            type="number"
-            value={formData.schedule.interval_seconds}
-            onChange={(e) => setFormData(prev => ({
-              ...prev,
-              schedule: { ...prev.schedule, interval_seconds: parseInt(e.target.value, 10) }
-            }))}
-            min="60"
-          />
-          <small>Common values: 3600 (1 hour), 86400 (1 day)</small>
+          <label>Day of Week</label>
+          <select
+            value={scheduleDay}
+            onChange={(e) => {
+              setScheduleDay(e.target.value);
+              setTimeout(() => applySchedulePreset('weekly'), 0);
+            }}
+          >
+            <option value="Monday">Monday</option>
+            <option value="Tuesday">Tuesday</option>
+            <option value="Wednesday">Wednesday</option>
+            <option value="Thursday">Thursday</option>
+            <option value="Friday">Friday</option>
+            <option value="Saturday">Saturday</option>
+            <option value="Sunday">Sunday</option>
+          </select>
         </div>
-      ) : (
+      )}
+      
+      {(schedulePreset === 'daily' || schedulePreset === 'weekly' || schedulePreset === 'monthly') && (
+        <div className="form-group">
+          <label>Time of Day</label>
+          <input
+            type="time"
+            value={scheduleTime}
+            onChange={(e) => {
+              setScheduleTime(e.target.value);
+              setTimeout(() => applySchedulePreset(schedulePreset), 0);
+            }}
+          />
+          <small>
+            {schedulePreset === 'daily' && `Runs every day at ${scheduleTime}`}
+            {schedulePreset === 'weekly' && `Runs every ${scheduleDay} at ${scheduleTime}`}
+            {schedulePreset === 'monthly' && `Runs on the 1st of each month at ${scheduleTime}`}
+          </small>
+        </div>
+      )}
+      
+      {/* Custom Cron Expression */}
+      {schedulePreset === 'custom' && (
         <>
           <div className="form-group">
-            <label>Cron Expression</label>
-            <input
-              type="text"
-              value={formData.schedule.expression}
+            <label>Schedule Type</label>
+            <select
+              value={formData.schedule.type}
               onChange={(e) => setFormData(prev => ({
                 ...prev,
-                schedule: { ...prev.schedule, expression: e.target.value }
+                schedule: { ...prev.schedule, type: e.target.value }
               }))}
-              placeholder="0 * * * *"
-            />
-            <small>Format: minute hour day month weekday</small>
+            >
+              <option value="interval">Interval (Every X seconds)</option>
+              <option value="cron">Cron Expression</option>
+            </select>
           </div>
-          <div className="form-group">
-            <label>Timezone</label>
-            <input
-              type="text"
-              value={formData.schedule.timezone}
-              onChange={(e) => setFormData(prev => ({
-                ...prev,
-                schedule: { ...prev.schedule, timezone: e.target.value }
-              }))}
-            />
-          </div>
+          
+          {formData.schedule.type === 'interval' ? (
+            <div className="form-group">
+              <label>Interval (seconds)</label>
+              <input
+                type="number"
+                value={formData.schedule.interval_seconds}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  schedule: { ...prev.schedule, interval_seconds: parseInt(e.target.value, 10) }
+                }))}
+                min="60"
+              />
+              <small>Common values: 3600 (1 hour), 86400 (1 day)</small>
+            </div>
+          ) : (
+            <div className="form-group">
+              <label>Cron Expression</label>
+              <input
+                type="text"
+                value={formData.schedule.expression}
+                onChange={(e) => setFormData(prev => ({
+                  ...prev,
+                  schedule: { ...prev.schedule, expression: e.target.value }
+                }))}
+                placeholder="0 * * * *"
+              />
+              <small>Format: minute hour day month weekday</small>
+            </div>
+          )}
         </>
       )}
+      
+      {/* Cron Expression Preview */}
+      {formData.schedule.type === 'cron' && (
+        <div className="cron-preview">
+          <strong>📋 Cron Expression:</strong>
+          <code>{formData.schedule.expression}</code>
+        </div>
+      )}
+      
+      <div className="form-group">
+        <label>Timezone</label>
+        <select
+          value={formData.schedule.timezone}
+          onChange={(e) => setFormData(prev => ({
+            ...prev,
+            schedule: { ...prev.schedule, timezone: e.target.value }
+          }))}
+        >
+          <option value="UTC">UTC</option>
+          <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+          <option value="America/Denver">Mountain Time (Denver)</option>
+          <option value="America/Chicago">Central Time (Chicago)</option>
+          <option value="America/New_York">Eastern Time (New York)</option>
+          <option value="Asia/Kolkata">India (Kolkata)</option>
+          <option value="Europe/London">London</option>
+        </select>
+      </div>
       
       <div className="form-group">
         <label>Timeout (seconds)</label>

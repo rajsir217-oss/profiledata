@@ -15,7 +15,10 @@ from models.notification_models import (
     NotificationResponse,
     NotificationTrigger,
     NotificationChannel,
-    NotificationAnalytics
+    NotificationAnalytics,
+    ScheduledNotification,
+    ScheduledNotificationCreate,
+    ScheduledNotificationUpdate
 )
 from services.notification_service import NotificationService
 from database import get_database
@@ -485,3 +488,358 @@ async def unsubscribe_trigger(
 # Add missing imports
 from fastapi.responses import Response, RedirectResponse
 from datetime import timedelta
+
+
+# ============================================
+# Template Management Endpoints
+# ============================================
+
+@router.get("/templates")
+async def get_templates(
+    channel: Optional[str] = Query(None),
+    category: Optional[str] = Query(None),
+    include_job_templates: bool = Query(False),
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Get all notification templates (admin only)"""
+    print(f"📧 GET /templates - User: {current_user.get('username')}")
+    print(f"   Filters: channel={channel}, category={category}, include_job_templates={include_job_templates}")
+    
+    try:
+        # Build query
+        query = {}
+        if channel:
+            query["channel"] = channel
+        if category:
+            query["category"] = category
+        
+        # Fetch notification templates from database
+        templates_cursor = service.db.notification_templates.find(query)
+        templates = await templates_cursor.to_list(length=None)
+        
+        # Convert ObjectId to string
+        for template in templates:
+            if "_id" in template:
+                template["_id"] = str(template["_id"])
+            template["type"] = "notification"  # Mark as notification template
+        
+        # Optionally include job templates
+        if include_job_templates:
+            import os
+            import importlib.util
+            
+            job_templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "job_templates")
+            
+            if os.path.exists(job_templates_dir):
+                for filename in os.listdir(job_templates_dir):
+                    if filename.endswith(".py") and not filename.startswith("__"):
+                        try:
+                            filepath = os.path.join(job_templates_dir, filename)
+                            spec = importlib.util.spec_from_file_location(filename[:-3], filepath)
+                            module = importlib.util.module_from_spec(spec)
+                            spec.loader.exec_module(module)
+                            
+                            if hasattr(module, 'TEMPLATE'):
+                                job_template = module.TEMPLATE
+                                template_type_value = filename[:-3]  # e.g., "weekly_digest_notifier"
+                                templates.append({
+                                    "_id": f"job_{template_type_value}",
+                                    "template_type": template_type_value,  # For Dynamic Scheduler matching
+                                    "trigger": template_type_value.replace("_", " ").title(),
+                                    "channel": "job",
+                                    "category": job_template.get("metadata", {}).get("category", "system"),
+                                    "subject": job_template.get("name", "Unknown Job"),
+                                    "body": job_template.get("description", ""),
+                                    "active": job_template.get("enabled", True),
+                                    "type": "job",  # Mark as job template
+                                    "schedule": job_template.get("schedule", ""),
+                                    "tags": job_template.get("tags", [])
+                                })
+                        except Exception as e:
+                            print(f"   Error loading job template {filename}: {e}")
+        
+        print(f"✅ Found {len(templates)} templates")
+        return templates
+        
+    except Exception as e:
+        print(f"❌ Error fetching templates: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to fetch templates: {str(e)}")
+
+
+@router.get("/templates/{template_id}")
+async def get_template(
+    template_id: str,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Get a specific template by ID (admin only)"""
+    try:
+        from bson import ObjectId
+        
+        template = await service.db.notification_templates.find_one({"_id": ObjectId(template_id)})
+        
+        if not template:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        # Convert ObjectId to string
+        template["_id"] = str(template["_id"])
+        
+        return template
+        
+    except Exception as e:
+        print(f"❌ Error fetching template: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch template: {str(e)}")
+
+
+@router.post("/templates")
+async def create_template(
+    template_data: dict,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Create a new notification template (admin only)"""
+    try:
+        # Add timestamps
+        template_data["createdAt"] = datetime.utcnow()
+        template_data["updatedAt"] = datetime.utcnow()
+        
+        result = await service.db.notification_templates.insert_one(template_data)
+        
+        return {
+            "success": True,
+            "message": "Template created successfully",
+            "template_id": str(result.inserted_id)
+        }
+        
+    except Exception as e:
+        print(f"❌ Error creating template: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create template: {str(e)}")
+
+
+@router.put("/templates/{template_id}")
+async def update_template(
+    template_id: str,
+    template_data: dict,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Update an existing template (admin only)"""
+    try:
+        from bson import ObjectId
+        
+        # Add updated timestamp
+        template_data["updatedAt"] = datetime.utcnow()
+        
+        # Remove _id if present (can't update _id)
+        template_data.pop("_id", None)
+        
+        result = await service.db.notification_templates.update_one(
+            {"_id": ObjectId(template_id)},
+            {"$set": template_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "success": True,
+            "message": "Template updated successfully"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error updating template: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update template: {str(e)}")
+
+
+@router.delete("/templates/{template_id}")
+async def delete_template(
+    template_id: str,
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Delete a template (admin only)"""
+    try:
+        from bson import ObjectId
+        
+        result = await service.db.notification_templates.delete_one({"_id": ObjectId(template_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Template not found")
+        
+        return {
+            "success": True,
+            "message": "Template deleted successfully"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error deleting template: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete template: {str(e)}")
+
+
+# ========================================
+# Scheduled Notifications Endpoints
+# ========================================
+
+@router.get("/scheduled", response_model=List[ScheduledNotification])
+async def get_scheduled_notifications(
+    enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get all scheduled notifications (admin only)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        query = {}
+        if enabled is not None:
+            query["enabled"] = enabled
+        
+        cursor = db.scheduled_notifications.find(query).sort("createdAt", -1)
+        scheduled = []
+        
+        async for doc in cursor:
+            if "_id" in doc:
+                doc["_id"] = str(doc["_id"])
+            scheduled.append(ScheduledNotification(**doc))
+        
+        return scheduled
+        
+    except Exception as e:
+        print(f"❌ Error fetching scheduled notifications: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch scheduled notifications: {str(e)}")
+
+
+@router.post("/scheduled", response_model=NotificationResponse)
+async def create_scheduled_notification(
+    schedule_data: ScheduledNotificationCreate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Create a new scheduled notification (admin only)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        from croniter import croniter
+        
+        # Build schedule document
+        schedule_doc = schedule_data.dict()
+        schedule_doc["createdBy"] = current_user["username"]
+        schedule_doc["createdAt"] = datetime.utcnow()
+        schedule_doc["updatedAt"] = datetime.utcnow()
+        schedule_doc["runCount"] = 0
+        
+        # Calculate nextRun
+        if schedule_data.scheduleType == "one_time":
+            schedule_doc["nextRun"] = schedule_data.scheduledFor
+        else:  # recurring
+            # Calculate next run based on pattern
+            if schedule_data.recurrencePattern == "daily":
+                cron_expr = f"0 9 * * *"  # 9 AM daily
+            elif schedule_data.recurrencePattern == "weekly":
+                cron_expr = f"0 9 * * 1"  # Monday 9 AM
+            elif schedule_data.recurrencePattern == "monthly":
+                cron_expr = f"0 9 1 * *"  # 1st of month 9 AM
+            else:  # custom
+                cron_expr = schedule_data.cronExpression
+            
+            # Calculate next run
+            iter = croniter(cron_expr, datetime.utcnow())
+            schedule_doc["nextRun"] = iter.get_next(datetime)
+        
+        result = await db.scheduled_notifications.insert_one(schedule_doc)
+        
+        return NotificationResponse(
+            success=True,
+            message="Scheduled notification created successfully",
+            data={"id": str(result.inserted_id)}
+        )
+        
+    except Exception as e:
+        print(f"❌ Error creating scheduled notification: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to create scheduled notification: {str(e)}")
+
+
+@router.put("/scheduled/{schedule_id}", response_model=NotificationResponse)
+async def update_scheduled_notification(
+    schedule_id: str,
+    update_data: ScheduledNotificationUpdate,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Update a scheduled notification (admin only)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        from bson import ObjectId
+        
+        update_doc = {k: v for k, v in update_data.dict(exclude_unset=True).items() if v is not None}
+        update_doc["updatedAt"] = datetime.utcnow()
+        
+        result = await db.scheduled_notifications.update_one(
+            {"_id": ObjectId(schedule_id)},
+            {"$set": update_doc}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Scheduled notification not found")
+        
+        return NotificationResponse(
+            success=True,
+            message="Scheduled notification updated successfully"
+        )
+        
+    except Exception as e:
+        print(f"❌ Error updating scheduled notification: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update scheduled notification: {str(e)}")
+
+
+@router.delete("/scheduled/{schedule_id}", response_model=NotificationResponse)
+async def delete_scheduled_notification(
+    schedule_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Delete a scheduled notification (admin only)"""
+    # Check if user is admin
+    user_role = current_user.get("role", "free_user")
+    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        from bson import ObjectId
+        
+        result = await db.scheduled_notifications.delete_one({"_id": ObjectId(schedule_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Scheduled notification not found")
+        
+        return NotificationResponse(
+            success=True,
+            message="Scheduled notification deleted successfully"
+        )
+        
+    except Exception as e:
+        print(f"❌ Error deleting scheduled notification: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete scheduled notification: {str(e)}")

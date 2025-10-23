@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './TemplateManager.css';
 import Toast from './Toast';
+import ScheduleNotificationModal from './ScheduleNotificationModal';
+import ScheduleListModal from './ScheduleListModal';
 
 const TemplateManager = () => {
   const [templates, setTemplates] = useState([]);
@@ -9,6 +11,10 @@ const TemplateManager = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [showScheduleListModal, setShowScheduleListModal] = useState(false);
+  const [scheduleTemplate, setScheduleTemplate] = useState(null);
+  const [scheduledNotifications, setScheduledNotifications] = useState([]);
   const [toast, setToast] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [filterChannel, setFilterChannel] = useState('all');
@@ -55,26 +61,122 @@ const TemplateManager = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/notifications/templates', {
+      const response = await fetch('http://localhost:8000/api/notifications/templates?include_job_templates=true', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
 
-      if (!response.ok) throw new Error('Failed to load templates');
+      if (response.status === 401) {
+        // Session expired - redirect to login
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Template load failed:', response.status, errorText);
+        throw new Error(`Failed to load templates: ${response.status}`);
+      }
 
       const data = await response.json();
-      setTemplates(data);
+      console.log('✅ Loaded templates from API:', data);
+      console.log('   Template count:', Array.isArray(data) ? data.length : 'not an array');
+      
+      // Handle different response formats
+      const templateArray = Array.isArray(data) ? data : (data.templates || []);
+      setTemplates(templateArray);
     } catch (err) {
-      console.error('Error loading templates:', err);
+      console.error('❌ Error loading templates:', err);
       setToast({ type: 'error', message: 'Failed to load templates' });
     } finally {
       setLoading(false);
     }
   };
 
+  const loadScheduledNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8000/api/notifications/scheduled', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setScheduledNotifications(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error loading scheduled notifications:', err);
+    }
+  };
+
+  const getScheduleTooltip = (template) => {
+    // Find all schedules for this template
+    const schedules = scheduledNotifications.filter(
+      s => s.templateId === template._id && s.enabled
+    );
+
+    if (schedules.length === 0) {
+      return 'Schedule Notification - No active schedules';
+    }
+
+    if (schedules.length === 1) {
+      const schedule = schedules[0];
+      const typeText = schedule.scheduleType === 'one_time' ? 'One-time' : 'Recurring';
+      const timeText = schedule.scheduleType === 'one_time'
+        ? new Date(schedule.scheduledFor).toLocaleString()
+        : `${schedule.recurrencePattern} at ${schedule.nextRun ? new Date(schedule.nextRun).toLocaleTimeString() : 'scheduled'}`;
+      const recipientText = schedule.recipientType.replace('_', ' ');
+      
+      return `${typeText}: ${timeText}\nRecipients: ${recipientText}`;
+    }
+
+    return `${schedules.length} active schedules\nClick to view details`;
+  };
+
+  const getScheduleDisplay = (template) => {
+    // Find all schedules for this template
+    const schedules = scheduledNotifications.filter(
+      s => s.templateId === template._id && s.enabled
+    );
+
+    if (schedules.length === 0) {
+      return null;
+    }
+
+    if (schedules.length === 1) {
+      const schedule = schedules[0];
+      const nextRun = schedule.nextRun ? new Date(schedule.nextRun) : null;
+      
+      return {
+        type: schedule.scheduleType === 'one_time' ? 'One-time' : 'Recurring',
+        nextRun: nextRun ? nextRun.toLocaleString() : 'Calculating...',
+        count: 1
+      };
+    }
+
+    // Multiple schedules - find the earliest nextRun
+    const nextSchedule = schedules.reduce((earliest, current) => {
+      const currentNext = new Date(current.nextRun);
+      const earliestNext = new Date(earliest.nextRun);
+      return currentNext < earliestNext ? current : earliest;
+    });
+
+    return {
+      type: `${schedules.length} schedules`,
+      nextRun: nextSchedule.nextRun ? new Date(nextSchedule.nextRun).toLocaleString() : 'Multiple',
+      count: schedules.length
+    };
+  };
+
   useEffect(() => {
     loadTemplates();
+    loadScheduledNotifications();
   }, []);
 
   const handleEdit = (template) => {
@@ -105,6 +207,14 @@ const TemplateManager = () => {
         })
       });
 
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
+
       if (!response.ok) throw new Error('Failed to save template');
 
       setShowEditModal(false);
@@ -128,6 +238,14 @@ const TemplateManager = () => {
         },
         body: JSON.stringify({ active: !currentActive })
       });
+
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userRole');
+        window.location.href = '/login';
+        return;
+      }
 
       if (!response.ok) throw new Error('Failed to toggle template');
 
@@ -213,7 +331,11 @@ const TemplateManager = () => {
       messages: '💬',
       privacy: '🔐',
       engagement: '📊',
-      custom: '⚙️'
+      custom: '⚙️',
+      system: '🔧',
+      communication: '📧',
+      maintenance: '🧹',
+      notification: '🔔'
     };
     return icons[category] || '📧';
   };
@@ -227,22 +349,31 @@ const TemplateManager = () => {
           <h1>📧 Template Manager</h1>
           <p>Manage notification templates and preview emails</p>
         </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => {
-            setEditTemplate({
-              trigger: '',
-              channel: 'email',
-              category: 'custom',
-              subject: '',
-              body: '',
-              active: true
-            });
-            setShowEditModal(true);
-          }}
-        >
-          ➕ Create Template
-        </button>
+        <div className="header-actions">
+          <button 
+            className="btn btn-secondary"
+            onClick={loadTemplates}
+            disabled={loading}
+          >
+            🔄 Refresh
+          </button>
+          <button 
+            className="btn btn-primary"
+            onClick={() => {
+              setEditTemplate({
+                trigger: '',
+                channel: 'email',
+                category: 'custom',
+                subject: '',
+                body: '',
+                active: true
+              });
+              setShowEditModal(true);
+            }}
+          >
+            ➕ Create Template
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -261,12 +392,20 @@ const TemplateManager = () => {
           <label>Category:</label>
           <select value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}>
             <option value="all">All Categories</option>
-            <option value="match">Match</option>
-            <option value="activity">Activity</option>
-            <option value="messages">Messages</option>
-            <option value="privacy">Privacy</option>
-            <option value="engagement">Engagement</option>
-            <option value="custom">Custom</option>
+            <optgroup label="Notification Categories">
+              <option value="match">💕 Match</option>
+              <option value="activity">👀 Activity</option>
+              <option value="messages">💬 Messages</option>
+              <option value="privacy">🔐 Privacy</option>
+              <option value="engagement">📊 Engagement</option>
+              <option value="custom">⚙️ Custom</option>
+            </optgroup>
+            <optgroup label="Job Categories">
+              <option value="system">🔧 System</option>
+              <option value="communication">📧 Communication</option>
+              <option value="maintenance">🧹 Maintenance</option>
+              <option value="notification">🔔 Notification</option>
+            </optgroup>
           </select>
         </div>
 
@@ -274,9 +413,10 @@ const TemplateManager = () => {
           <label>Channel:</label>
           <select value={filterChannel} onChange={(e) => setFilterChannel(e.target.value)}>
             <option value="all">All Channels</option>
-            <option value="email">Email</option>
-            <option value="sms">SMS</option>
-            <option value="push">Push</option>
+            <option value="email">📧 Email</option>
+            <option value="sms">📱 SMS</option>
+            <option value="push">🔔 Push</option>
+            <option value="job">⚙️ Job</option>
           </select>
         </div>
 
@@ -305,7 +445,8 @@ const TemplateManager = () => {
                 <div className="template-icon">
                   {getCategoryIcon(template.category)}
                 </div>
-                <div className="template-status">
+                <div className="header-content">
+                  <h3>{template.trigger.replace(/_/g, ' ').toUpperCase()}</h3>
                   <span className={`status-badge ${template.active ? 'active' : 'inactive'}`}>
                     {template.active ? '🟢 Active' : '🔴 Disabled'}
                   </span>
@@ -313,43 +454,137 @@ const TemplateManager = () => {
               </div>
 
               <div className="template-card-body">
-                <h3>{template.trigger.replace(/_/g, ' ').toUpperCase()}</h3>
                 <div className="template-meta">
                   <span className="meta-item">📨 {template.channel}</span>
                   <span className="meta-item">🏷️ {template.category}</span>
+                  {template.type === 'job' && template.schedule && (
+                    <span className="meta-item">⏰ {template.schedule}</span>
+                  )}
+                  {template.type && (
+                    <span className={`meta-item type-badge type-${template.type}`}>
+                      {template.type === 'job' ? '⚙️ Job' : '📧 Notification'}
+                    </span>
+                  )}
                 </div>
                 <p className="template-subject">{template.subject}</p>
               </div>
 
+              {/* Schedule Info Display */}
+              {template.type !== 'job' && (
+                <div className="template-schedule-info">
+                  {getScheduleDisplay(template) ? (
+                    <button
+                      className="schedule-display has-schedule"
+                      onClick={() => {
+                        setScheduleTemplate(template);
+                        setShowScheduleListModal(true);
+                      }}
+                      title="Click to view and manage schedules"
+                    >
+                      <div className="schedule-line">
+                        <span className="schedule-label">Scheduled to Run:</span>
+                        <span className="schedule-value">{getScheduleDisplay(template).type}</span>
+                      </div>
+                      <div className="schedule-line">
+                        <span className="schedule-label">Next Run:</span>
+                        <span className="schedule-value">{getScheduleDisplay(template).nextRun}</span>
+                      </div>
+                    </button>
+                  ) : (
+                    <div className="schedule-display no-schedule">
+                      <button
+                        className="add-schedule-link"
+                        onClick={() => {
+                          setScheduleTemplate(template);
+                          setShowScheduleModal(true);
+                        }}
+                      >
+                        <span className="schedule-label">Scheduled to Run:</span>
+                        <span className="schedule-link">[details]</span>
+                      </button>
+                      <div className="schedule-line muted">
+                        <span className="schedule-label">Next Run:</span>
+                        <span className="schedule-value">[details]</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="template-card-actions">
-                <button
-                  className="btn-icon"
-                  title="Edit Template"
-                  onClick={() => handleEdit(template)}
-                >
-                  ✏️
-                </button>
-                <button
-                  className="btn-icon"
-                  title="Preview"
-                  onClick={() => handlePreview(template)}
-                >
-                  👁️
-                </button>
-                <button
-                  className="btn-icon"
-                  title="Send Test"
-                  onClick={() => handleTestSend(template)}
-                >
-                  📤
-                </button>
-                <button
-                  className={`btn-icon ${template.active ? '' : 'success'}`}
-                  title={template.active ? 'Disable' : 'Enable'}
-                  onClick={() => handleToggleActive(template._id, template.active)}
-                >
-                  {template.active ? '⏸️' : '▶️'}
-                </button>
+                {template.type === 'job' ? (
+                  <>
+                    <button
+                      className="btn-icon"
+                      title="View Job in Scheduler"
+                      onClick={() => window.location.href = '/dynamic-scheduler'}
+                    >
+                      📋
+                    </button>
+                    <button
+                      className="btn-icon"
+                      title="Create Job from Template"
+                      onClick={() => {
+                        // Store template type (more reliable for job templates)
+                        const templateId = template.template_type || template.trigger || template._id;
+                        localStorage.setItem('selectedJobTemplate', templateId);
+                        window.location.href = '/dynamic-scheduler';
+                      }}
+                    >
+                      ➕
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      className="btn-icon"
+                      title="Edit Template"
+                      onClick={() => handleEdit(template)}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="btn-icon"
+                      title="Preview"
+                      onClick={() => handlePreview(template)}
+                    >
+                      👁️
+                    </button>
+                    <button
+                      className="btn-icon"
+                      title="Send Test"
+                      onClick={() => handleTestSend(template)}
+                    >
+                      📤
+                    </button>
+                    <button
+                      className={`btn-icon schedule-btn ${
+                        scheduledNotifications.filter(s => s.templateId === template._id && s.enabled).length > 0 
+                          ? 'has-schedules' 
+                          : ''
+                      }`}
+                      title={getScheduleTooltip(template)}
+                      onClick={() => {
+                        setScheduleTemplate(template);
+                        setShowScheduleModal(true);
+                      }}
+                    >
+                      ⏰
+                      {scheduledNotifications.filter(s => s.templateId === template._id && s.enabled).length > 0 && (
+                        <span className="schedule-count">
+                          {scheduledNotifications.filter(s => s.templateId === template._id && s.enabled).length}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      className={`btn-icon ${template.active ? '' : 'success'}`}
+                      title={template.active ? 'Disable' : 'Enable'}
+                      onClick={() => handleToggleActive(template._id, template.active)}
+                    >
+                      {template.active ? '⏸️' : '▶️'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))}
@@ -491,6 +726,37 @@ const TemplateManager = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Schedule Notification Modal */}
+      {showScheduleModal && scheduleTemplate && (
+        <ScheduleNotificationModal
+          template={scheduleTemplate}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setScheduleTemplate(null);
+          }}
+          onSchedule={(result) => {
+            setToast({ message: 'Notification scheduled successfully!', type: 'success' });
+            loadTemplates();
+            loadScheduledNotifications(); // Reload to update tooltips
+          }}
+        />
+      )}
+
+      {/* Schedule List Modal */}
+      {showScheduleListModal && scheduleTemplate && (
+        <ScheduleListModal
+          template={scheduleTemplate}
+          onClose={() => {
+            setShowScheduleListModal(false);
+            setScheduleTemplate(null);
+          }}
+          onUpdate={() => {
+            loadScheduledNotifications(); // Reload to update tooltips and counts
+            loadTemplates();
+          }}
+        />
       )}
 
       {/* Toast */}

@@ -55,6 +55,10 @@ class NotificationTrigger(str, Enum):
     NEW_USERS_MATCHING = "new_users_matching"
     PROFILE_INCOMPLETE = "profile_incomplete"
     UPLOAD_PHOTOS = "upload_photos"
+    
+    # Digest emails
+    WEEKLY_DIGEST = "weekly_digest"
+    MONTHLY_DIGEST = "monthly_digest"
 
 
 class FrequencyType(str, Enum):
@@ -374,3 +378,105 @@ class NotificationResponse(BaseModel):
     message: str
     data: Optional[Any] = None
     error: Optional[str] = None
+
+
+# ============================================
+# Scheduled Notification Models
+# ============================================
+
+class ScheduleType(str, Enum):
+    """Type of notification schedule"""
+    ONE_TIME = "one_time"      # Send once at specific date/time
+    RECURRING = "recurring"     # Send on recurring schedule
+
+
+class RecurrencePattern(str, Enum):
+    """Recurring schedule patterns"""
+    DAILY = "daily"
+    WEEKLY = "weekly"
+    MONTHLY = "monthly"
+    CUSTOM = "custom"  # Custom cron expression
+
+
+class RecipientType(str, Enum):
+    """Type of recipients for scheduled notification"""
+    ALL_USERS = "all_users"
+    ACTIVE_USERS = "active_users"
+    SPECIFIC_SEGMENT = "specific_segment"
+    TEST = "test"  # Admin only
+
+
+class ScheduledNotification(BaseModel):
+    """Scheduled notification definition"""
+    id: Optional[str] = Field(None, alias="_id")
+    
+    # Template info
+    templateId: str = Field(..., description="Template to use")
+    trigger: NotificationTrigger
+    channel: NotificationChannel
+    
+    # Schedule configuration
+    scheduleType: ScheduleType
+    scheduledFor: Optional[datetime] = Field(None, description="One-time send datetime")
+    recurrencePattern: Optional[RecurrencePattern] = Field(None)
+    cronExpression: Optional[str] = Field(None, description="For custom recurring")
+    timezone: str = Field(default="UTC")
+    
+    # Recipient configuration
+    recipientType: RecipientType = RecipientType.ACTIVE_USERS
+    recipientSegment: Optional[Dict[str, Any]] = Field(None, description="Filter for specific segment")
+    maxRecipients: int = Field(default=0, description="0 = unlimited")
+    
+    # Template data overrides
+    templateData: Dict[str, Any] = Field(default_factory=dict)
+    
+    # Status
+    enabled: bool = Field(default=True)
+    lastRun: Optional[datetime] = None
+    nextRun: Optional[datetime] = None
+    runCount: int = Field(default=0)
+    
+    # Metadata
+    createdBy: str = Field(..., description="Admin username")
+    createdAt: datetime = Field(default_factory=datetime.utcnow)
+    updatedAt: datetime = Field(default_factory=datetime.utcnow)
+    
+    class Config:
+        use_enum_values = True
+        populate_by_name = True
+
+
+class ScheduledNotificationCreate(BaseModel):
+    """Create scheduled notification"""
+    templateId: str
+    trigger: NotificationTrigger
+    channel: NotificationChannel
+    scheduleType: ScheduleType
+    scheduledFor: Optional[datetime] = None
+    recurrencePattern: Optional[RecurrencePattern] = None
+    cronExpression: Optional[str] = None
+    timezone: str = "UTC"
+    recipientType: RecipientType = RecipientType.ACTIVE_USERS
+    recipientSegment: Optional[Dict[str, Any]] = None
+    maxRecipients: int = 0
+    templateData: Dict[str, Any] = {}
+    enabled: bool = True
+    
+    class Config:
+        use_enum_values = True
+
+
+class ScheduledNotificationUpdate(BaseModel):
+    """Update scheduled notification"""
+    scheduledFor: Optional[datetime] = None
+    recurrencePattern: Optional[RecurrencePattern] = None
+    cronExpression: Optional[str] = None
+    timezone: Optional[str] = None
+    recipientType: Optional[RecipientType] = None
+    recipientSegment: Optional[Dict[str, Any]] = None
+    maxRecipients: Optional[int] = None
+    templateData: Optional[Dict[str, Any]] = None
+    enabled: Optional[bool] = None
+    
+    class Config:
+        use_enum_values = True

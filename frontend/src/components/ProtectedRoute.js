@@ -33,7 +33,18 @@ const ProtectedRoute = ({ children }) => {
         setUserStatus(normalizedStatus);
       } catch (error) {
         console.error('Error fetching user status:', error);
-        setUserStatus('pending'); // Default to pending if error
+        
+        // If 401 error (session expired), clear auth data and redirect
+        if (error.response?.status === 401) {
+          console.warn('🔒 ProtectedRoute: Session expired, clearing auth data');
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userRole');
+          setCurrentUsername(null); // This will trigger redirect to login
+        } else {
+          // For other errors, default to pending
+          setUserStatus('pending');
+        }
       } finally {
         setLoading(false);
       }

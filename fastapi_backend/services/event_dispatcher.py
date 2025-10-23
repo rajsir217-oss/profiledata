@@ -165,6 +165,49 @@ class EventDispatcher:
             except Exception as redis_err:
                 logger.warning(f"⚠️ Redis publish failed: {redis_err} (continuing anyway)")
             
+            # Log to activity logger
+            try:
+                from services.activity_logger import get_activity_logger
+                from models.activity_models import ActivityType
+                
+                # Map event types to activity types
+                event_to_activity_map = {
+                    UserEventType.FAVORITE_ADDED: ActivityType.FAVORITE_ADDED,
+                    UserEventType.FAVORITE_REMOVED: ActivityType.FAVORITE_REMOVED,
+                    UserEventType.SHORTLIST_ADDED: ActivityType.SHORTLIST_ADDED,
+                    UserEventType.SHORTLIST_REMOVED: ActivityType.SHORTLIST_REMOVED,
+                    UserEventType.USER_EXCLUDED: ActivityType.EXCLUSION_ADDED,
+                    UserEventType.PROFILE_VIEWED: ActivityType.PROFILE_VIEWED,
+                    UserEventType.MESSAGE_SENT: ActivityType.MESSAGE_SENT,
+                    UserEventType.MESSAGE_READ: ActivityType.MESSAGE_READ,
+                    UserEventType.PII_REQUESTED: ActivityType.PII_REQUEST_SENT,
+                    UserEventType.PII_GRANTED: ActivityType.PII_REQUEST_APPROVED,
+                    UserEventType.PII_REJECTED: ActivityType.PII_REQUEST_DENIED,
+                    UserEventType.PII_REVOKED: ActivityType.PII_ACCESS_REVOKED,
+                    UserEventType.USER_SUSPENDED: ActivityType.USER_SUSPENDED,
+                    UserEventType.USER_BANNED: ActivityType.USER_BANNED,
+                    UserEventType.USER_LOGGED_IN: ActivityType.USER_LOGIN,
+                    UserEventType.USER_LOGGED_OUT: ActivityType.USER_LOGOUT,
+                    UserEventType.PROFILE_UPDATED: ActivityType.PROFILE_EDITED
+                }
+                
+                activity_type = event_to_activity_map.get(event_type)
+                if activity_type:
+                    activity_logger = get_activity_logger()
+                    await activity_logger.log_activity(
+                        username=actor_username,
+                        action_type=activity_type,
+                        target_username=target_username,
+                        metadata=metadata or {},
+                        pii_logged=(event_type in [
+                            UserEventType.PII_REQUESTED,
+                            UserEventType.PII_GRANTED,
+                            UserEventType.PII_REJECTED
+                        ])
+                    )
+            except Exception as activity_err:
+                logger.warning(f"⚠️ Activity logging failed: {activity_err} (continuing anyway)")
+            
             # Execute registered handlers asynchronously
             handlers = self.handlers.get(event_type, [])
             if handlers:

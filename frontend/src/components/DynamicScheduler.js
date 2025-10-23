@@ -34,6 +34,32 @@ const DynamicScheduler = ({ currentUser }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterTemplate, filterEnabled, currentPage, refreshTrigger]);
 
+  // Check for pre-selected template from Template Manager
+  useEffect(() => {
+    const selectedTemplateId = localStorage.getItem('selectedJobTemplate');
+    if (selectedTemplateId && templates.length > 0) {
+      // Find the template - match by _id, type, or template_type
+      const template = templates.find(t => 
+        t._id === selectedTemplateId || 
+        t.type === selectedTemplateId ||
+        (t.type && t.type.toLowerCase() === selectedTemplateId.toLowerCase())
+      );
+      
+      if (template) {
+        console.log('🎯 Found preselected template:', template);
+        // Open modal with pre-selected template
+        setShowCreateModal(true);
+        // Store template type for modal to use (use 'type' field from API)
+        localStorage.setItem('preselectedTemplateType', template.type);
+      } else {
+        console.warn('⚠️ Template not found:', selectedTemplateId, 'Available:', templates.map(t => ({id: t._id, type: t.type})));
+      }
+      // Clear the flag
+      localStorage.removeItem('selectedJobTemplate');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates]);
+
   // Check if user is admin (must be after all hooks)
   if (currentUser !== 'admin') {
     return (
