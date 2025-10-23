@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import useToast from '../hooks/useToast';
 import './SaveSearchModal.css';
 
 const SaveSearchModal = ({ 
@@ -14,12 +15,13 @@ const SaveSearchModal = ({
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [activeTab, setActiveTab] = useState('save'); // 'save' or 'manage'
+  const toast = useToast();
 
   if (!show) return null;
 
   const handleSave = () => {
     if (!searchName.trim()) {
-      alert('Please enter a search name');
+      toast.warning('Please enter a search name');
       return;
     }
     onSave(searchName);
@@ -29,7 +31,7 @@ const SaveSearchModal = ({
 
   const handleUpdate = (id) => {
     if (!editingName.trim()) {
-      alert('Please enter a search name');
+      toast.warning('Please enter a search name');
       return;
     }
     onUpdate(id, editingName);

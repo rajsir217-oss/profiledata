@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
+import useToast from '../hooks/useToast';
 import './AccessRequestManager.css';
 
 const AccessRequestManager = ({ username, onRequestProcessed }) => {
@@ -7,6 +8,7 @@ const AccessRequestManager = ({ username, onRequestProcessed }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(null);
+  const toast = useToast();
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [responseMessage, setResponseMessage] = useState('');
   const [customDuration, setCustomDuration] = useState(null);
@@ -55,7 +57,7 @@ const AccessRequestManager = ({ username, onRequestProcessed }) => {
       }
     } catch (err) {
       console.error('Error approving request:', err);
-      alert('Failed to approve request: ' + (err.response?.data?.message || err.message));
+      toast.error('Failed to approve request: ' + (err.response?.data?.message || err.message));
     } finally {
       setProcessing(null);
     }
@@ -80,7 +82,7 @@ const AccessRequestManager = ({ username, onRequestProcessed }) => {
       }
     } catch (err) {
       console.error('Error rejecting request:', err);
-      alert('Failed to reject request: ' + (err.response?.data?.message || err.message));
+      toast.error('Failed to reject request: ' + (err.response?.data?.message || err.message));
     } finally {
       setProcessing(null);
     }

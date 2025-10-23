@@ -7,6 +7,7 @@ import UserCard from './UserCard';
 import AccessRequestManager from './AccessRequestManager';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
+import useToast from '../hooks/useToast';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -14,6 +15,7 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const currentUser = localStorage.getItem('username');
+  const toast = useToast();
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -436,7 +438,7 @@ const Dashboard = () => {
       console.log(`Successfully moved ${username} from ${sourceSection} to ${targetSection}`);
     } catch (err) {
       console.error('Error moving between categories:', err);
-      alert(`Failed to move user: ${err.response?.data?.detail || err.message}`);
+      toast.error(`Failed to move user: ${err.response?.data?.detail || err.message}`);
     }
   };
 

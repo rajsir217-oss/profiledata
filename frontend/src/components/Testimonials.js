@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import useToast from '../hooks/useToast';
 import './Testimonials.css';
 
 const Testimonials = () => {
@@ -16,6 +17,7 @@ const Testimonials = () => {
   const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
   const isAdmin = currentUsername === 'admin';
+  const toast = useToast();
 
   useEffect(() => {
     loadTestimonials();
@@ -41,12 +43,12 @@ const Testimonials = () => {
     setSubmitting(true);
     try {
       await api.post(`/testimonials?username=${currentUsername}`, formData);
-      alert('✅ Thank you! Your testimonial has been submitted and will be visible after admin approval.');
+      toast.success('✅ Thank you! Your testimonial has been submitted and will be visible after admin approval.');
       setFormData({ content: '', rating: 5, isAnonymous: false });
       setShowForm(false);
       loadTestimonials(); // Reload to show new testimonial
     } catch (error) {
-      alert('❌ Error submitting testimonial: ' + (error.response?.data?.detail || error.message));
+      toast.error('❌ Error submitting testimonial: ' + (error.response?.data?.detail || error.message));
     } finally {
       setSubmitting(false);
     }
@@ -57,7 +59,7 @@ const Testimonials = () => {
       await api.patch(`/testimonials/${testimonialId}/status?status=approved&username=${currentUsername}`);
       loadTestimonials();
     } catch (error) {
-      alert('❌ Error: ' + (error.response?.data?.detail || error.message));
+      toast.error('❌ Error: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -66,7 +68,7 @@ const Testimonials = () => {
       await api.patch(`/testimonials/${testimonialId}/status?status=rejected&username=${currentUsername}`);
       loadTestimonials();
     } catch (error) {
-      alert('❌ Error: ' + (error.response?.data?.detail || error.message));
+      toast.error('❌ Error: ' + (error.response?.data?.detail || error.message));
     }
   };
 
@@ -75,7 +77,7 @@ const Testimonials = () => {
       await api.delete(`/testimonials/${testimonialId}?username=${currentUsername}`);
       loadTestimonials();
     } catch (error) {
-      alert('❌ Error: ' + (error.response?.data?.detail || error.message));
+      toast.error('❌ Error: ' + (error.response?.data?.detail || error.message));
     }
   };
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import useToast from '../hooks/useToast';
 import './ScheduleListModal.css';
 
 const ScheduleListModal = ({ template, onClose, onUpdate }) => {
@@ -6,6 +7,7 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null); // ID of schedule being deleted
+  const toast = useToast();
 
   const loadSchedules = useCallback(async () => {
     setLoading(true);
@@ -92,7 +94,7 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
         throw new Error('Failed to update schedule');
       }
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      toast.error(`Error: ${err.message}`);
     }
   };
 
