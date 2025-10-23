@@ -9,6 +9,7 @@ pymongo==4.8.0
 motor==3.3.2
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
+pytz==2024.1
 aiofiles==23.2.1
 schedule==1.2.2
 python-socketio==5.11.0
