@@ -452,6 +452,37 @@ const EventQueueManager = () => {
         </div>
 
         <div className="filter-group">
+          <label>Trigger:</label>
+          <select
+            value={filters.trigger}
+            onChange={(e) => setFilters(prev => ({ ...prev, trigger: e.target.value }))}
+          >
+            <option value="all">All Triggers</option>
+            <optgroup label="Match Events">
+              <option value="new_match">💕 New Match</option>
+              <option value="mutual_favorite">💕 Mutual Favorite</option>
+              <option value="shortlist_added">⭐ Shortlist Added</option>
+            </optgroup>
+            <optgroup label="Activity">
+              <option value="profile_view">👁️ Profile View</option>
+              <option value="favorited">❤️ Favorited</option>
+            </optgroup>
+            <optgroup label="Messages">
+              <option value="new_message">💬 New Message</option>
+              <option value="unread_messages">📬 Unread Messages</option>
+            </optgroup>
+            <optgroup label="Privacy">
+              <option value="pii_request">🔒 PII Request</option>
+              <option value="pii_granted">✅ PII Granted</option>
+              <option value="pii_denied">❌ PII Denied</option>
+            </optgroup>
+            <optgroup label="Engagement">
+              <option value="weekly_digest">📊 Weekly Digest</option>
+            </optgroup>
+          </select>
+        </div>
+
+        <div className="filter-group">
           <label>Channel:</label>
           <select
             value={filters.channel}
