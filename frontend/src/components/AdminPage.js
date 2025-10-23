@@ -62,7 +62,6 @@ const AdminPage = () => {
       // Security Layer 2: Check if user is admin
       if (username !== 'admin') {
         console.warn(`⚠️ Unauthorized access attempt by user: ${username}`);
-        alert('🚫 Access Denied: Admin privileges required');
         navigate('/');
         return false;
       }
@@ -104,7 +103,6 @@ const AdminPage = () => {
       
       // If unauthorized, redirect
       if (err.response?.status === 401 || err.response?.status === 403) {
-        alert('🚫 Access Denied: Admin privileges required');
         navigate('/');
       }
     } finally {

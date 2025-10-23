@@ -23,7 +23,6 @@ const ChangeAdminPassword = () => {
   useEffect(() => {
     const username = localStorage.getItem('username');
     if (username !== 'admin') {
-      alert('🚫 Access Denied: Admin only');
       navigate('/');
     }
   }, [navigate]);
@@ -73,7 +72,11 @@ const ChangeAdminPassword = () => {
 
       const response = await api.post('/admin/change-password', data);
       
-      setSuccess('✅ ' + response.data.message);
+      // Show success and warning (if present) in success message
+      const successMsg = response.data.warning 
+        ? `✅ ${response.data.message}\n\n⚠️ ${response.data.warning}`
+        : `✅ ${response.data.message}`;
+      setSuccess(successMsg);
       
       // Clear form
       setFormData({
@@ -81,13 +84,6 @@ const ChangeAdminPassword = () => {
         newPassword: '',
         confirmPassword: ''
       });
-
-      // Show warning if present
-      if (response.data.warning) {
-        setTimeout(() => {
-          alert('⚠️ ' + response.data.warning);
-        }, 1000);
-      }
 
       // Redirect after delay
       setTimeout(() => {

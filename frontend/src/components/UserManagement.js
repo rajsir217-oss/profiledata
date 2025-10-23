@@ -95,17 +95,16 @@ const UserManagement = () => {
     } catch (err) {
       console.error('Error loading users:', err);
       
-      // Check if token expired
+      // Check if token expired - ProtectedRoute will handle redirect
       if (err.response?.status === 401) {
         const errorMsg = err.response?.data?.detail || '';
         if (errorMsg.includes('expired') || errorMsg.includes('Invalid token')) {
-          // Clear localStorage and redirect to login
+          // Clear localStorage - ProtectedRoute will redirect automatically
           localStorage.removeItem('token');
           localStorage.removeItem('username');
           localStorage.removeItem('userRole');
           localStorage.removeItem('userStatus');
           localStorage.removeItem('appTheme');
-          alert('Your session has expired. Please login again.');
           navigate('/login');
           return;
         }
