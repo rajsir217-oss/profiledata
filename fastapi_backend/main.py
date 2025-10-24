@@ -113,14 +113,22 @@ if os.path.exists(settings.upload_dir):
     logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # CORS middleware (must be added before other middleware)
+# Allow both localhost (development) and Cloud Run (production)
+cors_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3001",
+    "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",  # Production frontend
+]
+
+# Add custom frontend URL from environment if set
+if os.getenv("FRONTEND_URL"):
+    cors_origins.append(os.getenv("FRONTEND_URL"))
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001"
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],

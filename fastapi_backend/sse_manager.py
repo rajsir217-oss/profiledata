@@ -68,8 +68,15 @@ class SSEManager:
         channel_name = f"messages:{username}"
         
         try:
-            # Create a new Redis client for this connection
-            redis_sub = redis.Redis(host='localhost', port=6379, decode_responses=True)
+            # Create a new Redis client for this connection using parsed config
+            redis_url = self.redis_url.replace('redis://', '')
+            if ':' in redis_url:
+                host, port = redis_url.split(':')
+                port = int(port)
+            else:
+                host = redis_url
+                port = 6379
+            redis_sub = redis.Redis(host=host, port=port, decode_responses=True)
             pubsub = redis_sub.pubsub()
             pubsub.subscribe(channel_name)
             
@@ -199,7 +206,14 @@ class SSEManager:
             message = json.dumps(message_data)
             
             # Use a separate Redis client for publishing
-            redis_pub = redis.Redis(host='localhost', port=6379, decode_responses=True)
+            redis_url = self.redis_url.replace('redis://', '')
+            if ':' in redis_url:
+                host, port = redis_url.split(':')
+                port = int(port)
+            else:
+                host = redis_url
+                port = 6379
+            redis_pub = redis.Redis(host=host, port=port, decode_responses=True)
             redis_pub.publish(channel_name, message)
             redis_pub.close()
             
