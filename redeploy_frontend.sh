@@ -26,23 +26,56 @@ gcloud config set project $PROJECT_ID
 # Navigate to frontend
 cd frontend
 
-# Create temporary .env.production file with backend URL
-cat > .env.production << EOF
+# Create .env file (not .env.production - React reads .env during build)
+cat > .env << EOF
 REACT_APP_API_URL=${BACKEND_URL}/api/users
 REACT_APP_SOCKET_URL=${BACKEND_URL}
 EOF
 
-echo "✅ Created .env.production with backend URL"
+echo "✅ Created .env with backend URL"
 echo ""
 
-# Copy Dockerfile
-cp Dockerfile.prod Dockerfile
+# Create Dockerfile that includes .env
+cat > Dockerfile << 'DOCKERFILE_END'
+# Build stage
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+RUN npm ci
+
+# Copy source and .env
+COPY . .
+
+# Build with environment variables from .env
+RUN npm run build
+
+# Production stage
+FROM node:18-alpine
+WORKDIR /app
+
+# Install serve
+RUN npm install -g serve
+
+# Copy built app
+COPY --from=builder /app/build ./build
+
+# Expose port
+EXPOSE 8080
+
+# Serve the app
+CMD ["serve", "-s", "build", "-l", "8080"]
+DOCKERFILE_END
+
+echo "✅ Created Dockerfile"
+echo ""
 
 echo "🔨 Building and deploying frontend..."
 echo "   This may take 5-10 minutes..."
 echo ""
 
-# Deploy with env vars
+# Deploy
 gcloud run deploy $FRONTEND_SERVICE \
   --source . \
   --platform managed \
@@ -58,7 +91,7 @@ gcloud run deploy $FRONTEND_SERVICE \
 FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region $REGION --format 'value(status.url)')
 
 # Clean up
-rm .env.production
+rm .env
 rm Dockerfile
 
 echo ""
