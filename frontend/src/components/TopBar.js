@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
+import { getApiUrl } from '../config/apiConfig';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
@@ -85,17 +86,27 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           setCurrentUser(username);
           
           // Load user profile for display name (pass requester to avoid PII masking)
-          const response = await api.get(`/profile/${username}?requester=${username}`);
-          setUserProfile(response.data);
-          
-          // Load user stats for capsules
-          loadUserStats(username);
-          
-          // Load user violations
-          loadUserViolations(username);
+          try {
+            const response = await api.get(`/profile/${username}?requester=${username}`);
+            setUserProfile(response.data);
+            
+            // Load user stats for capsules
+            loadUserStats(username);
+            
+            // Load user violations
+            loadUserViolations(username);
+          } catch (profileError) {
+            // Profile fetch failed - this is OK, don't logout
+            // The Profile component will handle displaying the profile
+            console.warn('⚠️ Could not load user profile in TopBar (non-critical):', profileError?.message || profileError);
+            console.warn('   User stays logged in, profile will load from Profile component');
+            // IMPORTANT: Do NOT logout here - profile fetch can fail for many reasons
+          }
         } catch (error) {
-          console.error('❌ Error validating token or loading profile:', error);
-          // Invalid token - clear session
+          // This catch is for JWT token decoding errors only
+          console.error('❌ Error decoding or validating JWT token:', error);
+          console.error('   This is a critical error - token is invalid or corrupted');
+          // Clear session due to token validation failure
           localStorage.removeItem('username');
           localStorage.removeItem('token');
           localStorage.removeItem('userRole');
@@ -167,7 +178,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     // Mark user as offline (non-blocking beacon)
     if (username) {
       navigator.sendBeacon(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        `${getApiUrl()}/online-status/${username}/offline`,
         ''
       );
     }

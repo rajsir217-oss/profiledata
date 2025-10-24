@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import './MetaFieldsModal.css';
 
 const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
@@ -26,7 +27,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/meta/${username}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/meta/${username}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -54,7 +55,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/meta/verify', {
+      const response = await fetch(getBackendApiUrl('/api/admin/meta/verify'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -83,7 +84,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/meta/premium', {
+      const response = await fetch(getBackendApiUrl('/api/admin/meta/premium'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -111,7 +112,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/meta/visibility', {
+      const response = await fetch(getBackendApiUrl('/api/admin/meta/visibility'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +139,7 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/meta/field', {
+      const response = await fetch(getBackendApiUrl('/api/admin/meta/field'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

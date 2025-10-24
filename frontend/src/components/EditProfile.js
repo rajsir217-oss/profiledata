@@ -241,19 +241,21 @@ const EditProfile = () => {
           partnerPreference: userData.partnerPreference || '',
           bio: userData.bio || '',
           linkedinUrl: userData.linkedinUrl || '',
-          // Partner Criteria
-          partnerCriteria: userData.partnerCriteria || {
-            ageRange: { min: '', max: '' },
-            heightRange: { minFeet: '', minInches: '', maxFeet: '', maxInches: '' },
-            educationLevel: [],
-            profession: [],
-            location: [],
-            languages: [],
-            religion: '',
-            caste: '',
-            eatingPreference: [],
-            familyType: [],
-            familyValues: []
+          // Partner Criteria - ensure all fields exist with defaults
+          partnerCriteria: {
+            ageRange: userData.partnerCriteria?.ageRange || { min: '', max: '' },
+            ageRangeRelative: userData.partnerCriteria?.ageRangeRelative || { minOffset: 0, maxOffset: 5 },
+            heightRange: userData.partnerCriteria?.heightRange || { minFeet: '', minInches: '', maxFeet: '', maxInches: '' },
+            heightRangeRelative: userData.partnerCriteria?.heightRangeRelative || { minInches: 0, maxInches: 6 },
+            educationLevel: userData.partnerCriteria?.educationLevel || [],
+            profession: userData.partnerCriteria?.profession || [],
+            location: userData.partnerCriteria?.location || [],
+            languages: userData.partnerCriteria?.languages || [],
+            religion: userData.partnerCriteria?.religion || '',
+            caste: userData.partnerCriteria?.caste || '',
+            eatingPreference: userData.partnerCriteria?.eatingPreference || [],
+            familyType: userData.partnerCriteria?.familyType || [],
+            familyValues: userData.partnerCriteria?.familyValues || []
           }
         });
 

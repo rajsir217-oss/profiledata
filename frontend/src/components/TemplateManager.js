@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getFrontendUrl } from '../utils/urlHelper';
 import './TemplateManager.css';
 import useToast from '../hooks/useToast';
 import ScheduleNotificationModal from './ScheduleNotificationModal';
@@ -44,11 +45,11 @@ const TemplateManager = () => {
       message: 'You have a new match!'
     },
     app: {
-      profileUrl: 'http://localhost:3000/profile/mike_dev',
-      chatUrl: 'http://localhost:3000/messages',
-      matchUrl: 'http://localhost:3000/matches',
-      settingsUrl: 'http://localhost:3000/settings',
-      unsubscribeUrl: 'http://localhost:3000/unsubscribe'
+      profileUrl: `${getFrontendUrl()}/profile/mike_dev`,
+      chatUrl: `${getFrontendUrl()}/messages`,
+      matchUrl: `${getFrontendUrl()}/matches`,
+      settingsUrl: `${getFrontendUrl()}/settings`,
+      unsubscribeUrl: `${getFrontendUrl()}/unsubscribe`
     },
     stats: {
       mutualMatches: 12,

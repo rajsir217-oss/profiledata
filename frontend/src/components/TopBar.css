@@ -2,7 +2,7 @@
 .top-bar {
   position: fixed;
   top: 0;
-  left: 0;
+  left: 280px; /* Default offset for desktop (sidebar always visible) */
   right: 0;
   height: 60px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -10,6 +10,7 @@
   z-index: 999;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible;
+  width: calc(100% - 280px);
 }
 
 .top-bar.sidebar-open {
@@ -325,6 +326,17 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+  /* Mobile/Tablet - TopBar full width when sidebar is hidden */
+  .top-bar {
+    left: 0;
+    width: 100%;
+  }
+  
+  .top-bar.sidebar-open {
+    left: 250px;
+    width: calc(100% - 250px);
+  }
+  
   .top-bar-content {
     padding: 0 15px;
   }
@@ -361,8 +373,9 @@
 .violation-banner {
   position: fixed;
   top: 60px;
-  left: 0;
+  left: 280px; /* Default offset for desktop (sidebar always visible) */
   right: 0;
+  width: calc(100% - 280px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -459,6 +472,8 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
   .violation-banner {
+    left: 0;
+    width: 100%;
     font-size: 13px;
     padding: 10px 15px;
   }

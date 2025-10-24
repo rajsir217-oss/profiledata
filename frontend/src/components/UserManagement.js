@@ -5,8 +5,9 @@ import axios from 'axios';
 import './UserManagement.css';
 
 // Create admin API client without baseURL prefix
+import { getBackendUrl } from '../config/apiConfig';
 const adminApi = axios.create({
-  baseURL: 'http://localhost:8000'
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor
@@ -27,7 +28,7 @@ const UserManagement = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('admin'); // Default to admin for faster load
+  const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);

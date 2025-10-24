@@ -199,10 +199,22 @@
 
 
 /* Responsive Design */
+/* Desktop - Sidebar visible by default */
+@media (min-width: 769px) {
+  .sidebar {
+    transform: translateX(0) !important; /* Always visible on desktop */
+  }
+}
+
+/* Tablet and Mobile - Sidebar hidden by default, toggle to show */
 @media (max-width: 768px) {
   .sidebar {
     width: 250px;
-    left: -250px;
+    transform: translateX(-250px); /* Hidden by default on mobile */
+  }
+  
+  .sidebar.open {
+    transform: translateX(0); /* Show when toggled */
   }
 }
 

@@ -1,0 +1,14 @@
+mongodb+srv://rajl3v3l_db_user:3F01eZUHTY9tx07u@mongocluster0.rebdf0h.mongodb.net/?appName=MongoCluster0 ;
+
+
+redis-cli -u redis://default:2svzScwOza6YUFifjx32WIWqWHytrq12@redis-11872.c263.us-east-1-2.ec2.redns.redis-cloud.com:11872
+
+
+
+REACT_APP_ENVIRONMENT=dev
+
+# Backend URLs (Google Cloud Run)
+REACT_APP_DEV_BACKEND_URL=https://matrimonial-backend-458052696267.us-central1.run.app                                                                
+REACT_APP_DEV_API_URL=https://matrimonial-backend-458052696267.us-central1.run.app/api/users                                                          
+REACT_APP_DEV_WS_URL=wss://matrimonial-backend-458052696267.us-central1.run.app
+

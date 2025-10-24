@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../utils/urlHelper';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
@@ -436,7 +437,7 @@ const SearchPage = () => {
     }
 
     // Check if image is already a full URL (from search results) or relative path (from profile view)
-    const imageSrc = currentImage && currentImage.startsWith('http') ? currentImage : `http://localhost:8000${currentImage}`;
+    const imageSrc = currentImage && currentImage.startsWith('http') ? currentImage : getImageUrl(currentImage);
     return (
       <div className="profile-image-container">
         {currentImage && !hasError ? (

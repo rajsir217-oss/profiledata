@@ -3,6 +3,7 @@
  * Manages user online/offline status with Redis backend and WebSocket real-time updates
  */
 import api from '../api';
+import { getApiUrl } from '../config/apiConfig';
 import socketService from './socketService';
 
 class OnlineStatusService {
@@ -248,8 +249,11 @@ window.addEventListener('beforeunload', () => {
   const username = localStorage.getItem('username');
   if (username && onlineStatusService.isOnline) {
     // Send offline status synchronously
+    const baseUrl = window.RUNTIME_CONFIG?.API_URL || 
+                    process.env.REACT_APP_API_URL || 
+                    getApiUrl();
     navigator.sendBeacon(
-      `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+      `${baseUrl}/online-status/${username}/offline`,
       ''
     );
   }

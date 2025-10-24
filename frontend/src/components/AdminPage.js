@@ -5,8 +5,9 @@ import './AdminPage.css';
 import MetaFieldsModal from './MetaFieldsModal';
 
 // Create admin API client without baseURL prefix
+import { getBackendUrl } from '../config/apiConfig';
 const adminApi = axios.create({
-  baseURL: 'http://localhost:8000'
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor

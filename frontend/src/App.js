@@ -44,6 +44,7 @@ import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
+import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
 
 // Theme configuration
 const themes = {
@@ -142,7 +143,7 @@ function App() {
         
         // Mark user as offline via beacon (non-blocking)
         navigator.sendBeacon(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+          `${getApiUrl()}/online-status/${username}/offline`,
           ''
         );
       }

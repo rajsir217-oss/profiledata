@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { getApiUrl } from '../config/apiConfig';
 import socketService from '../services/socketService';
 import { getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
@@ -65,7 +66,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Mark user as offline (non-blocking beacon)
     if (username) {
       navigator.sendBeacon(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        `${getApiUrl()}/online-status/${username}/offline`,
         ''
       );
     }

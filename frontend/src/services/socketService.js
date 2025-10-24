@@ -2,6 +2,7 @@
 // Unified real-time service using Socket.IO for messages, online status, and unread counts
 import { io } from 'socket.io-client';
 import api from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 
 class SocketService {
   constructor() {
@@ -23,10 +24,8 @@ class SocketService {
 
     this.username = username;
     
-    // Use runtime config if available (for production), otherwise use env vars
-    const socketUrl = window.RUNTIME_CONFIG?.SOCKET_URL || 
-                     process.env.REACT_APP_SOCKET_URL || 
-                     'http://localhost:8000';
+    // Use proper backend URL from config (supports all environments)
+    const socketUrl = getBackendUrl();
     
     console.log(`🔌 Connecting to Socket.IO at ${socketUrl}`);
     

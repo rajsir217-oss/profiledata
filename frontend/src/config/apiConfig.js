@@ -1,39 +1,118 @@
 /**
  * API Configuration
- * Centralized configuration for all backend API URLs
- * Uses runtime config if available (production), otherwise falls back to env vars or localhost
+ * Environment-specific configuration for all backend API URLs
+ * Supports: local, docker, dev, stage, pod (production)
  */
+
+// Environment-specific backend URLs
+const ENVIRONMENT_URLS = {
+  local: {
+    backend: 'http://localhost:8000',
+    api: 'http://localhost:8000/api/users',
+    ws: 'ws://localhost:8000'
+  },
+  docker: {
+    backend: 'http://backend:8000',
+    api: 'http://backend:8000/api/users',
+    ws: 'ws://backend:8000'
+  },
+  dev: {
+    backend: process.env.REACT_APP_DEV_BACKEND_URL || 'https://dev-api.yourdomain.com',
+    api: process.env.REACT_APP_DEV_API_URL || 'https://dev-api.yourdomain.com/api/users',
+    ws: process.env.REACT_APP_DEV_WS_URL || 'wss://dev-api.yourdomain.com'
+  },
+  stage: {
+    backend: process.env.REACT_APP_STAGE_BACKEND_URL || 'https://stage-api.yourdomain.com',
+    api: process.env.REACT_APP_STAGE_API_URL || 'https://stage-api.yourdomain.com/api/users',
+    ws: process.env.REACT_APP_STAGE_WS_URL || 'wss://stage-api.yourdomain.com'
+  },
+  pod: {
+    backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app',
+    api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app/api/users',
+    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-458052696267.us-central1.run.app'
+  }
+};
+
+// Detect current environment
+export const getCurrentEnvironment = () => {
+  // Priority 1: Runtime config (highest priority)
+  if (window.RUNTIME_CONFIG?.ENVIRONMENT) {
+    return window.RUNTIME_CONFIG.ENVIRONMENT;
+  }
+  
+  // Priority 2: Build-time environment variable
+  if (process.env.REACT_APP_ENVIRONMENT) {
+    return process.env.REACT_APP_ENVIRONMENT;
+  }
+  
+  // Priority 3: Detect from hostname
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'local';
+  } else if (hostname.includes('dev')) {
+    return 'dev';
+  } else if (hostname.includes('stage') || hostname.includes('staging')) {
+    return 'stage';
+  } else if (hostname.includes('docker') || hostname === 'frontend') {
+    return 'docker';
+  }
+  
+  // Priority 4: Production (pod) as final fallback
+  return 'pod';
+};
+
+// Get configuration for current environment
+const getEnvironmentConfig = () => {
+  const env = getCurrentEnvironment();
+  return ENVIRONMENT_URLS[env] || ENVIRONMENT_URLS.local;
+};
 
 // Get base backend URL
 export const getBackendUrl = () => {
-  // Priority 1: Runtime config (set during production deployment)
+  // Priority 1: Runtime config override (for manual override)
   if (window.RUNTIME_CONFIG?.SOCKET_URL) {
     return window.RUNTIME_CONFIG.SOCKET_URL;
   }
   
-  // Priority 2: Environment variable
+  // Priority 2: Direct env var override
   if (process.env.REACT_APP_SOCKET_URL) {
     return process.env.REACT_APP_SOCKET_URL;
   }
   
-  // Priority 3: Localhost fallback for development
-  return 'http://localhost:8000';
+  // Priority 3: Environment-specific config
+  return getEnvironmentConfig().backend;
 };
 
 // Get API base URL (for /api/users endpoints)
 export const getApiUrl = () => {
-  // Priority 1: Runtime config
+  // Priority 1: Runtime config override
   if (window.RUNTIME_CONFIG?.API_URL) {
     return window.RUNTIME_CONFIG.API_URL;
   }
   
-  // Priority 2: Environment variable
+  // Priority 2: Direct env var override
   if (process.env.REACT_APP_API_URL) {
     return process.env.REACT_APP_API_URL;
   }
   
-  // Priority 3: Localhost fallback
-  return 'http://localhost:8000/api/users';
+  // Priority 3: Environment-specific config
+  return getEnvironmentConfig().api;
+};
+
+// Get WebSocket URL
+export const getWebSocketUrl = () => {
+  // Priority 1: Runtime config override
+  if (window.RUNTIME_CONFIG?.WS_URL) {
+    return window.RUNTIME_CONFIG.WS_URL;
+  }
+  
+  // Priority 2: Direct env var override
+  if (process.env.REACT_APP_WS_URL) {
+    return process.env.REACT_APP_WS_URL;
+  }
+  
+  // Priority 3: Environment-specific config
+  return getEnvironmentConfig().ws;
 };
 
 // Export constants for common use

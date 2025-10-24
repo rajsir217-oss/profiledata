@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import { getDisplayName } from '../utils/userDisplay';
 import './SearchPage.css';
@@ -168,7 +169,7 @@ const SearchResultCard = ({
 
     const imageSrc = currentImage && currentImage.startsWith('http') 
       ? currentImage 
-      : `http://localhost:8000${currentImage}`;
+      : getImageUrl(currentImage);
 
     return (
       <div className="profile-image-container">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import './JobExecutionHistory.css';
 
 const JobExecutionHistory = ({ job, onClose }) => {
@@ -22,7 +23,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
       }
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${job._id}/executions?${params}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs/${job._id}/executions?${params}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -44,7 +45,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
   const handleDeleteExecution = async (executionId) => {
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8000/api/admin/scheduler/executions/${executionId}`, {
+      await fetch(getBackendApiUrl(`/api/admin/scheduler/executions/${executionId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -64,7 +65,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
   const loadExecutionDetails = async (executionId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/executions/${executionId}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/executions/${executionId}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }

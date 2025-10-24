@@ -1,4 +1,5 @@
 import React from 'react';
+import { getImageUrl } from '../utils/urlHelper';
 import './ProfilePreview.css';
 
 const ProfilePreview = ({ user, onClose }) => {
@@ -37,7 +38,7 @@ const ProfilePreview = ({ user, onClose }) => {
             </div>
             {user.images && user.images.length > 0 && (
               <div className="onepager-photo">
-                <img src={user.images[0]} alt="Profile" />
+                <img src={getImageUrl(user.images[0])} alt="Profile" />
               </div>
             )}
           </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import useToast from '../hooks/useToast';
 import './ScheduleListModal.css';
 
@@ -13,7 +14,7 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/notifications/scheduled', {
+      const response = await fetch(getBackendApiUrl('/api/notifications/scheduled'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -55,7 +56,7 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
   const handleDelete = async (scheduleId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/notifications/scheduled/${scheduleId}`, {
+      const response = await fetch(getBackendApiUrl(`/api/notifications/scheduled/${scheduleId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -78,7 +79,7 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
   const handleToggleEnabled = async (schedule) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/notifications/scheduled/${schedule.id}`, {
+      const response = await fetch(getBackendApiUrl(`/api/notifications/scheduled/${schedule.id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
