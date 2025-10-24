@@ -97,26 +97,29 @@ for api in "${apis[@]}"; do
 done
 
 echo ""
-echo "💳 Checking billing status..."
-
-# Check if billing is enabled
-BILLING_ENABLED=$(gcloud beta billing projects describe $PROJECT_ID --format="value(billingEnabled)" 2>/dev/null || echo "false")
-
-if [ "$BILLING_ENABLED" = "True" ] || [ "$BILLING_ENABLED" = "true" ]; then
-    echo "✅ Billing is enabled"
-else
-    echo "⚠️  Billing is NOT enabled"
-    echo ""
-    echo "📌 Important: Cloud Run requires billing to be enabled"
-    echo "   (But there's a generous FREE tier - likely $0/month for your usage)"
-    echo ""
-    echo "To enable billing:"
-    echo "   1. Visit: https://console.cloud.google.com/billing/linkedaccount?project=$PROJECT_ID"
-    echo "   2. Select or create a billing account"
-    echo "   3. Link it to this project"
-    echo ""
-    read -p "Press Enter after enabling billing to continue..."
-fi
+echo "💳 Billing Setup Required"
+echo ""
+echo "📌 Important: Cloud Run requires billing to be enabled"
+echo "   (But there's a generous FREE tier - likely $0/month for your usage)"
+echo ""
+echo "Please enable billing for your project:"
+echo ""
+echo "   1. Open this link in your browser:"
+echo "      https://console.cloud.google.com/billing/linkedaccount?project=$PROJECT_ID"
+echo ""
+echo "   2. Click 'Link a Billing Account'"
+echo ""
+echo "   3. Select an existing billing account OR create a new one"
+echo "      (You'll need a credit card for verification - won't be charged)"
+echo ""
+echo "   4. Link it to project: $PROJECT_ID"
+echo ""
+echo "💡 Free Tier Benefits:"
+echo "   - 2M requests/month FREE"
+echo "   - Your testing will likely cost $0"
+echo "   - Set budget alerts to avoid surprises"
+echo ""
+read -p "✅ Press Enter after enabling billing to continue..."
 
 echo ""
 echo "=============================================="
