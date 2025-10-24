@@ -19,8 +19,14 @@ def seed_database(mongodb_url):
     print("=" * 70)
     
     try:
-        # Connect to MongoDB Atlas
-        client = MongoClient(mongodb_url)
+        # Connect to MongoDB Atlas with SSL configuration
+        # Use tlsAllowInvalidCertificates for development/testing
+        # For production, ensure proper SSL certificates are installed
+        client = MongoClient(
+            mongodb_url,
+            tlsAllowInvalidCertificates=True,  # Bypass SSL cert verification
+            serverSelectionTimeoutMS=10000
+        )
         db = client.matrimonialDB
         
         # Test connection

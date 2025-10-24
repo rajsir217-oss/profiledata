@@ -107,6 +107,9 @@ echo "🔨 Building and deploying backend..."
 echo "   This may take 5-10 minutes..."
 cd fastapi_backend
 
+# Use Dockerfile.prod (gcloud auto-detects Dockerfile in current directory)
+cp Dockerfile.prod Dockerfile
+
 gcloud run deploy $BACKEND_SERVICE \
   --source . \
   --platform managed \
@@ -117,8 +120,7 @@ gcloud run deploy $BACKEND_SERVICE \
   --memory 512Mi \
   --cpu 1 \
   --timeout 300 \
-  --set-env-vars="MONGODB_URL=$MONGODB_URL,REDIS_URL=$REDIS_URL,DATABASE_NAME=matrimonialDB,SECRET_KEY=$SECRET_KEY,ENVIRONMENT=production" \
-  --dockerfile Dockerfile.prod
+  --set-env-vars="MONGODB_URL=$MONGODB_URL,REDIS_URL=$REDIS_URL,DATABASE_NAME=matrimonialDB,SECRET_KEY=$SECRET_KEY,ENVIRONMENT=production"
 
 # Get backend URL
 BACKEND_URL=$(gcloud run services describe $BACKEND_SERVICE --region $REGION --format 'value(status.url)')
@@ -129,6 +131,9 @@ echo ""
 echo "🔨 Building and deploying frontend..."
 echo "   This may take 5-10 minutes..."
 cd ../frontend
+
+# Use Dockerfile.prod (gcloud auto-detects Dockerfile in current directory)
+cp Dockerfile.prod Dockerfile
 
 # Update frontend to use backend URL
 echo "   Configuring frontend to use backend: $BACKEND_URL"
@@ -143,8 +148,7 @@ gcloud run deploy $FRONTEND_SERVICE \
   --memory 256Mi \
   --cpu 1 \
   --timeout 60 \
-  --set-env-vars="REACT_APP_API_URL=$BACKEND_URL/api/users,REACT_APP_SOCKET_URL=$BACKEND_URL" \
-  --dockerfile Dockerfile.prod
+  --set-env-vars="REACT_APP_API_URL=$BACKEND_URL/api/users,REACT_APP_SOCKET_URL=$BACKEND_URL"
 
 # Get frontend URL
 FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region $REGION --format 'value(status.url)')
