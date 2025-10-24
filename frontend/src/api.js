@@ -1,8 +1,16 @@
 // frontend/src/api.js
 import axios from "axios";
 
+// Use runtime config if available (for production), otherwise use env vars
+const getAPIUrl = () => {
+  if (window.RUNTIME_CONFIG) {
+    return window.RUNTIME_CONFIG.API_URL;
+  }
+  return process.env.REACT_APP_API_URL || "http://localhost:8000/api/users";
+};
+
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000/api/users",
+  baseURL: getAPIUrl(),
 });
 
 // Add request interceptor to include auth token

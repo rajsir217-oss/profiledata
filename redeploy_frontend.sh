@@ -26,16 +26,19 @@ gcloud config set project $PROJECT_ID
 # Navigate to frontend
 cd frontend
 
-# Create .env file (not .env.production - React reads .env during build)
-cat > .env << EOF
-REACT_APP_API_URL=${BACKEND_URL}/api/users
-REACT_APP_SOCKET_URL=${BACKEND_URL}
+# Create runtime config.js with production URLs
+cat > public/config.js << EOF
+// Runtime configuration - DO NOT COMMIT
+window.RUNTIME_CONFIG = {
+  API_URL: '${BACKEND_URL}/api/users',
+  SOCKET_URL: '${BACKEND_URL}'
+};
 EOF
 
-echo "✅ Created .env with backend URL"
+echo "✅ Created public/config.js with backend URL"
 echo ""
 
-# Create Dockerfile that includes .env
+# Create Dockerfile
 cat > Dockerfile << 'DOCKERFILE_END'
 # Build stage
 FROM node:18-alpine AS builder
@@ -45,10 +48,10 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci
 
-# Copy source and .env
+# Copy source (including public/config.js)
 COPY . .
 
-# Build with environment variables from .env
+# Build
 RUN npm run build
 
 # Production stage
@@ -91,7 +94,7 @@ gcloud run deploy $FRONTEND_SERVICE \
 FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE --region $REGION --format 'value(status.url)')
 
 # Clean up
-rm .env
+rm public/config.js
 rm Dockerfile
 
 echo ""

@@ -23,10 +23,15 @@ class SocketService {
 
     this.username = username;
     
-    console.log('🔌 Connecting to Socket.IO at http://localhost:8000');
+    // Use runtime config if available (for production), otherwise use env vars
+    const socketUrl = window.RUNTIME_CONFIG?.SOCKET_URL || 
+                     process.env.REACT_APP_SOCKET_URL || 
+                     'http://localhost:8000';
+    
+    console.log(`🔌 Connecting to Socket.IO at ${socketUrl}`);
     
     // Connect to Socket.IO server with username as query parameter
-    this.socket = io('http://localhost:8000', {
+    this.socket = io(socketUrl, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,
