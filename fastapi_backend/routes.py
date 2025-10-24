@@ -392,46 +392,7 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     """Login user and return access token"""
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
     
-    # Special handling for hardcoded admin account
-    if login_data.username == "admin":
-        logger.info("🔐 Admin login attempt detected")
-        
-        # Check hardcoded admin password
-        # In production, this should be stored securely in environment variables
-        ADMIN_PASSWORD = "admin"  # Hardcoded admin password
-        
-        if login_data.password == ADMIN_PASSWORD:
-            logger.info("✅ Admin login successful (hardcoded credentials)")
-            
-            # Create access token
-            access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
-            access_token = create_access_token(
-                data={"sub": "admin"}, expires_delta=access_token_expires
-            )
-            
-            # Return admin user data
-            return {
-                "message": "Admin login successful",
-                "user": {
-                    "username": "admin",
-                    "firstName": "Admin",
-                    "lastName": "User",
-                    "contactEmail": "admin@system.com",
-                    "role": "admin"
-                },
-                "access_token": access_token,
-                "token_type": "bearer"
-            }
-        else:
-            logger.warning("⚠️ Admin login failed: Invalid password")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid credentials"
-            )
-    
-    # Regular user login)
-    
-    # Find user
+    # Find user in database (works for both admin and regular users)
     logger.debug(f"Looking up user '{login_data.username}' in database...")
     user = await db.users.find_one({"username": login_data.username})
     if not user:
