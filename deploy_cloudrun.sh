@@ -10,7 +10,6 @@ echo "==========================================="
 echo ""
 
 # Configuration
-PROJECT_ID="matrimonial-staging"  # Change this to your GCP project ID
 REGION="us-central1"
 BACKEND_SERVICE="matrimonial-backend"
 FRONTEND_SERVICE="matrimonial-frontend"
@@ -33,6 +32,32 @@ if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" &> /dev/n
 fi
 
 echo "✅ Logged in to Google Cloud"
+echo ""
+
+# Get or create project
+if [ -f ".gcp_project_id" ]; then
+    PROJECT_ID=$(cat .gcp_project_id)
+    echo "📦 Using saved project ID: $PROJECT_ID"
+else
+    echo "❌ No GCP project configured"
+    echo ""
+    echo "Please run the project setup script first:"
+    echo "   ./setup_gcp_project.sh"
+    echo ""
+    exit 1
+fi
+
+# Verify project exists and is accessible
+if ! gcloud projects describe $PROJECT_ID &>/dev/null; then
+    echo "❌ Project '$PROJECT_ID' not found or not accessible"
+    echo ""
+    echo "Please run the project setup script:"
+    echo "   ./setup_gcp_project.sh"
+    echo ""
+    exit 1
+fi
+
+echo "✅ Using project: $PROJECT_ID"
 echo ""
 
 # Prompt for environment variables
