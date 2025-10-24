@@ -3,6 +3,7 @@ import './TemplateManager.css';
 import useToast from '../hooks/useToast';
 import ScheduleNotificationModal from './ScheduleNotificationModal';
 import ScheduleListModal from './ScheduleListModal';
+import { API_ENDPOINTS } from '../config/apiConfig';
 
 const TemplateManager = () => {
   const [templates, setTemplates] = useState([]);
@@ -61,7 +62,7 @@ const TemplateManager = () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/notifications/templates?include_job_templates=true', {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATION_TEMPLATES}?include_job_templates=true`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -100,7 +101,7 @@ const TemplateManager = () => {
   const loadScheduledNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/notifications/scheduled', {
+      const response = await fetch(API_ENDPOINTS.NOTIFICATION_SCHEDULED, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -188,8 +189,8 @@ const TemplateManager = () => {
     try {
       const token = localStorage.getItem('token');
       const url = editTemplate._id
-        ? `http://localhost:8000/api/notifications/templates/${editTemplate._id}`
-        : 'http://localhost:8000/api/notifications/templates';
+        ? `${API_ENDPOINTS.NOTIFICATION_TEMPLATES}/${editTemplate._id}`
+        : API_ENDPOINTS.NOTIFICATION_TEMPLATES;
       
       const response = await fetch(url, {
         method: editTemplate._id ? 'PUT' : 'POST',
@@ -230,7 +231,7 @@ const TemplateManager = () => {
   const handleToggleActive = async (templateId, currentActive) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/notifications/templates/${templateId}`, {
+      const response = await fetch(`${API_ENDPOINTS.NOTIFICATION_TEMPLATES}/${templateId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -286,7 +287,7 @@ const TemplateManager = () => {
       const token = localStorage.getItem('token');
       const username = localStorage.getItem('username');
 
-      const response = await fetch('http://localhost:8000/api/notifications/send', {
+      const response = await fetch(API_ENDPOINTS.NOTIFICATION_SEND, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
