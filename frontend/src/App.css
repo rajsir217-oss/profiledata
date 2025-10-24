@@ -11,7 +11,7 @@
 .app-layout {
   position: absolute;
   top: 0;
-  left: 280px; /* Default offset for desktop (sidebar always visible) */
+  left: 0; /* Start with no offset (sidebar closed by default) */
   right: 0;
   bottom: 0;
   padding-top: 70px;
@@ -21,7 +21,7 @@
 }
 
 .app-layout.sidebar-open {
-  left: 280px;
+  left: 280px; /* Push content when sidebar opens */
 }
 
 /* Main Content */

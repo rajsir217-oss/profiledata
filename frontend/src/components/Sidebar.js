@@ -78,11 +78,24 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     localStorage.removeItem('appTheme'); // Clear theme cache
     setIsLoggedIn(false);
     setCurrentUser(null);
-    
+    setUserProfile(null);
+    setUserStatus('pending');
     // Dispatch event to notify other components (TopBar, etc.)
     window.dispatchEvent(new Event('loginStatusChanged'));
     
     navigate('/login');
+  };
+
+  // Helper function to handle menu item clicks (auto-close on mobile)
+  const handleMenuClick = (action) => {
+    if (action) {
+      action(); // Execute the navigation action
+      
+      // Auto-close sidebar on mobile after navigation
+      if (window.innerWidth <= 768 && onToggle) {
+        onToggle();
+      }
+    }
   };
 
   // Build menu items based on user role
@@ -267,12 +280,22 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   // console.log('📋 Menu Items Count:', menuItems.length);
 
   return (
-    <div 
-      className={`sidebar ${!isCollapsed ? 'open' : ''}`}
-    >
+    <>
+      {/* Backdrop - Click outside to close sidebar */}
+      {!isCollapsed && (
+        <div 
+          className="sidebar-backdrop"
+          onClick={() => onToggle()}
+          aria-label="Close sidebar"
+        />
+      )}
+      
+      <div 
+        className={`sidebar ${!isCollapsed ? 'open' : ''}`}
+      >
 
-        {/* Menu Items */}
-        <div className="sidebar-menu">
+          {/* Menu Items */}
+          <div className="sidebar-menu">
           {menuItems.length === 0 && (
             <div style={{padding: '20px', color: '#666'}}>
               No menu items available
@@ -282,7 +305,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             <div 
               key={index} 
               className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
-              onClick={item.disabled ? undefined : item.action}
+              onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
               title={item.disabled ? 'Please activate your account to access this feature' : ''}
             >
               {item.profileImage ? (
@@ -316,21 +339,22 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           {/* Show Testimonials in footer for non-admin/non-moderator users */}
           {isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator' && (
             <>
-              <span className="footer-link" onClick={() => navigate('/testimonials')}>💬 Testimonials</span>
+              <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
               <span className="footer-separator">|</span>
             </>
           )}
-          <span className="footer-link" onClick={() => navigate('/l3v3l-info')}>🦋 L3V3L</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/l3v3l-info'))}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/privacy')}>Privacy</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/privacy'))}>Privacy</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/about')}>About Us</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/trademark')}>Trademark</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/contact')}>📧 Contact Us</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/contact'))}>📧 Contact Us</span>
         </div>
-    </div>
+      </div>
+    </>
   );
 };
 
