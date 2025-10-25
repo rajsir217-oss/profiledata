@@ -31,7 +31,7 @@ const AdminPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState(''); // Gender filter
-  const [statusFilter, setStatusFilter] = useState('pending'); // Default to pending for faster loading
+  const [statusFilter, setStatusFilter] = useState(''); // Default to all statuses
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -256,8 +256,8 @@ const AdminPage = () => {
         user.contactEmail?.toLowerCase().includes(searchLower)
       );
       
-      // Apply status filter
-      const userStatus = user.status?.status || user.status || 'pending';
+      // Apply status filter - check new accountStatus field first, then fall back to old status.status
+      const userStatus = user.accountStatus || user.status?.status || user.status || 'active';
       const matchesStatus = !statusFilter || userStatus === statusFilter;
       
       // Apply gender filter (case-insensitive, check multiple field names)
@@ -401,10 +401,12 @@ const AdminPage = () => {
             style={{ flex: 1, maxWidth: '250px' }}
           >
             <option value="">All Status</option>
-            <option value="pending">Pending Verification</option>
+            <option value="pending_email_verification">Pending Email Verification</option>
+            <option value="pending_admin_approval">Pending Admin Approval</option>
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
+            <option value="deactivated">Deactivated</option>
             <option value="banned">Banned</option>
           </select>
           

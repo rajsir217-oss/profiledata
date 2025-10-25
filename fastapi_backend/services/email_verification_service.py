@@ -626,7 +626,7 @@ class EmailVerificationService:
             """
             
             # Send email
-            return self._send_email(email, subject, html_content, text_content)
+            return await self._send_email(email, subject, html_content, text_content)
             
         except Exception as e:
             print(f"❌ Error sending welcome email: {e}")
