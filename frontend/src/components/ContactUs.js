@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import api from '../api';
 import './ContactUs.css';
 
@@ -589,7 +590,7 @@ const ContactUs = () => {
                             {selectedTicket.attachments.map((att, idx) => (
                               <a 
                                 key={idx}
-                                href={`http://localhost:8000/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`}
+                                href={getBackendApiUrl(`/api/users/contact/download/${selectedTicket._id}/${att.stored_filename}`)}
                                 download={att.filename}
                                 className="attachment-link"
                                 target="_blank"

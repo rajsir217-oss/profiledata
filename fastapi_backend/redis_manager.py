@@ -5,6 +5,7 @@ Handles online/offline status and messaging with Redis
 import redis
 import json
 import logging
+import os
 from typing import List, Dict, Optional, Set
 from datetime import datetime, timedelta
 
@@ -13,10 +14,11 @@ logger = logging.getLogger(__name__)
 class RedisManager:
     """Manages Redis connections and operations for real-time features"""
     
-    def __init__(self, host='localhost', port=6379, db=0):
+    def __init__(self, host='localhost', port=6379, db=0, password=None):
         self.host = host
         self.port = port
         self.db = db
+        self.password = password
         self.redis_client: Optional[redis.Redis] = None
         self.pubsub = None
         
@@ -38,6 +40,7 @@ class RedisManager:
                 host=self.host,
                 port=self.port,
                 db=self.db,
+                password=self.password,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_keepalive=True
@@ -432,7 +435,24 @@ class RedisManager:
 
 
 # Global Redis manager instance
-redis_manager = RedisManager()
+# Parse Redis URL from environment variable
+# Supports formats:
+#   redis://host:port
+#   redis://user:password@host:port
+redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
+
+# Parse Redis URL properly
+from urllib.parse import urlparse
+parsed = urlparse(redis_url)
+redis_host = parsed.hostname or 'localhost'
+redis_port = parsed.port or 6379
+redis_password = parsed.password
+
+redis_manager = RedisManager(
+    host=redis_host,
+    port=redis_port,
+    password=redis_password
+)
 
 
 def get_redis_manager() -> RedisManager:

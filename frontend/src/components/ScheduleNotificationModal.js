@@ -88,7 +88,7 @@ const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
       }
 
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/notifications/scheduled', {
+      const response = await fetch(`${window.RUNTIME_CONFIG?.SOCKET_URL || process.env.REACT_APP_SOCKET_URL || 'http://localhost:8000'}/api/notifications/scheduled`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

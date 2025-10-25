@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { getApiUrl } from '../config/apiConfig';
 import socketService from '../services/socketService';
 import { getShortName } from '../utils/userDisplay';
 import './Sidebar.css';
@@ -65,7 +66,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Mark user as offline (non-blocking beacon)
     if (username) {
       navigator.sendBeacon(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        `${getApiUrl()}/online-status/${username}/offline`,
         ''
       );
     }
@@ -77,11 +78,24 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     localStorage.removeItem('appTheme'); // Clear theme cache
     setIsLoggedIn(false);
     setCurrentUser(null);
-    
+    setUserProfile(null);
+    setUserStatus('pending');
     // Dispatch event to notify other components (TopBar, etc.)
     window.dispatchEvent(new Event('loginStatusChanged'));
     
     navigate('/login');
+  };
+
+  // Helper function to handle menu item clicks (auto-close after selection)
+  const handleMenuClick = (action) => {
+    if (action) {
+      action(); // Execute the navigation action
+      
+      // Always auto-close sidebar after menu selection for better UX
+      if (onToggle) {
+        onToggle();
+      }
+    }
   };
 
   // Build menu items based on user role
@@ -158,13 +172,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
     // Add Admin section for admin user
     if (currentUser === 'admin') {
-      items.push({
-        icon: '━━━',
-        label: 'ADMIN SECTION',
-        subLabel: '',
-        action: () => {},
-        isHeader: true
-      });
+      // === CORE ADMIN SECTION ===
+      items.push({ isHeader: true, label: 'ADMIN SECTION' });
       
       items.push({
         icon: '🔐',
@@ -187,32 +196,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/role-management')
       });
       
-      items.push({
-        icon: '📨',
-        label: 'Contact Support',
-        subLabel: 'Manage user inquiries',
-        action: () => navigate('/admin/contact')
-      });
-      
-      items.push({
-        icon: '🧪',
-        label: 'Test Dashboard',
-        subLabel: 'Run & schedule tests',
-        action: () => navigate('/test-dashboard')
-      });
+      // === MONITORING & AUTOMATION ===
+      items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
       
       items.push({
         icon: '📊',
         label: 'Activity Logs',
         subLabel: 'Monitor user activities',
         action: () => navigate('/activity-logs')
-      });
-      
-      items.push({
-        icon: '🔔',
-        label: 'Notification Tester',
-        subLabel: 'Test & debug notifications',
-        action: () => navigate('/notification-tester')
       });
       
       items.push({
@@ -228,34 +219,74 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         subLabel: 'Queue, logs & templates',
         action: () => navigate('/notification-management')
       });
-
-      // System Configuration moved to Settings page as a tab
-    }
-
-    // Add Testimonials section (only for admin/moderator in main menu)
-    if (currentUser === 'admin' || localStorage.getItem('userRole') === 'moderator') {
+      
+      // === CONFIGURATION ===
+      items.push({ isHeader: true, label: 'CONFIGURATION' });
+      
       items.push({ 
+        icon: '⚙️', 
+        label: 'Settings', 
+        subLabel: 'Preferences, Theme & Notifications',
+        action: () => navigate('/preferences'),
+        disabled: !isActive
+      });
+      
+      items.push({
         icon: '💬', 
         label: 'Testimonials', 
         subLabel: 'User feedback',
         action: () => navigate('/testimonials'),
         disabled: !isActive
       });
+      
+      // === TESTING & SUPPORT ===
+      items.push({ isHeader: true, label: 'TESTING & SUPPORT' });
+      
+      items.push({
+        icon: '🔔',
+        label: 'Notification Tester',
+        subLabel: 'Test & debug notifications',
+        action: () => navigate('/notification-tester')
+      });
+      
+      items.push({
+        icon: '🧪',
+        label: 'Test Dashboard',
+        subLabel: 'Run & schedule tests',
+        action: () => navigate('/test-dashboard')
+      });
+      
+      items.push({
+        icon: '📨',
+        label: 'Contact Support',
+        subLabel: 'Manage user inquiries',
+        action: () => navigate('/admin/contact')
+      });
     }
 
-    // Add Settings before logout
-    items.push({ 
-      icon: '⚙️', 
-      label: 'Settings', 
-      subLabel: 'Preferences, Theme & Notifications',
-      action: () => navigate('/preferences'),
-      disabled: !isActive
-    });
+    // Show Testimonials and Settings for non-admin users (admins have them in their sections)
+    if (isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator') {
+      items.push({
+        icon: '💬', 
+        label: 'Testimonials', 
+        subLabel: 'User feedback',
+        action: () => navigate('/testimonials'),
+        disabled: !isActive
+      });
+      
+      items.push({ 
+        icon: '⚙️', 
+        label: 'Settings', 
+        subLabel: 'Preferences, Theme & Notifications',
+        action: () => navigate('/preferences'),
+        disabled: !isActive
+      });
+    }
 
     // Add logout at the end
     items.push({ 
       icon: '🚪', 
-      label: 'Logout', 
+      label: '', 
       action: handleLogout
     });
 
@@ -266,12 +297,22 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   // console.log('📋 Menu Items Count:', menuItems.length);
 
   return (
-    <div 
-      className={`sidebar ${!isCollapsed ? 'open' : ''}`}
-    >
+    <>
+      {/* Backdrop - Click outside to close sidebar */}
+      {!isCollapsed && (
+        <div 
+          className="sidebar-backdrop"
+          onClick={() => onToggle()}
+          aria-label="Close sidebar"
+        />
+      )}
+      
+      <div 
+        className={`sidebar ${!isCollapsed ? 'open' : ''}`}
+      >
 
-        {/* Menu Items */}
-        <div className="sidebar-menu">
+          {/* Menu Items */}
+          <div className="sidebar-menu">
           {menuItems.length === 0 && (
             <div style={{padding: '20px', color: '#666'}}>
               No menu items available
@@ -281,7 +322,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             <div 
               key={index} 
               className={`menu-item ${item.isHeader ? 'menu-header' : ''} ${item.disabled ? 'disabled' : ''}`}
-              onClick={item.disabled ? undefined : item.action}
+              onClick={item.disabled ? undefined : () => handleMenuClick(item.action)}
               title={item.disabled ? 'Please activate your account to access this feature' : ''}
             >
               {item.profileImage ? (
@@ -312,24 +353,18 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Footer Links */}
         <div className="sidebar-footer">
-          {/* Show Testimonials in footer for non-admin/non-moderator users */}
-          {isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator' && (
-            <>
-              <span className="footer-link" onClick={() => navigate('/testimonials')}>💬 Testimonials</span>
-              <span className="footer-separator">|</span>
-            </>
-          )}
-          <span className="footer-link" onClick={() => navigate('/l3v3l-info')}>🦋 L3V3L</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/l3v3l-info'))}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/privacy')}>Privacy</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/privacy'))}>Privacy</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/about')}>About Us</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/trademark')}>Trademark</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
           <span className="footer-separator">|</span>
-          <span className="footer-link" onClick={() => navigate('/contact')}>📧 Contact Us</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/contact'))}>📧 Contact Us</span>
         </div>
-    </div>
+      </div>
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import MessageBadge from './MessageBadge';
 import { getDisplayName } from '../utils/userDisplay';
@@ -46,7 +47,8 @@ const UserCard = ({
   const profileData = user.viewerProfile || user.userProfile || user;
   const username = profileData?.username || user.username;
   const displayName = getDisplayName(profileData) || username;
-  const avatar = profileData?.images?.[0] || profileData?.profileImage || user.profileImage;
+  const avatarPath = profileData?.images?.[0] || profileData?.profileImage || user.profileImage;
+  const avatar = avatarPath ? getImageUrl(avatarPath) : null;
   const initials = profileData?.firstName?.[0] || username?.[0]?.toUpperCase() || '?';
 
   // Additional metadata from Dashboard

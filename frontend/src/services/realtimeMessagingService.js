@@ -4,6 +4,7 @@
  */
 
 import api from '../api';
+import { getApiUrl } from '../config/apiConfig';
 
 class RealtimeMessagingService {
   constructor() {
@@ -44,7 +45,10 @@ class RealtimeMessagingService {
     }
 
     try {
-      const url = `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/messages/stream/${this.currentUser}`;
+      const baseUrl = window.RUNTIME_CONFIG?.API_URL || 
+                      process.env.REACT_APP_API_URL || 
+                      getApiUrl();
+      const url = `${baseUrl}/messages/stream/${this.currentUser}`;
       console.log('📡 Connecting to SSE:', url);
       
       this.eventSource = new EventSource(url);

@@ -1,7 +1,9 @@
 /**
  * API service for test management functionality
  */
-const API_BASE_URL = 'http://localhost:8000/api/tests';
+import { getBackendUrl } from '../config/apiConfig';
+
+const API_BASE_URL = `${getBackendUrl()}/api/tests`;
 
 /**
  * Get all available test suites

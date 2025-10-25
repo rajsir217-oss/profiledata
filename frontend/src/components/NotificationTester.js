@@ -5,8 +5,9 @@ import './NotificationTester.css';
 import DeleteButton from './DeleteButton';
 
 // Create a custom API instance for notifications (different base path)
+import { getBackendUrl } from '../config/apiConfig';
 const notificationApi = axios.create({
-  baseURL: 'http://localhost:8000'
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor

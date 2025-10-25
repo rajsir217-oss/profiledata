@@ -1,8 +1,12 @@
 // frontend/src/api.js
 import axios from "axios";
+import { getApiUrl, getBackendUrl } from './config/apiConfig';
+
+// Use centralized API config
+const getAPIUrl = getApiUrl;
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:8000/api/users",
+  baseURL: getAPIUrl(),
 });
 
 // Add request interceptor to include auth token
@@ -24,13 +28,19 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn('🔒 Session expired - redirecting to login');
+      const url = error.config?.url || 'unknown';
+      console.warn('🔒 401 Unauthorized received from:', url);
+      console.warn('   This means the JWT token is invalid or expired');
+      console.warn('   Clearing session and redirecting to login...');
       // Clear all auth data
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userRole');
-      // Redirect to login
-      window.location.href = '/login';
+      localStorage.removeItem('userStatus');
+      // Small delay to ensure storage is cleared
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 100);
     }
     return Promise.reject(error);
   }
@@ -150,7 +160,7 @@ export const updateUserPreferences = async (preferences) => {
 export const changePassword = async (passwordData) => {
   try {
     const authApi = axios.create({
-      baseURL: process.env.REACT_APP_API_URL?.replace('/api/users', '/api/auth') || 'http://localhost:8000/api/auth',
+      baseURL: `${getBackendUrl()}/api/auth`,
     });
     
     // Add auth token
@@ -168,7 +178,7 @@ export const changePassword = async (passwordData) => {
 
 // Image Access API - uses separate axios instance to avoid baseURL conflicts
 const imageAccessApi = axios.create({
-  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor for imageAccessApi
@@ -348,7 +358,7 @@ export const imageAccess = {
 
 // Notifications API - uses separate axios instance to avoid baseURL conflicts
 const notificationsApi = axios.create({
-  baseURL: 'http://localhost:8000'  // Hardcoded to avoid /api/users prefix
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor for notificationsApi

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector } from "./shared";
 import Logo from "./Logo";
@@ -45,15 +46,15 @@ const Register = () => {
     heightFeet: "",  // Feet: 4-7
     heightInches: "",  // Inches: 0-11
     // Preferences & Cultural Information
-    religion: "Prefer not to say",  // Default value
+    religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
-    castePreference: "None",  // Default "None"
-    eatingPreference: "None",  // Default "None"
+    castePreference: "No Preference",  // Default "No Preference"
+    eatingPreference: "No Preference",  // Default "No Preference"
     // Residential Information (Mandatory)
     countryOfOrigin: "US",  // Mandatory, default US
     countryOfResidence: "US",  // Mandatory, default US
-    state: "",  // Mandatory
-    location: "",  // City/Town
+    state: "California",  // Default based on residence
+    location: "San Francisco",  // Default based on residence
     // USA-specific field
     citizenshipStatus: "Citizen",  // Relevant for USA only
     // India-specific fields (optional)
@@ -62,15 +63,22 @@ const Register = () => {
     familyType: "",
     familyValues: "",
     // Educational Information
-    educationHistory: [],  // Array of education entries
+    educationHistory: [{
+      level: "Under Graduation",
+      degree: "BS",
+      institution: "One of the Top 10 Institution"
+    }],  // Array of education entries with default
     // Professional & Work Related Information
-    workExperience: [],  // Array of work experience entries
-    workLocation: "",  // Renamed from workplace
+    workExperience: [{
+      status: "current",
+      description: "Marketing Manager in Health Care Sector",
+      location: "San Francisco"
+    }],  // Array of work experience entries with default
     linkedinUrl: "",
     // About Me and Partner Information
-    familyBackground: "",
-    aboutMe: "",  // Renamed from aboutYou
-    partnerPreference: "",
+    familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
+    aboutMe: "I am a entrepreneur based in Srinagar. Love to explore new places and cuisines. Seeking a travel buddy and life companion.",  // Renamed from aboutYou
+    partnerPreference: "Looking for someone who is family-oriented and ambitious. Education and values are important to me.",
     // Partner Matching Criteria
     partnerCriteria: {
       ageRange: { min: "", max: "" }, // Legacy - kept for backward compatibility
@@ -82,15 +90,15 @@ const Register = () => {
         maxInches: ""
       }, // Legacy
       heightRangeRelative: { minInches: 0, maxInches: 6 }, // NEW: Relative height in inches
-      educationLevel: [],
-      profession: [],
-      languages: [],
-      religion: [],
-      caste: "",
-      location: [],
-      eatingPreference: [],
-      familyType: [],
-      familyValues: []
+      educationLevel: ["Bachelor's"],
+      profession: ["Any"],
+      languages: ["English"],
+      religion: ["Any Religion"],
+      caste: "No Preference",
+      location: ["Any"],
+      eatingPreference: ["Any"],
+      familyType: ["Any"],
+      familyValues: ["Moderate"]
     },
     // New dating-app fields
     relationshipStatus: "Single",
@@ -104,7 +112,7 @@ const Register = () => {
     hasChildren: "No",
     wantsChildren: "Yes",
     pets: "None",
-    bio: "",
+    bio: "Independent woman seeking a partner who respects my ambitions and shares my values.",
     // Legal consent fields
     agreedToAge: false,
     agreedToTerms: false,
@@ -114,6 +122,7 @@ const Register = () => {
     agreedToMarketing: false,
   });
 
+  const navigate = useNavigate();
   const [images, setImages] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [successMsg, setSuccessMsg] = useState("");
@@ -122,6 +131,8 @@ const Register = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const usernameCheckTimeout = useRef(null);
 
   // Sample description carousel states
@@ -261,6 +272,39 @@ const Register = () => {
       }
     }
   }, [formData.firstName, formData.lastName, formData.username]);
+
+  // Update state, location, and work location based on country of residence
+  useEffect(() => {
+    setFormData(prev => {
+      const updates = {};
+      
+      if (prev.countryOfResidence === 'US') {
+        updates.state = 'California';
+        updates.location = 'San Francisco';
+        updates.citizenshipStatus = 'Citizen';
+        // Update work location if work experience exists
+        if (prev.workExperience && prev.workExperience.length > 0) {
+          updates.workExperience = prev.workExperience.map(exp => ({
+            ...exp,
+            location: 'San Francisco'
+          }));
+        }
+      } else if (prev.countryOfResidence === 'India') {
+        updates.state = 'TS';
+        updates.location = 'Hyderabad';
+        updates.citizenshipStatus = 'n/a';
+        // Update work location if work experience exists
+        if (prev.workExperience && prev.workExperience.length > 0) {
+          updates.workExperience = prev.workExperience.map(exp => ({
+            ...exp,
+            location: 'Hyderabad'
+          }));
+        }
+      }
+      
+      return { ...prev, ...updates };
+    });
+  }, [formData.countryOfResidence]);
 
   // Debounced username check effect
   useEffect(() => {
@@ -419,14 +463,6 @@ const Register = () => {
         }
         break;
 
-      case "workplace":
-        if (!value.trim()) {
-          error = "Workplace information is required";
-        } else if (value.length < 3) {
-          error = "Please provide more details about your workplace";
-        }
-        break;
-
       case "familyBackground":
         if (!value.trim()) {
           error = "Family background is required";
@@ -506,6 +542,34 @@ const Register = () => {
     setPreviewIndex(0);
   };
 
+  // Helper function to scroll to and focus a field
+  const scrollToAndFocusField = (fieldName) => {
+    // Try to find the input element by name or id
+    const inputElement = document.querySelector(`[name="${fieldName}"], #${fieldName}`);
+    
+    if (inputElement) {
+      // Scroll to the element with offset for better visibility
+      const elementPosition = inputElement.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 100; // 100px offset from top
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      
+      // Focus and select the input after scrolling
+      setTimeout(() => {
+        inputElement.focus();
+        if (inputElement.select && inputElement.type !== 'checkbox') {
+          inputElement.select(); // Select text if it's a text input
+        }
+      }, 300); // Wait for smooth scroll to complete
+    } else {
+      // Fallback to scrolling to top if element not found
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -515,31 +579,31 @@ const Register = () => {
     // Validate legal consents first
     if (!formData.agreedToAge) {
       setErrorMsg("❌ You must confirm that you are at least 18 years old to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToAge');
       return;
     }
 
     if (!formData.agreedToTerms) {
       setErrorMsg("❌ You must agree to the Terms of Service to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToTerms');
       return;
     }
 
     if (!formData.agreedToPrivacy) {
       setErrorMsg("❌ You must agree to the Privacy Policy to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToPrivacy');
       return;
     }
 
     if (!formData.agreedToGuidelines) {
       setErrorMsg("❌ You must agree to follow the Community Guidelines to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToGuidelines');
       return;
     }
 
     if (!formData.agreedToDataProcessing) {
       setErrorMsg("❌ You must consent to data processing for matchmaking purposes.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToDataProcessing');
       return;
     }
 
@@ -568,7 +632,9 @@ const Register = () => {
     if (hasErrors) {
       const fieldList = errorFields.join(", ");
       setErrorMsg(`❌ Please fix validation errors in the following fields: ${fieldList}`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Scroll to and focus the first field with an error
+      scrollToAndFocusField(errorFields[0]);
       return;
     }
 
@@ -613,16 +679,27 @@ const Register = () => {
     images.forEach((img) => data.append("images", img));
 
     try {
+      setIsSubmitting(true);
+      
+      // Step 1: Register user (email is sent automatically by backend)
       const res = await api.post("/register", data);
-      setSuccessMsg(res.data.message);
 
-      // Fetch the saved user profile from backend to get final image URLs
+      // Step 2: Fetch the saved user profile from backend to get final image URLs
       const profileRes = await api.get(`/profile/${formData.username}`);
-
       setSavedUser(profileRes.data);
+      
+      // Step 3: Show success modal
+      setSuccessMsg(res.data.message);
+      setShowSuccessModal(true);
+      
+      // Step 4: Redirect to login after 5 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 5000);
 
     } catch (err) {
       console.error(err);
+      setIsSubmitting(false);
       const errorDetail = err.response?.data?.detail || err.response?.data?.error || "❌ Something went wrong.";
       
       // Handle specific backend validation errors
@@ -652,7 +729,7 @@ const Register = () => {
         {/* Custom row for firstName and lastName */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">firstName</label>
+            <label className="form-label">First Name</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.firstName && touchedFields.firstName ? 'is-invalid' : ''}`}
@@ -667,7 +744,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">lastName</label>
+            <label className="form-label">Last Name</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.lastName && touchedFields.lastName ? 'is-invalid' : ''}`}
@@ -766,7 +843,7 @@ const Register = () => {
         {/* Custom row for contactNumber and contactEmail */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">contactNumber</label>
+            <label className="form-label">Contact Number</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
@@ -781,7 +858,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">contactEmail</label>
+            <label className="form-label">Contact Email</label>
             <input 
               type="email" 
               className={`form-control ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
@@ -807,7 +884,7 @@ const Register = () => {
               value={formData.religion}
               onChange={handleChange}
             >
-              <option value="">Select Religion</option>
+              <option value="No Religion">No Religion</option>
               <option value="Hindu">Hindu</option>
               <option value="Muslim">Muslim</option>
               <option value="Christian">Christian</option>
@@ -816,8 +893,6 @@ const Register = () => {
               <option value="Jain">Jain</option>
               <option value="Jewish">Jewish</option>
               <option value="Parsi">Parsi</option>
-              <option value="No Religion">No Religion</option>
-              <option value="Other">Other</option>
               <option value="Prefer not to say">Prefer not to say</option>
             </select>
             <small className="text-muted">For both India and USA users</small>
@@ -931,7 +1006,7 @@ const Register = () => {
         <div className="row mb-3">
           <div className="col-md-4">
             <label className="form-label">
-              username
+              User Name
               {checkingUsername && (
                 <span className="text-muted small ms-2">
                   <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -1012,7 +1087,7 @@ const Register = () => {
           </div>
           <div className="col-md-4">
             <label className="form-label">
-              Country of Residence <span className="text-danger">*</span>
+              Residence <span className="text-danger">*</span>
             </label>
             <select
               className={`form-control ${fieldErrors.countryOfResidence && touchedFields.countryOfResidence ? 'is-invalid' : ''}`}
@@ -1093,9 +1168,9 @@ const Register = () => {
               placeholder="e.g., Bangalore, New York City"
             />
           </div>
-          {formData.countryOfResidence === 'US' && (
-            <div className="col-md-6">
-              <label className="form-label">Citizenship Status</label>
+          <div className="col-md-6">
+            <label className="form-label">Citizenship Status</label>
+            {formData.countryOfResidence === 'US' ? (
               <select 
                 className="form-control" 
                 name="citizenshipStatus" 
@@ -1105,9 +1180,17 @@ const Register = () => {
                 <option value="Citizen">Citizen</option>
                 <option value="Greencard">Greencard</option>
               </select>
-              <small className="text-muted">Relevant for USA residents</small>
-            </div>
-          )}
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                value="n/a"
+                readOnly
+                disabled
+              />
+            )}
+            <small className="text-muted">Relevant for USA residents</small>
+          </div>
         </div>
 
         {/* India-Specific Fields (Conditional) */}
@@ -1187,7 +1270,7 @@ const Register = () => {
         {/* Custom row for castePreference, eatingPreference, and location */}
         <div className="row mb-3">
           <div className="col-md-4">
-            <label className="form-label">castePreference</label>
+            <label className="form-label">Caste Preference</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
@@ -1202,7 +1285,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-4">
-            <label className="form-label">eatingPreference</label>
+            <label className="form-label">Eating Preference</label>
             <select 
               className={`form-control ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
               name="eatingPreference" 
@@ -1222,7 +1305,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-4">
-            <label className="form-label">location</label>
+            <label className="form-label">Location</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
@@ -1256,20 +1339,6 @@ const Register = () => {
           errorMsg={errorMsg}
           setErrorMsg={setErrorMsg}
         />
-
-        {/* Work Location (Optional) - workingStatus is auto-calculated from workExperience */}
-        <div className="mb-3">
-          <label className="form-label">Work Location <span className="text-muted">(Optional)</span></label>
-          <input 
-            type="text" 
-            className="form-control"
-            name="workLocation" 
-            value={formData.workLocation} 
-            onChange={handleChange}
-            placeholder="e.g., Bangalore, San Francisco"
-          />
-          <small className="text-muted">Where you work (if employed). Working status is automatically determined.</small>
-        </div>
 
         {/* Render all other fields as input or textarea as appropriate (deduplicated) */}
         {Object.entries(formData).map(([key, value]) => {
@@ -2348,8 +2417,15 @@ const Register = () => {
           </div>
         </div>
 
-        <button className="btn btn-success" type="submit">
-          Create Profile
+        <button className="btn btn-success" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Creating Profile...
+            </>
+          ) : (
+            'Create Profile'
+          )}
         </button>
       </form>
       {/* Show backend images after save */}
@@ -2366,6 +2442,56 @@ const Register = () => {
               height="150"
             />
           ))}
+        </div>
+      )}
+      
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header" style={{
+                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+                color: 'white',
+                border: 'none'
+              }}>
+                <h5 className="modal-title">
+                  ✅ Profile Created Successfully!
+                </h5>
+              </div>
+              <div className="modal-body text-center p-4">
+                <div className="mb-3">
+                  <div className="spinner-border text-primary mb-3" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <h4>Check Your Email!</h4>
+                </div>
+                <p className="lead">
+                  We've sent a verification email to <strong>{formData.contactEmail}</strong>
+                </p>
+                <div className="alert alert-info" role="alert">
+                  <strong>📧 Next Steps:</strong>
+                  <ol className="text-start mt-2 mb-0">
+                    <li>Check your email inbox (and spam folder)</li>
+                    <li>Click the verification link</li>
+                    <li>Wait for admin approval (usually within 24 hours)</li>
+                    <li>Start matching!</li>
+                  </ol>
+                </div>
+                <p className="text-muted">
+                  Redirecting to login page in 5 seconds...
+                </p>
+              </div>
+              <div className="modal-footer justify-content-center">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => navigate('/login')}
+                >
+                  Go to Login Now
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

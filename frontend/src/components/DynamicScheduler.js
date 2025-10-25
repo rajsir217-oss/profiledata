@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import useToast from '../hooks/useToast';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
-import useToast from '../hooks/useToast';
 
 const DynamicScheduler = ({ currentUser }) => {
   const [jobs, setJobs] = useState([]);
@@ -75,7 +77,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const loadTemplates = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/scheduler/templates', {
+      const response = await fetch(getBackendApiUrl('/api/admin/scheduler/templates'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -97,7 +99,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const loadSchedulerStatus = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/scheduler/status', {
+      const response = await fetch(getBackendApiUrl('/api/admin/scheduler/status'), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -135,7 +137,7 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs?${params}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs?${params}`), {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -167,7 +169,7 @@ const DynamicScheduler = ({ currentUser }) => {
       };
       
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/admin/scheduler/jobs', {
+      const response = await fetch(getBackendApiUrl('/api/admin/scheduler/jobs'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -225,7 +227,7 @@ const DynamicScheduler = ({ currentUser }) => {
       };
       
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${editJob._id}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs/${editJob._id}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -253,7 +255,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const handleToggleEnabled = async (jobId, currentEnabled) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${jobId}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs/${jobId}`), {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -287,7 +289,7 @@ const DynamicScheduler = ({ currentUser }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${jobId}`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs/${jobId}`), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -320,7 +322,7 @@ const DynamicScheduler = ({ currentUser }) => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/admin/scheduler/jobs/${jobId}/run`, {
+      const response = await fetch(getBackendApiUrl(`/api/admin/scheduler/jobs/${jobId}/run`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

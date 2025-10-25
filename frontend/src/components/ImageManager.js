@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getImageUrl } from '../utils/urlHelper';
 import './ImageManager.css';
 
 const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setImagesToDelete, newImages, setNewImages, onError }) => {
@@ -186,7 +187,7 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
       ) : (
         <div className="image-grid">
           {allImages.map((img, index) => {
-            const imageUrl = img.type === 'existing' ? img.url : img.preview;
+            const imageUrl = img.type === 'existing' ? getImageUrl(img.url) : img.preview;
             const isNew = img.type === 'new';
             
             return (

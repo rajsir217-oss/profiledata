@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
+import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
 import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
@@ -44,6 +45,7 @@ import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
+import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
 
 // Theme configuration
 const themes = {
@@ -52,7 +54,8 @@ const themes = {
   'light-pink': { primary: '#ec4899', secondary: '#f9a8d4', background: '#fff5f7', text: '#374151' },
   'light-gray': { primary: '#64748b', secondary: '#94a3b8', background: '#f9fafb', text: '#1f2937' },
   'ultra-light-gray': { primary: '#475569', secondary: '#64748b', background: '#fcfcfd', text: '#0f172a' },
-  'ultra-light-green': { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' }
+  'ultra-light-green': { primary: '#10b981', secondary: '#34d399', background: '#f0fdf4', text: '#064e3b' },
+  'indian-wedding': { primary: '#ff6b35', secondary: '#f7931e', background: '#fffaf0', text: '#7c2d12' }
 };
 
 const applyTheme = (themeId) => {
@@ -141,7 +144,7 @@ function App() {
         
         // Mark user as offline via beacon (non-blocking)
         navigator.sendBeacon(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+          `${getApiUrl()}/online-status/${username}/offline`,
           ''
         );
       }
@@ -167,6 +170,7 @@ function App() {
               {/* Public routes */}
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/" element={<Login />} />
               
               {/* Legal pages - accessible to all */}

@@ -47,14 +47,14 @@ const BasicInformation = ({
       <div className="row mb-3">
         <TextInput
           label="Date of Birth"
-          name={isRegistration ? "dateOfBirth" : "dob"}
+          name="dateOfBirth"
           type="date"
-          value={formData.dateOfBirth || formData.dob}
+          value={formData.dateOfBirth}
           onChange={handleChange}
           onBlur={handleBlur}
           required
-          error={fieldErrors.dateOfBirth || fieldErrors.dob}
-          touched={touchedFields.dateOfBirth || touchedFields.dob}
+          error={fieldErrors.dateOfBirth}
+          touched={touchedFields.dateOfBirth}
           className="col-md-3"
         />
         <TextInput

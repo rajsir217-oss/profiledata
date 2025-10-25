@@ -141,7 +141,7 @@
 }
 
 .image-card.profile-pic {
-  border-color: #ffc107;
+  border-color: var(--warning-color, #ffc107);
   border-width: 4px;
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
 }
@@ -151,7 +151,7 @@
   position: relative;
   width: 100%;
   padding-top: 100%; /* 1:1 Aspect Ratio */
-  background: #000;
+  background: var(--card-background, #000);
   overflow: hidden;
 }
 
@@ -273,14 +273,14 @@
 
 /* Profile Pic Button */
 .btn-profile-pic {
-  background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-  color: #856404;
-  border: 2px solid #ffc107;
+  background: var(--warning-light, #fff3cd);
+  color: var(--warning-dark, #856404);
+  border: 2px solid var(--warning-color, #ffc107);
   font-size: 18px;
 }
 
 .btn-profile-pic:hover {
-  background: linear-gradient(135deg, #ffeaa7 0%, #ffc107 100%);
+  background: var(--warning-color, #ffc107);
   color: white;
 }
 
@@ -298,13 +298,13 @@
 
 /* Delete Button */
 .btn-delete {
-  background: #ffebee;
-  color: #c62828;
+  background: var(--danger-light, #ffebee);
+  color: var(--danger-color, #c62828);
   font-size: 18px;
 }
 
 .btn-delete:hover {
-  background: #ef5350;
+  background: var(--danger-color, #ef5350);
   color: white;
 }
 

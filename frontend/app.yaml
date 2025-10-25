@@ -1,0 +1,8 @@
+runtime: custom
+env: flex
+
+env_variables:
+  REACT_APP_ENVIRONMENT: dev
+  REACT_APP_SOCKET_URL: https://matrimonial-backend-458052696267.us-central1.run.app
+  REACT_APP_API_URL: https://matrimonial-backend-458052696267.us-central1.run.app/api/users
+  REACT_APP_WS_URL: wss://matrimonial-backend-458052696267.us-central1.run.app

@@ -5,8 +5,9 @@ import './AdminPage.css';
 import MetaFieldsModal from './MetaFieldsModal';
 
 // Create admin API client without baseURL prefix
+import { getBackendUrl } from '../config/apiConfig';
 const adminApi = axios.create({
-  baseURL: 'http://localhost:8000'
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor
@@ -221,10 +222,10 @@ const AdminPage = () => {
   const calculateComputedFields = (user) => {
     const now = new Date();
     
-    // Calculate age from DOB
+    // Calculate age from date of birth
     let age = 'N/A';
-    if (user.dob) {
-      const birthDate = new Date(user.dob);
+    if (user.dateOfBirth) {
+      const birthDate = new Date(user.dateOfBirth);
       age = Math.floor((now - birthDate) / (1000 * 60 * 60 * 24 * 365.25));
     }
     

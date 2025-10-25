@@ -162,7 +162,7 @@ const L3V3LMatches = () => {
           piiMap[targetUsername] = {
             hasContactAccess: access.accessTypes?.includes('contact_info'),
             hasImageAccess: access.accessTypes?.includes('images'),
-            hasDobAccess: access.accessTypes?.includes('dob'),
+            hasDateOfBirthAccess: access.accessTypes?.includes('date_of_birth'),
             hasLinkedInAccess: access.accessTypes?.includes('linkedin_url')
           };
           
@@ -317,7 +317,7 @@ const L3V3LMatches = () => {
     return {
       images: userAccess.hasImageAccess || hasPendingRequest,
       contact_info: userAccess.hasContactAccess || hasPendingRequest,
-      dob: hasPendingRequest, // Assuming pending requests cover all types
+      date_of_birth: hasPendingRequest, // Assuming pending requests cover all types
       linkedin_url: hasPendingRequest
     };
   };
@@ -330,7 +330,7 @@ const L3V3LMatches = () => {
     return {
       images: userRequests.images || (userAccess.hasImageAccess ? 'approved' : null),
       contact_info: userRequests.contact_info || (userAccess.hasContactAccess ? 'approved' : null),
-      dob: userRequests.dob || (userAccess.hasDobAccess ? 'approved' : null),
+      date_of_birth: userRequests.date_of_birth || (userAccess.hasDateOfBirthAccess ? 'approved' : null),
       linkedin_url: userRequests.linkedin_url || (userAccess.hasLinkedInAccess ? 'approved' : null)
     };
   };

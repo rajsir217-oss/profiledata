@@ -11,7 +11,7 @@
 .app-layout {
   position: absolute;
   top: 0;
-  left: 0;
+  left: 0; /* Start with no offset (sidebar closed by default) */
   right: 0;
   bottom: 0;
   padding-top: 70px;
@@ -21,7 +21,7 @@
 }
 
 .app-layout.sidebar-open {
-  left: 280px;
+  left: 280px; /* Push content when sidebar opens */
 }
 
 /* Main Content */
@@ -40,9 +40,13 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  /* Tablet adjustments */
+  /* Mobile/Tablet - sidebar hidden by default, content takes full width */
+  .app-layout {
+    left: 0; /* Full width when sidebar is hidden */
+  }
+  
   .app-layout.sidebar-open {
-    left: 250px;
+    left: 250px; /* Push content when sidebar is open */
   }
   
   .top-bar.sidebar-open {

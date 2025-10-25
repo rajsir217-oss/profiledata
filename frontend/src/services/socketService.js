@@ -2,6 +2,7 @@
 // Unified real-time service using Socket.IO for messages, online status, and unread counts
 import { io } from 'socket.io-client';
 import api from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 
 class SocketService {
   constructor() {
@@ -23,10 +24,13 @@ class SocketService {
 
     this.username = username;
     
-    console.log('🔌 Connecting to Socket.IO at http://localhost:8000');
+    // Use proper backend URL from config (supports all environments)
+    const socketUrl = getBackendUrl();
+    
+    console.log(`🔌 Connecting to Socket.IO at ${socketUrl}`);
     
     // Connect to Socket.IO server with username as query parameter
-    this.socket = io('http://localhost:8000', {
+    this.socket = io(socketUrl, {
       path: '/socket.io',
       transports: ['websocket', 'polling'],
       reconnection: true,

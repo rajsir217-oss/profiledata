@@ -25,6 +25,10 @@ yarn-error.log*
 # Environment
 .env
 .env.local
+.env.production
+
+# GCP
+.gcp_project_id
 
 # Uploads
 uploads/

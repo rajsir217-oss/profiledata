@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
+import { getApiUrl } from '../config/apiConfig';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
@@ -25,7 +26,18 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     approvals: 0
   });
   const [violations, setViolations] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+
+  // Listen for window resize to toggle mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Detect current theme
   useEffect(() => {
@@ -52,22 +64,67 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     const checkLoginStatus = async () => {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
+      
       if (username && token) {
-        setIsLoggedIn(true);
-        setCurrentUser(username);
-        
-        // Load user profile for display name (pass requester to avoid PII masking)
+        // SECURITY: Verify token matches username to prevent session contamination
         try {
-          const response = await api.get(`/profile/${username}?requester=${username}`);
-          setUserProfile(response.data);
+          // Decode JWT payload (format: header.payload.signature)
+          const payloadBase64 = token.split('.')[1];
+          const payload = JSON.parse(atob(payloadBase64));
+          const tokenUsername = payload.sub; // JWT subject claim contains username
           
-          // Load user stats for capsules
-          loadUserStats(username);
+          // Check if token username matches stored username
+          if (tokenUsername !== username) {
+            console.error('❌ SECURITY: Token/username mismatch detected!');
+            console.error('   Stored username:', username);
+            console.error('   Token username:', tokenUsername);
+            console.error('   Logging out for security...');
+            
+            // Clear contaminated session
+            localStorage.removeItem('username');
+            localStorage.removeItem('token');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userStatus');
+            setIsLoggedIn(false);
+            setCurrentUser(null);
+            setUserProfile(null);
+            return;
+          }
           
-          // Load user violations
-          loadUserViolations(username);
+          // Token matches username - proceed with login
+          console.log('✅ Token validation passed for user:', username);
+          setIsLoggedIn(true);
+          setCurrentUser(username);
+          
+          // Load user profile for display name (pass requester to avoid PII masking)
+          try {
+            const response = await api.get(`/profile/${username}?requester=${username}`);
+            setUserProfile(response.data);
+            
+            // Load user stats for capsules
+            loadUserStats(username);
+            
+            // Load user violations
+            loadUserViolations(username);
+          } catch (profileError) {
+            // Profile fetch failed - this is OK, don't logout
+            // The Profile component will handle displaying the profile
+            console.warn('⚠️ Could not load user profile in TopBar (non-critical):', profileError?.message || profileError);
+            console.warn('   User stays logged in, profile will load from Profile component');
+            // IMPORTANT: Do NOT logout here - profile fetch can fail for many reasons
+          }
         } catch (error) {
-          console.error('Error loading user profile:', error);
+          // This catch is for JWT token decoding errors only
+          console.error('❌ Error decoding or validating JWT token:', error);
+          console.error('   This is a critical error - token is invalid or corrupted');
+          // Clear session due to token validation failure
+          localStorage.removeItem('username');
+          localStorage.removeItem('token');
+          localStorage.removeItem('userRole');
+          localStorage.removeItem('userStatus');
+          setIsLoggedIn(false);
+          setCurrentUser(null);
+          setUserProfile(null);
         }
       } else {
         setIsLoggedIn(false);
@@ -132,7 +189,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     // Mark user as offline (non-blocking beacon)
     if (username) {
       navigator.sendBeacon(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000/api/users'}/online-status/${username}/offline`,
+        `${getApiUrl()}/online-status/${username}/offline`,
         ''
       );
     }
@@ -222,12 +279,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               ☰
             </button>
             <div className="app-logo" onClick={() => navigate('/')}>
-              <Logo variant="modern" size="small" showText={true} theme="navbar" />
+              <Logo variant="modern" size="small" showText={!isMobile} theme="navbar" />
             </div>
           </div>
           <div className="top-bar-right">
-            <button className="btn-login" onClick={handleLogin}>
-              🔑 Login
+            <button className="btn-login" onClick={handleLogin} title="Login">
+              🔑
             </button>
           </div>
         </div>
@@ -253,27 +310,26 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
-            <Logo variant="modern" size="small" showText={true} theme="navbar" />
+            <span className="logo-text">L3V3L</span>
           </div>
           
-          {/* Stat Capsules - Sized to fit logo height */}
-          <div className="stat-capsules-container">
-            <StatCapsuleGroup
-              stats={[
-                { icon: '👁️', count: userStats.views, variant: 'views', tooltip: 'Profile Views' },
-                { icon: '✓', count: userStats.approvals, variant: 'approvals', tooltip: 'Verified' },
-                { icon: '❤️', count: userStats.likes, variant: 'likes', tooltip: 'Favorites' }
-              ]}
-              direction="vertical"
-              size="small"
-              gap="compact"
-            />
+          {/* Stat Badges - Numbers only in colored circles */}
+          <div className="stat-badges-container">
+            <div className="stat-badge stat-badge-views" title="Profile Views">
+              {userStats.views}
+            </div>
+            <div className="stat-badge stat-badge-approvals" title="Verified">
+              {userStats.approvals}
+            </div>
+            <div className="stat-badge stat-badge-likes" title="Favorites">
+              {userStats.likes}
+            </div>
           </div>
           
           {onlineCount > 0 && (
-            <div className="online-indicator">
+            <div className="online-indicator" title={`${onlineCount} users online`}>
               <span className="online-dot">🟢</span>
-              <span className="online-count">{onlineCount} online</span>
+              <span className="online-count">{onlineCount}</span>
             </div>
           )}
         </div>
@@ -318,8 +374,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             </div>
             <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
-          <button className="btn-logout" onClick={handleLogout}>
-            🚪 Logout
+          <button className="btn-logout" onClick={handleLogout} title="Logout">
+            🚪
           </button>
         </div>
         

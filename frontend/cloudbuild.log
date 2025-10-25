@@ -1,0 +1,3 @@
+Creating temporary archive of 213 file(s) totalling 2.4 MiB before compression.
+Uploading tarball of [.] to [gs://matrimonial-staging_cloudbuild/source/1761276424.880219-36ee15a73c4043f597e01ee6a7bf5ad3.tgz]
+ERROR: (gcloud.builds.submit) INVALID_ARGUMENT: invalid build: invalid image name "gcr.io/matrimonial-staging/matrimonial-frontend:": could not parse reference: gcr.io/matrimonial-staging/matrimonial-frontend:

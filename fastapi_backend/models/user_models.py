@@ -54,12 +54,10 @@ class UserBase(BaseModel):
     familyValues: Optional[str] = None
     
     # Educational Information
-    education: Optional[str] = None  # Legacy field for backward compatibility
     educationHistory: List[dict] = []  # New structured education array
     
     # Professional & Work Related Information
     workExperience: List[dict] = []  # New work experience array
-    workLocation: Optional[str] = None  # Work city/location
     linkedinUrl: Optional[str] = None  # Private PII field
     # Note: workingStatus is automatically derived from workExperience
     
@@ -102,6 +100,15 @@ class UserBase(BaseModel):
     consentUserAgent: Optional[str] = None
     
     # ===== PHASE 1: ESSENTIAL META FIELDS =====
+    # Account Activation & Onboarding
+    accountStatus: str = "pending_email_verification"  # "pending_email_verification", "pending_admin_approval", "active", "suspended", "deactivated"
+    emailVerificationToken: Optional[str] = None  # Unique token for email verification
+    emailVerificationTokenExpiry: Optional[datetime] = None  # Token expires after 24 hours
+    emailVerificationSentAt: Optional[datetime] = None
+    emailVerificationAttempts: int = 0  # Track resend attempts
+    onboardingCompleted: bool = False
+    onboardingCompletedAt: Optional[datetime] = None
+    
     # Verification Status
     idVerified: bool = False
     idVerifiedAt: Optional[datetime] = None
@@ -110,6 +117,12 @@ class UserBase(BaseModel):
     emailVerifiedAt: Optional[datetime] = None
     phoneVerified: bool = False
     phoneVerifiedAt: Optional[datetime] = None
+    
+    # Admin Approval
+    adminApprovalStatus: str = "pending"  # "pending", "approved", "rejected"
+    adminApprovedBy: Optional[str] = None  # Admin username who approved
+    adminApprovedAt: Optional[datetime] = None
+    adminRejectionReason: Optional[str] = None
     
     # Premium Status
     isPremium: bool = False
@@ -230,7 +243,7 @@ class UserBase(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'indian-wedding']
         if v and v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v
@@ -398,7 +411,7 @@ class PIIRequestType(str):
     """Enum for PII request types"""
     IMAGES = "images"
     CONTACT_INFO = "contact_info"
-    DOB = "dob"
+    DATE_OF_BIRTH = "date_of_birth"
 
 class PIIRequestStatus(str):
     """Enum for PII request status"""
@@ -411,7 +424,7 @@ class PIIRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     requesterUsername: str  # Who is requesting
     profileUsername: str  # Whose data is requested
-    requestType: str  # 'images', 'contact_info', 'dob'
+    requestType: str  # 'images', 'contact_info', 'date_of_birth'
     status: str = "pending"  # 'pending', 'approved', 'rejected', 'cancelled'
     message: Optional[str] = None  # Optional message from requester
     requestedAt: datetime = Field(default_factory=datetime.utcnow)
@@ -446,7 +459,7 @@ class PIIAccess(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     granterUsername: str  # Who granted access
     grantedToUsername: str  # Who received access
-    accessType: str  # 'images', 'contact_info', 'dob'
+    accessType: str  # 'images', 'contact_info', 'date_of_birth'
     grantedAt: datetime = Field(default_factory=datetime.utcnow)
     expiresAt: Optional[datetime] = None  # Optional time-limited access
     isActive: bool = True  # Can be revoked
@@ -467,7 +480,7 @@ class UserPreferencesUpdate(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray']
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'indian-wedding']
         if v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v

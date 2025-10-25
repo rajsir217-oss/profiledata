@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import './EventQueueManager.css';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
@@ -37,7 +38,7 @@ const EventQueueManager = () => {
   }, [navigate]);
 
   const loadQueue = async (token) => {
-    const response = await fetch('http://localhost:8000/api/notifications/queue', {
+    const response = await fetch(getBackendApiUrl('/api/notifications/queue'), {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -56,7 +57,7 @@ const EventQueueManager = () => {
   };
 
   const loadLogs = async (token) => {
-    const response = await fetch('http://localhost:8000/api/notifications/logs', {
+    const response = await fetch(getBackendApiUrl('/api/notifications/logs'), {
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
@@ -75,7 +76,7 @@ const EventQueueManager = () => {
 
   const loadStats = async (token) => {
     try {
-      const response = await fetch('http://localhost:8000/api/notifications/analytics', {
+      const response = await fetch(getBackendApiUrl('/api/notifications/analytics'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -137,8 +138,8 @@ const EventQueueManager = () => {
       
       // Use different endpoint based on active tab
       const endpoint = activeTab === 'queue'
-        ? `http://localhost:8000/api/notifications/queue/${itemId}?hard_delete=true`
-        : `http://localhost:8000/api/notifications/logs/${itemId}`;
+        ? getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`)
+        : getBackendApiUrl(`/api/notifications/logs/${itemId}`);
       
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -161,7 +162,7 @@ const EventQueueManager = () => {
   const handleRetry = async (itemId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/notifications/queue/${itemId}/retry`, {
+      const response = await fetch(getBackendApiUrl(`/api/notifications/queue/${itemId}/retry`), {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -214,8 +215,8 @@ const EventQueueManager = () => {
       
       // Use different endpoint based on active tab
       const endpoint = activeTab === 'queue' 
-        ? (itemId) => `http://localhost:8000/api/notifications/queue/${itemId}?hard_delete=true`
-        : (itemId) => `http://localhost:8000/api/notifications/logs/${itemId}`;
+        ? (itemId) => getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`)
+        : (itemId) => getBackendApiUrl(`/api/notifications/logs/${itemId}`)
       
       const deletePromises = Array.from(selectedItems).map(async itemId => {
         const response = await fetch(endpoint(itemId), {

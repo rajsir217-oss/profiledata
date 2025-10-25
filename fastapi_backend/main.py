@@ -21,6 +21,7 @@ from routes_image_access import router as image_access_router
 from routes_pii_access import router as pii_access_router
 from routers.notifications import router as notifications_router
 from routers.activity_logs import router as activity_logs_router
+from routers.verification import router as verification_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -113,17 +114,26 @@ if os.path.exists(settings.upload_dir):
     logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # CORS middleware (must be added before other middleware)
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[
+# Allow all origins for Cloud Run (production handles this at the load balancer)
+# In production, you should restrict this to specific origins
+cors_origins = ["*"]  # Allow all origins temporarily for debugging
+
+# If running locally, use specific origins
+if os.getenv("ENV") == "development":
+    cors_origins = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001"
-    ],
+        "http://127.0.0.1:3001",
+    ]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Request logging middleware
@@ -166,6 +176,7 @@ app.include_router(image_access_router)  # Image access routes (already has /api
 app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
 app.include_router(notifications_router)  # Notification routes (already has /api/notifications prefix)
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
+app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)
 
 # Health check endpoint
 @app.get("/health")

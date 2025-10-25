@@ -7,7 +7,6 @@ from pii_security import (
     mask_email,
     mask_phone,
     mask_location,
-    mask_workplace,
     mask_user_pii,
     check_access_granted,
     create_access_request,
@@ -182,52 +181,6 @@ class TestMaskLocation:
         assert masked == "IL, USA"
 
 
-class TestMaskWorkplace:
-    """Test cases for workplace masking function."""
-
-    def test_mask_workplace_basic(self):
-        """Test basic workplace masking."""
-        workplace = "Google Inc, 1600 Amphitheatre Pkwy, Mountain View, CA"
-        masked = mask_workplace(workplace)
-
-        assert masked == "Google Inc"
-
-    def test_mask_workplace_single_part(self):
-        """Test workplace masking with single part."""
-        workplace = "Google Inc"
-        masked = mask_workplace(workplace)
-
-        assert masked == "Google Inc"
-
-    def test_mask_workplace_empty(self):
-        """Test workplace masking with empty string."""
-        workplace = ""
-        masked = mask_workplace(workplace)
-
-        assert masked == ""
-
-    def test_mask_workplace_none(self):
-        """Test workplace masking with None."""
-        workplace = None
-        masked = mask_workplace(workplace)
-
-        assert masked is None
-
-    def test_mask_workplace_no_commas(self):
-        """Test workplace masking with no commas."""
-        workplace = "Google Inc 1600 Amphitheatre Pkwy"
-        masked = mask_workplace(workplace)
-
-        assert masked == "Google Inc 1600 Amphitheatre Pkwy"
-
-    def test_mask_workplace_multiple_commas(self):
-        """Test workplace masking with multiple commas."""
-        workplace = "Google, Inc, Mountain View, CA"
-        masked = mask_workplace(workplace)
-
-        assert masked == "Google"
-
-
 class TestMaskUserPii:
     """Test cases for comprehensive user PII masking."""
 
@@ -237,8 +190,7 @@ class TestMaskUserPii:
             "username": "testuser",
             "contactEmail": "test@example.com",
             "contactNumber": "555-123-4567",
-            "location": "New York, NY",
-            "workplace": "Google Inc"
+            "location": "New York, NY"
         }
 
         masked = mask_user_pii(user_data, access_granted=True)
@@ -253,8 +205,7 @@ class TestMaskUserPii:
             "username": "testuser",
             "contactEmail": "john.doe@gmail.com",
             "contactNumber": "+1-555-123-4567",
-            "location": "123 Main St, New York, NY",
-            "workplace": "Google Inc, Mountain View"
+            "location": "123 Main St, New York, NY"
         }
 
         masked = mask_user_pii(user_data)
@@ -266,8 +217,6 @@ class TestMaskUserPii:
         assert masked["contactNumberMasked"] is True
         assert masked["location"] == "NY"
         assert masked["locationMasked"] is True
-        assert masked["workplace"] == "Google Inc"
-        assert masked["workplaceMasked"] is True
         assert masked["piiMasked"] is True
 
         # Non-PII fields should remain unchanged

@@ -198,11 +198,34 @@
 }
 
 
+/* Backdrop - Overlay to close sidebar when clicking outside */
+.sidebar-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999; /* Below sidebar (1002) but above everything else */
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.3s ease;
+  cursor: pointer;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Responsive Design */
+/* Mobile - Sidebar hidden by default, toggle to show */
 @media (max-width: 768px) {
   .sidebar {
     width: 250px;
-    left: -250px;
   }
 }
 

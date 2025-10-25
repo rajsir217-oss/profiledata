@@ -1,0 +1,171 @@
+/* ActivationBadge.css - Theme-aware activation status badge */
+
+.activation-badge {
+  padding: 16px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border: 2px solid;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.activation-badge-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.activation-badge-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.activation-badge-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.activation-badge-message {
+  margin: 0 0 12px 0;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.activation-badge-action {
+  margin-top: 8px;
+  font-weight: 500;
+}
+
+/* Warning badge - Email verification pending */
+.activation-badge-warning {
+  background: var(--warning-light);
+  border-color: var(--warning-color);
+}
+
+.activation-badge-warning .activation-badge-title {
+  color: var(--warning-dark);
+}
+
+.activation-badge-warning .activation-badge-message {
+  color: var(--text-color);
+}
+
+.activation-badge-warning .activation-badge-action {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+  color: white;
+}
+
+.activation-badge-warning .activation-badge-action:hover {
+  background: var(--warning-color);
+  opacity: 0.9;
+  transform: scale(1.05);
+}
+
+/* Info badge - Pending admin approval */
+.activation-badge-info {
+  background: var(--info-light);
+  border-color: var(--info-color);
+}
+
+.activation-badge-info .activation-badge-title {
+  color: var(--info-color);
+}
+
+.activation-badge-info .activation-badge-message {
+  color: var(--text-color);
+}
+
+/* Danger badge - Rejected or Suspended */
+.activation-badge-danger {
+  background: var(--danger-light);
+  border-color: var(--danger-color);
+}
+
+.activation-badge-danger .activation-badge-title {
+  color: var(--danger-color);
+}
+
+.activation-badge-danger .activation-badge-message {
+  color: var(--text-color);
+}
+
+/* Secondary badge - Deactivated */
+.activation-badge-secondary {
+  background: var(--surface-color);
+  border-color: var(--border-color);
+}
+
+.activation-badge-secondary .activation-badge-title {
+  color: var(--text-secondary);
+}
+
+.activation-badge-secondary .activation-badge-message {
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .activation-badge {
+    padding: 12px 16px;
+  }
+
+  .activation-badge-icon {
+    font-size: 1.25rem;
+  }
+
+  .activation-badge-title {
+    font-size: 1rem;
+  }
+
+  .activation-badge-message {
+    font-size: 0.9rem;
+  }
+
+  .activation-badge-action {
+    width: 100%;
+    margin-top: 12px;
+  }
+}
+
+/* Pulse animation for important badges */
+.activation-badge-warning,
+.activation-badge-danger {
+  animation: slideDown 0.3s ease-out, pulse 2s ease-in-out 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(255, 193, 7, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(255, 193, 7, 0);
+  }
+}
+
+.activation-badge-danger {
+  animation: slideDown 0.3s ease-out, pulseDanger 2s ease-in-out 1s infinite;
+}
+
+@keyframes pulseDanger {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(220, 53, 69, 0);
+  }
+}

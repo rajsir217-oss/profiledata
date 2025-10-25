@@ -5,8 +5,9 @@ import axios from 'axios';
 import './UserManagement.css';
 
 // Create admin API client without baseURL prefix
+import { getBackendUrl } from '../config/apiConfig';
 const adminApi = axios.create({
-  baseURL: 'http://localhost:8000'
+  baseURL: getBackendUrl()
 });
 
 // Add auth token interceptor
@@ -27,7 +28,7 @@ const UserManagement = () => {
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('admin'); // Default to admin for faster load
+  const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -227,9 +228,26 @@ const UserManagement = () => {
       'inactive': 'status-inactive',
       'suspended': 'status-suspended',
       'banned': 'status-banned',
-      'pending_verification': 'status-pending'
+      'deactivated': 'status-inactive',
+      'pending_verification': 'status-pending',
+      'pending_email_verification': 'status-pending',
+      'pending_admin_approval': 'status-pending'
     };
     return statusClasses[status] || 'status-inactive';
+  };
+
+  const formatStatusDisplay = (status) => {
+    const statusLabels = {
+      'pending_email_verification': 'Pending Email',
+      'pending_admin_approval': 'Pending Approval',
+      'active': 'Active',
+      'inactive': 'Inactive',
+      'suspended': 'Suspended',
+      'deactivated': 'Deactivated',
+      'banned': 'Banned',
+      'pending_verification': 'Pending'
+    };
+    return statusLabels[status] || status || 'Unknown';
   };
 
   // Sorting function
@@ -461,10 +479,12 @@ const UserManagement = () => {
           className="filter-select"
         >
           <option value="">All Status</option>
-          <option value="pending">Pending Verification</option>
+          <option value="pending_email_verification">Pending Email Verification</option>
+          <option value="pending_admin_approval">Pending Admin Approval</option>
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
           <option value="suspended">Suspended</option>
+          <option value="deactivated">Deactivated</option>
           <option value="banned">Banned</option>
         </select>
 
@@ -595,8 +615,8 @@ const UserManagement = () => {
                   </span>
                 </td>
                 <td>
-                  <span className={`status-badge ${getStatusBadgeClass(user.status?.status)}`}>
-                    {user.status?.status || 'unknown'}
+                  <span className={`status-badge ${getStatusBadgeClass(user.status?.status || user.accountStatus)}`}>
+                    {formatStatusDisplay(user.status?.status || user.accountStatus)}
                   </span>
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>

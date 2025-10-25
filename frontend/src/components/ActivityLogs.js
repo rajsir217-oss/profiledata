@@ -1,6 +1,7 @@
 // frontend/src/components/ActivityLogs.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getBackendApiUrl } from '../utils/urlHelper';
 import './ActivityLogs.css';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
@@ -45,7 +46,7 @@ const ActivityLogs = () => {
   const loadActionTypes = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/activity-logs/action-types', {
+      const response = await fetch(getBackendApiUrl('/api/activity-logs/action-types'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -77,7 +78,7 @@ const ActivityLogs = () => {
         }
       });
       
-      const response = await fetch(`http://localhost:8000/api/activity-logs?${queryParams}`, {
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs?${queryParams}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -106,7 +107,7 @@ const ActivityLogs = () => {
   const loadStats = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/activity-logs/stats', {
+      const response = await fetch(getBackendApiUrl('/api/activity-logs/stats'), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -147,7 +148,7 @@ const ActivityLogs = () => {
       if (filters.start_date) queryParams.append('start_date', filters.start_date);
       if (filters.end_date) queryParams.append('end_date', filters.end_date);
       
-      const response = await fetch(`http://localhost:8000/api/activity-logs/export?${queryParams}`, {
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs/export?${queryParams}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -176,7 +177,7 @@ const ActivityLogs = () => {
   const handleCleanup = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/activity-logs/cleanup?days=30', {
+      const response = await fetch(getBackendApiUrl('/api/activity-logs/cleanup?days=30'), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -196,7 +197,7 @@ const ActivityLogs = () => {
   const handleDeleteLog = async (logId) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8000/api/activity-logs/${logId}`, {
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs/${logId}`), {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -217,7 +218,7 @@ const ActivityLogs = () => {
     
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8000/api/activity-logs/delete-bulk', {
+      const response = await fetch(getBackendApiUrl('/api/activity-logs/delete-bulk'), {
         method: 'POST',
         headers: { 
           'Authorization': `Bearer ${token}`,
