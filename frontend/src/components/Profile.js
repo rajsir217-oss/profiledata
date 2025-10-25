@@ -863,21 +863,6 @@ const Profile = () => {
             )}
             
             {/* Account Status Indicator - Show only for own profile if not fully activated */}
-            {/* DEBUG: Always show for debugging */}
-            {isOwnProfile && activationStatus && (
-              <div style={{
-                marginTop: '8px',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                fontSize: '11px',
-                display: 'inline-block',
-                backgroundColor: '#f0f0f0',
-                color: '#666',
-                border: '1px solid #ddd'
-              }}>
-                DEBUG: Status = {activationStatus.accountStatus || 'undefined'} | Email Verified = {activationStatus.emailVerified ? 'Yes' : 'No'}
-              </div>
-            )}
             {isOwnProfile && activationStatus && activationStatus.accountStatus !== 'active' && (
               <div style={{
                 marginTop: '8px',
