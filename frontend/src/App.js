@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Register from './components/Register';
 import Login from './components/Login';
+import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
 import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
@@ -169,6 +170,7 @@ function App() {
               {/* Public routes */}
               <Route path="/register" element={<Register />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/" element={<Login />} />
               
               {/* Legal pages - accessible to all */}

@@ -1,13 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
 import api, { imageAccess } from "../api";
+import { getBackendUrl } from "../config/apiConfig";
 import PIIRequestModal from "./PIIRequestModal";
 import ProfileImage from "./ProfileImage";
 import ImageAccessRequestModal from "./ImageAccessRequestModal";
+import ActivationBadge from "./ActivationBadge";
 import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import "./Profile.css";
+
+// Create axios instance for verification API
+const verificationApi = axios.create({
+  baseURL: getBackendUrl()
+});
 
 const Profile = () => {
   const { username } = useParams();
@@ -67,6 +75,9 @@ const Profile = () => {
   
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  
+  // Activation status state
+  const [activationStatus, setActivationStatus] = useState(null);
   
   const currentUsername = localStorage.getItem('username');
   
@@ -132,6 +143,11 @@ const Profile = () => {
         
         // Fetch KPI stats for all profiles
         await fetchKPIStats();
+        
+        // Fetch activation status if viewing own profile
+        if (currentUsername === username) {
+          await fetchActivationStatus();
+        }
       } catch (err) {
         console.error("Error fetching profile:", err);
         setError("Unable to load profile");
@@ -211,6 +227,40 @@ const Profile = () => {
     
     fetchL3V3LMatchData();
   }, [username, currentUsername, isOwnProfile]);
+
+  const fetchActivationStatus = async () => {
+    try {
+      const response = await verificationApi.get(`/api/verification/status/${username}`);
+      setActivationStatus(response.data);
+      console.log('📧 Activation status loaded:', response.data);
+    } catch (error) {
+      console.error('Error fetching activation status:', error);
+      // Don't fail silently, but don't block profile loading
+    }
+  };
+
+  const handleResendEmail = async () => {
+    try {
+      const response = await verificationApi.post('/api/verification/resend-verification', {
+        username: username
+      });
+      if (response.data.success) {
+        setSuccessMessage('✅ Verification email sent! Please check your inbox.');
+        setTimeout(() => setSuccessMessage(''), 5000);
+      } else {
+        setStatusMessage(response.data.message || '❌ Failed to resend email.');
+        setTimeout(() => setStatusMessage(''), 5000);
+      }
+    } catch (error) {
+      console.error('Resend email error:', error);
+      setStatusMessage(
+        error.response?.data?.detail || 
+        error.response?.data?.message || 
+        '❌ Failed to resend verification email.'
+      );
+      setTimeout(() => setStatusMessage(''), 5000);
+    }
+  };
 
   const checkPIIAccess = async () => {
     if (!currentUsername || isOwnProfile) return;
@@ -744,6 +794,17 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Activation Badge - Show only on own profile */}
+      {isOwnProfile && activationStatus && (
+        <ActivationBadge
+          accountStatus={activationStatus.accountStatus}
+          emailVerified={activationStatus.emailVerified}
+          adminApprovalStatus={activationStatus.adminApprovalStatus}
+          onResendEmail={handleResendEmail}
+          username={username}
+        />
+      )}
+
       <div className="profile-header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
           {/* Profile Avatar */}
@@ -799,6 +860,55 @@ const Profile = () => {
                   color: '#495057'
                 }}>{user.profileId}</span>
               </p>
+            )}
+            
+            {/* Account Status Indicator - Show only for own profile if not fully activated */}
+            {/* DEBUG: Always show for debugging */}
+            {isOwnProfile && activationStatus && (
+              <div style={{
+                marginTop: '8px',
+                padding: '4px 8px',
+                borderRadius: '4px',
+                fontSize: '11px',
+                display: 'inline-block',
+                backgroundColor: '#f0f0f0',
+                color: '#666',
+                border: '1px solid #ddd'
+              }}>
+                DEBUG: Status = {activationStatus.accountStatus || 'undefined'} | Email Verified = {activationStatus.emailVerified ? 'Yes' : 'No'}
+              </div>
+            )}
+            {isOwnProfile && activationStatus && activationStatus.accountStatus !== 'active' && (
+              <div style={{
+                marginTop: '8px',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                fontSize: '13px',
+                fontWeight: '500',
+                display: 'inline-block',
+                backgroundColor: activationStatus.accountStatus === 'pending_email_verification' 
+                  ? 'var(--warning-light)' 
+                  : activationStatus.accountStatus === 'pending_admin_approval'
+                  ? 'var(--info-light)'
+                  : 'var(--danger-light)',
+                color: activationStatus.accountStatus === 'pending_email_verification'
+                  ? 'var(--warning-dark)'
+                  : activationStatus.accountStatus === 'pending_admin_approval'
+                  ? 'var(--info-color)'
+                  : 'var(--danger-color)',
+                border: `1px solid ${
+                  activationStatus.accountStatus === 'pending_email_verification'
+                    ? 'var(--warning-color)'
+                    : activationStatus.accountStatus === 'pending_admin_approval'
+                    ? 'var(--info-color)'
+                    : 'var(--danger-color)'
+                }`
+              }}>
+                {activationStatus.accountStatus === 'pending_email_verification' && '📧 Email Verification Pending'}
+                {activationStatus.accountStatus === 'pending_admin_approval' && '⏳ Pending Admin Approval'}
+                {activationStatus.accountStatus === 'suspended' && '🚫 Account Suspended'}
+                {activationStatus.accountStatus === 'deactivated' && '⚪ Account Deactivated'}
+              </div>
             )}
             
             {/* Meta Field Badges */}

@@ -100,6 +100,15 @@ class UserBase(BaseModel):
     consentUserAgent: Optional[str] = None
     
     # ===== PHASE 1: ESSENTIAL META FIELDS =====
+    # Account Activation & Onboarding
+    accountStatus: str = "pending_email_verification"  # "pending_email_verification", "pending_admin_approval", "active", "suspended", "deactivated"
+    emailVerificationToken: Optional[str] = None  # Unique token for email verification
+    emailVerificationTokenExpiry: Optional[datetime] = None  # Token expires after 24 hours
+    emailVerificationSentAt: Optional[datetime] = None
+    emailVerificationAttempts: int = 0  # Track resend attempts
+    onboardingCompleted: bool = False
+    onboardingCompletedAt: Optional[datetime] = None
+    
     # Verification Status
     idVerified: bool = False
     idVerifiedAt: Optional[datetime] = None
@@ -108,6 +117,12 @@ class UserBase(BaseModel):
     emailVerifiedAt: Optional[datetime] = None
     phoneVerified: bool = False
     phoneVerifiedAt: Optional[datetime] = None
+    
+    # Admin Approval
+    adminApprovalStatus: str = "pending"  # "pending", "approved", "rejected"
+    adminApprovedBy: Optional[str] = None  # Admin username who approved
+    adminApprovedAt: Optional[datetime] = None
+    adminRejectionReason: Optional[str] = None
     
     # Premium Status
     isPremium: bool = False

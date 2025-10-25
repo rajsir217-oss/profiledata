@@ -1,0 +1,251 @@
+/* VerifyEmail.css - Theme-aware email verification page styles */
+
+.verify-email-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  background: var(--background-color);
+}
+
+.verify-email-card {
+  max-width: 600px;
+  width: 100%;
+  background: var(--card-background);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.verify-email-header {
+  padding: 30px;
+  text-align: center;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-bottom: 1px solid var(--divider-color);
+}
+
+.verify-email-content {
+  padding: 40px 30px;
+}
+
+.verify-status {
+  text-align: center;
+}
+
+.verify-status h3 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.verify-status p {
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.verify-status .lead {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+/* Loading state */
+.verify-loading .spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
+
+/* Success state */
+.verify-success .success-icon {
+  font-size: 4rem;
+  animation: scaleIn 0.5s ease-out;
+}
+
+@keyframes scaleIn {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.verify-success .alert-info {
+  background: var(--info-light);
+  border: 1px solid var(--info-color);
+  color: var(--text-color);
+}
+
+.verify-success .alert-info strong {
+  color: var(--info-color);
+}
+
+/* Expired state */
+.verify-expired .warning-icon {
+  font-size: 4rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+/* Error state */
+.verify-error .error-icon {
+  font-size: 4rem;
+  animation: shake 0.5s ease-out;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+/* Buttons */
+.verify-status .btn {
+  margin-top: 1rem;
+  padding: 10px 24px;
+  font-weight: 500;
+}
+
+.verify-status .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border: none;
+  color: white;
+  transition: transform 0.2s ease;
+}
+
+.verify-status .btn-primary:hover:not(:disabled) {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.verify-status .btn-warning {
+  background: var(--warning-color);
+  border: none;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.verify-status .btn-warning:hover:not(:disabled) {
+  background: var(--warning-color);
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.verify-status .btn-outline-secondary {
+  border-color: var(--border-color);
+  color: var(--text-color);
+  transition: all 0.2s ease;
+}
+
+.verify-status .btn-outline-secondary:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+/* Footer */
+.verify-email-footer {
+  padding: 20px 30px;
+  text-align: center;
+  background: var(--surface-color);
+  border-top: 1px solid var(--divider-color);
+}
+
+.verify-email-footer p {
+  margin-bottom: 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.verify-email-footer a {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.verify-email-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .verify-email-container {
+    padding: 10px;
+  }
+
+  .verify-email-card {
+    border-radius: 8px;
+  }
+
+  .verify-email-header {
+    padding: 20px;
+  }
+
+  .verify-email-content {
+    padding: 30px 20px;
+  }
+
+  .verify-status h3 {
+    font-size: 1.5rem;
+  }
+
+  .verify-success .success-icon,
+  .verify-expired .warning-icon,
+  .verify-error .error-icon {
+    font-size: 3rem;
+  }
+
+  .verify-status .btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .verify-status .btn:not(:last-child) {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Spinner customization */
+.spinner-border.text-primary {
+  border-color: var(--primary-color);
+  border-right-color: transparent;
+}
+
+/* Alert boxes */
+.alert-info {
+  background: var(--info-light);
+  border-color: var(--info-color);
+  color: var(--text-color);
+}
+
+.alert-info ol {
+  padding-left: 1.5rem;
+  margin-bottom: 0;
+}
+
+.alert-info ol li {
+  margin-bottom: 0.5rem;
+}
+
+.alert-info ol li:last-child {
+  margin-bottom: 0;
+}

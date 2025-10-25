@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api";
 import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector } from "./shared";
 import Logo from "./Logo";
@@ -121,6 +122,7 @@ const Register = () => {
     agreedToMarketing: false,
   });
 
+  const navigate = useNavigate();
   const [images, setImages] = useState([]);
   const [previewIndex, setPreviewIndex] = useState(0);
   const [successMsg, setSuccessMsg] = useState("");
@@ -129,6 +131,8 @@ const Register = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const usernameCheckTimeout = useRef(null);
 
   // Sample description carousel states
@@ -538,6 +542,34 @@ const Register = () => {
     setPreviewIndex(0);
   };
 
+  // Helper function to scroll to and focus a field
+  const scrollToAndFocusField = (fieldName) => {
+    // Try to find the input element by name or id
+    const inputElement = document.querySelector(`[name="${fieldName}"], #${fieldName}`);
+    
+    if (inputElement) {
+      // Scroll to the element with offset for better visibility
+      const elementPosition = inputElement.getBoundingClientRect().top + window.pageYOffset;
+      const offsetPosition = elementPosition - 100; // 100px offset from top
+      
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+      
+      // Focus and select the input after scrolling
+      setTimeout(() => {
+        inputElement.focus();
+        if (inputElement.select && inputElement.type !== 'checkbox') {
+          inputElement.select(); // Select text if it's a text input
+        }
+      }, 300); // Wait for smooth scroll to complete
+    } else {
+      // Fallback to scrolling to top if element not found
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -547,31 +579,31 @@ const Register = () => {
     // Validate legal consents first
     if (!formData.agreedToAge) {
       setErrorMsg("❌ You must confirm that you are at least 18 years old to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToAge');
       return;
     }
 
     if (!formData.agreedToTerms) {
       setErrorMsg("❌ You must agree to the Terms of Service to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToTerms');
       return;
     }
 
     if (!formData.agreedToPrivacy) {
       setErrorMsg("❌ You must agree to the Privacy Policy to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToPrivacy');
       return;
     }
 
     if (!formData.agreedToGuidelines) {
       setErrorMsg("❌ You must agree to follow the Community Guidelines to register.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToGuidelines');
       return;
     }
 
     if (!formData.agreedToDataProcessing) {
       setErrorMsg("❌ You must consent to data processing for matchmaking purposes.");
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollToAndFocusField('agreedToDataProcessing');
       return;
     }
 
@@ -600,7 +632,9 @@ const Register = () => {
     if (hasErrors) {
       const fieldList = errorFields.join(", ");
       setErrorMsg(`❌ Please fix validation errors in the following fields: ${fieldList}`);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // Scroll to and focus the first field with an error
+      scrollToAndFocusField(errorFields[0]);
       return;
     }
 
@@ -645,16 +679,27 @@ const Register = () => {
     images.forEach((img) => data.append("images", img));
 
     try {
+      setIsSubmitting(true);
+      
+      // Step 1: Register user (email is sent automatically by backend)
       const res = await api.post("/register", data);
-      setSuccessMsg(res.data.message);
 
-      // Fetch the saved user profile from backend to get final image URLs
+      // Step 2: Fetch the saved user profile from backend to get final image URLs
       const profileRes = await api.get(`/profile/${formData.username}`);
-
       setSavedUser(profileRes.data);
+      
+      // Step 3: Show success modal
+      setSuccessMsg(res.data.message);
+      setShowSuccessModal(true);
+      
+      // Step 4: Redirect to login after 5 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 5000);
 
     } catch (err) {
       console.error(err);
+      setIsSubmitting(false);
       const errorDetail = err.response?.data?.detail || err.response?.data?.error || "❌ Something went wrong.";
       
       // Handle specific backend validation errors
@@ -2314,8 +2359,15 @@ const Register = () => {
           </div>
         </div>
 
-        <button className="btn btn-success" type="submit">
-          Create Profile
+        <button className="btn btn-success" type="submit" disabled={isSubmitting}>
+          {isSubmitting ? (
+            <>
+              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+              Creating Profile...
+            </>
+          ) : (
+            'Create Profile'
+          )}
         </button>
       </form>
       {/* Show backend images after save */}
@@ -2332,6 +2384,56 @@ const Register = () => {
               height="150"
             />
           ))}
+        </div>
+      )}
+      
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header" style={{
+                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+                color: 'white',
+                border: 'none'
+              }}>
+                <h5 className="modal-title">
+                  ✅ Profile Created Successfully!
+                </h5>
+              </div>
+              <div className="modal-body text-center p-4">
+                <div className="mb-3">
+                  <div className="spinner-border text-primary mb-3" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                  <h4>Check Your Email!</h4>
+                </div>
+                <p className="lead">
+                  We've sent a verification email to <strong>{formData.contactEmail}</strong>
+                </p>
+                <div className="alert alert-info" role="alert">
+                  <strong>📧 Next Steps:</strong>
+                  <ol className="text-start mt-2 mb-0">
+                    <li>Check your email inbox (and spam folder)</li>
+                    <li>Click the verification link</li>
+                    <li>Wait for admin approval (usually within 24 hours)</li>
+                    <li>Start matching!</li>
+                  </ol>
+                </div>
+                <p className="text-muted">
+                  Redirecting to login page in 5 seconds...
+                </p>
+              </div>
+              <div className="modal-footer justify-content-center">
+                <button 
+                  className="btn btn-primary" 
+                  onClick={() => navigate('/login')}
+                >
+                  Go to Login Now
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>

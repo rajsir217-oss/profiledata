@@ -349,6 +349,24 @@ async def register_user(
             "updatedAt": now,
             "updatedBy": None
         },
+        # Account Activation & Onboarding (NEW)
+        "accountStatus": "pending_email_verification",
+        "emailVerificationToken": None,  # Will be set when email is sent
+        "emailVerificationTokenExpiry": None,
+        "emailVerificationSentAt": None,
+        "emailVerificationAttempts": 0,
+        "onboardingCompleted": False,
+        "onboardingCompletedAt": None,
+        # Verification Status (NEW)
+        "emailVerified": False,
+        "emailVerifiedAt": None,
+        "phoneVerified": False,
+        "phoneVerifiedAt": None,
+        # Admin Approval (NEW)
+        "adminApprovalStatus": "pending",
+        "adminApprovedBy": None,
+        "adminApprovedAt": None,
+        "adminRejectionReason": None,
         # Messaging stats (initialized to 0)
         "messagesSent": 0,
         "messagesReceived": 0,
@@ -370,6 +388,24 @@ async def register_user(
     # Get the created user
     created_user = await db.users.find_one({"_id": result.inserted_id})
     
+    # Send verification email
+    if contactEmail:
+        try:
+            from services.email_verification_service import EmailVerificationService
+            email_service = EmailVerificationService(db)
+            email_sent = await email_service.send_verification_email(
+                username=username,
+                email=contactEmail,
+                first_name=firstName or username
+            )
+            if email_sent:
+                logger.info(f"📧 Verification email sent to {contactEmail}")
+            else:
+                logger.warning(f"⚠️ Failed to send verification email to {contactEmail}")
+        except Exception as e:
+            logger.error(f"❌ Error sending verification email: {e}", exc_info=True)
+            # Don't fail registration if email fails
+    
     # Remove password from response
     created_user.pop("password", None)
     created_user.pop("_id", None)
@@ -381,7 +417,7 @@ async def register_user(
     created_user["images"] = [get_full_image_url(img) for img in created_user.get("images", [])]
     
     return {
-        "message": "User registered successfully",
+        "message": "User registered successfully. Please check your email to verify your account.",
         "user": created_user
     }
 
