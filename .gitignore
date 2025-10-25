@@ -26,9 +26,11 @@ yarn-error.log*
 .env
 .env.local
 .env.production
+.env.cloud
 
 # GCP
 .gcp_project_id
 
 # Uploads
 uploads/
+mongodb_backup_*.tar.gz

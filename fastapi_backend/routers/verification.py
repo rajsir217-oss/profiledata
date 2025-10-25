@@ -155,8 +155,15 @@ async def admin_approve_user(
     1. Set adminApprovalStatus to "approved"
     2. Set accountStatus to "active"
     3. Set onboardingCompleted to True
-    4. Send welcome email to user
-    5. Enable all features
+    4. Send welcome email with activation confirmation
+    5. Email includes links to search, L3V3L matches, and profile
+    6. Enable all features
+    
+    **Response:**
+    - success: Boolean
+    - message: Status message
+    - accountStatus: "active"
+    - emailSent: Boolean (indicates if welcome email was sent)
     """
     from datetime import datetime
     
@@ -202,14 +209,27 @@ async def admin_approve_user(
         )
         
         if result.modified_count > 0:
-            # TODO: Send welcome email to user
-            # service = EmailVerificationService(db)
-            # await service.send_welcome_email(username, user.get("contactEmail"))
+            # Send welcome email to user
+            from services.email_verification_service import EmailVerificationService
+            service = EmailVerificationService(db)
+            
+            email = user.get("contactEmail") or user.get("email")
+            first_name = user.get("firstName", "")
+            
+            if email:
+                email_sent = await service.send_welcome_email(username, email, first_name)
+                if email_sent:
+                    print(f"✅ Welcome email sent to {username} at {email}")
+                else:
+                    print(f"⚠️ Failed to send welcome email to {username}")
+            else:
+                print(f"⚠️ No email address found for {username}")
             
             return {
                 "success": True,
                 "message": f"User {username} approved successfully",
-                "accountStatus": "active"
+                "accountStatus": "active",
+                "emailSent": email_sent if email else False
             }
         else:
             raise HTTPException(status_code=500, detail="Failed to approve user")

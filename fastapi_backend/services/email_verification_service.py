@@ -404,6 +404,234 @@ class EmailVerificationService:
                 "message": "An error occurred while sending email"
             }
     
+    async def send_welcome_email(self, username: str, email: str, first_name: str = "") -> bool:
+        """
+        Send welcome email when admin activates user account
+        
+        Args:
+            username: Username of the activated user
+            email: Email address
+            first_name: User's first name for personalization
+            
+        Returns:
+            True if email sent successfully, False otherwise
+        """
+        try:
+            # Create email content
+            subject = "🎉 Your Profile is Now Activated!"
+            
+            # Construct URLs
+            search_url = f"{settings.frontend_url}/search"
+            l3v3l_url = f"{settings.frontend_url}/l3v3l-matches"
+            profile_url = f"{settings.frontend_url}/profile/{username}"
+            
+            # HTML email template
+            html_content = f"""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body {{
+                        font-family: Arial, sans-serif;
+                        line-height: 1.6;
+                        color: #333;
+                    }}
+                    .container {{
+                        max-width: 600px;
+                        margin: 0 auto;
+                        padding: 20px;
+                        background-color: #f9f9f9;
+                    }}
+                    .header {{
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white;
+                        padding: 40px;
+                        text-align: center;
+                        border-radius: 10px 10px 0 0;
+                    }}
+                    .header h1 {{
+                        margin: 0;
+                        font-size: 32px;
+                    }}
+                    .celebration {{
+                        font-size: 48px;
+                        margin: 10px 0;
+                    }}
+                    .content {{
+                        background: white;
+                        padding: 30px;
+                        border-radius: 0 0 10px 10px;
+                    }}
+                    .success-box {{
+                        background: #d4edda;
+                        border: 2px solid #28a745;
+                        padding: 20px;
+                        border-radius: 8px;
+                        margin: 20px 0;
+                        text-align: center;
+                    }}
+                    .success-box h3 {{
+                        color: #155724;
+                        margin: 0 0 10px 0;
+                    }}
+                    .button {{
+                        display: inline-block;
+                        padding: 15px 30px;
+                        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                        color: white !important;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        margin: 10px 5px;
+                        font-weight: bold;
+                    }}
+                    .button:hover {{
+                        opacity: 0.9;
+                    }}
+                    .feature-list {{
+                        background: #f8f9fa;
+                        padding: 20px;
+                        border-radius: 8px;
+                        margin: 20px 0;
+                    }}
+                    .feature-item {{
+                        margin: 12px 0;
+                        padding-left: 30px;
+                        position: relative;
+                    }}
+                    .feature-item:before {{
+                        content: "✓";
+                        position: absolute;
+                        left: 0;
+                        color: #28a745;
+                        font-weight: bold;
+                        font-size: 18px;
+                    }}
+                    .footer {{
+                        text-align: center;
+                        color: #666;
+                        font-size: 12px;
+                        margin-top: 20px;
+                        padding-top: 20px;
+                        border-top: 1px solid #ddd;
+                    }}
+                    .cta-section {{
+                        text-align: center;
+                        margin: 30px 0;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <div class="celebration">🎉</div>
+                        <h1>You're All Set!</h1>
+                        <p style="font-size: 18px; margin: 10px 0 0 0;">Your profile has been activated</p>
+                    </div>
+                    
+                    <div class="content">
+                        <h2>Congratulations, {first_name or username}!</h2>
+                        
+                        <div class="success-box">
+                            <h3>✓ Profile Fully Activated</h3>
+                            <p style="margin: 0;">Your account has been approved by our admin team and you now have full access to all features!</p>
+                        </div>
+                        
+                        <h3>What You Can Do Now:</h3>
+                        <div class="feature-list">
+                            <div class="feature-item">Search for matching profiles</div>
+                            <div class="feature-item">View L3V3L compatibility scores</div>
+                            <div class="feature-item">Send messages to your matches</div>
+                            <div class="feature-item">Add profiles to favorites & shortlist</div>
+                            <div class="feature-item">View who's interested in you</div>
+                            <div class="feature-item">Access full profile details</div>
+                        </div>
+                        
+                        <div class="cta-section">
+                            <h3 style="color: #667eea;">Ready to Find Your Match?</h3>
+                            <p>Start your journey today!</p>
+                            <a href="{search_url}" class="button">🔍 Search Profiles</a>
+                            <a href="{l3v3l_url}" class="button">💜 View L3V3L Matches</a>
+                        </div>
+                        
+                        <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;">
+                        
+                        <h3>Pro Tips for Success:</h3>
+                        <ul style="line-height: 1.8;">
+                            <li>Complete your profile with photos and detailed information</li>
+                            <li>Be genuine and authentic in your communications</li>
+                            <li>Check your L3V3L matches for high compatibility scores</li>
+                            <li>Respond promptly to messages from interested profiles</li>
+                            <li>Use the favorites feature to keep track of interesting profiles</li>
+                        </ul>
+                        
+                        <div class="success-box" style="background: #d1ecf1; border-color: #17a2b8;">
+                            <h3 style="color: #0c5460;">Need Help?</h3>
+                            <p style="margin: 0;">Visit your <a href="{profile_url}" style="color: #0c5460; font-weight: bold;">profile page</a> or contact our support team anytime.</p>
+                        </div>
+                        
+                        <p style="margin-top: 30px;">
+                            We're excited to have you join our community! Wishing you all the best in your search for a meaningful connection.
+                        </p>
+                        
+                        <p style="margin-top: 20px;">
+                            <strong>Best regards,</strong><br>
+                            The Team
+                        </p>
+                    </div>
+                    
+                    <div class="footer">
+                        <p>This is an automated message. Please do not reply to this email.</p>
+                        <p>© 2025 Matrimonial Platform. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Plain text version (fallback)
+            text_content = f"""
+            🎉 Congratulations, {first_name or username}!
+            
+            Your profile has been ACTIVATED!
+            
+            Your account has been approved by our admin team and you now have full access to all features.
+            
+            What You Can Do Now:
+            ✓ Search for matching profiles
+            ✓ View L3V3L compatibility scores
+            ✓ Send messages to your matches
+            ✓ Add profiles to favorites & shortlist
+            ✓ View who's interested in you
+            ✓ Access full profile details
+            
+            Get Started:
+            🔍 Search Profiles: {search_url}
+            💜 L3V3L Matches: {l3v3l_url}
+            👤 Your Profile: {profile_url}
+            
+            Pro Tips for Success:
+            • Complete your profile with photos and detailed information
+            • Be genuine and authentic in your communications
+            • Check your L3V3L matches for high compatibility scores
+            • Respond promptly to messages from interested profiles
+            • Use the favorites feature to keep track of interesting profiles
+            
+            We're excited to have you join our community!
+            
+            Best regards,
+            The Team
+            
+            ---
+            This is an automated message. Please do not reply to this email.
+            """
+            
+            # Send email
+            return await self._send_email(email, subject, html_content, text_content)
+            
+        except Exception as e:
+            print(f"❌ Error sending welcome email: {e}")
+            return False
+    
     async def _notify_admin_new_user(self, username: str):
         """Notify admin when new user completes email verification"""
         try:

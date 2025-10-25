@@ -52,7 +52,12 @@ async def get_all_users(
         query = {}
         
         if status:
-            query["status.status"] = status
+            # Check new accountStatus field for onboarding statuses
+            if status in ["pending_email_verification", "pending_admin_approval", "active"]:
+                query["accountStatus"] = status
+            else:
+                # Fallback to old status.status field for other statuses
+                query["status.status"] = status
         
         if role:
             query["role_name"] = role

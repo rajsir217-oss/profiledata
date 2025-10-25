@@ -1,11 +1,13 @@
 # Quick Context Reference
 **Feed this to Cascade to refresh memory on ProfileData app architecture**  
-**Last Updated:** Oct 22, 2025
+**Last Updated:** Oct 25, 2025
 
 ---
 Read QUICK_CONTEXT_REFERENCE.md to refresh your context
 
-CRITICAL: NO HARDDODED LOCALHOST REFERENCES ANYWHERE python and js
+⚠️ **CRITICAL:** NO HARDCODED LOCALHOST/PORT REFERENCES ANYWHERE (python or js)  
+⚠️ **CRITICAL:** Use config.py and apiConfig.js for ALL URLs  
+⚠️ **CRITICAL:** See COMPREHENSIVE_CODE_AUDIT.md for refactoring priorities
 
 
 ## 🔴 CRITICAL MANDATORY RULES
@@ -36,12 +38,15 @@ async def endpoint(
 
 **NEVER USE:** `from auth import get_current_user` (legacy)
 
-### 3. 🎨 NO Hardcoded Colors
+### 3. 🎨 NO Hardcoded Styles or Colors
 ```css
-/* ✅ ALWAYS use variables */
+/* ✅ ALWAYS use CSS variables */
 background: var(--primary-color);
 color: var(--text-color);
 border: 1px solid var(--border-color);
+padding: var(--spacing-md);
+margin: var(--spacing-sm);
+border-radius: var(--radius-md);
 
 /* Gradients */
 background: linear-gradient(135deg, 
@@ -50,15 +55,57 @@ background: linear-gradient(135deg,
 );
 ```
 
+**❌ AVOID:** Inline styles with `style={{...}}`  
+**✅ PREFER:** CSS modules or className with CSS file  
+**Current Issue:** 286 inline styles across 36 files need refactoring
+
 **Available Themes:** Cozy Light (default), Dark, Rose, Light Gray, Ultra Light Gray
 
-### 4. 📁 Never Delete Files Immediately
+### 4. 🔇 NO console.log in Production
+```javascript
+// ❌ NEVER USE (259 occurrences found!)
+console.log('Debug info:', data);
+
+// ✅ ALWAYS USE
+import logger from './utils/logger';
+logger.debug('Debug info:', data);  // Only in dev
+logger.info('User action:', action);  // Production-safe
+logger.error('Error:', err);  // Always logged
+```
+
+**Create:** `/frontend/src/utils/logger.js` with environment-aware logging
+
+### 5. 📁 Never Delete Files Immediately
 ```bash
 # When replacing files:
 mv OldComponent.js OldComponent.js.toberemoved
 # Create new file
 # Keep .toberemoved files for user review
 ```
+
+### 6. ⚙️ NO Hardcoded URLs or Configuration
+```python
+# ❌ NEVER HARDCODE
+url = "http://localhost:8000"
+db = "mongodb://localhost:27017"
+
+# ✅ ALWAYS USE CONFIG
+from config import Settings
+settings = Settings()
+url = settings.backend_url
+db = settings.mongodb_url
+```
+
+```javascript
+// ❌ NEVER HARDCODE
+const API_URL = 'http://localhost:8000';
+
+// ✅ ALWAYS USE
+import { getBackendUrl } from './config/apiConfig';
+const API_URL = getBackendUrl();
+```
+
+**Found:** 50+ hardcoded URLs that need fixing!
 
 ---
 
@@ -73,18 +120,24 @@ mv OldComponent.js OldComponent.js.toberemoved
 ### Key Directories
 ```
 /fastapi_backend/
-  ├── auth/jwt_auth.py          ← PRIMARY AUTH
+  ├── auth/jwt_auth.py          ← PRIMARY AUTH (use this!)
+  ├── auth/legacy_auth.py       ← DEPRECATED (do not use)
   ├── models/                    ← Pydantic models
   ├── services/                  ← Business logic
   ├── routers/                   ← Additional routes
+  │   ├── notifications.py       ← Notification API
+  │   └── verification.py        ← Email verification (NEW)
   ├── job_templates/             ← Scheduler templates
+  ├── migrations/                ← Database migrations
   ├── routes.py                  ← Main routes
-  ├── config.py                  ← Settings
+  ├── config.py                  ← Settings (USE FOR ALL CONFIG!)
   └── main.py                    ← Entry point
 
 /frontend/src/
   ├── components/                ← React components
+  ├── config/apiConfig.js        ← API URLs (USE THIS!)
   ├── themes/themes.css          ← Theme variables
+  ├── utils/logger.js            ← Logging utility (TODO: create)
   └── api.js                     ← API config
 ```
 
@@ -93,8 +146,9 @@ mv OldComponent.js OldComponent.js.toberemoved
 /api/users/*              → routes.py (main)
 /api/auth/*               → auth_routes.py
 /api/notifications/*      → routers/notifications.py
+/api/verification/*       → routers/verification.py (NEW - Oct 25)
 /api/scheduler/*          → routes_dynamic_scheduler.py
-/api/activity-logs/*      → routers/activity_logs.py (NEW)
+/api/activity-logs/*      → routers/activity_logs.py
 ```
 
 ---
@@ -278,6 +332,102 @@ allow_credentials=True
 
 ---
 
+## 🎉 Email Verification & Onboarding System (Oct 25, 2025)
+
+### Complete User Activation Flow
+```
+Register → Email Sent → Verify Email → Pending Admin → Approved → Active
+   ✅         📧            ✅              ⏳            👨‍💼        🎉
+```
+
+### Key Components
+
+**Backend:**
+- `EmailVerificationService` (411 lines)
+- `routers/verification.py` - 3 endpoints
+- `services/email_verification_service.py`
+
+**Frontend:**
+- `VerifyEmail.js` - Verification success/error page
+- `ActivationBadge.js` - Banner status indicator
+- Compact badge on profile (below Profile ID)
+
+**API Endpoints:**
+```python
+POST /api/verification/verify-email
+  - Verifies token from email
+  - Sets accountStatus = "pending_admin_approval"
+  - Marks emailVerified = true
+
+POST /api/verification/resend-verification
+  - Resends verification email
+  - Rate limited: 5 attempts/day
+
+GET /api/verification/status/{username}
+  - Returns activation status
+  - Used for badges and UI state
+```
+
+**Database Fields (Added to users collection):**
+```python
+accountStatus: str  # pending_email_verification, pending_admin_approval, active
+emailVerified: bool
+emailVerifiedAt: datetime
+emailVerificationToken: str
+emailVerificationTokenExpiry: datetime
+emailVerificationAttempts: int
+adminApprovalStatus: str  # pending, approved, rejected
+adminApprovedBy: str
+adminApprovedAt: datetime
+onboardingCompleted: bool
+```
+
+**Migration:**
+- `add_activation_fields.py` - Added fields to 203 existing users
+- All existing users set to "active" status
+- New users start at "pending_email_verification"
+
+**Email Template:**
+- Beautiful HTML with purple gradient header
+- Personalized greeting
+- Verification button + fallback link
+- Mobile responsive
+
+**Security Features:**
+- 24-hour token expiry
+- Rate limiting (5 emails/day)
+- Secure token generation
+- Email validation
+
+### Status Badge Display
+
+**Two-tier UI:**
+1. **Detailed Banner** (top of profile)
+   - Full explanation
+   - Action buttons (resend email)
+   - Next steps guidance
+
+2. **Compact Badge** (below Profile ID)
+   - Quick status reference
+   - Color-coded:
+     - 📧 Yellow: Email verification pending
+     - ⏳ Blue: Admin approval pending
+     - 🚫 Red: Suspended
+     - ⚪ Gray: Deactivated
+   - Only shows on own profile
+   - Hidden when status = "active"
+
+**Condition:**
+```jsx
+{isOwnProfile && activationStatus && activationStatus.accountStatus !== 'active' && (
+  <div className="activation-badge">
+    {/* Badge content */}
+  </div>
+)}
+```
+
+---
+
 ## 📋 Recent Updates (Oct 22, 2025)
 
 ### ✅ Scheduled Notifications System (Option B)
@@ -305,21 +455,54 @@ allow_credentials=True
 - ❌ `from auth import get_current_user` (legacy)
 - ❌ `current_user.username` (attribute access)
 - ❌ `current_user: TokenData` (wrong type)
+- ✅ `from auth.jwt_auth import get_current_user_dependency as get_current_user`
+- ✅ `current_user: dict = Depends(get_current_user)`
+- ✅ `username = current_user["username"]`
 
-### Theme
-- ❌ Hardcoded colors: `#667eea`
+### Configuration & URLs
+- ❌ `"http://localhost:3000"` (50+ occurrences found)
+- ❌ `"http://localhost:8000"` (23 occurrences found)
+- ❌ `"mongodb://localhost:27017"` (22 occurrences found)
+- ✅ Use `settings.frontend_url` from config.py
+- ✅ Use `getBackendUrl()` from apiConfig.js
+- ✅ Use `settings.mongodb_url` from config.py
+
+### Styling & CSS
+- ❌ Inline styles: `style={{padding: '8px'}}` (286 found!)
+- ❌ Hardcoded colors: `#667eea`, `#f0f0f0`
 - ❌ `@media (prefers-color-scheme: dark)`
-- ❌ Forgetting `var(--primary-color)`
+- ✅ Use CSS modules or className
+- ✅ Use `var(--primary-color)` for colors
+- ✅ Use `var(--spacing-md)` for spacing
+
+### Logging & Debugging
+- ❌ `console.log()` everywhere (259 occurrences!)
+- ❌ Debug code left in production
+- ✅ Use logger.debug() (dev only)
+- ✅ Use logger.error() for errors
+- ✅ Environment-aware logging
 
 ### UI/UX
 - ❌ `alert()`, `window.confirm()`, `prompt()`
 - ❌ Inconsistent button styles
 - ❌ Different icons for same action
+- ✅ Custom modals with proper styling
+- ✅ DeleteButton component for deletes
+- ✅ Consistent icons everywhere
 
 ### Scheduler
 - ❌ Hardcoded jobs in code
 - ❌ Multiple scheduler instances
 - ❌ Using Python `schedule` library
+- ✅ All jobs in dynamic_jobs collection
+- ✅ Single unified_scheduler.py
+- ✅ Job templates in /job_templates/
+
+### Email Verification
+- ❌ Accessing `user.email` (doesn't exist)
+- ❌ Using `notification.dict().get("_id")` (returns None)
+- ✅ Use `user.get("contactEmail")` 
+- ✅ Use `notification.id` (field alias works)
 
 ---
 
@@ -501,15 +684,127 @@ npm test  # 70% minimum
 
 ## ✅ Pre-Commit Checklist
 
-- [ ] Using correct auth import?
+### Code Quality
+- [ ] Using correct auth import (`jwt_auth`, not `legacy_auth`)?
 - [ ] All colors use CSS variables?
+- [ ] No inline styles (use CSS modules)?
 - [ ] No `alert()`, `confirm()`, `prompt()`?
-- [ ] Tests written?
+- [ ] No `console.log()` (use logger)?
+- [ ] Tests written (85% coverage target)?
+
+### Configuration
+- [ ] No hardcoded URLs (localhost:3000, localhost:8000)?
+- [ ] No hardcoded MongoDB URLs?
+- [ ] Using `getBackendUrl()` from apiConfig.js?
+- [ ] Using `settings` from config.py?
+
+### Consistency
 - [ ] Both UserCard & SearchResultCard updated (if card change)?
 - [ ] Documentation updated?
+- [ ] TODOs created for future work?
+- [ ] Migrations created if schema changed?
+
+### Email System
+- [ ] Using `contactEmail` not `email`?
+- [ ] Using `contactNumber` not `phone`?
+- [ ] Token expiry set properly?
+- [ ] Rate limiting in place?
+
+---
+
+## 📊 Code Quality Metrics (Oct 25, 2025 Audit)
+
+**Overall Health:** C+ (72/100)
+
+### Critical Issues (Must Fix)
+- ⚠️ Hardcoded URLs: 50+ occurrences
+- ⚠️ Inline Styles: 286 occurrences  
+- ⚠️ console.log: 259 occurrences
+- ⚠️ TODOs: 12 unresolved
+
+### Refactoring Priority
+1. **P0 - Critical:** Replace hardcoded URLs (8-12 hours)
+2. **P1 - High:** CSS refactoring (20-25 hours)
+3. **P1 - High:** Implement logger (5-8 hours)
+4. **P2 - Medium:** Resolve TODOs (10-15 hours)
+
+**Total Estimated Time:** 40-50 hours
+
+See `COMPREHENSIVE_CODE_AUDIT.md` for full details.
+
+---
+
+## 🎯 Quick Refactoring Examples
+
+### Replace Hardcoded URL
+```python
+# ❌ Before
+url = "http://localhost:8000/api/users"
+
+# ✅ After  
+from config import Settings
+settings = Settings()
+url = f"{settings.backend_url}/api/users"
+```
+
+### Replace Inline Style
+```jsx
+// ❌ Before (44 in Register.js!)
+<div style={{
+  padding: '8px',
+  margin: '16px',
+  borderRadius: '6px',
+  backgroundColor: '#f0f0f0'
+}}>
+
+// ✅ After
+<div className="form-section">
+
+/* In CSS */
+.form-section {
+  padding: var(--spacing-sm);
+  margin: var(--spacing-md);
+  border-radius: var(--radius-md);
+  background: var(--surface-color);
+}
+```
+
+### Replace console.log
+```javascript
+// ❌ Before (39 in Profile.js!)
+console.log('Loading profile:', username);
+
+// ✅ After
+import logger from '../utils/logger';
+logger.debug('Loading profile:', username);
+```
+
+---
+
+## 🗂️ Files Needing Most Attention
+
+### Inline Styles (Top 5)
+1. `Register.js` - 44 inline styles
+2. `Profile.js` - 43 inline styles
+3. `UnifiedPreferences.js` - 21 inline styles
+4. `Logo.js` - 20 inline styles
+5. `EditProfile.js` - 18 inline styles
+
+### console.log (Top 5)
+1. `Profile.js` - 39 occurrences
+2. `SearchPage.js` - 36 occurrences
+3. `socketService.js` - 26 occurrences
+4. `realtimeMessagingService.js` - 15 occurrences
+5. `NotificationTester.js` - 14 occurrences
+
+### Hardcoded URLs (Top 3)
+1. `fix_all_localhost.py` - 11 occurrences (ironic!)
+2. `test_utils.py` - 4 occurrences
+3. `apiConfig.js` - 3 occurrences (defaults)
 
 ---
 
 **END OF QUICK REFERENCE**  
-**Use this to quickly refresh memory on ProfileData app structure and standards**
+**Use this to quickly refresh memory on ProfileData app structure and standards**  
+**Last Major Audit:** Oct 25, 2025 - See COMPREHENSIVE_CODE_AUDIT.md
 

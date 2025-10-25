@@ -1,0 +1,72 @@
+name: Test Backend
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+    paths:
+      - 'fastapi_backend/**'
+      - '.github/workflows/test-backend.yml'
+  push:
+    branches: [ main, dev ]
+    paths:
+      - 'fastapi_backend/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Run Backend Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        env:
+          MONGO_INITDB_DATABASE: matrimonialDB_test
+      
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          cache-dependency-path: fastapi_backend/requirements.txt
+      
+      - name: Install dependencies
+        run: |
+          cd fastapi_backend
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+      
+      - name: Run tests with coverage
+        env:
+          MONGODB_URL: mongodb://localhost:27017
+          DATABASE_NAME: matrimonialDB_test
+          REDIS_URL: redis://localhost:6379
+          SECRET_KEY: test_secret_key_for_ci
+          TESTING: true
+        run: |
+          cd fastapi_backend
+          pytest --cov=. --cov-report=xml --cov-report=term -v
+      
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./fastapi_backend/coverage.xml
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+      
+      - name: Check test coverage
+        run: |
+          cd fastapi_backend
+          coverage report --fail-under=70
