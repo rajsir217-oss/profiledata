@@ -32,3 +32,4 @@ yarn-error.log*
 
 # Uploads
 uploads/
+mongodb_backup_*.tar.gz
