@@ -550,12 +550,13 @@ const Dashboard = () => {
               ☰ Rows
             </button>
           </div>
+          {/* Refresh Icon Button */}
           <button 
-            className="btn-refresh"
+            className="btn-refresh-icon"
             onClick={() => loadDashboardData(currentUser)}
             title="Refresh Dashboard"
           >
-            🔄 Refresh
+            🔄
           </button>
         </div>
       </div>

@@ -3,9 +3,9 @@ import { getImageUrl } from '../utils/urlHelper';
 import './ProfilePreview.css';
 
 const ProfilePreview = ({ user, onClose }) => {
-  const calculateAge = (dob) => {
-    if (!dob) return 'N/A';
-    const birthDate = new Date(dob);
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 'N/A';
+    const birthDate = new Date(dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -47,7 +47,7 @@ const ProfilePreview = ({ user, onClose }) => {
           <div className="onepager-details-grid">
             <div className="detail-item">
               <span className="detail-label">Age</span>
-              <span className="detail-value">{calculateAge(user.dob)} years</span>
+              <span className="detail-value">{calculateAge(user.dateOfBirth)} years</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Height</span>

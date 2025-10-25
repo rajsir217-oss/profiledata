@@ -111,13 +111,16 @@ const Login = () => {
         }
       `}</style>
       
-      <div className="card p-4 shadow-lg" style={{ 
-        maxWidth: '400px', 
+      <div className="login-container" style={{
         width: '100%',
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        backdropFilter: 'blur(10px)',
+        maxWidth: '400px',
+        background: 'rgba(255, 255, 255, 0.95)',
         borderRadius: '20px',
-        border: '1px solid rgba(255, 255, 255, 0.3)'
+        padding: '32px 24px',
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        backdropFilter: 'blur(10px)',
+        position: 'relative',
+        zIndex: 1
       }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
           <Logo variant="modern" size="medium" showText={true} theme="light" />
@@ -134,36 +137,78 @@ const Login = () => {
           <input
             type="text"
             name="username"
-            placeholder="Enter username"
-            className="form-control"
-            onChange={handleChange}
             value={form.username}
+            onChange={handleChange}
+            style={{
+              width: '100%',
+              padding: '14px',
+              border: '2px solid #e0e0e0',
+              borderRadius: '8px',
+              fontSize: '16px',
+              transition: 'border-color 0.3s',
+              outline: 'none',
+              minHeight: '44px'
+            }}
             required
           />
         </div>
         <div className="mb-3">
           <label className="form-label">Password</label>
-          <div className="input-group">
+          <div style={{ position: 'relative' }}>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
-              placeholder="Enter password"
-              className="form-control"
-              onChange={handleChange}
               value={form.password}
+              onChange={handleChange}
+              style={{
+                width: '100%',
+                padding: '14px',
+                paddingRight: '50px',
+                border: '2px solid #e0e0e0',
+                borderRadius: '8px',
+                fontSize: '16px',
+                transition: 'border-color 0.3s',
+                outline: 'none',
+                minHeight: '44px',
+                boxSizing: 'border-box'
+              }}
               required
             />
             <button
-              className="btn btn-outline-secondary"
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              tabIndex="-1"
+              style={{
+                position: 'absolute',
+                right: '4px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: '20px',
+                padding: '8px',
+                minWidth: '44px',
+                minHeight: '44px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
             >
               {showPassword ? '👁️' : '👁️‍🗨️'}
             </button>
           </div>
         </div>
-        <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+        <button 
+          type="submit" 
+          className="btn btn-primary w-100" 
+          disabled={loading}
+          style={{
+            minHeight: '44px',
+            fontSize: '16px',
+            fontWeight: '600',
+            padding: '12px'
+          }}
+        >
           {loading ? "Logging in..." : "Login"}
         </button>
       </form>

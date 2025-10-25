@@ -124,7 +124,6 @@ async def register_user(
     educationHistory: Optional[str] = Form(None),  # JSON string array of education entries
     # Professional & Work Related Information
     workExperience: Optional[str] = Form(None),  # JSON string array of work experience entries
-    workLocation: Optional[str] = Form(None),  # Renamed from workplace
     linkedinUrl: Optional[str] = Form(None),
     # About Me and Partner Information
     familyBackground: Optional[str] = Form(None),
@@ -308,7 +307,6 @@ async def register_user(
         # Professional & Work Related Information
         "workExperience": json.loads(workExperience) if workExperience else [],
         "workingStatus": workingStatus,  # Auto-set to "No" initially
-        "workLocation": workLocation,
         "linkedinUrl": linkedinUrl,
         # About Me and Partner Information
         "familyBackground": familyBackground,
@@ -461,6 +459,8 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
+    # No field conversion needed - using dateOfBirth only
+    
     # Apply PII masking if requester is not the profile owner
     from pii_security import mask_user_pii, check_access_granted
     
@@ -498,8 +498,7 @@ async def update_user_profile(
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
-    dob: Optional[str] = Form(None),
-    dateOfBirth: Optional[str] = Form(None),  # NEW: consistent naming
+    dateOfBirth: Optional[str] = Form(None),
     sex: Optional[str] = Form(None),
     gender: Optional[str] = Form(None),  # NEW: consistent naming
     height: Optional[str] = Form(None),
@@ -517,13 +516,10 @@ async def update_user_profile(
     eatingPreference: Optional[str] = Form(None),
     location: Optional[str] = Form(None),
     # Education & Work
-    education: Optional[str] = Form(None),
     educationHistory: Optional[str] = Form(None),  # JSON string
     workExperience: Optional[str] = Form(None),  # JSON string
-    workLocation: Optional[str] = Form(None),  # NEW
     linkedinUrl: Optional[str] = Form(None),
     workingStatus: Optional[str] = Form(None),
-    workplace: Optional[str] = Form(None),
     citizenshipStatus: Optional[str] = Form(None),
     # Personal/Lifestyle fields
     relationshipStatus: Optional[str] = Form(None),  # NEW
@@ -574,13 +570,9 @@ async def update_user_profile(
     if contactEmail is not None and contactEmail.strip():
         update_data["contactEmail"] = contactEmail.strip()
     
-    # Handle both old and new field names for date of birth
+    # Update date of birth
     if dateOfBirth is not None and dateOfBirth.strip():
         update_data["dateOfBirth"] = dateOfBirth.strip()
-        update_data["dob"] = dateOfBirth.strip()  # Keep both for compatibility
-    elif dob is not None and dob.strip():
-        update_data["dob"] = dob.strip()
-        update_data["dateOfBirth"] = dob.strip()  # Keep both for compatibility
     
     # Handle both old and new field names for gender
     if gender is not None and gender.strip():
@@ -619,14 +611,8 @@ async def update_user_profile(
         update_data["location"] = location.strip()
     
     # Education & Work
-    if education is not None and education.strip():
-        update_data["education"] = education.strip()
     if workingStatus is not None and workingStatus.strip():
         update_data["workingStatus"] = workingStatus.strip()
-    if workplace is not None and workplace.strip():
-        update_data["workplace"] = workplace.strip()
-    if workLocation is not None and workLocation.strip():
-        update_data["workLocation"] = workLocation.strip()
     if citizenshipStatus is not None and citizenshipStatus.strip():
         update_data["citizenshipStatus"] = citizenshipStatus.strip()
     
@@ -1164,7 +1150,6 @@ async def search_users(
     heightMin: int = 0,
     heightMax: int = 0,
     location: str = "",
-    education: str = "",
     occupation: str = "",
     religion: str = "",
     caste: str = "",
@@ -1221,15 +1206,15 @@ async def search_users(
         # ageMax (younger) → person born MORE RECENTLY → DOB >= max_date
         if ageMax > 0:
             max_date = now - timedelta(days=ageMax * 365.25)
-            query["dob"] = {"$gte": max_date.strftime("%Y-%m-%d")}
+            query["dateOfBirth"] = {"$gte": max_date.strftime("%Y-%m-%d")}
 
         # ageMin (older) → person born LONGER AGO → DOB <= min_date
         if ageMin > 0:
             min_date = now - timedelta(days=ageMin * 365.25)
-            if "dob" in query:
-                query["dob"]["$lte"] = min_date.strftime("%Y-%m-%d")
+            if "dateOfBirth" in query:
+                query["dateOfBirth"]["$lte"] = min_date.strftime("%Y-%m-%d")
             else:
-                query["dob"] = {"$lte": min_date.strftime("%Y-%m-%d")}
+                query["dateOfBirth"] = {"$lte": min_date.strftime("%Y-%m-%d")}
 
     # Height filter - now using heightInches (numeric field)
     if heightMin > 0 or heightMax > 0:
@@ -1243,8 +1228,6 @@ async def search_users(
     # Other filters
     if location:
         query["location"] = {"$regex": location, "$options": "i"}
-    if education:
-        query["education"] = education
     if occupation:
         query["occupation"] = occupation
     if religion:
@@ -1273,7 +1256,7 @@ async def search_users(
         "newest": [("createdAt", -1)],
         "oldest": [("createdAt", 1)],
         "name": [("firstName", 1)],
-        "age": [("dob", -1)],
+        "age": [("dateOfBirth", -1)],
         "location": [("location", 1)]
     }
 
@@ -1300,6 +1283,8 @@ async def search_users(
             # Remove consent metadata (backend-only fields)
             remove_consent_metadata(user)
             user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            
+            # No field conversion needed
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
         return {
@@ -2741,7 +2726,7 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
                 "username": viewer["viewerUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dob")),
+                "age": calculate_age(user_data.get("dateOfBirth")),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -2780,7 +2765,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dob")),
+                "age": calculate_age(user_data.get("dateOfBirth")),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -2819,7 +2804,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dob")),
+                "age": calculate_age(user_data.get("dateOfBirth")),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -4130,19 +4115,19 @@ async def get_unread_counts(username: str):
         return {"unread_counts": {}}
 
 # Helper function for age calculation
-def calculate_age(dob):
+def calculate_age(dateOfBirth):
     """Calculate age from date of birth"""
-    if not dob:
+    if not dateOfBirth:
         return None
-    if isinstance(dob, str):
+    if isinstance(dateOfBirth, str):
         try:
-            dob = datetime.strptime(dob, "%Y-%m-%d").date()
+            dateOfBirth = datetime.strptime(dateOfBirth, "%Y-%m-%d").date()
         except:
             return None
-    elif isinstance(dob, datetime):
-        dob = dob.date()
+    elif isinstance(dateOfBirth, datetime):
+        dateOfBirth = dateOfBirth.date()
     today = date.today()
-    age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+    age = today.year - dateOfBirth.year - ((today.month, today.day) < (dateOfBirth.month, dateOfBirth.day))
     return age
 
 
@@ -4225,9 +4210,8 @@ async def get_l3v3l_matches(
                     'profileId': candidate.get('profileId'),
                     'firstName': candidate.get('firstName'),
                     'lastName': candidate.get('lastName'),
-                    'age': calculate_age(candidate.get('dob')),  # MongoDB field is 'dob'
-                    'dob': candidate.get('dob'),  # For age calculation fallback
-                    'dateOfBirth': candidate.get('dob'),  # Also provide as dateOfBirth
+                    'age': calculate_age(candidate.get('dateOfBirth')),
+                    'dateOfBirth': candidate.get('dateOfBirth'),
                     'gender': candidate.get('gender'),
                     'height': candidate.get('height'),
                     'location': candidate.get('location'),

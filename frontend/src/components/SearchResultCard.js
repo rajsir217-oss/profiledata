@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
@@ -49,7 +49,7 @@ const SearchResultCard = ({
 
   // Calculate PII request status summary
   const getPIIStatusSummary = () => {
-    const piiTypes = ['images', 'contact_info', 'dob', 'linkedin_url'];
+    const piiTypes = ['images', 'contact_info', 'date_of_birth', 'linkedin_url'];
     let approved = 0;
     let pending = 0;
 
@@ -80,11 +80,11 @@ const SearchResultCard = ({
 
   const piiStatus = getPIIStatusSummary();
 
-  // Calculate age from DOB
-  const calculateAge = (dob) => {
-    if (!dob) return 'N/A';
+  // Calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return 'N/A';
     try {
-      const birthDate = new Date(dob);
+      const birthDate = new Date(dateOfBirth);
       if (isNaN(birthDate.getTime())) return 'N/A';
       const today = new Date();
       let age = today.getFullYear() - birthDate.getFullYear();
@@ -92,26 +92,27 @@ const SearchResultCard = ({
       if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
         age--;
       }
-      return age > 0 && age < 120 ? age : 'N/A';
-    } catch (e) {
+      return age;
+    } catch {
       return 'N/A';
     }
   };
   
-  // Get age - use provided age or calculate from DOB/dateOfBirth
+  // Get age - use provided age or calculate from dateOfBirth
   const getAge = () => {
     // First try to use provided age (must be a valid number)
     if (typeof user.age === 'number' && user.age > 0) {
       return user.age;
     }
-    if (typeof user.age === 'string' && user.age !== 'N/A' && user.age !== '') {
+    // Try parsing age string
+    if (typeof user.age === 'string' && user.age.trim()) {
       const numAge = parseInt(user.age);
       if (!isNaN(numAge) && numAge > 0) {
         return numAge;
       }
     }
-    // Try to calculate from dob or dateOfBirth
-    const calculated = calculateAge(user.dob || user.dateOfBirth);
+    // Calculate from dateOfBirth
+    const calculated = calculateAge(user.dateOfBirth);
     return calculated;
   };
   
@@ -122,7 +123,6 @@ const SearchResultCard = ({
   if (!displayAge || displayAge === 'N/A') {
     console.log('⚠️ Age missing for user:', user.username || user.firstName, {
       providedAge: user.age,
-      dob: user.dob,
       dateOfBirth: user.dateOfBirth
     });
   }
@@ -383,8 +383,13 @@ const SearchResultCard = ({
   return (
     <div className="result-card">
       <div className="card">
-        {/* Card Title Section with Purple Gradient */}
-        <div className="card-title-section">
+        {/* Card Title Section with Purple Gradient - Clickable */}
+        <div 
+          className="card-title-section"
+          onClick={() => navigate(`/profile/${user.username}`)}
+          style={{ cursor: 'pointer' }}
+          title="View Full Profile"
+        >
           <h6 className="card-title">
             {getDisplayName(user)}
           </h6>
@@ -416,21 +421,7 @@ const SearchResultCard = ({
                   {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
                 </div>
 
-                {/* PII Section - Cleaner */}
-                {!hasPiiAccess && onPIIRequest && (
-                  <div className="pii-section-compact">
-                    <button
-                      className={`btn-pii-request ${piiStatus.className}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPIIRequest(user);
-                      }}
-                      title={`Request access to contact info (${piiStatus.text})`}
-                    >
-                      🔒
-                    </button>
-                  </div>
-                )}
+                {/* PII Status - Show only if granted */}
                 {hasPiiAccess && (
                   <div className="pii-granted-compact">
                     <span className="pii-status-badge">✓ Contact Info Granted</span>
@@ -444,14 +435,6 @@ const SearchResultCard = ({
           <div className="card-actions-clean">
             {/* All actions as icon buttons */}
             <div className="actions-all-icons">
-              <button
-                className="btn-icon btn-icon-primary"
-                onClick={() => navigate(`/profile/${user.username}`)}
-                title="View Full Profile"
-              >
-                👁️
-              </button>
-              
               {showMessageButton && onMessage && (
                 <button
                   className="btn-icon btn-icon-primary"
@@ -487,6 +470,20 @@ const SearchResultCard = ({
                   title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
                 >
                   {isShortlisted ? '✓' : '📋'}
+                </button>
+              )}
+              
+              {/* PII Request Button */}
+              {onPIIRequest && (
+                <button
+                  className={`btn-icon ${hasPiiAccess ? 'btn-icon-success active' : ''} ${piiStatus.className}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPIIRequest(user);
+                  }}
+                  title={hasPiiAccess ? 'Contact Info Granted' : `Request Access - ${piiStatus.text}`}
+                >
+                  {hasPiiAccess ? '🔓' : '🔒'}
                 </button>
               )}
               

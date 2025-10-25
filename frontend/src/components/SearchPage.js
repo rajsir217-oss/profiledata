@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api from '../api';
@@ -58,7 +58,6 @@ const SearchPage = () => {
   // View mode state
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
-  const [showGridLines, setShowGridLines] = useState(false);
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 3;
@@ -111,10 +110,10 @@ const SearchPage = () => {
         
         console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
         
-        // Calculate user's age from DOB
+        // Calculate user's age from date of birth
         let userAge = null;
-        if (response.data.dob) {
-          const birthDate = new Date(response.data.dob);
+        if (response.data.dateOfBirth) {
+          const birthDate = new Date(response.data.dateOfBirth);
           const today = new Date();
           userAge = today.getFullYear() - birthDate.getFullYear();
           const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -502,7 +501,6 @@ const SearchPage = () => {
 
   // Dating field options
   const genderOptions = ['', 'Male', 'Female'];
-  const educationOptions = ['', 'B.Tech in Computer Science', 'MBA from IIM', 'M.Tech in Engineering', 'B.Com', 'M.Com', 'BBA', 'MCA', 'B.Sc in Physics', 'M.Sc in Chemistry', 'MBBS', 'MD', 'CA', 'CS', 'B.A. in Economics', 'M.A. in English', 'Ph.D. in Mathematics', 'B.E. in Mechanical', 'Diploma in Engineering', 'B.Pharm', 'M.Pharm'];
   const occupationOptions = ['', 'Software Engineer', 'Data Scientist', 'Product Manager', 'Business Analyst', 'Consultant', 'Doctor', 'Chartered Accountant', 'Lawyer', 'Teacher', 'Professor', 'Architect', 'Designer', 'Marketing Manager', 'Sales Executive', 'HR Manager', 'Financial Analyst', 'Civil Engineer', 'Mechanical Engineer', 'Pharmacist', 'Nurse', 'Entrepreneur', 'Banker', 'Government Officer'];
   const religionOptions = ['', 'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain'];
   const eatingOptions = ['', 'Vegetarian', 'Eggetarian', 'Non-Veg'];
@@ -981,7 +979,7 @@ const SearchPage = () => {
     setCurrentPIIAccess({
       images: piiRequests[`${targetUsername}_images`] === 'approved',
       contact_info: piiRequests[`${targetUsername}_contact_info`] === 'approved',
-      dob: piiRequests[`${targetUsername}_dob`] === 'approved',
+      date_of_birth: piiRequests[`${targetUsername}_date_of_birth`] === 'approved',
       linkedin_url: piiRequests[`${targetUsername}_linkedin_url`] === 'approved'
     });
 
@@ -1007,7 +1005,7 @@ const SearchPage = () => {
     return {
       images: piiRequests[`${targetUsername}_images`],
       contact_info: piiRequests[`${targetUsername}_contact_info`],
-      dob: piiRequests[`${targetUsername}_dob`],
+      date_of_birth: piiRequests[`${targetUsername}_date_of_birth`],
       linkedin_url: piiRequests[`${targetUsername}_linkedin_url`]
     };
   };
@@ -1222,7 +1220,7 @@ const SearchPage = () => {
     }
 
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
-      const age = calculateAge(user.dob);
+      const age = calculateAge(user.dateOfBirth);
       if (age === null) return false;
 
       if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) return false;
@@ -1285,64 +1283,67 @@ const SearchPage = () => {
             style={{ cursor: 'pointer' }}
             title={filtersCollapsed ? "Click to show filters" : "Click to hide filters"}
           >
-            <div className="filters-header-left">
-              <h4>
-                Search Filters
+            <div className="filter-title-section">
+              <h4 className="mb-0" style={{ color: 'var(--primary-color)', fontSize: '18px', fontWeight: 600 }}>
+                Search:
               </h4>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
-                disabled={loading}
-                title="Search"
-              >
-                <span style={{ fontSize: '18px' }}>{loading ? '⟳' : '🔍'}</span>
-                <span style={{ marginLeft: '6px' }}>Search</span>
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${hasActiveFilters() ? 'btn-warning' : 'btn-outline-secondary'}`}
-                onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
-                disabled={loading || !hasActiveFilters()}
-                title="Clear Filters"
-              >
-                <span style={{ fontSize: '16px', fontWeight: 'bold' }}>✕</span>
-                <span style={{ marginLeft: '6px' }}>Clear Filters</span>
-                {hasActiveFilters() && (
-                  <small className="badge bg-danger ms-1">{countActiveFilters()}</small>
-                )}
-              </button>
-            </div>
-            <div className="filter-actions">
-              <button
-                className="btn btn-outline-secondary btn-sm"
-                onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(!filtersCollapsed); }}
-                title={filtersCollapsed ? "Show filters" : "Hide filters"}
-              >
-                {filtersCollapsed ? '▼ Show' : '▲ Hide'}
-              </button>
-              <button
-                className="btn btn-outline-primary btn-sm saved-search-btn"
-                onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
-                title={savedSearches.length > 0 ? `${savedSearches.length} saved searches` : 'No saved searches'}
-              >
-                {savedSearches.length > 0 ? (
-                  <span className="icon-overlay">
-                    <span className="icon-base">📋</span>
-                    <span className="icon-top">🔍</span>
-                  </span>
-                ) : '🔍'}
-                <span style={{ marginLeft: '6px' }}>Saved Searches</span>
-                {savedSearches.length > 0 && ` (${savedSearches.length})`}
-              </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm"
-                onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
-                title="Manage Saved Searches"
-              >
-                💾 Manage
-              </button>
+              {/* Row 1: Primary Actions */}
+              <div className="search-icon-row">
+                <button
+                  type="button"
+                  className="search-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
+                  disabled={loading}
+                  title="Search"
+                >
+                  <span className="btn-icon">{loading ? '⟳' : '🔍'}</span>
+                  <span className="btn-text">Search</span>
+                </button>
+                <button
+                  type="button"
+                  className={`search-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
+                  onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
+                  disabled={loading || !hasActiveFilters()}
+                  title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
+                >
+                  <span className="btn-icon">✕</span>
+                  <span className="btn-text">Clear</span>
+                  {hasActiveFilters() && (
+                    <span className="filter-count-badge">{countActiveFilters()}</span>
+                  )}
+                </button>
+                <button
+                  className="search-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(!filtersCollapsed); }}
+                  title={filtersCollapsed ? "Show filters" : "Hide filters"}
+                >
+                  <span className="btn-icon">{filtersCollapsed ? '▼' : '▲'}</span>
+                  <span className="btn-text">{filtersCollapsed ? 'Show' : 'Hide'}</span>
+                </button>
+              </div>
+              {/* Row 2: Management */}
+              <div className="search-icon-row">
+                <button
+                  className="search-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
+                  title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
+                >
+                  <span className="btn-icon">🔍</span>
+                  <span className="btn-text">Saved Searches</span>
+                  {savedSearches.length > 0 && (
+                    <span className="filter-count-badge">{savedSearches.length}</span>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="search-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
+                  title="Manage Saved Searches"
+                >
+                  <span className="btn-icon">💾</span>
+                  <span className="btn-text">Manage</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1389,7 +1390,7 @@ const SearchPage = () => {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-            {/* Row 1: Gender | Keyword | Age Range | Height Range | Body Type */}
+            {/* Row 1: Gender | Location | Keyword | Age Range | Height Range | Body Type */}
             <div className="filter-section">
               <div className="row filter-row-1">
                 <div className="col-gender">
@@ -1413,6 +1414,19 @@ const SearchPage = () => {
                       <option value="female">Female</option>
                       <option value="other">Other</option>
                     </select>
+                  </div>
+                </div>
+                <div className="col-location">
+                  <div className="form-group">
+                    <label>Location</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      name="location"
+                      value={searchCriteria.location}
+                      onChange={handleInputChange}
+                      placeholder="City, State..."
+                    />
                   </div>
                 </div>
                 <div className="col-keyword">
@@ -1460,7 +1474,7 @@ const SearchPage = () => {
                 </div>
                 <div className="col-height-min">
                   <div className="form-group">
-                    <label>Height Range (Min)</label>
+                    <label>Height (Min)</label>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <select
                         className="form-control"
@@ -1501,7 +1515,7 @@ const SearchPage = () => {
                 </div>
                 <div className="col-height-max">
                   <div className="form-group">
-                    <label>Height Range (Max)</label>
+                    <label>Height (Max)</label>
                     <div style={{ display: 'flex', gap: '4px' }}>
                       <select
                         className="form-control"
@@ -1558,23 +1572,10 @@ const SearchPage = () => {
               </div>
             </div>
 
-            {/* Row 2: Education | Occupation | Eating | Drinking | Smoking | Location | Days Back */}
+            {/* Row 2: Education | Occupation | Eating | Drinking | Smoking | Days Back */}
             <div className="filter-section">
               <div className="row filter-row-2">
                 <div className="col-education">
-                  <div className="form-group">
-                    <label>Education</label>
-                    <select
-                      className="form-control"
-                      name="education"
-                      value={searchCriteria.education}
-                      onChange={handleInputChange}
-                    >
-                      {educationOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
                 </div>
                 <div className="col-occupation">
                   <div className="form-group">
@@ -1634,19 +1635,6 @@ const SearchPage = () => {
                         <option key={option} value={option}>{option || 'Any'}</option>
                       ))}
                     </select>
-                  </div>
-                </div>
-                <div className="col-location">
-                  <div className="form-group">
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="location"
-                      value={searchCriteria.location}
-                      onChange={handleInputChange}
-                      placeholder="City, State..."
-                    />
                   </div>
                 </div>
                 <div className="col-days-back">
@@ -1724,15 +1712,14 @@ const SearchPage = () => {
         <div className="search-results">
           <div className="results-header">
             <div className="results-title-section">
-              <h4>Search Results</h4>
+              <h4>Results:</h4>
               <div className="results-info">
                 {users.length > 0 ? (
                   <>
-                    <span className="badge bg-primary">Database: {totalResults} profiles</span>
-                    <span className="badge bg-success ms-2">Showing: {filteredUsers.length}</span>
+                    <span className="badge bg-primary">Profiles: {totalResults} | Showing: {filteredUsers.length}</span>
                     {users.length !== filteredUsers.length && (
                       <span className="badge bg-warning ms-2">
-                        {users.length - filteredUsers.length} hidden (excluded)
+                        {users.length - filteredUsers.length} hidden
                       </span>
                     )}
                   </>
@@ -1742,16 +1729,7 @@ const SearchPage = () => {
               </div>
             </div>
             <div className="results-controls">
-              <button 
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => handleSearch(1)}
-                disabled={loading}
-                title="Refresh results"
-              >
-                🔄
-              </button>
-              
-              {/* View Toggle */}
+              {/* View Toggle + Refresh */}
               <div className="view-toggle-group">
                 <button
                   className={`btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
@@ -1767,12 +1745,27 @@ const SearchPage = () => {
                 >
                   ☰
                 </button>
+                <button
+                  className={`btn btn-sm ${viewMode === 'compact' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  onClick={() => setViewMode('compact')}
+                  title="Compact view"
+                >
+                  ≡
+                </button>
+                <button 
+                  className="btn btn-sm btn-warning"
+                  onClick={() => handleSearch(1)}
+                  disabled={loading}
+                  title="Refresh results"
+                >
+                  🔄
+                </button>
               </div>
 
               {/* Cards Per Row (only show in card view) */}
               {viewMode === 'cards' && (
                 <div className="cards-per-row-selector">
-                  <span className="selector-label">Cards per row:</span>
+                  <span className="selector-label">Row Cards:</span>
                   {[2, 3, 4, 5].map(num => (
                     <button
                       key={num}
@@ -1781,26 +1774,13 @@ const SearchPage = () => {
                         setCardsPerRow(num);
                         localStorage.setItem('searchCardsPerRow', num.toString());
                       }}
-                      title={`${num} cards per row`}
+                      title={`${num} ROW CARDS`}  
                     >
                       {num}
                     </button>
                   ))}
                 </div>
               )}
-              
-              {/* Grid Lines Toggle */}
-              <div className="grid-lines-toggle">
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={showGridLines}
-                    onChange={(e) => setShowGridLines(e.target.checked)}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span className="toggle-label">Table grid lines</span>
-              </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span style={{ fontSize: '14px', fontWeight: '500' }}>Show:</span>
@@ -1854,7 +1834,7 @@ const SearchPage = () => {
           )}
 
           <div 
-            className={`${viewMode === 'cards' ? 'results-grid results-cards' : 'results-rows'} ${showGridLines ? 'with-grid-lines' : ''}`}
+            className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
             style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
           >
             {currentRecords.map((user) => {

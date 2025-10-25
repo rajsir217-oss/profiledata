@@ -29,6 +29,7 @@ const Shortlist = () => {
   useEffect(() => {
     loadShortlist();
     loadPiiRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadShortlist = async () => {
@@ -84,7 +85,7 @@ const Shortlist = () => {
           piiMap[targetUsername] = {
             hasContactAccess: access.accessTypes?.includes('contact_info'),
             hasImageAccess: access.accessTypes?.includes('images'),
-            hasDobAccess: access.accessTypes?.includes('dob'),
+            hasDateOfBirthAccess: access.accessTypes?.includes('date_of_birth'),
             hasLinkedInAccess: access.accessTypes?.includes('linkedin_url')
           };
           access.accessTypes?.forEach(accessType => {
@@ -139,7 +140,7 @@ const Shortlist = () => {
     return {
       images: userRequests.images || (userAccess.hasImageAccess ? 'approved' : null),
       contact_info: userRequests.contact_info || (userAccess.hasContactAccess ? 'approved' : null),
-      dob: userRequests.dob || (userAccess.hasDobAccess ? 'approved' : null),
+      date_of_birth: userRequests.date_of_birth || (userAccess.hasDateOfBirthAccess ? 'approved' : null),
       linkedin_url: userRequests.linkedin_url || (userAccess.hasLinkedInAccess ? 'approved' : null)
     };
   };

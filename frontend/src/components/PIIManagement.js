@@ -282,7 +282,7 @@ const PIIManagement = () => {
     const labels = {
       'images': '📷 Photos',
       'contact_info': '📧 Contact Info',
-      'dob': '🎂 Date of Birth'
+      'date_of_birth': '🎂 Date of Birth'
     };
     return labels[type] || type;
   };

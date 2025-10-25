@@ -85,27 +85,27 @@ const TextAreaWithSamples = ({
             className="card p-2 mb-2" 
             onClick={handleLoadSample}
             style={{ 
-              backgroundColor: '#f8f9fa', 
-              border: '1px dashed #dee2e6',
+              backgroundColor: 'var(--surface-color, #f8f9fa)', 
+              border: '1px dashed var(--border-color, #dee2e6)',
               cursor: 'pointer',
               transition: 'all 0.2s ease',
               borderRadius: '8px'
             }}
             onMouseOver={(e) => {
-              e.currentTarget.style.backgroundColor = '#e9ecef';
-              e.currentTarget.style.borderColor = '#2196f3';
+              e.currentTarget.style.backgroundColor = 'var(--hover-background, #e9ecef)';
+              e.currentTarget.style.borderColor = 'var(--primary-color, #2196f3)';
               e.currentTarget.style.boxShadow = '0 2px 6px rgba(33, 150, 243, 0.15)';
             }}
             onMouseOut={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8f9fa';
-              e.currentTarget.style.borderColor = '#dee2e6';
+              e.currentTarget.style.backgroundColor = 'var(--surface-color, #f8f9fa)';
+              e.currentTarget.style.borderColor = 'var(--border-color, #dee2e6)';
               e.currentTarget.style.boxShadow = 'none';
             }}
             title="Click to load this sample"
           >
             <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
               <strong>Sample {sampleIndex + 1}:</strong> {samples[sampleIndex].substring(0, 150)}... 
-              <span style={{ color: '#2196f3', fontWeight: 'bold' }}> ↓ Click to use</span>
+              <span style={{ color: 'var(--primary-color, #2196f3)', fontWeight: 'bold' }}> ↓ Click to use</span>
             </small>
           </div>
         </>

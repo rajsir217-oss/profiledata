@@ -39,73 +39,113 @@
   cursor: pointer;
   display: flex;
   align-items: center;
+  justify-content: center;
   transition: all 0.3s ease;
-  padding: 4px 12px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.1);
+  min-width: 70px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.2);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  padding: 8px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+}
+
+.logo-text {
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: 'Arial Black', 'Arial Bold', sans-serif;
 }
 
 .app-logo:hover {
-  transform: scale(1.05);
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
 }
 
-/* Stat Capsules Container - Match logo height */
-.stat-capsules-container {
+.app-logo:hover .logo-text {
+  filter: brightness(1.2);
+}
+
+/* Mobile: Slightly smaller text */
+@media (max-width: 768px) {
+  .app-logo {
+    min-width: 60px;
+    height: 44px;
+    padding: 6px 10px;
+  }
+  
+  .logo-text {
+    font-size: 16px;
+  }
+}
+
+/* Stat Badges Container - Desktop: Horizontal layout */
+.stat-badges-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Stat Badges - Desktop: Larger colored badges */
+.stat-badge {
   display: flex;
   align-items: center;
-  height: 100%;
-  max-height: 48px; /* Match logo container height */
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+  cursor: help;
 }
 
-/* Override stat capsule size in TopBar to be extra mini notification size */
-.stat-capsules-container .stat-capsule-small {
-  padding: 0.5px 3px !important;
-  font-size: 7px !important;
-  gap: 1px !important;
-  border-radius: 6px !important;
-  border-width: 0px !important;
-  min-height: 12px !important;
-  height: 12px !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2) !important;
-  backdrop-filter: blur(6px) !important;
-  display: inline-flex !important;
-  align-items: center !important;
+.stat-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.stat-capsules-container .stat-icon {
-  font-size: 7px !important;
-  line-height: 1 !important;
-  display: flex !important;
-  align-items: center !important;
+/* Views - Yellow/Gold background */
+.stat-badge-views {
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #333;
 }
 
-.stat-capsules-container .stat-count {
-  font-size: 7px !important;
-  font-weight: 700 !important;
-  line-height: 1 !important;
-  letter-spacing: -0.4px !important;
+/* Approvals - Teal/Cyan background */
+.stat-badge-approvals {
+  background: linear-gradient(135deg, #00bfa5 0%, #26c6da 100%);
+  color: white;
 }
 
-/* Make the gap ultra compact in TopBar */
-.stat-capsules-container .stat-capsule-group.gap-compact {
-  gap: 2px !important;
+/* Likes - Pink/Red background */
+.stat-badge-likes {
+  background: linear-gradient(135deg, #ec407a 0%, #f48fb1 100%);
+  color: white;
 }
 
-/* Online Indicator */
+/* Online Indicator - Rounded square, same height as other buttons */
 .online-indicator {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   background: rgba(255, 255, 255, 0.2);
-  padding: 6px 14px;
-  border-radius: 20px;
+  padding: 0 10px;
+  height: 44px; /* Match logout button height */
+  border-radius: 12px;
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: help;
 }
 
 .online-dot {
@@ -115,8 +155,10 @@
 
 .online-count {
   color: white;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
+  min-width: 20px;
+  text-align: center;
 }
 
 @keyframes pulse {
@@ -172,16 +214,17 @@
   position: relative;
 }
 
-/* User Info */
+/* User Info - Rounded square */
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 15px;
+  padding: 6px;
   background: rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
+  border-radius: 12px; /* Rounded square like hamburger */
   cursor: pointer;
   transition: all 0.2s ease;
+  border: 2px solid rgba(255, 255, 255, 0.3);
 }
 
 .user-info:hover {
@@ -196,7 +239,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 8px; /* Rounded square */
   overflow: hidden;
 }
 
@@ -204,7 +247,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 50%;
+  border-radius: 8px; /* Rounded square */
 }
 
 .topbar-profile-placeholder {
@@ -238,21 +281,22 @@
   background: rgba(255, 255, 255, 0.2);
   border: none;
   color: white;
-  font-size: 22px;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  border-radius: 12px; /* Rounded square like hamburger */
+  font-size: 20px;
   cursor: pointer;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
+  width: 44px;
+  height: 44px;
   padding: 0;
 }
 
 .btn-messages:hover {
   background: rgba(255, 255, 255, 0.3);
-  transform: scale(1.05);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .btn-messages:active {
@@ -284,15 +328,32 @@
   }
 }
 
-/* Buttons */
+/* Buttons - Rounded squares, transparent like other buttons */
 .btn-logout,
-.btn-login,
+.btn-login {
+  padding: 0;
+  background: rgba(255, 255, 255, 0.2); /* Transparent like messages button */
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .btn-test-dashboard {
-  padding: 8px 20px;
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea;
-  border: none;
-  border-radius: 20px;
+  padding: 0 16px;
+  height: 44px; /* Match other buttons height */
+  background: rgba(255, 255, 255, 0.2); /* Transparent like other buttons */
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -300,28 +361,25 @@
   display: flex;
   align-items: center;
   gap: 5px;
-}
-
-.btn-test-dashboard {
-  background: rgba(255, 200, 87, 0.9);
-  color: #333;
   margin-right: 10px;
 }
 
 .btn-logout:hover,
-.btn-login:hover,
-.btn-test-dashboard:hover {
-  background: white;
+.btn-login:hover {
+  background: rgba(255, 255, 255, 0.35);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .btn-test-dashboard:hover {
-  background: #FFC857;
+  background: rgba(255, 255, 255, 0.35);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
-.btn-logout:active {
-  transform: translateY(0);
+.btn-logout:active,
+.btn-login:active {
+  transform: translateY(0) scale(1);
 }
 
 /* Responsive Design */
@@ -330,42 +388,190 @@
   .top-bar {
     left: 0;
     width: 100%;
+    height: 56px; /* Slightly smaller on mobile */
   }
   
   .top-bar.sidebar-open {
-    left: 250px;
-    width: calc(100% - 250px);
+    left: 0;
+    width: 100%;
   }
   
   .top-bar-content {
-    padding: 0 15px;
+    padding: 0 12px;
   }
   
   .top-bar-left {
-    gap: 10px;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
   }
   
   .top-bar-right {
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
   }
   
-  .top-bar h1 {
+  /* Hide username but keep avatar */
+  .user-name {
+    display: none;
+  }
+  
+  /* Mobile: Compact 44px square with vertical stack */
+  .stat-badges-container {
+    flex-direction: column;
+    width: 44px;
+    height: 44px;
+    gap: 1px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    padding: 2px;
+  }
+  
+  .stat-badge {
+    width: auto;
+    height: auto;
+    font-size: 10px;
+    background: none !important;
+    box-shadow: none;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  }
+  
+  /* Mobile: Just colored text */
+  .stat-badge-views {
+    background: none !important;
+    color: #ffd700;
+  }
+  
+  .stat-badge-approvals {
+    background: none !important;
+    color: #26c6da;
+  }
+  
+  .stat-badge-likes {
+    background: none !important;
+    color: #ff4081;
+  }
+  
+  .online-indicator {
+    padding: 0 8px;
+    height: 44px; /* Maintain 44px height on mobile */
+    gap: 4px;
+  }
+  
+  .online-count {
+    font-size: 13px;
+    min-width: 18px;
+  }
+  
+  .online-dot {
+    font-size: 11px;
+  }
+  
+  /* Bigger tap targets for buttons */
+  .sidebar-toggle-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 22px;
+  }
+  
+  .btn-messages {
+    width: 44px;
+    height: 44px;
     font-size: 20px;
   }
   
-  .test-dashboard-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+  /* Make user icon bigger and more visible */
+  .user-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+  }
+  
+  .user-info {
+    padding: 4px;
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 }
 
 @media (max-width: 576px) {
-  .top-bar-right {
-    display: none;
+  /* DON'T hide top-bar-right - keep profile image visible! */
+  .top-bar {
+    height: 56px;
   }
   
-  .top-bar h1 {
-    font-size: 18px;
+  .top-bar-content {
+    padding: 0 10px;
+    gap: 8px;
+  }
+  
+  .top-bar-left {
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .top-bar-right {
+    display: flex !important; /* KEEP VISIBLE */
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  
+  /* Logo stays readable on tiny screens */
+  .app-logo {
+    min-width: 55px;
+    height: 40px;
+    padding: 5px 8px;
+  }
+  
+  .logo-text {
+    font-size: 14px;
+  }
+  
+  /* Tiny screens: Even more compact square */
+  .stat-badges-container {
+    width: 40px;
+    height: 40px;
+    gap: 0px;
+    padding: 2px;
+  }
+  
+  .stat-badge {
+    font-size: 9px;
+  }
+  
+  /* Compact online indicator - maintain height */
+  .online-indicator {
+    padding: 0 6px;
+    height: 40px; /* Slightly smaller on tiny screens */
+    gap: 3px;
+  }
+  
+  .online-dot {
+    font-size: 10px;
+  }
+  
+  .online-count {
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 16px;
+  }
+  
+  /* Keep buttons at minimum 44px for accessibility */
+  .sidebar-toggle-btn,
+  .btn-messages,
+  .user-info {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  /* Profile icon stays visible and tappable */
+  .user-icon {
+    width: 36px;
+    height: 36px;
   }
 }
 

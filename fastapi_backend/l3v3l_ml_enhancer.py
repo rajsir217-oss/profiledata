@@ -261,15 +261,15 @@ class L3V3LMLEnhancer:
     
     # Helper methods
     
-    def _parse_age(self, dob: str) -> Optional[int]:
+    def _parse_age(self, dateOfBirth: str) -> Optional[int]:
         """Parse age from date of birth"""
-        if not dob:
+        if not dateOfBirth:
             return None
         try:
             from datetime import datetime
-            dob_date = datetime.strptime(dob, '%Y-%m-%d')
+            birth_date = datetime.strptime(dateOfBirth, '%Y-%m-%d')
             today = datetime.today()
-            age = today.year - dob_date.year - ((today.month, today.day) < (dob_date.month, dob_date.day))
+            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
             return age
         except:
             return None

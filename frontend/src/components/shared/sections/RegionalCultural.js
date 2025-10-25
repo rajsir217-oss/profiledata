@@ -39,7 +39,7 @@ const RegionalCultural = ({
           className="col-md-4"
         />
         <SelectInput
-          label="Country of Residence"
+          label="Residence"
           name="countryOfResidence"
           value={formData.countryOfResidence}
           onChange={handleChange}

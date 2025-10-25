@@ -45,15 +45,15 @@ const Register = () => {
     heightFeet: "",  // Feet: 4-7
     heightInches: "",  // Inches: 0-11
     // Preferences & Cultural Information
-    religion: "Prefer not to say",  // Default value
+    religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
-    castePreference: "None",  // Default "None"
-    eatingPreference: "None",  // Default "None"
+    castePreference: "No Preference",  // Default "No Preference"
+    eatingPreference: "No Preference",  // Default "No Preference"
     // Residential Information (Mandatory)
     countryOfOrigin: "US",  // Mandatory, default US
     countryOfResidence: "US",  // Mandatory, default US
-    state: "",  // Mandatory
-    location: "",  // City/Town
+    state: "California",  // Default based on residence
+    location: "San Francisco",  // Default based on residence
     // USA-specific field
     citizenshipStatus: "Citizen",  // Relevant for USA only
     // India-specific fields (optional)
@@ -62,15 +62,22 @@ const Register = () => {
     familyType: "",
     familyValues: "",
     // Educational Information
-    educationHistory: [],  // Array of education entries
+    educationHistory: [{
+      level: "Under Graduation",
+      degree: "BS",
+      institution: "One of the Top 10 Institution"
+    }],  // Array of education entries with default
     // Professional & Work Related Information
-    workExperience: [],  // Array of work experience entries
-    workLocation: "",  // Renamed from workplace
+    workExperience: [{
+      status: "current",
+      description: "Marketing Manager in Health Care Sector",
+      location: "San Francisco"
+    }],  // Array of work experience entries with default
     linkedinUrl: "",
     // About Me and Partner Information
-    familyBackground: "",
-    aboutMe: "",  // Renamed from aboutYou
-    partnerPreference: "",
+    familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
+    aboutMe: "I am a entrepreneur based in Srinagar. Love to explore new places and cuisines. Seeking a travel buddy and life companion.",  // Renamed from aboutYou
+    partnerPreference: "Looking for someone who is family-oriented and ambitious. Education and values are important to me.",
     // Partner Matching Criteria
     partnerCriteria: {
       ageRange: { min: "", max: "" }, // Legacy - kept for backward compatibility
@@ -82,15 +89,15 @@ const Register = () => {
         maxInches: ""
       }, // Legacy
       heightRangeRelative: { minInches: 0, maxInches: 6 }, // NEW: Relative height in inches
-      educationLevel: [],
-      profession: [],
-      languages: [],
-      religion: [],
-      caste: "",
-      location: [],
-      eatingPreference: [],
-      familyType: [],
-      familyValues: []
+      educationLevel: ["Bachelor's"],
+      profession: ["Any"],
+      languages: ["English"],
+      religion: ["Any Religion"],
+      caste: "No Preference",
+      location: ["Any"],
+      eatingPreference: ["Any"],
+      familyType: ["Any"],
+      familyValues: ["Moderate"]
     },
     // New dating-app fields
     relationshipStatus: "Single",
@@ -104,7 +111,7 @@ const Register = () => {
     hasChildren: "No",
     wantsChildren: "Yes",
     pets: "None",
-    bio: "",
+    bio: "Independent woman seeking a partner who respects my ambitions and shares my values.",
     // Legal consent fields
     agreedToAge: false,
     agreedToTerms: false,
@@ -262,6 +269,39 @@ const Register = () => {
     }
   }, [formData.firstName, formData.lastName, formData.username]);
 
+  // Update state, location, and work location based on country of residence
+  useEffect(() => {
+    setFormData(prev => {
+      const updates = {};
+      
+      if (prev.countryOfResidence === 'US') {
+        updates.state = 'California';
+        updates.location = 'San Francisco';
+        updates.citizenshipStatus = 'Citizen';
+        // Update work location if work experience exists
+        if (prev.workExperience && prev.workExperience.length > 0) {
+          updates.workExperience = prev.workExperience.map(exp => ({
+            ...exp,
+            location: 'San Francisco'
+          }));
+        }
+      } else if (prev.countryOfResidence === 'India') {
+        updates.state = 'TS';
+        updates.location = 'Hyderabad';
+        updates.citizenshipStatus = 'n/a';
+        // Update work location if work experience exists
+        if (prev.workExperience && prev.workExperience.length > 0) {
+          updates.workExperience = prev.workExperience.map(exp => ({
+            ...exp,
+            location: 'Hyderabad'
+          }));
+        }
+      }
+      
+      return { ...prev, ...updates };
+    });
+  }, [formData.countryOfResidence]);
+
   // Debounced username check effect
   useEffect(() => {
     if (formData.username && touchedFields.username) {
@@ -416,14 +456,6 @@ const Register = () => {
       case "workingStatus":
         if (!value.trim()) {
           error = "Working status is required";
-        }
-        break;
-
-      case "workplace":
-        if (!value.trim()) {
-          error = "Workplace information is required";
-        } else if (value.length < 3) {
-          error = "Please provide more details about your workplace";
         }
         break;
 
@@ -652,7 +684,7 @@ const Register = () => {
         {/* Custom row for firstName and lastName */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">firstName</label>
+            <label className="form-label">First Name</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.firstName && touchedFields.firstName ? 'is-invalid' : ''}`}
@@ -667,7 +699,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">lastName</label>
+            <label className="form-label">Last Name</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.lastName && touchedFields.lastName ? 'is-invalid' : ''}`}
@@ -766,7 +798,7 @@ const Register = () => {
         {/* Custom row for contactNumber and contactEmail */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">contactNumber</label>
+            <label className="form-label">Contact Number</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
@@ -781,7 +813,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">contactEmail</label>
+            <label className="form-label">Contact Email</label>
             <input 
               type="email" 
               className={`form-control ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
@@ -807,7 +839,7 @@ const Register = () => {
               value={formData.religion}
               onChange={handleChange}
             >
-              <option value="">Select Religion</option>
+              <option value="No Religion">No Religion</option>
               <option value="Hindu">Hindu</option>
               <option value="Muslim">Muslim</option>
               <option value="Christian">Christian</option>
@@ -816,8 +848,6 @@ const Register = () => {
               <option value="Jain">Jain</option>
               <option value="Jewish">Jewish</option>
               <option value="Parsi">Parsi</option>
-              <option value="No Religion">No Religion</option>
-              <option value="Other">Other</option>
               <option value="Prefer not to say">Prefer not to say</option>
             </select>
             <small className="text-muted">For both India and USA users</small>
@@ -931,7 +961,7 @@ const Register = () => {
         <div className="row mb-3">
           <div className="col-md-4">
             <label className="form-label">
-              username
+              User Name
               {checkingUsername && (
                 <span className="text-muted small ms-2">
                   <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -1012,7 +1042,7 @@ const Register = () => {
           </div>
           <div className="col-md-4">
             <label className="form-label">
-              Country of Residence <span className="text-danger">*</span>
+              Residence <span className="text-danger">*</span>
             </label>
             <select
               className={`form-control ${fieldErrors.countryOfResidence && touchedFields.countryOfResidence ? 'is-invalid' : ''}`}
@@ -1093,9 +1123,9 @@ const Register = () => {
               placeholder="e.g., Bangalore, New York City"
             />
           </div>
-          {formData.countryOfResidence === 'US' && (
-            <div className="col-md-6">
-              <label className="form-label">Citizenship Status</label>
+          <div className="col-md-6">
+            <label className="form-label">Citizenship Status</label>
+            {formData.countryOfResidence === 'US' ? (
               <select 
                 className="form-control" 
                 name="citizenshipStatus" 
@@ -1105,9 +1135,17 @@ const Register = () => {
                 <option value="Citizen">Citizen</option>
                 <option value="Greencard">Greencard</option>
               </select>
-              <small className="text-muted">Relevant for USA residents</small>
-            </div>
-          )}
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                value="n/a"
+                readOnly
+                disabled
+              />
+            )}
+            <small className="text-muted">Relevant for USA residents</small>
+          </div>
         </div>
 
         {/* India-Specific Fields (Conditional) */}
@@ -1187,7 +1225,7 @@ const Register = () => {
         {/* Custom row for castePreference, eatingPreference, and location */}
         <div className="row mb-3">
           <div className="col-md-4">
-            <label className="form-label">castePreference</label>
+            <label className="form-label">Caste Preference</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
@@ -1202,7 +1240,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-4">
-            <label className="form-label">eatingPreference</label>
+            <label className="form-label">Eating Preference</label>
             <select 
               className={`form-control ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
               name="eatingPreference" 
@@ -1222,7 +1260,7 @@ const Register = () => {
             )}
           </div>
           <div className="col-md-4">
-            <label className="form-label">location</label>
+            <label className="form-label">Location</label>
             <input 
               type="text" 
               className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
@@ -1256,20 +1294,6 @@ const Register = () => {
           errorMsg={errorMsg}
           setErrorMsg={setErrorMsg}
         />
-
-        {/* Work Location (Optional) - workingStatus is auto-calculated from workExperience */}
-        <div className="mb-3">
-          <label className="form-label">Work Location <span className="text-muted">(Optional)</span></label>
-          <input 
-            type="text" 
-            className="form-control"
-            name="workLocation" 
-            value={formData.workLocation} 
-            onChange={handleChange}
-            placeholder="e.g., Bangalore, San Francisco"
-          />
-          <small className="text-muted">Where you work (if employed). Working status is automatically determined.</small>
-        </div>
 
         {/* Render all other fields as input or textarea as appropriate (deduplicated) */}
         {Object.entries(formData).map(([key, value]) => {

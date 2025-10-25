@@ -222,10 +222,10 @@ const AdminPage = () => {
   const calculateComputedFields = (user) => {
     const now = new Date();
     
-    // Calculate age from DOB
+    // Calculate age from date of birth
     let age = 'N/A';
-    if (user.dob) {
-      const birthDate = new Date(user.dob);
+    if (user.dateOfBirth) {
+      const birthDate = new Date(user.dateOfBirth);
       age = Math.floor((now - birthDate) / (1000 * 60 * 60 * 24 * 365.25));
     }
     

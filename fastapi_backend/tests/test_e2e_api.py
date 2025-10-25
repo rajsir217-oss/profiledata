@@ -57,7 +57,7 @@ def test_full_user_lifecycle(test_client):
         "lastName": "Test",
         "contactEmail": "lifecycle@example.com",
         "contactNumber": "1234567890",
-        "dob": "1990-01-01",
+        "dateOfBirth": "1990-01-01",
         "sex": "Male",
         "height": "5'8\"",
         "location": "Test City",

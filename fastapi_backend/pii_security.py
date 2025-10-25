@@ -60,15 +60,6 @@ def mask_location(location):
         # For 1 part or edge cases, return as-is
         return location
 
-def mask_workplace(workplace):
-    """Mask workplace details: Google Inc, 1600 Amphitheatre -> Google Inc"""
-    if not workplace:
-        return workplace
-    
-    # Return only first part (company name)
-    parts = [p.strip() for p in workplace.split(',')]
-    return parts[0] if parts else workplace
-
 def mask_user_pii(user_data, requester_id=None, access_granted=False):
     """
     Mask PII fields in user data
@@ -107,10 +98,6 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False):
     if 'location' in masked_data and masked_data['location']:
         masked_data['location'] = mask_location(masked_data['location'])
         masked_data['locationMasked'] = True
-
-    if 'workplace' in masked_data and masked_data['workplace']:
-        masked_data['workplace'] = mask_workplace(masked_data['workplace'])
-        masked_data['workplaceMasked'] = True
 
     # Mask LinkedIn URL completely
     if 'linkedinUrl' in masked_data and masked_data['linkedinUrl']:

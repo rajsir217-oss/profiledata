@@ -54,12 +54,10 @@ class UserBase(BaseModel):
     familyValues: Optional[str] = None
     
     # Educational Information
-    education: Optional[str] = None  # Legacy field for backward compatibility
     educationHistory: List[dict] = []  # New structured education array
     
     # Professional & Work Related Information
     workExperience: List[dict] = []  # New work experience array
-    workLocation: Optional[str] = None  # Work city/location
     linkedinUrl: Optional[str] = None  # Private PII field
     # Note: workingStatus is automatically derived from workExperience
     
@@ -398,7 +396,7 @@ class PIIRequestType(str):
     """Enum for PII request types"""
     IMAGES = "images"
     CONTACT_INFO = "contact_info"
-    DOB = "dob"
+    DATE_OF_BIRTH = "date_of_birth"
 
 class PIIRequestStatus(str):
     """Enum for PII request status"""
@@ -411,7 +409,7 @@ class PIIRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     requesterUsername: str  # Who is requesting
     profileUsername: str  # Whose data is requested
-    requestType: str  # 'images', 'contact_info', 'dob'
+    requestType: str  # 'images', 'contact_info', 'date_of_birth'
     status: str = "pending"  # 'pending', 'approved', 'rejected', 'cancelled'
     message: Optional[str] = None  # Optional message from requester
     requestedAt: datetime = Field(default_factory=datetime.utcnow)
@@ -446,7 +444,7 @@ class PIIAccess(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     granterUsername: str  # Who granted access
     grantedToUsername: str  # Who received access
-    accessType: str  # 'images', 'contact_info', 'dob'
+    accessType: str  # 'images', 'contact_info', 'date_of_birth'
     grantedAt: datetime = Field(default_factory=datetime.utcnow)
     expiresAt: Optional[datetime] = None  # Optional time-limited access
     isActive: bool = True  # Can be revoked

@@ -101,8 +101,8 @@ async def migrate_to_relative_preferences():
                 continue
             
             # Calculate user's age
-            dob = user.get('dob') or user.get('dateOfBirth')
-            user_age = calculate_age(dob)
+            dateOfBirth = user.get('dateOfBirth')
+            user_age = calculate_age(dateOfBirth)
             
             # Parse user's height
             height = user.get('height')

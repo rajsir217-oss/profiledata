@@ -14,10 +14,10 @@ const EditProfile = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Helper function to calculate age from DOB
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
+  // Helper function to calculate age from date of birth
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const birthDate = new Date(dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -48,7 +48,6 @@ const EditProfile = () => {
     lastName: '',
     contactNumber: '',
     contactEmail: '',
-    dob: '',
     dateOfBirth: '',
     sex: '',
     gender: '',
@@ -69,10 +68,7 @@ const EditProfile = () => {
     eatingPreference: '',
     location: '',
     // Education & Work
-    education: '',
     workingStatus: 'Yes',
-    workplace: '',
-    workLocation: '',
     citizenshipStatus: 'Citizen',
     // Personal/Lifestyle
     relationshipStatus: '',
@@ -102,7 +98,7 @@ const EditProfile = () => {
       profession: [],
       location: [],
       languages: [],
-      religion: '',
+      religion: [],
       caste: '',
       eatingPreference: [],
       familyType: [],
@@ -197,8 +193,7 @@ const EditProfile = () => {
           lastName: userData.lastName || '',
           contactNumber: userData.contactNumber || '',
           contactEmail: userData.contactEmail || '',
-          dob: userData.dob || userData.dateOfBirth || '',
-          dateOfBirth: userData.dateOfBirth || userData.dob || '',
+          dateOfBirth: userData.dateOfBirth || '',
           sex: userData.sex || userData.gender || '',
           gender: userData.gender || userData.sex || '',
           height: userData.height || '',
@@ -218,10 +213,7 @@ const EditProfile = () => {
           eatingPreference: userData.eatingPreference || '',
           location: userData.location || '',
           // Education & Work
-          education: userData.education || '',
           workingStatus: userData.workingStatus || 'Yes',
-          workplace: userData.workplace || '',
-          workLocation: userData.workLocation || '',
           citizenshipStatus: userData.citizenshipStatus || 'Citizen',
           // Personal/Lifestyle
           relationshipStatus: userData.relationshipStatus || '',
@@ -251,7 +243,7 @@ const EditProfile = () => {
             profession: userData.partnerCriteria?.profession || [],
             location: userData.partnerCriteria?.location || [],
             languages: userData.partnerCriteria?.languages || [],
-            religion: userData.partnerCriteria?.religion || '',
+            religion: Array.isArray(userData.partnerCriteria?.religion) ? userData.partnerCriteria.religion : (userData.partnerCriteria?.religion ? [userData.partnerCriteria.religion] : []),
             caste: userData.partnerCriteria?.caste || '',
             eatingPreference: userData.partnerCriteria?.eatingPreference || [],
             familyType: userData.partnerCriteria?.familyType || [],
@@ -304,11 +296,11 @@ const EditProfile = () => {
       // Add simple string fields
       const simpleFields = [
         'firstName', 'lastName', 'contactNumber', 'contactEmail',
-        'dob', 'dateOfBirth', 'sex', 'gender', 'height',
+        'dateOfBirth', 'sex', 'gender', 'height',
         'religion', 'countryOfOrigin', 'countryOfResidence', 'state',
         'caste', 'motherTongue', 'familyType', 'familyValues',
         'castePreference', 'eatingPreference', 'location',
-        'education', 'workingStatus', 'workplace', 'workLocation', 'citizenshipStatus',
+        'workingStatus', 'citizenshipStatus',
         'relationshipStatus', 'lookingFor', 'bodyType', 'drinking', 'smoking',
         'hasChildren', 'wantsChildren', 'pets', 'interests', 'languages',
         'familyBackground', 'aboutYou', 'aboutMe', 'partnerPreference', 'bio', 'linkedinUrl'
@@ -477,8 +469,8 @@ const EditProfile = () => {
               <input
                 type="date"
                 className="form-control"
-                name="dob"
-                value={formData.dob}
+                name="dateOfBirth"
+                value={formData.dateOfBirth}
                 onChange={handleChange}
                 required
               />
@@ -620,7 +612,7 @@ const EditProfile = () => {
               </select>
             </div>
             <div className="col-md-3">
-              <label className="form-label">Country of Residence</label>
+              <label className="form-label">Residence</label>
               <select
                 className="form-control"
                 name="countryOfResidence"
@@ -665,8 +657,12 @@ const EditProfile = () => {
                 value={formData.citizenshipStatus}
                 onChange={handleChange}
               >
-                <option>Citizen</option>
-                <option>Greencard</option>
+                <option value="">Select...</option>
+                <option value="Citizen">Citizen</option>
+                <option value="Greencard">Greencard</option>
+                <option value="Work Visa">Work Visa</option>
+                <option value="Student Visa">Student Visa</option>
+                <option value="Other">Other</option>
               </select>
             </div>
           </div>
@@ -817,18 +813,6 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Text Areas */}
-          <div className="mb-3">
-            <label className="form-label">Education (Legacy - for backward compatibility)</label>
-            <textarea
-              className="form-control"
-              name="education"
-              value={formData.education}
-              onChange={handleChange}
-              rows={3}
-            />
-          </div>
-
           {/* Education History Section - Using Shared Component */}
           <EducationHistory
             educationHistory={educationHistory}
@@ -867,33 +851,6 @@ const EditProfile = () => {
               This will be masked. Others need to request access to view it.
             </small>
           </div>
-
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label">Workplace</label>
-              <textarea
-                className="form-control"
-                name="workplace"
-                value={formData.workplace}
-                onChange={handleChange}
-                rows={3}
-                required
-              />
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Work Location</label>
-              <input
-                type="text"
-                className="form-control"
-                name="workLocation"
-                value={formData.workLocation}
-                onChange={handleChange}
-                placeholder="e.g., Bangalore, San Francisco"
-              />
-              <small className="text-muted">Where you work (if employed)</small>
-            </div>
-          </div>
-
           {/* Personal & Lifestyle Section */}
           <h5 className="mt-4 mb-3 text-primary">👥 Personal & Lifestyle</h5>
           <div className="row mb-3">
@@ -922,6 +879,7 @@ const EditProfile = () => {
               >
                 <option value="">Select...</option>
                 <option value="Marriage">Marriage</option>
+                <option value="Life Partner">Life Partner</option>
                 <option value="Serious Relationship">Serious Relationship</option>
                 <option value="Casual Dating">Casual Dating</option>
                 <option value="Friendship">Friendship</option>
@@ -1131,15 +1089,15 @@ const EditProfile = () => {
                 </select>
               </div>
             </div>
-            {formData.dob && (
+            {formData.dateOfBirth && (
               <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
                 📊 <strong>Preview:</strong> Looking for ages{' '}
-                <strong>{calculateAge(formData.dob) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
-                <strong>{calculateAge(formData.dob) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
-                (based on your age: {calculateAge(formData.dob)})
+                <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
+                <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
+                (based on your age: {calculateAge(formData.dateOfBirth)})
               </div>
             )}
-            {!formData.dob && (
+            {!formData.dateOfBirth && (
               <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
                 ⚠️ Please set your date of birth above to see age preview
               </div>

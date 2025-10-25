@@ -88,7 +88,7 @@ class EnhancedUser(BaseModel):
     # Profile Info (existing fields)
     firstName: Optional[str] = None
     lastName: Optional[str] = None
-    dob: Optional[str] = None
+    dateOfBirth: Optional[str] = None
     gender: Optional[str] = None
     location: Optional[str] = None
     

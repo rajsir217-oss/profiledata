@@ -50,6 +50,8 @@
   --success-hover: #a7f3d0;
   --info-light: #e0e7ff;
   --info-hover: #c7d2fe;
+  --info-background: #e7f3ff;
+  --info-border: #b3d9ff;
   --danger-light: #ffebee;
   --danger-hover: #ffcdd2;
   --warning-light: #fef3c7;
@@ -76,6 +78,10 @@
   --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07), 0 2px 4px rgba(0, 0, 0, 0.03);
   --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.07), 0 4px 10px rgba(0, 0, 0, 0.03);
   --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.15);
+  --primary-shadow: rgba(99, 102, 241, 0.3);
+  --primary-shadow-hover: rgba(99, 102, 241, 0.4);
+  --primary-color-light: rgba(99, 102, 241, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
   
   /* Border Radius - Rounder for coziness */
   --radius-sm: 8px;
@@ -206,11 +212,19 @@ body.theme-dark {
   --warning-color: #fbbf24;
   --info-color: #a78bfa;
   
+  /* Shadow Variables */
+  --primary-shadow: rgba(167, 139, 250, 0.3);
+  --primary-shadow-hover: rgba(167, 139, 250, 0.4);
+  --primary-color-light: rgba(167, 139, 250, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
   /* Button State Colors */
   --success-light: #065f46;
   --success-hover: #047857;
   --info-light: #4c1d95;
   --info-hover: #5b21b6;
+  --info-background: #2d1b69;
+  --info-border: #5b21b6;
   --danger-light: #7f1d1d;
   --danger-hover: #991b1b;
   --warning-light: #78350f;
@@ -381,11 +395,19 @@ body.theme-light-pink {
   --warning-color: #fbbf24;
   --info-color: #ec4899;
   
+  /* Shadow Variables */
+  --primary-shadow: rgba(236, 72, 153, 0.3);
+  --primary-shadow-hover: rgba(236, 72, 153, 0.4);
+  --primary-color-light: rgba(236, 72, 153, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
   /* Button State Colors */
   --success-light: #d1fae5;
   --success-hover: #a7f3d0;
   --info-light: #fce7f3;
   --info-hover: #fbcfe8;
+  --info-background: #fef3f7;
+  --info-border: #fbcfe8;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;
@@ -495,11 +517,19 @@ body.theme-light-gray {
   --warning-color: #f59e0b;
   --info-color: #3b82f6;
   
+  /* Shadow Variables */
+  --primary-shadow: rgba(100, 116, 139, 0.3);
+  --primary-shadow-hover: rgba(100, 116, 139, 0.4);
+  --primary-color-light: rgba(100, 116, 139, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
   /* Button State Colors */
   --success-light: #d1fae5;
   --success-hover: #a7f3d0;
   --info-light: #dbeafe;
   --info-hover: #bfdbfe;
+  --info-background: #eff6ff;
+  --info-border: #bfdbfe;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;
@@ -575,11 +605,19 @@ body.theme-ultra-light-gray {
   --warning-color: #f59e0b;
   --info-color: #0ea5e9;
   
+  /* Shadow Variables */
+  --primary-shadow: rgba(71, 85, 105, 0.3);
+  --primary-shadow-hover: rgba(71, 85, 105, 0.4);
+  --primary-color-light: rgba(71, 85, 105, 0.25);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
   /* Button State Colors */
   --success-light: #d1fae5;
   --success-hover: #a7f3d0;
   --info-light: #e0f2fe;
   --info-hover: #bae6fd;
+  --info-background: #f0f9ff;
+  --info-border: #bae6fd;
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;

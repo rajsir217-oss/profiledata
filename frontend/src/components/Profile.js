@@ -47,7 +47,7 @@ const Profile = () => {
   const [piiAccess, setPiiAccess] = useState({
     images: false,
     contact_info: false,
-    dob: false
+    date_of_birth: false
   });
   const [piiRequestStatus, setPiiRequestStatus] = useState({});
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
@@ -60,7 +60,28 @@ const Profile = () => {
   const [isFavorited, setIsFavorited] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(false);
   
+  // Inline editing state (Phase 2: Full implementation)
+  const [editingSection, setEditingSection] = useState(null);
+  const [editFormData, setEditFormData] = useState({});
+  const [savingSection, setSavingSection] = useState(null);
+  
+  // Toast notification state
+  const [toast, setToast] = useState({ show: false, message: '', type: '' });
+  
   const currentUsername = localStorage.getItem('username');
+  
+  // Debug: Log user data when it changes
+  useEffect(() => {
+    if (user) {
+      console.log('👤 User data loaded:', {
+        username: user.username,
+        gender: user.gender,
+        height: user.height,
+        location: user.location,
+        workingStatus: user.workingStatus
+      });
+    }
+  }, [user]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -72,6 +93,12 @@ const Profile = () => {
         
         // Pass requester to properly handle PII masking
         const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
+        console.log('📡 API Response:', res);
+        console.log('📡 API Response Data:', res.data);
+        console.log('📡 Data keys:', Object.keys(res.data || {}));
+        console.log('📡 Gender value:', res.data?.gender);
+        console.log('📡 Height value:', res.data?.height);
+        console.log('📡 Location value:', res.data?.location);
         setUser(res.data);
         
         // Check if this is the current user's profile
@@ -194,7 +221,7 @@ const Profile = () => {
       setPiiAccess({
         images: true,
         contact_info: true,
-        dob: true
+        date_of_birth: true
       });
       return;
     }
@@ -203,34 +230,34 @@ const Profile = () => {
       const [imagesRes, contactRes, dobRes, linkedinRes] = await Promise.all([
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_info`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=dob`),
+        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
       ]);
       
       console.log('🔍 PII Access Check Results:', {
         images: imagesRes.data.hasAccess,
         contact_info: contactRes.data.hasAccess,
-        dob: dobRes.data.hasAccess,
+        date_of_birth: dobRes.data.hasAccess,
         linkedin_url: linkedinRes.data.hasAccess
       });
       
       setPiiAccess({
         images: imagesRes.data.hasAccess,
         contact_info: contactRes.data.hasAccess,
-        dob: dobRes.data.hasAccess,
+        date_of_birth: dobRes.data.hasAccess,
         linkedin_url: linkedinRes.data.hasAccess
       });
       
       // Check pending request status for each type
       const requestStatus = {};
-      const piiTypes = ['images', 'contact_info', 'dob', 'linkedin_url'];
+      const piiTypes = ['images', 'contact_info', 'date_of_birth', 'linkedin_url'];
       
       for (const type of piiTypes) {
         if (imagesRes.data.hasAccess && type === 'images') {
           requestStatus[type] = 'approved';
         } else if (contactRes.data.hasAccess && type === 'contact_info') {
           requestStatus[type] = 'approved';
-        } else if (dobRes.data.hasAccess && type === 'dob') {
+        } else if (dobRes.data.hasAccess && type === 'date_of_birth') {
           requestStatus[type] = 'approved';
         } else if (linkedinRes.data.hasAccess && type === 'linkedin_url') {
           requestStatus[type] = 'approved';
@@ -437,9 +464,9 @@ const Profile = () => {
     }
   };
 
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
+  const calculateAge = (dateOfBirth) => {
+    if (!dateOfBirth) return null;
+    const birthDate = new Date(dateOfBirth);
     const today = new Date();
     let age = today.getFullYear() - birthDate.getFullYear();
     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -453,18 +480,170 @@ const Profile = () => {
     navigate('/edit-profile');
   };
 
+  // Toast notification helper
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => {
+      setToast({ show: false, message: '', type: '' });
+    }, 5000);
+  };
+
+  // Cancel editing
+  const handleCancelEdit = () => {
+    setEditingSection(null);
+    setEditFormData({});
+  };
+
+  // Handle form input changes
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  // Save inline edits
+  const handleSaveEdit = async (section) => {
+    setSavingSection(section);
+    
+    try {
+      // Prepare FormData for API
+      const formData = new FormData();
+      
+      console.log('💾 Saving section:', section);
+      console.log('📝 Edit form data:', editFormData);
+      
+      // Add fields based on section - send all fields from editFormData
+      if (section === 'basic') {
+        // Send all fields with their current values from editFormData
+        const fieldsToSave = [
+          'gender', 'height', 'location', 'religion', 'relationshipStatus',
+          'lookingFor', 'workingStatus', 
+          'citizenshipStatus'
+        ];
+        
+        fieldsToSave.forEach(field => {
+          const value = editFormData[field];
+          // Only send fields that have actual values (not empty strings)
+          if (value !== undefined && value !== null && value !== '') {
+            formData.append(field, value);
+            console.log(`  ✓ ${field}: "${value}"`);
+          } else {
+            console.log(`  ⊘ ${field}: SKIPPED (empty or undefined)`);
+          }
+        });
+      } else if (section === 'contact') {
+        if (editFormData.contactNumber !== undefined && editFormData.contactNumber !== null && editFormData.contactNumber !== '') {
+          formData.append('contactNumber', editFormData.contactNumber);
+          console.log(`  ✓ contactNumber: "${editFormData.contactNumber}"`);
+        }
+        if (editFormData.contactEmail !== undefined && editFormData.contactEmail !== null && editFormData.contactEmail !== '') {
+          formData.append('contactEmail', editFormData.contactEmail);
+          console.log(`  ✓ contactEmail: "${editFormData.contactEmail}"`);
+        }
+      } else if (section === 'dateOfBirth') {
+        if (editFormData.dateOfBirth !== undefined && editFormData.dateOfBirth !== null && editFormData.dateOfBirth !== '') {
+          formData.append('dateOfBirth', editFormData.dateOfBirth);
+          console.log(`  ✓ dateOfBirth: "${editFormData.dateOfBirth}"`);
+        }
+      }
+      
+      // Check if we have any fields to update
+      let hasFields = false;
+      // eslint-disable-next-line no-unused-vars
+      for (const _pair of formData.entries()) {
+        hasFields = true;
+        break;
+      }
+      
+      if (!hasFields) {
+        console.warn('⚠️ No fields to update - canceling save');
+        showToast('No changes to save', 'info');
+        setEditingSection(null);
+        setEditFormData({});
+        setSavingSection(null);
+        return;
+      }
+      
+      // Make API call
+      const response = await api.put(`/profile/${username}`, formData);
+      
+      console.log('✅ API Response:', response.data);
+      
+      // Update user data with the response (API returns {message, user})
+      setUser(response.data.user || response.data);
+      
+      // Close editing and show success
+      setEditingSection(null);
+      setEditFormData({});
+      showToast('Profile updated successfully!', 'success');
+      
+    } catch (err) {
+      console.error('❌ Error saving profile:', err);
+      console.error('Error details:', err.response?.data);
+      showToast('Failed to update profile. Please try again.', 'error');
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
   if (loading) return <p>Loading profile...</p>;
   if (error) return <p className="text-danger">{error}</p>;
   if (!user) return <p>No profile found.</p>;
 
-  const age = user.dob ? calculateAge(user.dob) : null;
+  const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
   
   // Check if user has all access
-  const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.dob);
-  const hasAnyAccess = piiAccess.images || piiAccess.contact_info || piiAccess.dob;
+  const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.date_of_birth);
+  const hasAnyAccess = piiAccess.images || piiAccess.contact_info || piiAccess.date_of_birth;
 
   return (
     <div className="container mt-4">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`toast-notification toast-${toast.type}`} style={{
+          position: 'fixed',
+          top: '80px',
+          right: '20px',
+          padding: '12px 16px',
+          borderRadius: '8px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          zIndex: 10001,
+          animation: 'slideInRight 0.3s ease-out',
+          minWidth: '280px',
+          maxWidth: '350px',
+          maxHeight: '60px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          background: toast.type === 'success' ? '#4caf50' : 
+                     toast.type === 'error' ? '#f44336' :
+                     '#2196f3',
+          color: 'white'
+        }}>
+          <span style={{ fontSize: '20px', flexShrink: 0 }}>
+            {toast.type === 'success' ? '✓' : toast.type === 'error' ? '✕' : 'ℹ'}
+          </span>
+          <span style={{ flex: 1, fontWeight: '500', fontSize: '14px' }}>{toast.message}</span>
+          <button 
+            onClick={() => setToast({ show: false, message: '', type: '' })}
+            style={{
+              background: 'rgba(255,255,255,0.2)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '24px',
+              height: '24px',
+              cursor: 'pointer',
+              color: 'white',
+              fontSize: '18px',
+              lineHeight: 1,
+              flexShrink: 0
+            }}
+          >×</button>
+        </div>
+      )}
+      
       {/* Status Message Bubble */}
       {statusMessage && (
         <div className="status-bubble" style={{
@@ -787,32 +966,142 @@ const Profile = () => {
 
       {/* Basic Info (Always visible) */}
       <div className="profile-section">
-        <h3>👤 Basic Information</h3>
-        <div className="profile-info">
-          <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Gender:</strong> {user.gender || user.sex}</p>
-          {age && <p><strong>Age:</strong> {age} years</p>}
-          <p><strong>Height:</strong> {user.height}</p>
-          <p><strong>Location:</strong> {user.location}</p>
-          {user.religion && <p><strong>Religion:</strong> {user.religion}</p>}
-          {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
-          {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
-          {user.education && <p><strong>Education:</strong> {user.education}</p>}
-          <p><strong>Working Status:</strong> {user.workingStatus}</p>
-          {user.workplace && <p><strong>Workplace:</strong> {user.workplace}</p>}
-          {user.workLocation && <p><strong>Work Location:</strong> {user.workLocation}</p>}
-          {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
-          {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
+        <div className="section-header-with-edit">
+          <h3>👤 Basic Information</h3>
+          {isOwnProfile && editingSection === 'basic' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="btn-save-section"
+                onClick={() => handleSaveEdit('basic')}
+                disabled={savingSection === 'basic'}
+              >
+                {savingSection === 'basic' ? '💾 Saving...' : '💾 Save'}
+              </button>
+              <button 
+                className="btn-cancel-section"
+                onClick={handleCancelEdit}
+                disabled={savingSection === 'basic'}
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          )}
         </div>
+        {editingSection === 'basic' ? (
+          <div className="inline-edit-form">
+            <div className="form-row">
+              <div className="form-group">
+                <label><strong>Gender:</strong></label>
+                <select name="gender" value={editFormData.gender || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label><strong>Height:</strong></label>
+                <input type="text" name="height" value={editFormData.height || ''} onChange={handleEditChange} className="form-control" placeholder="e.g. 5'8&quot;" />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label><strong>Location:</strong></label>
+                <input type="text" name="location" value={editFormData.location || ''} onChange={handleEditChange} className="form-control" placeholder="City, Country" />
+              </div>
+              <div className="form-group">
+                <label><strong>Religion:</strong></label>
+                <select name="religion" value={editFormData.religion || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select Religion</option>
+                  <option value="Hindu">Hindu</option>
+                  <option value="Muslim">Muslim</option>
+                  <option value="Christian">Christian</option>
+                  <option value="Sikh">Sikh</option>
+                  <option value="Buddhist">Buddhist</option>
+                  <option value="Jain">Jain</option>
+                  <option value="Jewish">Jewish</option>
+                  <option value="Parsi">Parsi</option>
+                  <option value="No Religion">No Religion</option>
+                  <option value="Other">Other</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label><strong>Relationship Status:</strong></label>
+                <select name="relationshipStatus" value={editFormData.relationshipStatus || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select</option>
+                  <option value="Single">Single</option>
+                  <option value="Divorced">Divorced</option>
+                  <option value="Widowed">Widowed</option>
+                  <option value="Separated">Separated</option>
+                </select>
+              </div>
+              <div className="form-group">
+                <label><strong>Looking For:</strong></label>
+                <select name="lookingFor" value={editFormData.lookingFor || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select...</option>
+                  <option value="Marriage">Marriage</option>
+                  <option value="Life Partner">Life Partner</option>
+                  <option value="Serious Relationship">Serious Relationship</option>
+                  <option value="Casual Dating">Casual Dating</option>
+                  <option value="Friendship">Friendship</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label><strong>Working Status:</strong></label>
+                <select name="workingStatus" value={editFormData.workingStatus || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select</option>
+                  <option value="Employed">Employed</option>
+                  <option value="Self-Employed">Self-Employed</option>
+                  <option value="Unemployed">Unemployed</option>
+                  <option value="Student">Student</option>
+                </select>
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label><strong>Citizenship Status:</strong></label>
+                <select name="citizenshipStatus" value={editFormData.citizenshipStatus || ''} onChange={handleEditChange} className="form-control">
+                  <option value="">Select...</option>
+                  <option value="Citizen">Citizen</option>
+                  <option value="Greencard">Greencard</option>
+                  <option value="Work Visa">Work Visa</option>
+                  <option value="Student Visa">Student Visa</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="profile-info">
+            {user.username && <p><strong>Username:</strong> {user.username}</p>}
+            {(user.gender || user.sex) && <p><strong>Gender:</strong> {user.gender || user.sex}</p>}
+            {age && <p><strong>Age:</strong> {age} years</p>}
+            {user.height && <p><strong>Height:</strong> {user.height}</p>}
+            {user.location && <p><strong>Location:</strong> {user.location}</p>}
+            {user.religion && <p><strong>Religion:</strong> {user.religion}</p>}
+            {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
+            {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
+            {user.workingStatus && <p><strong>Working Status:</strong> {user.workingStatus}</p>}
+            {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
+            {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
+          </div>
+        )}
       </div>
 
       {/* Regional & Cultural Information */}
       {(user.countryOfOrigin || user.countryOfResidence || user.state || user.languagesSpoken?.length > 0 || user.motherTongue || user.caste || user.familyType || user.familyValues || user.castePreference || user.eatingPreference) && (
         <div className="profile-section">
-          <h3>🌍 Regional & Cultural</h3>
+          <div className="section-header-with-edit">
+            <h3>🌍 Regional & Cultural</h3>
+          </div>
           <div className="profile-info">
             {user.countryOfOrigin && <p><strong>Country of Origin:</strong> {user.countryOfOrigin === 'IN' ? 'India' : user.countryOfOrigin === 'US' ? 'USA' : user.countryOfOrigin}</p>}
-            {user.countryOfResidence && <p><strong>Country of Residence:</strong> {user.countryOfResidence === 'IN' ? 'India' : user.countryOfResidence === 'US' ? 'USA' : user.countryOfResidence}</p>}
+            {user.countryOfResidence && <p><strong>Residence:</strong> {user.countryOfResidence === 'IN' ? 'India' : user.countryOfResidence === 'US' ? 'USA' : user.countryOfResidence}</p>}
             {user.state && <p><strong>State:</strong> {user.state}</p>}
             {user.languagesSpoken && user.languagesSpoken.length > 0 && (
               <p><strong>Languages Spoken:</strong> {user.languagesSpoken.join(', ')}</p>
@@ -830,7 +1119,9 @@ const Profile = () => {
       {/* Personal & Lifestyle */}
       {(user.bodyType || user.drinking || user.smoking || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
         <div className="profile-section">
-          <h3>💭 Personal & Lifestyle</h3>
+          <div className="section-header-with-edit">
+            <h3>💭 Personal & Lifestyle</h3>
+          </div>
           <div className="profile-info">
             {user.bodyType && <p><strong>Body Type:</strong> {user.bodyType}</p>}
             {user.drinking && <p><strong>Drinking:</strong> {user.drinking}</p>}
@@ -847,15 +1138,14 @@ const Profile = () => {
       {/* Education History */}
       {user.educationHistory && user.educationHistory.length > 0 && (
         <div className="profile-section">
-          <h3>🎓 Education History</h3>
+          <div className="section-header-with-edit">
+            <h3>🎓 Education History</h3>
+          </div>
           <div className="profile-info">
             {user.educationHistory.map((edu, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.educationHistory.length - 1 ? '1px solid #eee' : 'none'}}>
                 <p><strong>{edu.level ? `${edu.level} - ${edu.degree}` : edu.degree}</strong></p>
                 <p style={{marginLeft: '10px', color: '#666'}}>{edu.institution}</p>
-                <p style={{marginLeft: '10px', color: '#999', fontSize: '14px'}}>
-                  {edu.startYear && edu.endYear ? `${edu.startYear} - ${edu.endYear}` : (edu.year || 'N/A')}
-                </p>
               </div>
             ))}
           </div>
@@ -865,7 +1155,9 @@ const Profile = () => {
       {/* Work Experience */}
       {user.workExperience && user.workExperience.length > 0 && (
         <div className="profile-section">
-          <h3>💼 Work Experience</h3>
+          <div className="section-header-with-edit">
+            <h3>💼 Work Experience</h3>
+          </div>
           <div className="profile-info">
             {user.workExperience.map((work, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.workExperience.length - 1 ? '1px solid #eee' : 'none'}}>
@@ -909,12 +1201,47 @@ const Profile = () => {
 
       {/* Contact Information (PII Protected) */}
       <div className="profile-section">
-        <h3>📧 Contact Information</h3>
+        <div className="section-header-with-edit">
+          <h3>📧 Contact Information</h3>
+          {isOwnProfile && editingSection === 'contact' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="btn-save-section"
+                onClick={() => handleSaveEdit('contact')}
+                disabled={savingSection === 'contact'}
+              >
+                {savingSection === 'contact' ? '💾 Saving...' : '💾 Save'}
+              </button>
+              <button 
+                className="btn-cancel-section"
+                onClick={handleCancelEdit}
+                disabled={savingSection === 'contact'}
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          )}
+        </div>
         {isOwnProfile || piiAccess.contact_info ? (
-          <div className="profile-info">
-            <p><strong>Contact Number:</strong> {user.contactNumber || 'Not provided'}</p>
-            <p><strong>Contact Email:</strong> {user.contactEmail || 'Not provided'}</p>
-          </div>
+          editingSection === 'contact' ? (
+            <div className="inline-edit-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label><strong>Contact Number:</strong></label>
+                  <input type="tel" name="contactNumber" value={editFormData.contactNumber || ''} onChange={handleEditChange} className="form-control" placeholder="+1 234 567 8900" />
+                </div>
+                <div className="form-group">
+                  <label><strong>Contact Email:</strong></label>
+                  <input type="email" name="contactEmail" value={editFormData.contactEmail || ''} onChange={handleEditChange} className="form-control" placeholder="email@example.com" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="profile-info">
+              <p><strong>Contact Number:</strong> {user.contactNumber || 'Not provided'}</p>
+              <p><strong>Contact Email:</strong> {user.contactEmail || 'Not provided'}</p>
+            </div>
+          )
         ) : (
           <div className="pii-locked">
             <div className="lock-icon">🔒</div>
@@ -931,12 +1258,44 @@ const Profile = () => {
 
       {/* Date of Birth (PII Protected) */}
       <div className="profile-section">
-        <h3>🎂 Date of Birth</h3>
-        {isOwnProfile || piiAccess.dob ? (
-          <div className="profile-info">
-            <p><strong>Date of Birth:</strong> {user.dob ? new Date(user.dob).toLocaleDateString() : 'Not provided'}</p>
-            {age && <p><strong>Age:</strong> {age} years</p>}
-          </div>
+        <div className="section-header-with-edit">
+          <h3>🎂 Date of Birth</h3>
+          {isOwnProfile && editingSection === 'dateOfBirth' && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button 
+                className="btn-save-section"
+                onClick={() => handleSaveEdit('dateOfBirth')}
+                disabled={savingSection === 'dateOfBirth'}
+              >
+                {savingSection === 'dateOfBirth' ? '💾 Saving...' : '💾 Save'}
+              </button>
+              <button 
+                className="btn-cancel-section"
+                onClick={handleCancelEdit}
+                disabled={savingSection === 'dateOfBirth'}
+              >
+                ✕ Cancel
+              </button>
+            </div>
+          )}
+        </div>
+        {isOwnProfile || piiAccess.date_of_birth ? (
+          editingSection === 'dateOfBirth' ? (
+            <div className="inline-edit-form">
+              <div className="form-row">
+                <div className="form-group">
+                  <label><strong>Date of Birth:</strong></label>
+                  <input type="date" name="dateOfBirth" value={editFormData.dateOfBirth || ''} onChange={handleEditChange} className="form-control" />
+                </div>
+              </div>
+              <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary, #666)' }}>Current Age: {editFormData.dateOfBirth ? calculateAge(editFormData.dateOfBirth) : 'N/A'} years</p>
+            </div>
+          ) : (
+            <div className="profile-info">
+              <p><strong>Date of Birth:</strong> {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
+              {age && <p><strong>Age:</strong> {age} years</p>}
+            </div>
+          )
         ) : (
           <div className="pii-locked">
             <div className="lock-icon">🔒</div>
@@ -953,7 +1312,9 @@ const Profile = () => {
 
       {/* Preferences & Background (Always visible) */}
       <div className="profile-section">
-        <h3>💭 Preferences & Background</h3>
+        <div className="section-header-with-edit">
+          <h3>💭 Preferences & Background</h3>
+        </div>
         <div className="profile-info">
           {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
           {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
@@ -968,15 +1329,17 @@ const Profile = () => {
       {/* Partner Matching Criteria */}
       {user.partnerCriteria && Object.keys(user.partnerCriteria).length > 0 && (
         <div className="profile-section">
-          <h3>🎯 Partner Matching Criteria</h3>
+          <div className="section-header-with-edit">
+            <h3>🎯 Partner Matching Criteria</h3>
+          </div>
           <div className="profile-info">
             {user.partnerCriteria.ageRangeRelative ? (
               <p>
                 <strong>Preferred Age Range:</strong>{' '}
                 {(() => {
                   const userAge = (() => {
-                    if (!user.dob && !user.dateOfBirth) return null;
-                    const birthDate = new Date(user.dob || user.dateOfBirth);
+                    if (!user.dateOfBirth) return null;
+                    const birthDate = new Date(user.dateOfBirth);
                     const today = new Date();
                     let age = today.getFullYear() - birthDate.getFullYear();
                     const monthDiff = today.getMonth() - birthDate.getMonth();
@@ -1074,32 +1437,34 @@ const Profile = () => {
 
       {/* Profile Images Section */}
       <div className="profile-section">
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-          <h3 style={{ margin: 0 }}>📷 Photos</h3>
-          {!isOwnProfile && currentUsername && (
-            <button
-              onClick={async () => {
-                console.log('🔄 Manual refresh triggered');
-                await checkPIIAccess();
-                await loadAccessibleImages();
-              }}
-              style={{
-                padding: '6px 12px',
-                fontSize: '12px',
-                borderRadius: '6px',
-                border: '1px solid #ddd',
-                background: 'white',
-                color: '#667eea',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}
-              title="Refresh image access status"
-            >
-              🔄 Refresh
-            </button>
-          )}
+        <div className="section-header-with-edit">
+          <h3>📷 Photos</h3>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            {!isOwnProfile && currentUsername && (
+              <button
+                onClick={async () => {
+                  console.log('🔄 Manual refresh triggered');
+                  await checkPIIAccess();
+                  await loadAccessibleImages();
+                }}
+                style={{
+                  padding: '6px 12px',
+                  fontSize: '12px',
+                  borderRadius: '6px',
+                  border: '1px solid #ddd',
+                  background: 'white',
+                  color: '#667eea',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+                title="Refresh image access status"
+              >
+                🔄 Refresh
+              </button>
+            )}
+          </div>
         </div>
         {isOwnProfile ? (
           user.images?.length > 0 ? (

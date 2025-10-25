@@ -16,7 +16,8 @@ const WorkExperience = ({
   const [editingIndex, setEditingIndex] = useState(null);
   const [newWorkExperience, setNewWorkExperience] = useState({
     status: '',
-    description: ''
+    description: '',
+    location: ''
   });
 
   const handleWorkExperienceChange = (e) => {
@@ -38,7 +39,8 @@ const WorkExperience = ({
     // Add or update
     const workEntry = {
       status: newWorkExperience.status,
-      description: newWorkExperience.description.trim()
+      description: newWorkExperience.description.trim(),
+      location: newWorkExperience.location?.trim() || ''
     };
 
     if (editingIndex !== null) {
@@ -55,7 +57,8 @@ const WorkExperience = ({
     // Reset form
     setNewWorkExperience({
       status: '',
-      description: ''
+      description: '',
+      location: ''
     });
     setErrorMsg('');
   };
@@ -71,7 +74,8 @@ const WorkExperience = ({
       setEditingIndex(null);
       setNewWorkExperience({
         status: '',
-        description: ''
+        description: '',
+        location: ''
       });
     }
   };
@@ -80,7 +84,8 @@ const WorkExperience = ({
     setEditingIndex(null);
     setNewWorkExperience({
       status: '',
-      description: ''
+      description: '',
+      location: ''
     });
   };
 
@@ -93,24 +98,26 @@ const WorkExperience = ({
       {/* Saved Work Experience Entries */}
       {workExperience.length > 0 && (
         <div className="mb-3">
-          <table className="table table-bordered">
-            <thead className="table-light">
+          <table className="table table-bordered" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
+            <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
               <tr>
-                <th>Status</th>
-                <th>Description</th>
-                <th>Actions</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Description</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Location</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {workExperience.map((work, index) => (
                 <tr key={index}>
-                  <td>
+                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
                     <span className={`badge ${work.status === 'current' ? 'bg-success' : 'bg-secondary'}`}>
                       {work.status}
                     </span>
                   </td>
-                  <td>{work.description}</td>
-                  <td>
+                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
+                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
+                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
                     <button
                       type="button"
                       className="btn btn-sm btn-warning me-2"
@@ -136,7 +143,7 @@ const WorkExperience = ({
       )}
 
       {/* Add/Edit Work Experience Form */}
-      <div className="card p-3 mb-3" style={{ backgroundColor: '#f8f9fa' }}>
+      <div className="card p-3 mb-3" style={{ backgroundColor: 'var(--surface-color, #f8f9fa)' }}>
         <h6 className="mb-3">{editingIndex !== null ? 'Edit' : 'Add'} Work Experience Entry</h6>
 
         <div className="row mb-3">
@@ -155,7 +162,7 @@ const WorkExperience = ({
             </select>
           </div>
 
-          <div className="col-md-7">
+          <div className="col-md-4">
             <label className="form-label">Description (Type of work and industry) <span className="text-danger">*</span></label>
             <input
               type="text"
@@ -164,6 +171,18 @@ const WorkExperience = ({
               value={newWorkExperience.description}
               onChange={handleWorkExperienceChange}
               placeholder="e.g., Software Engineer in Tech Industry, Marketing Manager in Healthcare"
+            />
+          </div>
+
+          <div className="col-md-3">
+            <label className="form-label">Work Location</label>
+            <input
+              type="text"
+              className="form-control"
+              name="location"
+              value={newWorkExperience.location}
+              onChange={handleWorkExperienceChange}
+              placeholder="e.g., Bangalore, San Francisco"
             />
           </div>
 

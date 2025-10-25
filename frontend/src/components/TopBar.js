@@ -26,7 +26,18 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     approvals: 0
   });
   const [violations, setViolations] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+
+  // Listen for window resize to toggle mobile view
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Detect current theme
   useEffect(() => {
@@ -268,12 +279,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               ☰
             </button>
             <div className="app-logo" onClick={() => navigate('/')}>
-              <Logo variant="modern" size="small" showText={true} theme="navbar" />
+              <Logo variant="modern" size="small" showText={!isMobile} theme="navbar" />
             </div>
           </div>
           <div className="top-bar-right">
-            <button className="btn-login" onClick={handleLogin}>
-              🔑 Login
+            <button className="btn-login" onClick={handleLogin} title="Login">
+              🔑
             </button>
           </div>
         </div>
@@ -299,27 +310,26 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
-            <Logo variant="modern" size="small" showText={true} theme="navbar" />
+            <span className="logo-text">L3V3L</span>
           </div>
           
-          {/* Stat Capsules - Sized to fit logo height */}
-          <div className="stat-capsules-container">
-            <StatCapsuleGroup
-              stats={[
-                { icon: '👁️', count: userStats.views, variant: 'views', tooltip: 'Profile Views' },
-                { icon: '✓', count: userStats.approvals, variant: 'approvals', tooltip: 'Verified' },
-                { icon: '❤️', count: userStats.likes, variant: 'likes', tooltip: 'Favorites' }
-              ]}
-              direction="vertical"
-              size="small"
-              gap="compact"
-            />
+          {/* Stat Badges - Numbers only in colored circles */}
+          <div className="stat-badges-container">
+            <div className="stat-badge stat-badge-views" title="Profile Views">
+              {userStats.views}
+            </div>
+            <div className="stat-badge stat-badge-approvals" title="Verified">
+              {userStats.approvals}
+            </div>
+            <div className="stat-badge stat-badge-likes" title="Favorites">
+              {userStats.likes}
+            </div>
           </div>
           
           {onlineCount > 0 && (
-            <div className="online-indicator">
+            <div className="online-indicator" title={`${onlineCount} users online`}>
               <span className="online-dot">🟢</span>
-              <span className="online-count">{onlineCount} online</span>
+              <span className="online-count">{onlineCount}</span>
             </div>
           )}
         </div>
@@ -364,8 +374,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             </div>
             <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
-          <button className="btn-logout" onClick={handleLogout}>
-            🚪 Logout
+          <button className="btn-logout" onClick={handleLogout} title="Logout">
+            🚪
           </button>
         </div>
         
