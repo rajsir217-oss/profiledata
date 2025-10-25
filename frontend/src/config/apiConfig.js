@@ -27,9 +27,9 @@ const ENVIRONMENT_URLS = {
     ws: process.env.REACT_APP_STAGE_WS_URL || 'wss://stage-api.yourdomain.com'
   },
   pod: {
-    backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app',
-    api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app/api/users',
-    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-458052696267.us-central1.run.app'
+    backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
+    api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users',
+    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
   }
 };
 
