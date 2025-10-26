@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     
     # App Configuration
     app_url: Optional[str] = "http://localhost:3000"
+    
+    # Google Cloud Storage Configuration
+    gcs_bucket_name: Optional[str] = None
+    gcs_project_id: Optional[str] = None
+    use_gcs: bool = False  # Set to True in production
 
     class Config:
         env_file = str(ENV_FILE)
