@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Tuple, Optional
 from bson import ObjectId
 
-from job_templates.base import JobTemplate, JobExecutionContext
+from job_templates.base import JobTemplate, JobExecutionContext, JobResult
 
 logger = logging.getLogger(__name__)
 
@@ -73,12 +73,12 @@ class PushNotifierTemplate(JobTemplate):
         
         return (True, None)
     
-    async def execute(self, context: JobExecutionContext) -> Dict[str, Any]:
+    async def execute(self, context: JobExecutionContext) -> JobResult:
         """
         Execute push notification sending
         
         Returns:
-            Dict with execution statistics
+            JobResult with execution statistics
         """
         import time
         start_time = time.time()
@@ -283,27 +283,27 @@ class PushNotifierTemplate(JobTemplate):
                 f"(Duration: {duration:.2f}s)"
             )
             
-            return {
-                "status": "success",
-                "message": f"Processed {stats['processed']} notifications - Sent: {stats['sent']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}",
-                "details": stats,
-                "records_processed": stats['processed'],
-                "records_affected": stats['sent'],
-                "errors": [],
-                "warnings": [],
-                "duration_seconds": round(duration, 2)
-            }
+            return JobResult(
+                status="success",
+                message=f"Processed {stats['processed']} notifications - Sent: {stats['sent']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}",
+                details=stats,
+                records_processed=stats['processed'],
+                records_affected=stats['sent'],
+                errors=[],
+                warnings=[],
+                duration_seconds=round(duration, 2)
+            )
             
         except Exception as e:
             duration = time.time() - start_time
             logger.error(f"Push notifier job failed: {e}")
-            return {
-                "status": "failed",
-                "message": f"Job failed: {str(e)}",
-                "details": stats,
-                "records_processed": stats.get('processed', 0),
-                "records_affected": stats.get('sent', 0),
-                "errors": [str(e)],
-                "warnings": [],
-                "duration_seconds": round(duration, 2)
-            }
+            return JobResult(
+                status="failed",
+                message=f"Job failed: {str(e)}",
+                details=stats,
+                records_processed=stats.get('processed', 0),
+                records_affected=stats.get('sent', 0),
+                errors=[str(e)],
+                warnings=[],
+                duration_seconds=round(duration, 2)
+            )
