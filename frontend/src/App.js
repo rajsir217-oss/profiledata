@@ -47,7 +47,7 @@ import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
 import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
 import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
-import { toast } from 'react-toastify';
+import toastService from './services/toastService';
 
 // Theme configuration
 const themes = {
@@ -128,17 +128,8 @@ function App() {
         // Listen for foreground messages
         const unsubscribe = onMessageListener((notification) => {
           // Show toast notification when message received in foreground
-          toast.info(
-            <div>
-              <strong>{notification.title}</strong>
-              <p>{notification.body}</p>
-            </div>,
-            {
-              autoClose: 5000,
-              closeOnClick: true,
-              pauseOnHover: true
-            }
-          );
+          const message = `${notification.title}\n${notification.body}`;
+          toastService.info(message, 5000);
         });
         
         return unsubscribe;
