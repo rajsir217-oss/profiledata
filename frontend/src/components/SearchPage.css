@@ -440,6 +440,20 @@
   grid-template-columns: 1.2fr 1.2fr 1fr 1fr 1fr 2fr 1fr;
 }
 
+/* Keyword search field - make it prominent in Basic Search */
+.col-keyword {
+  grid-column: span 2 !important;
+}
+
+.col-keyword input {
+  font-weight: 500;
+}
+
+.col-keyword label {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
 /* Column classes */
 .col-gender,
 .col-keyword,

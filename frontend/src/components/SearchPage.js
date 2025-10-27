@@ -1389,6 +1389,19 @@ const SearchPage = () => {
             {searchTab === 'basic' && (
               <div className="filter-section">
                 <div className="row filter-row-1">
+                  <div className="col-keyword">
+                    <div className="form-group">
+                      <label>Keyword Search</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        name="keyword"
+                        value={searchCriteria.keyword}
+                        onChange={handleInputChange}
+                        placeholder="Search any field..."
+                      />
+                    </div>
+                  </div>
                   <div className="col-location">
                     <div className="form-group">
                       <label>Location</label>
