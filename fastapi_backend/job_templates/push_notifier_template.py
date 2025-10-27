@@ -5,7 +5,7 @@ Processes push notification queue and sends via Firebase Cloud Messaging
 
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple, Optional
 from bson import ObjectId
 
 from job_templates.base import JobTemplate, JobExecutionContext
@@ -60,18 +60,18 @@ class PushNotifierTemplate(JobTemplate):
             }
         }
     
-    def validate_params(self, params: Dict[str, Any]) -> bool:
+    def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
         batch_size = params.get("batch_size", 50)
         max_attempts = params.get("max_attempts", 3)
         
         if not (1 <= batch_size <= 500):
-            raise ValueError("batch_size must be between 1 and 500")
+            return (False, "batch_size must be between 1 and 500")
         
         if not (1 <= max_attempts <= 10):
-            raise ValueError("max_attempts must be between 1 and 10")
+            return (False, "max_attempts must be between 1 and 10")
         
-        return True
+        return (True, None)
     
     async def execute(self, context: JobExecutionContext) -> Dict[str, Any]:
         """
