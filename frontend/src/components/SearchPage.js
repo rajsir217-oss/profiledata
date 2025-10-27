@@ -1277,53 +1277,6 @@ const SearchPage = () => {
 
       <div className="search-container">
         <div className="search-filters">
-          <div className="filters-header">
-            <div className="search-header-clean">
-              <div className="search-header-actions">
-                <button
-                  type="button"
-                  className="header-icon-btn primary"
-                  onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
-                  disabled={loading}
-                  title="Search"
-                >
-                  {loading ? '⟳' : '🔍'}
-                </button>
-                <button
-                  type="button"
-                  className={`header-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
-                  onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
-                  disabled={loading || !hasActiveFilters()}
-                  title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
-                >
-                  ✕
-                  {hasActiveFilters() && (
-                    <span className="filter-count-badge">{countActiveFilters()}</span>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="header-icon-btn"
-                  onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
-                  title="Save Current Search"
-                >
-                  💾
-                </button>
-                <button
-                  type="button"
-                  className="header-icon-btn"
-                  onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
-                  title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
-                >
-                  📋
-                  {savedSearches.length > 0 && (
-                    <span className="filter-count-badge">{savedSearches.length}</span>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-
           {showSavedSearches && (
             <div className="saved-searches mb-3">
               <h6>Saved Searches</h6>
@@ -1367,6 +1320,50 @@ const SearchPage = () => {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
+            {/* Action Buttons - Above Tabs */}
+            <div className="search-action-buttons">
+              <button
+                type="button"
+                className="header-icon-btn primary"
+                onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
+                disabled={loading}
+                title="Search"
+              >
+                {loading ? '⟳' : '🔍'}
+              </button>
+              <button
+                type="button"
+                className={`header-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
+                onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
+                disabled={loading || !hasActiveFilters()}
+                title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
+              >
+                ✕
+                {hasActiveFilters() && (
+                  <span className="filter-count-badge">{countActiveFilters()}</span>
+                )}
+              </button>
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
+                title="Save Current Search"
+              >
+                💾
+              </button>
+              <button
+                type="button"
+                className="header-icon-btn"
+                onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
+                title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
+              >
+                📋
+                {savedSearches.length > 0 && (
+                  <span className="filter-count-badge">{savedSearches.length}</span>
+                )}
+              </button>
+            </div>
+
             {/* Search Tabs */}
             <div className="search-tabs">
               <button
