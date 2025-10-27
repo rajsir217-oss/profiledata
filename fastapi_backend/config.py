@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     gcs_project_id: Optional[str] = None
     use_gcs: bool = False  # Set to True in production
 
+    # Optional alternate connection strings for Cloud Run deployments
+    gcp_mongodb_url: Optional[str] = None
+    gcp_redis_url: Optional[str] = None
+
     class Config:
         env_file = str(ENV_FILE)
         env_file_encoding = 'utf-8'

@@ -1,6 +1,6 @@
 /* Unified Preferences Container */
 .unified-preferences-container {
-  max-width: 1200px;
+  width: 80%;
   margin: 0 auto;
   padding: 20px;
   min-height: calc(100vh - 80px);
@@ -510,6 +510,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .unified-preferences-container {
+    width: 95%;
     padding: 15px;
   }
 

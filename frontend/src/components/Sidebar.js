@@ -226,16 +226,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ 
         icon: '⚙️', 
         label: 'Settings', 
-        subLabel: 'Preferences, Theme & Notifications',
+        subLabel: 'App preferences',
         action: () => navigate('/preferences'),
-        disabled: !isActive
-      });
-      
-      items.push({
-        icon: '💬', 
-        label: 'Testimonials', 
-        subLabel: 'User feedback',
-        action: () => navigate('/testimonials'),
         disabled: !isActive
       });
       
@@ -264,16 +256,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
     }
 
-    // Show Testimonials and Settings for non-admin users (admins have them in their sections)
+    // Show Settings for non-admin users (admins have it in their sections)
     if (isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator') {
-      items.push({
-        icon: '💬', 
-        label: 'Testimonials', 
-        subLabel: 'User feedback',
-        action: () => navigate('/testimonials'),
-        disabled: !isActive
-      });
-      
       items.push({ 
         icon: '⚙️', 
         label: 'Settings', 
@@ -286,7 +270,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     // Add logout at the end
     items.push({ 
       icon: '🚪', 
-      label: '', 
+      label: 'Logout', 
       action: handleLogout
     });
 
@@ -360,6 +344,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/about'))}>About Us</span>
           <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/trademark'))}>Trademark</span>
+          <span className="footer-separator">|</span>
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/testimonials'))}>💬 Testimonials</span>
           <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/contact'))}>📧 Contact Us</span>
         </div>

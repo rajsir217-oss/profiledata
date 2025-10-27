@@ -3,8 +3,9 @@
   height: calc(100vh - 70px);
   display: flex;
   flex-direction: column;
-  padding: 0;
-  margin: 0;
+  padding: 0 20px;
+  margin: 0 auto;
+  width: 80%;
 }
 
 .messages-loading {
@@ -46,6 +47,10 @@
 }
 
 @media (max-width: 768px) {
+  .messages-page {
+    width: 95%;
+  }
+
   .messages-container {
     grid-template-columns: 1fr;
     position: relative;

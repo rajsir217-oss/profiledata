@@ -78,7 +78,7 @@ const ActivityLogs = () => {
         }
       });
       
-      const response = await fetch(getBackendApiUrl(`/api/activity-logs?${queryParams}`), {
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs/?${queryParams}`), {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       

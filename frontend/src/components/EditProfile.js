@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import ProfilePreview from './ProfilePreview';
 import ImageManager from './ImageManager';
-import { EducationHistory, WorkExperience, TextAreaWithSamples, HeightSelector, GenderSelector } from './shared';
+import { EducationHistory, WorkExperience, TextAreaWithSamples, HeightSelector, GenderSelector, Autocomplete } from './shared';
+import { US_STATES, US_CITIES_BY_STATE } from '../data/usLocations';
+import { COUNTRIES, getCountryCode, getCountryName } from '../data/countries';
 import './EditProfile.css';
 
 const EditProfile = () => {
@@ -40,6 +42,35 @@ const EditProfile = () => {
     const inches = totalInches % 12;
     return `${feet}'${inches}"`;
   };
+  
+  // Default values for field background colors
+  const defaultValues = {
+    countryOfOrigin: 'United States',
+    countryOfResidence: 'United States',
+    workingStatus: 'Yes',
+    citizenshipStatus: 'Citizen'
+  };
+
+  // Helper function to get field CSS class based on value state
+  const getFieldClass = (fieldName, value) => {
+    // Check if field is empty
+    const isEmpty = !value || value === "" || (Array.isArray(value) && value.length === 0);
+    
+    if (isEmpty) {
+      return 'field-empty';
+    }
+    
+    // Check if value matches default
+    const defaultValue = defaultValues[fieldName];
+    if (defaultValue !== undefined) {
+      const isDefault = defaultValue === value;
+      return isDefault ? 'field-default' : 'field-filled';
+    }
+    
+    // If no default exists and not empty, it's filled by user
+    return 'field-filled';
+  };
+  
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   
@@ -57,8 +88,8 @@ const EditProfile = () => {
     // Regional/Cultural
     religion: '',
     languagesSpoken: [],
-    countryOfOrigin: 'US',
-    countryOfResidence: 'US',
+    countryOfOrigin: 'United States',
+    countryOfResidence: 'United States',
     state: '',
     caste: '',
     motherTongue: '',
@@ -202,8 +233,8 @@ const EditProfile = () => {
           // Regional/Cultural
           religion: userData.religion || '',
           languagesSpoken: userData.languagesSpoken || [],
-          countryOfOrigin: userData.countryOfOrigin || 'US',
-          countryOfResidence: userData.countryOfResidence || 'US',
+          countryOfOrigin: getCountryName(userData.countryOfOrigin || 'US'),
+          countryOfResidence: getCountryName(userData.countryOfResidence || 'US'),
           state: userData.state || '',
           caste: userData.caste || '',
           motherTongue: userData.motherTongue || '',
@@ -268,6 +299,35 @@ const EditProfile = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Validate Date of Birth
+    if (name === 'dateOfBirth' && value) {
+      const birthDate = new Date(value);
+      const today = new Date();
+      
+      // Check for future dates
+      if (birthDate > today) {
+        setErrorMsg('Date of birth cannot be in the future');
+        return;
+      }
+      
+      // Calculate age accurately
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+      }
+      
+      // Minimum age requirement: 20 years
+      if (age < 20) {
+        setErrorMsg('You must be at least 20 years old');
+        return;
+      } else if (age > 100) {
+        setErrorMsg('Please enter a valid date of birth');
+        return;
+      }
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrorMsg('');
   };
@@ -307,10 +367,17 @@ const EditProfile = () => {
       ];
       
       simpleFields.forEach(key => {
-        if (formData[key] && typeof formData[key] === 'string' && formData[key].trim()) {
-          data.append(key, formData[key]);
-        } else if (formData[key] && typeof formData[key] !== 'object') {
-          data.append(key, formData[key]);
+        let value = formData[key];
+        
+        // Convert country names to codes for backend
+        if ((key === 'countryOfOrigin' || key === 'countryOfResidence') && value) {
+          value = getCountryCode(value);
+        }
+        
+        if (value && typeof value === 'string' && value.trim()) {
+          data.append(key, value);
+        } else if (value && typeof value !== 'object') {
+          data.append(key, value);
         }
       });
       
@@ -343,7 +410,10 @@ const EditProfile = () => {
       // Add image order (to preserve profile pic selection and ordering)
       if (existingImages.length > 0) {
         data.append('imageOrder', JSON.stringify(existingImages));
-        console.log(`📋 Image order being sent: ${JSON.stringify(existingImages)}`);
+        console.log(`📋 Image order being sent:`, existingImages);
+        console.log(`🌟 PROFILE PIC (first image):`, existingImages[0]);
+      } else {
+        console.warn('⚠️ No existing images to send!');
       }
       console.log(`📸 Images: ${newImages.length} new file(s)`);
       console.log(`🗑️ Images to delete: ${imagesToDelete.length}`, imagesToDelete);
@@ -356,6 +426,8 @@ const EditProfile = () => {
       });
       
       console.log('✅ Update response:', response.data);
+      console.log('📸 NEW IMAGE URLS:', response.data.user?.images);
+      console.log('🔍 First image (profile pic):', response.data.user?.images?.[0]);
       setSuccessMsg('✅ ' + response.data.message);
       
       // Clear new images and images to delete after successful upload
@@ -472,6 +544,7 @@ const EditProfile = () => {
                 name="dateOfBirth"
                 value={formData.dateOfBirth}
                 onChange={handleChange}
+                max={new Date().toISOString().split('T')[0]}
                 required
               />
             </div>
@@ -601,50 +674,79 @@ const EditProfile = () => {
           <div className="row mb-3">
             <div className="col-md-3">
               <label className="form-label">Country of Origin</label>
-              <select
-                className="form-control"
-                name="countryOfOrigin"
+              <Autocomplete
                 value={formData.countryOfOrigin}
-                onChange={handleChange}
-              >
-                <option value="US">USA</option>
-                <option value="IN">India</option>
-              </select>
+                onChange={(value) => {
+                  setFormData({ ...formData, countryOfOrigin: value });
+                }}
+                suggestions={COUNTRIES}
+                placeholder="Type to search countries..."
+                name="countryOfOrigin"
+                className={getFieldClass('countryOfOrigin', formData.countryOfOrigin)}
+              />
             </div>
             <div className="col-md-3">
               <label className="form-label">Residence</label>
-              <select
-                className="form-control"
-                name="countryOfResidence"
+              <Autocomplete
                 value={formData.countryOfResidence}
-                onChange={handleChange}
-              >
-                <option value="US">USA</option>
-                <option value="IN">India</option>
-              </select>
+                onChange={(value) => {
+                  setFormData({ ...formData, countryOfResidence: value, state: '', location: '' });
+                }}
+                suggestions={COUNTRIES}
+                placeholder="Type to search countries..."
+                name="countryOfResidence"
+                className={getFieldClass('countryOfResidence', formData.countryOfResidence)}
+              />
             </div>
             <div className="col-md-3">
               <label className="form-label">State</label>
-              <input
-                type="text"
-                className="form-control"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                placeholder="e.g., California, Tamil Nadu"
-              />
+              {formData.countryOfResidence === 'United States' ? (
+                <Autocomplete
+                  value={formData.state}
+                  onChange={(value) => {
+                    setFormData({ ...formData, state: value, location: '' });
+                  }}
+                  suggestions={US_STATES}
+                  placeholder="Type to search states..."
+                  name="state"
+                  className={getFieldClass('state', formData.state)}
+                />
+              ) : (
+                <input
+                  type="text"
+                  className="form-control"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  placeholder="e.g., California, Tamil Nadu"
+                />
+              )}
             </div>
             <div className="col-md-3">
               <label className="form-label">Location (City)</label>
-              <input
-                type="text"
-                className="form-control"
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                placeholder="City/Town"
-                required
-              />
+              {formData.countryOfResidence === 'United States' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
+                <Autocomplete
+                  value={formData.location}
+                  onChange={(value) => {
+                    setFormData({ ...formData, location: value });
+                  }}
+                  suggestions={US_CITIES_BY_STATE[formData.state]}
+                  placeholder="Type to search cities..."
+                  name="location"
+                  disabled={!formData.state}
+                  className={getFieldClass('location', formData.location)}
+                />
+              ) : (
+                <input
+                  type="text"
+                  className="form-control"
+                  name="location"
+                  value={formData.location}
+                  onChange={handleChange}
+                  placeholder="City/Town"
+                  required
+                />
+              )}
             </div>
           </div>
 
@@ -652,7 +754,7 @@ const EditProfile = () => {
             <div className="col-md-12">
               <label className="form-label">Citizenship Status</label>
               <select
-                className="form-control"
+                className={`form-control ${getFieldClass('citizenshipStatus', formData.citizenshipStatus)}`}
                 name="citizenshipStatus"
                 value={formData.citizenshipStatus}
                 onChange={handleChange}
@@ -1406,29 +1508,32 @@ const EditProfile = () => {
             <div className="d-flex gap-2">
               <button
                 type="submit"
-                className="btn btn-primary btn-lg"
+                className="btn btn-primary btn-icon-large"
                 disabled={saving}
+                title="Save Changes"
               >
-                {saving ? 'Saving...' : '💾 Save Changes'}
+                {saving ? <span style={{ fontSize: '14px' }}>⏳</span> : '💾'}
               </button>
               
               <button
                 type="button"
-                className="btn btn-info btn-lg"
+                className="btn btn-info btn-icon-large"
                 onClick={() => setShowPreview(true)}
                 disabled={saving}
+                title="Preview Profile"
               >
-                👁️ Preview
+                👁️
               </button>
             </div>
 
             <button
               type="button"
-              className="btn btn-danger"
+              className="btn btn-danger btn-icon-large"
               onClick={() => setShowDeleteConfirm(true)}
               disabled={deleting}
+              title="Delete Profile"
             >
-              🗑️ Delete Profile
+              🗑️
             </button>
           </div>
         </form>

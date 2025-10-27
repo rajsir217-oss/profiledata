@@ -530,6 +530,7 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
 @router.put("/profile/{username}")
 async def update_user_profile(
     username: str,
+    request: Request,
     firstName: Optional[str] = Form(None),
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
@@ -778,21 +779,63 @@ async def update_user_profile(
             logger.info(f"   Current existing_images: {existing_images}")
             logger.info(f"   Requested order: {ordered_urls}")
             
-            # Convert full URLs to relative paths for matching
-            def extract_relative_path(url):
-                """Extract relative path from full URL"""
-                if '/uploads/' in url:
-                    return url.split('/uploads/')[-1]
-                return url
+            # Robust path normalization using pathlib
+            from pathlib import Path
+            from urllib.parse import urlparse
             
-            # Create mapping of relative paths to maintain order
-            ordered_paths = []
-            for url in ordered_urls:
-                rel_path = extract_relative_path(url)
-                if rel_path in existing_images:
-                    ordered_paths.append(rel_path)
+            def extract_filename(url_or_path):
+                """
+                Robustly extract just the filename from any URL or path format
+                Returns None if extraction fails
+                """
+                if not url_or_path or not isinstance(url_or_path, str):
+                    return None
+                
+                try:
+                    # Handle URLs (http://localhost:8000/uploads/abc.jpeg or GCP URLs)
+                    if url_or_path.startswith('http://') or url_or_path.startswith('https://'):
+                        parsed = urlparse(url_or_path)
+                        path = Path(parsed.path)  # Gets the path component
+                        return path.name  # abc.jpeg
+                    
+                    # Handle relative paths (/uploads/abc.jpeg or uploads/abc.jpeg)
+                    path = Path(url_or_path)
+                    return path.name  # abc.jpeg
+                    
+                except Exception as e:
+                    logger.error(f"Failed to extract filename from '{url_or_path}': {e}")
+                    return None
+            
+            # Build mapping: filename -> original DB format
+            # This preserves whether DB has relative paths or full URLs
+            filename_to_db_path = {}
+            for db_path in existing_images:
+                filename = extract_filename(db_path)
+                if filename:
+                    filename_to_db_path[filename] = db_path
                 else:
-                    logger.warning(f"   ⚠️ Image {rel_path} not found in existing_images")
+                    logger.warning(f"   ⚠️ Could not extract filename from DB path: {db_path}")
+            
+            logger.info(f"   📝 Mapped {len(filename_to_db_path)} filenames from DB")
+            
+            # Reorder images based on frontend request
+            ordered_paths = []
+            for frontend_url in ordered_urls:
+                filename = extract_filename(frontend_url)
+                if not filename:
+                    logger.warning(f"   ⚠️ Could not extract filename from frontend URL: {frontend_url}")
+                    continue
+                    
+                if filename in filename_to_db_path:
+                    # Use original DB format (preserves local vs GCP format)
+                    ordered_paths.append(filename_to_db_path[filename])
+                    logger.debug(f"   ✓ Matched {filename} -> {filename_to_db_path[filename]}")
+                else:
+                    logger.warning(f"   ⚠️ Filename {filename} not found in existing images")
+            
+            # Validate we didn't lose any images
+            if len(ordered_paths) != len(existing_images):
+                logger.warning(f"   ⚠️ Image count mismatch: ordered={len(ordered_paths)}, existing={len(existing_images)}")
             
             # Add any images that weren't in the order list (shouldn't happen, but safety)
             for img in existing_images:
@@ -850,6 +893,35 @@ async def update_user_profile(
             )
         
         logger.info(f"✅ Profile updated successfully for user '{username}' (modified: {result.modified_count} fields)")
+        
+        # Log activity for profile edit
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.PROFILE_EDITED,
+                metadata={
+                    "fields_updated": list(update_data.keys()),
+                    "field_count": len(update_data)
+                },
+                ip_address=request.client.host if request.client else None
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log profile edit activity: {log_err}")
+        
+        # Dispatch event for notifications
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.PROFILE_UPDATED,
+                actor_username=username,
+                metadata={"fields_updated": list(update_data.keys())}
+            )
+        except Exception as dispatch_err:
+            logger.warning(f"⚠️ Failed to dispatch profile update event: {dispatch_err}")
         
         # Get updated user
         updated_user = await db.users.find_one({"username": username})
@@ -2136,6 +2208,7 @@ async def poll_messages(
 
 @router.post("/messages")
 async def send_message(
+    request: Request,
     from_username: str = Form(...),
     to_username: str = Form(...),
     content: str = Form(...),
@@ -2182,13 +2255,42 @@ async def send_message(
         redis.send_message(from_username, to_username, content.strip(), message_id)
         
         logger.info(f"✅ Message sent: {from_username} → {to_username} (MongoDB + Redis)")
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=from_username,
+                action_type=ActivityType.MESSAGE_SENT,
+                target_username=to_username,
+                metadata={"message_length": len(content.strip())},
+                ip_address=request.client.host if request.client else None
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log message activity: {log_err}")
+        
+        # Dispatch event for notifications
+        try:
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
+            dispatcher = get_event_dispatcher(db)
+            await dispatcher.dispatch(
+                event_type=UserEventType.MESSAGE_SENT,
+                actor_username=from_username,
+                target_username=to_username,
+                metadata={"message_id": message_id}
+            )
+        except Exception as dispatch_err:
+            logger.warning(f"⚠️ Failed to dispatch message event: {dispatch_err}")
+        
         return {"message": "Message sent successfully", "id": message_id}
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/messages/{username}")
-async def get_messages(username: str, db = Depends(get_database)):
+async def get_messages(username: str, request: Request, db = Depends(get_database)):
     """Get messages for user"""
     logger.info(f"📬 Getting messages for {username}")
 
@@ -2203,7 +2305,8 @@ async def get_messages(username: str, db = Depends(get_database)):
 
         messages = await messages_cursor.to_list(200)
 
-        # Mark messages as read if user is recipient
+        # Mark messages as read if user is recipient and log activity
+        read_count = 0
         for msg in messages:
             if msg["toUsername"] == username and not msg["isRead"]:
                 await db.messages.update_one(
@@ -2215,11 +2318,29 @@ async def get_messages(username: str, db = Depends(get_database)):
                         }
                     }
                 )
+                read_count += 1
+                
+                # Log MESSAGE_READ activity for each message marked as read
+                try:
+                    from services.activity_logger import get_activity_logger
+                    from models.activity_models import ActivityType
+                    activity_logger = get_activity_logger()
+                    await activity_logger.log_activity(
+                        username=username,
+                        action_type=ActivityType.MESSAGE_READ,
+                        target_username=msg["fromUsername"],
+                        metadata={"message_id": str(msg["_id"])},
+                        ip_address=request.client.host if request.client else None
+                    )
+                except Exception as log_err:
+                    logger.warning(f"⚠️ Failed to log message read activity: {log_err}")
 
         # Convert ObjectId to string
         for msg in messages:
             msg['id'] = str(msg.pop('_id', ''))
 
+        if read_count > 0:
+            logger.info(f"✅ Marked {read_count} messages as read for {username}")
         logger.info(f"✅ Found {len(messages)} messages for {username}")
         return {"messages": messages}
     except Exception as e:
@@ -2858,6 +2979,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
 @router.post("/profile-views")
 async def track_profile_view(
     profile_view: ProfileViewCreate,
+    request: Request,
     db = Depends(get_database)
 ):
     """Track when a user views another user's profile"""
@@ -2904,7 +3026,8 @@ async def track_profile_view(
                     username=profile_view.viewedByUsername,
                     action_type=ActivityType.PROFILE_VIEWED,
                     target_username=profile_view.profileUsername,
-                    metadata={"view_count": new_count, "first_view": False}
+                    metadata={"view_count": new_count, "first_view": False},
+                    ip_address=request.client.host if request.client else None
                 )
             except Exception as log_err:
                 logger.warning(f"⚠️ Failed to log activity: {log_err}")
@@ -2950,7 +3073,8 @@ async def track_profile_view(
                     username=profile_view.viewedByUsername,
                     action_type=ActivityType.PROFILE_VIEWED,
                     target_username=profile_view.profileUsername,
-                    metadata={"view_count": 1, "first_view": True}
+                    metadata={"view_count": 1, "first_view": True},
+                    ip_address=request.client.host if request.client else None
                 )
             except Exception as log_err:
                 logger.warning(f"⚠️ Failed to log activity: {log_err}")

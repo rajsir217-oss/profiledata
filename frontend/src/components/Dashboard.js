@@ -532,6 +532,23 @@ const Dashboard = () => {
           <h1>My Dashboard</h1>
           <p>Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</p>
         </div>
+        <div className="header-quick-actions">
+          {/* Quick Action Buttons */}
+          <button 
+            className="btn-quick-action btn-l3v3l"
+            onClick={() => navigate('/l3v3l-matches')}
+            title="L3V3L Matches"
+          >
+            🦋
+          </button>
+          <button 
+            className="btn-quick-action btn-search"
+            onClick={() => navigate('/search')}
+            title="Advanced Search"
+          >
+            🔍
+          </button>
+        </div>
         <div className="header-actions">
           {/* View Mode Toggle */}
           <div className="view-mode-toggle">
@@ -558,6 +575,45 @@ const Dashboard = () => {
           >
             🔄
           </button>
+        </div>
+      </div>
+
+      {/* Stats Overview Section */}
+      <div className="dashboard-stats-overview">
+        <div className="stat-card-large stat-card-primary">
+          <div className="stat-icon">👁️</div>
+          <div className="stat-content">
+            <div className="stat-value">{viewMetrics.totalViews}</div>
+            <div className="stat-label">Profile Views</div>
+            <div className="stat-sublabel">{viewMetrics.uniqueViewers} unique viewers</div>
+          </div>
+        </div>
+        
+        <div className="stat-card-large stat-card-success">
+          <div className="stat-icon">💖</div>
+          <div className="stat-content">
+            <div className="stat-value">{dashboardData.theirFavorites.length}</div>
+            <div className="stat-label">Favorited By</div>
+            <div className="stat-sublabel">Others who liked you</div>
+          </div>
+        </div>
+        
+        <div className="stat-card-large stat-card-info">
+          <div className="stat-icon">💬</div>
+          <div className="stat-content">
+            <div className="stat-value">{dashboardData.myMessages.length}</div>
+            <div className="stat-label">Conversations</div>
+            <div className="stat-sublabel">Active messages</div>
+          </div>
+        </div>
+        
+        <div className="stat-card-large stat-card-warning">
+          <div className="stat-icon">🔒</div>
+          <div className="stat-content">
+            <div className="stat-value">{dashboardData.myRequests.length}</div>
+            <div className="stat-label">PII Requests</div>
+            <div className="stat-sublabel">Pending approvals</div>
+          </div>
         </div>
       </div>
 
@@ -606,26 +662,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Quick Stats */}
-      <div className="dashboard-stats">
-        <div className="stat-card">
-          <div className="stat-value">{dashboardData.myMessages.length}</div>
-          <div className="stat-label">Messages</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{viewMetrics.uniqueViewers}</div>
-          <div className="stat-label">Unique Viewers</div>
-          <div className="stat-sublabel">{viewMetrics.totalViews} total views</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{dashboardData.theirFavorites.length}</div>
-          <div className="stat-label">Liked By</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-value">{dashboardData.myRequests.length}</div>
-          <div className="stat-label">PII Requests</div>
-        </div>
-      </div>
 
       {/* Message Modal */}
       <MessageModal

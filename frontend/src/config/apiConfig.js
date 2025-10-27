@@ -35,19 +35,29 @@ const ENVIRONMENT_URLS = {
 
 // Detect current environment
 export const getCurrentEnvironment = () => {
+  // FORCE LOCAL FOR DEVELOPMENT
+  console.log('🔍 ENVIRONMENT DEBUG:', {
+    hostname: window.location.hostname,
+    REACT_APP_ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT,
+    RUNTIME_CONFIG: window.RUNTIME_CONFIG?.ENVIRONMENT
+  });
+  
   // Priority 1: Runtime config (highest priority)
   if (window.RUNTIME_CONFIG?.ENVIRONMENT) {
+    console.log('✅ Using runtime config:', window.RUNTIME_CONFIG.ENVIRONMENT);
     return window.RUNTIME_CONFIG.ENVIRONMENT;
   }
   
   // Priority 2: Build-time environment variable
   if (process.env.REACT_APP_ENVIRONMENT) {
+    console.log('✅ Using REACT_APP_ENVIRONMENT:', process.env.REACT_APP_ENVIRONMENT);
     return process.env.REACT_APP_ENVIRONMENT;
   }
   
   // Priority 3: Detect from hostname
   const hostname = window.location.hostname;
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('✅ Detected localhost, using local environment');
     return 'local';
   } else if (hostname.includes('dev')) {
     return 'dev';
@@ -58,6 +68,7 @@ export const getCurrentEnvironment = () => {
   }
   
   // Priority 4: Production (pod) as final fallback
+  console.warn('⚠️ Defaulting to pod environment!');
   return 'pod';
 };
 
@@ -69,6 +80,13 @@ const getEnvironmentConfig = () => {
 
 // Get base backend URL
 export const getBackendUrl = () => {
+  // TEMPORARY HARDCODE FOR LOCAL DEVELOPMENT
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 FORCED LOCAL BACKEND: http://localhost:8000');
+    return 'http://localhost:8000';
+  }
+  
   // Priority 1: Runtime config override (for manual override)
   if (window.RUNTIME_CONFIG?.SOCKET_URL) {
     return window.RUNTIME_CONFIG.SOCKET_URL;
@@ -85,6 +103,13 @@ export const getBackendUrl = () => {
 
 // Get API base URL (for /api/users endpoints)
 export const getApiUrl = () => {
+  // TEMPORARY HARDCODE FOR LOCAL DEVELOPMENT
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 FORCED LOCAL API: http://localhost:8000/api/users');
+    return 'http://localhost:8000/api/users';
+  }
+  
   // Priority 1: Runtime config override
   if (window.RUNTIME_CONFIG?.API_URL) {
     return window.RUNTIME_CONFIG.API_URL;
@@ -162,7 +187,7 @@ export const API_ENDPOINTS = {
   IMAGE_ACCESS: `${getBackendUrl()}/api/users/image-access`,
 };
 
-export default {
+const apiConfig = {
   getBackendUrl,
   getApiUrl,
   buildApiUrl,
@@ -170,3 +195,5 @@ export default {
   BACKEND_URL,
   API_ENDPOINTS,
 };
+
+export default apiConfig;

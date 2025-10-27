@@ -55,9 +55,15 @@ class StorageService:
         content = await upload_file.read()
         file_size_mb = len(content) / (1024 * 1024)
         
+        # DEBUG LOGGING
+        logger.info(f"🔍 STORAGE DEBUG: use_gcs={self.use_gcs}, bucket={self.bucket_name}")
+        logger.info(f"🔍 STORAGE DEBUG: gcs_client={self.gcs_client is not None}, gcs_bucket={self.gcs_bucket is not None}")
+        
         if self.use_gcs:
+            logger.info(f"📤 Saving to GCS: {unique_filename}")
             return await self._save_to_gcs(unique_filename, content, folder, file_size_mb)
         else:
+            logger.info(f"📁 Saving to LOCAL: {unique_filename}")
             return await self._save_to_local(unique_filename, content, folder, file_size_mb)
     
     async def _save_to_gcs(self, filename: str, content: bytes, folder: str, file_size_mb: float) -> str:

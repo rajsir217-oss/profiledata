@@ -58,6 +58,8 @@ const SearchPage = () => {
   // View mode state
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+  const [searchTab, setSearchTab] = useState('basic'); // 'basic' or 'advanced'
+  const [actionTab, setActionTab] = useState('search'); // 'search' or 'saved'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 3;
@@ -600,9 +602,12 @@ const SearchPage = () => {
   };
 
   const handleClearFilters = () => {
+    // Preserve gender (opposite sex) when clearing filters
+    const preservedGender = searchCriteria.gender;
+    
     setSearchCriteria({
       keyword: '',
-      gender: '',
+      gender: preservedGender, // Keep opposite gender
       ageMin: '',
       ageMax: '',
       heightMin: '',
@@ -639,7 +644,7 @@ const SearchPage = () => {
   const countActiveFilters = () => {
     let count = 0;
     if (searchCriteria.keyword !== '') count++;
-    if (searchCriteria.gender !== '') count++;
+    // Gender is not counted as it's a default (opposite sex)
     if (searchCriteria.ageMin !== '') count++;
     if (searchCriteria.ageMax !== '') count++;
     if (searchCriteria.heightMinFeet !== '' || searchCriteria.heightMinInches !== '') count++;
@@ -1271,77 +1276,49 @@ const SearchPage = () => {
       )}
 
       <div className="search-container">
-        <div className={`search-filters ${filtersCollapsed ? 'collapsed' : ''}`}>
-          <div 
-            className="filters-header"
-            onClick={(e) => {
-              // Make entire header clickable for collapse/expand, except when clicking buttons
-              if (e.target.tagName !== 'BUTTON' && !e.target.closest('button')) {
-                setFiltersCollapsed(!filtersCollapsed);
-              }
-            }}
-            style={{ cursor: 'pointer' }}
-            title={filtersCollapsed ? "Click to show filters" : "Click to hide filters"}
-          >
-            <div className="filter-title-section">
-              <h4 className="mb-0" style={{ color: 'var(--primary-color)', fontSize: '18px', fontWeight: 600 }}>
-                Search:
-              </h4>
-              {/* Row 1: Primary Actions */}
-              <div className="search-icon-row">
+        <div className="search-filters">
+          <div className="filters-header">
+            <div className="search-header-clean">
+              <div className="search-header-actions">
                 <button
                   type="button"
-                  className="search-icon-btn"
+                  className="header-icon-btn primary"
                   onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
                   disabled={loading}
                   title="Search"
                 >
-                  <span className="btn-icon">{loading ? '⟳' : '🔍'}</span>
-                  <span className="btn-text">Search</span>
+                  {loading ? '⟳' : '🔍'}
                 </button>
                 <button
                   type="button"
-                  className={`search-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
+                  className={`header-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
                   onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
                   disabled={loading || !hasActiveFilters()}
                   title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
                 >
-                  <span className="btn-icon">✕</span>
-                  <span className="btn-text">Clear</span>
+                  ✕
                   {hasActiveFilters() && (
                     <span className="filter-count-badge">{countActiveFilters()}</span>
                   )}
                 </button>
                 <button
-                  className="search-icon-btn"
-                  onClick={(e) => { e.stopPropagation(); setFiltersCollapsed(!filtersCollapsed); }}
-                  title={filtersCollapsed ? "Show filters" : "Hide filters"}
+                  type="button"
+                  className="header-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
+                  title="Save Current Search"
                 >
-                  <span className="btn-icon">{filtersCollapsed ? '▼' : '▲'}</span>
-                  <span className="btn-text">{filtersCollapsed ? 'Show' : 'Hide'}</span>
-                </button>
-              </div>
-              {/* Row 2: Management */}
-              <div className="search-icon-row">
-                <button
-                  className="search-icon-btn"
-                  onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
-                  title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
-                >
-                  <span className="btn-icon">🔍</span>
-                  <span className="btn-text">Saved Searches</span>
-                  {savedSearches.length > 0 && (
-                    <span className="filter-count-badge">{savedSearches.length}</span>
-                  )}
+                  💾
                 </button>
                 <button
                   type="button"
-                  className="search-icon-btn"
-                  onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
-                  title="Manage Saved Searches"
+                  className="header-icon-btn"
+                  onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
+                  title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
                 >
-                  <span className="btn-icon">💾</span>
-                  <span className="btn-text">Manage</span>
+                  📋
+                  {savedSearches.length > 0 && (
+                    <span className="filter-count-badge">{savedSearches.length}</span>
+                  )}
                 </button>
               </div>
             </div>
@@ -1390,272 +1367,278 @@ const SearchPage = () => {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-            {/* Row 1: Gender | Location | Keyword | Age Range | Height Range | Body Type */}
-            <div className="filter-section">
-              <div className="row filter-row-1">
-                <div className="col-gender">
-                  <div className="form-group">
-                    <label>Gender</label>
-                    <select
-                      className="form-control"
-                      name="gender"
-                      value={searchCriteria.gender}
-                      onChange={handleInputChange}
-                      readOnly={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
-                      disabled={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
-                      style={{
-                        cursor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'not-allowed' : 'pointer',
-                        backgroundColor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? '#f0f0f0' : 'rgba(255, 255, 255, 0.9)'
-                      }}
-                      title={(currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'Gender filter is locked to opposite gender' : ''}
-                    >
-                      <option value="">All</option>
-                      <option value="male">Male</option>
-                      <option value="female">Female</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
-                </div>
-                <div className="col-location">
-                  <div className="form-group">
-                    <label>Location</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="location"
-                      value={searchCriteria.location}
-                      onChange={handleInputChange}
-                      placeholder="City, State..."
-                    />
-                  </div>
-                </div>
-                <div className="col-keyword">
-                  <div className="form-group">
-                    <label>Keyword Search</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      name="keyword"
-                      value={searchCriteria.keyword}
-                      onChange={handleInputChange}
-                      placeholder="Search in name, location, interests, bio..."
-                    />
-                  </div>
-                </div>
-                <div className="col-age-min">
-                  <div className="form-group">
-                    <label>Age Range</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="ageMin"
-                      value={searchCriteria.ageMin}
-                      onChange={handleInputChange}
-                      min="18"
-                      max="80"
-                      placeholder="Min"
-                    />
-                  </div>
-                </div>
-                <div className="col-age-max">
-                  <div className="form-group">
-                    <label>&nbsp;</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="ageMax"
-                      value={searchCriteria.ageMax}
-                      onChange={handleInputChange}
-                      min="18"
-                      max="80"
-                      placeholder="Max"
-                    />
-                  </div>
-                </div>
-                <div className="col-height-min">
-                  <div className="form-group">
-                    <label>Height (Min)</label>
-                    <div style={{ display: 'flex', gap: '4px' }}>
-                      <select
+            {/* Search Tabs */}
+            <div className="search-tabs">
+              <button
+                type="button"
+                className={`search-tab ${searchTab === 'basic' ? 'active' : ''}`}
+                onClick={() => setSearchTab('basic')}
+              >
+                Basic Search
+              </button>
+              <button
+                type="button"
+                className={`search-tab ${searchTab === 'advanced' ? 'active' : ''}`}
+                onClick={() => setSearchTab('advanced')}
+              >
+                Advanced Search
+              </button>
+            </div>
+
+            {/* Basic Search Tab */}
+            {searchTab === 'basic' && (
+              <div className="filter-section">
+                <div className="row filter-row-1">
+                  <div className="col-location">
+                    <div className="form-group">
+                      <label>Location</label>
+                      <input
+                        type="text"
                         className="form-control"
-                        name="heightMinFeet"
-                        value={searchCriteria.heightMinFeet}
+                        name="location"
+                        value={searchCriteria.location}
                         onChange={handleInputChange}
-                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                      >
-                        <option value="">Feet</option>
-                        <option value="4">4 ft</option>
-                        <option value="5">5 ft</option>
-                        <option value="6">6 ft</option>
-                        <option value="7">7 ft</option>
-                      </select>
-                      <select
-                        className="form-control"
-                        name="heightMinInches"
-                        value={searchCriteria.heightMinInches}
-                        onChange={handleInputChange}
-                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                      >
-                        <option value="">Inch</option>
-                        <option value="0">0 in</option>
-                        <option value="1">1 in</option>
-                        <option value="2">2 in</option>
-                        <option value="3">3 in</option>
-                        <option value="4">4 in</option>
-                        <option value="5">5 in</option>
-                        <option value="6">6 in</option>
-                        <option value="7">7 in</option>
-                        <option value="8">8 in</option>
-                        <option value="9">9 in</option>
-                        <option value="10">10 in</option>
-                        <option value="11">11 in</option>
-                      </select>
+                        placeholder="City, State..."
+                      />
+                    </div>
+                  </div>
+                  <div className="col-age-range">
+                    <div className="form-group">
+                      <label>Age Range</label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="ageMin"
+                          value={searchCriteria.ageMin}
+                          onChange={handleInputChange}
+                          min="18"
+                          max="80"
+                          placeholder="Min"
+                          style={{ flex: 1 }}
+                        />
+                        <input
+                          type="number"
+                          className="form-control"
+                          name="ageMax"
+                          value={searchCriteria.ageMax}
+                          onChange={handleInputChange}
+                          min="18"
+                          max="80"
+                          placeholder="Max"
+                          style={{ flex: 1 }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-height-min">
+                    <div className="form-group">
+                      <label>Height (Min)</label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <select
+                          className="form-control"
+                          name="heightMinFeet"
+                          value={searchCriteria.heightMinFeet}
+                          onChange={handleInputChange}
+                          style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                        >
+                          <option value="">Feet</option>
+                          <option value="4">4 ft</option>
+                          <option value="5">5 ft</option>
+                          <option value="6">6 ft</option>
+                          <option value="7">7 ft</option>
+                        </select>
+                        <select
+                          className="form-control"
+                          name="heightMinInches"
+                          value={searchCriteria.heightMinInches}
+                          onChange={handleInputChange}
+                          style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                        >
+                          <option value="">Inch</option>
+                          <option value="0">0 in</option>
+                          <option value="1">1 in</option>
+                          <option value="2">2 in</option>
+                          <option value="3">3 in</option>
+                          <option value="4">4 in</option>
+                          <option value="5">5 in</option>
+                          <option value="6">6 in</option>
+                          <option value="7">7 in</option>
+                          <option value="8">8 in</option>
+                          <option value="9">9 in</option>
+                          <option value="10">10 in</option>
+                          <option value="11">11 in</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-height-max">
+                    <div className="form-group">
+                      <label>Height (Max)</label>
+                      <div style={{ display: 'flex', gap: '4px' }}>
+                        <select
+                          className="form-control"
+                          name="heightMaxFeet"
+                          value={searchCriteria.heightMaxFeet}
+                          onChange={handleInputChange}
+                          style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                        >
+                          <option value="">Feet</option>
+                          <option value="4">4 ft</option>
+                          <option value="5">5 ft</option>
+                          <option value="6">6 ft</option>
+                          <option value="7">7 ft</option>
+                        </select>
+                        <select
+                          className="form-control"
+                          name="heightMaxInches"
+                          value={searchCriteria.heightMaxInches}
+                          onChange={handleInputChange}
+                          style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                        >
+                          <option value="">Inch</option>
+                          <option value="0">0 in</option>
+                          <option value="1">1 in</option>
+                          <option value="2">2 in</option>
+                          <option value="3">3 in</option>
+                          <option value="4">4 in</option>
+                          <option value="5">5 in</option>
+                          <option value="6">6 in</option>
+                          <option value="7">7 in</option>
+                          <option value="8">8 in</option>
+                          <option value="9">9 in</option>
+                          <option value="10">10 in</option>
+                          <option value="11">11 in</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
-                <div className="col-height-max">
-                  <div className="form-group">
-                    <label>Height (Max)</label>
-                    <div style={{ display: 'flex', gap: '4px' }}>
+              </div>
+            )}
+
+            {/* Advanced Search Tab */}
+            {searchTab === 'advanced' && (
+              <div className="filter-section">
+                <div className="row filter-row-1">
+                  <div className="col-gender">
+                    <div className="form-group">
+                      <label>Gender</label>
                       <select
                         className="form-control"
-                        name="heightMaxFeet"
-                        value={searchCriteria.heightMaxFeet}
+                        name="gender"
+                        value={searchCriteria.gender}
                         onChange={handleInputChange}
-                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
+                        readOnly={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
+                        disabled={currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator'}
+                        style={{
+                          cursor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'not-allowed' : 'pointer',
+                          backgroundColor: (currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? '#f0f0f0' : 'rgba(255, 255, 255, 0.9)'
+                        }}
+                        title={(currentUserProfile?.role?.toLowerCase() !== 'admin' && currentUserProfile?.role?.toLowerCase() !== 'moderator') ? 'Gender filter is locked to opposite gender' : ''}
                       >
-                        <option value="">Feet</option>
-                        <option value="4">4 ft</option>
-                        <option value="5">5 ft</option>
-                        <option value="6">6 ft</option>
-                        <option value="7">7 ft</option>
-                      </select>
-                      <select
-                        className="form-control"
-                        name="heightMaxInches"
-                        value={searchCriteria.heightMaxInches}
-                        onChange={handleInputChange}
-                        style={{ fontSize: '13px', padding: '6px 8px', flex: 1 }}
-                      >
-                        <option value="">Inch</option>
-                        <option value="0">0 in</option>
-                        <option value="1">1 in</option>
-                        <option value="2">2 in</option>
-                        <option value="3">3 in</option>
-                        <option value="4">4 in</option>
-                        <option value="5">5 in</option>
-                        <option value="6">6 in</option>
-                        <option value="7">7 in</option>
-                        <option value="8">8 in</option>
-                        <option value="9">9 in</option>
-                        <option value="10">10 in</option>
-                        <option value="11">11 in</option>
+                        <option value="">All</option>
+                        <option value="male">Male</option>
+                        <option value="female">Female</option>
+                        <option value="other">Other</option>
                       </select>
                     </div>
                   </div>
-                </div>
-                <div className="col-body-type">
-                  <div className="form-group">
-                    <label>Body Type</label>
-                    <select
-                      className="form-control"
-                      name="bodyType"
-                      value={searchCriteria.bodyType}
-                      onChange={handleInputChange}
-                    >
-                      {bodyTypeOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
+                  <div className="col-body-type">
+                    <div className="form-group">
+                      <label>Body Type</label>
+                      <select
+                        className="form-control"
+                        name="bodyType"
+                        value={searchCriteria.bodyType}
+                        onChange={handleInputChange}
+                      >
+                        {bodyTypeOptions.map(option => (
+                          <option key={option} value={option}>{option || 'Any'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-occupation">
+                    <div className="form-group">
+                      <label>Occupation</label>
+                      <select
+                        className="form-control"
+                        name="occupation"
+                        value={searchCriteria.occupation}
+                        onChange={handleInputChange}
+                      >
+                        {occupationOptions.map(option => (
+                          <option key={option} value={option}>{option || 'Any'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-eating">
+                    <div className="form-group">
+                      <label>Eating</label>
+                      <select
+                        className="form-control"
+                        name="eatingPreference"
+                        value={searchCriteria.eatingPreference}
+                        onChange={handleInputChange}
+                      >
+                        {eatingOptions.map(option => (
+                          <option key={option} value={option}>{option || 'Any'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-drinking">
+                    <div className="form-group">
+                      <label>Drinking</label>
+                      <select
+                        className="form-control"
+                        name="drinking"
+                        value={searchCriteria.drinking}
+                        onChange={handleInputChange}
+                      >
+                        {lifestyleOptions.map(option => (
+                          <option key={option} value={option}>{option || 'Any'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-smoking">
+                    <div className="form-group">
+                      <label>Smoking</label>
+                      <select
+                        className="form-control"
+                        name="smoking"
+                        value={searchCriteria.smoking}
+                        onChange={handleInputChange}
+                      >
+                        {lifestyleOptions.map(option => (
+                          <option key={option} value={option}>{option || 'Any'}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="col-days-back">
+                    <div className="form-group">
+                      <label>Days Back</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        name="daysBack"
+                        value={searchCriteria.daysBack}
+                        onChange={handleInputChange}
+                        min="1"
+                        max="365"
+                        placeholder="e.g., 7, 30"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
 
-            {/* Row 2: Education | Occupation | Eating | Drinking | Smoking | Days Back */}
-            <div className="filter-section">
-              <div className="row filter-row-2">
-                <div className="col-education">
-                </div>
-                <div className="col-occupation">
-                  <div className="form-group">
-                    <label>Occupation</label>
-                    <select
-                      className="form-control"
-                      name="occupation"
-                      value={searchCriteria.occupation}
-                      onChange={handleInputChange}
-                    >
-                      {occupationOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-eating">
-                  <div className="form-group">
-                    <label>Eating</label>
-                    <select
-                      className="form-control"
-                      name="eatingPreference"
-                      value={searchCriteria.eatingPreference}
-                      onChange={handleInputChange}
-                    >
-                      {eatingOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-drinking">
-                  <div className="form-group">
-                    <label>Drinking</label>
-                    <select
-                      className="form-control"
-                      name="drinking"
-                      value={searchCriteria.drinking}
-                      onChange={handleInputChange}
-                    >
-                      {lifestyleOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-smoking">
-                  <div className="form-group">
-                    <label>Smoking</label>
-                    <select
-                      className="form-control"
-                      name="smoking"
-                      value={searchCriteria.smoking}
-                      onChange={handleInputChange}
-                    >
-                      {lifestyleOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-days-back">
-                  <div className="form-group">
-                    <label>Days Back</label>
-                    <input
-                      type="number"
-                      className="form-control"
-                      name="daysBack"
-                      value={searchCriteria.daysBack}
-                      onChange={handleInputChange}
-                      min="1"
-                      max="365"
-                      placeholder="e.g., 7, 30"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional filters */}
+            {/* Additional filters (hidden) */}
             <div className="filter-section" style={{display: 'none'}}>
               <div className="row">
                 <div className="col-md-6">
@@ -1745,13 +1728,6 @@ const SearchPage = () => {
                 >
                   ☰
                 </button>
-                <button
-                  className={`btn btn-sm ${viewMode === 'compact' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => setViewMode('compact')}
-                  title="Compact view"
-                >
-                  ≡
-                </button>
                 <button 
                   className="btn btn-sm btn-warning"
                   onClick={() => handleSearch(1)}
@@ -1801,21 +1777,6 @@ const SearchPage = () => {
                 </select>
               </div>
             </div>
-          </div>
-
-          {/* L3V3L Matches Promotion Banner */}
-          <div className="cross-link-banner l3v3l-promo">
-            <div className="banner-icon">🦋</div>
-            <div className="banner-content">
-              <h5>✨ Want AI-Powered Recommendations?</h5>
-              <p>Let our intelligent L3V3L algorithm find your most compatible matches based on 8 key dimensions!</p>
-            </div>
-            <button 
-              className="btn btn-primary banner-cta"
-              onClick={() => navigate('/l3v3l-matches')}
-            >
-              Try L3V3L Matches →
-            </button>
           </div>
 
           {loading && (
@@ -1883,8 +1844,23 @@ const SearchPage = () => {
               )}
             </div>
           )}
-        </div>
-      </div>
+
+          {/* L3V3L Matches Promotion Banner */}
+          <div className="cross-link-banner l3v3l-promo">
+            <div className="banner-icon">🦋</div>
+            <div className="banner-content">
+              <h5>✨ Want AI-Powered Recommendations?</h5>
+              <p>Let our intelligent L3V3L algorithm find your most compatible matches based on 8 key dimensions!</p>
+            </div>
+            <button 
+              className="btn btn-primary banner-cta"
+              onClick={() => navigate('/l3v3l-matches')}
+            >
+              Try L3V3L Matches →
+            </button>
+          </div>
+        </div> {/* Close search-results */}
+      </div> {/* Close search-container */}
 
       {/* Message Modal */}
       <MessageModal

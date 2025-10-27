@@ -131,12 +131,16 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .detail-label {
   font-size: 13px;
   font-weight: 500;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-secondary, #666);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -144,7 +148,7 @@
 .detail-value {
   font-size: 18px;
   font-weight: 600;
-  color: white;
+  color: var(--text-color, #333);
   line-height: 1.3;
 }
 

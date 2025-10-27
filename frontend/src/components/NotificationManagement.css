@@ -2,7 +2,7 @@
 
 .notification-management {
   padding: 2rem;
-  max-width: 1400px;
+  width: 80%;
   margin: 0 auto;
 }
 
@@ -91,6 +91,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .notification-management {
+    width: 95%;
     padding: 1rem;
   }
 

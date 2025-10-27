@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api";
-import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector } from "./shared";
+import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete } from "./shared";
+import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
 import Logo from "./Logo";
+import "./Register.css";
 
 const Register = () => {
   // Helper function to calculate age from DOB
@@ -30,6 +32,43 @@ const Register = () => {
     const feet = Math.floor(totalInches / 12);
     const inches = totalInches % 12;
     return `${feet}'${inches}"`;
+  };
+
+  // Store initial default values for comparison
+  const defaultValues = {
+    religion: "No Religion",
+    languagesSpoken: ["English"],
+    castePreference: "No Preference",
+    eatingPreference: "No Preference",
+    countryOfOrigin: "US",
+    countryOfResidence: "US",
+    state: "California",
+    location: "San Francisco",
+    citizenshipStatus: "Citizen",
+    educationHistory: [{
+      level: "Under Graduation",
+      degree: "BS",
+      institution: "One of the Top 10 Institution"
+    }],
+    workExperience: [{
+      status: "current",
+      description: "Marketing Manager in Health Care Sector",
+      location: "San Francisco"
+    }],
+    familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
+    aboutMe: "I am a entrepreneur based in Srinagar. Love to explore new places and cuisines. Seeking a travel buddy and life companion.",
+    partnerPreference: "Looking for someone who is family-oriented and ambitious. Education and values are important to me.",
+    partnerCriteria: {
+      educationLevel: ["Bachelor's"],
+      profession: ["Any"],
+      languages: ["English"],
+      religion: ["Any Religion"],
+      caste: "No Preference",
+      location: ["Any"],
+      eatingPreference: ["Any"],
+      familyType: ["Any"],
+      familyValues: ["Moderate"]
+    }
   };
 
   const [formData, setFormData] = useState({
@@ -134,6 +173,37 @@ const Register = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const usernameCheckTimeout = useRef(null);
+
+  // Helper function to get field CSS class based on value state
+  const getFieldClass = (fieldName, value) => {
+    // Check if field is empty
+    const isEmpty = !value || value === "" || (Array.isArray(value) && value.length === 0);
+    
+    if (isEmpty) {
+      return 'field-empty';
+    }
+    
+    // Check if value matches default
+    const defaultValue = defaultValues[fieldName];
+    if (defaultValue !== undefined) {
+      // Handle array comparison
+      if (Array.isArray(defaultValue) && Array.isArray(value)) {
+        const isDefault = JSON.stringify(defaultValue) === JSON.stringify(value);
+        return isDefault ? 'field-default' : 'field-filled';
+      }
+      // Handle object comparison (for partnerCriteria)
+      if (typeof defaultValue === 'object' && typeof value === 'object' && !Array.isArray(defaultValue)) {
+        const isDefault = JSON.stringify(defaultValue) === JSON.stringify(value);
+        return isDefault ? 'field-default' : 'field-filled';
+      }
+      // Handle simple value comparison
+      const isDefault = defaultValue === value;
+      return isDefault ? 'field-default' : 'field-filled';
+    }
+    
+    // If no default exists and not empty, it's filled by user
+    return 'field-filled';
+  };
 
   // Sample description carousel states
   const [aboutMeSampleIndex, setAboutMeSampleIndex] = useState(0);  // Renamed from aboutYouSampleIndex
@@ -394,11 +464,24 @@ const Register = () => {
         } else {
           const birthDate = new Date(value);
           const today = new Date();
-          const age = today.getFullYear() - birthDate.getFullYear();
-          if (age < 18) {
-            error = "You must be at least 18 years old";
-          } else if (age > 100) {
-            error = "Please enter a valid date of birth";
+          
+          // Check for future dates
+          if (birthDate > today) {
+            error = "Date of birth cannot be in the future";
+          } else {
+            // Calculate age accurately
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+              age--;
+            }
+            
+            // Minimum age requirement: 20 years
+            if (age < 20) {
+              error = "You must be at least 20 years old to register";
+            } else if (age > 100) {
+              error = "Please enter a valid date of birth";
+            }
           }
         }
         break;
@@ -718,10 +801,11 @@ const Register = () => {
   };
 
   return (
-    <div className="card p-4 shadow">
-      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-        <Logo variant="modern" size="medium" showText={true} theme="light" />
-      </div>
+    <div className="register-container">
+      <div className="card p-4 shadow">
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+          <Logo variant="modern" size="medium" showText={true} theme="light" />
+        </div>
       <h3 className="text-center mb-3">Create Your Profile</h3>
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
@@ -732,7 +816,7 @@ const Register = () => {
             <label className="form-label">First Name</label>
             <input 
               type="text" 
-              className={`form-control ${fieldErrors.firstName && touchedFields.firstName ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('firstName', formData.firstName)} ${fieldErrors.firstName && touchedFields.firstName ? 'is-invalid' : ''}`}
               name="firstName" 
               value={formData.firstName} 
               onChange={handleChange}
@@ -747,7 +831,7 @@ const Register = () => {
             <label className="form-label">Last Name</label>
             <input 
               type="text" 
-              className={`form-control ${fieldErrors.lastName && touchedFields.lastName ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('lastName', formData.lastName)} ${fieldErrors.lastName && touchedFields.lastName ? 'is-invalid' : ''}`}
               name="lastName" 
               value={formData.lastName} 
               onChange={handleChange}
@@ -765,11 +849,12 @@ const Register = () => {
             <label className="form-label">Date of Birth <span className="text-danger">*</span></label>
             <input 
               type="date" 
-              className={`form-control ${fieldErrors.dateOfBirth && touchedFields.dateOfBirth ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('dateOfBirth', formData.dateOfBirth)} ${fieldErrors.dateOfBirth && touchedFields.dateOfBirth ? 'is-invalid' : ''}`}
               name="dateOfBirth" 
               value={formData.dateOfBirth} 
               onChange={handleChange}
               onBlur={handleBlur}
+              max={new Date().toISOString().split('T')[0]}
               required 
             />
             {fieldErrors.dateOfBirth && touchedFields.dateOfBirth && (
@@ -846,7 +931,7 @@ const Register = () => {
             <label className="form-label">Contact Number</label>
             <input 
               type="text" 
-              className={`form-control ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('contactNumber', formData.contactNumber)} ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
               name="contactNumber" 
               value={formData.contactNumber} 
               onChange={handleChange}
@@ -861,7 +946,7 @@ const Register = () => {
             <label className="form-label">Contact Email</label>
             <input 
               type="email" 
-              className={`form-control ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
               name="contactEmail" 
               value={formData.contactEmail} 
               onChange={handleChange}
@@ -879,7 +964,7 @@ const Register = () => {
           <div className="col-md-6">
             <label className="form-label">Religion <span className="text-muted">(Optional)</span></label>
             <select
-              className="form-control"
+              className={`form-control ${getFieldClass('religion', formData.religion)}`}
               name="religion"
               value={formData.religion}
               onChange={handleChange}
@@ -1016,7 +1101,7 @@ const Register = () => {
             </label>
             <input 
               type="text" 
-              className={`form-control ${fieldErrors.username && touchedFields.username ? 'is-invalid' : touchedFields.username && !checkingUsername && !fieldErrors.username ? 'is-valid' : ''}`}
+              className={`form-control ${getFieldClass('username', formData.username)} ${fieldErrors.username && touchedFields.username ? 'is-invalid' : touchedFields.username && !checkingUsername && !fieldErrors.username ? 'is-valid' : ''}`}
               name="username" 
               value={formData.username} 
               onChange={handleChange}
@@ -1034,7 +1119,7 @@ const Register = () => {
             <label className="form-label">Password <span className="text-danger">*</span></label>
             <input 
               type="password" 
-              className={`form-control ${fieldErrors.password && touchedFields.password ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('password', formData.password)} ${fieldErrors.password && touchedFields.password ? 'is-invalid' : ''}`}
               name="password" 
               value={formData.password} 
               onChange={handleChange}
@@ -1072,7 +1157,7 @@ const Register = () => {
               Country of Origin <span className="text-danger">*</span>
             </label>
             <select
-              className={`form-control ${fieldErrors.countryOfOrigin && touchedFields.countryOfOrigin ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('countryOfOrigin', formData.countryOfOrigin)} ${fieldErrors.countryOfOrigin && touchedFields.countryOfOrigin ? 'is-invalid' : ''}`}
               name="countryOfOrigin"
               value={formData.countryOfOrigin}
               onChange={handleChange}
@@ -1090,7 +1175,7 @@ const Register = () => {
               Residence <span className="text-danger">*</span>
             </label>
             <select
-              className={`form-control ${fieldErrors.countryOfResidence && touchedFields.countryOfResidence ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('countryOfResidence', formData.countryOfResidence)} ${fieldErrors.countryOfResidence && touchedFields.countryOfResidence ? 'is-invalid' : ''}`}
               name="countryOfResidence"
               value={formData.countryOfResidence}
               onChange={handleChange}
@@ -1107,48 +1192,50 @@ const Register = () => {
             <label className="form-label">
               {formData.countryOfResidence === 'IN' ? 'State' : 'State/Province'} <span className="text-danger">*</span>
             </label>
-            <select
-              className={`form-control ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
-              name="state"
-              value={formData.state}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-            >
-              <option value="">Select {formData.countryOfResidence === 'IN' ? 'State' : 'State'}</option>
-              {formData.countryOfResidence === 'IN' ? (
-                <>
-                  <option value="Andhra Pradesh">Andhra Pradesh</option>
-                  <option value="Karnataka">Karnataka</option>
-                  <option value="Kerala">Kerala</option>
-                  <option value="Tamil Nadu">Tamil Nadu</option>
-                  <option value="Maharashtra">Maharashtra</option>
-                  <option value="Gujarat">Gujarat</option>
-                  <option value="Rajasthan">Rajasthan</option>
-                  <option value="Uttar Pradesh">Uttar Pradesh</option>
-                  <option value="West Bengal">West Bengal</option>
-                  <option value="Delhi">Delhi</option>
-                  <option value="Punjab">Punjab</option>
-                  <option value="Haryana">Haryana</option>
-                  <option value="Bihar">Bihar</option>
-                  <option value="Madhya Pradesh">Madhya Pradesh</option>
-                  <option value="Telangana">Telangana</option>
-                </>
-              ) : formData.countryOfResidence === 'US' ? (
-                <>
-                  <option value="California">California</option>
-                  <option value="Texas">Texas</option>
-                  <option value="New York">New York</option>
-                  <option value="Florida">Florida</option>
-                  <option value="Illinois">Illinois</option>
-                  <option value="New Jersey">New Jersey</option>
-                  <option value="Virginia">Virginia</option>
-                  <option value="Washington">Washington</option>
-                  <option value="Massachusetts">Massachusetts</option>
-                  <option value="Pennsylvania">Pennsylvania</option>
-                </>
-              ) : null}
-            </select>
+            {formData.countryOfResidence === 'US' ? (
+              <Autocomplete
+                value={formData.state}
+                onChange={(value) => {
+                  setFormData({ ...formData, state: value, location: '' });
+                  setFieldErrors({ ...fieldErrors, state: '' });
+                  setTouchedFields({ ...touchedFields, state: true });
+                }}
+                suggestions={US_STATES}
+                placeholder="Type to search states..."
+                name="state"
+                className={`${getFieldClass('state', formData.state)} ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
+              />
+            ) : (
+              <select
+                className={`form-control ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
+                name="state"
+                value={formData.state}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+              >
+                <option value="">Select State</option>
+                {formData.countryOfResidence === 'IN' && (
+                  <>
+                    <option value="Andhra Pradesh">Andhra Pradesh</option>
+                    <option value="Karnataka">Karnataka</option>
+                    <option value="Kerala">Kerala</option>
+                    <option value="Tamil Nadu">Tamil Nadu</option>
+                    <option value="Maharashtra">Maharashtra</option>
+                    <option value="Gujarat">Gujarat</option>
+                    <option value="Rajasthan">Rajasthan</option>
+                    <option value="Uttar Pradesh">Uttar Pradesh</option>
+                    <option value="West Bengal">West Bengal</option>
+                    <option value="Delhi">Delhi</option>
+                    <option value="Punjab">Punjab</option>
+                    <option value="Haryana">Haryana</option>
+                    <option value="Bihar">Bihar</option>
+                    <option value="Madhya Pradesh">Madhya Pradesh</option>
+                    <option value="Telangana">Telangana</option>
+                  </>
+                )}
+              </select>
+            )}
             {fieldErrors.state && touchedFields.state && (
               <div className="invalid-feedback d-block">{fieldErrors.state}</div>
             )}
@@ -1159,20 +1246,34 @@ const Register = () => {
         <div className="row mb-3">
           <div className="col-md-6">
             <label className="form-label">City/Town (Optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              name="location"
-              value={formData.location}
-              onChange={handleChange}
-              placeholder="e.g., Bangalore, New York City"
-            />
+            {formData.countryOfResidence === 'US' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
+              <Autocomplete
+                value={formData.location}
+                onChange={(value) => {
+                  setFormData({ ...formData, location: value });
+                }}
+                suggestions={US_CITIES_BY_STATE[formData.state]}
+                placeholder="Type to search cities..."
+                name="location"
+                disabled={!formData.state}
+                className={getFieldClass('location', formData.location)}
+              />
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                placeholder="e.g., Bangalore, New York City"
+              />
+            )}
           </div>
           <div className="col-md-6">
             <label className="form-label">Citizenship Status</label>
             {formData.countryOfResidence === 'US' ? (
               <select 
-                className="form-control" 
+                className={`form-control ${getFieldClass('citizenshipStatus', formData.citizenshipStatus)}`}
                 name="citizenshipStatus" 
                 value={formData.citizenshipStatus} 
                 onChange={handleChange}
@@ -1273,7 +1374,7 @@ const Register = () => {
             <label className="form-label">Caste Preference</label>
             <input 
               type="text" 
-              className={`form-control ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
               name="castePreference" 
               value={formData.castePreference} 
               onChange={handleChange}
@@ -1287,7 +1388,7 @@ const Register = () => {
           <div className="col-md-4">
             <label className="form-label">Eating Preference</label>
             <select 
-              className={`form-control ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
+              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
               name="eatingPreference" 
               value={formData.eatingPreference} 
               onChange={handleChange}
@@ -1383,6 +1484,7 @@ const Register = () => {
                 samples={familyBackgroundSamples}
                 error={fieldErrors.familyBackground}
                 touched={touchedFields.familyBackground}
+                className={getFieldClass('familyBackground', formData.familyBackground)}
               />
             );
           }
@@ -1458,7 +1560,7 @@ const Register = () => {
             </small>
           </div>
           <textarea
-            className={`form-control ${fieldErrors.aboutMe && touchedFields.aboutMe ? 'is-invalid' : ''}`}
+            className={`form-control ${getFieldClass('aboutMe', formData.aboutMe)} ${fieldErrors.aboutMe && touchedFields.aboutMe ? 'is-invalid' : ''}`}
             name="aboutMe"
             value={formData.aboutMe}
             onChange={handleChange}
@@ -1533,7 +1635,7 @@ const Register = () => {
             </small>
           </div>
           <textarea
-            className={`form-control ${fieldErrors.partnerPreference && touchedFields.partnerPreference ? 'is-invalid' : ''}`}
+            className={`form-control ${getFieldClass('partnerPreference', formData.partnerPreference)} ${fieldErrors.partnerPreference && touchedFields.partnerPreference ? 'is-invalid' : ''}`}
             name="partnerPreference"
             value={formData.partnerPreference}
             onChange={handleChange}
@@ -1554,7 +1656,7 @@ const Register = () => {
             <div className="col-md-6">
               <label className="form-label">How much younger?</label>
               <select
-                className="form-control"
+                className={`form-control ${formData.partnerCriteria.ageRangeRelative.minOffset === 0 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.ageRangeRelative.minOffset}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -1576,7 +1678,7 @@ const Register = () => {
             <div className="col-md-6">
               <label className="form-label">How much older?</label>
               <select
-                className="form-control"
+                className={`form-control ${formData.partnerCriteria.ageRangeRelative.maxOffset === 5 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.ageRangeRelative.maxOffset}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -1619,7 +1721,7 @@ const Register = () => {
             <div className="col-md-6">
               <label className="form-label">How much shorter?</label>
               <select
-                className="form-control"
+                className={`form-control ${formData.partnerCriteria.heightRangeRelative.minInches === 0 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.minInches}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -1642,7 +1744,7 @@ const Register = () => {
             <div className="col-md-6">
               <label className="form-label">How much taller?</label>
               <select
-                className="form-control"
+                className={`form-control ${formData.partnerCriteria.heightRangeRelative.maxInches === 6 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.maxInches}
                 onChange={(e) => setFormData(prev => ({
                   ...prev,
@@ -2436,6 +2538,7 @@ const Register = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

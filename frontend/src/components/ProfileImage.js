@@ -232,10 +232,22 @@ const ProfileImage = ({
     );
   }
 
+  // Debug: Log component props and state
+  console.log('ProfileImage render:', {
+    canView: imageState.canView,
+    hasOnClick: !!onClick,
+    clickable: !!(imageState.canView && onClick),
+    state: imageState.state,
+    imageUrl: image?.imageUrl
+  });
+
   return (
     <div 
       className={`profile-image-container state-${imageState.state}`}
-      onClick={imageState.canView && onClick ? () => onClick(image) : null}
+      onClick={imageState.canView && onClick ? () => {
+        console.log('🎯 ProfileImage onClick triggered!');
+        onClick(image);
+      } : null}
       style={{ cursor: imageState.canView && onClick ? 'pointer' : 'default' }}
     >
       {imageState.showPlaceholder ? (

@@ -163,7 +163,7 @@ const WorkExperience = ({
           </div>
 
           <div className="col-md-4">
-            <label className="form-label">Description (Type of work and industry) <span className="text-danger">*</span></label>
+            <label className="form-label">Description (Type of work & industry) <span className="text-danger">*</span></label>
             <input
               type="text"
               className="form-control"
@@ -189,10 +189,12 @@ const WorkExperience = ({
           <div className="col-md-2 d-flex align-items-end">
             <button
               type="button"
-              className="btn btn-primary w-100"
+              className={`btn btn-primary w-100 ${editingIndex === null ? 'btn-add-entry' : ''}`}
               onClick={handleAddWorkExperience}
+              // style={{ minWidth: '44px', whiteSpace: 'nowrap' }}
             >
-              {editingIndex !== null ? '✓ Update' : '+ Add'}
+              <span style={{ fontSize: '16px' }}>{editingIndex !== null ? '✓' : '+'}</span>
+              <span className="d-none d-lg-inline">{editingIndex !== null ? ' Update' : 'Add'}</span>
             </button>
           </div>
         </div>

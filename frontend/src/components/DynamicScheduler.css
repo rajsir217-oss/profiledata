@@ -2,7 +2,7 @@
 
 .dynamic-scheduler {
   padding: 2rem;
-  max-width: 1400px;
+  width: 80%;
   margin: 0 auto;
 }
 
@@ -423,6 +423,7 @@
 /* Responsive */
 @media (max-width: 768px) {
   .dynamic-scheduler {
+    width: 95%;
     padding: 1rem;
   }
 
