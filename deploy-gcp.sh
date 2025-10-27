@@ -10,7 +10,7 @@ echo "===================================="
 echo ""
 
 # Configuration
-PROJECT_ID="profiledata-438623"
+PROJECT_ID="matrimonial-staging"
 BACKEND_SERVICE="matrimonial-backend"
 FRONTEND_SERVICE="matrimonial-frontend"
 REGION="us-central1"
