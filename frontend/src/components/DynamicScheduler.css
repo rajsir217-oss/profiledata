@@ -134,6 +134,12 @@
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.jobs-table-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .jobs-table table {
@@ -423,23 +429,40 @@
 /* Responsive */
 @media (max-width: 768px) {
   .dynamic-scheduler {
-    width: 95%;
-    padding: 1rem;
+    width: 100%;
+    padding: 0.5rem;
   }
 
   .scheduler-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 1rem;
+    padding: 1rem;
+  }
+
+  .scheduler-header .header-content h1 {
+    font-size: 1.5rem;
   }
 
   .status-cards {
     grid-template-columns: 1fr;
+    gap: 1rem;
+    margin: 0 0.5rem 1rem;
+  }
+
+  .status-card {
+    padding: 1rem;
+  }
+
+  .status-card .status-value {
+    font-size: 1.5rem;
   }
 
   .scheduler-filters {
     flex-direction: column;
     align-items: stretch;
+    margin: 0 0.5rem 1rem;
+    padding: 1rem;
   }
 
   .filter-group {
@@ -448,9 +471,102 @@
 
   .jobs-table {
     overflow-x: auto;
+    margin: 0 0.5rem 1rem;
+    border-radius: 8px;
   }
 
   .jobs-table table {
     min-width: 900px;
+  }
+
+  .jobs-table th,
+  .jobs-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.8rem;
+  }
+
+  .job-name strong {
+    font-size: 0.85rem;
+  }
+
+  .job-name small {
+    font-size: 0.75rem;
+  }
+
+  .template-badge,
+  .status-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .job-actions {
+    gap: 0.25rem;
+  }
+
+  .btn-icon {
+    padding: 0.4rem;
+    font-size: 0.9rem;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .pagination button {
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .btn {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Small Mobile - Extra responsive */
+@media (max-width: 480px) {
+  .dynamic-scheduler {
+    padding: 0.25rem;
+  }
+
+  .scheduler-header {
+    padding: 0.75rem;
+  }
+
+  .scheduler-header .header-content h1 {
+    font-size: 1.25rem;
+  }
+
+  .scheduler-header .header-content p {
+    font-size: 0.85rem;
+  }
+
+  .status-cards {
+    margin: 0 0.25rem 0.75rem;
+  }
+
+  .scheduler-filters {
+    margin: 0 0.25rem 0.75rem;
+    padding: 0.75rem;
+  }
+
+  .jobs-table {
+    margin: 0 0.25rem 0.75rem;
+  }
+
+  .jobs-table th,
+  .jobs-table td {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.75rem;
+  }
+
+  .status-card .status-value {
+    font-size: 1.3rem;
+  }
+
+  .status-card .status-label {
+    font-size: 0.75rem;
   }
 }
