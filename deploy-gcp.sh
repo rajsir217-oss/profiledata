@@ -103,6 +103,11 @@ deploy_frontend() {
     echo -e "${BLUE}🎨 Deploying Frontend to App Engine...${NC}"
     echo "================================================"
     
+    # Automatically switch to production environment
+    echo -e "${BLUE}🔄 Switching config.js to production...${NC}"
+    ./switch-environment.sh pod
+    echo ""
+    
     cd frontend
     
     # Get backend URL if deploying frontend separately

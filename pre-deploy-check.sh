@@ -21,7 +21,8 @@ NC='\033[0m'
 echo -e "${BLUE}1. Checking frontend/public/config.js...${NC}"
 if grep -q "ENVIRONMENT: 'local'" frontend/public/config.js; then
     echo -e "${RED}   ❌ FAIL: config.js is set to 'local'${NC}"
-    echo "      Must change to 'pod' for production"
+    echo "      Run: ./switch-environment.sh pod"
+    echo "      (This will be done automatically during deployment)"
     ((ERRORS++))
 elif grep -q "ENVIRONMENT: 'pod'" frontend/public/config.js; then
     echo -e "${GREEN}   ✅ PASS: config.js is set to 'pod'${NC}"

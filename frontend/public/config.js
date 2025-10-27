@@ -6,12 +6,12 @@
  * For production deployment, this should be updated to 'pod' with GCP URLs
  */
 window.RUNTIME_CONFIG = {
-  ENVIRONMENT: 'pod',
-  SOCKET_URL: 'https://matrimonial-backend-458052696267.us-central1.run.app',
-  API_URL: 'https://matrimonial-backend-458052696267.us-central1.run.app/api/users',
-  WS_URL: 'wss://matrimonial-backend-458052696267.us-central1.run.app',
-  FRONTEND_URL: 'https://profiledata-pod.ue.r.appspot.com',
+  ENVIRONMENT: 'local',
+  SOCKET_URL: 'http://localhost:8000',
+  API_URL: 'http://localhost:8000/api/users',
+  WS_URL: 'ws://localhost:8000',
+  FRONTEND_URL: 'http://localhost:3000',
   ENABLE_NOTIFICATIONS: true,
-  DEBUG: false
+  DEBUG: true
 };
 console.log('✅ Runtime config loaded:', window.RUNTIME_CONFIG.ENVIRONMENT);
