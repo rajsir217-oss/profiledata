@@ -80,6 +80,9 @@ class PushNotifierTemplate(JobTemplate):
         Returns:
             Dict with execution statistics
         """
+        import time
+        start_time = time.time()
+        
         db = context.db
         params = context.parameters
         
@@ -269,24 +272,38 @@ class PushNotifierTemplate(JobTemplate):
                         }
                     )
             
+            duration = time.time() - start_time
+            
             logger.info(
                 f"✅ Push notifier complete - "
                 f"Processed: {stats['processed']}, "
                 f"Sent: {stats['sent']}, "
                 f"Failed: {stats['failed']}, "
-                f"Skipped: {stats['skipped']}"
+                f"Skipped: {stats['skipped']} "
+                f"(Duration: {duration:.2f}s)"
             )
             
             return {
-                "success": True,
-                "stats": stats,
-                "message": f"Processed {stats['processed']} notifications"
+                "status": "success",
+                "message": f"Processed {stats['processed']} notifications - Sent: {stats['sent']}, Failed: {stats['failed']}, Skipped: {stats['skipped']}",
+                "details": stats,
+                "records_processed": stats['processed'],
+                "records_affected": stats['sent'],
+                "errors": [],
+                "warnings": [],
+                "duration_seconds": round(duration, 2)
             }
             
         except Exception as e:
+            duration = time.time() - start_time
             logger.error(f"Push notifier job failed: {e}")
             return {
-                "success": False,
-                "error": str(e),
-                "stats": stats
+                "status": "failed",
+                "message": f"Job failed: {str(e)}",
+                "details": stats,
+                "records_processed": stats.get('processed', 0),
+                "records_affected": stats.get('sent', 0),
+                "errors": [str(e)],
+                "warnings": [],
+                "duration_seconds": round(duration, 2)
             }
