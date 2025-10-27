@@ -24,6 +24,13 @@ class PushNotifierTemplate(JobTemplate):
     - Handles failed tokens (invalid/unregistered)
     """
     
+    # Template metadata
+    template_type = "push_notifier"
+    template_name = "Push Notifier"
+    template_description = "Process push notification queue and send via Firebase Cloud Messaging (FCM)"
+    category = "notifications"
+    icon = "🔔"
+    
     def get_name(self) -> str:
         return "push_notifier"
     
