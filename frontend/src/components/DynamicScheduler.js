@@ -90,7 +90,11 @@ const DynamicScheduler = ({ currentUser }) => {
       
       const data = await response.json();
       console.log('Templates loaded:', data);
-      setTemplates(data.templates || []);
+      // Sort templates alphabetically by name
+      const sortedTemplates = (data.templates || []).sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      setTemplates(sortedTemplates);
     } catch (err) {
       console.error('Error loading templates:', err);
     }
