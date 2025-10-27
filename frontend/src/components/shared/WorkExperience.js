@@ -104,7 +104,7 @@ const WorkExperience = ({
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Description</th>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Location</th>
-                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Actions</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -117,7 +117,7 @@ const WorkExperience = ({
                   </td>
                   <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
                   <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
+                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>
                     <button
                       type="button"
                       className="btn btn-sm btn-warning me-2"

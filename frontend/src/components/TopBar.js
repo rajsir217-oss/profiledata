@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
+import { getImageUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
@@ -346,7 +347,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           <div className="user-info" onClick={handleProfile}>
             <div className="user-icon">
               {userProfile?.images?.[0] ? (
-                <img src={userProfile.images[0]} alt={currentUser} className="topbar-profile-avatar" />
+                <img src={getImageUrl(userProfile.images[0])} alt={currentUser} className="topbar-profile-avatar" />
               ) : (
                 <div className="topbar-profile-placeholder">
                   {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}

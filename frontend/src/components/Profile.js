@@ -1159,6 +1159,14 @@ const Profile = () => {
             {(user.gender || user.sex) && <p><strong>Gender:</strong> {user.gender || user.sex}</p>}
             {age && <p><strong>Age:</strong> {age} years</p>}
             {user.height && <p><strong>Height:</strong> {user.height}</p>}
+            {user.profileCreatedBy && (
+              <p>
+                <strong>Profile Created By:</strong>{' '}
+                {user.profileCreatedBy === 'me' && <span>👤 Self</span>}
+                {user.profileCreatedBy === 'parent' && <span>👨‍👩‍👧 Parent/Guardian</span>}
+                {user.profileCreatedBy === 'other' && <span>👥 Other (Relative/Friend)</span>}
+              </p>
+            )}
             {user.location && <p><strong>Location:</strong> {user.location}</p>}
             {user.religion && <p><strong>Religion:</strong> {user.religion}</p>}
             {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}

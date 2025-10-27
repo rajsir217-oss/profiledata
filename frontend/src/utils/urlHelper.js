@@ -34,14 +34,37 @@ export const getFrontendUrl = () => {
  */
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
-  // If already absolute URL, return as-is
+  
+  const currentBackend = getBackendUrl();
+  const isLocalEnvironment = currentBackend.includes('localhost') || currentBackend.includes('127.0.0.1');
+  
+  // If already absolute URL (from database)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    // FORCE local URLs when running locally
+    if (isLocalEnvironment) {
+      // Extract the path part after the domain
+      const gcpUrls = [
+        'https://matrimonial-backend-458052696267.us-central1.run.app',
+        'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
+        'https://storage.googleapis.com'
+      ];
+      
+      for (const gcpUrl of gcpUrls) {
+        if (imagePath.startsWith(gcpUrl)) {
+          // Replace GCP URL with local backend URL
+          const relativePath = imagePath.substring(gcpUrl.length);
+          console.log(`🔄 Converting GCP image to local: ${relativePath}`);
+          return `${currentBackend}${relativePath}`;
+        }
+      }
+    }
+    // In production, return GCP URLs as-is
     return imagePath;
   }
-  // Build full URL from backend
-  const backend = getBackendUrl();
+  
+  // For relative paths - build full URL from current backend
   const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  return `${backend}${cleanPath}`;
+  return `${currentBackend}${cleanPath}`;
 };
 
 /**
@@ -52,9 +75,11 @@ export const getSocketUrl = () => {
   return getBackendUrl();
 };
 
-export default {
+const urlHelper = {
   getBackendApiUrl,
   getFrontendUrl,
   getImageUrl,
   getSocketUrl
 };
+
+export default urlHelper;

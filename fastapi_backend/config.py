@@ -4,20 +4,38 @@ from pydantic import ConfigDict
 from typing import Optional
 import os
 from pathlib import Path
+from env_config import EnvironmentManager
+
+# Auto-detect and load the right environment configuration
+env_manager = EnvironmentManager()
+current_env = env_manager.detect_environment()
+env_manager.load_environment_config(current_env)
 
 # Get the directory where this config file is located
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
+    # Database Configuration
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "matrimonialDB"
+    redis_url: Optional[str] = "redis://localhost:6379"
+    
+    # Authentication
     secret_key: str = "default_secret_key_for_testing"  # Default for testing
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
+    
+    # Application URLs
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
+    app_url: Optional[str] = "http://localhost:3000"
+    
+    # Storage Configuration
     upload_dir: str = "uploads"
+    use_gcs: bool = False  # Set to True in production
+    gcs_bucket_name: Optional[str] = None
+    gcs_project_id: Optional[str] = None
     
     # SMTP Email Configuration
     smtp_host: Optional[str] = None
@@ -33,13 +51,15 @@ class Settings(BaseSettings):
     twilio_auth_token: Optional[str] = None
     twilio_from_phone: Optional[str] = None
     
-    # App Configuration
-    app_url: Optional[str] = "http://localhost:3000"
+    # Feature Flags
+    enable_notifications: Optional[bool] = True
+    enable_scheduler: Optional[bool] = True
+    enable_websockets: Optional[bool] = True
+    debug_mode: Optional[bool] = False
     
-    # Google Cloud Storage Configuration
-    gcs_bucket_name: Optional[str] = None
-    gcs_project_id: Optional[str] = None
-    use_gcs: bool = False  # Set to True in production
+    # Logging Configuration
+    log_level: Optional[str] = "INFO"
+    log_file: Optional[str] = "logs/app.log"
 
     # Optional alternate connection strings for Cloud Run deployments
     gcp_mongodb_url: Optional[str] = None
