@@ -31,7 +31,7 @@ const AdminPage = () => {
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState(''); // Gender filter
-  const [statusFilter, setStatusFilter] = useState(''); // Default to all statuses
+  const [statusFilter, setStatusFilter] = useState('pending_admin_approval'); // Default to Pending Admin Approval
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
   const [currentPage, setCurrentPage] = useState(1);
@@ -425,6 +425,7 @@ const AdminPage = () => {
         <table className="table-hover admin-table">
           <thead>
             <tr>
+              <th className="text-center">ACTIONS</th>
               <th onClick={() => handleSort('username')} style={{ cursor: 'pointer' }}>
                 USERNAME {sortField === 'username' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -443,7 +444,6 @@ const AdminPage = () => {
               <th>MSGS SENT</th>
               <th>MSGS RCVD</th>
               <th>PENDING</th>
-              <th className="text-center">ACTIONS</th>
             </tr>
           </thead>
           <tbody>
@@ -456,32 +456,6 @@ const AdminPage = () => {
             ) : (
               currentRecords.map((user) => (
                 <tr key={user.username}>
-                  <td>
-                    <strong>{user.username}</strong>
-                  </td>
-                  <td>{user.firstName} {user.lastName}</td>
-                  <td>
-                    <span className="badge bg-primary">{user.computedAge}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-info">{user.computedDaysActive}</span>
-                  </td>
-                  <td>{user.contactEmail}</td>
-                  <td>{user.contactNumber}</td>
-                  <td>{user.sex || user.gender || user.Sex || '-'}</td>
-                  <td>{user.location}</td>
-                  <td>
-                    <span className="badge bg-info">{user.images?.length || 0}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-success">{user.messagesSent || 0}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-primary">{user.messagesReceived || 0}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-warning">{user.pendingReplies || 0}</span>
-                  </td>
                   <td className="text-center">
                     <div className="btn-group" role="group">
                       <button
@@ -513,6 +487,32 @@ const AdminPage = () => {
                         🗑️
                       </button>
                     </div>
+                  </td>
+                  <td>
+                    <strong>{user.username}</strong>
+                  </td>
+                  <td>{user.firstName} {user.lastName}</td>
+                  <td>
+                    <span className="badge bg-primary">{user.computedAge}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-info">{user.computedDaysActive}</span>
+                  </td>
+                  <td>{user.contactEmail}</td>
+                  <td>{user.contactNumber}</td>
+                  <td>{user.sex || user.gender || user.Sex || '-'}</td>
+                  <td>{user.location}</td>
+                  <td>
+                    <span className="badge bg-info">{user.images?.length || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-success">{user.messagesSent || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-primary">{user.messagesReceived || 0}</span>
+                  </td>
+                  <td>
+                    <span className="badge bg-warning">{user.pendingReplies || 0}</span>
                   </td>
                 </tr>
               ))

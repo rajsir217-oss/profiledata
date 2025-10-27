@@ -1,4 +1,21 @@
 /* Profile Page Styles */
+
+/* Profile Page Container */
+.container.mt-4 {
+  width: 80% !important;
+  max-width: 80% !important;
+  margin: 0 auto !important;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .container.mt-4 {
+    width: 95% !important;
+    max-width: 95% !important;
+    padding: 15px;
+  }
+}
+
 .profile-header {
   display: flex;
   align-items: center;
@@ -6,6 +23,200 @@
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
   border-bottom: 2px solid var(--border-color, #e0e0e0);
+}
+
+/* Multi-column layout for profile information */
+.profile-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 30px;
+  line-height: 1.6;
+}
+
+.profile-info p {
+  margin: 0;
+}
+
+/* Compact spacing for profile sections */
+.profile-section {
+  margin-bottom: 15px !important;
+  padding: 15px !important;
+}
+
+.profile-section h3 {
+  margin-bottom: 12px !important;
+  font-size: 18px !important;
+}
+
+/* Reduce header spacing */
+.profile-header {
+  margin-bottom: 1rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+/* Compact PII request section */
+.pii-request-section {
+  padding: 15px !important;
+  margin-top: 15px !important;
+}
+
+/* Compact images grid */
+.images-grid {
+  gap: 12px !important;
+  margin-top: 12px !important;
+}
+
+/* Compact education and work lists */
+.education-list,
+.work-list {
+  gap: 10px !important;
+}
+
+/* Profile Action Buttons */
+.profile-action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 25px;
+  border-top: 2px solid var(--border-color);
+  padding-top: 25px;
+}
+
+.btn-profile-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--card-background);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-profile-action:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-color: var(--primary-color);
+}
+
+.btn-profile-action:active:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn-profile-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-profile-action .action-icon {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.btn-profile-action .action-label {
+  display: none;
+}
+
+/* Specific button colors */
+.btn-action-message {
+  border-color: #3498db;
+}
+
+.btn-action-message:hover:not(:disabled) {
+  background: #3498db;
+  color: white;
+  border-color: #3498db;
+}
+
+.btn-action-favorite {
+  border-color: #f39c12;
+}
+
+.btn-action-favorite.active {
+  background: #f39c12;
+  color: white;
+  border-color: #f39c12;
+}
+
+.btn-action-favorite:hover:not(:disabled) {
+  background: #f39c12;
+  color: white;
+  border-color: #f39c12;
+}
+
+.btn-action-shortlist {
+  border-color: #27ae60;
+}
+
+.btn-action-shortlist.active {
+  background: #27ae60;
+  color: white;
+  border-color: #27ae60;
+}
+
+.btn-action-shortlist:hover:not(:disabled) {
+  background: #27ae60;
+  color: white;
+  border-color: #27ae60;
+}
+
+.btn-action-pii {
+  border-color: #9b59b6;
+}
+
+.btn-action-pii:hover:not(:disabled) {
+  background: #9b59b6;
+  color: white;
+  border-color: #9b59b6;
+}
+
+.btn-action-pii:disabled {
+  background: #27ae60;
+  color: white;
+  border-color: #27ae60;
+}
+
+.btn-action-exclude {
+  border-color: #e74c3c;
+}
+
+.btn-action-exclude.active {
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
+}
+
+.btn-action-exclude:hover:not(:disabled) {
+  background: #e74c3c;
+  color: white;
+  border-color: #e74c3c;
+}
+
+/* Responsive: Single column on mobile */
+@media (max-width: 768px) {
+  .profile-info {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .btn-profile-action {
+    width: 50px;
+    height: 50px;
+  }
+
+  .btn-profile-action .action-icon {
+    font-size: 22px;
+  }
+
+  .profile-action-buttons {
+    gap: 8px;
+    padding-top: 20px;
+  }
 }
 
 .profile-title-section {

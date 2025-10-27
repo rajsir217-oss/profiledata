@@ -148,21 +148,30 @@ async def admin_approve_user(
     **Admin only:** Approve user and complete onboarding
     
     **Requirements:**
-    - User must have verified email
     - Admin role required
     
     **Actions:**
     1. Set adminApprovalStatus to "approved"
     2. Set accountStatus to "active"
     3. Set onboardingCompleted to True
-    4. Send welcome email with activation confirmation
-    5. Email includes links to search, L3V3L matches, and profile
-    6. Enable all features
+    4. **If email not verified:** Automatically verify email (admin override)
+    5. Send welcome email with activation confirmation
+    6. Email includes links to search, L3V3L matches, and profile
+    7. Enable all features
+    
+    **Admin Email Override:**
+    - If user is "pending_email_verification", admin approval automatically:
+      - Sets emailVerified = True
+      - Sets emailVerifiedAt = current time
+      - Clears verification token
+      - Allows user to login without clicking email link
     
     **Response:**
     - success: Boolean
     - message: Status message
     - accountStatus: "active"
+    - emailVerified: True
+    - emailVerificationBypassed: Boolean (True if admin bypassed email verification)
     - emailSent: Boolean (indicates if welcome email was sent)
     """
     from datetime import datetime
@@ -178,13 +187,6 @@ async def admin_approve_user(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Check if email is verified
-        if not user.get("emailVerified"):
-            raise HTTPException(
-                status_code=400,
-                detail="User must verify email before admin approval"
-            )
-        
         # Check if already approved
         if user.get("adminApprovalStatus") == "approved":
             return {
@@ -193,19 +195,28 @@ async def admin_approve_user(
                 "alreadyApproved": True
             }
         
+        # Prepare update fields
+        update_fields = {
+            "adminApprovalStatus": "approved",
+            "adminApprovedBy": current_user.get("username"),
+            "adminApprovedAt": datetime.utcnow(),
+            "accountStatus": "active",
+            "onboardingCompleted": True,
+            "onboardingCompletedAt": datetime.utcnow()
+        }
+        
+        # If email is not verified, admin approval automatically verifies it
+        if not user.get("emailVerified"):
+            update_fields["emailVerified"] = True
+            update_fields["emailVerifiedAt"] = datetime.utcnow()
+            update_fields["emailVerificationToken"] = None  # Clear token
+            update_fields["emailVerificationTokenExpiry"] = None
+            print(f"✅ Admin override: Email verification bypassed for {username}")
+        
         # Update user status
         result = await db.users.update_one(
             {"username": username},
-            {
-                "$set": {
-                    "adminApprovalStatus": "approved",
-                    "adminApprovedBy": current_user.get("username"),
-                    "adminApprovedAt": datetime.utcnow(),
-                    "accountStatus": "active",
-                    "onboardingCompleted": True,
-                    "onboardingCompletedAt": datetime.utcnow()
-                }
-            }
+            {"$set": update_fields}
         )
         
         if result.modified_count > 0:
@@ -225,10 +236,17 @@ async def admin_approve_user(
             else:
                 print(f"⚠️ No email address found for {username}")
             
+            # Build success message
+            message = f"User {username} approved successfully"
+            if not user.get("emailVerified"):
+                message += " (email verification bypassed by admin)"
+            
             return {
                 "success": True,
-                "message": f"User {username} approved successfully",
+                "message": message,
                 "accountStatus": "active",
+                "emailVerified": True,
+                "emailVerificationBypassed": not user.get("emailVerified"),
                 "emailSent": email_sent if email else False
             }
         else:

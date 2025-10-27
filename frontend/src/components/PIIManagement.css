@@ -7,9 +7,9 @@
 
 .pii-management-page {
   padding: 20px;
-  max-width: 100%;
+  width: 80%;
+  margin: 0 auto;
   background: var(--background-color);
-  
 }
 
 .pii-loading {
@@ -562,6 +562,7 @@
 
 @media (max-width: 768px) {
   .pii-management-page {
+    width: 95%;
     padding: 15px;
   }
 

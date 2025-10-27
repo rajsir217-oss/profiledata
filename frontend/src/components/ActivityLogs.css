@@ -2,7 +2,7 @@
 
 .activity-logs {
   padding: 2rem;
-  max-width: 1600px;
+  width: 80%;
   margin: 0 auto;
   background: var(--background-color);
   min-height: 100vh;
@@ -449,6 +449,7 @@
 
 @media (max-width: 768px) {
   .activity-logs {
+    width: 95%;
     padding: 1rem;
   }
   

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import './ImageManager.css';
 
@@ -7,6 +8,8 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [allImages, setAllImages] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [showLightbox, setShowLightbox] = useState(false);
   
   // Merge existing and new images for unified display
   useEffect(() => {
@@ -112,19 +115,37 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
 
   // Set as profile picture (move to first position)
   const setAsProfilePic = (index) => {
-    if (index === 0) return; // Already profile pic
+    console.log('🌟 setAsProfilePic called with index:', index);
+    
+    if (index === 0) {
+      console.log('⚠️ Image is already profile picture');
+      if (onError) {
+        onError('ℹ️ This image is already your profile picture!');
+      }
+      return; // Already profile pic
+    }
     
     const reordered = [...allImages];
+    console.log('📸 Total images before reorder:', reordered.length);
+    
     const [removed] = reordered.splice(index, 1);
     reordered.unshift(removed);
+    console.log('✅ Reordered images, moved index', index, 'to position 0');
     
     // Split back into existing and new
     const existing = reordered.filter(img => img.type === 'existing').map(img => img.url);
     const newFiles = reordered.filter(img => img.type === 'new').map(img => img.file);
     
+    console.log('📊 After split - Existing:', existing.length, 'New:', newFiles.length);
+    console.log('🎯 New profile picture:', existing[0]);
+    
     setExistingImages(existing);
     setNewImages(newFiles);
     setHasUnsavedChanges(true); // Mark as unsaved
+    
+    if (onError) {
+      onError('✅ Profile picture changed! Click "💾 Save Changes" button below to save permanently.');
+    }
   };
   
   // Handle new image upload
@@ -202,7 +223,19 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
                 onDrop={(e) => handleDrop(e, index)}
               >
                 {/* Image Preview */}
-                <div className="image-preview">
+                <div 
+                  className="image-preview"
+                  onClick={(e) => {
+                    // Only open lightbox if not clicking on control buttons
+                    if (!e.target.closest('.image-controls')) {
+                      e.stopPropagation();
+                      setLightboxImage(imageUrl);
+                      setShowLightbox(true);
+                    }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                  title="Click to enlarge"
+                >
                   <img
                     src={imageUrl}
                     alt={`${index + 1}`}
@@ -230,14 +263,25 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
                 </div>
 
                 {/* Controls */}
-                <div className="image-controls">
+                <div 
+                  className="image-controls"
+                  draggable={false}
+                  onDragStart={(e) => e.preventDefault()}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {/* Set as Profile Pic Button */}
                   {index !== 0 && (
                     <button
                       type="button"
                       className="btn-control btn-profile-pic"
-                      onClick={() => setAsProfilePic(index)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        console.log('⭐ Profile pic button clicked for index:', index);
+                        setAsProfilePic(index);
+                      }}
                       title="Set as profile picture"
+                      draggable={false}
                     >
                       ⭐
                     </button>
@@ -299,6 +343,81 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
           <li>❌ Avoid group photos, heavy filters, or unclear images</li>
         </ul>
       </div>
+
+      {/* Image Lightbox Modal - Rendered at document body level using Portal */}
+      {showLightbox && lightboxImage && ReactDOM.createPortal(
+        <div 
+          className="image-lightbox-overlay"
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            padding: '20px'
+          }}
+          onClick={() => {
+            setShowLightbox(false);
+            setLightboxImage(null);
+          }}
+        >
+          <button
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '24px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              zIndex: 10000
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLightbox(false);
+              setLightboxImage(null);
+            }}
+            title="Close"
+          >
+            ✕
+          </button>
+          <img 
+            src={lightboxImage} 
+            alt="Enlarged view"
+            className="lightbox-image"
+            style={{
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              width: 'auto',
+              height: 'auto',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
+              transform: 'none !important',
+              top: 'auto !important',
+              left: 'auto !important',
+              right: 'auto !important',
+              bottom: 'auto !important'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

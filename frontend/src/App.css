@@ -38,6 +38,36 @@
   max-width: 100%;
 }
 
+/* Global Page Container - Consistent Width Across All Pages */
+.page-container {
+  width: 80%;
+  margin: 0 auto;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    width: 95%;
+    padding: 15px;
+  }
+}
+
+/* Register Page Card - Centered with 80% width */
+.card.p-4.shadow {
+  width: 80%;
+  max-width: 80%;
+  margin: 20px auto !important;
+}
+
+@media (max-width: 768px) {
+  .card.p-4.shadow {
+    width: 95%;
+    max-width: 95%;
+    margin: 15px auto !important;
+  }
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   /* Mobile/Tablet - sidebar hidden by default, content takes full width */

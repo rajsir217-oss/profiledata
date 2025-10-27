@@ -7,7 +7,7 @@
 }
 
 .contact-container {
-  max-width: 1400px;
+  width: 80%;
   margin: 0 auto;
 }
 
@@ -519,6 +519,10 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
+  .contact-container {
+    width: 95%;
+  }
+
   .contact-header h1 {
     font-size: 32px;
   }

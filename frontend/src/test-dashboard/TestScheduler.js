@@ -332,39 +332,6 @@ const TestScheduler = ({ testSuites, isAdmin = false }) => {
               <div key={schedule.id} className="schedule-card">
                 <div className="schedule-header">
                   <h4>{schedule.name}</h4>
-                  <div className="schedule-actions">
-                    {schedule.enabled && (
-                      <button
-                        className="btn btn-run-now"
-                        onClick={() => handleRunNow(schedule)}
-                        disabled={loading}
-                        title="Run this test now"
-                      >
-                        ▶️
-                      </button>
-                    )}
-                    <button
-                      className={`btn btn-toggle ${schedule.enabled ? 'enabled' : 'disabled'}`}
-                      onClick={() => handleToggleEnabled(schedule)}
-                      title={schedule.enabled ? 'Disable schedule' : 'Enable schedule'}
-                    >
-                      {schedule.enabled ? '✅' : '⏸️'}
-                    </button>
-                    <button
-                      className="btn btn-edit"
-                      onClick={() => handleEdit(schedule)}
-                      title="Edit schedule"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className="btn btn-delete"
-                      onClick={() => handleDelete(schedule.id)}
-                      title="Delete schedule"
-                    >
-                      🗑️
-                    </button>
-                  </div>
                 </div>
                 
                 <div className="schedule-details">
@@ -410,6 +377,40 @@ const TestScheduler = ({ testSuites, isAdmin = false }) => {
                       <span className="value">{new Date(schedule.nextRun).toLocaleString()}</span>
                     </div>
                   )}
+                </div>
+                
+                <div className="schedule-actions">
+                  {schedule.enabled && (
+                    <button
+                      className="btn btn-run-now"
+                      onClick={() => handleRunNow(schedule)}
+                      disabled={loading}
+                      title="Run this test now"
+                    >
+                      ▶️
+                    </button>
+                  )}
+                  <button
+                    className={`btn btn-toggle ${schedule.enabled ? 'enabled' : 'disabled'}`}
+                    onClick={() => handleToggleEnabled(schedule)}
+                    title={schedule.enabled ? 'Disable schedule' : 'Enable schedule'}
+                  >
+                    {schedule.enabled ? '✅' : '⏸️'}
+                  </button>
+                  <button
+                    className="btn btn-edit"
+                    onClick={() => handleEdit(schedule)}
+                    title="Edit schedule"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    className="btn btn-delete"
+                    onClick={() => handleDelete(schedule.id)}
+                    title="Delete schedule"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             ))}

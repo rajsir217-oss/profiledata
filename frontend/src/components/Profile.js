@@ -9,6 +9,7 @@ import ImageAccessRequestModal from "./ImageAccessRequestModal";
 import ActivationBadge from "./ActivationBadge";
 import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
+import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import "./Profile.css";
 
@@ -34,6 +35,10 @@ const Profile = () => {
     shortlistedBy: 0,
     favoritedBy: 0
   });
+  
+  // Action states (isExcluded and showMessageModal only - others already exist)
+  const [isExcluded, setIsExcluded] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
   
   // L3V3L Matching Data
   const [l3v3lMatchData, setL3v3lMatchData] = useState(null);
@@ -78,6 +83,10 @@ const Profile = () => {
   
   // Activation status state
   const [activationStatus, setActivationStatus] = useState(null);
+  
+  // Image lightbox state
+  const [lightboxImage, setLightboxImage] = useState(null);
+  const [showLightbox, setShowLightbox] = useState(false);
   
   const currentUsername = localStorage.getItem('username');
   
@@ -646,7 +655,6 @@ const Profile = () => {
   
   // Check if user has all access
   const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.date_of_birth);
-  const hasAnyAccess = piiAccess.images || piiAccess.contact_info || piiAccess.date_of_birth;
 
   return (
     <div className="container mt-4">
@@ -824,8 +832,17 @@ const Profile = () => {
                 justifyContent: 'center',
                 fontSize: '48px',
                 fontWeight: 'bold',
-                color: '#667eea'
-              }}>
+                color: '#667eea',
+                cursor: user.images?.[0] ? 'pointer' : 'default'
+              }}
+              onClick={() => {
+                if (user.images?.[0]) {
+                  setLightboxImage(user.images[0]);
+                  setShowLightbox(true);
+                }
+              }}
+              title={user.images?.[0] ? 'Click to enlarge' : ''}
+              >
                 {user.images?.[0] ? (
                   <img src={user.images[0]} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
@@ -1009,41 +1026,6 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* PII Request Button (only for others' profiles) */}
-      {!isOwnProfile && (
-        <div className="pii-request-section">
-          {hasAllAccess ? (
-            <>
-              <button
-                className="btn-request-access disabled"
-                disabled
-              >
-                ✅ You Have All Private Information Access
-              </button>
-              <p className="pii-hint">You can view all photos, contact info, and date of birth</p>
-            </>
-          ) : (
-            <>
-              <button
-                className="btn-request-access"
-                onClick={async () => {
-                  console.log('📋 Opening PII Request Modal - Refreshing access status...');
-                  await checkPIIAccess(); // Refresh access status before opening modal
-                  setShowPIIRequestModal(true);
-                }}
-              >
-                🔒 Request Private Information Access
-              </button>
-              <p className="pii-hint">
-                {hasAnyAccess 
-                  ? 'Request additional access to photos, contact info, or date of birth'
-                  : 'Request access to photos, contact info, or date of birth'
-                }
-              </p>
-            </>
-          )}
-        </div>
-      )}
       
       {/* Bio / Tagline */}
       {user.bio && (
@@ -1173,7 +1155,7 @@ const Profile = () => {
           </div>
         ) : (
           <div className="profile-info">
-            {user.username && <p><strong>Username:</strong> {user.username}</p>}
+            {isOwnProfile && user.username && <p><strong>Username:</strong> {user.username}</p>}
             {(user.gender || user.sex) && <p><strong>Gender:</strong> {user.gender || user.sex}</p>}
             {age && <p><strong>Age:</strong> {age} years</p>}
             {user.height && <p><strong>Height:</strong> {user.height}</p>}
@@ -1570,7 +1552,29 @@ const Profile = () => {
               marginTop: '16px'
             }}>
               {user.images.map((img, idx) => (
-                <div key={idx} style={{ aspectRatio: '1', maxWidth: '400px' }}>
+                <div
+                  key={`${img}-${idx}`}
+                  style={{
+                    position: 'relative',
+                    aspectRatio: '1',
+                    maxWidth: '400px',
+                    cursor: 'pointer'
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    setLightboxImage(img);
+                    setShowLightbox(true);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      setLightboxImage(img);
+                      setShowLightbox(true);
+                    }
+                  }}
+                  aria-label={`View photo ${idx + 1} in full size`}
+                >
                   <img
                     src={img}
                     alt={`${user.firstName}'s profile ${idx + 1}`}
@@ -1631,6 +1635,13 @@ const Profile = () => {
                   isShortlisted={isShortlisted}
                   onRequestAccess={handleRequestAccess}
                   onRenewAccess={handleRenewAccess}
+                  onClick={(imageData) => {
+                    const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
+                    if (imageUrl && typeof imageUrl === 'string') {
+                      setLightboxImage(imageUrl);
+                      setShowLightbox(true);
+                    }
+                  }}
                 />
               ))}
             </div>
@@ -1656,6 +1667,152 @@ const Profile = () => {
         <L3V3LMatchingTable matchingData={l3v3lMatchData} />
       )}
 
+      {/* Edit Profile Button - Show only for own profile */}
+      {isOwnProfile && (
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          padding: '30px 0',
+          marginTop: '20px',
+          borderTop: '1px solid var(--border-color)'
+        }}>
+          <button 
+            className="btn-edit-profile"
+            onClick={() => navigate('/edit-profile')}
+            style={{
+              padding: '12px 40px',
+              fontSize: '16px',
+              fontWeight: '600',
+              background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.3)';
+            }}
+          >
+            ✏️ Edit Profile
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons (only for others' profiles) - Moved to bottom */}
+      {!isOwnProfile && (
+        <div className="profile-action-buttons">
+          {/* Message Button */}
+          <button
+            className="btn-profile-action btn-action-message"
+            onClick={() => setShowMessageModal(true)}
+            title="Send Message"
+          >
+            <span className="action-icon">💬</span>
+            <span className="action-label">Message</span>
+          </button>
+
+          {/* Favorite Button */}
+          <button
+            className={`btn-profile-action btn-action-favorite ${isFavorited ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isFavorited) {
+                  await api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsFavorited(false);
+                  setSuccessMessage('✅ Removed from favorites');
+                } else {
+                  await api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsFavorited(true);
+                  setSuccessMessage('✅ Added to favorites');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update favorites');
+              }
+            }}
+            title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+          >
+            <span className="action-icon">⭐</span>
+            <span className="action-label">{isFavorited ? 'Favorited' : 'Favorite'}</span>
+          </button>
+
+          {/* Shortlist Button */}
+          <button
+            className={`btn-profile-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isShortlisted) {
+                  await api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsShortlisted(false);
+                  setSuccessMessage('✅ Removed from shortlist');
+                } else {
+                  await api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsShortlisted(true);
+                  setSuccessMessage('✅ Added to shortlist');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update shortlist');
+              }
+            }}
+            title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+          >
+            <span className="action-icon">✓</span>
+            <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
+          </button>
+
+          {/* PII Request Button */}
+          <button
+            className="btn-profile-action btn-action-pii"
+            onClick={async () => {
+              console.log('📋 Opening PII Request Modal - Refreshing access status...');
+              await checkPIIAccess();
+              setShowPIIRequestModal(true);
+            }}
+            disabled={hasAllAccess}
+            title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
+          >
+            <span className="action-icon">{hasAllAccess ? '✅' : '🔒'}</span>
+            <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
+          </button>
+
+          {/* Exclude Button */}
+          <button
+            className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isExcluded) {
+                  await api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsExcluded(false);
+                  setSuccessMessage('✅ Removed from exclusions');
+                } else {
+                  await api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsExcluded(true);
+                  setSuccessMessage('✅ Added to exclusions');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update exclusions');
+              }
+            }}
+            title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+          >
+            <span className="action-icon">✕</span>
+            <span className="action-label">{isExcluded ? 'Excluded' : 'Exclude'}</span>
+          </button>
+        </div>
+      )}
+
       {/* Image Access Request Modal */}
       {showImageAccessModal && (
         <ImageAccessRequestModal
@@ -1669,6 +1826,15 @@ const Profile = () => {
           imageCount={user.images?.length || 0}
           requestType={selectedImageForAccess?.hasAccess ? 'renewal' : 'initial'}
           onSubmit={handleSubmitAccessRequest}
+        />
+      )}
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <MessageModal
+          isOpen={showMessageModal}
+          onClose={() => setShowMessageModal(false)}
+          recipient={user}
         />
       )}
 
@@ -1690,6 +1856,69 @@ const Profile = () => {
           checkPIIAccess(); // Refresh access status after submit
         }}
       />
+
+      {/* Image Lightbox Modal */}
+      {showLightbox && lightboxImage && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer'
+          }}
+          onClick={() => {
+            setShowLightbox(false);
+            setLightboxImage(null);
+          }}
+        >
+          <button
+            style={{
+              position: 'absolute',
+              top: '20px',
+              right: '20px',
+              background: 'rgba(255, 255, 255, 0.9)',
+              border: 'none',
+              borderRadius: '50%',
+              width: '40px',
+              height: '40px',
+              fontSize: '24px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              zIndex: 10000
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowLightbox(false);
+              setLightboxImage(null);
+            }}
+            title="Close"
+          >
+            ✕
+          </button>
+          <img 
+            src={lightboxImage} 
+            alt="Enlarged view"
+            style={{
+              maxWidth: '90%',
+              maxHeight: '90%',
+              objectFit: 'contain',
+              borderRadius: '8px',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </div>
   );
 };

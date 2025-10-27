@@ -313,19 +313,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <span className="logo-text">L3V3L</span>
           </div>
           
-          {/* Stat Badges - Numbers only in colored circles */}
-          <div className="stat-badges-container">
-            <div className="stat-badge stat-badge-views" title="Profile Views">
-              {userStats.views}
-            </div>
-            <div className="stat-badge stat-badge-approvals" title="Verified">
-              {userStats.approvals}
-            </div>
-            <div className="stat-badge stat-badge-likes" title="Favorites">
-              {userStats.likes}
-            </div>
-          </div>
-          
           {onlineCount > 0 && (
             <div className="online-indicator" title={`${onlineCount} users online`}>
               <span className="online-dot">🟢</span>
@@ -334,12 +321,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           )}
         </div>
         <div className="top-bar-right">
-          {currentUser === 'admin' && (
-            <button className="btn-test-dashboard" onClick={handleTestDashboard}>
-              🧪 Test Dashboard
-            </button>
-          )}
-          
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
@@ -375,7 +356,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
           <button className="btn-logout" onClick={handleLogout} title="Logout">
-            🚪
+            🚪 Logout
           </button>
         </div>
         

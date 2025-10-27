@@ -394,7 +394,7 @@ const SearchResultCard = ({
             {getDisplayName(user)}
           </h6>
           <div className="card-title-badges">
-            {user.matchScore && (
+            {user.matchScore != null && (
               <span className="l3v3l-match-badge" title={user.compatibilityLevel}>
                 L3V3L MATCH • {Math.round(user.matchScore * 10) / 10}%
               </span>

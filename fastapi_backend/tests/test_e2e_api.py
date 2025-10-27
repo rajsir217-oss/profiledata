@@ -63,7 +63,13 @@ def test_full_user_lifecycle(test_client):
         "location": "Test City",
         "education": "Bachelor's Degree",
         "workingStatus": "Employed",
-        "citizenshipStatus": "Citizen"
+        "citizenshipStatus": "Citizen",
+        "state": "California",
+        "agreedToAge": "true",
+        "agreedToTerms": "true",
+        "agreedToPrivacy": "true",
+        "agreedToGuidelines": "true",
+        "agreedToDataProcessing": "true"
     }
 
     response = test_client.post("/api/users/register", data=user_data)

@@ -191,10 +191,12 @@ const EducationHistory = ({
           <div className="col-md-2 d-flex align-items-end">
             <button
               type="button"
-              className="btn btn-primary w-100"
+              className={`btn btn-primary w-100 ${editingIndex === null ? 'btn-add-entry' : ''}`}
               onClick={handleAddEducation}
+              // style={{ minWidth: '44px', whiteSpace: 'nowrap' }}
             >
-              {editingIndex !== null ? '✓ Update' : '+ Add'}
+              <span style={{ fontSize: '16px' }}>{editingIndex !== null ? '✓' : '+'}</span>
+              <span className="d-none d-lg-inline">{editingIndex !== null ? ' Update' : 'Add'}</span>
             </button>
           </div>
         </div>

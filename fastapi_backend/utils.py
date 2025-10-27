@@ -10,10 +10,23 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# Import storage service
+try:
+    from services.storage_service import get_storage_service
+    USE_STORAGE_SERVICE = True
+except ImportError:
+    USE_STORAGE_SERVICE = False
+    logger.warning("⚠️ Storage service not available, using legacy local storage")
+
 async def save_upload_file(upload_file: UploadFile) -> str:
-    """Save uploaded file and return the file path"""
+    """Save uploaded file and return the file path or URL"""
     try:
-        # Create uploads directory if it doesn't exist
+        # Use new storage service if available
+        if USE_STORAGE_SERVICE:
+            storage = get_storage_service()
+            return await storage.save_file(upload_file, folder="uploads")
+        
+        # Fallback to legacy local storage
         upload_dir = Path(settings.upload_dir)
         upload_dir.mkdir(exist_ok=True)
         
@@ -75,9 +88,10 @@ def get_full_image_url(image_path: str) -> str:
     """Convert relative image path to full URL"""
     if not image_path:
         return settings.backend_url
+    # If already a full URL (GCS), return as-is
     if image_path.startswith('http'):
         return image_path
-    # Ensure path starts with /
+    # For local paths, prepend backend URL
     if not image_path.startswith('/'):
         image_path = f"/{image_path}"
     return f"{settings.backend_url}{image_path}"

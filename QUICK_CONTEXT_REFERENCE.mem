@@ -5,6 +5,8 @@
 ---
 Read QUICK_CONTEXT_REFERENCE.md to refresh your context
 
+## for gcloud deployment, alway check apiConfig.js for backend url and frontend_url and set env variables properly
+
 ⚠️ **CRITICAL:** NO HARDCODED LOCALHOST/PORT REFERENCES ANYWHERE (python or js)  
 ⚠️ **CRITICAL:** Use config.py and apiConfig.js for ALL URLs  
 ⚠️ **CRITICAL:** See COMPREHENSIVE_CODE_AUDIT.md for refactoring priorities

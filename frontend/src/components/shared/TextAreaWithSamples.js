@@ -18,7 +18,8 @@ const TextAreaWithSamples = ({
   helperText = '',
   showSamples = true,
   error = '',
-  touched = false
+  touched = false,
+  className = ''
 }) => {
   const [sampleIndex, setSampleIndex] = useState(0);
   const showError = touched && error;
@@ -113,7 +114,7 @@ const TextAreaWithSamples = ({
 
       {/* TextArea */}
       <textarea
-        className={`form-control ${showError ? 'is-invalid' : ''}`}
+        className={`form-control ${className} ${showError ? 'is-invalid' : ''}`}
         name={name}
         value={value}
         onChange={onChange}

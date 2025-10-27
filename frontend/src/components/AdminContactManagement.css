@@ -5,6 +5,8 @@
   background: var(--background-color);
   padding: 16px 20px;
   position: relative;
+  width: 80%;
+  margin: 0 auto;
 }
 
 /* Status Bubble Notification */
@@ -647,6 +649,11 @@
 }
 
 @media (max-width: 768px) {
+  .admin-contact-page {
+    width: 95%;
+    padding: 12px 15px;
+  }
+
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
   }

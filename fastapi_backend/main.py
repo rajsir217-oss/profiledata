@@ -26,6 +26,7 @@ from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
 from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
+from services.storage_service import initialize_storage_service
 
 # Configure logging
 logging.basicConfig(
@@ -42,6 +43,20 @@ async def lifespan(app: FastAPI):
     upload_dir = Path(settings.upload_dir)
     upload_dir.mkdir(exist_ok=True)
     logger.info(f"✅ Upload directory ready: {upload_dir}")
+    
+    # Initialize storage service (GCS or local)
+    try:
+        initialize_storage_service(
+            use_gcs=settings.use_gcs,
+            bucket_name=settings.gcs_bucket_name
+        )
+        logger.info(
+            "✅ Storage service initialized (GCS: %s, bucket: %s)",
+            settings.use_gcs,
+            settings.gcs_bucket_name or "<local>"
+        )
+    except Exception as storage_error:
+        logger.error("❌ Failed to initialize storage service: %s", storage_error, exc_info=True)
     
     # Connect to MongoDB
     await connect_to_mongo()

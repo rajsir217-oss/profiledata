@@ -70,7 +70,7 @@ const L3V3LMatches = () => {
       const response = await api.get(`/l3v3l-matches/${currentUsername}`, {
         params: {
           limit: 50,
-          min_score: 50  // Minimum 50% compatibility
+          min_score: 0  // Show all matches (even with 0% score for testing)
         }
       });
 
@@ -358,56 +358,6 @@ const L3V3LMatches = () => {
             Discover connections based on Love, Loyalty, Laughter, Vulnerability, and Elevation
           </p>
         </div>
-        
-        <div className="search-header-actions">
-          <button
-            className="btn btn-outline-primary info-btn"
-            onClick={() => navigate('/l3v3l-info')}
-          >
-            <span className="btn-icon">ℹ️</span>
-            <span className="btn-text">What is L3V3L?</span>
-          </button>
-          
-          <div className="view-toggle-group">
-            <button
-              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
-            >
-              <span className="toggle-icon">⊞</span>
-              <span className="toggle-text">Cards</span>
-            </button>
-            <button
-              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
-              onClick={() => setViewMode('rows')}
-              title="Row View"
-            >
-              <span className="toggle-icon">☰</span>
-              <span className="toggle-text">Rows</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* L3V3L Info Banner */}
-      <div className="l3v3l-banner">
-        <div className="l3v3l-banner-content">
-          <h3>🎯 AI-Powered L3V3L Matching Algorithm</h3>
-          <p>
-            Our comprehensive AI algorithm analyzes <strong>8 key dimensions</strong> including gender compatibility,
-            L3V3L values, demographics, partner preferences, habits, career, physical attributes, and cultural factors.
-          </p>
-          <div className="l3v3l-pillars-mini">
-            <span className="pillar-badge">💕 Love</span>
-            <span className="pillar-badge">🤝 Loyalty</span>
-            <span className="pillar-badge">😄 Laughter</span>
-            <span className="pillar-badge">💭 Vulnerability</span>
-            <span className="pillar-badge">🚀 Elevation</span>
-          </div>
-          <div style={{marginTop: '10px', fontSize: '12px', opacity: 0.8}}>
-            ✨ Powered by Proprietary AI Matching Algorithm
-          </div>
-        </div>
       </div>
 
       {/* Match Score Filter Slider */}
@@ -417,6 +367,24 @@ const L3V3LMatches = () => {
             <span className="filter-icon">🎯</span>
             <span className="filter-text">Minimum L3V3L Match Score:</span>
             <span className="filter-value">{minMatchScore}%</span>
+            <div className="view-toggle-group">
+              <button
+                className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+                title="Card View"
+              >
+                <span className="toggle-icon">⊞</span>
+                <span className="toggle-text">Cards</span>
+              </button>
+              <button
+                className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+                onClick={() => setViewMode('rows')}
+                title="Row View"
+              >
+                <span className="toggle-icon">☰</span>
+                <span className="toggle-text">Rows</span>
+              </button>
+            </div>
           </label>
           <input
             id="matchScoreSlider"
@@ -437,23 +405,8 @@ const L3V3LMatches = () => {
           </div>
         </div>
         <div className="filter-info">
-          Showing {filteredMatches.length} of {matches.length} matches
+          {matches.length > 0 ? `Showing ${filteredMatches.length} of ${matches.length} matches` : 'Adjust the minimum match score to see more results'}
         </div>
-      </div>
-
-      {/* Advanced Search Promotion Banner */}
-      <div className="cross-link-banner search-promo">
-        <div className="banner-icon">🔍</div>
-        <div className="banner-content">
-          <h5>🎯 Looking for Specific Criteria?</h5>
-          <p>Use our advanced search with 15+ filters to find exactly what you're looking for!</p>
-        </div>
-        <button 
-          className="btn btn-primary banner-cta"
-          onClick={() => navigate('/search')}
-        >
-          Try Advanced Search →
-        </button>
       </div>
 
       {/* Loading State */}
@@ -529,6 +482,42 @@ const L3V3LMatches = () => {
           </div>
         </>
       )}
+
+      {/* L3V3L Info Banner - Below results */}
+      <div className="l3v3l-banner">
+        <div className="l3v3l-banner-content">
+          <h3>🎯 AI-Powered L3V3L Matching Algorithm</h3>
+          <p>
+            Our comprehensive AI algorithm analyzes <strong>8 key dimensions</strong> including gender compatibility,
+            L3V3L values, demographics, partner preferences, habits, career, physical attributes, and cultural factors.
+          </p>
+          <div className="l3v3l-pillars-mini">
+            <span className="pillar-badge">💕 Love</span>
+            <span className="pillar-badge">🤝 Loyalty</span>
+            <span className="pillar-badge">😄 Laughter</span>
+            <span className="pillar-badge">💭 Vulnerability</span>
+            <span className="pillar-badge">🚀 Elevation</span>
+          </div>
+          <div style={{marginTop: '10px', fontSize: '12px', opacity: 0.8}}>
+            ✨ Powered by Proprietary AI Matching Algorithm
+          </div>
+        </div>
+      </div>
+
+      {/* Advanced Search Promotion Banner - Below results */}
+      <div className="cross-link-banner search-promo">
+        <div className="banner-icon">🔍</div>
+        <div className="banner-content">
+          <h5>🎯 Looking for Specific Criteria?</h5>
+          <p>Use our advanced search with 15+ filters to find exactly what you're looking for!</p>
+        </div>
+        <button
+          className="btn btn-primary banner-cta"
+          onClick={() => navigate('/search')}
+        >
+          Try Advanced Search →
+        </button>
+      </div>
 
       {/* Modals */}
       {showMessageModal && selectedUser && (

@@ -1,0 +1,66 @@
+/* Autocomplete Component Styles */
+.autocomplete-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.autocomplete-input {
+  width: 100%;
+}
+
+.autocomplete-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--card-background, white);
+  border: 1px solid var(--border-color, #ddd);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  max-height: 250px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.autocomplete-suggestion-item {
+  padding: 10px 15px;
+  cursor: pointer;
+  color: var(--text-color, #333);
+  font-size: 14px;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+.autocomplete-suggestion-item:last-child {
+  border-bottom: none;
+  border-radius: 0 0 8px 8px;
+}
+
+.autocomplete-suggestion-item:hover,
+.autocomplete-suggestion-item.active {
+  background-color: var(--primary-color-light, rgba(102, 126, 234, 0.1));
+  color: var(--primary-color, #667eea);
+}
+
+/* Scrollbar styling for suggestions dropdown */
+.autocomplete-suggestions::-webkit-scrollbar {
+  width: 8px;
+}
+
+.autocomplete-suggestions::-webkit-scrollbar-track {
+  background: var(--surface-color, #f1f1f1);
+  border-radius: 0 0 8px 0;
+}
+
+.autocomplete-suggestions::-webkit-scrollbar-thumb {
+  background: var(--primary-color, #667eea);
+  border-radius: 4px;
+}
+
+.autocomplete-suggestions::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color-dark, #5568d3);
+}
