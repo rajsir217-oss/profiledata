@@ -46,6 +46,8 @@ import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
 import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
+import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
+import { toast } from 'react-toastify';
 
 // Theme configuration
 const themes = {
@@ -107,6 +109,53 @@ function App() {
     
     return () => {
       window.removeEventListener('userLoggedIn', handleUserLogin);
+    };
+  }, []);
+
+  // Initialize push notifications when user is logged in
+  useEffect(() => {
+    const initializePushNotifications = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        // User is logged in, request notification permission
+        try {
+          await requestNotificationPermission();
+        } catch (error) {
+          console.error('Failed to initialize push notifications:', error);
+        }
+        
+        // Listen for foreground messages
+        const unsubscribe = onMessageListener((notification) => {
+          // Show toast notification when message received in foreground
+          toast.info(
+            <div>
+              <strong>{notification.title}</strong>
+              <p>{notification.body}</p>
+            </div>,
+            {
+              autoClose: 5000,
+              closeOnClick: true,
+              pauseOnHover: true
+            }
+          );
+        });
+        
+        return unsubscribe;
+      }
+    };
+    
+    initializePushNotifications();
+    
+    // Re-initialize on login
+    const handleLogin = () => {
+      initializePushNotifications();
+    };
+    
+    window.addEventListener('userLoggedIn', handleLogin);
+    
+    return () => {
+      window.removeEventListener('userLoggedIn', handleLogin);
     };
   }, []);
 
