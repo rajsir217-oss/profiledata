@@ -35,21 +35,34 @@ const ENVIRONMENT_URLS = {
 
 // Detect current environment
 export const getCurrentEnvironment = () => {
-  // Priority 1: Runtime config (highest priority)
+  const hostname = window.location.hostname;
+  
+  // Priority 1: FORCE localhost detection (highest priority for local development)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 FORCED LOCAL ENVIRONMENT - localhost detected');
+    return 'local';
+  }
+  
+  console.log('🔍 ENVIRONMENT DEBUG:', {
+    hostname: hostname,
+    REACT_APP_ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT,
+    RUNTIME_CONFIG: window.RUNTIME_CONFIG?.ENVIRONMENT
+  });
+  
+  // Priority 2: Runtime config override (for manual override)
   if (window.RUNTIME_CONFIG?.ENVIRONMENT) {
+    console.log('✅ Using runtime config:', window.RUNTIME_CONFIG.ENVIRONMENT);
     return window.RUNTIME_CONFIG.ENVIRONMENT;
   }
   
-  // Priority 2: Build-time environment variable
+  // Priority 3: Build-time environment variable
   if (process.env.REACT_APP_ENVIRONMENT) {
+    console.log('✅ Using REACT_APP_ENVIRONMENT:', process.env.REACT_APP_ENVIRONMENT);
     return process.env.REACT_APP_ENVIRONMENT;
   }
   
-  // Priority 3: Detect from hostname
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'local';
-  } else if (hostname.includes('dev')) {
+  // Priority 4: Detect from hostname patterns
+  if (hostname.includes('dev')) {
     return 'dev';
   } else if (hostname.includes('stage') || hostname.includes('staging')) {
     return 'stage';
@@ -57,7 +70,8 @@ export const getCurrentEnvironment = () => {
     return 'docker';
   }
   
-  // Priority 4: Production (pod) as final fallback
+  // Priority 5: Production (pod) as final fallback
+  console.warn('⚠️ Defaulting to pod environment!');
   return 'pod';
 };
 
@@ -162,7 +176,7 @@ export const API_ENDPOINTS = {
   IMAGE_ACCESS: `${getBackendUrl()}/api/users/image-access`,
 };
 
-export default {
+const apiConfig = {
   getBackendUrl,
   getApiUrl,
   buildApiUrl,
@@ -170,3 +184,5 @@ export default {
   BACKEND_URL,
   API_ENDPOINTS,
 };
+
+export default apiConfig;
