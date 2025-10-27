@@ -1044,6 +1044,16 @@
   font-size: 0.7em;
 }
 
+/* Action Buttons - Above Tabs */
+.search-action-buttons {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0 12px;
+  margin-bottom: 8px;
+}
+
 /* Search Tabs - Traditional Tab Design */
 .search-tabs {
   display: flex;
