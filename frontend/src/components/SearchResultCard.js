@@ -239,68 +239,72 @@ const SearchResultCard = ({
     return (
       <div className="result-row-compact">
         <div className="row-compact-content">
-          {/* Column 1: Image */}
-          <div className="row-image-compact">
-            {renderProfileImage()}
-          </div>
+          {/* Top section with image and info */}
+          <div className="row-compact-top">
+            {/* Column 1: Image */}
+            <div className="row-image-compact">
+              {renderProfileImage()}
+            </div>
 
-          {/* Column 2: Basic Info */}
-          <div className="row-info-column-1">
-            <h6 className="row-name">
-              {getDisplayName(user)}
-              {displayAge && displayAge !== 'N/A' && <span className="age-badge-inline">{displayAge}y</span>}
-            </h6>
-            <p className="row-detail"><strong>📍</strong> {user.location}</p>
-            <p className="row-detail"><strong>📏</strong> {user.height}</p>
-            <div className="row-badges">
-              {user.religion && <span className="badge bg-info badge-sm">{user.religion}</span>}
-              {user.eatingPreference && <span className="badge bg-success badge-sm">{user.eatingPreference}</span>}
+            {/* Column 2: Basic Info */}
+            <div className="row-info-column-1">
+              <h6 className="row-name">
+                {getDisplayName(user)}
+                {displayAge && displayAge !== 'N/A' && <span className="age-badge-inline">{displayAge}y</span>}
+              </h6>
+              <p className="row-detail"><strong>📍</strong> {user.location}</p>
+              <p className="row-detail"><strong>📏</strong> {user.height}</p>
+              <div className="row-badges">
+                {user.religion && <span className="badge bg-info badge-sm">{user.religion}</span>}
+                {user.eatingPreference && <span className="badge bg-success badge-sm">{user.eatingPreference}</span>}
+              </div>
+            </div>
+
+            {/* Column 3: Education & Work */}
+            <div className="row-info-column-2">
+              <p className="row-detail"><strong>🎓</strong> {user.education}</p>
+              <p className="row-detail"><strong>💼</strong> {user.occupation}</p>
+              {user.bodyType && <span className="badge bg-warning badge-sm">{user.bodyType}</span>}
+            </div>
+
+            {/* Column 4: Contact (PII) */}
+            <div className="row-info-column-3">
+              <p className="row-detail-pii">
+                <strong>📧</strong>
+                {hasPiiAccess ? (
+                  <span className="pii-data-sm">{user.contactEmail}</span>
+                ) : (
+                  <>
+                    <span className="pii-masked-sm">[Locked]</span>
+                    {onPIIRequest && (
+                      <button
+                        className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPIIRequest(user);
+                        }}
+                        title={piiStatus.text}
+                      >
+                        {piiStatus.text}
+                      </button>
+                    )}
+                  </>
+                )}
+              </p>
+              <p className="row-detail-pii">
+                <strong>📱</strong>
+                {hasPiiAccess ? (
+                  <span className="pii-data-sm">{user.contactNumber}</span>
+                ) : (
+                  <span className="pii-masked-sm">[Locked]</span>
+                )}
+              </p>
             </div>
           </div>
 
-          {/* Column 3: Education & Work */}
-          <div className="row-info-column-2">
-            <p className="row-detail"><strong>🎓</strong> {user.education}</p>
-            <p className="row-detail"><strong>💼</strong> {user.occupation}</p>
-            {user.bodyType && <span className="badge bg-warning badge-sm">{user.bodyType}</span>}
-          </div>
-
-          {/* Column 4: Contact (PII) */}
-          <div className="row-info-column-3">
-            <p className="row-detail-pii">
-              <strong>📧</strong>
-              {hasPiiAccess ? (
-                <span className="pii-data-sm">{user.contactEmail}</span>
-              ) : (
-                <>
-                  <span className="pii-masked-sm">[Locked]</span>
-                  {onPIIRequest && (
-                    <button
-                      className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPIIRequest(user);
-                      }}
-                      title={piiStatus.text}
-                    >
-                      {piiStatus.text}
-                    </button>
-                  )}
-                </>
-              )}
-            </p>
-            <p className="row-detail-pii">
-              <strong>📱</strong>
-              {hasPiiAccess ? (
-                <span className="pii-data-sm">{user.contactNumber}</span>
-              ) : (
-                <span className="pii-masked-sm">[Locked]</span>
-              )}
-            </p>
-          </div>
-
-          {/* Column 5: Actions */}
-          <div className="row-actions-compact">
+          {/* Bottom section with action buttons */}
+          <div className="row-compact-bottom">
+            <div className="row-actions-compact">
             {showFavoriteButton && onFavorite && (
               <button
                 className={`btn btn-sm ${isFavorited ? 'btn-warning' : 'btn-outline-warning'} action-btn`}
@@ -373,6 +377,7 @@ const SearchResultCard = ({
             >
               👁️
             </button>
+            </div>
           </div>
         </div>
       </div>

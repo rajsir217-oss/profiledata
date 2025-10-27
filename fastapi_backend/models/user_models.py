@@ -1,8 +1,9 @@
-# fastapi_backend/models.py
+# fastapi_backend/models/user_models.py
 from pydantic import BaseModel, EmailStr, Field, validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from bson import ObjectId
+from enum import Enum
 
 class PyObjectId(ObjectId):
     @classmethod
@@ -20,14 +21,141 @@ class PyObjectId(ObjectId):
     def __get_pydantic_json_schema__(cls, schema, handler):
         return {"type": "string"}
 
+# ===== ENUMS =====
+
+class ProfileCreatedBy(str, Enum):
+    """Who created this profile"""
+    ME = "me"
+    PARENT = "parent"
+    OTHER = "other"
+
+class AccountStatus(str, Enum):
+    """Account activation status"""
+    PENDING_EMAIL_VERIFICATION = "pending_email_verification"
+    PENDING_ADMIN_APPROVAL = "pending_admin_approval"
+    ACTIVE = "active"
+    SUSPENDED = "suspended"
+    DEACTIVATED = "deactivated"
+
+class AdminApprovalStatus(str, Enum):
+    """Admin approval status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+class PremiumStatus(str, Enum):
+    """Premium subscription tier"""
+    FREE = "free"
+    PREMIUM = "premium"
+    ELITE = "elite"
+    VIP = "vip"
+
+class BackgroundCheckStatus(str, Enum):
+    """Background check status"""
+    NONE = "none"
+    PENDING = "pending"
+    PASSED = "passed"
+    FAILED = "failed"
+
+class ModerationStatus(str, Enum):
+    """Content moderation status"""
+    PENDING = "pending"
+    APPROVED = "approved"
+    FLAGGED = "flagged"
+    SUSPENDED = "suspended"
+
+# ===== STRUCTURED SUB-MODELS =====
+
+class EducationEntry(BaseModel):
+    """Structured education history entry"""
+    level: str = Field(..., description="Education level (e.g., Bachelor's, Master's)")
+    degree: Optional[str] = Field(None, description="Degree name (e.g., BS, MS, MBA)")
+    institution: str = Field(..., description="Institution name")
+    fieldOfStudy: Optional[str] = Field(None, description="Field of study")
+    startYear: Optional[int] = Field(None, ge=1950, le=2030)
+    endYear: Optional[int] = Field(None, ge=1950, le=2030)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "level": "Bachelor's",
+                "degree": "BS",
+                "institution": "Stanford University",
+                "fieldOfStudy": "Computer Science",
+                "startYear": 2015,
+                "endYear": 2019
+            }
+        }
+
+class WorkEntry(BaseModel):
+    """Structured work experience entry"""
+    status: str = Field(..., description="Status: current, past")
+    company: Optional[str] = Field(None, description="Company name")
+    position: Optional[str] = Field(None, description="Job title/position")
+    description: Optional[str] = Field(None, description="Job description")
+    location: Optional[str] = Field(None, description="Work location")
+    startDate: Optional[str] = Field(None, description="Start date")
+    endDate: Optional[str] = Field(None, description="End date (null if current)")
+    isCurrent: bool = Field(default=False, description="Is this current job?")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "current",
+                "company": "Google",
+                "position": "Software Engineer",
+                "description": "Full-stack development",
+                "location": "Mountain View, CA",
+                "startDate": "2020-01",
+                "isCurrent": True
+            }
+        }
+
+class PartnerCriteria(BaseModel):
+    """Structured partner matching criteria"""
+    ageRange: Optional[Dict[str, int]] = Field(None, description="Min/max age: {'min': 25, 'max': 35}")
+    heightRange: Optional[Dict[str, str]] = Field(None, description="Min/max height: {'min': '5\'4\"', 'max': '6\'0\"'}")
+    educationLevel: Optional[List[str]] = Field(None, description="Accepted education levels")
+    profession: Optional[List[str]] = Field(None, description="Preferred professions")
+    languages: Optional[List[str]] = Field(None, description="Languages they should speak")
+    religion: Optional[List[str]] = Field(None, description="Accepted religions")
+    caste: Optional[str] = Field(None, description="Caste preference")
+    location: Optional[List[str]] = Field(None, description="Preferred locations")
+    eatingPreference: Optional[List[str]] = Field(None, description="Eating preferences")
+    familyType: Optional[List[str]] = Field(None, description="Family type preferences")
+    familyValues: Optional[List[str]] = Field(None, description="Family values")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "ageRange": {"min": 25, "max": 35},
+                "heightRange": {"min": "5'4\"", "max": "6'0\""},
+                "educationLevel": ["Bachelor's", "Master's"],
+                "languages": ["English", "Hindi"],
+                "religion": ["Any Religion"]
+            }
+        }
+
 class UserBase(BaseModel):
     # Basic Information
     username: str = Field(..., min_length=3, max_length=50)
     profileId: Optional[str] = Field(None, min_length=8, max_length=8)  # 8-char unique alphanumeric ID
     firstName: Optional[str] = None
     lastName: Optional[str] = None
-    contactNumber: Optional[str] = None
-    contactEmail: Optional[EmailStr] = None
+    
+    # Contact Information (with backward compatibility aliases)
+    contactNumber: Optional[str] = Field(None, description="Phone number")
+    phone: Optional[str] = Field(None, description="Alias for contactNumber")
+    contactEmail: Optional[EmailStr] = Field(None, description="Email address")
+    email: Optional[EmailStr] = Field(None, description="Alias for contactEmail")
+    
+    # Profile Creation Context
+    profileCreatedBy: str = Field(
+        default="me", 
+        description="Who created this profile: me, parent, other"
+    )
+    
+    # Personal Information
     dateOfBirth: Optional[str] = None  # Renamed from dob
     gender: Optional[str] = None  # Renamed from sex
     height: Optional[str] = None  # Format: "5'8\"" or "5 ft 8 in"
@@ -54,10 +182,16 @@ class UserBase(BaseModel):
     familyValues: Optional[str] = None
     
     # Educational Information
-    educationHistory: List[dict] = []  # New structured education array
+    educationHistory: List[EducationEntry] = Field(
+        default_factory=list,
+        description="Structured education history"
+    )
     
     # Professional & Work Related Information
-    workExperience: List[dict] = []  # New work experience array
+    workExperience: List[WorkEntry] = Field(
+        default_factory=list,
+        description="Structured work experience"
+    )
     linkedinUrl: Optional[str] = None  # Private PII field
     # Note: workingStatus is automatically derived from workExperience
     
@@ -67,21 +201,10 @@ class UserBase(BaseModel):
     partnerPreference: Optional[str] = None  # Free-text partner description
     
     # Partner Matching Criteria (Structured)
-    partnerCriteria: Optional[dict] = None  # Structured matching preferences
-    # Expected structure:
-    # {
-    #   "ageRange": {"min": 25, "max": 35},
-    #   "heightRange": {"min": "5'4\"", "max": "6'0\""},
-    #   "educationLevel": ["Bachelor's", "Master's", "PhD"],
-    #   "profession": ["Engineer", "Doctor", "Business"],
-    #   "languages": ["English", "Hindi"],
-    #   "religion": ["Hindu", "Christian"],
-    #   "caste": "Any",
-    #   "location": ["Bangalore", "Mumbai", "California"],
-    #   "eatingPreference": ["Vegetarian", "Eggetarian"],
-    #   "familyType": ["Nuclear Family", "Joint Family"],
-    #   "familyValues": ["Traditional", "Moderate", "Liberal"]
-    # }
+    partnerCriteria: Optional[PartnerCriteria] = Field(
+        None,
+        description="Structured partner matching preferences"
+    )
     
     # Images and Theme
     images: List[str] = []
@@ -101,7 +224,10 @@ class UserBase(BaseModel):
     
     # ===== PHASE 1: ESSENTIAL META FIELDS =====
     # Account Activation & Onboarding
-    accountStatus: str = "pending_email_verification"  # "pending_email_verification", "pending_admin_approval", "active", "suspended", "deactivated"
+    accountStatus: str = Field(
+        default=AccountStatus.PENDING_EMAIL_VERIFICATION.value,
+        description="Account activation status"
+    )
     emailVerificationToken: Optional[str] = None  # Unique token for email verification
     emailVerificationTokenExpiry: Optional[datetime] = None  # Token expires after 24 hours
     emailVerificationSentAt: Optional[datetime] = None
@@ -119,14 +245,20 @@ class UserBase(BaseModel):
     phoneVerifiedAt: Optional[datetime] = None
     
     # Admin Approval
-    adminApprovalStatus: str = "pending"  # "pending", "approved", "rejected"
+    adminApprovalStatus: str = Field(
+        default=AdminApprovalStatus.PENDING.value,
+        description="Admin approval status"
+    )
     adminApprovedBy: Optional[str] = None  # Admin username who approved
     adminApprovedAt: Optional[datetime] = None
     adminRejectionReason: Optional[str] = None
     
     # Premium Status
     isPremium: bool = False
-    premiumStatus: str = "free"  # "free", "premium", "elite", "vip"
+    premiumStatus: str = Field(
+        default=PremiumStatus.FREE.value,
+        description="Premium subscription tier"
+    )
     premiumActivatedAt: Optional[datetime] = None
     premiumExpiresAt: Optional[datetime] = None
     
@@ -145,14 +277,20 @@ class UserBase(BaseModel):
     educationVerificationSource: Optional[str] = None
     
     # Background & Safety
-    backgroundCheckStatus: str = "none"  # "none", "pending", "passed", "failed"
+    backgroundCheckStatus: str = Field(
+        default=BackgroundCheckStatus.NONE.value,
+        description="Background check status"
+    )
     backgroundCheckCompletedAt: Optional[datetime] = None
     
     # Profile Quality Score
     profileQualityScore: int = 0  # 0-100
     
     # Moderation
-    moderationStatus: str = "approved"  # "pending", "approved", "flagged", "suspended"
+    moderationStatus: str = Field(
+        default=ModerationStatus.APPROVED.value,
+        description="Content moderation status"
+    )
     moderatedBy: Optional[str] = None
     moderatedAt: Optional[datetime] = None
     
@@ -181,10 +319,41 @@ class UserBase(BaseModel):
     metaFieldsVisibility: dict = {}  # Controls which meta fields are visible {"idVerified": true, "isPremium": false}
     metaFieldsVisibleToPublic: bool = False  # Default hidden, admin can enable
 
+    @validator('phone', always=True)
+    def sync_phone_with_contact_number(cls, v, values):
+        """Sync phone and contactNumber fields for backward compatibility"""
+        if v:
+            values['contactNumber'] = v
+        return v or values.get('contactNumber')
+    
+    @validator('email', always=True)
+    def sync_email_with_contact_email(cls, v, values):
+        """Sync email and contactEmail fields for backward compatibility"""
+        if v:
+            values['contactEmail'] = v
+        return v or values.get('contactEmail')
+    
     @validator('username')
     def username_alphanumeric(cls, v):
         if not v.replace('_', '').isalnum():
             raise ValueError('Username must be alphanumeric with optional underscores')
+        return v
+    
+    @validator('profileCreatedBy')
+    def validate_profile_created_by(cls, v):
+        valid_values = [e.value for e in ProfileCreatedBy]
+        if v not in valid_values:
+            raise ValueError(f'profileCreatedBy must be one of: {", ".join(valid_values)}')
+        return v
+    
+    @validator('contactNumber')
+    def validate_phone_number(cls, v):
+        if v:
+            # Remove all non-digit characters
+            digits = ''.join(filter(str.isdigit, v))
+            # Accept 10-digit US numbers or 10+ digit international
+            if len(digits) < 10 or len(digits) > 15:
+                raise ValueError('Phone number must be 10-15 digits')
         return v
 
     @validator('gender')
@@ -211,6 +380,21 @@ class UserBase(BaseModel):
             ]
             if not any(re.match(p, v.strip(), re.IGNORECASE) for p in patterns):
                 raise ValueError('Height must be in format: 5\'8", 5 ft 8 in, 170cm, or similar')
+            
+            # Validate reasonable height range (4'0" to 7'6" or 120cm to 230cm)
+            if "'" in v or "ft" in v:
+                # Extract feet and inches
+                feet_match = re.search(r'(\d+)', v)
+                if feet_match:
+                    feet = int(feet_match.group(1))
+                    if feet < 4 or feet > 7:
+                        raise ValueError('Height must be between 4\'0" and 7\'6"')
+            elif "cm" in v.lower():
+                cm_match = re.search(r'(\d+)', v)
+                if cm_match:
+                    cm = int(cm_match.group(1))
+                    if cm < 120 or cm > 230:
+                        raise ValueError('Height must be between 120cm and 230cm')
         return v
     
     @validator('religion')
@@ -248,22 +432,39 @@ class UserBase(BaseModel):
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v
     
+    @validator('accountStatus')
+    def validate_account_status(cls, v):
+        valid_values = [e.value for e in AccountStatus]
+        if v not in valid_values:
+            raise ValueError(f'accountStatus must be one of: {", ".join(valid_values)}')
+        return v
+    
+    @validator('adminApprovalStatus')
+    def validate_admin_approval_status(cls, v):
+        valid_values = [e.value for e in AdminApprovalStatus]
+        if v not in valid_values:
+            raise ValueError(f'adminApprovalStatus must be one of: {", ".join(valid_values)}')
+        return v
+    
     @validator('premiumStatus')
     def validate_premium_status(cls, v):
-        if v and v not in ['free', 'premium', 'elite', 'vip']:
-            raise ValueError('Premium status must be: free, premium, elite, or vip')
+        valid_values = [e.value for e in PremiumStatus]
+        if v not in valid_values:
+            raise ValueError(f'premiumStatus must be one of: {", ".join(valid_values)}')
         return v
     
     @validator('backgroundCheckStatus')
     def validate_background_check(cls, v):
-        if v and v not in ['none', 'pending', 'passed', 'failed']:
-            raise ValueError('Background check status must be: none, pending, passed, or failed')
+        valid_values = [e.value for e in BackgroundCheckStatus]
+        if v not in valid_values:
+            raise ValueError(f'backgroundCheckStatus must be one of: {", ".join(valid_values)}')
         return v
     
     @validator('moderationStatus')
     def validate_moderation_status(cls, v):
-        if v and v not in ['pending', 'approved', 'flagged', 'suspended']:
-            raise ValueError('Moderation status must be: pending, approved, flagged, or suspended')
+        valid_values = [e.value for e in ModerationStatus]
+        if v not in valid_values:
+            raise ValueError(f'moderationStatus must be one of: {", ".join(valid_values)}')
         return v
     
     @validator('trustScore', 'profileCompleteness', 'profileQualityScore')

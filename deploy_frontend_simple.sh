@@ -35,6 +35,9 @@ fi
 echo "✅ Backend URL: $BACKEND_URL"
 echo ""
 
+# Get frontend URL (placeholder for now, will be updated after deployment)
+FRONTEND_URL="https://matrimonial-frontend-458052696267.us-central1.run.app"
+
 # Update config.js with backend URL
 echo "🔧 Updating config.js..."
 cat > ./frontend/public/config.js << EOF
@@ -47,6 +50,7 @@ window.RUNTIME_CONFIG = {
   SOCKET_URL: '$BACKEND_URL',
   API_URL: '$BACKEND_URL/api/users',
   WS_URL: 'wss://${BACKEND_URL#https://}',
+  FRONTEND_URL: '$FRONTEND_URL',
   ENABLE_WEBSOCKETS: true,
   ENABLE_NOTIFICATIONS: true,
   DEBUG: false
@@ -80,7 +84,27 @@ gcloud run deploy $SERVICE_NAME \
 echo ""
 echo "✅ Deployment complete!"
 echo ""
-echo "Service URL:"
-gcloud run services describe $SERVICE_NAME \
+
+# Get the actual deployed frontend URL
+DEPLOYED_FRONTEND_URL=$(gcloud run services describe $SERVICE_NAME \
   --region $REGION \
-  --format "value(status.url)"
+  --format "value(status.url)")
+
+echo "Frontend URL: $DEPLOYED_FRONTEND_URL"
+echo ""
+
+# Update backend with the actual frontend URL
+echo "🔧 Updating backend with frontend URL..."
+gcloud run services update matrimonial-backend \
+  --region $REGION \
+  --update-env-vars "FRONTEND_URL=$DEPLOYED_FRONTEND_URL,APP_URL=$DEPLOYED_FRONTEND_URL" \
+  --quiet
+
+echo "✅ Backend updated with frontend URL"
+echo ""
+echo "🎉 Deployment Summary:"
+echo "   Backend:  $BACKEND_URL"
+echo "   Frontend: $DEPLOYED_FRONTEND_URL"
+echo ""
+echo "💡 Note: You may need to update config.js with the actual frontend URL"
+echo "   Run './switch-environment.sh local' when done to restore local config"

@@ -84,6 +84,7 @@ const Register = () => {
     gender: "",  // Renamed from sex
     heightFeet: "",  // Feet: 4-7
     heightInches: "",  // Inches: 0-11
+    profileCreatedBy: "me",  // Who created this profile
     // Preferences & Cultural Information
     religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
@@ -925,6 +926,29 @@ const Register = () => {
             />
           </div>
         </div>
+
+        {/* Profile Created By Field */}
+        <div className="mb-3">
+          <label htmlFor="profileCreatedBy" className="form-label">
+            Profile Created By <span className="text-danger">*</span>
+          </label>
+          <select
+            id="profileCreatedBy"
+            name="profileCreatedBy"
+            value={formData.profileCreatedBy}
+            onChange={handleChange}
+            className="form-control"
+            required
+          >
+            <option value="me">Myself - I'm creating my own profile</option>
+            <option value="parent">Parent/Guardian - Creating for my child</option>
+            <option value="other">Other - Sibling/Friend/Relative</option>
+          </select>
+          <small className="form-text text-muted">
+            Who is creating this matrimonial profile?
+          </small>
+        </div>
+
         {/* Custom row for contactNumber and contactEmail */}
         <div className="row mb-3">
           <div className="col-md-6">

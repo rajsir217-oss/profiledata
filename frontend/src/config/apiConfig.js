@@ -27,39 +27,42 @@ const ENVIRONMENT_URLS = {
     ws: process.env.REACT_APP_STAGE_WS_URL || 'wss://stage-api.yourdomain.com'
   },
   pod: {
-    backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app',
-    api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-458052696267.us-central1.run.app/api/users',
-    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-458052696267.us-central1.run.app'
+    backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
+    api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users',
+    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
   }
 };
 
 // Detect current environment
 export const getCurrentEnvironment = () => {
-  // FORCE LOCAL FOR DEVELOPMENT
+  const hostname = window.location.hostname;
+  
+  // Priority 1: FORCE localhost detection (highest priority for local development)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 FORCED LOCAL ENVIRONMENT - localhost detected');
+    return 'local';
+  }
+  
   console.log('🔍 ENVIRONMENT DEBUG:', {
-    hostname: window.location.hostname,
+    hostname: hostname,
     REACT_APP_ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT,
     RUNTIME_CONFIG: window.RUNTIME_CONFIG?.ENVIRONMENT
   });
   
-  // Priority 1: Runtime config (highest priority)
+  // Priority 2: Runtime config override (for manual override)
   if (window.RUNTIME_CONFIG?.ENVIRONMENT) {
     console.log('✅ Using runtime config:', window.RUNTIME_CONFIG.ENVIRONMENT);
     return window.RUNTIME_CONFIG.ENVIRONMENT;
   }
   
-  // Priority 2: Build-time environment variable
+  // Priority 3: Build-time environment variable
   if (process.env.REACT_APP_ENVIRONMENT) {
     console.log('✅ Using REACT_APP_ENVIRONMENT:', process.env.REACT_APP_ENVIRONMENT);
     return process.env.REACT_APP_ENVIRONMENT;
   }
   
-  // Priority 3: Detect from hostname
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('✅ Detected localhost, using local environment');
-    return 'local';
-  } else if (hostname.includes('dev')) {
+  // Priority 4: Detect from hostname patterns
+  if (hostname.includes('dev')) {
     return 'dev';
   } else if (hostname.includes('stage') || hostname.includes('staging')) {
     return 'stage';
@@ -67,7 +70,7 @@ export const getCurrentEnvironment = () => {
     return 'docker';
   }
   
-  // Priority 4: Production (pod) as final fallback
+  // Priority 5: Production (pod) as final fallback
   console.warn('⚠️ Defaulting to pod environment!');
   return 'pod';
 };
@@ -80,13 +83,6 @@ const getEnvironmentConfig = () => {
 
 // Get base backend URL
 export const getBackendUrl = () => {
-  // TEMPORARY HARDCODE FOR LOCAL DEVELOPMENT
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🔧 FORCED LOCAL BACKEND: http://localhost:8000');
-    return 'http://localhost:8000';
-  }
-  
   // Priority 1: Runtime config override (for manual override)
   if (window.RUNTIME_CONFIG?.SOCKET_URL) {
     return window.RUNTIME_CONFIG.SOCKET_URL;
@@ -103,13 +99,6 @@ export const getBackendUrl = () => {
 
 // Get API base URL (for /api/users endpoints)
 export const getApiUrl = () => {
-  // TEMPORARY HARDCODE FOR LOCAL DEVELOPMENT
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🔧 FORCED LOCAL API: http://localhost:8000/api/users');
-    return 'http://localhost:8000/api/users';
-  }
-  
   // Priority 1: Runtime config override
   if (window.RUNTIME_CONFIG?.API_URL) {
     return window.RUNTIME_CONFIG.API_URL;

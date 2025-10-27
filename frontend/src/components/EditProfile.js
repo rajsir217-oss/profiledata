@@ -85,6 +85,7 @@ const EditProfile = () => {
     height: '',
     heightFeet: '',
     heightInches: '',
+    profileCreatedBy: 'me',  // Who created this profile
     // Regional/Cultural
     religion: '',
     languagesSpoken: [],
@@ -230,6 +231,7 @@ const EditProfile = () => {
           height: userData.height || '',
           heightFeet: heightFeet,
           heightInches: heightInches,
+          profileCreatedBy: userData.profileCreatedBy || 'me',  // Load existing value
           // Regional/Cultural
           religion: userData.religion || '',
           languagesSpoken: userData.languagesSpoken || [],
@@ -567,6 +569,28 @@ const EditProfile = () => {
                 name="sex"
               />
             </div>
+          </div>
+
+          {/* Profile Created By Field */}
+          <div className="mb-3">
+            <label htmlFor="profileCreatedBy" className="form-label">
+              Profile Created By <span className="text-danger">*</span>
+            </label>
+            <select
+              id="profileCreatedBy"
+              name="profileCreatedBy"
+              value={formData.profileCreatedBy}
+              onChange={handleChange}
+              className="form-control"
+              required
+            >
+              <option value="me">Myself</option>
+              <option value="parent">Parent/Guardian</option>
+              <option value="other">Other</option>
+            </select>
+            <small className="form-text text-muted">
+              Who created this profile?
+            </small>
           </div>
 
           {/* Section 3: Contact Fields (MOVED FROM TOP) */}
