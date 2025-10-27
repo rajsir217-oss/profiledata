@@ -769,9 +769,13 @@
 
 /* Row View */
 .results-rows {
+  display: flex;
   flex-direction: column;
   gap: 12px;
   margin-bottom: 30px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 /* Compact Row View - denser layout */
@@ -793,6 +797,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
   overflow: hidden;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .result-row:hover {
@@ -806,6 +813,10 @@
   padding: 15px;
   gap: 15px;
   cursor: pointer;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .row-image {
