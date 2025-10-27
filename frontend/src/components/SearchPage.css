@@ -402,6 +402,7 @@
 
 .filter-section {
   margin-bottom: 8px;
+  margin-top: 16px;
   padding: 0;
 }
 
@@ -1043,55 +1044,56 @@
   font-size: 0.7em;
 }
 
-/* Search Tabs */
+/* Search Tabs - Traditional Tab Design */
 .search-tabs {
   display: flex;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 0;
+  margin-bottom: 0;
   padding: 0;
+  border-bottom: 2px solid var(--border-color, #e5e7eb);
 }
 
 .search-tab {
-  flex: 1;
-  padding: 8px 16px;
-  background: var(--card-background, #ffffff);
-  border: 1px solid var(--border-color, #f3f4f6);
-  border-radius: var(--radius-sm, 8px);
-  font-size: var(--font-size-sm, 13px);
-  font-weight: 600;
+  padding: 12px 24px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-secondary, #6b7280);
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: center;
+  position: relative;
+  margin-bottom: -2px;
 }
 
 .search-tab:hover {
-  border-color: var(--primary-color, #6366f1);
-  background: var(--hover-background, #fef3c7);
-  color: var(--primary-color);
+  color: var(--primary-color, #6366f1);
+  background: var(--hover-background, #f9fafb);
 }
 
 .search-tab.active {
-  background: var(--primary-color, #6366f1);
-  border-color: var(--primary-color);
-  color: white;
-  box-shadow: var(--shadow-md);
+  color: var(--primary-color, #6366f1);
+  background: transparent;
+  border-bottom-color: var(--primary-color, #6366f1);
+  font-weight: 600;
 }
 
 .search-tab.active:hover {
-  background: var(--secondary-color, #a78bfa);
+  background: var(--hover-background, #f9fafb);
 }
 
 /* Mobile tabs */
 @media (max-width: 768px) {
   .search-tabs {
-    gap: 8px;
-    margin-bottom: 15px;
+    gap: 0;
+    margin-bottom: 0;
   }
   
   .search-tab {
     padding: 10px 16px;
-    font-size: 14px;
+    font-size: 13px;
   }
 }
 
