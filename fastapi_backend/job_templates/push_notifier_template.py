@@ -8,12 +8,12 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List
 from bson import ObjectId
 
-from job_templates.base import BaseJobTemplate, JobContext
+from job_templates.base import JobTemplate, JobExecutionContext
 
 logger = logging.getLogger(__name__)
 
 
-class PushNotifierTemplate(BaseJobTemplate):
+class PushNotifierTemplate(JobTemplate):
     """
     Job template for processing and sending push notifications
     
@@ -66,7 +66,7 @@ class PushNotifierTemplate(BaseJobTemplate):
         
         return True
     
-    async def execute(self, context: JobContext) -> Dict[str, Any]:
+    async def execute(self, context: JobExecutionContext) -> Dict[str, Any]:
         """
         Execute push notification sending
         
@@ -74,7 +74,7 @@ class PushNotifierTemplate(BaseJobTemplate):
             Dict with execution statistics
         """
         db = context.db
-        params = context.params
+        params = context.parameters
         
         batch_size = params.get("batch_size", 50)
         retry_failed = params.get("retry_failed", True)
