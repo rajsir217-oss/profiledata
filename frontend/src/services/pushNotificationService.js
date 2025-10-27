@@ -51,29 +51,15 @@ export const requestNotificationPermission = async () => {
       return null;
     }
 
-    // Register service worker first
-    let registration;
-    try {
-      registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
-      console.log('✅ Service worker registered');
-      
-      // Wait for service worker to be ready
-      await navigator.serviceWorker.ready;
-    } catch (error) {
-      console.error('❌ Service worker registration failed:', error);
-      return null;
-    }
-
-    // Request permission
+    // Request permission first
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
       console.log('✅ Notification permission granted');
       
-      // Get FCM token
+      // Get FCM token (Firebase will register its own service worker)
       const token = await getToken(messaging, {
-        vapidKey: VAPID_KEY,
-        serviceWorkerRegistration: registration
+        vapidKey: VAPID_KEY
       });
       
       if (token) {
