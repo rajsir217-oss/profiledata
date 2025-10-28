@@ -270,12 +270,34 @@ const SearchResultCard = ({
             {/* Column 4: Contact (PII) */}
             <div className="row-info-column-3">
               <p className="row-detail-pii">
-                <strong>📧</strong>
                 {hasPiiAccess ? (
-                  <span className="pii-data-sm">{user.contactEmail}</span>
+                  <button
+                    className="pii-icon-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(user.contactEmail);
+                      alert('Email copied to clipboard!');
+                    }}
+                    title={user.contactEmail}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '4px'
+                    }}
+                  >
+                    📧
+                  </button>
                 ) : (
                   <>
-                    <span className="pii-locked-icon" style={{opacity: 0.3, filter: 'grayscale(100%)'}}>📧</span>
+                    <span 
+                      className="pii-locked-icon" 
+                      style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
+                      title="Email locked - Request access"
+                    >
+                      📧
+                    </span>
                     {onPIIRequest && (
                       <button
                         className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
@@ -292,11 +314,33 @@ const SearchResultCard = ({
                 )}
               </p>
               <p className="row-detail-pii">
-                <strong>📱</strong>
                 {hasPiiAccess ? (
-                  <span className="pii-data-sm">{user.contactNumber}</span>
+                  <button
+                    className="pii-icon-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(user.contactNumber);
+                      alert('Phone number copied to clipboard!');
+                    }}
+                    title={user.contactNumber}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '4px'
+                    }}
+                  >
+                    📱
+                  </button>
                 ) : (
-                  <span className="pii-locked-icon" style={{opacity: 0.3, filter: 'grayscale(100%)'}}>📱</span>
+                  <span 
+                    className="pii-locked-icon" 
+                    style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
+                    title="Phone locked - Request access"
+                  >
+                    📱
+                  </span>
                 )}
               </p>
             </div>
