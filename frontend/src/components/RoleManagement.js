@@ -363,8 +363,8 @@ const RoleManagement = () => {
               className={`role-button ${selectedRole === role ? 'active' : ''}`}
               onClick={() => setSelectedRole(role)}
               style={{
-                borderColor: selectedRole === role ? getRoleBadgeColor(role) : '#ddd',
-                backgroundColor: selectedRole === role ? getRoleBadgeColor(role) + '20' : 'white'
+                borderColor: selectedRole === role ? getRoleBadgeColor(role) : 'var(--border-color, #ddd)',
+                backgroundColor: selectedRole === role ? getRoleBadgeColor(role) + '20' : 'var(--surface-color, white)'
               }}
             >
               <span className="role-button-name">{getRoleDisplayName(role)}</span>
