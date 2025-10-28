@@ -554,18 +554,20 @@ const Dashboard = () => {
             {/* View Mode Toggle */}
             <div className="view-mode-toggle">
               <button
-                className={`btn-view-mode ${viewMode === 'cards' ? 'active' : ''}`}
+                className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
                 onClick={() => setViewMode('cards')}
                 title="Card View"
               >
-                ⊞ Cards
+                <span>⊞</span>
+                <span>Cards</span>
               </button>
               <button
-                className={`btn-view-mode ${viewMode === 'rows' ? 'active' : ''}`}
+                className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
                 onClick={() => setViewMode('rows')}
                 title="Row View"
               >
-                ☰ Rows
+                <span>☰</span>
+                <span>Rows</span>
               </button>
             </div>
             

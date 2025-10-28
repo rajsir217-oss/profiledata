@@ -568,14 +568,16 @@ const PIIManagement = () => {
               onClick={() => setViewMode('cards')}
               title="Card View"
             >
-              ⊞
+              <span>⊞</span>
+              <span>Cards</span>
             </button>
             <button
               className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
               onClick={() => setViewMode('rows')}
               title="Row View"
             >
-              ☰
+              <span>☰</span>
+              <span>Rows</span>
             </button>
           </div>
         }
