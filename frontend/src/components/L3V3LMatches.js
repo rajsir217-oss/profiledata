@@ -358,22 +358,22 @@ const L3V3LMatches = () => {
         subtitle="Discover connections based on Love, Loyalty, Laughter, Vulnerability, and Elevation"
         variant="gradient"
         actions={
-          <div className="view-toggle-group">
+          <div className="view-mode-toggle">
             <button
-              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
               onClick={() => setViewMode('cards')}
               title="Card View"
             >
-              <span className="toggle-icon">⊞</span>
-              <span className="toggle-text">Cards</span>
+              <span>⊞</span>
+              <span>Cards</span>
             </button>
             <button
-              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
               onClick={() => setViewMode('rows')}
               title="Row View"
             >
-              <span className="toggle-icon">☰</span>
-              <span className="toggle-text">Rows</span>
+              <span>☰</span>
+              <span>Rows</span>
             </button>
           </div>
         }

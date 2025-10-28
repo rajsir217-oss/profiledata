@@ -51,29 +51,6 @@
   color: var(--text-secondary, #666);
 }
 
-/* View Toggle */
-.view-toggle {
-  display: flex;
-  gap: 8px;
-  background: var(--card-background, white);
-}
-
-.view-toggle-btn {
-  flex: 1;
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-secondary, #666);
-}
-
-.view-toggle-btn:hover {
-  background: var(--hover-background, rgba(102, 126, 234, 0.1));
-  color: var(--primary-color, #667eea);
-}
-
 /* Tabs Container */
 .pii-tabs {
   display: flex;
@@ -573,11 +550,6 @@
   .pii-header-content {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .view-toggle {
-    width: 100%;
-    justify-content: center;
   }
 
   .access-grid,
