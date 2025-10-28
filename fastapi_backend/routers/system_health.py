@@ -5,7 +5,7 @@ import os
 import time
 from database import get_database
 from redis_manager import redis_manager
-from config import settings
+from config import settings, current_env
 import logging
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ async def get_system_health(db = Depends(get_database)):
     
     health_data = {
         "timestamp": datetime.utcnow().isoformat(),
-        "environment": settings.app_environment,
+        "environment": current_env or os.getenv("APP_ENVIRONMENT", "local"),
         "backend_url": settings.backend_url,
         "version": "1.0.0",
         "uptime": format_uptime(time.time() - startup_time),
