@@ -564,9 +564,16 @@ const PIIManagement = () => {
         actions={
           <div className="view-toggle">
             <button
-              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
-              onClick={() => setViewMode('list')}
-              title="List View"
+              className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card View"
+            >
+              ⊞
+            </button>
+            <button
+              className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => setViewMode('rows')}
+              title="Row View"
             >
               ☰
             </button>
