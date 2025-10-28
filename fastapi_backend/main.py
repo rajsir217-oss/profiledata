@@ -195,7 +195,7 @@ app.include_router(notifications_router)  # Notification routes (already has /ap
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
 app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)
 app.include_router(push_subscriptions_router)  # Push notification subscriptions (already has /api/push-subscriptions prefix)
-app.include_router(system_health_router, prefix="/api/system", tags=["system"])  # System health routes
+app.include_router(system_health_router, prefix="/api/users/system", tags=["system"])  # System health routes
 
 # Health check endpoint
 @app.get("/health")
