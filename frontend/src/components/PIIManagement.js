@@ -562,7 +562,7 @@ const PIIManagement = () => {
         subtitle="Manage who can access your private information"
         variant="gradient"
         actions={
-          <div className="view-toggle">
+          <div className="view-mode-toggle">
             <button
               className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
               onClick={() => setViewMode('cards')}
