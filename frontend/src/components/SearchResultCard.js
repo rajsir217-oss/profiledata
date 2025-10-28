@@ -275,7 +275,7 @@ const SearchResultCard = ({
                   <span className="pii-data-sm">{user.contactEmail}</span>
                 ) : (
                   <>
-                    <span className="pii-masked-sm">[Locked]</span>
+                    <span className="pii-locked-icon" style={{opacity: 0.3, filter: 'grayscale(100%)'}}>📧</span>
                     {onPIIRequest && (
                       <button
                         className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
@@ -296,7 +296,7 @@ const SearchResultCard = ({
                 {hasPiiAccess ? (
                   <span className="pii-data-sm">{user.contactNumber}</span>
                 ) : (
-                  <span className="pii-masked-sm">[Locked]</span>
+                  <span className="pii-locked-icon" style={{opacity: 0.3, filter: 'grayscale(100%)'}}>📱</span>
                 )}
               </p>
             </div>
