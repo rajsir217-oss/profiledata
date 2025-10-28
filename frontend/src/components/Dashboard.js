@@ -6,6 +6,8 @@ import CategorySection from './CategorySection';
 import UserCard from './UserCard';
 import AccessRequestManager from './AccessRequestManager';
 import PageHeader from './PageHeader';
+import ProfileViewsModal from './ProfileViewsModal';
+import FavoritedByModal from './FavoritedByModal';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
@@ -17,6 +19,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const currentUser = localStorage.getItem('username');
   const toast = useToast();
+  
+  // Modal states
+  const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
+  const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -588,7 +594,12 @@ const Dashboard = () => {
 
       {/* Stats Overview Section */}
       <div className="dashboard-stats-overview">
-        <div className="stat-card-large stat-card-primary">
+        <div 
+          className="stat-card-large stat-card-primary clickable-card" 
+          onClick={() => setShowProfileViewsModal(true)}
+          style={{ cursor: 'pointer' }}
+          title="Click to see who viewed your profile"
+        >
           <div className="stat-icon">👁️</div>
           <div className="stat-content">
             <div className="stat-value">{viewMetrics.totalViews}</div>
@@ -597,7 +608,12 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-success">
+        <div 
+          className="stat-card-large stat-card-success clickable-card" 
+          onClick={() => setShowFavoritedByModal(true)}
+          style={{ cursor: 'pointer' }}
+          title="Click to see who favorited you"
+        >
           <div className="stat-icon">💖</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.theirFavorites.length}</div>
@@ -679,6 +695,20 @@ const Dashboard = () => {
           setShowMessageModal(false);
           setSelectedUserForMessage(null);
         }}
+      />
+
+      {/* Profile Views Modal */}
+      <ProfileViewsModal
+        isOpen={showProfileViewsModal}
+        onClose={() => setShowProfileViewsModal(false)}
+        username={currentUser}
+      />
+
+      {/* Favorited By Modal */}
+      <FavoritedByModal
+        isOpen={showFavoritedByModal}
+        onClose={() => setShowFavoritedByModal(false)}
+        username={currentUser}
       />
     </div>
   );

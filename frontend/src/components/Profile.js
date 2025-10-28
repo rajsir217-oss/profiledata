@@ -1637,7 +1637,7 @@ const Profile = () => {
                 <ProfileImage
                   key={image.imageId || idx}
                   image={image}
-                  viewerUsername={currentUsername}
+                  // viewerUsername={currentUsername}
                   profileOwnerUsername={username}
                   isFavorited={isFavorited}
                   isShortlisted={isShortlisted}

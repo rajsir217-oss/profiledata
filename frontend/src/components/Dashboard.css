@@ -148,6 +148,21 @@
   opacity: 1;
 }
 
+/* Clickable stat cards */
+.clickable-card {
+  cursor: pointer !important;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  transform: translateY(-6px) scale(1.02);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+}
+
+.clickable-card:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
 .stat-card-large .stat-icon {
   font-size: 48px;
   line-height: 1;
