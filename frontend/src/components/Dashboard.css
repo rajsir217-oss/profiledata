@@ -16,6 +16,14 @@
   background: var(--background-color);
 }
 
+/* Override PageHeader width - it's already inside 80% container */
+.dashboard-container .page-header {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
 /* Dashboard Header */
 .dashboard-header {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -829,11 +837,18 @@
 }
 
 /* Override for PageHeader actions */
+.dashboard-container .page-header .page-header-content {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+}
+
 .dashboard-container .page-header .page-header-actions {
   margin-left: auto !important;
   justify-content: flex-end !important;
   display: flex !important;
   flex-direction: row !important;
+  gap: 8px !important;
 }
 
 /* View Mode Toggle */
