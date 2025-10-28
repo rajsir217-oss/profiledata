@@ -45,7 +45,11 @@ async def get_system_health(db = Depends(get_database)):
     
     # Redis Health
     try:
-        redis_healthy = redis_manager.ping()
+        # Check if Redis client exists and can ping
+        redis_healthy = False
+        if redis_manager.redis_client:
+            redis_healthy = redis_manager.redis_client.ping()
+        
         health_data["services"]["redis"] = {
             "healthy": redis_healthy,
             "details": f"{settings.redis_host}:{settings.redis_port}"
