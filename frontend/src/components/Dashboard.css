@@ -43,6 +43,14 @@
   font-weight: 400;
 }
 
+/* View Controls Group - Right aligned within header */
+.view-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
 /* Refresh Icon Button - Compact */
 .btn-refresh-icon {
   background: rgba(255, 255, 255, 0.2);
@@ -947,6 +955,11 @@
   .dashboard-container .page-header .page-header-actions {
     justify-content: flex-end !important;
     margin-left: 0 !important;
+  }
+  
+  .view-controls-group {
+    margin-left: auto;
+    flex-shrink: 0;
   }
   
   .view-mode-toggle {

@@ -551,34 +551,37 @@ const Dashboard = () => {
               🔍
             </button>
             
-            {/* View Mode Toggle */}
-            <div className="view-mode-toggle">
-              <button
-                className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
-                onClick={() => setViewMode('cards')}
-                title="Card View"
+            {/* View Controls Group - Right Aligned */}
+            <div className="view-controls-group">
+              {/* View Mode Toggle */}
+              <div className="view-mode-toggle">
+                <button
+                  className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setViewMode('cards')}
+                  title="Card View"
+                >
+                  <span>⊞</span>
+                  <span>Cards</span>
+                </button>
+                <button
+                  className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
+                  onClick={() => setViewMode('rows')}
+                  title="Row View"
+                >
+                  <span>☰</span>
+                  <span>Rows</span>
+                </button>
+              </div>
+              
+              {/* Refresh Icon Button */}
+              <button 
+                className="btn-refresh-icon"
+                onClick={() => loadDashboardData(currentUser)}
+                title="Refresh Dashboard"
               >
-                <span>⊞</span>
-                <span>Cards</span>
-              </button>
-              <button
-                className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
-                onClick={() => setViewMode('rows')}
-                title="Row View"
-              >
-                <span>☰</span>
-                <span>Rows</span>
+                🔄
               </button>
             </div>
-            
-            {/* Refresh Icon Button */}
-            <button 
-              className="btn-refresh-icon"
-              onClick={() => loadDashboardData(currentUser)}
-              title="Refresh Dashboard"
-            >
-              🔄
-            </button>
           </>
         }
       />
