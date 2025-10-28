@@ -123,7 +123,7 @@ const SystemStatus = () => {
           </div>
           <div className="service-status">
             <span 
-              className="status-badge"
+              
               style={{ color: getStatusColor(status?.services?.mongodb?.healthy) }}
             >
               {getStatusIcon(status?.services?.mongodb?.healthy)} 
@@ -145,7 +145,7 @@ const SystemStatus = () => {
           </div>
           <div className="service-status">
             <span 
-              className="status-badge"
+              
               style={{ color: getStatusColor(status?.services?.redis?.healthy) }}
             >
               {getStatusIcon(status?.services?.redis?.healthy)} 
@@ -167,7 +167,7 @@ const SystemStatus = () => {
           </div>
           <div className="service-status">
             <span 
-              className="status-badge"
+              
               style={{ 
                 color: status?.services?.firebase?.configured 
                   ? 'var(--success-color, #10b981)' 
@@ -192,7 +192,7 @@ const SystemStatus = () => {
           </div>
           <div className="service-status">
             <span 
-              className="status-badge"
+              
               style={{ color: 'var(--success-color, #10b981)' }}
             >
               ✅ {status?.services?.storage?.type === 'gcs' ? 'GCS' : 'Local'}
