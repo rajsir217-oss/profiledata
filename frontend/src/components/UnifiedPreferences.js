@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from './PageHeader';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
@@ -343,10 +344,12 @@ const UnifiedPreferences = () => {
 
   return (
     <div className="unified-preferences-container">
-      <div className="preferences-header">
-        <h1>⚙️ Preferences</h1>
-        <p>Manage your account settings and notification preferences</p>
-      </div>
+      <PageHeader
+        icon="⚙️"
+        title="Preferences"
+        subtitle="Manage your account settings and notification preferences"
+        variant="gradient"
+      />
 
       {/* Tab Navigation */}
       <div className="preferences-tabs">
