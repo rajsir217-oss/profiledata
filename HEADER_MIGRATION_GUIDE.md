@@ -5,9 +5,17 @@ Headers are inconsistent across pages:
 - Different styles (gradient, flat, centered, left-aligned)
 - Different layouts (with/without icons, subtitles)
 - Inconsistent spacing and responsive behavior
+- Not theme-aware
 
 ## Solution
-Use the new `PageHeader` component for consistency.
+Use the new **theme-aware** `PageHeader` component for consistency.
+
+## ✨ Theme Aware Features
+- Automatically adapts to active theme (Cozy Light, Dark, Rose, etc.)
+- Uses CSS variables from `themes.css`
+- Smooth transitions when switching themes
+- Fallback values for missing variables
+- Consistent with existing UI components
 
 ---
 
@@ -177,13 +185,46 @@ Replace these inconsistent headers:
 
 ---
 
+## CSS Variables Used
+
+The component uses these theme variables (from `themes.css`):
+
+### Colors
+- `--primary-color` - Primary brand color
+- `--secondary-color` - Secondary brand color
+- `--surface-color` - Background for flat variant
+- `--text-color` - Main text color
+- `--text-secondary` - Subtitle text color
+- `--border-color` - Border color
+- `--header-text-color` - Override for gradient text
+- `--header-subtitle-color` - Override for gradient subtitle
+
+### Spacing
+- `--spacing-xs` - Extra small spacing
+- `--spacing-sm` - Small spacing
+- `--spacing-md` - Medium spacing
+- `--spacing-lg` - Large spacing
+- `--spacing-xl` - Extra large spacing
+
+### Other
+- `--radius-lg` - Border radius
+- `--shadow-md` - Box shadow
+- `--font-heading` - Heading font family
+- `--font-body` - Body font family
+
+**All variables have fallback values** so the component works even if a variable is missing!
+
+---
+
 ## Benefits
 
 ✅ **Consistent UX** - Same look and feel across all pages
+✅ **Theme Aware** - Adapts to user's selected theme automatically
 ✅ **Responsive** - Mobile-friendly out of the box
 ✅ **Maintainable** - Change once, update everywhere
 ✅ **Flexible** - 3 variants for different contexts
 ✅ **Accessible** - Proper semantic HTML
+✅ **Smooth Transitions** - Theme switching is animated
 
 ---
 
@@ -192,6 +233,8 @@ Replace these inconsistent headers:
 - Replace existing page headers with this component
 - Keep the same icons and text for familiarity
 - Choose variant based on page importance:
-  - **gradient**: Main user-facing pages
-  - **flat**: Admin/settings pages
-  - **minimal**: Content-heavy pages
+  - **gradient**: Main user-facing pages (Dashboard, Preferences)
+  - **flat**: Admin/settings pages (Dynamic Scheduler, Roles)
+  - **minimal**: Content-heavy pages (Search, Lists, Activity Logs)
+- Component automatically updates when theme changes
+- Works with all existing themes (Cozy Light, Dark, Rose, etc.)
