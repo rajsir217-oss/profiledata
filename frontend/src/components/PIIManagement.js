@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
+import PageHeader from './PageHeader';
 import ImageManagerModal from './ImageManagerModal';
 import './PIIManagement.css';
 
@@ -555,30 +556,23 @@ const PIIManagement = () => {
         </div>
       )}
 
-      <div className="pii-header">
-        <div className="pii-header-content">
-          <div>
-            <h2>🔒 Privacy & Data Management</h2>
-            <p>Manage who can access your private information</p>
-          </div>
+      <PageHeader
+        icon="🔒"
+        title="Privacy & Data Management"
+        subtitle="Manage who can access your private information"
+        variant="gradient"
+        actions={
           <div className="view-toggle">
             <button
-              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card view"
-            >
-              ▦
-            </button>
-            <button
-              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
-              onClick={() => setViewMode('rows')}
-              title="Row view"
+              className={`view-btn ${viewMode === 'list' ? 'active' : ''}`}
+              onClick={() => setViewMode('list')}
+              title="List View"
             >
               ☰
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <div className="pii-tabs">

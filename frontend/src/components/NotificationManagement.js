@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PageHeader from './PageHeader';
 import './NotificationManagement.css';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
@@ -26,10 +27,12 @@ const NotificationManagement = () => {
     <div className="notification-management">
       {/* Toast notifications handled by ToastContainer in App.js */}
       
-      <div className="notification-management-header">
-        <h1>🔔 Notification Management</h1>
-        <p className="subtitle">Manage notification queue and email/SMS templates</p>
-      </div>
+      <PageHeader
+        icon="🔔"
+        title="Notification Management"
+        subtitle="Manage notification queue and email/SMS templates"
+        variant="gradient"
+      />
 
       {/* Tab Navigation */}
       <div className="tabs-container">
