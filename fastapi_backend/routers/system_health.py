@@ -4,7 +4,7 @@ from datetime import datetime
 import os
 import time
 from database import get_database
-from redis_manager import redis_manager
+from redis_manager import redis_manager, redis_host, redis_port
 from config import settings, current_env
 import logging
 
@@ -52,7 +52,7 @@ async def get_system_health(db = Depends(get_database)):
         
         health_data["services"]["redis"] = {
             "healthy": redis_healthy,
-            "details": f"{settings.redis_host}:{settings.redis_port}"
+            "details": f"{redis_host}:{redis_port}"
         }
     except Exception as e:
         logger.error(f"Redis health check failed: {e}")
