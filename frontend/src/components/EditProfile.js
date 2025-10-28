@@ -870,40 +870,6 @@ const EditProfile = () => {
           )}
 
           {/* Section 8: Preferences (Always Visible) */}
-          <h5 className="mt-4 mb-3 text-primary">💭 Preferences</h5>
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label className="form-label">Caste Preference</label>
-              <select
-                className="form-control"
-                name="castePreference"
-                value={formData.castePreference}
-                onChange={handleChange}
-              >
-                <option value="">Select...</option>
-                <option value="None">No Preference</option>
-                <option value="Open to all">Open to all</option>
-                <option value="Specific">Within caste only</option>
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="form-label">Eating Preference</label>
-              <select
-                className="form-control"
-                name="eatingPreference"
-                value={formData.eatingPreference}
-                onChange={handleChange}
-              >
-                <option value="">Select...</option>
-                <option value="Vegetarian">Vegetarian</option>
-                <option value="Eggetarian">Eggetarian</option>
-                <option value="Non-Vegetarian">Non-Vegetarian</option>
-                <option value="Vegan">Vegan</option>
-                <option value="None">No Preference</option>
-              </select>
-            </div>
-          </div>
-
           {/* Working Status */}
           <div className="mb-3">
             <label className="form-label me-3">Working Status</label>
@@ -1164,6 +1130,40 @@ const EditProfile = () => {
           {/* Section 12: Partner Criteria */}
           <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
           <p className="text-muted mb-3">Specify your preferences for a potential partner</p>
+          
+          {/* Partner Preferences: Caste & Eating */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Caste Preference</label>
+              <select
+                className="form-control"
+                name="castePreference"
+                value={formData.castePreference}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="None">No Preference</option>
+                <option value="Open to all">Open to all</option>
+                <option value="Specific">Within caste only</option>
+              </select>
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Eating Preference</label>
+              <select
+                className="form-control"
+                name="eatingPreference"
+                value={formData.eatingPreference}
+                onChange={handleChange}
+              >
+                <option value="">Select...</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Eggetarian">Eggetarian</option>
+                <option value="Non-Vegetarian">Non-Vegetarian</option>
+                <option value="Vegan">Vegan</option>
+                <option value="None">No Preference</option>
+              </select>
+            </div>
+          </div>
           
           {/* Age Range - Relative to Your Age */}
           <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
