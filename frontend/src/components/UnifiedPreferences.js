@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader from './PageHeader';
+import SystemStatus from './SystemStatus';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
@@ -622,6 +623,9 @@ const UnifiedPreferences = () => {
             <span style={{ fontSize: '1.3rem' }}>ℹ️</span>
             <span>Looking for scheduler jobs? Visit the <strong>Dynamic Scheduler</strong> page for advanced job management.</span>
           </div>
+
+          {/* Backend Services Status */}
+          <SystemStatus />
 
           {adminSettingsLoading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>
