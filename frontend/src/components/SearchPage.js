@@ -1266,7 +1266,7 @@ const SearchPage = () => {
         icon="🔍"
         title="Advanced Search"
         subtitle="Find your perfect match with detailed filters"
-        variant="minimal"
+        variant="gradient"
       />
 
       {error && <div className="alert alert-danger">{error}</div>}
