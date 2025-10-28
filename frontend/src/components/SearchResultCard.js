@@ -49,7 +49,7 @@ const SearchResultCard = ({
 
   // Calculate PII request status summary
   const getPIIStatusSummary = () => {
-    const piiTypes = ['images', 'contact_info', 'date_of_birth', 'linkedin_url'];
+    const piiTypes = ['images', 'contact_info', 'linkedin_url'];
     let approved = 0;
     let pending = 0;
 

@@ -1359,60 +1359,6 @@ const Profile = () => {
         )}
       </div>
 
-      {/* Date of Birth (PII Protected) */}
-      <div className="profile-section">
-        <div className="section-header-with-edit">
-          <h3>🎂 Date of Birth</h3>
-          {isOwnProfile && editingSection === 'dateOfBirth' && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                className="btn-save-section"
-                onClick={() => handleSaveEdit('dateOfBirth')}
-                disabled={savingSection === 'dateOfBirth'}
-              >
-                {savingSection === 'dateOfBirth' ? '💾 Saving...' : '💾 Save'}
-              </button>
-              <button 
-                className="btn-cancel-section"
-                onClick={handleCancelEdit}
-                disabled={savingSection === 'dateOfBirth'}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          )}
-        </div>
-        {isOwnProfile || piiAccess.date_of_birth ? (
-          editingSection === 'dateOfBirth' ? (
-            <div className="inline-edit-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label><strong>Date of Birth:</strong></label>
-                  <input type="date" name="dateOfBirth" value={editFormData.dateOfBirth || ''} onChange={handleEditChange} className="form-control" />
-                </div>
-              </div>
-              <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary, #666)' }}>Current Age: {editFormData.dateOfBirth ? calculateAge(editFormData.dateOfBirth) : 'N/A'} years</p>
-            </div>
-          ) : (
-            <div className="profile-info">
-              <p><strong>Date of Birth:</strong> {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
-              {age && <p><strong>Age:</strong> {age} years</p>}
-            </div>
-          )
-        ) : (
-          <div className="pii-locked">
-            <div className="lock-icon">🔒</div>
-            <p>Date of birth is private (Age: {age || 'Unknown'})</p>
-            <button
-              className="btn-request-small"
-              onClick={() => setShowPIIRequestModal(true)}
-            >
-              Request Access
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Preferences & Background (Always visible) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
