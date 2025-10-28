@@ -5,6 +5,7 @@ import MessageModal from './MessageModal';
 import CategorySection from './CategorySection';
 import UserCard from './UserCard';
 import AccessRequestManager from './AccessRequestManager';
+import PageHeader from './PageHeader';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
@@ -527,56 +528,58 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div className="header-left">
-          <h1>My Dashboard</h1>
-          <p>Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</p>
-        </div>
-        <div className="header-quick-actions">
-          {/* Quick Action Buttons */}
-          <button 
-            className="btn-quick-action btn-l3v3l"
-            onClick={() => navigate('/l3v3l-matches')}
-            title="L3V3L Matches"
-          >
-            🦋
-          </button>
-          <button 
-            className="btn-quick-action btn-search"
-            onClick={() => navigate('/search')}
-            title="Advanced Search"
-          >
-            🔍
-          </button>
-        </div>
-        <div className="header-actions">
-          {/* View Mode Toggle */}
-          <div className="view-mode-toggle">
-            <button
-              className={`btn-view-mode ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
+      <PageHeader
+        icon="📊"
+        title="My Dashboard"
+        subtitle={`Welcome back, ${userProfile ? getDisplayName(userProfile) : currentUser}!`}
+        variant="gradient"
+        actions={
+          <>
+            {/* Quick Action Buttons */}
+            <button 
+              className="btn-quick-action btn-l3v3l"
+              onClick={() => navigate('/l3v3l-matches')}
+              title="L3V3L Matches"
             >
-              ⊞ Cards
+              🦋
             </button>
-            <button
-              className={`btn-view-mode ${viewMode === 'rows' ? 'active' : ''}`}
-              onClick={() => setViewMode('rows')}
-              title="Row View"
+            <button 
+              className="btn-quick-action btn-search"
+              onClick={() => navigate('/search')}
+              title="Advanced Search"
             >
-              ☰ Rows
+              🔍
             </button>
-          </div>
-          {/* Refresh Icon Button */}
-          <button 
-            className="btn-refresh-icon"
-            onClick={() => loadDashboardData(currentUser)}
-            title="Refresh Dashboard"
-          >
-            🔄
-          </button>
-        </div>
-      </div>
+            
+            {/* View Mode Toggle */}
+            <div className="view-mode-toggle">
+              <button
+                className={`btn-view-mode ${viewMode === 'cards' ? 'active' : ''}`}
+                onClick={() => setViewMode('cards')}
+                title="Card View"
+              >
+                ⊞ Cards
+              </button>
+              <button
+                className={`btn-view-mode ${viewMode === 'rows' ? 'active' : ''}`}
+                onClick={() => setViewMode('rows')}
+                title="Row View"
+              >
+                ☰ Rows
+              </button>
+            </div>
+            
+            {/* Refresh Icon Button */}
+            <button 
+              className="btn-refresh-icon"
+              onClick={() => loadDashboardData(currentUser)}
+              title="Refresh Dashboard"
+            >
+              🔄
+            </button>
+          </>
+        }
+      />
 
       {/* Stats Overview Section */}
       <div className="dashboard-stats-overview">

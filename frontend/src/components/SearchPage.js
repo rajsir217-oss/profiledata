@@ -6,6 +6,7 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
+import PageHeader from './PageHeader';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
@@ -1261,10 +1262,12 @@ const SearchPage = () => {
 
   return (
     <div className="search-page">
-      <div className="search-header">
-        <h2>🔍 Advanced Search</h2>
-        <p className="text-muted">Find your perfect match with detailed filters</p>
-      </div>
+      <PageHeader
+        icon="🔍"
+        title="Advanced Search"
+        subtitle="Find your perfect match with detailed filters"
+        variant="minimal"
+      />
 
       {error && <div className="alert alert-danger">{error}</div>}
 

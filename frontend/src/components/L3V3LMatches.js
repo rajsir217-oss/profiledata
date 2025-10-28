@@ -4,6 +4,7 @@ import api from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
+import PageHeader from './PageHeader';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import './SearchPage.css';
 
@@ -351,14 +352,32 @@ const L3V3LMatches = () => {
   return (
     <div className="search-container">
       {/* Header */}
-      <div className="search-header">
-        <div className="search-header-content">
-          <h1>🦋 My L3V3L Matches</h1>
-          <p className="search-subtitle">
-            Discover connections based on Love, Loyalty, Laughter, Vulnerability, and Elevation
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon="🦋"
+        title="My L3V3L Matches"
+        subtitle="Discover connections based on Love, Loyalty, Laughter, Vulnerability, and Elevation"
+        variant="gradient"
+        actions={
+          <div className="view-toggle-group">
+            <button
+              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => setViewMode('cards')}
+              title="Card View"
+            >
+              <span className="toggle-icon">⊞</span>
+              <span className="toggle-text">Cards</span>
+            </button>
+            <button
+              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => setViewMode('rows')}
+              title="Row View"
+            >
+              <span className="toggle-icon">☰</span>
+              <span className="toggle-text">Rows</span>
+            </button>
+          </div>
+        }
+      />
 
       {/* Match Score Filter Slider */}
       <div className="l3v3l-score-filter">
@@ -367,24 +386,6 @@ const L3V3LMatches = () => {
             <span className="filter-icon">🎯</span>
             <span className="filter-text">Minimum L3V3L Match Score:</span>
             <span className="filter-value">{minMatchScore}%</span>
-            <div className="view-toggle-group">
-              <button
-                className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-                onClick={() => setViewMode('cards')}
-                title="Card View"
-              >
-                <span className="toggle-icon">⊞</span>
-                <span className="toggle-text">Cards</span>
-              </button>
-              <button
-                className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
-                onClick={() => setViewMode('rows')}
-                title="Row View"
-              >
-                <span className="toggle-icon">☰</span>
-                <span className="toggle-text">Rows</span>
-              </button>
-            </div>
           </label>
           <input
             id="matchScoreSlider"
