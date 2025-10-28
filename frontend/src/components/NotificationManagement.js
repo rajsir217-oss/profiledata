@@ -19,8 +19,8 @@ const NotificationManagement = () => {
   }, [navigate]);
 
   const tabs = [
-    { id: 'queue', label: '📋 Event Queue', icon: '📋' },
-    { id: 'templates', label: '📧 Templates', icon: '📧' }
+    { id: 'queue', label: 'Event Queue', icon: '📋' },
+    { id: 'templates', label: 'Templates', icon: '📧' }
   ];
 
   return (
