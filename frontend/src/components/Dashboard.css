@@ -829,9 +829,11 @@
 }
 
 /* Override for PageHeader actions */
-.page-header .page-header-actions {
+.dashboard-container .page-header .page-header-actions {
   margin-left: auto !important;
   justify-content: flex-end !important;
+  display: flex !important;
+  flex-direction: row !important;
 }
 
 /* View Mode Toggle */
@@ -980,8 +982,9 @@
     gap: 8px;
   }
   
-  .page-header .page-header-actions {
+  .dashboard-container .page-header .page-header-actions {
     justify-content: flex-end !important;
+    margin-left: 0 !important;
   }
   
   .view-mode-toggle {
