@@ -23,7 +23,12 @@ const Login = () => {
     setError("");
     
     try {
-      const res = await api.post("/login", form);
+      // Trim whitespace from credentials
+      const credentials = {
+        username: form.username.trim(),
+        password: form.password.trim()
+      };
+      const res = await api.post("/login", credentials);
       
       // Save login credentials to localStorage
       localStorage.setItem('username', res.data.user.username);
