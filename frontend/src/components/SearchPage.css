@@ -6,6 +6,15 @@
   /* background: transparent; */
 }
 
+/* Match PageHeader width to search-container */
+.search-page .page-header {
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 20px;
+  padding-right: 20px;
+}
+
 .search-header {
   text-align: center;
   margin-bottom: 30px;
@@ -3257,6 +3266,13 @@
 
 /* Responsive Design - Mobile */
 @media (max-width: 768px) {
+  /* Match PageHeader to search-container on mobile */
+  .search-page .page-header {
+    width: 95%;
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
   .search-container {
     width: 95%;
     padding: 0 10px;
