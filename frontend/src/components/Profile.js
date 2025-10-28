@@ -1860,7 +1860,7 @@ const Profile = () => {
         <MessageModal
           isOpen={showMessageModal}
           onClose={() => setShowMessageModal(false)}
-          recipient={user}
+          profile={user}
         />
       )}
 
