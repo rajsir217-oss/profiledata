@@ -37,6 +37,14 @@ let firebaseEnabled = false;
 
 if (isFirebaseConfigured()) {
   try {
+    console.log('🔍 Firebase Config Check:', {
+      hasApiKey: !!firebaseConfig.apiKey,
+      hasProjectId: !!firebaseConfig.projectId,
+      hasVapidKey: !!VAPID_KEY,
+      vapidKeyLength: VAPID_KEY?.length,
+      vapidKeyStart: VAPID_KEY?.substring(0, 10)
+    });
+    
     app = initializeApp(firebaseConfig);
     messaging = getMessaging(app);
     firebaseEnabled = true;
@@ -79,6 +87,7 @@ export const requestNotificationPermission = async () => {
     
     if (permission === 'granted') {
       console.log('✅ Notification permission granted');
+      console.log('🔑 Using VAPID key:', VAPID_KEY?.substring(0, 20) + '...');
       
       // Get FCM token (Firebase will register its own service worker)
       const token = await getToken(messaging, {
