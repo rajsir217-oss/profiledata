@@ -1418,6 +1418,7 @@ const Register = () => {
           const excludedFields = [
             "username", "password", "passwordConfirm", "firstName", "lastName", "contactNumber", "contactEmail", 
             "dateOfBirth", "heightFeet", "heightInches", "gender", "citizenshipStatus", 
+            "profileCreatedBy",  // Rendered explicitly above
             "religion", "languagesSpoken",  // NEW: rendered explicitly
             "castePreference", "eatingPreference", "location",
             // Exclude country/regional fields (rendered explicitly above)
