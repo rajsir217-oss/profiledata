@@ -779,6 +779,8 @@
   display: flex;
   gap: 12px;
   align-items: center;
+  margin-left: auto;
+  justify-content: flex-end;
 }
 
 .btn-quick-action {
@@ -822,6 +824,14 @@
   gap: 8px;
   align-items: center;
   flex-wrap: nowrap; /* Keep on one line */
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+/* Override for PageHeader actions */
+.page-header .page-header-actions {
+  margin-left: auto !important;
+  justify-content: flex-end !important;
 }
 
 /* View Mode Toggle */
@@ -953,7 +963,7 @@
   
   .header-quick-actions {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 15px;
   }
   
@@ -965,9 +975,13 @@
   
   .header-actions {
     width: 100%;
-    justify-content: center;
+    justify-content: flex-end;
     flex-wrap: nowrap; /* FORCE one line */
     gap: 8px;
+  }
+  
+  .page-header .page-header-actions {
+    justify-content: flex-end !important;
   }
   
   .view-mode-toggle {
