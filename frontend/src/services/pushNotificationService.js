@@ -21,16 +21,33 @@ const firebaseConfig = {
 // VAPID key for web push
 const VAPID_KEY = process.env.REACT_APP_FIREBASE_VAPID_KEY;
 
-// Initialize Firebase
+// Check if Firebase is configured
+const isFirebaseConfigured = () => {
+  return !!(
+    firebaseConfig.apiKey &&
+    firebaseConfig.projectId &&
+    VAPID_KEY
+  );
+};
+
+// Initialize Firebase only if configured
 let app;
 let messaging;
+let firebaseEnabled = false;
 
-try {
-  app = initializeApp(firebaseConfig);
-  messaging = getMessaging(app);
-  console.log('✅ Firebase initialized successfully');
-} catch (error) {
-  console.error('❌ Firebase initialization failed:', error);
+if (isFirebaseConfigured()) {
+  try {
+    app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+    firebaseEnabled = true;
+    console.log('✅ Firebase initialized successfully');
+  } catch (error) {
+    console.warn('⚠️ Firebase initialization failed:', error.message);
+    firebaseEnabled = false;
+  }
+} else {
+  console.log('ℹ️ Firebase push notifications not configured - skipping initialization');
+  firebaseEnabled = false;
 }
 
 /**
@@ -39,6 +56,12 @@ try {
  */
 export const requestNotificationPermission = async () => {
   try {
+    // Check if Firebase is configured
+    if (!firebaseEnabled) {
+      console.log('ℹ️ Push notifications disabled - Firebase not configured');
+      return null;
+    }
+
     // Check if notifications are supported
     if (!('Notification' in window)) {
       console.warn('This browser does not support notifications');
