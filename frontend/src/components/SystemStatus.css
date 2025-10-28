@@ -1,9 +1,10 @@
 .system-status-container {
-  background: var(--card-background, #fff);
+  background: var(--card-background);
   border-radius: 12px;
   padding: 24px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-top: 24px;
+  color: var(--text-color);
 }
 
 .status-header {
@@ -12,18 +13,18 @@
   align-items: center;
   margin-bottom: 24px;
   padding-bottom: 16px;
-  border-bottom: 2px solid var(--border-color, #e5e7eb);
+  border-bottom: 2px solid var(--border-color);
 }
 
 .status-header h3 {
   margin: 0;
   font-size: 20px;
-  color: var(--text-color, #1f2937);
+  color: var(--text-color);
 }
 
 .btn-refresh {
-  background: var(--primary-color, #6366f1);
-  color: white;
+  background: var(--primary-color);
+  color: var(--button-text-color, white);
   border: none;
   padding: 8px 16px;
   border-radius: 8px;
@@ -33,7 +34,7 @@
 }
 
 .btn-refresh:hover {
-  background: var(--primary-hover, #4f46e5);
+  background: var(--primary-hover);
   transform: translateY(-1px);
 }
 
@@ -46,7 +47,7 @@
 .status-section {
   margin-bottom: 24px;
   padding: 16px;
-  background: var(--section-background, #f9fafb);
+  background: var(--section-background);
   border-radius: 8px;
 }
 
@@ -59,12 +60,12 @@
 
 .status-label {
   font-weight: 600;
-  color: var(--text-color, #374151);
+  color: var(--text-color);
   font-size: 14px;
 }
 
 .status-value {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   font-size: 14px;
 }
 
@@ -73,10 +74,10 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px;
-  background: white;
+  background: var(--input-background);
   border-radius: 8px;
   margin-bottom: 12px;
-  border: 1px solid var(--border-color, #e5e7eb);
+  border: 1px solid var(--border-color);
   transition: all 0.2s;
 }
 
@@ -103,13 +104,13 @@
 .service-name {
   font-weight: 600;
   font-size: 16px;
-  color: var(--text-color, #1f2937);
+  color: var(--text-color);
   margin-bottom: 4px;
 }
 
 .service-description {
   font-size: 13px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .service-status {
@@ -135,39 +136,39 @@
   display: flex;
   justify-content: space-between;
   padding: 12px;
-  background: white;
+  background: var(--input-background);
   border-radius: 6px;
-  border: 1px solid var(--border-color, #e5e7eb);
+  border: 1px solid var(--border-color);
 }
 
 .info-label {
   font-weight: 600;
-  color: var(--text-color, #374151);
+  color: var(--text-color);
   font-size: 13px;
 }
 
 .info-value {
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   font-size: 13px;
 }
 
 .status-footer {
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid var(--border-color, #e5e7eb);
+  border-top: 1px solid var(--border-color);
   text-align: center;
 }
 
 .loading-spinner {
   text-align: center;
   padding: 40px;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
 }
 
 .error-message {
   text-align: center;
   padding: 40px;
-  color: var(--error-color, #ef4444);
+  color: var(--error-color);
 }
 
 /* Responsive */
