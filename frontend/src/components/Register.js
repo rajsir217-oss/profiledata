@@ -1392,59 +1392,6 @@ const Register = () => {
           </>
         )}
 
-        {/* Custom row for castePreference, eatingPreference, and location */}
-        <div className="row mb-3">
-          <div className="col-md-4">
-            <label className="form-label">Caste Preference</label>
-            <input 
-              type="text" 
-              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
-              name="castePreference" 
-              value={formData.castePreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-            />
-            {fieldErrors.castePreference && touchedFields.castePreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.castePreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Eating Preference</label>
-            <select 
-              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
-              name="eatingPreference" 
-              value={formData.eatingPreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-            >
-              <option value="">Select...</option>
-              <option value="Vegetarian">Vegetarian</option>
-              <option value="Eggetarian">Eggetarian</option>
-              <option value="Non-Veg">Non-Veg</option>
-              <option value="Others">Others</option>
-            </select>
-            {fieldErrors.eatingPreference && touchedFields.eatingPreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.eatingPreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Location</label>
-            <input 
-              type="text" 
-              className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
-              name="location" 
-              value={formData.location} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-            />
-            {fieldErrors.location && touchedFields.location && (
-              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
-            )}
-          </div>
-        </div>
         {/* Education History Section - Using Shared Component */}
         <EducationHistory
           educationHistory={formData.educationHistory}
@@ -1671,6 +1618,61 @@ const Register = () => {
           {fieldErrors.partnerPreference && touchedFields.partnerPreference && (
             <div className="invalid-feedback d-block">{fieldErrors.partnerPreference}</div>
           )}
+        </div>
+        
+        {/* Partner Preferences: Caste, Eating, Location */}
+        <div className="row mb-3">
+          <div className="col-md-4">
+            <label className="form-label">Caste Preference</label>
+            <input 
+              type="text" 
+              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
+              name="castePreference" 
+              value={formData.castePreference} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required 
+            />
+            {fieldErrors.castePreference && touchedFields.castePreference && (
+              <div className="invalid-feedback d-block">{fieldErrors.castePreference}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Eating Preference</label>
+            <select 
+              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
+              name="eatingPreference" 
+              value={formData.eatingPreference} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required
+            >
+              <option value="">Select...</option>
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Eggetarian">Eggetarian</option>
+              <option value="Non-Veg">Non-Veg</option>
+              <option value="Others">Others</option>
+            </select>
+            {fieldErrors.eatingPreference && touchedFields.eatingPreference && (
+              <div className="invalid-feedback d-block">{fieldErrors.eatingPreference}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Location Preference</label>
+            <input 
+              type="text" 
+              className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
+              name="location" 
+              value={formData.location} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required 
+              placeholder="e.g., New York, USA"
+            />
+            {fieldErrors.location && touchedFields.location && (
+              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
+            )}
+          </div>
         </div>
         
         {/* Age Preference - Relative to Your Age */}
