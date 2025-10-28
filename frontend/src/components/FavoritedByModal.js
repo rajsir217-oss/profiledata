@@ -13,6 +13,22 @@ const FavoritedByModal = ({ isOpen, onClose, username }) => {
     }
   }, [isOpen, username]);
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [isOpen, onClose]);
+
   const loadFavoritedBy = async () => {
     try {
       setLoading(true);
