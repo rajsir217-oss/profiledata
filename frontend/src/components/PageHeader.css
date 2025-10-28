@@ -1,0 +1,136 @@
+/* Page Header Component - Consistent across all pages */
+
+.page-header {
+  padding: var(--spacing-lg) var(--spacing-xl);
+  margin-bottom: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+}
+
+/* Gradient variant - Dashboard, Preferences style */
+.page-header-gradient {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+}
+
+/* Flat variant - Solid color */
+.page-header-flat {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+}
+
+/* Minimal variant - No background */
+.page-header-minimal {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.page-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.page-header-text {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.page-header-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.page-header-gradient .page-header-title {
+  color: white;
+}
+
+.page-header-flat .page-header-title,
+.page-header-minimal .page-header-title {
+  color: var(--text-color);
+}
+
+.page-header-subtitle {
+  font-size: 0.95rem;
+  margin: 0.5rem 0 0 0;
+  opacity: 0.9;
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.page-header-gradient .page-header-subtitle {
+  color: rgba(255, 255, 255, 0.95);
+}
+
+.page-header-flat .page-header-subtitle,
+.page-header-minimal .page-header-subtitle {
+  color: var(--text-secondary);
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    padding: var(--spacing-md) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+  }
+
+  .page-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+  }
+
+  .page-header-text {
+    width: 100%;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .page-header-title {
+    font-size: 1.5rem;
+  }
+
+  .page-header-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .page-header-icon {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: var(--spacing-sm);
+  }
+
+  .page-header-title {
+    font-size: 1.25rem;
+  }
+
+  .page-header-icon {
+    font-size: 1.25rem;
+  }
+}
