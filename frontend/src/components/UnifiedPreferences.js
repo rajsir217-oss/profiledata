@@ -15,9 +15,11 @@ const UnifiedPreferences = () => {
 
   // Admin Settings State
   const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
+  const [profileViewHistoryDays, setProfileViewHistoryDays] = useState(7);
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showProfileViewTooltip, setShowProfileViewTooltip] = useState(false);
   const [adminSettingsLoading, setAdminSettingsLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -173,11 +175,12 @@ const UnifiedPreferences = () => {
     try {
       setAdminSettingsLoading(true);
       const response = await api.get('/system-settings');
-      const days = response.data.ticket_delete_days;
-      setTicketDeleteDays(days !== undefined && days !== null ? days : 30);
+      const ticketDays = response.data.ticket_delete_days;
+      const profileViewDays = response.data.profile_view_history_days;
+      setTicketDeleteDays(ticketDays !== undefined && ticketDays !== null ? ticketDays : 30);
+      setProfileViewHistoryDays(profileViewDays !== undefined && profileViewDays !== null ? profileViewDays : 7);
     } catch (error) {
       console.error('Error loading admin settings:', error);
-      setTicketDeleteDays(30);
     } finally {
       setAdminSettingsLoading(false);
     }
@@ -189,7 +192,8 @@ const UnifiedPreferences = () => {
       setTicketSettingsMessage({ type: '', text: '' });
 
       await api.put('/system-settings', {
-        ticket_delete_days: ticketDeleteDays
+        ticket_delete_days: ticketDeleteDays,
+        profile_view_history_days: profileViewHistoryDays
       });
 
       setTicketSettingsMessage({ type: 'success', text: '✅ Settings saved successfully!' });
@@ -711,6 +715,105 @@ const UnifiedPreferences = () => {
                     <option value={30}>30 days after resolved (Recommended)</option>
                     <option value={60}>60 days after resolved</option>
                     <option value={90}>90 days after resolved</option>
+                  </select>
+                  
+                  <button
+                    onClick={handleSaveTicketSettings}
+                    disabled={savingTicketSettings}
+                    className="btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Profile View History Settings */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>👁️ Profile View History</h3>
+              <p>Configure how long profile view history is visible to users</p>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label htmlFor="profileViewHistoryDays" style={{ fontWeight: '600' }}>View History Retention</label>
+                  <div style={{ position: 'relative' }}>
+                    <span 
+                      onClick={() => setShowProfileViewTooltip(!showProfileViewTooltip)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '4px 8px',
+                        borderRadius: '50%',
+                        background: 'var(--info-light)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ℹ️
+                    </span>
+                    {showProfileViewTooltip && (
+                      <>
+                        <div 
+                          onClick={() => setShowProfileViewTooltip(false)}
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '0',
+                          marginTop: '8px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          minWidth: '300px',
+                          maxWidth: '400px'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: '8px' }}>How it works:</strong>
+                          <ul style={{ marginLeft: '20px', lineHeight: '1.6' }}>
+                            <li>Users can see who viewed their profile within this time period</li>
+                            <li>Older views are hidden but not deleted from the database</li>
+                            <li>Helps manage privacy and prevents stalking behavior</li>
+                            <li>Recommended: 7-14 days for active engagement</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Users will only see profile views from the last N days on their dashboard.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    id="profileViewHistoryDays"
+                    value={profileViewHistoryDays}
+                    onChange={(e) => setProfileViewHistoryDays(Number(e.target.value))}
+                    disabled={savingTicketSettings}
+                    className="form-control"
+                    style={{ flex: '1', minWidth: '250px' }}
+                  >
+                    <option value={1}>1 day (24 hours)</option>
+                    <option value={3}>3 days</option>
+                    <option value={7}>7 days (Recommended)</option>
+                    <option value={14}>14 days (2 weeks)</option>
+                    <option value={30}>30 days (1 month)</option>
+                    <option value={60}>60 days (2 months)</option>
+                    <option value={90}>90 days (3 months)</option>
                   </select>
                   
                   <button
