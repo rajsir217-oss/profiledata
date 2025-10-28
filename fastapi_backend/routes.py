@@ -3002,14 +3002,25 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
 
 @router.get("/their-favorites/{username}")
 async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
-    """Get users who have favorited the current user"""
+    """Get users who have favorited the current user (filtered by admin-configured days)"""
     logger.info(f"💖 Getting users who favorited {username}")
     
     try:
-        # Find all favorites where current user is the target
-        favorites = await db.favorites.find(
-            {"favoriteUsername": username}
-        ).sort("createdAt", -1).to_list(100)
+        # Get system settings for view history retention (applies to favorites too)
+        settings = await db.system_settings.find_one({}) or {}
+        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        
+        # Calculate cutoff date
+        from datetime import timedelta
+        cutoff_date = datetime.utcnow() - timedelta(days=view_history_days)
+        
+        logger.info(f"📅 Filtering favorites from last {view_history_days} days (since {cutoff_date.isoformat()})")
+        
+        # Find all favorites where current user is the target, within time window
+        favorites = await db.favorites.find({
+            "favoriteUsername": username,
+            "createdAt": {"$gte": cutoff_date}
+        }).sort("createdAt", -1).to_list(100)
         
         # Get user details
         user_usernames = [f["userUsername"] for f in favorites]
@@ -3211,13 +3222,28 @@ async def get_profile_views(
     limit: int = Query(50, ge=1, le=200),
     db = Depends(get_database)
 ):
-    """Get list of users who viewed this profile"""
+    """Get list of users who viewed this profile (filtered by admin-configured days)"""
     logger.info(f"📊 Getting profile views for {username}")
     
     try:
-        # Get all profile views for this user
+        # Get system settings for view history retention
+        settings = await db.system_settings.find_one({}) or {}
+        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        
+        # Calculate cutoff date
+        from datetime import timedelta
+        cutoff_date = datetime.utcnow() - timedelta(days=view_history_days)
+        
+        logger.info(f"📅 Filtering views from last {view_history_days} days (since {cutoff_date.isoformat()})")
+        
+        # Get profile views within the time window
         all_views = await db.profile_views.find({
-            "profileUsername": username
+            "profileUsername": username,
+            "$or": [
+                {"lastViewedAt": {"$gte": cutoff_date}},
+                {"viewedAt": {"$gte": cutoff_date}},
+                {"createdAt": {"$gte": cutoff_date}}
+            ]
         }).to_list(None)
         
         # Group by viewer to consolidate duplicates
