@@ -166,7 +166,7 @@ def generate_male_user(index: int) -> Dict:
     return {
         "username": username,
         "profileId": generate_unique_profile_id(),
-        "password": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BVw0r.9UO",  # "password123"
+        "password": "$2b$12$Fy/3LfGivzFvUwbsacowPe9PpSTD.Scaz8TMtjP8rr7sdxKfNUQ1q",  # "password123"
         "firstName": first_name,
         "lastName": last_name,
         "gender": "Male",
@@ -228,7 +228,7 @@ def generate_female_user(index: int) -> Dict:
     return {
         "username": username,
         "profileId": generate_unique_profile_id(),
-        "password": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5NU7BVw0r.9UO",  # "password123"
+        "password": "$2b$12$Fy/3LfGivzFvUwbsacowPe9PpSTD.Scaz8TMtjP8rr7sdxKfNUQ1q",  # "password123"
         "firstName": first_name,
         "lastName": last_name,
         "gender": "Female",
