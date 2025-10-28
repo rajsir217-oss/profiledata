@@ -61,11 +61,17 @@ async def get_system_health(db = Depends(get_database)):
             "details": str(e)
         }
     
-    # Firebase Configuration (frontend only, check if configured)
-    # Backend doesn't use Firebase directly, so we just report if it's expected
+    # Firebase Configuration (frontend only)
+    # Backend cannot check frontend env vars, so report based on backend env
+    # Check if Firebase admin credentials exist (for backend push notifications)
+    firebase_creds = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    firebase_project = os.getenv("FIREBASE_PROJECT_ID")
+    
+    firebase_configured = bool(firebase_creds or firebase_project)
+    
     health_data["services"]["firebase"] = {
-        "configured": True,  # Assuming configured if in production
-        "details": "Push notifications"
+        "configured": firebase_configured,
+        "details": "Push notifications (backend)" if firebase_configured else "Not configured - check browser console for frontend status"
     }
     
     # Storage Type
