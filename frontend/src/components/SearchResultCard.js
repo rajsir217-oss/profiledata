@@ -285,7 +285,7 @@ const SearchResultCard = ({
                         }}
                         title={piiStatus.text}
                       >
-                        {piiStatus.text}
+                        🔒
                       </button>
                     )}
                   </>
