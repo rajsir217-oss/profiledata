@@ -862,6 +862,24 @@ const Profile = () => {
                 </span>
               )}
             </h2>
+            {/* Username - visible to admin and profile owner only */}
+            {(isAdmin || isOwnProfile) && user.username && (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6c757d', 
+                margin: '5px 0 0 0',
+                fontFamily: 'monospace',
+                letterSpacing: '0.5px'
+              }}>
+                <strong>Username:</strong> <span style={{ 
+                  backgroundColor: '#e3f2fd', 
+                  padding: '3px 10px', 
+                  borderRadius: '4px',
+                  color: '#1976d2',
+                  fontWeight: '500'
+                }}>@{user.username}</span>
+              </p>
+            )}
             {user.profileId && (
               <p style={{ 
                 fontSize: '14px', 
@@ -1637,7 +1655,7 @@ const Profile = () => {
                 <ProfileImage
                   key={image.imageId || idx}
                   image={image}
-                  // viewerUsername={currentUsername}
+                  viewerUsername={currentUsername}
                   profileOwnerUsername={username}
                   isFavorited={isFavorited}
                   isShortlisted={isShortlisted}
