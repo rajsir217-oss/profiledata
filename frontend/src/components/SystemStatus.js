@@ -7,6 +7,13 @@ const SystemStatus = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Check frontend Firebase configuration
+  const frontendFirebaseConfigured = Boolean(
+    process.env.REACT_APP_FIREBASE_API_KEY &&
+    process.env.REACT_APP_FIREBASE_PROJECT_ID &&
+    process.env.REACT_APP_FIREBASE_VAPID_KEY
+  );
+
   useEffect(() => {
     loadSystemStatus();
     // Refresh every 30 seconds
@@ -154,14 +161,14 @@ const SystemStatus = () => {
           </div>
         </div>
 
-        {/* Firebase */}
+        {/* Firebase Backend */}
         <div className="service-status-item">
           <div className="service-info">
             <span className="service-icon">🔥</span>
             <div className="service-details">
-              <span className="service-name">Firebase</span>
+              <span className="service-name">Firebase (Backend)</span>
               <span className="service-description">
-                Push Notifications
+                Server-side Push Notifications
               </span>
             </div>
           </div>
@@ -175,6 +182,31 @@ const SystemStatus = () => {
               }}
             >
               {status?.services?.firebase?.configured ? '✅ Configured' : '⚠️ Not Configured'}
+            </span>
+          </div>
+        </div>
+
+        {/* Firebase Frontend */}
+        <div className="service-status-item">
+          <div className="service-info">
+            <span className="service-icon">🌐</span>
+            <div className="service-details">
+              <span className="service-name">Firebase (Frontend)</span>
+              <span className="service-description">
+                Browser Push Notifications
+              </span>
+            </div>
+          </div>
+          <div className="service-status">
+            <span 
+              
+              style={{ 
+                color: frontendFirebaseConfigured 
+                  ? 'var(--success-color, #10b981)' 
+                  : 'var(--error-color, #ef4444)' 
+              }}
+            >
+              {frontendFirebaseConfigured ? '✅ Configured' : '❌ Not Configured'}
             </span>
           </div>
         </div>
