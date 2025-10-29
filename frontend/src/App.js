@@ -1,11 +1,13 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// Registration and Profile pages (both versions available)
 import Register from './components/Register';
+import Register2 from './components/Register2';
+import EditProfile from './components/EditProfile';
 import Login from './components/Login';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
-import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
 import SearchPage from './components/SearchPage';
@@ -45,7 +47,7 @@ import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
-import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
+import { getApiUrl } from './config/apiConfig';
 import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
 import toastService from './services/toastService';
 
@@ -209,6 +211,7 @@ function App() {
               <Routes>
               {/* Public routes */}
               <Route path="/register" element={<Register />} />
+              <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/" element={<Login />} />
@@ -232,7 +235,8 @@ function App() {
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+              <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
+              <Route path="/edit-profile-old" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
