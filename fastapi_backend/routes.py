@@ -238,17 +238,22 @@ async def register_user(
     
     # Validate and save images
     image_paths = []
+    logger.info(f"📸 Images received: {len(images) if images else 0}")
+    for i, img in enumerate(images):
+        logger.info(f"  Image {i+1}: filename={img.filename}, content_type={img.content_type}, size={img.size if hasattr(img, 'size') else 'unknown'}")
+    
     if images and len(images) > 0:
         logger.info(f"📸 Processing {len(images)} image(s) for user '{username}'")
-        if len(images) > 5:
-            logger.warning(f"⚠️ Registration failed: User '{username}' tried to upload {len(images)} images (max 5)")
+        if len(images) > 6:
+            logger.warning(f"⚠️ User '{username}' attempted to upload {len(images)} images (max 6)")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Maximum 5 images allowed"
+                detail="Maximum 6 images allowed"
             )
         try:
             image_paths = await save_multiple_files(images)
             logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
+            logger.info(f"📂 Image paths: {image_paths}")
         except Exception as e:
             logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
             raise HTTPException(
@@ -376,6 +381,7 @@ async def register_user(
     # Insert into database
     try:
         logger.info(f"💾 Inserting user '{username}' into database...")
+        logger.info(f"📸 Images being saved to database: {user_data.get('images', [])}")
         result = await db.users.insert_one(user_data)
         logger.info(f"✅ User '{username}' successfully registered with ID: {result.inserted_id}")
     except Exception as e:

@@ -71,8 +71,8 @@
   white-space: nowrap;
 }
 
-/* Tab Content */
-.tab-content {
+/* Tab Content - scoped to avoid Bootstrap conflicts */
+.notification-management .tab-content {
   animation: fadeIn 0.3s ease;
 }
 
