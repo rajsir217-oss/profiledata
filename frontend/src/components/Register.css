@@ -1,8 +1,9 @@
 /* Register Page Optimizations */
 .register-container {
-  width: 80%;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  max-width: none !important;
 }
 
 /* Disable hover animation for register card */
@@ -207,8 +208,9 @@
 /* Responsive */
 @media (max-width: 768px) {
   .register-container {
-    width: 95%;
-    padding: 15px;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .register-card {
