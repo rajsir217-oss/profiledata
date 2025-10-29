@@ -17,6 +17,7 @@ const UnifiedPreferences = () => {
   // Admin Settings State
   const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
   const [profileViewHistoryDays, setProfileViewHistoryDays] = useState(7);
+  const [enableL3V3LForAll, setEnableL3V3LForAll] = useState(true);
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
   const [showTooltip, setShowTooltip] = useState(false);
@@ -178,8 +179,10 @@ const UnifiedPreferences = () => {
       const response = await api.get('/system-settings');
       const ticketDays = response.data.ticket_delete_days;
       const profileViewDays = response.data.profile_view_history_days;
+      const enableL3V3L = response.data.enable_l3v3l_for_all;
       setTicketDeleteDays(ticketDays !== undefined && ticketDays !== null ? ticketDays : 30);
       setProfileViewHistoryDays(profileViewDays !== undefined && profileViewDays !== null ? profileViewDays : 7);
+      setEnableL3V3LForAll(enableL3V3L !== undefined && enableL3V3L !== null ? enableL3V3L : true);
     } catch (error) {
       console.error('Error loading admin settings:', error);
     } finally {
@@ -194,7 +197,8 @@ const UnifiedPreferences = () => {
 
       await api.put('/system-settings', {
         ticket_delete_days: ticketDeleteDays,
-        profile_view_history_days: profileViewHistoryDays
+        profile_view_history_days: profileViewHistoryDays,
+        enable_l3v3l_for_all: enableL3V3LForAll
       });
 
       setTicketSettingsMessage({ type: 'success', text: '✅ Settings saved successfully!' });
@@ -729,6 +733,53 @@ const UnifiedPreferences = () => {
                   >
                     {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* L3V3L Algorithm Feature Toggle */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>🦋 L3V3L Compatibility Algorithm</h3>
+              <p>Control access to AI-powered compatibility scoring feature</p>
+              
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--hover-background)', borderRadius: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="enableL3V3L" style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                      Enable L3V3L for All Users
+                    </label>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      When enabled, all users can filter search results by L3V3L compatibility score. Disable to make this a premium-only feature.
+                    </p>
+                  </div>
+                  <label className="switch" style={{ marginLeft: 'auto' }}>
+                    <input
+                      id="enableL3V3L"
+                      type="checkbox"
+                      checked={enableL3V3LForAll}
+                      onChange={(e) => setEnableL3V3LForAll(e.target.checked)}
+                      disabled={savingTicketSettings}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+                
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  background: enableL3V3LForAll ? 'var(--success-light)' : 'var(--warning-light)', 
+                  borderRadius: '8px',
+                  fontSize: '0.9rem'
+                }}>
+                  <strong>Current Status:</strong> {enableL3V3LForAll ? '✅ Available to all users (Testing Phase)' : '🔒 Premium users only'}
+                  <br />
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {enableL3V3LForAll 
+                      ? 'Use this setting to collect user feedback before deciding on premium monetization.' 
+                      : 'Only users with premium subscription can use L3V3L compatibility filtering.'}
+                  </span>
                 </div>
               </div>
             </div>

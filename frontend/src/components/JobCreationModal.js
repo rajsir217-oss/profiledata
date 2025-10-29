@@ -75,6 +75,11 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
         });
         setFormData(prev => ({ ...prev, parameters: defaultParams }));
       }
+      
+      // Auto-fill job name with template name in create mode (if name is empty)
+      if (!isEditMode && template?.name && !formData.name) {
+        setFormData(prev => ({ ...prev, name: template.name }));
+      }
     }
   }, [formData.template_type, templates, isEditMode]);
 
