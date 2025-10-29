@@ -443,9 +443,9 @@ const SearchResultCard = ({
             {getDisplayName(user)}
           </h6>
           <div className="card-title-badges">
-            {user.matchScore != null && (
-              <span className="l3v3l-match-badge" title={user.compatibilityLevel}>
-                L3V3L MATCH • {Math.round(user.matchScore * 10) / 10}%
+            {user.matchScore && Number(user.matchScore) > 0 && (
+              <span className="l3v3l-match-badge" title={user.compatibilityLevel || `${user.matchScore}% compatibility`}>
+                🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
               </span>
             )}
             {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge} years</span>}

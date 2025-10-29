@@ -215,16 +215,16 @@ const Profile = () => {
         if (response.data && response.data.matchScore) {
           setL3v3lMatchData({
             overall: response.data.matchScore,
-            love: response.data.breakdown?.love || 0,
-            loyalty: response.data.breakdown?.loyalty || 0,
-            laughter: response.data.breakdown?.laughter || 0,
-            vulnerability: response.data.breakdown?.vulnerability || 0,
-            elevation: response.data.breakdown?.elevation || 0,
+            compatibilityLevel: response.data.compatibilityLevel || 'Good Match',
+            gender: response.data.breakdown?.gender || 0,
+            l3v3l_pillars: response.data.breakdown?.l3v3l_pillars || 0,
             demographics: response.data.breakdown?.demographics || 0,
-            career: response.data.breakdown?.career || 0,
-            cultural: response.data.breakdown?.cultural || 0,
-            physical: response.data.breakdown?.physical || 0,
-            lifestyle: response.data.breakdown?.lifestyle || 0
+            partner_preferences: response.data.breakdown?.partner_preferences || 0,
+            habits_personality: response.data.breakdown?.habits_personality || 0,
+            career_education: response.data.breakdown?.career_education || 0,
+            physical_attributes: response.data.breakdown?.physical_attributes || 0,
+            cultural_factors: response.data.breakdown?.cultural_factors || 0,
+            matchReasons: response.data.matchReasons || []
           });
           console.log('✅ L3V3L match data loaded:', response.data);
         }

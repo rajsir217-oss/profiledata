@@ -140,9 +140,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       },
             { 
         icon: '🦋', 
-        label: 'My L3V3L Matches', 
-        subLabel: 'Love, Loyalty, Laughter+',
-        action: () => navigate('/l3v3l-matches'),
+        label: 'L3V3L Info', 
+        subLabel: 'How compatibility works',
+        action: () => navigate('/l3v3l-info'),
         disabled: !isActive
       },
 
