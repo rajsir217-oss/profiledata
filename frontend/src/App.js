@@ -91,7 +91,11 @@ function App() {
           applyTheme(themeId);
           // Theme loaded from database
         } catch (error) {
-          // Using default theme due to API error
+          // If 401, the interceptor will redirect to login
+          // For other errors, use default theme
+          if (error.response?.status !== 401) {
+            console.warn('Failed to load theme preferences, using default');
+          }
           applyTheme('light-blue');
         }
       } else {
