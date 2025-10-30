@@ -2380,6 +2380,61 @@ const Register = () => {
           </div>
         </div>
 
+        {/* Interests */}
+        <div className="mb-3">
+          <label className="form-label">Interests & Hobbies</label>
+          <input
+            type="text"
+            className={`form-control ${fieldErrors.interests && touchedFields.interests ? 'is-invalid' : ''}`}
+            name="interests"
+            value={formData.interests}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="e.g., Reading, Hiking, Cooking, Travel"
+          />
+          <small className="text-muted">Separate with commas</small>
+          {fieldErrors.interests && touchedFields.interests && (
+            <div className="invalid-feedback d-block">{fieldErrors.interests}</div>
+          )}
+        </div>
+
+        {/* Languages */}
+        <div className="mb-3">
+          <label className="form-label">Languages Spoken</label>
+          <input
+            type="text"
+            className={`form-control ${fieldErrors.languages && touchedFields.languages ? 'is-invalid' : ''}`}
+            name="languages"
+            value={formData.languages}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder="e.g., English, Spanish, Hindi"
+          />
+          <small className="text-muted">Separate with commas</small>
+          {fieldErrors.languages && touchedFields.languages && (
+            <div className="invalid-feedback d-block">{fieldErrors.languages}</div>
+          )}
+        </div>
+
+        {/* Bio */}
+        <div className="mb-3">
+          <label className="form-label">Bio / Tagline</label>
+          <textarea
+            className={`form-control ${fieldErrors.bio && touchedFields.bio ? 'is-invalid' : ''}`}
+            name="bio"
+            value={formData.bio}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            rows={3}
+            placeholder="A short tagline about yourself..."
+            maxLength={200}
+          />
+          <small className="text-muted">{formData.bio.length}/200 characters</small>
+          {fieldErrors.bio && touchedFields.bio && (
+            <div className="invalid-feedback d-block">{fieldErrors.bio}</div>
+          )}
+        </div>
+
         {/* Image Upload */}
         <h5 className="mt-4 mb-3 text-primary">Profile Images</h5>
         <div className="mb-3">
