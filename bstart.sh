@@ -65,16 +65,5 @@ echo "Press Ctrl+C to stop..."
 echo "================================"
 echo ""
 
-<<<<<<< HEAD
-<<<<<<< HEAD:startb.sh
-# Start the server with verbose logging (use socket_app for WebSocket support)
-=======
-# Start the server with verbose logging (using socket_app for WebSocket support)
-# uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level trace
-
->>>>>>> dev:bstart.sh
-uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level debug
-=======
 # Start with appropriate log level for development
 uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level info
->>>>>>> dev
