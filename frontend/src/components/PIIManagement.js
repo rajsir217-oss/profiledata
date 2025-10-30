@@ -4,10 +4,10 @@ import api from '../api';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
 import PageHeader from './PageHeader';
 import ImageManagerModal from './ImageManagerModal';
+import UniversalTabContainer from './UniversalTabContainer';
 import './PIIManagement.css';
 
 const PIIManagement = () => {
-  const [activeTab, setActiveTab] = useState('granted');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -32,12 +32,11 @@ const PIIManagement = () => {
   const currentUsername = localStorage.getItem('username');
 
   // Handle tab change with backend refresh
-  const handleTabChange = async (tabName) => {
-    console.log(`🔄 Switching to tab: ${tabName} - Refreshing data from backend...`);
-    setActiveTab(tabName);
+  const handleTabChange = async (tabId) => {
+    console.log(`🔄 Switching to tab: ${tabId} - Refreshing data from backend...`);
     setLoading(true); // Show loading state
     await loadAllData(); // Refresh data from backend
-    console.log(`✅ Tab ${tabName} data refreshed`);
+    console.log(`✅ Tab ${tabId} data refreshed`);
   };
 
   const loadAllData = useCallback(async () => {
@@ -583,45 +582,18 @@ const PIIManagement = () => {
         }
       />
 
-      {/* Tabs */}
-      <div className="pii-tabs">
-        <button
-          className={`pii-tab ${activeTab === 'granted' ? 'active' : ''}`}
-          onClick={() => handleTabChange('granted')}
-        >
-          <span className="tab-icon">🔓</span>
-          <span className="tab-label">Access I've Granted</span>
-          <span className="tab-count">{grantedAccess.length}</span>
-        </button>
-        <button
-          className={`pii-tab ${activeTab === 'received' ? 'active' : ''}`}
-          onClick={() => handleTabChange('received')}
-        >
-          <span className="tab-icon">✅</span>
-          <span className="tab-label">Access I Have</span>
-          <span className="tab-count">{receivedAccess.length}</span>
-        </button>
-        <button
-          className={`pii-tab ${activeTab === 'requests' ? 'active' : ''}`}
-          onClick={() => handleTabChange('requests')}
-        >
-          <span className="tab-icon">📬</span>
-          <span className="tab-label">Pending Requests</span>
-          <span className="tab-count">{incomingRequests.length + outgoingRequests.length}</span>
-        </button>
-        <button
-          className={`pii-tab ${activeTab === 'history' ? 'active' : ''}`}
-          onClick={() => handleTabChange('history')}
-        >
-          <span className="tab-icon">📜</span>
-          <span className="tab-label">History</span>
-          <span className="tab-count">{revokedAccess.length + rejectedIncoming.length + rejectedOutgoing.length}</span>
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="pii-tab-content">
-        {activeTab === 'granted' && (
+      {/* Tabs - Using UniversalTabContainer */}
+      <UniversalTabContainer
+        variant="underlined"
+        defaultTab="granted"
+        onTabChange={handleTabChange}
+        tabs={[
+          {
+            id: 'granted',
+            icon: '🔓',
+            label: "Access I've Granted",
+            badge: grantedAccess.length,
+            content: (
           <div className="tab-panel active">
             <div className="panel-header">
               <h3>People Who Can See Your Information</h3>
@@ -638,9 +610,14 @@ const PIIManagement = () => {
               </div>
             )}
           </div>
-        )}
-
-        {activeTab === 'received' && (
+            )
+          },
+          {
+            id: 'received',
+            icon: '✅',
+            label: 'Access I Have',
+            badge: receivedAccess.length,
+            content: (
           <div className="tab-panel active">
             <div className="panel-header">
               <h3>Information You Can Access</h3>
@@ -657,9 +634,14 @@ const PIIManagement = () => {
               </div>
             )}
           </div>
-        )}
-
-        {activeTab === 'requests' && (
+            )
+          },
+          {
+            id: 'requests',
+            icon: '📬',
+            label: 'Pending Requests',
+            badge: incomingRequests.length + outgoingRequests.length,
+            content: (
           <div className="tab-panel active">
             {/* Incoming Requests */}
             <div className="requests-section">
@@ -695,9 +677,14 @@ const PIIManagement = () => {
               )}
             </div>
           </div>
-        )}
-
-        {activeTab === 'history' && (
+            )
+          },
+          {
+            id: 'history',
+            icon: '📜',
+            label: 'History',
+            badge: revokedAccess.length + rejectedIncoming.length + rejectedOutgoing.length,
+            content: (
           <div className="tab-panel active">
             {/* Revoked Access */}
             <div className="requests-section">
@@ -866,8 +853,10 @@ const PIIManagement = () => {
               )}
             </div>
           </div>
-        )}
-      </div>
+            )
+          }
+        ]}
+      />
       
       {/* ImageManager Modal for photo access grants */}
       {showImageManager && selectedRequest && (
