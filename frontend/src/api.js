@@ -29,18 +29,28 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || 'unknown';
-      console.warn('🔒 401 Unauthorized received from:', url);
-      console.warn('   This means the JWT token is invalid or expired');
-      console.warn('   Clearing session and redirecting to login...');
+      
+      // Only log once per session to avoid spam
+      const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+      if (!hasLoggedOut) {
+        console.warn('🔒 Session expired or invalid token');
+        console.warn('📍 Endpoint:', url);
+        console.warn('➡️  Redirecting to login...');
+        sessionStorage.setItem('hasLoggedOut', 'true');
+      }
+      
       // Clear all auth data
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userRole');
       localStorage.removeItem('userStatus');
-      // Small delay to ensure storage is cleared
-      setTimeout(() => {
-        window.location.href = '/login';
-      }, 100);
+      
+      // Only redirect if not already on login page
+      if (!window.location.pathname.includes('/login')) {
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 100);
+      }
     }
     return Promise.reject(error);
   }

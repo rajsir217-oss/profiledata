@@ -33,10 +33,11 @@ class SocketService {
     // Connect to Socket.IO server with username as query parameter
     this.socket = io(socketUrl, {
       path: '/socket.io',
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'], // Try polling first, then upgrade to websocket
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionAttempts: 10,
+      timeout: 10000, // Increase timeout to 10 seconds
       query: {
         username: username
       }
@@ -66,6 +67,11 @@ class SocketService {
 
     this.socket.on('connect_error', (error) => {
       logger.error('Socket connection error:', error.message);
+      logger.error('Connection details:', {
+        url: socketUrl,
+        transport: this.socket.io.engine ? this.socket.io.engine.transport.name : 'none',
+        connected: this.connected
+      });
     });
 
     // Online status events
