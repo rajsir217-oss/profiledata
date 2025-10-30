@@ -265,7 +265,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
-            <span className="logo-text">L3V3L</span>
+            <span className="logo-text">🦋 L3V3L</span>
           </div>
           {onlineCount > 0 && (
             <div className="online-indicator">
