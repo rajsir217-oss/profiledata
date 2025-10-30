@@ -215,16 +215,16 @@ const Profile = () => {
         if (response.data && response.data.matchScore) {
           setL3v3lMatchData({
             overall: response.data.matchScore,
-            love: response.data.breakdown?.love || 0,
-            loyalty: response.data.breakdown?.loyalty || 0,
-            laughter: response.data.breakdown?.laughter || 0,
-            vulnerability: response.data.breakdown?.vulnerability || 0,
-            elevation: response.data.breakdown?.elevation || 0,
+            compatibilityLevel: response.data.compatibilityLevel || 'Good Match',
+            gender: response.data.breakdown?.gender || 0,
+            l3v3l_pillars: response.data.breakdown?.l3v3l_pillars || 0,
             demographics: response.data.breakdown?.demographics || 0,
-            career: response.data.breakdown?.career || 0,
-            cultural: response.data.breakdown?.cultural || 0,
-            physical: response.data.breakdown?.physical || 0,
-            lifestyle: response.data.breakdown?.lifestyle || 0
+            partner_preferences: response.data.breakdown?.partner_preferences || 0,
+            habits_personality: response.data.breakdown?.habits_personality || 0,
+            career_education: response.data.breakdown?.career_education || 0,
+            physical_attributes: response.data.breakdown?.physical_attributes || 0,
+            cultural_factors: response.data.breakdown?.cultural_factors || 0,
+            matchReasons: response.data.matchReasons || []
           });
           console.log('✅ L3V3L match data loaded:', response.data);
         }
@@ -862,6 +862,24 @@ const Profile = () => {
                 </span>
               )}
             </h2>
+            {/* Username - visible to admin and profile owner only */}
+            {(isAdmin || isOwnProfile) && user.username && (
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6c757d', 
+                margin: '5px 0 0 0',
+                fontFamily: 'monospace',
+                letterSpacing: '0.5px'
+              }}>
+                <strong>Username:</strong> <span style={{ 
+                  backgroundColor: '#e3f2fd', 
+                  padding: '3px 10px', 
+                  borderRadius: '4px',
+                  color: '#1976d2',
+                  fontWeight: '500'
+                }}>@{user.username}</span>
+              </p>
+            )}
             {user.profileId && (
               <p style={{ 
                 fontSize: '14px', 
@@ -1341,60 +1359,6 @@ const Profile = () => {
         )}
       </div>
 
-      {/* Date of Birth (PII Protected) */}
-      <div className="profile-section">
-        <div className="section-header-with-edit">
-          <h3>🎂 Date of Birth</h3>
-          {isOwnProfile && editingSection === 'dateOfBirth' && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <button 
-                className="btn-save-section"
-                onClick={() => handleSaveEdit('dateOfBirth')}
-                disabled={savingSection === 'dateOfBirth'}
-              >
-                {savingSection === 'dateOfBirth' ? '💾 Saving...' : '💾 Save'}
-              </button>
-              <button 
-                className="btn-cancel-section"
-                onClick={handleCancelEdit}
-                disabled={savingSection === 'dateOfBirth'}
-              >
-                ✕ Cancel
-              </button>
-            </div>
-          )}
-        </div>
-        {isOwnProfile || piiAccess.date_of_birth ? (
-          editingSection === 'dateOfBirth' ? (
-            <div className="inline-edit-form">
-              <div className="form-row">
-                <div className="form-group">
-                  <label><strong>Date of Birth:</strong></label>
-                  <input type="date" name="dateOfBirth" value={editFormData.dateOfBirth || ''} onChange={handleEditChange} className="form-control" />
-                </div>
-              </div>
-              <p style={{ marginTop: '12px', fontSize: '14px', color: 'var(--text-secondary, #666)' }}>Current Age: {editFormData.dateOfBirth ? calculateAge(editFormData.dateOfBirth) : 'N/A'} years</p>
-            </div>
-          ) : (
-            <div className="profile-info">
-              <p><strong>Date of Birth:</strong> {user.dateOfBirth ? new Date(user.dateOfBirth).toLocaleDateString() : 'Not provided'}</p>
-              {age && <p><strong>Age:</strong> {age} years</p>}
-            </div>
-          )
-        ) : (
-          <div className="pii-locked">
-            <div className="lock-icon">🔒</div>
-            <p>Date of birth is private (Age: {age || 'Unknown'})</p>
-            <button
-              className="btn-request-small"
-              onClick={() => setShowPIIRequestModal(true)}
-            >
-              Request Access
-            </button>
-          </div>
-        )}
-      </div>
-
       {/* Preferences & Background (Always visible) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
@@ -1842,7 +1806,7 @@ const Profile = () => {
         <MessageModal
           isOpen={showMessageModal}
           onClose={() => setShowMessageModal(false)}
-          recipient={user}
+          profile={user}
         />
       )}
 

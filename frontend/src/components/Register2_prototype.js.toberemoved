@@ -1,0 +1,205 @@
+import React, { useState } from "react";
+// import { useNavigate } from "react-router-dom"; // Will be used for redirecting after registration
+import TabContainer from "./TabContainer";
+import Logo from "./Logo";
+import "./Register.css";
+
+const Register2 = () => {
+  // const navigate = useNavigate(); // Uncomment when implementing form submission
+  const [formData, setFormData] = useState({
+    username: "",
+    password: "",
+    firstName: "",
+    lastName: "",
+    email: ""
+  });
+  const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+
+  // Calculate progress for each tab
+  const calculateProgress = (tabId) => {
+    if (tabId === 'about-me') {
+      let filled = 0;
+      if (formData.username) filled++;
+      if (formData.password) filled++;
+      if (formData.firstName) filled++;
+      if (formData.lastName) filled++;
+      if (formData.email) filled++;
+      return Math.round((filled / 5) * 100);
+    }
+    if (tabId === 'background') return 30;
+    if (tabId === 'partner-preferences') return 20;
+    return 0;
+  };
+
+  // Validate tab before switching
+  const validateTab = async (tabId) => {
+    const errors = {};
+    if (tabId === 'about-me') {
+      if (!formData.username) errors.username = "Required";
+      if (!formData.password) errors.password = "Required";
+    }
+    return errors;
+  };
+
+  // Auto-save on tab switch
+  const handleAutoSave = async (tabId) => {
+    console.log(`Auto-saving ${tabId}...`);
+    localStorage.setItem('register2Draft', JSON.stringify(formData));
+  };
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Form submitted:", formData);
+  };
+
+  // Tab 1: About Me
+  const renderAboutMeTab = () => (
+    <div className="tab-section">
+      <h3 className="section-title">👤 Personal Information</h3>
+      
+      <div className="row mb-3">
+        <div className="col-md-6">
+          <label className="form-label">Username *</label>
+          <input
+            type="text"
+            className="form-control"
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            placeholder="Choose a username"
+          />
+        </div>
+        <div className="col-md-6">
+          <label className="form-label">Password *</label>
+          <input
+            type="password"
+            className="form-control"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            placeholder="Enter password"
+          />
+        </div>
+      </div>
+
+      <div className="row mb-3">
+        <div className="col-md-4">
+          <label className="form-label">First Name *</label>
+          <input
+            type="text"
+            className="form-control"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <label className="form-label">Last Name *</label>
+          <input
+            type="text"
+            className="form-control"
+            name="lastName"
+            value={formData.lastName}
+            onChange={handleChange}
+          />
+        </div>
+        <div className="col-md-4">
+          <label className="form-label">Email *</label>
+          <input
+            type="email"
+            className="form-control"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+          />
+        </div>
+      </div>
+
+      <div className="alert alert-info">
+        <strong>✨ New Tabbed Design!</strong> Navigate between tabs to complete your profile.
+        Progress is auto-saved on each tab switch.
+      </div>
+    </div>
+  );
+
+  // Tab 2: Background
+  const renderBackgroundTab = () => (
+    <div className="tab-section">
+      <h3 className="section-title">🎓 Background & Experience</h3>
+      <div className="alert alert-secondary">
+        Education, work experience, and family background fields will go here.
+      </div>
+    </div>
+  );
+
+  // Tab 3: Partner Preferences
+  const renderPartnerPreferencesTab = () => (
+    <div className="tab-section">
+      <h3 className="section-title">💕 Partner Preferences</h3>
+      <div className="alert alert-secondary">
+        Partner criteria and preferences will go here.
+      </div>
+    </div>
+  );
+
+  const tabs = [
+    {
+      id: 'about-me',
+      label: 'About Me',
+      icon: '👤',
+      content: renderAboutMeTab()
+    },
+    {
+      id: 'background',
+      label: 'Background & Experience',
+      icon: '🎓',
+      content: renderBackgroundTab()
+    },
+    {
+      id: 'partner-preferences',
+      label: 'Partner Preferences',
+      icon: '💕',
+      content: renderPartnerPreferencesTab()
+    }
+  ];
+
+  return (
+    <div className="register-container">
+      <div className="text-center mb-4">
+        <Logo />
+        <h2 className="mt-3">Create Your Profile (New Tabbed Design)</h2>
+        <p className="text-muted">Complete each section to find your perfect match</p>
+      </div>
+
+      {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+      {successMsg && <div className="alert alert-success">{successMsg}</div>}
+
+      <form onSubmit={handleSubmit}>
+        <TabContainer
+          tabs={tabs}
+          calculateProgress={calculateProgress}
+          validateTab={validateTab}
+          onAutoSave={handleAutoSave}
+          enableAutoSave={true}
+        />
+
+        <div className="mt-4 text-center">
+          <button type="submit" className="btn btn-primary btn-lg px-5">
+            Complete Registration
+          </button>
+          <br />
+          <small className="text-muted mt-2 d-block">
+            Already have an account? <a href="/login">Login here</a>
+          </small>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default Register2;

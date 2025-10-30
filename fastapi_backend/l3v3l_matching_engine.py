@@ -288,8 +288,12 @@ class L3V3LMatchingEngine:
         if 'ageRange' in criteria:
             age = self._calculate_age(profile.get('dateOfBirth'))
             if age:
-                min_age = criteria['ageRange'].get('min', 18)
-                max_age = criteria['ageRange'].get('max', 100)
+                # Convert to int to handle string values from MongoDB
+                # Handle empty strings by using defaults
+                min_age_val = criteria['ageRange'].get('min', 18)
+                max_age_val = criteria['ageRange'].get('max', 100)
+                min_age = int(min_age_val) if min_age_val not in ['', None] else 18
+                max_age = int(max_age_val) if max_age_val not in ['', None] else 100
                 if min_age <= age <= max_age:
                     score += 1.0
                 elif min_age - 2 <= age <= max_age + 2:
@@ -411,8 +415,12 @@ class L3V3LMatchingEngine:
         work2 = self._analyze_profession(user2)
         
         if work1 and work2:
-            # Stress level compatibility
-            stress_diff = abs(work1['stress'] - work2['stress'])
+            # Stress level compatibility (convert to int to handle any string values)
+            stress1_val = work1.get('stress', 5)
+            stress2_val = work2.get('stress', 5)
+            stress1 = int(stress1_val) if stress1_val not in ['', None] else 5
+            stress2 = int(stress2_val) if stress2_val not in ['', None] else 5
+            stress_diff = abs(stress1 - stress2)
             if stress_diff <= 2:
                 score += 1.0  # Similar stress levels
             elif stress_diff <= 4:
@@ -460,27 +468,36 @@ class L3V3LMatchingEngine:
         height2 = self._height_to_inches(user2.get('height', ''))
         
         if height1 and height2:
-            # Assuming male should be taller (traditional preference)
-            if user1.get('gender') == 'Male':
-                height_diff = height1 - height2
+            # _height_to_inches returns float, convert to int for comparison
+            try:
+                height1 = int(height1)
+                height2 = int(height2)
+            except (ValueError, TypeError):
+                # Skip height comparison if conversion fails
+                pass
             else:
-                height_diff = height2 - height1
-            
-            if 1 <= height_diff <= 3:
-                score += 1.0  # Perfect range
-            elif 0 <= height_diff <= 5:
-                score += 0.8  # Acceptable
-            elif height_diff < 0:
-                score += 0.5  # Female taller (less preferred traditionally)
-            else:
-                score += 0.6  # More than 5 inches difference
-            factors += 1
+                # Assuming male should be taller (traditional preference)
+                if user1.get('gender') == 'Male':
+                    height_diff = height1 - height2
+                else:
+                    height_diff = height2 - height1
+                
+                if 1 <= height_diff <= 3:
+                    score += 1.0  # Perfect range
+                elif 0 <= height_diff <= 5:
+                    score += 0.8  # Acceptable
+                elif height_diff < 0:
+                    score += 0.5  # Female taller (less preferred traditionally)
+                else:
+                    score += 0.6  # More than 5 inches difference
+                factors += 1
         
         # 2. Age compatibility (-1 to +3 years)
         age1 = self._calculate_age(user1.get('dateOfBirth'))
         age2 = self._calculate_age(user2.get('dateOfBirth'))
         
         if age1 and age2:
+            # _calculate_age returns int, already validated
             # Assuming male should be slightly older or same age
             if user1.get('gender') == 'Male':
                 age_diff = age1 - age2
@@ -575,32 +592,32 @@ class L3V3LMatchingEngine:
     
     def _height_to_inches(self, height_str: str) -> Optional[float]:
         """Convert height string to inches"""
-        if not height_str:
+        if not height_str or height_str.strip() == '':
             return None
         try:
             # Parse formats: 5'8", 5 ft 8 in, 170cm
             if '"' in height_str or "'" in height_str:
                 # Format: 5'8"
                 match = re.search(r"(\d+)'(\d+)", height_str)
-                if match:
+                if match and match.group(1) and match.group(2):
                     feet = int(match.group(1))
                     inches = int(match.group(2))
                     return feet * 12 + inches
             elif 'ft' in height_str.lower():
                 # Format: 5 ft 8 in
                 match = re.search(r"(\d+)\s*ft\s*(\d+)", height_str.lower())
-                if match:
+                if match and match.group(1) and match.group(2):
                     feet = int(match.group(1))
                     inches = int(match.group(2))
                     return feet * 12 + inches
             elif 'cm' in height_str.lower():
                 # Format: 170cm
                 match = re.search(r"(\d+)", height_str)
-                if match:
+                if match and match.group(1):
                     cm = int(match.group(1))
                     return cm / 2.54  # Convert cm to inches
-        except:
-            pass
+        except (ValueError, TypeError, AttributeError) as e:
+            logger.debug(f"Failed to parse height '{height_str}': {e}")
         return None
     
     def _get_education_numeric(self, user: Dict) -> Optional[int]:

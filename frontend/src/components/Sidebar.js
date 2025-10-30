@@ -138,15 +138,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         disabled: false, // Always enabled - users need to access their profile
         profileImage: true // Flag to render profile image instead of icon
       },
-            { 
-        icon: '🦋', 
-        label: 'My L3V3L Matches', 
-        subLabel: 'Love, Loyalty, Laughter+',
-        action: () => navigate('/l3v3l-matches'),
-        disabled: !isActive
-      },
-
-
       { 
         icon: '🔍', 
         label: 'Search Profiles', 

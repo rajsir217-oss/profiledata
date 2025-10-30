@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import PageHeader from './PageHeader';
 import './NotificationManagement.css';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
 
 const NotificationManagement = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'templates'
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(() => {
+    // Check URL param for initial tab
+    const tabParam = searchParams.get('tab');
+    return tabParam === 'templates' ? 'templates' : 'queue';
+  });
 
   // Admin-only protection
   useEffect(() => {
@@ -18,18 +24,20 @@ const NotificationManagement = () => {
   }, [navigate]);
 
   const tabs = [
-    { id: 'queue', label: '📋 Event Queue', icon: '📋' },
-    { id: 'templates', label: '📧 Templates', icon: '📧' }
+    { id: 'queue', label: 'Event Queue', icon: '📋' },
+    { id: 'templates', label: 'Templates', icon: '📧' }
   ];
 
   return (
     <div className="notification-management">
       {/* Toast notifications handled by ToastContainer in App.js */}
       
-      <div className="notification-management-header">
-        <h1>🔔 Notification Management</h1>
-        <p className="subtitle">Manage notification queue and email/SMS templates</p>
-      </div>
+      <PageHeader
+        icon="🔔"
+        title="Notification Management"
+        subtitle="Manage notification queue and email/SMS templates"
+        variant="gradient"
+      />
 
       {/* Tab Navigation */}
       <div className="tabs-container">

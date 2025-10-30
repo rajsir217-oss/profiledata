@@ -391,9 +391,8 @@
   border-bottom-color: var(--primary-color);
 }
 
-.tab-content {
-  animation: fadeIn var(--transition-base);
-}
+/* .tab-content animation removed - conflicts with Bootstrap */
+/* Each component should scope their own .tab-content animations */
 
 /* ========================================
    ALERT COMPONENTS

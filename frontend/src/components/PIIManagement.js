@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
+import PageHeader from './PageHeader';
 import ImageManagerModal from './ImageManagerModal';
 import './PIIManagement.css';
 
@@ -555,30 +556,32 @@ const PIIManagement = () => {
         </div>
       )}
 
-      <div className="pii-header">
-        <div className="pii-header-content">
-          <div>
-            <h2>🔒 Privacy & Data Management</h2>
-            <p>Manage who can access your private information</p>
-          </div>
-          <div className="view-toggle">
+      <PageHeader
+        icon="🔒"
+        title="Privacy & Data Management"
+        subtitle="Manage who can access your private information"
+        variant="gradient"
+        actions={
+          <div className="view-mode-toggle">
             <button
-              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
               onClick={() => setViewMode('cards')}
-              title="Card view"
+              title="Card View"
             >
-              ▦
+              <span>⊞</span>
+              <span>Cards</span>
             </button>
             <button
-              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
               onClick={() => setViewMode('rows')}
-              title="Row view"
+              title="Row View"
             >
-              ☰
+              <span>☰</span>
+              <span>Rows</span>
             </button>
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Tabs */}
       <div className="pii-tabs">
@@ -619,7 +622,7 @@ const PIIManagement = () => {
       {/* Tab Content */}
       <div className="pii-tab-content">
         {activeTab === 'granted' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             <div className="panel-header">
               <h3>People Who Can See Your Information</h3>
               <p>You've granted these users access to your private data</p>
@@ -638,7 +641,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'received' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             <div className="panel-header">
               <h3>Information You Can Access</h3>
               <p>These users have granted you access to their private data</p>
@@ -657,7 +660,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'requests' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             {/* Incoming Requests */}
             <div className="requests-section">
               <div className="panel-header">
@@ -695,7 +698,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'history' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             {/* Revoked Access */}
             <div className="requests-section">
               <div className="panel-header">

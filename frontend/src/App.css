@@ -3,7 +3,7 @@
   width: 100%;
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* Keep hidden to prevent layout issues */
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
 }
 

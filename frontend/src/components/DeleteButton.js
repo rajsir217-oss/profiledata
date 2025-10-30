@@ -21,6 +21,7 @@ const DeleteButton = ({
   icon = '🗑️',
   confirmIcon = '✓',
   confirmText = 'Confirm?',
+  confirmMessage = null,  // New: custom confirmation message
   timeout = 3000,
   disabled = false,
   className = '',
@@ -78,6 +79,33 @@ const DeleteButton = ({
   const sizeClass = `delete-btn-${size}`;
   const stateClass = isConfirming ? 'confirming' : '';
   const disabledClass = disabled ? 'disabled' : '';
+
+  // Use inline confirmation dialog if confirmMessage is provided
+  if (confirmMessage && isConfirming) {
+    return (
+      <div className={`delete-confirm-inline ${className}`}>
+        <span className="confirm-message">{confirmMessage}</span>
+        <div className="confirm-actions">
+          <button
+            className="btn-confirm-delete"
+            onClick={handleClick}
+            disabled={disabled}
+          >
+            Delete
+          </button>
+          <button
+            className="btn-confirm-cancel"
+            onClick={() => {
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
+              setIsConfirming(false);
+            }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <button

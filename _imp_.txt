@@ -15,3 +15,12 @@ REACT_APP_DEV_WS_URL=wss://matrimonial-backend-458052696267.us-central1.run.app
 gcloud run services update matrimonial-backend \
   --region us-central1 \
   --set-env-vars MONGODB_URL='mongodb+srv://rajl3v3l_db_user:3F01eZUHTY9tx07u@mongocluster0.rebdf0h.mongodb.net/matrimonialDB?retryWrites=true&w=majority&appName=MongoCluster0',DATABASE_NAME=matrimonialDB,REDIS_URL='redis://default:2svzScwOza6YUFifjx32WIWqWHytrq12@redis-11872.c263.us-east-1-2.ec2.redns.redis-cloud.com:11872',USE_GCS=true,GCS_BUCKET_NAME=matrimonial-uploads-matrimonial-staging,GCS_PROJECT_ID=matrimonial-staging,BACKEND_URL=https://matrimonial-backend-458052696267.us-central1.run.app,FRONTEND_URL=https://matrimonial-frontend-458052696267.us-central1.run.app
+
+
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=rajl3v3l@gmail.com
+SMTP_PASSWORD=vhmzjkvgvwglnqqy
+FROM_EMAIL=rajl3v3l@gmail.com
+FROM_NAME=L3V3LMATCH
