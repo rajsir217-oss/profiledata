@@ -21,13 +21,13 @@
   gap: 8px;
   padding: 12px;
   background: var(--card-background);
-  /* border-bottom: 3px solid var(--border-color);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); */
+  border-bottom: 3px solid var(--border-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-radius: 12px 12px 0 0;
   overflow-x: auto;
   overflow-y: visible;
   scrollbar-width: thin;
-  /* scrollbar-color: var(--border-color) transparent; */
+  scrollbar-color: var(--border-color) transparent;
 }
 
 .tab-bar::-webkit-scrollbar {

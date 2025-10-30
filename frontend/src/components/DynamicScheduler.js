@@ -8,6 +8,7 @@ import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
 
 const DynamicScheduler = ({ currentUser }) => {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [status, setStatus] = useState(null);
@@ -445,7 +446,11 @@ const DynamicScheduler = ({ currentUser }) => {
               <div className="status-label">Active Jobs</div>
             </div>
           </div>
-          <div className="status-card">
+          <div 
+            className="status-card clickable" 
+            onClick={() => navigate('/notification-management?tab=templates')}
+            title="Click to manage templates"
+          >
             <div className="status-icon">📋</div>
             <div className="status-info">
               <div className="status-value">{status.scheduler.template_count || 0}</div>

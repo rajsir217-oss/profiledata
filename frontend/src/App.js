@@ -10,7 +10,7 @@ import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
-import SearchPage from './components/SearchPage';
+import SearchPage2 from './components/SearchPage2';
 import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
@@ -36,7 +36,7 @@ import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
-import L3V3LMatches from './components/L3V3LMatches';
+// L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Navigate } from 'react-router-dom';
@@ -50,6 +50,7 @@ import { getUserPreferences } from './api';
 import { getApiUrl } from './config/apiConfig';
 import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
 import toastService from './services/toastService';
+import logger from './utils/logger';
 
 // Theme configuration
 const themes = {
@@ -88,9 +89,9 @@ function App() {
           const prefs = await getUserPreferences();
           const themeId = prefs.themePreference || 'light-blue';
           applyTheme(themeId);
-          console.log('✅ Loaded theme from database:', themeId);
+          // Theme loaded from database
         } catch (error) {
-          console.log('⚠️ API error, using default theme');
+          // Using default theme due to API error
           applyTheme('light-blue');
         }
       } else {
@@ -103,7 +104,7 @@ function App() {
     
     // Listen for login events to reload theme
     const handleUserLogin = () => {
-      console.log('🔄 User logged in, reloading theme...');
+      // User logged in, reloading theme
       loadTheme();
     };
     
@@ -124,7 +125,7 @@ function App() {
         try {
           await requestNotificationPermission();
         } catch (error) {
-          console.error('Failed to initialize push notifications:', error);
+          logger.error('Failed to initialize push notifications:', error);
         }
         
         // Listen for foreground messages
@@ -157,7 +158,7 @@ function App() {
     const username = localStorage.getItem('username');
     
     if (username) {
-      console.log('🚀 Starting unified Socket.IO service for:', username);
+      // Starting Socket.IO service
       
       // Connect to WebSocket (handles everything: messages, status, unread counts)
       import('./services/socketService')
@@ -165,7 +166,7 @@ function App() {
           module.default.connect(username);
         })
         .catch(error => {
-          console.error('❌ Failed to connect to WebSocket:', error);
+          logger.error('Failed to connect to WebSocket:', error);
         });
     }
 
@@ -174,14 +175,14 @@ function App() {
       const username = localStorage.getItem('username');
       
       if (username) {
-        console.log('🧹 Disconnecting Socket.IO service');
+        // Disconnecting Socket.IO service
         
         import('./services/socketService')
           .then(module => {
             module.default.disconnect();
           })
           .catch(error => {
-            console.error('❌ Failed to disconnect:', error);
+            logger.error('Failed to disconnect:', error);
           });
         
         // Mark user as offline via beacon (non-blocking)
@@ -244,9 +245,10 @@ function App() {
               <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
-              <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
-              {/* Removed /shortlists route - was placeholder. Use /shortlist for functional component */}
-              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              {/* Hybrid Search - filters + L3V3L scoring (premium) */}
+              <Route path="/search" element={<ProtectedRoute><SearchPage2 /></ProtectedRoute>} />
+              {/* Legacy L3V3L route redirects to search */}
+              <Route path="/l3v3l-matches" element={<Navigate to="/search" replace />} />
               {/* MyLists removed - functionality merged into Dashboard */}
               <Route path="/my-lists" element={<Navigate to="/dashboard" replace />} />
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />

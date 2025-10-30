@@ -227,8 +227,37 @@
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto; /* Horizontal scroll */
+  overflow-y: auto; /* Vertical scroll */
+  max-height: calc(100vh - 400px); /* Dynamic height based on viewport */
   margin-bottom: 2rem;
+}
+
+/* Custom Scrollbar Styling */
+.logs-table-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.logs-table-container::-webkit-scrollbar-track {
+  background: var(--surface-color);
+  border-radius: 10px;
+}
+
+.logs-table-container::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+  border: 2px solid var(--surface-color);
+}
+
+.logs-table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-color);
+}
+
+/* Firefox Scrollbar */
+.logs-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--surface-color);
 }
 
 .logs-table {
@@ -239,6 +268,9 @@
 .logs-table thead {
   background: var(--primary-color) !important;
   color: white !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .logs-table th {

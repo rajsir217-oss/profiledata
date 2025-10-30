@@ -115,9 +115,37 @@
   background: var(--card-bg);
   border-radius: 12px;
   overflow-x: auto; /* Allow horizontal scroll if needed */
-  overflow-y: visible; /* Allow dropdowns to overflow vertically */
+  overflow-y: auto; /* Allow vertical scroll */
+  max-height: calc(100vh - 350px); /* Dynamic height based on viewport */
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+}
+
+/* Custom Scrollbar Styling */
+.users-table-container::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.users-table-container::-webkit-scrollbar-track {
+  background: var(--surface-color);
+  border-radius: 10px;
+}
+
+.users-table-container::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+  border: 2px solid var(--surface-color);
+}
+
+.users-table-container::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-color);
+}
+
+/* Firefox Scrollbar */
+.users-table-container {
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary-color) var(--surface-color);
 }
 
 .users-table {
@@ -128,6 +156,9 @@
 .users-table thead {
   background: var(--primary-color) !important;
   color: white !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .users-table thead tr {
@@ -144,6 +175,9 @@
   cursor: pointer;
   background: var(--primary-color) !important;
   color: white !important; /* Ensure text is visible on primary color background */
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .users-table th:nth-child(6),

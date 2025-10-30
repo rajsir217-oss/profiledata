@@ -828,12 +828,47 @@
   transform: translateY(0);
 }
 
-.btn-l3v3l:hover {
-  background: linear-gradient(135deg, rgba(147, 51, 234, 0.3) 0%, rgba(79, 70, 229, 0.3) 100%);
+.btn-search:hover {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.3) 0%, rgba(59, 130, 246, 0.3) 100%);
 }
 
-.btn-search:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.3) 0%, rgba(37, 99, 235, 0.3) 100%);
+/* Search icon with butterfly - side by side */
+.btn-search-l3v3l {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.search-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.magnifier-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.butterfly-icon {
+  font-size: 16px;
+  line-height: 1;
+  filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.8));
+  animation: butterfly-pulse 2s ease-in-out infinite;
+}
+
+/* Subtle pulse animation for butterfly */
+@keyframes butterfly-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.8));
+  }
+  50% {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 6px rgba(147, 51, 234, 1));
+  }
 }
 
 .header-actions {

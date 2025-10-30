@@ -30,7 +30,6 @@ const SearchPage2 = () => {
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false); // Show upgrade modal
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
 
   // User interaction state
@@ -65,9 +64,7 @@ const SearchPage2 = () => {
   
   // View mode state
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
   const [searchTab, setSearchTab] = useState('basic'); // 'basic' or 'advanced'
-  const [actionTab, setActionTab] = useState('search'); // 'search' or 'saved'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 3;
@@ -1500,7 +1497,8 @@ const SearchPage2 = () => {
                 </p>
                 <button 
                   className="btn btn-premium"
-                  onClick={() => setShowUpgradePrompt(true)}
+                  disabled
+                  title="Premium feature coming soon"
                 >
                   ⭐ Upgrade to Premium
                 </button>
@@ -2149,21 +2147,6 @@ const SearchPage2 = () => {
               )}
             </div>
           )}
-
-          {/* L3V3L Info Banner - Learn more about compatibility scoring */}
-          <div className="cross-link-banner l3v3l-promo">
-            <div className="banner-icon">🦋</div>
-            <div className="banner-content">
-              <h5>✨ What is L3V3L Compatibility?</h5>
-              <p>Learn how our AI algorithm scores matches based on Love, Loyalty, Laughter, Vulnerability, Elevation, and more!</p>
-            </div>
-            <button 
-              className="btn btn-primary banner-cta"
-              onClick={() => navigate('/l3v3l-info')}
-            >
-              Learn More →
-            </button>
-          </div>
         </div> {/* Close search-results */}
       </div> {/* Close search-container */}
 

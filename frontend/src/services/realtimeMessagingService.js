@@ -5,6 +5,7 @@
 
 import api from '../api';
 import { getApiUrl } from '../config/apiConfig';
+import logger from '../utils/logger';
 
 class RealtimeMessagingService {
   constructor() {
@@ -24,7 +25,7 @@ class RealtimeMessagingService {
     if (!username) return;
     
     this.currentUser = username;
-    console.log('🚀 Initializing realtime messaging for:', username);
+    logger.info('Initializing realtime messaging for:', username);
     
     // Fetch initial unread counts
     await this.fetchUnreadCounts();
@@ -49,12 +50,12 @@ class RealtimeMessagingService {
                       process.env.REACT_APP_API_URL || 
                       getApiUrl();
       const url = `${baseUrl}/messages/stream/${this.currentUser}`;
-      console.log('📡 Connecting to SSE:', url);
+      logger.debug('Connecting to SSE:', url);
       
       this.eventSource = new EventSource(url);
       
       this.eventSource.onopen = () => {
-        console.log('✅ SSE connection established');
+        logger.success('SSE connection established');
         this.isConnected = true;
         if (this.reconnectInterval) {
           clearInterval(this.reconnectInterval);
@@ -67,7 +68,7 @@ class RealtimeMessagingService {
           const data = JSON.parse(event.data);
           this.handleRealtimeUpdate(data);
         } catch (error) {
-          console.error('Error parsing SSE message:', error);
+          logger.error('Error parsing SSE message:', error);
         }
       };
       
@@ -75,10 +76,10 @@ class RealtimeMessagingService {
       this.eventSource.addEventListener('new_message', (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📬 New message received:', data);
+          logger.info('New message received:', data);
           this.handleNewMessage(data);
         } catch (error) {
-          console.error('Error handling new message:', error);
+          logger.error('Error handling new message:', error);
         }
       });
       
@@ -86,29 +87,29 @@ class RealtimeMessagingService {
       this.eventSource.addEventListener('unread_update', (event) => {
         try {
           const data = JSON.parse(event.data);
-          console.log('📊 Unread count update:', data);
+          logger.info('Unread count update:', data);
           this.handleUnreadUpdate(data);
         } catch (error) {
-          console.error('Error handling unread update:', error);
+          logger.error('Error handling unread update:', error);
         }
       });
       
       this.eventSource.onerror = (error) => {
-        console.error('❌ SSE connection error:', error);
+        logger.error('SSE connection error:', error);
         this.isConnected = false;
         this.eventSource.close();
         
         // Reconnect after 5 seconds
         if (!this.reconnectInterval) {
           this.reconnectInterval = setInterval(() => {
-            console.log('🔄 Attempting to reconnect SSE...');
+            logger.info('Attempting to reconnect SSE...');
             this.connectSSE();
           }, 5000);
         }
       };
       
     } catch (error) {
-      console.error('Failed to establish SSE connection:', error);
+      logger.error('Failed to establish SSE connection:', error);
       this.isConnected = false;
     }
   }
@@ -124,7 +125,7 @@ class RealtimeMessagingService {
     // Poll every 10 seconds
     this.pollingInterval = setInterval(() => {
       if (!this.isConnected) {
-        console.log('🔄 Polling for updates (SSE disconnected)...');
+        logger.debug('Polling for updates (SSE disconnected)...');
         this.fetchUnreadCounts();
       }
     }, 10000);
@@ -138,7 +139,7 @@ class RealtimeMessagingService {
       const response = await api.get(`/messages/unread-counts/${this.currentUser}`);
       const counts = response.data.unread_counts || {};
       
-      console.log('📊 Fetched unread counts:', counts);
+      logger.debug('Fetched unread counts:', counts);
       
       // Update local cache
       this.unreadCounts.clear();
@@ -151,7 +152,7 @@ class RealtimeMessagingService {
       // Notify all listeners
       this.notifyListeners();
     } catch (error) {
-      console.error('Failed to fetch unread counts:', error);
+      logger.error('Failed to fetch unread counts:', error);
     }
   }
 
@@ -159,14 +160,14 @@ class RealtimeMessagingService {
    * Handle real-time update from SSE
    */
   handleRealtimeUpdate(data) {
-    console.log('🔄 Real-time update:', data);
+    logger.debug('Real-time update:', data);
     
     if (data.type === 'new_message') {
       this.handleNewMessage(data);
     } else if (data.type === 'unread_update') {
       this.handleUnreadUpdate(data);
     } else if (data.type === 'heartbeat') {
-      console.log('💓 Heartbeat received');
+      logger.debug('Heartbeat received');
     }
   }
 
@@ -180,7 +181,7 @@ class RealtimeMessagingService {
     const currentCount = this.unreadCounts.get(from) || 0;
     this.unreadCounts.set(from, currentCount + 1);
     
-    console.log(`📬 New message from ${from}, unread count: ${currentCount + 1}`);
+    logger.info(`New message from ${from}, unread count: ${currentCount + 1}`);
     
     // Show notification
     this.showNotification(from, message);
@@ -201,7 +202,7 @@ class RealtimeMessagingService {
       this.unreadCounts.delete(username);
     }
     
-    console.log(`📊 Unread count for ${username}: ${count}`);
+    logger.debug(`Unread count for ${username}: ${count}`);
     
     // Notify all listeners
     this.notifyListeners();
@@ -221,9 +222,9 @@ class RealtimeMessagingService {
       this.unreadCounts.delete(username);
       this.notifyListeners();
       
-      console.log(`✅ Marked messages from ${username} as read`);
+      logger.success(`Marked messages from ${username} as read`);
     } catch (error) {
-      console.error('Failed to mark messages as read:', error);
+      logger.error('Failed to mark messages as read:', error);
     }
   }
 
@@ -282,7 +283,7 @@ class RealtimeMessagingService {
       try {
         callback(data);
       } catch (error) {
-        console.error('Error notifying listener:', error);
+        logger.error('Error notifying listener:', error);
       }
     });
   }
@@ -317,7 +318,7 @@ class RealtimeMessagingService {
   async requestNotificationPermission() {
     if ('Notification' in window && Notification.permission === 'default') {
       const permission = await Notification.requestPermission();
-      console.log('Notification permission:', permission);
+      logger.info('Notification permission:', permission);
     }
   }
 
@@ -344,7 +345,7 @@ class RealtimeMessagingService {
     this.unreadCounts.clear();
     this.listeners.clear();
     
-    console.log('🔌 Disconnected from realtime messaging');
+    logger.info('Disconnected from realtime messaging');
   }
 }
 
