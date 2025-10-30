@@ -7,6 +7,10 @@ from typing import Dict, Any, Optional, Tuple, List
 from .base import JobTemplate, JobResult, JobExecutionContext
 import logging
 import re
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,12 +20,21 @@ class EmailNotificationTemplate(JobTemplate):
     
     template_type = "email_notification"
     template_name = "Bulk Email Notification"
-    template_description = "Send bulk emails to specified recipients (not for notification queue)"
+    template_description = "Send bulk emails to specified recipients. Choose simulation mode for testing or live mode for real SMTP delivery."
     category = "notifications"
     icon = "📧"
     estimated_duration = "1-5 minutes"
     resource_usage = "low"
-    risk_level = "low"
+    risk_level = "medium"
+    
+    def __init__(self):
+        # Email configuration from settings (reads from .env)
+        self.smtp_host = settings.smtp_host or "smtp.gmail.com"
+        self.smtp_port = settings.smtp_port or 587
+        self.smtp_user = settings.smtp_user
+        self.smtp_password = settings.smtp_password
+        self.from_email = settings.from_email or "noreply@datingapp.com"
+        self.from_name = settings.from_name or "L3V3L Dating"
     
     def get_schema(self) -> Dict[str, Any]:
         """Return JSON schema for parameters"""
@@ -76,6 +89,11 @@ class EmailNotificationTemplate(JobTemplate):
                     "type": "boolean",
                     "description": "Include unsubscribe link",
                     "default": True
+                },
+                "simulate_only": {
+                    "type": "boolean",
+                    "description": "Simulate",
+                    "default": False
                 }
             },
             "required": ["recipients", "subject", "body"]
@@ -134,21 +152,22 @@ class EmailNotificationTemplate(JobTemplate):
         reply_to = params.get("reply_to")
         priority = params.get("priority", "normal")
         include_unsubscribe = params.get("include_unsubscribe", True)
+        simulate_only = params.get("simulate_only", False)
         
-        context.log("INFO", f"Preparing to send email to {len(recipients)} recipient(s)")
+        mode = "SIMULATION MODE" if simulate_only else "LIVE MODE (real emails)"
+        context.log("INFO", f"📧 {mode}: Preparing to send email to {len(recipients)} recipient(s)")
         context.log("INFO", f"Subject: {subject}")
+        if simulate_only:
+            context.log("WARNING", "⚠️ SIMULATION MODE - Emails will NOT be actually sent!")
         
         try:
             sent_count = 0
             failed_count = 0
             failed_emails = []
             
-            # In a real implementation, this would use an email service like SendGrid or AWS SES
-            # For now, we'll simulate the email sending
-            
             for email in recipients:
                 try:
-                    # Simulate sending email
+                    # Send email (real or simulated based on simulate_only flag)
                     success = await self._send_email(
                         to=email,
                         subject=subject,
@@ -158,6 +177,7 @@ class EmailNotificationTemplate(JobTemplate):
                         reply_to=reply_to,
                         priority=priority,
                         include_unsubscribe=include_unsubscribe,
+                        simulate_only=simulate_only,
                         context=context
                     )
                     
@@ -220,36 +240,51 @@ class EmailNotificationTemplate(JobTemplate):
         reply_to: Optional[str],
         priority: str,
         include_unsubscribe: bool,
+        simulate_only: bool,
         context: JobExecutionContext
     ) -> bool:
         """
-        Send an individual email
-        
-        In a real implementation, this would integrate with:
-        - SendGrid API
-        - AWS SES
-        - SMTP server
-        - Other email service providers
-        
-        For now, we simulate the operation and log it
+        Send an individual email via SMTP (or simulate if simulate_only=True)
         """
-        # Simulate email sending
-        context.log("DEBUG", f"Simulating email send to {to}")
-        
-        # In production, replace with actual email sending logic:
-        # import sendgrid
-        # from sendgrid.helpers.mail import Mail
-        # 
-        # sg = sendgrid.SendGridAPIClient(api_key=os.environ.get('SENDGRID_API_KEY'))
-        # message = Mail(
-        #     from_email='noreply@yourdomain.com',
-        #     to_emails=to,
-        #     subject=subject,
-        #     html_content=body if body_type == 'html' else None,
-        #     plain_text_content=body if body_type == 'plain' else None
-        # )
-        # response = sg.send(message)
-        # return response.status_code in [200, 201, 202]
-        
-        # For now, simulate success
-        return True
+        try:
+            # SIMULATION MODE - just log, don't actually send
+            if simulate_only:
+                context.log("DEBUG", f"🎭 SIMULATING email send to {to}")
+                context.log("DEBUG", f"   Subject: {subject}")
+                context.log("DEBUG", f"   Body: {body[:100]}..." if len(body) > 100 else f"   Body: {body}")
+                # Simulate success
+                return True
+            
+            # LIVE MODE - actually send via SMTP
+            context.log("INFO", f"📤 Sending REAL email to {to}")
+            
+            if not self.smtp_user or not self.smtp_password:
+                raise Exception(f"SMTP credentials not configured")
+            
+            # Create email message
+            msg = MIMEMultipart('alternative')
+            msg['From'] = f"{self.from_name} <{self.from_email}>"
+            msg['To'] = to
+            msg['Subject'] = subject
+            
+            if reply_to:
+                msg['Reply-To'] = reply_to
+            
+            # Add body (HTML or plain text)
+            if body_type == 'html':
+                msg.attach(MIMEText(body, 'html'))
+            else:
+                msg.attach(MIMEText(body, 'plain'))
+            
+            # Send via SMTP
+            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
+                server.starttls()
+                server.login(self.smtp_user, self.smtp_password)
+                server.send_message(msg)
+            
+            context.log("INFO", f"✅ Email sent successfully to {to}")
+            return True
+            
+        except Exception as e:
+            context.log("ERROR", f"Failed to send email to {to}: {str(e)}")
+            return False

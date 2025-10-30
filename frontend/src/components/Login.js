@@ -1,9 +1,8 @@
 // frontend/src/components/Login.js
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api";
 import socketService from "../services/socketService";
-import Logo from "./Logo";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -11,6 +10,28 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+
+  // Hide topbar and remove body padding on login page
+  useEffect(() => {
+    const topbar = document.querySelector('.top-bar');
+    if (topbar) {
+      topbar.style.display = 'none';
+    }
+    
+    // Remove any body padding/margin
+    document.body.style.margin = '0';
+    document.body.style.padding = '0';
+    document.body.style.overflow = 'hidden';
+    
+    // Show topbar and restore body styles when leaving login page
+    return () => {
+      const topbar = document.querySelector('.top-bar');
+      if (topbar) {
+        topbar.style.display = 'flex';
+      }
+      document.body.style.overflow = 'auto';
+    };
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -23,7 +44,12 @@ const Login = () => {
     setError("");
     
     try {
-      const res = await api.post("/login", form);
+      // Trim whitespace from credentials
+      const credentials = {
+        username: form.username.trim(),
+        password: form.password.trim()
+      };
+      const res = await api.post("/login", credentials);
       
       // Save login credentials to localStorage
       localStorage.setItem('username', res.data.user.username);
@@ -63,115 +89,158 @@ const Login = () => {
   return (
     <div className="login-page-wrapper" style={{
       minHeight: '100vh',
+      height: '100vh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f093fb 50%, #f5576c 75%, #4facfe 100%)',
-      backgroundSize: '400% 400%',
-      animation: 'gradientShift 15s ease infinite',
+      background: `
+        linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)),
+        url('/images/wedding-bg.jpg') center/cover no-repeat fixed
+      `,
       padding: '20px',
-      position: 'relative',
-      overflow: 'hidden'
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      overflow: 'auto'
     }}>
-      {/* Animated floating hearts */}
+      {/* Dark overlay for better readability */}
       <div style={{
         position: 'absolute',
-        top: '10%',
-        left: '15%',
-        fontSize: '2rem',
-        opacity: 0.1,
-        animation: 'float 6s ease-in-out infinite'
-      }}>💕</div>
-      <div style={{
-        position: 'absolute',
-        top: '70%',
-        right: '20%',
-        fontSize: '2.5rem',
-        opacity: 0.1,
-        animation: 'float 8s ease-in-out infinite 1s'
-      }}>💖</div>
-      <div style={{
-        position: 'absolute',
-        bottom: '15%',
-        left: '25%',
-        fontSize: '1.8rem',
-        opacity: 0.1,
-        animation: 'float 7s ease-in-out infinite 2s'
-      }}>❤️</div>
-      
-      <style>{`
-        @keyframes gradientShift {
-          0% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-          100% { background-position: 0% 50%; }
-        }
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(10deg); }
-        }
-      `}</style>
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'rgba(0, 0, 0, 0.4)',
+        zIndex: 0
+      }}></div>
       
       <div className="login-container" style={{
         width: '100%',
-        maxWidth: '400px',
-        background: 'rgba(255, 255, 255, 0.95)',
-        borderRadius: '20px',
-        padding: '32px 24px',
-        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        maxWidth: '440px',
+        background: 'rgba(255, 255, 255, 0.98)',
+        borderRadius: '24px',
+        padding: '48px 40px',
+        boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3)',
         backdropFilter: 'blur(10px)',
         position: 'relative',
-        zIndex: 1
+        zIndex: 10
       }}>
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
-          <Logo variant="modern" size="medium" showText={true} theme="light" />
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          gap: '8px',
+          marginBottom: '16px' 
+        }}>
+          <div style={{ fontSize: '48px', lineHeight: '1' }}>🦋</div>
+          <div style={{ 
+            fontSize: '32px', 
+            fontWeight: '800',
+            background: 'linear-gradient(135deg, #ec4899 0%, #a78bfa 50%, #6366f1 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            letterSpacing: '2px',
+            fontFamily: 'Plus Jakarta Sans, system-ui, sans-serif'
+          }}>
+            L3V3L
+          </div>
         </div>
-        <h3 className="text-center mb-4" style={{ 
-          color: '#667eea',
-          fontWeight: '600',
-          textShadow: '0 2px 4px rgba(0,0,0,0.1)'
-        }}>Welcome Back!</h3>
+        <h2 className="text-center" style={{ 
+          color: '#1a1a1a',
+          fontWeight: '700',
+          fontSize: '28px',
+          marginBottom: '8px',
+          letterSpacing: '-0.5px'
+        }}>Welcome Back!</h2>
+        <p className="text-center" style={{
+          color: '#6b7280',
+          fontSize: '15px',
+          marginBottom: '32px'
+        }}>Sign in to continue to your account</p>
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label">Username</label>
-          <input
-            type="text"
-            name="username"
-            value={form.username}
-            onChange={handleChange}
-            style={{
-              width: '100%',
-              padding: '14px',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              fontSize: '16px',
-              transition: 'border-color 0.3s',
-              outline: 'none',
-              minHeight: '44px'
-            }}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Password</label>
+        <div className="mb-4">
+          <label className="form-label" style={{
+            fontWeight: '500',
+            fontSize: '14px',
+            color: '#374151',
+            marginBottom: '8px',
+            display: 'block'
+          }}>Username</label>
           <div style={{ position: 'relative' }}>
+            <span style={{
+              position: 'absolute',
+              left: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '18px',
+              color: '#9ca3af',
+              pointerEvents: 'none'
+            }}>👤</span>
+            <input
+              type="text"
+              name="username"
+              value={form.username}
+              onChange={handleChange}
+              placeholder="Enter your username"
+              style={{
+                width: '100%',
+                padding: '14px 16px 14px 48px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                fontSize: '15px',
+                outline: 'none',
+                minHeight: '52px',
+                backgroundColor: '#f9fafb',
+                color: '#1f2937'
+              }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              required
+            />
+          </div>
+        </div>
+        <div className="mb-4">
+          <label className="form-label" style={{
+            fontWeight: '500',
+            fontSize: '14px',
+            color: '#374151',
+            marginBottom: '8px',
+            display: 'block'
+          }}>Password</label>
+          <div style={{ position: 'relative' }}>
+            <span style={{
+              position: 'absolute',
+              left: '16px',
+              top: '50%',
+              transform: 'translateY(-50%)',
+              fontSize: '18px',
+              color: '#9ca3af',
+              pointerEvents: 'none'
+            }}>🔒</span>
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               value={form.password}
               onChange={handleChange}
+              placeholder="Enter your password"
               style={{
                 width: '100%',
-                padding: '14px',
-                paddingRight: '50px',
-                border: '2px solid #e0e0e0',
-                borderRadius: '8px',
-                fontSize: '16px',
-                transition: 'border-color 0.3s',
+                padding: '14px 56px 14px 48px',
+                border: '2px solid #e5e7eb',
+                borderRadius: '12px',
+                fontSize: '15px',
                 outline: 'none',
-                minHeight: '44px',
+                minHeight: '52px',
+                backgroundColor: '#f9fafb',
+                color: '#1f2937',
                 boxSizing: 'border-box'
               }}
+              onFocus={(e) => e.target.style.borderColor = '#667eea'}
+              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
               required
             />
             <button
@@ -179,20 +248,24 @@ const Login = () => {
               onClick={() => setShowPassword(!showPassword)}
               style={{
                 position: 'absolute',
-                right: '4px',
+                right: '8px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '20px',
-                padding: '8px',
+                padding: '10px',
                 minWidth: '44px',
                 minHeight: '44px',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                color: '#6b7280',
+                borderRadius: '8px'
               }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
             >
               {showPassword ? '👁️' : '👁️‍🗨️'}
             </button>
@@ -200,25 +273,44 @@ const Login = () => {
         </div>
         <button 
           type="submit" 
-          className="btn btn-primary w-100" 
           disabled={loading}
           style={{
-            minHeight: '44px',
+            width: '100%',
+            minHeight: '52px',
             fontSize: '16px',
             fontWeight: '600',
-            padding: '12px'
+            padding: '14px',
+            background: loading ? '#9ca3af' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '12px',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: loading ? 'none' : '0 4px 12px rgba(102, 126, 234, 0.4)',
+            marginTop: '8px'
           }}
+          onMouseEnter={(e) => !loading && (e.target.style.transform = 'translateY(-1px)', e.target.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)')}
+          onMouseLeave={(e) => !loading && (e.target.style.transform = 'translateY(0)', e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)')}
         >
-          {loading ? "Logging in..." : "Login"}
+          {loading ? "Signing in..." : "Sign In"}
         </button>
       </form>
-      <div className="text-center mt-3">
-        <Link to="/register">Don't have an account? Register</Link>
-      </div>
-      <div className="text-center mt-2">
-        <small className="text-muted">
-          Forgot password? Change it from <Link to="/preferences">Settings</Link> after logging in.
-        </small>
+      <div style={{
+        marginTop: '24px',
+        paddingTop: '24px',
+        borderTop: '1px solid #e5e7eb',
+        textAlign: 'center'
+      }}>
+        <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '0' }}>
+          Don't have an account?{' '}
+          <Link to="/register2" style={{
+            color: '#667eea',
+            textDecoration: 'none',
+            fontWeight: '600'
+          }}
+          onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+          onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+          >Create Account</Link>
+        </p>
       </div>
       </div>
     </div>

@@ -5,6 +5,8 @@
  * Components can listen for access changes and refresh their UI accordingly
  */
 
+import logger from './logger';
+
 // Event names
 export const PII_ACCESS_EVENTS = {
   GRANTED: 'pii-access-granted',
@@ -24,7 +26,7 @@ export const emitPIIAccessChange = (action, targetUsername, ownerUsername) => {
   });
   window.dispatchEvent(event);
   
-  console.log('📢 PII Access Event:', { action, targetUsername, ownerUsername });
+  logger.debug('PII Access Event:', { action, targetUsername, ownerUsername });
 };
 
 /**
@@ -50,7 +52,7 @@ export const onPIIAccessChange = (callback) => {
  * Usage in components:
  * 
  * usePIIAccessListener((detail) => {
- *   console.log('PII access changed:', detail);
+ *   logger.debug('PII access changed:', detail);
  *   // Reload data here
  * }, []);
  */

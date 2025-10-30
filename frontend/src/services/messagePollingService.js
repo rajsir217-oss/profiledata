@@ -2,6 +2,7 @@
  * Message Polling Service
  */
 import api from '../api';
+import logger from '../utils/logger';
 
 class MessagePollingService {
   constructor() {
@@ -22,7 +23,7 @@ class MessagePollingService {
   async startPolling(username) {
     // Validation
     if (!username || typeof username !== 'string' || username.trim().length < 3) {
-      console.error('❌ Invalid username for polling:', username);
+      logger.error('Invalid username for polling:', username);
       return;
     }
 
@@ -36,11 +37,11 @@ class MessagePollingService {
     try {
       // Stop existing polling if different user
       if (this.isPolling && this.username !== username) {
-        console.log('🔄 Switching polling from', this.username, 'to', username);
+        logger.info('Switching polling from', this.username, 'to', username);
         await this.stopPolling();
       }
 
-      console.log('🔄 Starting message polling for:', username);
+      logger.info('Starting message polling for:', username);
       this.isPolling = true;
       this.username = username;
       this.lastMessageTimestamp = null; // Reset timestamp for new user
@@ -49,9 +50,9 @@ class MessagePollingService {
       try {
         const api = (await import('../api')).default;
         await api.post(`/online-status/${username}/online`);
-        console.log('🟢 Marked user as online:', username);
+        logger.info('Marked user as online:', username);
       } catch (error) {
-        console.error('❌ Failed to mark user as online:', error);
+        logger.error('Failed to mark user as online:', error);
       }
       
       // Initial poll
@@ -67,13 +68,13 @@ class MessagePollingService {
         try {
           const api = (await import('../api')).default;
           await api.post(`/online-status/${username}/refresh`);
-          console.log('💓 Heartbeat: refreshed online status');
+          logger.debug('Heartbeat: refreshed online status');
         } catch (error) {
-          console.error('❌ Heartbeat failed:', error);
+          logger.error('Heartbeat failed:', error);
         }
       }, 30000); // 30 seconds
     } catch (error) {
-      console.error('❌ Error starting polling:', error);
+      logger.error('Error starting polling:', error);
     } finally {
       this.isCurrentlyPolling = false; // Mark poll as complete
     }
@@ -102,16 +103,16 @@ class MessagePollingService {
       
       // Validate response
       if (!response.data || typeof response.data.count !== 'number') {
-        console.error('❌ Invalid response from polling endpoint');
+        logger.error('Invalid response from polling endpoint');
         return;
       }
       
       if (response.data.count > 0) {
-        console.log(`💬 Received ${response.data.count} new messages`);
+        logger.info(`Received ${response.data.count} new messages`);
         
         // Validate messages array
         if (!Array.isArray(response.data.messages)) {
-          console.error('❌ Invalid messages array in response');
+          logger.error('Invalid messages array in response');
           return;
         }
         
@@ -120,7 +121,7 @@ class MessagePollingService {
           try {
             // Validate message structure
             if (!message || !message.from || !message.message) {
-              console.warn('⚠️ Invalid message structure:', message);
+              logger.warn('Invalid message structure:', message);
               return;
             }
             
@@ -135,7 +136,7 @@ class MessagePollingService {
             // Notify all active listeners
             this.notifyListeners(message);
           } catch (err) {
-            console.error('❌ Error processing message:', err);
+            logger.error('Error processing message:', err);
           }
         });
 
@@ -149,14 +150,14 @@ class MessagePollingService {
       }
     } catch (error) {
       if (error.code === 'ECONNABORTED') {
-        console.error('❌ Polling timeout - server not responding');
+        logger.error('Polling timeout - server not responding');
       } else if (error.response) {
         // Server responded with error
-        console.error(`❌ Polling error ${error.response.status}:`, error.response.data?.detail || error.message);
+        logger.error(`Polling error ${error.response.status}:`, error.response.data?.detail || error.message);
       } else if (error.code === 'ERR_NETWORK') {
-        console.error('❌ No response from server');
+        logger.error('No response from server');
       } else {
-        console.error('❌ Error polling messages:', error.message);
+        logger.error('Error polling messages:', error.message);
       }
     } finally {
       this.isCurrentlyPolling = false; // Mark poll as complete
@@ -168,7 +169,7 @@ class MessagePollingService {
    */
   onNewMessage(callback) {
     this.listeners.push(callback);
-    console.log('👂 Added message listener, total:', this.listeners.length);
+    logger.debug('Added message listener, total:', this.listeners.length);
   }
 
   /**
@@ -176,19 +177,19 @@ class MessagePollingService {
    */
   offNewMessage(callback) {
     this.listeners = this.listeners.filter(cb => cb !== callback);
-    console.log('👋 Removed message listener, remaining:', this.listeners.length);
+    logger.debug('Removed message listener, remaining:', this.listeners.length);
   }
 
   /**
    * Notify all listeners of new message
    */
   notifyListeners(message) {
-    console.log('📢 Notifying listeners of new message from:', message.from);
+    logger.debug('Notifying listeners of new message from:', message.from);
     this.listeners.forEach(callback => {
       try {
         callback(message);
       } catch (error) {
-        console.error('❌ Error in message listener:', error);
+        logger.error('Error in message listener:', error);
       }
     });
   }
@@ -198,7 +199,7 @@ class MessagePollingService {
    */
   resetTimestamp() {
     this.lastMessageTimestamp = null;
-    console.log('🔄 Reset message timestamp');
+    logger.debug('Reset message timestamp');
   }
 
   /**
@@ -211,7 +212,7 @@ class MessagePollingService {
       return isFromThem || isFromUs;
     });
     
-    console.log(`📬 Found ${pending.length} pending messages for conversation with ${otherUser}`);
+    logger.debug(`Found ${pending.length} pending messages for conversation with ${otherUser}`);
     return pending;
   }
 
@@ -220,7 +221,7 @@ class MessagePollingService {
    */
   clearQueue() {
     this.messageQueue = [];
-    console.log('🗑️ Cleared message queue');
+    logger.debug('Cleared message queue');
   }
 }
 

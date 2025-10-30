@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions, getAllLimits, formatLimit } from '../utils/permissions';
 import api from '../api';
+import PageHeader from './PageHeader';
 import './RoleManagement.css';
 
 const RoleManagement = () => {
@@ -346,10 +347,12 @@ const RoleManagement = () => {
         </div>
       )}
 
-      <div className="role-management-header">
-        <h1>🎭 Role Management</h1>
-        <p>View and understand role permissions, limits, and hierarchy</p>
-      </div>
+      <PageHeader
+        icon="🎭"
+        title="Role Management"
+        subtitle="View and understand role permissions, limits, and hierarchy"
+        variant="flat"
+      />
 
       <div className="role-selector">
         <label>Select Role:</label>
@@ -360,8 +363,8 @@ const RoleManagement = () => {
               className={`role-button ${selectedRole === role ? 'active' : ''}`}
               onClick={() => setSelectedRole(role)}
               style={{
-                borderColor: selectedRole === role ? getRoleBadgeColor(role) : '#ddd',
-                backgroundColor: selectedRole === role ? getRoleBadgeColor(role) + '20' : 'white'
+                borderColor: selectedRole === role ? getRoleBadgeColor(role) : 'var(--border-color, #ddd)',
+                backgroundColor: selectedRole === role ? getRoleBadgeColor(role) + '20' : 'var(--surface-color, white)'
               }}
             >
               <span className="role-button-name">{getRoleDisplayName(role)}</span>

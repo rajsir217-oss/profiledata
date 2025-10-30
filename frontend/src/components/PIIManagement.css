@@ -51,64 +51,90 @@
   color: var(--text-secondary, #666);
 }
 
-/* View Toggle */
-.view-toggle {
-  display: flex;
-  gap: 8px;
-  background: var(--card-background, white);
-}
-
-.view-toggle-btn {
-  flex: 1;
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  font-size: 20px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--text-secondary, #666);
-}
-
-.view-toggle-btn:hover {
-  background: var(--hover-background, rgba(102, 126, 234, 0.1));
-  color: var(--primary-color, #667eea);
-}
-
 /* Tabs Container */
 .pii-tabs {
   display: flex;
-  gap: 12px;
-  margin-bottom: 30px;
+  gap: 8px;
+  margin-bottom: 20px;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.1);
   flex-wrap: wrap;
+  padding: 0;
 }
 
 /* Individual Tab */
 .pii-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 20px;
-  background: transparent;
-  border: 2px solid var(--border-color, #e0e0e0);
-  border-radius: 8px;
+  gap: 10px;
+  padding: 16px 24px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-bottom: 3px solid transparent;
+  border-radius: 12px 12px 0 0;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
-  color: var(--text-secondary, #666);
+  color: rgba(255, 255, 255, 0.7);
   font-size: 15px;
-  font-weight: 500;
+  font-weight: 600;
+  position: relative;
+  margin-bottom: -3px;
 }
 
 .pii-tab:hover {
-  background: var(--hover-background, rgba(102, 126, 234, 0.1));
-  color: var(--primary-color, #667eea);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(102, 126, 234, 0.5);
+  color: rgba(255, 255, 255, 0.9);
+  border-bottom-color: var(--primary-color, #667eea);
 }
 
 .pii-tab.active {
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-  color: white;
   border-color: var(--primary-color, #667eea);
-  font-weight: 600;
+  color: white;
+  border-bottom-color: var(--primary-color, #667eea);
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.pii-tab .tab-icon,
+.pii-tab .tab-label,
+.pii-tab .tab-count {
+  color: inherit;
+}
+
+/* Tab Icon, Label, Count */
+.tab-icon {
+  font-size: 18px;
+}
+
+.tab-label {
+  font-size: 15px;
+}
+
+.tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 8px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.pii-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+}
+
+/* Tab Content Area */
+.pii-tab-content {
+  padding: 30px 0;
+  background: transparent;
 }
 
 /* User Info (Avatar + Name) */
@@ -374,8 +400,8 @@
 }
 
 .badge-pending {
-  background: #fff3cd;
-  color: #856404;
+  background: #ae0b0b;
+  color: #041385eb;
 }
 
 .badge-approved {
@@ -573,11 +599,6 @@
   .pii-header-content {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .view-toggle {
-    width: 100%;
-    justify-content: center;
   }
 
   .access-grid,

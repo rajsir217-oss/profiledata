@@ -27,66 +27,17 @@ const L3V3LMatchingTable = ({ matchingData }) => {
     return 'Low Match';
   };
 
-  // Personal Matching & Preferences categories
-  const personalMatchingCategories = [
-    {
-      title: '🎯 Partner Preferences',
-      score: matchingData.partnerPreferences || 0,
-      description: 'Age range, location, education preferences match'
-    },
-    {
-      title: '💼 Career Goals',
-      score: matchingData.careerGoals || 0,
-      description: 'Professional ambition & work-life balance alignment'
-    },
-    {
-      title: '👶 Family Plans',
-      score: matchingData.familyPlans || 0,
-      description: 'Children desires & family structure compatibility'
-    },
-    {
-      title: '🏠 Living Preferences',
-      score: matchingData.livingPreferences || 0,
-      description: 'City/suburban lifestyle & living arrangement match'
-    },
-    {
-      title: '💰 Financial Compatibility',
-      score: matchingData.financialCompatibility || 0,
-      description: 'Money management & financial goals alignment'
-    },
-    {
-      title: '❤️ Relationship Goals',
-      score: matchingData.relationshipGoals || 0,
-      description: 'Dating intentions & relationship timeline match'
-    }
-  ];
-
-  // L3V3L Core Values categories
+  // L3V3L Matching Categories (based on actual component scores from matching engine)
   const matchCategories = [
     {
-      title: '💕 Love',
-      score: matchingData.love || 0,
-      description: 'Romantic compatibility & emotional connection'
+      title: '⚥ Gender Compatibility',
+      score: matchingData.gender || 0,
+      description: 'Opposite gender preference match'
     },
     {
-      title: '🤝 Loyalty',
-      score: matchingData.loyalty || 0,
-      description: 'Trust, commitment & reliability'
-    },
-    {
-      title: '😄 Laughter',
-      score: matchingData.laughter || 0,
-      description: 'Humor compatibility & joy in life'
-    },
-    {
-      title: '💭 Vulnerability',
-      score: matchingData.vulnerability || 0,
-      description: 'Emotional openness & authenticity'
-    },
-    {
-      title: '🚀 Elevation',
-      score: matchingData.elevation || 0,
-      description: 'Growth mindset & mutual inspiration'
+      title: '🦋 L3V3L Pillars',
+      score: matchingData.l3v3l_pillars || 0,
+      description: 'Core values, personality, and relationship compatibility'
     },
     {
       title: '🎯 Demographics',
@@ -94,39 +45,35 @@ const L3V3LMatchingTable = ({ matchingData }) => {
       description: 'Age, location, background compatibility'
     },
     {
+      title: '💕 Partner Preferences',
+      score: matchingData.partner_preferences || 0,
+      description: 'Age range, location, education preferences match'
+    },
+    {
+      title: '🏃 Habits & Personality',
+      score: matchingData.habits_personality || 0,
+      description: 'Daily routines, hobbies, personality traits'
+    },
+    {
       title: '💼 Career & Education',
-      score: matchingData.career || 0,
+      score: matchingData.career_education || 0,
       description: 'Professional goals & educational alignment'
     },
     {
+      title: '👥 Physical Attributes',
+      score: matchingData.physical_attributes || 0,
+      description: 'Height, body type, appearance compatibility'
+    },
+    {
       title: '🌍 Cultural Factors',
-      score: matchingData.cultural || 0,
+      score: matchingData.cultural_factors || 0,
       description: 'Religion, values, traditions'
-    },
-    {
-      title: '👥 Physical Preferences',
-      score: matchingData.physical || 0,
-      description: 'Height, body type, appearance preferences'
-    },
-    {
-      title: '🏃 Lifestyle & Habits',
-      score: matchingData.lifestyle || 0,
-      description: 'Daily routines, hobbies, eating habits'
     }
   ];
 
-  // Calculate section scores
-  const personalMatchScore = Math.round(
-    personalMatchingCategories.reduce((sum, cat) => sum + cat.score, 0) / personalMatchingCategories.length
-  );
-  
-  const l3v3lCoreScore = Math.round(
-    matchCategories.reduce((sum, cat) => sum + cat.score, 0) / matchCategories.length
-  );
-
-  // Calculate overall score (weighted: 40% personal matching + 60% L3V3L core values)
+  // Calculate overall score (use provided overall score or calculate from components)
   const overallScore = matchingData.overall || Math.round(
-    (personalMatchScore * 0.4) + (l3v3lCoreScore * 0.6)
+    matchCategories.reduce((sum, cat) => sum + cat.score, 0) / matchCategories.length
   );
 
   return (
@@ -142,58 +89,30 @@ const L3V3LMatchingTable = ({ matchingData }) => {
       </div>
 
       <p className="matching-subtitle">
-        Our AI algorithm analyzes these key dimensions to find your perfect match
+        Our AI algorithm analyzes {matchCategories.length} key dimensions to find your perfect match
       </p>
 
-      {/* Personal Matching & Preferences Section */}
-      <div className="matching-subsection personal-matching">
-        <div className="subsection-header">
-          <h4>💫 Personal Matching & Preferences</h4>
-          <div className={`section-score-badge ${getMatchColor(personalMatchScore)}`}>
-            <span className="badge-score">{personalMatchScore}%</span>
-          </div>
+      {/* Show match reasons if available */}
+      {matchingData.matchReasons && matchingData.matchReasons.length > 0 && (
+        <div className="match-reasons-section">
+          <h4>✨ Why You Match:</h4>
+          <ul className="match-reasons-list">
+            {matchingData.matchReasons.map((reason, idx) => (
+              <li key={idx}>{reason}</li>
+            ))}
+          </ul>
         </div>
-        <p className="subsection-subtitle">
-          Your specific preferences and relationship goals compatibility
-        </p>
-        <div className="matching-grid">
-          {personalMatchingCategories.map((category, index) => {
-            const colorClass = getMatchColor(category.score);
-            const matchLabel = getMatchLabel(category.score);
+      )}
 
-            return (
-              <div key={index} className="matching-item">
-                <div className="matching-item-header">
-                  <span className="matching-title">{category.title}</span>
-                  <div className={`match-bubble ${colorClass}`}>
-                    <span className="bubble-score">{category.score}%</span>
-                  </div>
-                </div>
-                <div className="matching-progress-bar">
-                  <div 
-                    className={`matching-progress-fill ${colorClass}`}
-                    style={{ width: `${category.score}%` }}
-                  />
-                </div>
-                <p className="matching-description">{category.description}</p>
-                <span className={`match-label ${colorClass}`}>{matchLabel}</span>
-              </div>
-            );
-          })}
+      {/* Compatibility Level Badge */}
+      {matchingData.compatibilityLevel && (
+        <div className="compatibility-level-badge">
+          {matchingData.compatibilityLevel}
         </div>
-      </div>
+      )}
 
-      {/* L3V3L Core Values Section */}
-      <div className="matching-subsection l3v3l-core">
-        <div className="subsection-header">
-          <h4>💎 L3V3L Core Values</h4>
-          <div className={`section-score-badge ${getMatchColor(l3v3lCoreScore)}`}>
-            <span className="badge-score">{l3v3lCoreScore}%</span>
-          </div>
-        </div>
-        <p className="subsection-subtitle">
-          Foundational compatibility across Love, Loyalty, Laughter, Vulnerability & Elevation
-        </p>
+      {/* L3V3L Matching Dimensions */}
+      <div className="matching-subsection">
         <div className="matching-grid">
         {matchCategories.map((category, index) => {
           const colorClass = getMatchColor(category.score);
