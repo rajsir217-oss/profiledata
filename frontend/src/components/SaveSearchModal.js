@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useToast from '../hooks/useToast';
 import './SaveSearchModal.css';
 
@@ -9,13 +9,67 @@ const SaveSearchModal = ({
   savedSearches, 
   onUpdate, 
   onDelete,
-  currentCriteria 
+  currentCriteria,
+  minMatchScore = 0
 }) => {
   const [searchName, setSearchName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [activeTab, setActiveTab] = useState('save'); // 'save' or 'manage'
   const toast = useToast();
+
+  // Set default search name when modal opens
+  useEffect(() => {
+    if (show && activeTab === 'save') {
+      // Generate short search name based on criteria (max 12 chars)
+      const parts = [];
+      
+      // Gender (1 char: M/F)
+      if (currentCriteria.gender) {
+        parts.push(currentCriteria.gender.charAt(0).toUpperCase());
+      }
+      
+      // Age range (format: 30-34)
+      if (currentCriteria.ageMin || currentCriteria.ageMax) {
+        const min = currentCriteria.ageMin || '?';
+        const max = currentCriteria.ageMax || '?';
+        parts.push(`${min}-${max}`);
+      }
+      
+      // Height (format: 5'6-5'9 or just 5-6 if same feet)
+      if (currentCriteria.heightMinFeet && currentCriteria.heightMaxFeet) {
+        const minFt = currentCriteria.heightMinFeet;
+        const minIn = currentCriteria.heightMinInches || 0;
+        const maxFt = currentCriteria.heightMaxFeet;
+        const maxIn = currentCriteria.heightMaxInches || 0;
+        
+        if (minFt === maxFt) {
+          // Same feet, just show inches range: 5'6-9
+          parts.push(`${minFt}'${minIn}-${maxIn}`);
+        } else {
+          // Different feet: 5'6-6'2
+          parts.push(`${minFt}'${minIn}-${maxFt}'${maxIn}`);
+        }
+      }
+      
+      // L3V3L Score (format: L55) - only include if > 0
+      // (L0 means no filtering, so we skip it to save space)
+      if (minMatchScore > 0) {
+        parts.push(`L${minMatchScore}`);
+      }
+      
+      // Location (first 3 chars)
+      if (currentCriteria.location) {
+        parts.push(currentCriteria.location.substring(0, 3));
+      }
+      
+      // Join and truncate to 12 chars
+      const name = parts.join(' ').substring(0, 12);
+      
+      // Set default or generic name
+      setSearchName(name || 'Search');
+    }
+  }, [show, activeTab, currentCriteria, minMatchScore]);
 
   if (!show) return null;
 
@@ -40,13 +94,13 @@ const SaveSearchModal = ({
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this saved search?')) {
-      onDelete(id);
-    }
+    // Use the parent's onDelete handler directly
+    // The parent (SearchPage2) will show a toast notification
+    onDelete(id);
   };
 
   const startEditing = (search) => {
-    setEditingId(search._id);
+    setEditingId(search.id);
     setEditingName(search.name);
   };
 
@@ -90,14 +144,14 @@ const SaveSearchModal = ({
           {activeTab === 'save' ? (
             <div className="save-section">
               <h4>Save Current Search Criteria</h4>
-              <p className="text-muted">Give this search a memorable name</p>
+              <p className="text-muted">Auto-generated name (edit if needed)</p>
               
               <div className="form-group">
                 <label>Search Name *</label>
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="e.g., Engineers in New York"
+                  placeholder="Auto-generated based on filters"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSave()}
@@ -114,6 +168,15 @@ const SaveSearchModal = ({
                         <strong>{key}:</strong> {value}
                       </span>
                     ))}
+                  {minMatchScore > 0 ? (
+                    <span key="l3v3l-score" className="criteria-badge criteria-badge-l3v3l">
+                      <strong>L3V3L Score:</strong> ≥{minMatchScore}%
+                    </span>
+                  ) : (
+                    <span key="l3v3l-score" className="criteria-badge" style={{opacity: 0.5}}>
+                      <strong>L3V3L Score:</strong> Not set (0%)
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -136,21 +199,21 @@ const SaveSearchModal = ({
               ) : (
                 <div className="saved-searches-list">
                   {savedSearches.map((search) => (
-                    <div key={search._id} className="saved-search-item">
-                      {editingId === search._id ? (
+                    <div key={search.id} className="saved-search-item">
+                      {editingId === search.id ? (
                         <div className="edit-mode">
                           <input
                             type="text"
                             className="form-control"
                             value={editingName}
                             onChange={(e) => setEditingName(e.target.value)}
-                            onKeyPress={(e) => e.key === 'Enter' && handleUpdate(search._id)}
+                            onKeyPress={(e) => e.key === 'Enter' && handleUpdate(search.id)}
                             autoFocus
                           />
                           <div className="edit-actions">
                             <button 
                               className="btn btn-sm btn-success"
-                              onClick={() => handleUpdate(search._id)}
+                              onClick={() => handleUpdate(search.id)}
                             >
                               ✓
                             </button>
@@ -180,7 +243,7 @@ const SaveSearchModal = ({
                             </button>
                             <button 
                               className="btn btn-sm btn-outline-danger"
-                              onClick={() => handleDelete(search._id)}
+                              onClick={() => handleDelete(search.id)}
                               title="Delete"
                             >
                               🗑️

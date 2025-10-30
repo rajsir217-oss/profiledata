@@ -1476,14 +1476,18 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Create saved search document
+        # Create saved search document - save ALL fields from frontend
         from datetime import datetime
         saved_search = {
             "username": username,
-            "name": search_data["name"],
-            "criteria": search_data["criteria"],
+            **search_data,  # Save entire payload from frontend (criteria, minMatchScore, description, etc.)
             "createdAt": datetime.utcnow().isoformat()
         }
+        
+        logger.info(f"📝 Saving search: {saved_search.get('name')}")
+        logger.info(f"   - Criteria: {saved_search.get('criteria')}")
+        logger.info(f"   - minMatchScore: {saved_search.get('minMatchScore')}")
+        logger.info(f"   - Description: {saved_search.get('description')}")
 
         # Insert into database
         result = await db.saved_searches.insert_one(saved_search)
