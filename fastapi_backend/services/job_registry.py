@@ -49,7 +49,7 @@ class JobRegistryService:
         # Calculate next run time
         next_run_at = self._calculate_next_run(job_definition.get("schedule", {}))
         
-        # Prepare job document
+        # Prepare job document (use camelCase for timestamp fields for MongoDB)
         job_doc = {
             "name": job_definition["name"],
             "description": job_definition.get("description", ""),
@@ -64,10 +64,11 @@ class JobRegistryService:
             }),
             "notifications": job_definition.get("notifications", {}),
             "created_by": created_by,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "last_run_at": None,
-            "next_run_at": next_run_at,
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow(),
+            "lastRunAt": None,
+            "nextRunAt": next_run_at,
+            "lastStatus": None,
             "version": 1
         }
         
@@ -149,7 +150,7 @@ class JobRegistryService:
         """
         try:
             # Don't allow updating certain fields
-            protected_fields = ["_id", "created_by", "created_at", "version"]
+            protected_fields = ["_id", "created_by", "created_at", "createdAt", "version"]
             for field in protected_fields:
                 updates.pop(field, None)
             
@@ -171,12 +172,12 @@ class JobRegistryService:
                     if not valid:
                         raise ValueError(f"Parameter validation failed: {error}")
             
-            # Recalculate next run if schedule changed
+            # Recalculate next run if schedule changed (use camelCase for MongoDB)
             if "schedule" in updates:
-                updates["next_run_at"] = self._calculate_next_run(updates["schedule"])
+                updates["nextRunAt"] = self._calculate_next_run(updates["schedule"])
             
-            # Update timestamps and version
-            updates["updated_at"] = datetime.utcnow()
+            # Update timestamps and version (use camelCase for MongoDB)
+            updates["updatedAt"] = datetime.utcnow()
             
             # Update in database with proper MongoDB operators
             update_doc = {
@@ -231,7 +232,7 @@ class JobRegistryService:
         """
         query = {
             "enabled": True,
-            "next_run_at": {"$lte": datetime.utcnow()}
+            "nextRunAt": {"$lte": datetime.utcnow()}  # Fixed: use camelCase to match DB
         }
         
         jobs = await self.jobs_collection.find(query).to_list(length=None)
@@ -257,10 +258,11 @@ class JobRegistryService:
             # Calculate next run time
             next_run_at = self._calculate_next_run(job["schedule"])
             
-            # Update job
+            # Update job (use camelCase for MongoDB fields)
             update_fields = {
-                "last_run_at": datetime.utcnow(),
-                "next_run_at": next_run_at
+                "lastRunAt": datetime.utcnow(),
+                "nextRunAt": next_run_at,
+                "updatedAt": datetime.utcnow()
             }
             
             # Update last status if provided in execution result

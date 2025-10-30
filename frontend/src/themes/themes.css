@@ -55,6 +55,7 @@
   --danger-light: #ffebee;
   --danger-hover: #ffcdd2;
   --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
   --warning-dark: #92400e;
   
   /* Typography - Friendly fonts */
@@ -228,6 +229,7 @@ body.theme-dark {
   --danger-light: #7f1d1d;
   --danger-hover: #991b1b;
   --warning-light: #78350f;
+  --warning-background: #451a03;
   --warning-dark: #fef3c7;
   
   background-color: var(--background-color);
@@ -411,6 +413,7 @@ body.theme-light-pink {
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
   --warning-dark: #92400e;
   
   background-color: var(--background-color);
@@ -533,6 +536,7 @@ body.theme-light-gray {
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
   --warning-dark: #92400e;
   
   background-color: var(--background-color);
@@ -621,6 +625,7 @@ body.theme-ultra-light-gray {
   --danger-light: #fee2e2;
   --danger-hover: #fecaca;
   --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
   --warning-dark: #92400e;
   
   background-color: var(--background-color);
@@ -1210,6 +1215,7 @@ body.theme-ultra-black {
   --danger-light: #450a0a;
   --danger-hover: #dc2626;
   --warning-light: #451a03;
+  --warning-background: #451a03;
   --warning-hover: #d97706;
   
   /* Input Colors */

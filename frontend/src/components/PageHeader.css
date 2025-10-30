@@ -1,0 +1,230 @@
+/* Page Header Component - Theme Aware */
+
+.page-header {
+  padding: var(--spacing-lg, 1.5rem) var(--spacing-xl, 2rem);
+  margin-bottom: var(--spacing-lg, 1.5rem);
+  border-radius: var(--radius-lg, 12px);
+  transition: background 0.3s ease, border-color 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Gradient variant - Dashboard, Preferences style */
+.page-header-gradient {
+  background: linear-gradient(
+    135deg, 
+    var(--primary-color, #6366f1), 
+    var(--secondary-color, #8b5cf6)
+  );
+  color: var(--header-text-color, white);
+  box-shadow: var(--shadow-md, 0 4px 6px rgba(0, 0, 0, 0.1));
+}
+
+/* Flat variant - Solid color */
+.page-header-flat {
+  background: var(--surface-color, #2a2d3a);
+  border: 1px solid var(--border-color, #3f4453);
+  color: var(--text-color, #e5e7eb);
+}
+
+/* Minimal variant - No background */
+.page-header-minimal {
+  background: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  color: var(--text-color, #e5e7eb);
+}
+
+.page-header-content {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+}
+
+.page-header-text {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md, 1rem);
+  flex: 1;
+}
+
+.page-header-icon {
+  font-size: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.95;
+}
+
+.page-header-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.2;
+  font-family: var(--font-heading, inherit);
+}
+
+.page-header-gradient .page-header-title {
+  color: var(--header-text-color, white);
+}
+
+.page-header-flat .page-header-title,
+.page-header-minimal .page-header-title {
+  color: var(--text-color, #e5e7eb);
+}
+
+.page-header-subtitle {
+  font-size: 0.95rem;
+  margin: var(--spacing-xs, 0.5rem) 0 0 0;
+  opacity: 0.9;
+  font-weight: 400;
+  line-height: 1.4;
+  font-family: var(--font-body, inherit);
+}
+
+.page-header-gradient .page-header-subtitle {
+  color: var(--header-subtitle-color, rgba(255, 255, 255, 0.95));
+}
+
+.page-header-flat .page-header-subtitle,
+.page-header-minimal .page-header-subtitle {
+  color: var(--text-secondary, #9ca3af);
+}
+
+.page-header-actions {
+  display: flex !important;
+  align-items: center;
+  gap: var(--spacing-sm, 0.75rem);
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+/* View Mode Toggle - Used in PageHeader actions */
+.view-mode-toggle {
+  display: flex;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+
+/* For gradient headers (white background toggle) */
+.page-header-gradient .view-mode-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* For flat/minimal headers (surface color toggle) */
+.page-header-flat .view-mode-toggle,
+.page-header-minimal .view-mode-toggle {
+  background: var(--surface-color, white);
+  border: 1px solid var(--border-color, #e0e0e0);
+}
+
+.view-mode-toggle .view-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-weight: 600;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 44px;
+}
+
+/* Gradient header button colors */
+.page-header-gradient .view-mode-toggle .view-btn {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.page-header-gradient .view-mode-toggle .view-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+}
+
+.page-header-gradient .view-mode-toggle .view-btn.active {
+  background: rgba(255, 255, 255, 0.25);
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Flat/minimal header button colors */
+.page-header-flat .view-mode-toggle .view-btn,
+.page-header-minimal .view-mode-toggle .view-btn {
+  color: var(--text-secondary, #666);
+}
+
+.page-header-flat .view-mode-toggle .view-btn:hover,
+.page-header-minimal .view-mode-toggle .view-btn:hover {
+  background: var(--hover-background, rgba(102, 126, 234, 0.1));
+  color: var(--primary-color, #667eea);
+}
+
+.page-header-flat .view-mode-toggle .view-btn.active,
+.page-header-minimal .view-mode-toggle .view-btn.active {
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  color: white;
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .page-header {
+    padding: var(--spacing-md, 1rem) var(--spacing-md, 1rem);
+    margin-bottom: var(--spacing-md, 1rem);
+  }
+
+  .page-header-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-sm, 0.75rem);
+  }
+
+  .page-header-text {
+    width: 100%;
+  }
+
+  .page-header-actions {
+    width: 100%;
+    justify-content: flex-end !important;
+    margin-left: 0 !important;
+  }
+
+  .page-header-title {
+    font-size: 1.5rem;
+  }
+
+  .page-header-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .page-header-icon {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: var(--spacing-sm, 0.75rem);
+  }
+
+  .page-header-title {
+    font-size: 1.25rem;
+  }
+
+  .page-header-icon {
+    font-size: 1.25rem;
+  }
+}

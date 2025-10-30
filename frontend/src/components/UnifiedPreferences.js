@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import PageHeader from './PageHeader';
+import SystemStatus from './SystemStatus';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
@@ -14,9 +16,12 @@ const UnifiedPreferences = () => {
 
   // Admin Settings State
   const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
+  const [profileViewHistoryDays, setProfileViewHistoryDays] = useState(7);
+  const [enableL3V3LForAll, setEnableL3V3LForAll] = useState(true);
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
   const [showTooltip, setShowTooltip] = useState(false);
+  const [showProfileViewTooltip, setShowProfileViewTooltip] = useState(false);
   const [adminSettingsLoading, setAdminSettingsLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -172,11 +177,14 @@ const UnifiedPreferences = () => {
     try {
       setAdminSettingsLoading(true);
       const response = await api.get('/system-settings');
-      const days = response.data.ticket_delete_days;
-      setTicketDeleteDays(days !== undefined && days !== null ? days : 30);
+      const ticketDays = response.data.ticket_delete_days;
+      const profileViewDays = response.data.profile_view_history_days;
+      const enableL3V3L = response.data.enable_l3v3l_for_all;
+      setTicketDeleteDays(ticketDays !== undefined && ticketDays !== null ? ticketDays : 30);
+      setProfileViewHistoryDays(profileViewDays !== undefined && profileViewDays !== null ? profileViewDays : 7);
+      setEnableL3V3LForAll(enableL3V3L !== undefined && enableL3V3L !== null ? enableL3V3L : true);
     } catch (error) {
       console.error('Error loading admin settings:', error);
-      setTicketDeleteDays(30);
     } finally {
       setAdminSettingsLoading(false);
     }
@@ -188,7 +196,9 @@ const UnifiedPreferences = () => {
       setTicketSettingsMessage({ type: '', text: '' });
 
       await api.put('/system-settings', {
-        ticket_delete_days: ticketDeleteDays
+        ticket_delete_days: ticketDeleteDays,
+        profile_view_history_days: profileViewHistoryDays,
+        enable_l3v3l_for_all: enableL3V3LForAll
       });
 
       setTicketSettingsMessage({ type: 'success', text: '✅ Settings saved successfully!' });
@@ -343,10 +353,12 @@ const UnifiedPreferences = () => {
 
   return (
     <div className="unified-preferences-container">
-      <div className="preferences-header">
-        <h1>⚙️ Preferences</h1>
-        <p>Manage your account settings and notification preferences</p>
-      </div>
+      <PageHeader
+        icon="⚙️"
+        title="Preferences"
+        subtitle="Manage your account settings and notification preferences"
+        variant="gradient"
+      />
 
       {/* Tab Navigation */}
       <div className="preferences-tabs">
@@ -616,6 +628,9 @@ const UnifiedPreferences = () => {
             <span>Looking for scheduler jobs? Visit the <strong>Dynamic Scheduler</strong> page for advanced job management.</span>
           </div>
 
+          {/* Backend Services Status */}
+          <SystemStatus />
+
           {adminSettingsLoading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <div className="loading-spinner"></div>
@@ -708,6 +723,152 @@ const UnifiedPreferences = () => {
                     <option value={30}>30 days after resolved (Recommended)</option>
                     <option value={60}>60 days after resolved</option>
                     <option value={90}>90 days after resolved</option>
+                  </select>
+                  
+                  <button
+                    onClick={handleSaveTicketSettings}
+                    disabled={savingTicketSettings}
+                    className="btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* L3V3L Algorithm Feature Toggle */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>🦋 L3V3L Compatibility Algorithm</h3>
+              <p>Control access to AI-powered compatibility scoring feature</p>
+              
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '16px', background: 'var(--hover-background)', borderRadius: '8px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label htmlFor="enableL3V3L" style={{ fontWeight: '600', display: 'block', marginBottom: '4px' }}>
+                      Enable L3V3L for All Users
+                    </label>
+                    <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>
+                      When enabled, all users can filter search results by L3V3L compatibility score. Disable to make this a premium-only feature.
+                    </p>
+                  </div>
+                  <label className="switch" style={{ marginLeft: 'auto' }}>
+                    <input
+                      id="enableL3V3L"
+                      type="checkbox"
+                      checked={enableL3V3LForAll}
+                      onChange={(e) => setEnableL3V3LForAll(e.target.checked)}
+                      disabled={savingTicketSettings}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+                
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  background: enableL3V3LForAll ? 'var(--success-light)' : 'var(--warning-light)', 
+                  borderRadius: '8px',
+                  fontSize: '0.9rem'
+                }}>
+                  <strong>Current Status:</strong> {enableL3V3LForAll ? '✅ Available to all users (Testing Phase)' : '🔒 Premium users only'}
+                  <br />
+                  <span style={{ color: 'var(--text-secondary)' }}>
+                    {enableL3V3LForAll 
+                      ? 'Use this setting to collect user feedback before deciding on premium monetization.' 
+                      : 'Only users with premium subscription can use L3V3L compatibility filtering.'}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Profile View History Settings */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>👁️ Profile View History</h3>
+              <p>Configure how long profile view history is visible to users</p>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label htmlFor="profileViewHistoryDays" style={{ fontWeight: '600' }}>View History Retention</label>
+                  <div style={{ position: 'relative' }}>
+                    <span 
+                      onClick={() => setShowProfileViewTooltip(!showProfileViewTooltip)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '4px 8px',
+                        borderRadius: '50%',
+                        background: 'var(--info-light)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ℹ️
+                    </span>
+                    {showProfileViewTooltip && (
+                      <>
+                        <div 
+                          onClick={() => setShowProfileViewTooltip(false)}
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '0',
+                          marginTop: '8px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          minWidth: '300px',
+                          maxWidth: '400px'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: '8px' }}>How it works:</strong>
+                          <ul style={{ marginLeft: '20px', lineHeight: '1.6' }}>
+                            <li>Users can see who viewed their profile within this time period</li>
+                            <li>Older views are hidden but not deleted from the database</li>
+                            <li>Helps manage privacy and prevents stalking behavior</li>
+                            <li>Recommended: 7-14 days for active engagement</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  Users will only see profile views from the last N days on their dashboard.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    id="profileViewHistoryDays"
+                    value={profileViewHistoryDays}
+                    onChange={(e) => setProfileViewHistoryDays(Number(e.target.value))}
+                    disabled={savingTicketSettings}
+                    className="form-control"
+                    style={{ flex: '1', minWidth: '250px' }}
+                  >
+                    <option value={1}>1 day (24 hours)</option>
+                    <option value={3}>3 days</option>
+                    <option value={7}>7 days (Recommended)</option>
+                    <option value={14}>14 days (2 weeks)</option>
+                    <option value={30}>30 days (1 month)</option>
+                    <option value={60}>60 days (2 months)</option>
+                    <option value={90}>90 days (3 months)</option>
                   </select>
                   
                   <button

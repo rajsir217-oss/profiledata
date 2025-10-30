@@ -26,6 +26,9 @@ class NotificationPriority(str, Enum):
 
 class NotificationTrigger(str, Enum):
     """Dating app notification triggers"""
+    # Profile lifecycle
+    NEW_PROFILE_CREATED = "new_profile_created"
+    
     # Match-related
     NEW_MATCH = "new_match"
     MUTUAL_FAVORITE = "mutual_favorite"

@@ -212,6 +212,11 @@ const Register = () => {
   const [bioSampleIndex, setBioSampleIndex] = useState(0);
   // familyBackgroundSampleIndex is now managed inside TextAreaWithSamples component
 
+  // Reset bio sample index when gender changes
+  useEffect(() => {
+    setBioSampleIndex(0);
+  }, [formData.gender]);
+
   // Sample descriptions for "About Me"
   const aboutMeSamples = [  // Renamed from aboutYouSamples
     "I am a warm-hearted and family-oriented individual who values tradition while embracing modern perspectives. My friends describe me as compassionate, reliable, and someone with a great sense of humor. I enjoy meaningful conversations, weekend getaways, and trying new cuisines. In my free time, I love reading, cooking, and spending quality time with loved ones. I believe in honesty, respect, and building a strong foundation of friendship in a relationship.",
@@ -251,14 +256,25 @@ const Register = () => {
     "I belong to a large, joint family where traditions and togetherness are highly valued. We have regular family gatherings, celebrate all occasions with enthusiasm, and maintain strong connections with relatives. My family is well-respected in our community and places great importance on values like hospitality, respect for elders, and cultural traditions. At the same time, they're progressive in their thinking and supportive of individual choices. Growing up in such a nurturing environment has shaped my values and outlook on relationships and family life."
   ];
 
-  // Sample descriptions for "Bio / Tagline"
-  const bioSamples = [
+  // Sample descriptions for "Bio / Tagline" - Gender-specific
+  const maleBioSamples = [
     "Family-oriented professional seeking genuine connection and lifelong partnership 💕",
     "Traditional values, modern outlook. Love travel, food, and meaningful conversations ✨",
-    "Balanced life, big heart. Looking for my partner in crime and best friend 🌟",
+    "Career-driven gentleman looking for my partner in crime and best friend 🌟",
     "Adventure seeker with strong family values. Let's create beautiful memories together 🎯",
-    "Passionate about life, career, and relationships. Seeking someone who values honesty and respect 💫"
+    "Passionate about life, career, and family. Seeking someone who values honesty and respect 💫"
   ];
+
+  const femaleBioSamples = [
+    "Independent woman seeking a partner who respects my ambitions and shares my values 💕",
+    "Traditional values with modern dreams. Love exploring new places and cultures ✨",
+    "Strong, compassionate soul looking for my partner in crime and best friend 🌟",
+    "Adventure seeker with family at heart. Let's build beautiful memories together 🎯",
+    "Passionate about career, family, and genuine connections. Looking for mutual respect and love 💫"
+  ];
+
+  // Get appropriate bio samples based on selected gender
+  const bioSamples = formData.gender === 'Female' ? femaleBioSamples : maleBioSamples;
 
   // Check if username exists in database
   const checkUsernameAvailability = async (username) => {
@@ -1392,59 +1408,6 @@ const Register = () => {
           </>
         )}
 
-        {/* Custom row for castePreference, eatingPreference, and location */}
-        <div className="row mb-3">
-          <div className="col-md-4">
-            <label className="form-label">Caste Preference</label>
-            <input 
-              type="text" 
-              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
-              name="castePreference" 
-              value={formData.castePreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-            />
-            {fieldErrors.castePreference && touchedFields.castePreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.castePreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Eating Preference</label>
-            <select 
-              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
-              name="eatingPreference" 
-              value={formData.eatingPreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-            >
-              <option value="">Select...</option>
-              <option value="Vegetarian">Vegetarian</option>
-              <option value="Eggetarian">Eggetarian</option>
-              <option value="Non-Veg">Non-Veg</option>
-              <option value="Others">Others</option>
-            </select>
-            {fieldErrors.eatingPreference && touchedFields.eatingPreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.eatingPreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Location</label>
-            <input 
-              type="text" 
-              className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
-              name="location" 
-              value={formData.location} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-            />
-            {fieldErrors.location && touchedFields.location && (
-              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
-            )}
-          </div>
-        </div>
         {/* Education History Section - Using Shared Component */}
         <EducationHistory
           educationHistory={formData.educationHistory}
@@ -1471,6 +1434,7 @@ const Register = () => {
           const excludedFields = [
             "username", "password", "passwordConfirm", "firstName", "lastName", "contactNumber", "contactEmail", 
             "dateOfBirth", "heightFeet", "heightInches", "gender", "citizenshipStatus", 
+            "profileCreatedBy",  // Rendered explicitly above
             "religion", "languagesSpoken",  // NEW: rendered explicitly
             "castePreference", "eatingPreference", "location",
             // Exclude country/regional fields (rendered explicitly above)
@@ -1671,6 +1635,61 @@ const Register = () => {
           {fieldErrors.partnerPreference && touchedFields.partnerPreference && (
             <div className="invalid-feedback d-block">{fieldErrors.partnerPreference}</div>
           )}
+        </div>
+        
+        {/* Partner Preferences: Caste, Eating, Location */}
+        <div className="row mb-3">
+          <div className="col-md-4">
+            <label className="form-label">Caste Preference</label>
+            <input 
+              type="text" 
+              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
+              name="castePreference" 
+              value={formData.castePreference} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required 
+            />
+            {fieldErrors.castePreference && touchedFields.castePreference && (
+              <div className="invalid-feedback d-block">{fieldErrors.castePreference}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Eating Preference</label>
+            <select 
+              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
+              name="eatingPreference" 
+              value={formData.eatingPreference} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required
+            >
+              <option value="">Select...</option>
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Eggetarian">Eggetarian</option>
+              <option value="Non-Veg">Non-Veg</option>
+              <option value="Others">Others</option>
+            </select>
+            {fieldErrors.eatingPreference && touchedFields.eatingPreference && (
+              <div className="invalid-feedback d-block">{fieldErrors.eatingPreference}</div>
+            )}
+          </div>
+          <div className="col-md-4">
+            <label className="form-label">Location Preference</label>
+            <input 
+              type="text" 
+              className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
+              name="location" 
+              value={formData.location} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              required 
+              placeholder="e.g., New York, USA"
+            />
+            {fieldErrors.location && touchedFields.location && (
+              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
+            )}
+          </div>
         </div>
         
         {/* Age Preference - Relative to Your Age */}

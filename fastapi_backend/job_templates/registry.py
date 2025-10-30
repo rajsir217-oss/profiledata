@@ -149,6 +149,8 @@ def initialize_templates():
     from .email_notifier_template import EmailNotifierTemplate
     from .sms_notifier_template import SMSNotifierTemplate
     from .weekly_digest_notifier_template import WeeklyDigestNotifierTemplate
+    from .push_notifier_template import PushNotifierTemplate
+    from .saved_search_matches_notifier import SavedSearchMatchesNotifierTemplate
     
     registry = get_template_registry()
     
@@ -172,6 +174,8 @@ def initialize_templates():
     registry.register(EmailNotifierTemplate())
     registry.register(SMSNotifierTemplate())
     registry.register(WeeklyDigestNotifierTemplate())
+    registry.register(PushNotifierTemplate())
+    registry.register(SavedSearchMatchesNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
