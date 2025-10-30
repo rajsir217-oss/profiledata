@@ -594,7 +594,7 @@ const PIIManagement = () => {
             label: "Access I've Granted",
             badge: grantedAccess.length,
             content: (
-          <div className="tab-panel active">
+              <>
             <div className="panel-header">
               <h3>People Who Can See Your Information</h3>
               <p>You've granted these users access to your private data</p>
@@ -609,7 +609,7 @@ const PIIManagement = () => {
                 {grantedAccess.map(item => renderAccessCard(item, 'granted'))}
               </div>
             )}
-          </div>
+              </>
             )
           },
           {
@@ -618,7 +618,7 @@ const PIIManagement = () => {
             label: 'Access I Have',
             badge: receivedAccess.length,
             content: (
-          <div className="tab-panel active">
+              <>
             <div className="panel-header">
               <h3>Information You Can Access</h3>
               <p>These users have granted you access to their private data</p>
@@ -633,7 +633,7 @@ const PIIManagement = () => {
                 {receivedAccess.map(item => renderAccessCard(item, 'received'))}
               </div>
             )}
-          </div>
+              </>
             )
           },
           {
@@ -642,7 +642,7 @@ const PIIManagement = () => {
             label: 'Pending Requests',
             badge: incomingRequests.length + outgoingRequests.length,
             content: (
-          <div className="tab-panel active">
+              <>
             {/* Incoming Requests */}
             <div className="requests-section">
               <div className="panel-header">
@@ -676,7 +676,7 @@ const PIIManagement = () => {
                 </div>
               )}
             </div>
-          </div>
+              </>
             )
           },
           {
@@ -685,7 +685,7 @@ const PIIManagement = () => {
             label: 'History',
             badge: revokedAccess.length + rejectedIncoming.length + rejectedOutgoing.length,
             content: (
-          <div className="tab-panel active">
+              <>
             {/* Revoked Access */}
             <div className="requests-section">
               <div className="panel-header">
@@ -852,7 +852,7 @@ const PIIManagement = () => {
                 </div>
               )}
             </div>
-          </div>
+              </>
             )
           }
         ]}
