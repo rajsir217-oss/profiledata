@@ -245,19 +245,22 @@
 .status-badge.online,
 .status-badge.offline {
   /* Override base badge styles for circular dots */
-  padding: 0;
-  border-radius: 50%;
-  border: 2px solid white;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  padding: 0 !important;
+  border-radius: 50% !important;
+  border: 2px solid white !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
+  gap: 0 !important;
+  font-size: 0 !important; /* Hide any text content */
   /* Width and height are set inline via component props */
+  z-index: 10; /* Ensure it's above other elements */
 }
 
 .status-badge.online {
-  background: var(--success-color);
+  background: var(--success-color) !important;
 }
 
 .status-badge.offline {
-  background: var(--text-muted);
+  background: var(--text-muted) !important;
 }
 
 /* Other status badge types (keep as text badges) */
