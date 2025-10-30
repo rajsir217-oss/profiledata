@@ -31,12 +31,10 @@ const PIIManagement = () => {
   
   const currentUsername = localStorage.getItem('username');
 
-  // Handle tab change with backend refresh
-  const handleTabChange = async (tabId) => {
-    console.log(`🔄 Switching to tab: ${tabId} - Refreshing data from backend...`);
-    setLoading(true); // Show loading state
-    await loadAllData(); // Refresh data from backend
-    console.log(`✅ Tab ${tabId} data refreshed`);
+  // Handle tab change (no need to reload data - it's already loaded)
+  const handleTabChange = (tabId) => {
+    console.log(`✅ Switched to tab: ${tabId}`);
+    // Data is already loaded via useEffect, no need to reload on tab switch
   };
 
   const loadAllData = useCallback(async () => {
