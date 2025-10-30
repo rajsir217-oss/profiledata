@@ -31,8 +31,9 @@ yarn-error.log*
 # GCP
 .gcp_project_id
 
-# Uploads (ignore user uploads but keep default avatar)
+# Uploads (ignore user uploads but keep default avatar and docs)
 uploads/*
 !uploads/.gitkeep
 !uploads/default-avatar.svg
+!uploads/README.md
 mongodb_backup_*.tar.gz
