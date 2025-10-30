@@ -8,6 +8,7 @@ import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import PageHeader from './PageHeader';
 import OnlineStatusBadge from './OnlineStatusBadge';
+import UniversalTabContainer from './UniversalTabContainer';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import './SearchPage.css';
@@ -64,7 +65,6 @@ const SearchPage2 = () => {
   
   // View mode state
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
-  const [searchTab, setSearchTab] = useState('basic'); // 'basic' or 'advanced'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 3;
@@ -1610,48 +1610,66 @@ const SearchPage2 = () => {
             </div>
 
             {/* Search Tabs */}
-            <div className="search-tabs">
-              <button
-                type="button"
-                className={`search-tab ${searchTab === 'saved' ? 'active' : ''}`}
-                onClick={() => setSearchTab('saved')}
-              >
-                Saved Searches
-                {savedSearches.length > 0 && (
-                  <span className="tab-badge">{savedSearches.length}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                className={`search-tab ${searchTab === 'basic' ? 'active' : ''}`}
-                onClick={() => setSearchTab('basic')}
-              >
-                Basic Search
-              </button>
-              <button
-                type="button"
-                className={`search-tab ${searchTab === 'advanced' ? 'active' : ''}`}
-                onClick={() => setSearchTab('advanced')}
-              >
-                Advanced Search
-              </button>
-              <button
-                type="button"
-                className={`search-tab ${searchTab === 'l3v3l' ? 'active' : ''}`}
-                onClick={() => setSearchTab('l3v3l')}
-              >
-                🦋 L3V3L Compatibility Filter
-                {systemConfig.enable_l3v3l_for_all && !isPremiumUser && (
-                  <span className="tab-badge" style={{ background: 'var(--info-color)' }}>BETA</span>
-                )}
-                {minMatchScore > 0 && (
-                  <span className="tab-badge">{minMatchScore}%</span>
-                )}
-              </button>
-            </div>
+            <UniversalTabContainer
+              variant="underlined"
+              defaultTab="basic"
+              tabs={[
+                {
+                  id: 'saved',
+                  label: 'Saved Searches',
+                  badge: savedSearches.length > 0 ? savedSearches.length : null,
+                  content: (
+                    <div className="saved-searches-tab">
+                      {savedSearches.length === 0 ? (
+                        <div className="empty-saved-searches">
+                          <div className="empty-icon">📋</div>
+                          <h4>No Saved Searches Yet</h4>
+                          <p>Save your search criteria to quickly access them later.</p>
+                          <p className="text-muted">
+                            Use the "💾 Save" button above to save your current search filters.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="saved-searches-grid">
+                          {savedSearches.map(search => (
+                            <div key={search.id} className="saved-search-card">
+                              <div className="saved-search-header">
+                                <h5 className="saved-search-name">{search.name}</h5>
+                                <button
+                                  className="btn-delete-saved"
+                                  onClick={() => handleDeleteSavedSearch(search.id)}
+                                  title="Delete this saved search"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                              
+                              <div className="saved-search-description">
+                                <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
+                              </div>
 
-            {/* Basic Search Tab */}
-            {searchTab === 'basic' && (
+                              <div className="saved-search-footer">
+                                <button
+                                  className="btn-load-saved"
+                                  onClick={() => handleLoadSavedSearch(search)}
+                                >
+                                  📂 Load Search
+                                </button>
+                                <span className="saved-date">
+                                  {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                },
+                {
+                  id: 'basic',
+                  label: 'Basic Search',
+                  content: (
               <div className="filter-section">
                 <div className="row filter-row-1">
                   <div className="col-keyword">
@@ -1793,10 +1811,12 @@ const SearchPage2 = () => {
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* Advanced Search Tab */}
-            {searchTab === 'advanced' && (
+                  )
+                },
+                {
+                  id: 'advanced',
+                  label: 'Advanced Search',
+                  content: (
               <div className="filter-section">
                 <div className="row filter-row-1">
                   <div className="col-gender">
@@ -1914,10 +1934,14 @@ const SearchPage2 = () => {
                   </div>
                 </div>
               </div>
-            )}
-
-            {/* L3V3L Compatibility Filter Tab */}
-            {searchTab === 'l3v3l' && (
+                  )
+                },
+                {
+                  id: 'l3v3l',
+                  icon: '🦋',
+                  label: 'L3V3L Filter',
+                  badge: minMatchScore > 0 ? `${minMatchScore}%` : (systemConfig.enable_l3v3l_for_all && !isPremiumUser ? 'BETA' : null),
+                  content: (
               <div className="l3v3l-filter-tab" style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
                 {(systemConfig.enable_l3v3l_for_all || isPremiumUser) ? (
                   <div className="l3v3l-content">
@@ -2039,56 +2063,10 @@ const SearchPage2 = () => {
                   </div>
                 )}
               </div>
-            )}
-
-            {/* Saved Searches Tab */}
-            {searchTab === 'saved' && (
-              <div className="saved-searches-tab">
-                {savedSearches.length === 0 ? (
-                  <div className="empty-saved-searches">
-                    <div className="empty-icon">📋</div>
-                    <h4>No Saved Searches Yet</h4>
-                    <p>Save your search criteria to quickly access them later.</p>
-                    <p className="text-muted">
-                      Use the "💾 Save" button above to save your current search filters.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="saved-searches-grid">
-                    {savedSearches.map(search => (
-                      <div key={search.id} className="saved-search-card">
-                        <div className="saved-search-header">
-                          <h5 className="saved-search-name">{search.name}</h5>
-                          <button
-                            className="btn-delete-saved"
-                            onClick={() => handleDeleteSavedSearch(search.id)}
-                            title="Delete this saved search"
-                          >
-                            🗑️
-                          </button>
-                        </div>
-                        
-                        <div className="saved-search-description">
-                          <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
-                        </div>
-
-                        <div className="saved-search-footer">
-                          <button
-                            className="btn-load-saved"
-                            onClick={() => handleLoadSavedSearch(search)}
-                          >
-                            📂 Load Search
-                          </button>
-                          <span className="saved-date">
-                            {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
+                  )
+                }
+              ]}
+            />
 
             {/* Additional filters (hidden) */}
             <div className="filter-section" style={{display: 'none'}}>
