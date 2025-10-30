@@ -240,13 +240,21 @@
 }
 
 .status-badge.online {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success-color);
+  background: var(--success-color);
+  color: white;
+  padding: 0; /* Remove padding for circular dot */
+  border-radius: 50%; /* Make it circular */
+  border: 2px solid white; /* White border for visibility */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle outer shadow */
 }
 
 .status-badge.offline {
-  background: rgba(107, 114, 128, 0.1);
-  color: var(--text-secondary);
+  background: var(--text-muted);
+  color: white;
+  padding: 0; /* Remove padding for circular dot */
+  border-radius: 50%; /* Make it circular */
+  border: 2px solid white; /* White border for visibility */
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle outer shadow */
 }
 
 .status-badge.away {
