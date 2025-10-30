@@ -32,45 +32,10 @@
   font-weight: 700;
 }
 
-/* Tabs Navigation */
-.dashboard-tabs {
-  margin-top: 20px;
-}
-
-.tabs-nav {
-  display: flex;
-  gap: 10px;
-  border-bottom: 2px solid var(--border-color);
-  margin-bottom: 20px;
-}
-
-.tab-button {
-  padding: 12px 24px;
-  background: transparent;
-  border: none;
-  color: var(--text-secondary, #586069);
-  font-size: 16px;
-  font-weight: 500;
-  cursor: pointer;
-  border-bottom: 3px solid transparent;
-  transition: all 0.3s ease;
-  border-radius: 8px 8px 0 0;
-}
-
-.tab-button:hover {
-  color: var(--primary-color, #0366d6);
-  background: var(--hover-background, rgba(102, 126, 234, 0.05));
-}
-
-.tab-button.active {
-  color: var(--primary-color, #0366d6);
-  border-bottom-color: var(--primary-color, #0366d6);
-  background: var(--hover-background, rgba(102, 126, 234, 0.05));
-}
-
-.test-dashboard .tab-content {
-  padding: 20px 0;
-}
+/* ===== OBSOLETE TAB STYLES REMOVED =====
+ * Tabs now handled by UniversalTabContainer
+ * Old .dashboard-tabs, .tabs-nav, .tab-button, .tab-content removed
+ * ======================================= */
 
 .dashboard-content {
   display: flex;
