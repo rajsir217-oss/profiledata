@@ -155,3 +155,98 @@
     display: none;
   }
 }
+
+/* Inline Confirmation Dialog */
+.delete-confirm-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  animation: slideIn 0.2s ease;
+}
+
+.confirm-message {
+  font-size: 14px;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-confirm-delete,
+.btn-confirm-cancel {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1px solid;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-confirm-delete {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
+  color: white;
+}
+
+.btn-confirm-delete:hover {
+  background: #c82333;
+  border-color: #c82333;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.3);
+}
+
+.btn-confirm-cancel {
+  background: transparent;
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+.btn-confirm-cancel:hover {
+  background: var(--hover-color);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .delete-confirm-inline {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .confirm-message {
+    white-space: normal;
+    text-align: center;
+  }
+  
+  .confirm-actions {
+    flex-direction: column;
+  }
+  
+  .btn-confirm-delete,
+  .btn-confirm-cancel {
+    width: 100%;
+  }
+}

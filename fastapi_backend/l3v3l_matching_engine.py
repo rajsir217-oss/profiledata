@@ -289,8 +289,11 @@ class L3V3LMatchingEngine:
             age = self._calculate_age(profile.get('dateOfBirth'))
             if age:
                 # Convert to int to handle string values from MongoDB
-                min_age = int(criteria['ageRange'].get('min', 18))
-                max_age = int(criteria['ageRange'].get('max', 100))
+                # Handle empty strings by using defaults
+                min_age_val = criteria['ageRange'].get('min', 18)
+                max_age_val = criteria['ageRange'].get('max', 100)
+                min_age = int(min_age_val) if min_age_val not in ['', None] else 18
+                max_age = int(max_age_val) if max_age_val not in ['', None] else 100
                 if min_age <= age <= max_age:
                     score += 1.0
                 elif min_age - 2 <= age <= max_age + 2:
@@ -413,8 +416,10 @@ class L3V3LMatchingEngine:
         
         if work1 and work2:
             # Stress level compatibility (convert to int to handle any string values)
-            stress1 = int(work1.get('stress', 5))
-            stress2 = int(work2.get('stress', 5))
+            stress1_val = work1.get('stress', 5)
+            stress2_val = work2.get('stress', 5)
+            stress1 = int(stress1_val) if stress1_val not in ['', None] else 5
+            stress2 = int(stress2_val) if stress2_val not in ['', None] else 5
             stress_diff = abs(stress1 - stress2)
             if stress_diff <= 2:
                 score += 1.0  # Similar stress levels
@@ -464,8 +469,16 @@ class L3V3LMatchingEngine:
         
         if height1 and height2:
             # Convert to int to handle any string values from MongoDB
-            height1 = int(height1)
-            height2 = int(height2)
+            # Ensure values are not empty strings
+            try:
+                height1 = int(height1) if height1 not in ['', None] else None
+                height2 = int(height2) if height2 not in ['', None] else None
+            except (ValueError, TypeError):
+                height1 = None
+                height2 = None
+            
+            if not height1 or not height2:
+                return score / factors if factors > 0 else 0.5
             
             # Assuming male should be taller (traditional preference)
             if user1.get('gender') == 'Male':
@@ -489,8 +502,16 @@ class L3V3LMatchingEngine:
         
         if age1 and age2:
             # Convert to int to handle any string values from MongoDB
-            age1 = int(age1)
-            age2 = int(age2)
+            # Ensure values are not empty strings
+            try:
+                age1 = int(age1) if age1 not in ['', None] else None
+                age2 = int(age2) if age2 not in ['', None] else None
+            except (ValueError, TypeError):
+                age1 = None
+                age2 = None
+            
+            if not age1 or not age2:
+                return score / factors if factors > 0 else 0.5
             
             # Assuming male should be slightly older or same age
             if user1.get('gender') == 'Male':
