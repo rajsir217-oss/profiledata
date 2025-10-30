@@ -47,6 +47,42 @@ Main script to reset database with fresh test data.
 - notification_log
 - notification_preferences
 
+### 3. `test_push_notifications.py`
+Inserts test push notifications into the queue for testing the Push Notifier job.
+
+**Features:**
+- Creates 5 test push notifications for user "admin"
+- Creates device subscription (FCM token)
+- Various notification types: new_match, new_message, profile_view, pii_request, milestone
+- Auto-cleans old test notifications before inserting new ones
+
+**Usage:**
+```bash
+python admin_tools/test_push_notifications.py
+```
+
+### 4. `test_all_notifications.py`
+Comprehensive test data generator for all notification channels (Email, SMS, Push).
+
+**Features:**
+- Creates 6 test notifications (2 Email + 2 SMS + 2 Push)
+- All notifications for user "admin"
+- Tests all three notification channels
+- Creates device subscription for push notifications
+- Auto-cleans old test data
+
+**Usage:**
+```bash
+python admin_tools/test_all_notifications.py
+```
+
+**After Running:**
+1. Go to Dynamic Scheduler: http://localhost:3000/dynamic-scheduler
+2. Manually run: Email Notifier, SMS Notifier, Push Notifier
+3. Check Execution History to see processing results
+
+**Note:** Actual sending will fail (test credentials), but job processing and statistics will work correctly!
+
 ---
 
 ## 🚀 Usage

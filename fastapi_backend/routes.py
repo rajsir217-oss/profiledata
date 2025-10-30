@@ -4467,20 +4467,27 @@ async def get_l3v3l_matches(
         query = {
             "username": {"$ne": username},  # Exclude self
             "gender": opposite_gender,
-            "status.status": {"$regex": "^active$", "$options": "i"}  # Only active users
+            # Include users with active status OR no status field (default to active)
+            "$or": [
+                {"status.status": {"$regex": "^active$", "$options": "i"}},
+                {"status.status": {"$exists": False}},
+                {"status": {"$exists": False}}
+            ]
         }
         
         # Get potential matches
         potential_matches = await db.users.find(query).to_list(1000)
+        logger.info(f"📊 Query returned {len(potential_matches)} opposite gender users")
         
         # Get user's exclusions
         exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
         excluded_usernames = {exc['excludedUsername'] for exc in exclusions}
+        logger.info(f"🚫 Excluding {len(excluded_usernames)} users")
         
         # Filter out excluded users
         potential_matches = [u for u in potential_matches if u['username'] not in excluded_usernames]
         
-        logger.info(f"📊 Found {len(potential_matches)} potential matches")
+        logger.info(f"📊 Found {len(potential_matches)} potential matches after exclusions")
         
         # Calculate match scores
         matches_with_scores = []
@@ -4533,13 +4540,18 @@ async def get_l3v3l_matches(
                 
                 matches_with_scores.append(profile)
         
+        logger.info(f"🎯 {len(matches_with_scores)} matches scored >= {min_score}%")
+        
         # Sort by match score (descending)
         matches_with_scores.sort(key=lambda x: x['matchScore'], reverse=True)
         
         # Limit results
         top_matches = matches_with_scores[:limit]
         
-        logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username}")
+        if top_matches:
+            logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username} (top score: {top_matches[0]['matchScore']}%)")
+        else:
+            logger.warning(f"⚠️ No matches found for {username} with min_score={min_score}%")
         
         return {
             "matches": top_matches,
@@ -4629,17 +4641,17 @@ async def get_l3v3l_match_details(
         component_scores = match_result.get('component_scores', {})
         
         # Build detailed breakdown with all dimensions
+        # Note: component_scores has: gender, l3v3l_pillars, demographics, partner_preferences, 
+        # habits_personality, career_education, physical_attributes, cultural_factors
         breakdown = {
-            'love': round(component_scores.get('l3v3l_values', {}).get('love_alignment', 0), 1),
-            'loyalty': round(component_scores.get('l3v3l_values', {}).get('loyalty_alignment', 0), 1),
-            'laughter': round(component_scores.get('l3v3l_values', {}).get('laughter_alignment', 0), 1),
-            'vulnerability': round(component_scores.get('l3v3l_values', {}).get('vulnerability_alignment', 0), 1),
-            'elevation': round(component_scores.get('l3v3l_values', {}).get('elevation_alignment', 0), 1),
-            'demographics': round(component_scores.get('demographics_score', 0), 1),
-            'career': round(component_scores.get('career_compatibility', 0), 1),
-            'cultural': round(component_scores.get('cultural_compatibility', 0), 1),
-            'physical': round(component_scores.get('physical_compatibility', 0), 1),
-            'lifestyle': round(component_scores.get('habits_personality', 0), 1)
+            'gender': round(component_scores.get('gender', 0), 1),
+            'l3v3l_pillars': round(component_scores.get('l3v3l_pillars', 0), 1),
+            'demographics': round(component_scores.get('demographics', 0), 1),
+            'partner_preferences': round(component_scores.get('partner_preferences', 0), 1),
+            'habits_personality': round(component_scores.get('habits_personality', 0), 1),
+            'career_education': round(component_scores.get('career_education', 0), 1),
+            'physical_attributes': round(component_scores.get('physical_attributes', 0), 1),
+            'cultural_factors': round(component_scores.get('cultural_factors', 0), 1)
         }
         
         # Add ML prediction if available
@@ -5100,14 +5112,16 @@ async def get_system_settings(db = Depends(get_database)):
             # Return defaults if no settings exist
             default_settings = {
                 "ticket_delete_days": 30,
-                "default_theme": "cozy-light"
+                "default_theme": "cozy-light",
+                "enable_l3v3l_for_all": True
             }
             logger.info("Using default settings")
             return default_settings
         
         return {
             "ticket_delete_days": settings.get("ticket_delete_days", 30),
-            "default_theme": settings.get("default_theme", "cozy-light")
+            "default_theme": settings.get("default_theme", "cozy-light"),
+            "enable_l3v3l_for_all": settings.get("enable_l3v3l_for_all", True)
         }
     except Exception as e:
         logger.error(f"❌ Error loading system settings: {e}", exc_info=True)
@@ -5121,8 +5135,9 @@ async def update_system_settings(
     """Update global system settings (admin only)"""
     ticket_delete_days = data.get("ticket_delete_days", 30)
     default_theme = data.get("default_theme", "cozy-light")
+    enable_l3v3l_for_all = data.get("enable_l3v3l_for_all", True)
     
-    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}")
+    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}, enable_l3v3l_for_all={enable_l3v3l_for_all}")
     
     try:
         # Upsert system settings
@@ -5132,6 +5147,7 @@ async def update_system_settings(
                 "$set": {
                     "ticket_delete_days": ticket_delete_days,
                     "default_theme": default_theme,
+                    "enable_l3v3l_for_all": enable_l3v3l_for_all,
                     "updated_at": datetime.utcnow()
                 }
             },
