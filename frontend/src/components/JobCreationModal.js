@@ -90,6 +90,42 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
     }
   }, [formData.template_type, templates, isEditMode]);
 
+  // Detect schedule preset from cron expression when editing
+  useEffect(() => {
+    if (isEditMode && editJob?.schedule?.expression) {
+      const expr = editJob.schedule.expression.trim();
+      
+      // Hourly: 0 * * * *
+      if (expr === '0 * * * *') {
+        setSchedulePreset('hourly');
+      }
+      // Daily: MM HH * * * (e.g., 00 09 * * *)
+      else if (/^\d{1,2}\s+\d{1,2}\s+\*\s+\*\s+\*$/.test(expr)) {
+        const [minute, hour] = expr.split(' ');
+        setSchedulePreset('daily');
+        setScheduleTime(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+      }
+      // Weekly: MM HH * * D (e.g., 00 09 * * 1)
+      else if (/^\d{1,2}\s+\d{1,2}\s+\*\s+\*\s+\d$/.test(expr)) {
+        const [minute, hour, , , dayNum] = expr.split(' ');
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        setSchedulePreset('weekly');
+        setScheduleTime(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+        setScheduleDay(dayNames[parseInt(dayNum)]);
+      }
+      // Monthly: MM HH 1 * * (1st of month)
+      else if (/^\d{1,2}\s+\d{1,2}\s+1\s+\*\s+\*$/.test(expr)) {
+        const [minute, hour] = expr.split(' ');
+        setSchedulePreset('monthly');
+        setScheduleTime(`${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`);
+      }
+      // Otherwise: custom
+      else {
+        setSchedulePreset('custom');
+      }
+    }
+  }, [isEditMode, editJob]);
+
   // ESC key to close modal
   useEffect(() => {
     const handleEscKey = (event) => {

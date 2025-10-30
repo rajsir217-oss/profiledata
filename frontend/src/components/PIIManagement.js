@@ -622,7 +622,7 @@ const PIIManagement = () => {
       {/* Tab Content */}
       <div className="pii-tab-content">
         {activeTab === 'granted' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             <div className="panel-header">
               <h3>People Who Can See Your Information</h3>
               <p>You've granted these users access to your private data</p>
@@ -641,7 +641,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'received' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             <div className="panel-header">
               <h3>Information You Can Access</h3>
               <p>These users have granted you access to their private data</p>
@@ -660,7 +660,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'requests' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             {/* Incoming Requests */}
             <div className="requests-section">
               <div className="panel-header">
@@ -698,7 +698,7 @@ const PIIManagement = () => {
         )}
 
         {activeTab === 'history' && (
-          <div className="tab-panel">
+          <div className="tab-panel active">
             {/* Revoked Access */}
             <div className="requests-section">
               <div className="panel-header">

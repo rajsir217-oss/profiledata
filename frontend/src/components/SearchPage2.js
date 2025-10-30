@@ -794,7 +794,20 @@ const SearchPage2 = () => {
 
     } catch (err) {
       console.error('Error searching users:', err);
-      setError('Failed to search users. ' + (err.response?.data?.detail || err.message));
+      const errorDetail = err.response?.data?.detail;
+      let errorMsg = 'Failed to search users.';
+      
+      if (typeof errorDetail === 'string') {
+        errorMsg += ' ' + errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+      } else if (errorDetail) {
+        errorMsg += ' ' + JSON.stringify(errorDetail);
+      } else {
+        errorMsg += ' ' + err.message;
+      }
+      
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -998,6 +1011,7 @@ const SearchPage2 = () => {
         name: searchName.trim(),
         description: description,
         criteria: searchCriteria,
+        minMatchScore: minMatchScore, // Save L3V3L match score
         created_at: new Date().toISOString()
       };
 
@@ -1027,6 +1041,10 @@ const SearchPage2 = () => {
 
   const handleLoadSavedSearch = (savedSearch) => {
     setSearchCriteria(savedSearch.criteria);
+    // Restore L3V3L match score if saved
+    if (savedSearch.minMatchScore !== undefined) {
+      setMinMatchScore(savedSearch.minMatchScore);
+    }
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
     setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
@@ -1034,7 +1052,6 @@ const SearchPage2 = () => {
     setTimeout(() => {
       handleSearch(1);
     }, 100);
-    // Clear status message after 3 seconds
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
@@ -1100,7 +1117,20 @@ const SearchPage2 = () => {
       setCurrentPage(1);
     } catch (err) {
       console.error('Error searching users:', err);
-      setError('Failed to search users. ' + (err.response?.data?.detail || err.message));
+      const errorDetail = err.response?.data?.detail;
+      let errorMsg = 'Failed to search users.';
+      
+      if (typeof errorDetail === 'string') {
+        errorMsg += ' ' + errorDetail;
+      } else if (Array.isArray(errorDetail)) {
+        errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+      } else if (errorDetail) {
+        errorMsg += ' ' + JSON.stringify(errorDetail);
+      } else {
+        errorMsg += ' ' + err.message;
+      }
+      
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }
