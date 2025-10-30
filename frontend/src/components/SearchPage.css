@@ -1063,63 +1063,10 @@
   margin-bottom: 0;
 }
 
-/* Search Tabs - Traditional Tab Design */
-.search-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 0;
-  padding: 0;
-  border-bottom: 2px solid var(--border-color, #e5e7eb);
-}
-
-.search-tab {
-  padding: 12px 24px;
-  background: transparent;
-  border: none;
-  border-bottom: 3px solid transparent;
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--text-secondary, #6b7280);
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  position: relative;
-  margin-bottom: -2px;
-}
-
-.search-tab:hover {
-  color: var(--primary-color, #6366f1);
-  background: var(--hover-background, #f9fafb);
-}
-
-.search-tab.active {
-  color: var(--primary-color, #6366f1);
-  background: transparent;
-  border-bottom-color: var(--primary-color, #6366f1);
-  font-weight: 600;
-}
-
-.search-tab.active:hover {
-  background: var(--hover-background, #f9fafb);
-}
-
-.search-tab .tab-badge {
-  display: inline-block;
-  background: var(--primary-color, #6366f1);
-  color: white;
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 6px;
-  border-radius: 10px;
-  margin-left: 6px;
-  min-width: 18px;
-  text-align: center;
-}
-
-.search-tab.active .tab-badge {
-  background: var(--primary-color, #6366f1);
-  box-shadow: 0 2px 4px rgba(99, 102, 241, 0.3);
-}
+/* ===== OBSOLETE TAB STYLES REMOVED =====
+ * Tabs now handled by UniversalTabContainer
+ * Old .search-tabs, .search-tab, .tab-badge removed
+ * ======================================= */
 
 /* Saved Searches Tab Content */
 .saved-searches-tab {
@@ -1247,24 +1194,8 @@
   color: var(--text-secondary);
 }
 
-/* Mobile tabs */
+/* Mobile tabs - REMOVED (using UniversalTabContainer) */
 @media (max-width: 768px) {
-  .search-tabs {
-    gap: 0;
-    margin-bottom: 0;
-  }
-  
-  .search-tab {
-    padding: 10px 12px;
-    font-size: 12px;
-  }
-
-  .search-tab .tab-badge {
-    font-size: 10px;
-    padding: 1px 4px;
-    margin-left: 4px;
-  }
-
   .saved-searches-tab {
     padding: 16px;
   }
