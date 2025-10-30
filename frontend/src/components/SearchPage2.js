@@ -656,6 +656,8 @@ const SearchPage2 = () => {
     setUsers([]);
     setTotalResults(0);
     setSaveSearchName('');
+    setMinMatchScore(0); // Reset L3V3L compatibility score
+    setSelectedSearch(null); // Clear selected search badge
   };
 
   // Check if any filters are active and count them
@@ -685,7 +687,7 @@ const SearchPage2 = () => {
     return count;
   };
 
-  const handleSearch = async (page = 1) => {
+  const handleSearch = async (page = 1, overrideMinMatchScore = null) => {
     const currentUser = localStorage.getItem('username');
     
     try {
@@ -701,11 +703,24 @@ const SearchPage2 = () => {
       };
       
       // Convert feet/inches to total inches for height range
-      if (params.heightMinFeet !== '' && params.heightMinInches !== '') {
-        params.heightMin = parseInt(params.heightMinFeet) * 12 + parseInt(params.heightMinInches);
+      // Only set heightMin if BOTH feet and inches are provided
+      if (params.heightMinFeet && params.heightMinFeet !== '' && 
+          params.heightMinInches && params.heightMinInches !== '') {
+        const feet = parseInt(params.heightMinFeet);
+        const inches = parseInt(params.heightMinInches);
+        if (!isNaN(feet) && !isNaN(inches)) {
+          params.heightMin = feet * 12 + inches;
+        }
       }
-      if (params.heightMaxFeet !== '' && params.heightMaxInches !== '') {
-        params.heightMax = parseInt(params.heightMaxFeet) * 12 + parseInt(params.heightMaxInches);
+      
+      // Only set heightMax if BOTH feet and inches are provided
+      if (params.heightMaxFeet && params.heightMaxFeet !== '' && 
+          params.heightMaxInches && params.heightMaxInches !== '') {
+        const feet = parseInt(params.heightMaxFeet);
+        const inches = parseInt(params.heightMaxInches);
+        if (!isNaN(feet) && !isNaN(inches)) {
+          params.heightMax = feet * 12 + inches;
+        }
       }
       
       // Remove feet/inches fields from params (not needed by API)
@@ -714,11 +729,28 @@ const SearchPage2 = () => {
       delete params.heightMaxFeet;
       delete params.heightMaxInches;
 
+      // Clean up empty strings, false values, null, and undefined
       Object.keys(params).forEach(key => {
-        if (params[key] === '' || params[key] === false) {
+        const value = params[key];
+        if (value === '' || value === false || value === null || value === undefined) {
           delete params[key];
         }
       });
+      
+      // Additional validation: ensure integer fields are valid numbers
+      const integerFields = ['ageMin', 'ageMax', 'heightMin', 'heightMax', 'daysBack'];
+      integerFields.forEach(field => {
+        if (params[field] !== undefined) {
+          const num = parseInt(params[field]);
+          if (isNaN(num)) {
+            delete params[field]; // Remove if not a valid number
+          } else {
+            params[field] = num; // Ensure it's a number, not a string
+          }
+        }
+      });
+      
+      console.log('🔍 Search params after validation:', params);
 
       const response = await api.get('/search', { params });
       
@@ -732,8 +764,9 @@ const SearchPage2 = () => {
 
       // STEP 2: Apply L3V3L match score filtering (if enabled and score > 0)
       const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      if (canUseL3V3L && minMatchScore > 0) {
-        console.log(`🦋 L3V3L enabled: Applying L3V3L score filter (min: ${minMatchScore}%)`);
+      const effectiveMinScore = overrideMinMatchScore !== null ? overrideMinMatchScore : minMatchScore;
+      if (canUseL3V3L && effectiveMinScore > 0) {
+        console.log(`🦋 L3V3L enabled: Applying L3V3L score filter (min: ${effectiveMinScore}%)`);
         
         // Get L3V3L scores for filtered users
         try {
@@ -771,10 +804,10 @@ const SearchPage2 = () => {
                 compatibilityLevel: matchesWithScores.find(m => m.username === user.username)?.compatibilityLevel
               };
             })
-            .filter(user => user.matchScore >= minMatchScore)
+            .filter(user => user.matchScore >= effectiveMinScore)
             .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
           
-          console.log(`✅ Found ${filteredUsers.length} users matching criteria with L3V3L score ≥${minMatchScore}%`);
+          console.log(`✅ Found ${filteredUsers.length} users matching criteria with L3V3L score ≥${effectiveMinScore}%`);
           console.log(`🎯 Sample user with score:`, filteredUsers[0]);
         } catch (err) {
           console.error('❌ Error fetching L3V3L scores:', err);
@@ -904,7 +937,7 @@ const SearchPage2 = () => {
   };
 
   // Generate human-readable description from search criteria
-  const generateSearchDescription = (criteria) => {
+  const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
     
     // Start with "I'm looking for"
@@ -973,8 +1006,13 @@ const SearchPage2 = () => {
     }
     
     // L3V3L Match Score
-    if (minMatchScore > 0) {
-      parts.push(`L3V3L match score ≥${minMatchScore}%`);
+    const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
+    console.log('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
+    if (effectiveScore > 0) {
+      parts.push(`L3V3L match score ≥${effectiveScore}%`);
+      console.log('✅ Added L3V3L to description');
+    } else {
+      console.log('❌ L3V3L score is 0, skipping');
     }
     
     // Keyword
@@ -1004,8 +1042,10 @@ const SearchPage2 = () => {
         return;
       }
 
-      // Generate human-readable description
-      const description = generateSearchDescription(searchCriteria);
+      // Generate human-readable description (pass minMatchScore)
+      console.log('🔍 Saving search with minMatchScore:', minMatchScore);
+      const description = generateSearchDescription(searchCriteria, minMatchScore);
+      console.log('📝 Generated description:', description);
 
       const searchData = {
         name: searchName.trim(),
@@ -1014,6 +1054,8 @@ const SearchPage2 = () => {
         minMatchScore: minMatchScore, // Save L3V3L match score
         created_at: new Date().toISOString()
       };
+      
+      console.log('💾 Search data to save:', searchData);
 
       await api.post(`/${username}/saved-searches`, searchData);
 
@@ -1042,33 +1084,43 @@ const SearchPage2 = () => {
   const handleLoadSavedSearch = (savedSearch) => {
     setSearchCriteria(savedSearch.criteria);
     // Restore L3V3L match score if saved
-    if (savedSearch.minMatchScore !== undefined) {
-      setMinMatchScore(savedSearch.minMatchScore);
-    }
+    const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
+    setMinMatchScore(loadedMinScore);
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
     setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
     // Automatically perform search with loaded criteria
+    // Pass the minMatchScore directly to avoid React state timing issues
     setTimeout(() => {
-      handleSearch(1);
+      handleSearch(1, loadedMinScore);
     }, 100);
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
   const handleDeleteSavedSearch = async (searchId) => {
+    console.log('🗑️ Deleting search with ID:', searchId);
+    
+    if (!searchId) {
+      console.error('❌ No search ID provided');
+      setError('Cannot delete: Invalid search ID');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
     try {
       const username = localStorage.getItem('username');
       await api.delete(`/${username}/saved-searches/${searchId}`);
-      setStatusMessage('✅ Search deleted');
+      setStatusMessage('✅ Search deleted successfully');
       setTimeout(() => setStatusMessage(''), 3000);
       loadSavedSearches();
       // Clear selected search if it was deleted
-      if (selectedSearch && selectedSearch._id === searchId) {
+      if (selectedSearch && selectedSearch.id === searchId) {
         setSelectedSearch(null);
       }
     } catch (err) {
-      console.error('Error deleting saved search:', err);
-      setError('Failed to delete saved search');
+      console.error('❌ Error deleting saved search:', err);
+      setError('Failed to delete saved search. Please try again.');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
@@ -1094,6 +1146,7 @@ const SearchPage2 = () => {
     
     // Update criteria and clear results
     setSearchCriteria(clearedCriteria);
+    setMinMatchScore(0); // Reset L3V3L compatibility score
     setUsers([]);
     setTotalResults(0);
     setCurrentPage(1);
@@ -1451,92 +1504,20 @@ const SearchPage2 = () => {
         variant="gradient"
       />
 
-      {error && <div className="alert alert-danger">{error}</div>}
-
-      {statusMessage && (
-        <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
-          {statusMessage}
-          <button type="button" className="btn-close" onClick={() => setStatusMessage('')}></button>
+      {error && (
+        <div style={{ maxWidth: '600px', margin: '10px auto' }}>
+          <div className="alert alert-danger">{error}</div>
         </div>
       )}
 
-      {/* L3V3L Match Score Filter Slider - PREMIUM FEATURE */}
-      <div className="l3v3l-score-filter" style={{ maxWidth: '80%', margin: '20px auto', padding: '0 20px' }}>
-        <div className="score-filter-content">
-          <label htmlFor="matchScoreSlider" className="score-filter-label">
-            <span className="filter-icon">🦋</span>
-            <span className="filter-text">
-              L3V3L Compatibility Filter 
-              {!systemConfig.enable_l3v3l_for_all && !isPremiumUser && ' 🔒'}
-            </span>
-            {isPremiumUser && <span className="premium-badge">PREMIUM</span>}
-            {systemConfig.enable_l3v3l_for_all && !isPremiumUser && (
-              <span className="premium-badge" style={{ background: 'var(--info-color)' }}>BETA</span>
-            )}
-            <span className="filter-value">{minMatchScore}%</span>
-          </label>
-          
-          {(systemConfig.enable_l3v3l_for_all || isPremiumUser) ? (
-            <>
-              <input
-                id="matchScoreSlider"
-                type="range"
-                min="0"
-                max="100"
-                step="5"
-                value={minMatchScore}
-                onChange={(e) => {
-                  setMinMatchScore(Number(e.target.value));
-                  // Auto-refresh results when slider changes
-                  setTimeout(() => handleSearch(1), 300);
-                }}
-                className="match-score-slider"
-              />
-              <div className="slider-labels">
-                <span>0%</span>
-                <span>25%</span>
-                <span>50%</span>
-                <span>75%</span>
-                <span>100%</span>
-              </div>
-              <div className="filter-info">
-                {minMatchScore > 0 
-                  ? `Showing profiles with compatibility ≥ ${minMatchScore}%` 
-                  : 'Set minimum compatibility score to filter results'}
-              </div>
-              {systemConfig.enable_l3v3l_for_all && !isPremiumUser && (
-                <div style={{ 
-                  marginTop: '12px', 
-                  padding: '10px', 
-                  background: 'var(--info-light)', 
-                  borderRadius: '8px', 
-                  fontSize: '0.85rem',
-                  textAlign: 'center'
-                }}>
-                  🎉 L3V3L filtering is currently available to all users during our testing phase!
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="premium-gate">
-              <div className="premium-lock-overlay">
-                <div className="lock-icon">🔒</div>
-                <p className="lock-message">
-                  <strong>Filter by L3V3L Compatibility Score</strong><br />
-                  Combine traditional search with AI-powered compatibility scoring
-                </p>
-                <button 
-                  className="btn btn-premium"
-                  disabled
-                  title="Premium feature coming soon"
-                >
-                  ⭐ Upgrade to Premium
-                </button>
-              </div>
-            </div>
-          )}
+      {statusMessage && (
+        <div style={{ maxWidth: '600px', margin: '10px auto' }}>
+          <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
+            {statusMessage}
+            <button type="button" className="btn-close" onClick={() => setStatusMessage('')}></button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="search-container">
         {/* Search Filters - Always visible */}
@@ -1653,6 +1634,19 @@ const SearchPage2 = () => {
                 onClick={() => setSearchTab('advanced')}
               >
                 Advanced Search
+              </button>
+              <button
+                type="button"
+                className={`search-tab ${searchTab === 'l3v3l' ? 'active' : ''}`}
+                onClick={() => setSearchTab('l3v3l')}
+              >
+                🦋 L3V3L Compatibility Filter
+                {systemConfig.enable_l3v3l_for_all && !isPremiumUser && (
+                  <span className="tab-badge" style={{ background: 'var(--info-color)' }}>BETA</span>
+                )}
+                {minMatchScore > 0 && (
+                  <span className="tab-badge">{minMatchScore}%</span>
+                )}
               </button>
             </div>
 
@@ -1922,6 +1916,131 @@ const SearchPage2 = () => {
               </div>
             )}
 
+            {/* L3V3L Compatibility Filter Tab */}
+            {searchTab === 'l3v3l' && (
+              <div className="l3v3l-filter-tab" style={{ padding: '30px', maxWidth: '800px', margin: '0 auto' }}>
+                {(systemConfig.enable_l3v3l_for_all || isPremiumUser) ? (
+                  <div className="l3v3l-content">
+                    <div className="score-selector" style={{ 
+                      background: 'var(--surface-color)', 
+                      padding: '30px', 
+                      borderRadius: '12px', 
+                      border: '2px solid var(--border-color)',
+                      marginBottom: '20px'
+                    }}>
+                      <label htmlFor="matchScoreSlider" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '15px', 
+                        marginBottom: '20px',
+                        fontSize: '18px',
+                        fontWeight: '600'
+                      }}>
+                        <span style={{ fontSize: '32px' }}>🎯</span>
+                        <span style={{ flex: 1 }}>Minimum Compatibility Score</span>
+                        <span style={{ 
+                          fontWeight: '700', 
+                          color: 'var(--primary-color)', 
+                          fontSize: '24px',
+                          minWidth: '60px',
+                          textAlign: 'right'
+                        }}>
+                          {minMatchScore}%
+                        </span>
+                      </label>
+                      
+                      <input
+                        id="matchScoreSlider"
+                        type="range"
+                        min="0"
+                        max="100"
+                        step="5"
+                        value={minMatchScore}
+                        onChange={(e) => {
+                          const newScore = Number(e.target.value);
+                          console.log('🎚️ L3V3L Slider changed:', minMatchScore, '→', newScore);
+                          setMinMatchScore(newScore);
+                          // Auto-refresh results when slider changes
+                          setTimeout(() => handleSearch(1), 300);
+                        }}
+                        className="match-score-slider"
+                        style={{ width: '100%', height: '8px', cursor: 'pointer' }}
+                      />
+                      
+                      <div className="slider-labels" style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        fontSize: '14px', 
+                        color: 'var(--text-secondary)', 
+                        marginTop: '10px',
+                        fontWeight: '500'
+                      }}>
+                        <span>0%</span>
+                        <span>25%</span>
+                        <span>50%</span>
+                        <span>75%</span>
+                        <span>100%</span>
+                      </div>
+                      
+                      <div className="filter-info" style={{ 
+                        marginTop: '20px', 
+                        padding: '15px', 
+                        background: minMatchScore > 0 ? 'rgba(102, 126, 234, 0.1)' : 'var(--card-background)',
+                        borderRadius: '8px',
+                        textAlign: 'center',
+                        fontSize: '15px',
+                        color: 'var(--text-color)'
+                      }}>
+                        {minMatchScore > 0 
+                          ? `✅ Showing profiles with compatibility ≥ ${minMatchScore}%` 
+                          : 'ℹ️ Set to 0% to disable L3V3L filtering (show all matches)'}
+                      </div>
+                    </div>
+
+
+                  </div>
+                ) : (
+                  <div className="premium-gate" style={{ 
+                    textAlign: 'center', 
+                    padding: '60px 30px',
+                    background: 'var(--surface-color)',
+                    borderRadius: '12px',
+                    border: '2px solid var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔒</div>
+                    <h3 style={{ margin: '0 0 10px 0', fontSize: '24px' }}>Premium Feature</h3>
+                    <p style={{ 
+                      margin: '0 0 30px 0', 
+                      fontSize: '16px', 
+                      color: 'var(--text-secondary)',
+                      maxWidth: '500px',
+                      marginLeft: 'auto',
+                      marginRight: 'auto'
+                    }}>
+                      Filter by L3V3L Compatibility Score to find matches based on deep personality and lifestyle compatibility
+                    </p>
+                    <button 
+                      className="btn btn-premium"
+                      disabled
+                      title="Premium feature coming soon"
+                      style={{ 
+                        padding: '12px 30px',
+                        fontSize: '16px',
+                        background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'not-allowed',
+                        opacity: '0.6'
+                      }}
+                    >
+                      ⭐ Upgrade to Premium
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Saved Searches Tab */}
             {searchTab === 'saved' && (
               <div className="saved-searches-tab">
@@ -1950,7 +2069,7 @@ const SearchPage2 = () => {
                         </div>
                         
                         <div className="saved-search-description">
-                          <p>{search.description || generateSearchDescription(search.criteria)}</p>
+                          <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
                         </div>
 
                         <div className="saved-search-footer">
@@ -2199,6 +2318,7 @@ const SearchPage2 = () => {
         onUpdate={handleUpdateSavedSearch}
         onDelete={handleDeleteSavedSearch}
         currentCriteria={searchCriteria}
+        minMatchScore={minMatchScore}
       />
 
       {/* PII Request Modal */}
