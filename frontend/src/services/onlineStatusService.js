@@ -5,6 +5,7 @@
 import api from '../api';
 import { getApiUrl } from '../config/apiConfig';
 import socketService from './socketService';
+import logger from '../utils/logger';
 
 class OnlineStatusService {
   constructor() {
@@ -29,7 +30,7 @@ class OnlineStatusService {
     try {
       // Listen for user_online events
       socketService.on('user_online', (data) => {
-        console.log('🟢 WebSocket: User came online:', data.username);
+        logger.info('WebSocket: User came online:', data.username);
         // Update cache
         this.statusCache.set(data.username, {
           online: true,
@@ -41,7 +42,7 @@ class OnlineStatusService {
       
       // Listen for user_offline events
       socketService.on('user_offline', (data) => {
-        console.log('⚪ WebSocket: User went offline:', data.username);
+        logger.info('WebSocket: User went offline:', data.username);
         // Update cache
         this.statusCache.set(data.username, {
           online: false,
@@ -53,14 +54,14 @@ class OnlineStatusService {
       
       // Listen for online count updates
       socketService.on('online_count_update', (data) => {
-        console.log('📊 WebSocket: Online count updated:', data.count);
+        logger.debug('WebSocket: Online count updated:', data.count);
         // Could trigger a global event here if needed
       });
       
       this.websocketInitialized = true;
-      console.log('✅ WebSocket listeners initialized for online status');
+      logger.success('WebSocket listeners initialized for online status');
     } catch (error) {
-      console.error('❌ Failed to initialize WebSocket listeners:', error);
+      logger.error('Failed to initialize WebSocket listeners:', error);
     }
   }
 
@@ -74,12 +75,12 @@ class OnlineStatusService {
       // Mark user as online
       await api.post(`/online-status/${username}/online`);
       this.isOnline = true;
-      console.log('🟢 Marked as online:', username);
+      logger.info('Marked as online:', username);
 
       // Start heartbeat to keep status alive
       this.startHeartbeat(username);
     } catch (error) {
-      console.error('❌ Error going online:', error);
+      logger.error('Error going online:', error);
     }
   }
 
@@ -96,9 +97,9 @@ class OnlineStatusService {
       // Mark user as offline
       await api.post(`/online-status/${username}/offline`);
       this.isOnline = false;
-      console.log('⚪ Marked as offline:', username);
+      logger.info('Marked as offline:', username);
     } catch (error) {
-      console.error('❌ Error going offline:', error);
+      logger.error('Error going offline:', error);
     }
   }
 
@@ -113,15 +114,15 @@ class OnlineStatusService {
     this.heartbeatInterval = setInterval(async () => {
       try {
         await api.post(`/online-status/${username}/refresh`);
-        console.log('💓 Heartbeat sent for:', username);
+        logger.debug('Heartbeat sent for:', username);
       } catch (error) {
-        console.error('❌ Heartbeat failed:', error);
+        logger.error('Heartbeat failed:', error);
         // If heartbeat fails, try to go online again
         this.goOnline(username);
       }
     }, this.HEARTBEAT_INTERVAL_MS);
 
-    console.log('💓 Heartbeat started for:', username);
+    logger.info('Heartbeat started for:', username);
   }
 
   /**
@@ -131,7 +132,7 @@ class OnlineStatusService {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
       this.heartbeatInterval = null;
-      console.log('💓 Heartbeat stopped');
+      logger.info('Heartbeat stopped');
     }
   }
 
@@ -143,7 +144,7 @@ class OnlineStatusService {
       const response = await api.get('/online-status/users');
       return response.data.onlineUsers || [];
     } catch (error) {
-      console.error('❌ Error getting online users:', error);
+      logger.error('Error getting online users:', error);
       return [];
     }
   }
@@ -174,7 +175,7 @@ class OnlineStatusService {
 
       return online;
     } catch (error) {
-      console.error('❌ Error checking user online status:', error);
+      logger.error('Error checking user online status:', error);
       return false;
     }
   }
@@ -195,7 +196,7 @@ class OnlineStatusService {
       try {
         callback(username, online);
       } catch (error) {
-        console.error('Error in status listener:', error);
+        logger.error('Error in status listener:', error);
       }
     });
   }
@@ -219,7 +220,7 @@ class OnlineStatusService {
       const response = await api.get('/online-status/count');
       return response.data.onlineCount || 0;
     } catch (error) {
-      console.error('❌ Error getting online count:', error);
+      logger.error('Error getting online count:', error);
       return 0;
     }
   }
@@ -236,10 +237,10 @@ document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
     // Page is hidden, but don't go offline immediately
     // Just stop heartbeat to save resources
-    console.log('📱 Page hidden - pausing heartbeat');
+    logger.debug('Page hidden - pausing heartbeat');
   } else {
     // Page is visible again, resume heartbeat
-    console.log('📱 Page visible - resuming heartbeat');
+    logger.debug('Page visible - resuming heartbeat');
     onlineStatusService.goOnline(username);
   }
 });

@@ -3,6 +3,7 @@
 import { io } from 'socket.io-client';
 import api from '../api';
 import { getBackendUrl } from '../config/apiConfig';
+import logger from '../utils/logger';
 
 class SocketService {
   constructor() {
@@ -15,10 +16,10 @@ class SocketService {
   }
 
   connect(username) {
-    console.log('🔧 socketService.connect() called with username:', username);
+    logger.socket('socketService.connect() called with username:', username);
     
     if (this.connected && this.username === username) {
-      console.log('✅ Already connected to WebSocket');
+      logger.socket('Already connected to WebSocket');
       return;
     }
 
@@ -27,7 +28,7 @@ class SocketService {
     // Use proper backend URL from config (supports all environments)
     const socketUrl = getBackendUrl();
     
-    console.log(`🔌 Connecting to Socket.IO at ${socketUrl}`);
+    logger.socket(`Connecting to Socket.IO at ${socketUrl}`);
     
     // Connect to Socket.IO server with username as query parameter
     this.socket = io(socketUrl, {
@@ -43,7 +44,7 @@ class SocketService {
 
     // Connection events
     this.socket.on('connect', () => {
-      console.log('✅ Connected to WebSocket (ID:', this.socket.id + ')');
+      logger.socket('Connected to WebSocket (ID:', this.socket.id + ')');
       this.connected = true;
       
       // Register user as online
@@ -58,42 +59,43 @@ class SocketService {
     });
 
     this.socket.on('disconnect', (reason) => {
-      console.log('🔌 Disconnected:', reason);
+      logger.socket('Disconnected:', reason);
       this.connected = false;
       this.trigger('disconnected', { reason });
     });
 
     this.socket.on('connect_error', (error) => {
-      console.error('❌ Connection error:', error.message);
+      logger.error('Socket connection error:', error.message);
     });
 
     // Online status events
     this.socket.on('online_count_update', (data) => {
-      console.log('🟢 Online count:', data.count);
+      logger.socket('Online count:', data.count);
       this.trigger('online_count_update', data);
     });
 
     this.socket.on('user_online', (data) => {
-      console.log('🟢 User came online:', data.username);
+      logger.socket('User came online:', data.username);
       this.onlineStatusCache.set(data.username, true);
       this.trigger('user_online', data);
-      console.log('   Updated cache and triggered listeners');
+      logger.socket('Updated cache and triggered listeners');
     });
 
     this.socket.on('user_offline', (data) => {
-      console.log('⚪ User went offline:', data.username);
+      logger.socket('User went offline:', data.username);
       this.onlineStatusCache.set(data.username, false);
       this.trigger('user_offline', data);
-      console.log('   Updated cache and triggered listeners');
+      logger.socket('Updated cache and triggered listeners');
     });
 
     // Message events
     this.socket.on('new_message', (data) => {
-      console.log('💬 New message received via WebSocket:');
-      console.log('   From:', data.from);
-      console.log('   To:', data.to || this.username);
-      console.log('   Message:', data.message);
-      console.log('   Timestamp:', data.timestamp);
+      logger.socket('New message received:', {
+        from: data.from,
+        to: data.to || this.username,
+        message: data.message,
+        timestamp: data.timestamp
+      });
       
       // Increment unread count if not current chat
       const currentCount = this.unreadCounts.get(data.from) || 0;
@@ -114,7 +116,7 @@ class SocketService {
 
     this.socket.on('unread_count_update', (data) => {
       // Handle server-side unread count updates
-      console.log('📊 Unread count update:', data);
+      logger.socket('Unread count update:', data);
       if (data.username && typeof data.count === 'number') {
         this.unreadCounts.set(data.username, data.count);
         this.trigger('unread_update', {
@@ -134,7 +136,7 @@ class SocketService {
       this.username = null;
       this.unreadCounts.clear();
       this.onlineStatusCache.clear();
-      console.log('👋 Disconnected from WebSocket');
+      logger.socket('Disconnected from WebSocket');
     }
   }
 
@@ -158,7 +160,7 @@ class SocketService {
         try {
           callback(data);
         } catch (error) {
-          console.error('Error in listener:', error);
+          logger.error('Error in listener:', error);
         }
       });
     }
@@ -167,7 +169,7 @@ class SocketService {
   // Send message
   sendMessage(to, message) {
     if (!this.connected || !this.socket) {
-      console.error('❌ Not connected to WebSocket');
+      logger.error('Not connected to WebSocket');
       return Promise.reject(new Error('Not connected'));
     }
 
@@ -179,10 +181,11 @@ class SocketService {
       timestamp: new Date().toISOString()
     };
 
-    console.log('📤 Sending message via WebSocket:');
-    console.log('   From:', messageData.from);
-    console.log('   To:', messageData.to);
-    console.log('   Message:', messageData.message);
+    logger.socket('Sending message:', {
+      from: messageData.from,
+      to: messageData.to,
+      message: messageData.message
+    });
     this.socket.emit('send_message', messageData);
     return Promise.resolve(messageData);
   }
@@ -203,7 +206,7 @@ class SocketService {
     // Check cache first
     if (this.onlineStatusCache.has(username)) {
       const cached = this.onlineStatusCache.get(username);
-      console.log(`🔍 Online status for ${username}: ${cached} (cached)`);
+      logger.socket(`Online status for ${username}: ${cached} (cached)`);
       return cached;
     }
 
@@ -212,10 +215,10 @@ class SocketService {
       const response = await api.get(`/online-status/${username}`);
       const online = response.data.online || false;
       this.onlineStatusCache.set(username, online);
-      console.log(`🔍 Online status for ${username}: ${online} (from API)`);
+      logger.socket(`Online status for ${username}: ${online} (from API)`);
       return online;
     } catch (error) {
-      console.error('Error checking online status:', error);
+      logger.error('Error checking online status:', error);
       return false;
     }
   }
@@ -234,7 +237,7 @@ class SocketService {
         const response = await api.get('/online-status/users');
         return response.data.onlineUsers || [];
       } catch (error) {
-        console.error('Error getting online users:', error);
+        logger.error('Error getting online users:', error);
         return [];
       }
     }
@@ -250,9 +253,9 @@ class SocketService {
         this.onlineStatusCache.set(username, true);
       });
       
-      console.log(`🟢 Loaded ${users.length} online users into cache:`, users);
+      logger.socket(`Loaded ${users.length} online users into cache:`, users);
     } catch (error) {
-      console.error('Error fetching online users:', error);
+      logger.error('Error fetching online users:', error);
     }
   }
 
@@ -274,9 +277,9 @@ class SocketService {
         totalUnread: this.getTotalUnread()
       });
       
-      console.log('📊 Loaded unread counts:', counts);
+      logger.socket('Loaded unread counts:', counts);
     } catch (error) {
-      console.error('Error fetching unread counts:', error);
+      logger.error('Error fetching unread counts:', error);
     }
   }
 
@@ -294,9 +297,9 @@ class SocketService {
         totalUnread: this.getTotalUnread()
       });
       
-      console.log('✅ Marked messages from', username, 'as read');
+      logger.socket('Marked messages from', username, 'as read');
     } catch (error) {
-      console.error('Error marking as read:', error);
+      logger.error('Error marking as read:', error);
     }
   }
 

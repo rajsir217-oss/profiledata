@@ -7,25 +7,18 @@ import { getImageUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
-import StatCapsuleGroup from './StatCapsuleGroup';
 import { getDisplayName } from '../utils/userDisplay';
+import logger from '../utils/logger';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
-  const [onlineCount, setOnlineCount] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('light');
-  const [userStats, setUserStats] = useState({
-    views: 0,
-    likes: 0,
-    approvals: 0
-  });
   const [violations, setViolations] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
@@ -38,26 +31,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Detect current theme
-  useEffect(() => {
-    const detectTheme = () => {
-      const bodyClass = document.body.className;
-      if (bodyClass.includes('theme-dark')) {
-        setCurrentTheme('dark');
-      } else {
-        setCurrentTheme('light');
-      }
-    };
-
-    detectTheme();
-    
-    // Listen for theme changes
-    const observer = new MutationObserver(detectTheme);
-    observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-    
-    return () => observer.disconnect();
   }, []);
 
   // Check login status and load user profile
@@ -76,10 +49,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           
           // Check if token username matches stored username
           if (tokenUsername !== username) {
-            console.error('❌ SECURITY: Token/username mismatch detected!');
-            console.error('   Stored username:', username);
-            console.error('   Token username:', tokenUsername);
-            console.error('   Logging out for security...');
+            logger.error('SECURITY: Token/username mismatch detected!');
+            logger.error('Stored username:', username);
+            logger.error('Token username:', tokenUsername);
+            logger.error('Logging out for security...');
             
             // Clear contaminated session
             localStorage.removeItem('username');
@@ -93,7 +66,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           }
           
           // Token matches username - proceed with login
-          console.log('✅ Token validation passed for user:', username);
+          logger.info('Token validation passed for user:', username);
           setIsLoggedIn(true);
           setCurrentUser(username);
           
@@ -102,22 +75,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             const response = await api.get(`/profile/${username}?requester=${username}`);
             setUserProfile(response.data);
             
-            // Load user stats for capsules
-            loadUserStats(username);
-            
             // Load user violations
             loadUserViolations(username);
           } catch (profileError) {
             // Profile fetch failed - this is OK, don't logout
             // The Profile component will handle displaying the profile
-            console.warn('⚠️ Could not load user profile in TopBar (non-critical):', profileError?.message || profileError);
-            console.warn('   User stays logged in, profile will load from Profile component');
+            logger.warn('Could not load user profile in TopBar (non-critical):', profileError?.message || profileError);
+            logger.warn('User stays logged in, profile will load from Profile component');
             // IMPORTANT: Do NOT logout here - profile fetch can fail for many reasons
           }
         } catch (error) {
           // This catch is for JWT token decoding errors only
-          console.error('❌ Error decoding or validating JWT token:', error);
-          console.error('   This is a critical error - token is invalid or corrupted');
+          logger.error('Error decoding or validating JWT token:', error);
+          logger.error('This is a critical error - token is invalid or corrupted');
           // Clear session due to token validation failure
           localStorage.removeItem('username');
           localStorage.removeItem('token');
@@ -148,14 +118,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, []);
 
-  // Listen for WebSocket updates (online count and unread messages)
+  // Listen for WebSocket updates (unread messages)
   useEffect(() => {
     if (!currentUser) return;
-
-    // Update online count from WebSocket
-    const handleOnlineCountUpdate = (data) => {
-      setOnlineCount(data.count);
-    };
 
     // Update unread count from WebSocket
     const handleUnreadUpdate = (data) => {
@@ -166,7 +131,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
       setUnreadCount(data.totalUnread || 0);
     };
 
-    socketService.on('online_count_update', handleOnlineCountUpdate);
     socketService.on('unread_update', handleUnreadUpdate);
     socketService.on('unread_counts_loaded', handleUnreadCountsLoaded);
 
@@ -174,7 +138,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     setUnreadCount(socketService.getTotalUnread());
 
     return () => {
-      socketService.off('online_count_update', handleOnlineCountUpdate);
       socketService.off('unread_update', handleUnreadUpdate);
       socketService.off('unread_counts_loaded', handleUnreadCountsLoaded);
     };
@@ -184,7 +147,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     const username = currentUser;
     
     // Disconnect WebSocket
-    console.log('🔌 Disconnecting WebSocket');
+    logger.info('Disconnecting WebSocket');
     socketService.disconnect();
     
     // Mark user as offline (non-blocking beacon)
@@ -218,29 +181,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
       navigate(`/profile/${currentUser}`);
     }
   };
-  
-  const handleTestDashboard = () => {
-    navigate('/test-dashboard');
-  };
-
-  // Load user stats for capsules
-  const loadUserStats = async (username) => {
-    try {
-      // Fetch stats from various endpoints
-      const [viewsRes, favoritesRes] = await Promise.all([
-        api.get(`/profile-views/${username}`).catch(() => ({ data: { totalViews: 0 } })),
-        api.get(`/their-favorites/${username}`).catch(() => ({ data: { users: [] } }))
-      ]);
-
-      setUserStats({
-        views: viewsRes.data?.totalViews || 0,
-        likes: favoritesRes.data?.users?.length || 0,
-        approvals: 0 // Placeholder - can be connected to verification status
-      });
-    } catch (error) {
-      console.error('Error loading user stats:', error);
-    }
-  };
 
   // Load user violations
   const loadUserViolations = async (username) => {
@@ -252,7 +192,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
         setViolations(null); // Clear violations if count is 0
       }
     } catch (error) {
-      console.error('Error loading user violations:', error);
+      logger.error('Error loading user violations:', error);
     }
   };
 
@@ -313,13 +253,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
             <span className="logo-text">L3V3L</span>
           </div>
-          
-          {onlineCount > 0 && (
-            <div className="online-indicator" title={`${onlineCount} users online`}>
-              <span className="online-dot">🟢</span>
-              <span className="online-count">{onlineCount}</span>
-            </div>
-          )}
         </div>
         <div className="top-bar-right">
           {/* Messages Icon with Dropdown */}

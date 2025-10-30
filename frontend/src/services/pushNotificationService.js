@@ -6,6 +6,7 @@
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 import api from '../api';
+import logger from '../utils/logger';
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -37,7 +38,7 @@ let firebaseEnabled = false;
 
 if (isFirebaseConfigured()) {
   try {
-    console.log('🔍 Firebase Config Check:', {
+    logger.debug('Firebase Config Check:', {
       hasApiKey: !!firebaseConfig.apiKey,
       hasProjectId: !!firebaseConfig.projectId,
       hasVapidKey: !!VAPID_KEY,
@@ -48,13 +49,13 @@ if (isFirebaseConfigured()) {
     app = initializeApp(firebaseConfig);
     messaging = getMessaging(app);
     firebaseEnabled = true;
-    console.log('✅ Firebase initialized successfully');
+    logger.success('Firebase initialized successfully');
   } catch (error) {
-    console.warn('⚠️ Firebase initialization failed:', error.message);
+    logger.warn('Firebase initialization failed:', error.message);
     firebaseEnabled = false;
   }
 } else {
-  console.log('ℹ️ Firebase push notifications not configured - skipping initialization');
+  logger.info('Firebase push notifications not configured - skipping initialization');
   firebaseEnabled = false;
 }
 
@@ -66,19 +67,19 @@ export const requestNotificationPermission = async () => {
   try {
     // Check if Firebase is configured
     if (!firebaseEnabled) {
-      console.log('ℹ️ Push notifications disabled - Firebase not configured');
+      logger.info('Push notifications disabled - Firebase not configured');
       return null;
     }
 
     // Check if notifications are supported
     if (!('Notification' in window)) {
-      console.warn('This browser does not support notifications');
+      logger.warn('This browser does not support notifications');
       return null;
     }
 
     // Check if service worker is supported
     if (!('serviceWorker' in navigator)) {
-      console.warn('This browser does not support service workers');
+      logger.warn('This browser does not support service workers');
       return null;
     }
 
@@ -86,8 +87,8 @@ export const requestNotificationPermission = async () => {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      console.log('✅ Notification permission granted');
-      console.log('🔑 Using VAPID key:', VAPID_KEY?.substring(0, 20) + '...');
+      logger.success('Notification permission granted');
+      logger.debug('Using VAPID key:', VAPID_KEY?.substring(0, 20) + '...');
       
       // Get FCM token (Firebase will register its own service worker)
       const token = await getToken(messaging, {
@@ -95,7 +96,7 @@ export const requestNotificationPermission = async () => {
       });
       
       if (token) {
-        console.log('✅ FCM token obtained:', token.substring(0, 20) + '...');
+        logger.success('FCM token obtained:', token.substring(0, 20) + '...');
         
         // Send token to backend
         try {
@@ -108,25 +109,25 @@ export const requestNotificationPermission = async () => {
             }
           });
           
-          console.log('✅ Device registered for push notifications');
+          logger.success('Device registered for push notifications');
           return token;
         } catch (error) {
-          console.error('❌ Failed to register device:', error);
+          logger.error('Failed to register device:', error);
           return token; // Return token even if backend registration fails
         }
       } else {
-        console.warn('⚠️ No FCM token available');
+        logger.warn('No FCM token available');
         return null;
       }
     } else if (permission === 'denied') {
-      console.warn('⚠️ Notification permission denied');
+      logger.warn('Notification permission denied');
       return null;
     } else {
-      console.log('ℹ️ Notification permission dismissed');
+      logger.info('Notification permission dismissed');
       return null;
     }
   } catch (error) {
-    console.error('❌ Error requesting notification permission:', error);
+    logger.error('Error requesting notification permission:', error);
     return null;
   }
 };
@@ -138,12 +139,12 @@ export const requestNotificationPermission = async () => {
  */
 export const onMessageListener = (callback) => {
   if (!messaging) {
-    console.warn('Messaging not initialized');
+    logger.warn('Messaging not initialized');
     return () => {};
   }
 
   return onMessage(messaging, (payload) => {
-    console.log('📬 Foreground message received:', payload);
+    logger.info('Foreground message received:', payload);
     
     // Extract notification data
     const notification = {
@@ -166,9 +167,9 @@ export const onMessageListener = (callback) => {
 export const unsubscribeFromPush = async (token) => {
   try {
     await api.delete(`/push-subscriptions/unsubscribe?token=${encodeURIComponent(token)}`);
-    console.log('✅ Unsubscribed from push notifications');
+    logger.success('Unsubscribed from push notifications');
   } catch (error) {
-    console.error('❌ Failed to unsubscribe:', error);
+    logger.error('Failed to unsubscribe:', error);
   }
 };
 
@@ -181,7 +182,7 @@ export const getMySubscriptions = async () => {
     const response = await api.get('/push-subscriptions/my-subscriptions');
     return response.data;
   } catch (error) {
-    console.error('❌ Failed to get subscriptions:', error);
+    logger.error('Failed to get subscriptions:', error);
     return [];
   }
 };
@@ -192,10 +193,10 @@ export const getMySubscriptions = async () => {
 export const sendTestNotification = async () => {
   try {
     const response = await api.post('/push-subscriptions/test');
-    console.log('✅ Test notification sent:', response.data);
+    logger.success('Test notification sent:', response.data);
     return response.data;
   } catch (error) {
-    console.error('❌ Failed to send test notification:', error);
+    logger.error('Failed to send test notification:', error);
     throw error;
   }
 };
@@ -219,7 +220,7 @@ export const getNotificationPermission = () => {
   return Notification.permission;
 };
 
-export default {
+const pushNotificationService = {
   requestNotificationPermission,
   onMessageListener,
   unsubscribeFromPush,
@@ -228,3 +229,5 @@ export default {
   isPushNotificationSupported,
   getNotificationPermission
 };
+
+export default pushNotificationService;

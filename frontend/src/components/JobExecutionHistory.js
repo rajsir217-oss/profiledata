@@ -1,17 +1,36 @@
 import React, { useState, useEffect } from 'react';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import './JobExecutionHistory.css';
+import DeleteButton from './DeleteButton';
 
 const JobExecutionHistory = ({ job, onClose }) => {
   const [executions, setExecutions] = useState([]);
   const [selectedExecution, setSelectedExecution] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   useEffect(() => {
     loadExecutions();
+    setSelectedIds([]); // Reset selections when filter changes
+    setSelectAll(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job._id, filter]);
+
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
 
   const loadExecutions = async () => {
     setLoading(true);
@@ -42,6 +61,51 @@ const JobExecutionHistory = ({ job, onClose }) => {
     }
   };
 
+  const handleSelectAll = () => {
+    if (selectAll) {
+      setSelectedIds([]);
+      setSelectAll(false);
+    } else {
+      setSelectedIds(executions.map(e => e._id));
+      setSelectAll(true);
+    }
+  };
+
+  const handleSelectExecution = (executionId) => {
+    if (selectedIds.includes(executionId)) {
+      const newSelected = selectedIds.filter(id => id !== executionId);
+      setSelectedIds(newSelected);
+      setSelectAll(false);
+    } else {
+      const newSelected = [...selectedIds, executionId];
+      setSelectedIds(newSelected);
+      setSelectAll(newSelected.length === executions.length);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      await Promise.all(
+        selectedIds.map(id =>
+          fetch(getBackendApiUrl(`/api/admin/scheduler/executions/${id}`), {
+            method: 'DELETE',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          })
+        )
+      );
+      setSelectedIds([]);
+      setSelectAll(false);
+      loadExecutions();
+    } catch (err) {
+      console.error('Error bulk deleting executions:', err);
+    }
+  };
+
   const handleDeleteExecution = async (executionId) => {
     try {
       const token = localStorage.getItem('token');
@@ -54,9 +118,6 @@ const JobExecutionHistory = ({ job, onClose }) => {
       
       // Reload executions after delete
       loadExecutions();
-      
-      // Show success message (add toast later if needed)
-      console.log('Execution record deleted successfully');
     } catch (err) {
       console.error('Error deleting execution:', err);
     }
@@ -97,21 +158,10 @@ const JobExecutionHistory = ({ job, onClose }) => {
     switch (status) {
       case 'success': return '✅';
       case 'failed': return '❌';
-      case 'running': return '⏳';
+      case 'running': return '▶️';
       case 'timeout': return '⏱️';
       case 'partial': return '⚠️';
       default: return '❓';
-    }
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case 'success': return 'status-success';
-      case 'failed': return 'status-failed';
-      case 'running': return 'status-running';
-      case 'timeout': return 'status-timeout';
-      case 'partial': return 'status-partial';
-      default: return '';
     }
   };
 
@@ -138,6 +188,15 @@ const JobExecutionHistory = ({ job, onClose }) => {
           <button className="btn-refresh" onClick={loadExecutions}>
             🔄 Refresh
           </button>
+          {selectedIds.length > 0 && (
+            <DeleteButton
+              onDelete={handleBulkDelete}
+              itemName={`${selectedIds.length} execution${selectedIds.length > 1 ? 's' : ''}`}
+              size="medium"
+              confirmText="Delete All?"
+              className="btn-bulk-delete-action"
+            />
+          )}
         </div>
 
         <div className="history-content">
@@ -251,6 +310,14 @@ const JobExecutionHistory = ({ job, onClose }) => {
                 <table className="executions-table">
                   <thead>
                     <tr>
+                      <th style={{ width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          checked={selectAll}
+                          onChange={handleSelectAll}
+                          title="Select All"
+                        />
+                      </th>
                       <th>Status</th>
                       <th>Started</th>
                       <th>Duration</th>
@@ -261,6 +328,13 @@ const JobExecutionHistory = ({ job, onClose }) => {
                   <tbody>
                     {executions.map(execution => (
                       <tr key={execution._id}>
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.includes(execution._id)}
+                            onChange={() => handleSelectExecution(execution._id)}
+                          />
+                        </td>
                         <td>
                           {/* <span className={`status-badge ${getStatusClass(execution.status || 'unknown')}`}> */}
                             <span>
@@ -278,13 +352,11 @@ const JobExecutionHistory = ({ job, onClose }) => {
                             >
                               👁️ View
                             </button>
-                            <button
-                              className="btn-icon danger"
-                              title="Delete Execution"
-                              onClick={() => handleDeleteExecution(execution._id)}
-                            >
-                              🗑️
-                            </button>
+                            <DeleteButton
+                              onDelete={() => handleDeleteExecution(execution._id)}
+                              itemName="execution"
+                              size="small"
+                            />
                           </div>
                         </td>
                       </tr>

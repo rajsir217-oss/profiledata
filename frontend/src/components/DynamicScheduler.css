@@ -80,6 +80,48 @@
   font-weight: 500;
 }
 
+/* Clickable status cards */
+.status-card.clickable {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-card.clickable::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.status-card.clickable:hover::before {
+  opacity: 0.05;
+}
+
+.status-card.clickable:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 20px rgba(106, 13, 173, 0.2);
+  border-color: var(--primary-color);
+}
+
+.status-card.clickable:active {
+  transform: translateY(-2px);
+}
+
+.status-card.clickable .status-icon {
+  transition: transform 0.3s ease;
+}
+
+.status-card.clickable:hover .status-icon {
+  transform: scale(1.1);
+}
+
 /* Filters */
 .scheduler-filters {
   background: var(--surface-color);
@@ -132,9 +174,36 @@
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
-  overflow: hidden;
   margin-bottom: 2rem;
   position: relative;
+  max-height: 70vh; /* Limit height to enable vertical scrolling */
+  overflow: auto; /* Enable both horizontal and vertical scrolling */
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Custom scrollbar styling */
+.jobs-table::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.jobs-table::-webkit-scrollbar-track {
+  background: var(--hover-background);
+  border-radius: 10px;
+}
+
+.jobs-table::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 10px;
+  border: 2px solid var(--hover-background);
+}
+
+.jobs-table::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-hover);
+}
+
+.jobs-table::-webkit-scrollbar-corner {
+  background: var(--hover-background);
 }
 
 .jobs-table-wrapper {
@@ -145,11 +214,15 @@
 .jobs-table table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 900px; /* Ensure table doesn't get too narrow */
 }
 
 .jobs-table thead {
   background: var(--primary-color) !important;
   border-bottom: 2px solid var(--primary-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .jobs-table th {
@@ -161,6 +234,9 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   background: var(--primary-color) !important;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .jobs-table tbody tr {
@@ -470,13 +546,20 @@
   }
 
   .jobs-table {
-    overflow-x: auto;
+    overflow: auto; /* Both horizontal and vertical */
     margin: 0 0.5rem 1rem;
     border-radius: 8px;
+    max-height: 60vh; /* Smaller height on tablets */
   }
 
   .jobs-table table {
     min-width: 900px;
+  }
+  
+  /* Smaller scrollbar on tablets */
+  .jobs-table::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
   }
 
   .jobs-table th,
@@ -554,6 +637,14 @@
 
   .jobs-table {
     margin: 0 0.25rem 0.75rem;
+    overflow: auto; /* Both horizontal and vertical */
+    max-height: 50vh; /* Even smaller on mobile */
+  }
+  
+  /* Even smaller scrollbar on mobile */
+  .jobs-table::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
   }
 
   .jobs-table th,
