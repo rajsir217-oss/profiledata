@@ -1,0 +1,266 @@
+/* ========================================
+   Universal Tab Container - All Variants
+   ======================================== */
+
+.universal-tab-container {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================
+   Tab Navigation (Common Styles)
+   ======================================== */
+
+.tab-nav {
+  display: flex;
+  gap: 0;
+  align-items: center;
+  position: relative;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.tab-nav::-webkit-scrollbar {
+  height: 4px;
+}
+
+.tab-nav::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 2px;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab-button:hover {
+  color: var(--text-color);
+}
+
+.tab-button.active {
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.tab-icon {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tab-label {
+  display: flex;
+  align-items: center;
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--surface-color);
+  color: var(--text-color);
+}
+
+.tab-button.active .tab-badge {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* ========================================
+   Tab Content Area
+   ======================================== */
+
+.tab-content-area {
+  width: 100%;
+  min-height: 200px;
+}
+
+.tab-panel {
+  display: none;
+  animation: fadeIn 0.2s ease;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ========================================
+   VARIANT: UNDERLINED (Default)
+   ======================================== */
+
+.variant-underlined .tab-nav {
+  border-bottom: 2px solid var(--border-color);
+  gap: 0;
+}
+
+.variant-underlined .tab-button {
+  padding: 14px 24px;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -2px;
+}
+
+.variant-underlined .tab-button:hover {
+  border-bottom-color: var(--primary-color);
+  opacity: 0.7;
+}
+
+.variant-underlined .tab-button.active {
+  border-bottom-color: var(--primary-color);
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(102, 126, 234, 0.05) 100%
+  );
+}
+
+.variant-underlined .tab-content-area {
+  padding-top: 20px;
+}
+
+/* ========================================
+   VARIANT: PILLS
+   ======================================== */
+
+.variant-pills .tab-nav {
+  gap: 8px;
+  padding: 8px;
+  background: var(--surface-color);
+  border-radius: 12px;
+}
+
+.variant-pills .tab-button {
+  padding: 10px 20px;
+  border-radius: 8px;
+  background: transparent;
+}
+
+.variant-pills .tab-button:hover {
+  background: var(--card-background);
+}
+
+.variant-pills .tab-button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.variant-pills .tab-button.active .tab-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.variant-pills .tab-content-area {
+  padding-top: 16px;
+}
+
+/* ========================================
+   VARIANT: BORDERED
+   ======================================== */
+
+.variant-bordered .tab-nav {
+  gap: 0;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.variant-bordered .tab-button {
+  padding: 12px 20px;
+  border-right: 2px solid var(--border-color);
+  flex: 1;
+  justify-content: center;
+}
+
+.variant-bordered .tab-button:last-child {
+  border-right: none;
+}
+
+.variant-bordered .tab-button:hover {
+  background: var(--surface-color);
+}
+
+.variant-bordered .tab-button.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.variant-bordered .tab-button.active .tab-badge {
+  background: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.variant-bordered .tab-content-area {
+  padding-top: 16px;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+
+@media (max-width: 768px) {
+  .tab-button {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .tab-icon {
+    font-size: 16px;
+  }
+
+  .variant-underlined .tab-button {
+    padding: 12px 16px;
+  }
+
+  .variant-pills .tab-button {
+    padding: 8px 16px;
+  }
+
+  .variant-bordered .tab-button {
+    padding: 10px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .tab-button {
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .tab-icon {
+    font-size: 14px;
+  }
+
+  .tab-badge {
+    font-size: 11px;
+    min-width: 18px;
+    height: 18px;
+  }
+}
