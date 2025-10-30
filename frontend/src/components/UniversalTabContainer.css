@@ -1,11 +1,13 @@
 /* ========================================
-   Universal Tab Container - All Variants
+   Universal Tab Container - Theme-Aware
+   Fully integrated with themes.css variables
    ======================================== */
 
 .universal-tab-container {
   width: 100%;
   display: flex;
   flex-direction: column;
+  font-family: var(--font-family);
 }
 
 /* ========================================
@@ -19,6 +21,7 @@
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
+  background: var(--card-background);
 }
 
 .tab-nav::-webkit-scrollbar {
@@ -27,27 +30,33 @@
 
 .tab-nav::-webkit-scrollbar-thumb {
   background: var(--border-color);
-  border-radius: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.tab-nav::-webkit-scrollbar-track {
+  background: var(--surface-color);
 }
 
 .tab-button {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm) var(--spacing-lg);
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 15px;
+  font-size: var(--font-size-base);
   font-weight: 500;
   color: var(--text-secondary);
   transition: all 0.2s ease;
   white-space: nowrap;
   position: relative;
+  font-family: var(--font-family);
 }
 
 .tab-button:hover {
   color: var(--text-color);
+  background: var(--hover-background);
 }
 
 .tab-button.active {
@@ -55,16 +64,24 @@
   font-weight: 600;
 }
 
+.tab-button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
 .tab-icon {
-  font-size: 18px;
+  font-size: var(--font-size-lg);
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
 }
 
 .tab-label {
   display: flex;
   align-items: center;
+  line-height: 1.4;
 }
 
 .tab-badge {
@@ -73,17 +90,21 @@
   justify-content: center;
   min-width: 20px;
   height: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  font-size: 12px;
+  padding: 0 var(--spacing-xs);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
   font-weight: 600;
   background: var(--surface-color);
   color: var(--text-color);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
 }
 
 .tab-button.active .tab-badge {
   background: var(--primary-color);
   color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 /* ========================================
@@ -114,86 +135,101 @@
 }
 
 /* ========================================
-   VARIANT: UNDERLINED (Default)
+   VARIANT: UNDERLINED (Default - Theme-Aware)
    ======================================== */
 
 .variant-underlined .tab-nav {
   border-bottom: 2px solid var(--border-color);
   gap: 0;
+  background: transparent;
 }
 
 .variant-underlined .tab-button {
-  padding: 14px 24px;
+  padding: var(--spacing-md) var(--spacing-xl);
   border-bottom: 3px solid transparent;
   margin-bottom: -2px;
+  border-radius: 0;
 }
 
 .variant-underlined .tab-button:hover {
   border-bottom-color: var(--primary-color);
-  opacity: 0.7;
+  background: var(--hover-background);
 }
 
 .variant-underlined .tab-button.active {
   border-bottom-color: var(--primary-color);
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(102, 126, 234, 0.05) 100%
-  );
+  background: var(--selected-background);
+  color: var(--primary-color);
+}
+
+.variant-underlined .tab-button.active::before {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary-color);
+  box-shadow: 0 0 8px var(--primary-shadow);
 }
 
 .variant-underlined .tab-content-area {
-  padding-top: 20px;
+  padding-top: var(--spacing-lg);
 }
 
 /* ========================================
-   VARIANT: PILLS
+   VARIANT: PILLS (Theme-Aware)
    ======================================== */
 
 .variant-pills .tab-nav {
-  gap: 8px;
-  padding: 8px;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
   background: var(--surface-color);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
 }
 
 .variant-pills .tab-button {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-sm);
   background: transparent;
 }
 
 .variant-pills .tab-button:hover {
   background: var(--card-background);
+  box-shadow: var(--shadow-sm);
 }
 
 .variant-pills .tab-button.active {
   background: var(--primary-color);
   color: white;
+  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .variant-pills .tab-button.active .tab-badge {
   background: rgba(255, 255, 255, 0.3);
   color: white;
+  border-color: transparent;
 }
 
 .variant-pills .tab-content-area {
-  padding-top: 16px;
+  padding-top: var(--spacing-md);
 }
 
 /* ========================================
-   VARIANT: BORDERED
+   VARIANT: BORDERED (Theme-Aware)
    ======================================== */
 
 .variant-bordered .tab-nav {
   gap: 0;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   overflow: hidden;
+  box-shadow: var(--shadow-sm);
 }
 
 .variant-bordered .tab-button {
-  padding: 12px 20px;
+  padding: var(--spacing-sm) var(--spacing-lg);
   border-right: 2px solid var(--border-color);
   flex: 1;
   justify-content: center;
@@ -210,57 +246,99 @@
 .variant-bordered .tab-button.active {
   background: var(--primary-color);
   color: white;
+  box-shadow: inset 0 0 10px var(--primary-shadow);
 }
 
 .variant-bordered .tab-button.active .tab-badge {
   background: rgba(255, 255, 255, 0.3);
   color: white;
+  border-color: transparent;
 }
 
 .variant-bordered .tab-content-area {
-  padding-top: 16px;
+  padding-top: var(--spacing-md);
 }
 
 /* ========================================
-   Responsive Design
+   Responsive Design (Theme-Aware)
    ======================================== */
 
 @media (max-width: 768px) {
   .tab-button {
-    padding: 10px 16px;
-    font-size: 14px;
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: var(--font-size-sm);
+    gap: var(--spacing-xs);
   }
 
   .tab-icon {
-    font-size: 16px;
+    font-size: var(--font-size-base);
   }
 
   .variant-underlined .tab-button {
-    padding: 12px 16px;
+    padding: var(--spacing-sm) var(--spacing-md);
   }
 
   .variant-pills .tab-button {
-    padding: 8px 16px;
+    padding: var(--spacing-xs) var(--spacing-md);
   }
 
   .variant-bordered .tab-button {
-    padding: 10px 12px;
+    padding: var(--spacing-sm) var(--spacing-sm);
+  }
+
+  .tab-badge {
+    padding: 0 var(--spacing-xs);
+    font-size: var(--font-size-xs);
   }
 }
 
 @media (max-width: 480px) {
   .tab-button {
-    padding: 8px 12px;
-    font-size: 13px;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: var(--font-size-xs);
+    gap: 4px;
   }
 
   .tab-icon {
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
 
   .tab-badge {
     font-size: 11px;
     min-width: 18px;
     height: 18px;
+    padding: 0 4px;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .variant-underlined .tab-button,
+  .variant-pills .tab-button,
+  .variant-bordered .tab-button {
+    padding: var(--spacing-xs) var(--spacing-sm);
+  }
+
+  /* Show only icons on mobile */
+  .tab-button {
+    justify-content: center;
+    min-width: 48px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .tab-nav {
+    border-bottom: 2px solid #000;
+  }
+
+  .tab-button {
+    color: #000;
+  }
+
+  .tab-button.active {
+    font-weight: bold;
+    border-bottom-color: #000;
   }
 }
