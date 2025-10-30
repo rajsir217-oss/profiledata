@@ -73,17 +73,10 @@ class Settings(BaseSettings):
     gcp_mongodb_url: Optional[str] = None
     gcp_redis_url: Optional[str] = None
 
-<<<<<<< HEAD
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=False,
         extra="ignore"  # Ignore extra fields in .env
     )
-=======
-    class Config:
-        env_file = str(ENV_FILE)
-        env_file_encoding = 'utf-8'
-        case_sensitive = False
->>>>>>> dev
 
 settings = Settings()
