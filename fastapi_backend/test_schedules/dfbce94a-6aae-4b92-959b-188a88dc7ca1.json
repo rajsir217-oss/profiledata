@@ -7,8 +7,8 @@
   "daysOfWeek": [],
   "enabled": true,
   "description": "test",
-  "lastRun": "2025-10-16T09:40:44.927185",
-  "nextRun": "2025-10-17 09:40",
+  "lastRun": null,
+  "nextRun": "2025-10-30 09:40",
   "createdAt": "2025-10-06T09:17:28.945755",
-  "updatedAt": "2025-10-06T09:36:39.479724"
+  "updatedAt": "2025-10-29T08:17:57.690401"
 }

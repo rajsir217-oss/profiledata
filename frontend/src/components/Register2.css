@@ -1,0 +1,170 @@
+/* Register2 Specific Styles - For Tabbed Layout */
+
+/* ========================================
+   DISABLE ALL TRANSITIONS AND ANIMATIONS
+   Override Bootstrap and any other CSS
+   ======================================== */
+.register-container *,
+.register-container *::before,
+.register-container *::after {
+  transition: none !important;
+  animation: none !important;
+}
+
+/* Override Bootstrap fade effects on alerts */
+.register-container .alert {
+  transition: none !important;
+  animation: none !important;
+}
+
+.register-container .alert.fade {
+  opacity: 1 !important;
+  transition: none !important;
+}
+
+.register-container .alert.show {
+  opacity: 1 !important;
+}
+
+/* Override Bootstrap modal fade */
+.register-container .modal.fade .modal-dialog {
+  transition: none !important;
+  transform: none !important;
+}
+
+/* Override Bootstrap collapse transitions */
+.register-container .collapse,
+.register-container .collapsing {
+  transition: none !important;
+}
+
+/* Scrolling tabs - flows with content */
+.register-container .tab-bar {
+  position: relative !important;
+  width: 100% !important;
+  margin-bottom: 0 !important;
+  border-radius: 12px 12px 0 0 !important;
+  padding: 8px !important;
+  z-index: 10 !important;
+}
+
+/* Registration mode - glass effect over wedding background */
+.register-container.registration-mode .tab-bar {
+  background: rgba(255, 255, 255, 0.95) !important;
+  backdrop-filter: blur(10px) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Edit mode - theme-aware colors */
+.register-container.edit-mode .tab-bar {
+  background: var(--card-background) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Ensure content sits below tabs with proper spacing */
+.register-container .tab-content-container {
+  overflow: visible !important; /* Allow dropdowns to render outside */
+  margin-top: 0 !important;
+  padding-top: 24px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  border-radius: 0 0 12px 12px !important;
+}
+
+/* Registration mode - glass effect content container */
+.register-container.registration-mode .tab-content-container {
+  background: rgba(255, 255, 255, 0.95) !important;
+}
+
+/* Edit mode - theme-aware content container */
+.register-container.edit-mode .tab-content-container {
+  background: var(--card-background) !important;
+}
+
+/* Ensure parent containers don't block */
+.register-container .card {
+  overflow: visible !important;
+}
+
+.register-container form {
+  overflow: visible !important;
+}
+
+/* Ensure tab panels allow dropdowns and have proper spacing */
+.register-container .tab-panel {
+  overflow: visible !important;
+  padding-top: 20px !important;
+}
+
+.register-container .tab-section {
+  overflow: visible !important;
+}
+
+/* Legal Agreements Section - Theme-aware styling */
+.legal-agreements-section {
+  background: var(--warning-background) !important;
+  border: 2px solid var(--warning-color) !important;
+}
+
+.legal-agreements-section .form-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.legal-agreements-section .form-check-input {
+  margin-top: 0.25rem;
+  flex-shrink: 0;
+}
+
+.legal-agreements-section .form-check-label {
+  margin-left: 0;
+  cursor: pointer;
+  line-height: 1.5;
+  color: var(--text-color);
+}
+
+/* Select All checkbox container - Theme-aware */
+.select-all-agreements {
+  background: var(--hover-background) !important;
+  border-radius: 8px;
+  border: 2px dashed var(--warning-color) !important;
+  padding: 12px 16px;
+}
+
+.select-all-agreements .form-check-label {
+  font-weight: bold;
+  font-size: 16px;
+  color: var(--text-color) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .register-container .tab-bar {
+    padding: 6px !important;
+    border-radius: 8px 8px 0 0 !important;
+  }
+  
+  /* Adjust card padding on mobile */
+  .register-container .card {
+    padding: 16px !important;
+    margin: 0 !important;
+  }
+  
+  /* Reduce logo sizes on mobile */
+  .register-container h3 {
+    font-size: 22px !important;
+  }
+  
+  /* Stack form fields vertically on mobile */
+  .register-container .row {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  
+  .register-container .col-md-6,
+  .register-container .col-md-4 {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}

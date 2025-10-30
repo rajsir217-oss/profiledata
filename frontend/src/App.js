@@ -1,14 +1,16 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// Registration and Profile pages (both versions available)
 import Register from './components/Register';
+import Register2 from './components/Register2';
+import EditProfile from './components/EditProfile';
 import Login from './components/Login';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
-import EditProfile from './components/EditProfile';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
-import SearchPage from './components/SearchPage';
+import SearchPage2 from './components/SearchPage2';
 import AdminPage from './components/AdminPage';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
@@ -34,7 +36,7 @@ import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
-import L3V3LMatches from './components/L3V3LMatches';
+// L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Navigate } from 'react-router-dom';
@@ -45,7 +47,10 @@ import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
-import { getCurrentEnvironment, getBackendUrl, getApiUrl } from './config/apiConfig';
+import { getApiUrl } from './config/apiConfig';
+import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
+import toastService from './services/toastService';
+import logger from './utils/logger';
 
 // Theme configuration
 const themes = {
@@ -84,9 +89,9 @@ function App() {
           const prefs = await getUserPreferences();
           const themeId = prefs.themePreference || 'light-blue';
           applyTheme(themeId);
-          console.log('✅ Loaded theme from database:', themeId);
+          // Theme loaded from database
         } catch (error) {
-          console.log('⚠️ API error, using default theme');
+          // Using default theme due to API error
           applyTheme('light-blue');
         }
       } else {
@@ -99,7 +104,7 @@ function App() {
     
     // Listen for login events to reload theme
     const handleUserLogin = () => {
-      console.log('🔄 User logged in, reloading theme...');
+      // User logged in, reloading theme
       loadTheme();
     };
     
@@ -110,12 +115,50 @@ function App() {
     };
   }, []);
 
+  // Initialize push notifications when user is logged in
+  useEffect(() => {
+    const initializePushNotifications = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (token) {
+        // User is logged in, request notification permission
+        try {
+          await requestNotificationPermission();
+        } catch (error) {
+          logger.error('Failed to initialize push notifications:', error);
+        }
+        
+        // Listen for foreground messages
+        const unsubscribe = onMessageListener((notification) => {
+          // Show toast notification when message received in foreground
+          const message = `${notification.title}\n${notification.body}`;
+          toastService.info(message, 5000);
+        });
+        
+        return unsubscribe;
+      }
+    };
+    
+    initializePushNotifications();
+    
+    // Re-initialize on login
+    const handleLogin = () => {
+      initializePushNotifications();
+    };
+    
+    window.addEventListener('userLoggedIn', handleLogin);
+    
+    return () => {
+      window.removeEventListener('userLoggedIn', handleLogin);
+    };
+  }, []);
+
   // Initialize unified Socket.IO service (handles messages, online status, and unread counts)
   useEffect(() => {
     const username = localStorage.getItem('username');
     
     if (username) {
-      console.log('🚀 Starting unified Socket.IO service for:', username);
+      // Starting Socket.IO service
       
       // Connect to WebSocket (handles everything: messages, status, unread counts)
       import('./services/socketService')
@@ -123,7 +166,7 @@ function App() {
           module.default.connect(username);
         })
         .catch(error => {
-          console.error('❌ Failed to connect to WebSocket:', error);
+          logger.error('Failed to connect to WebSocket:', error);
         });
     }
 
@@ -132,14 +175,14 @@ function App() {
       const username = localStorage.getItem('username');
       
       if (username) {
-        console.log('🧹 Disconnecting Socket.IO service');
+        // Disconnecting Socket.IO service
         
         import('./services/socketService')
           .then(module => {
             module.default.disconnect();
           })
           .catch(error => {
-            console.error('❌ Failed to disconnect:', error);
+            logger.error('Failed to disconnect:', error);
           });
         
         // Mark user as offline via beacon (non-blocking)
@@ -169,6 +212,7 @@ function App() {
               <Routes>
               {/* Public routes */}
               <Route path="/register" element={<Register />} />
+              <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/" element={<Login />} />
@@ -192,7 +236,8 @@ function App() {
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-              <Route path="/edit-profile" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
+              <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
+              <Route path="/edit-profile-old" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
@@ -200,9 +245,10 @@ function App() {
               <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />
-              <Route path="/l3v3l-matches" element={<ProtectedRoute><L3V3LMatches /></ProtectedRoute>} />
-              {/* Removed /shortlists route - was placeholder. Use /shortlist for functional component */}
-              <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+              {/* Hybrid Search - filters + L3V3L scoring (premium) */}
+              <Route path="/search" element={<ProtectedRoute><SearchPage2 /></ProtectedRoute>} />
+              {/* Legacy L3V3L route redirects to search */}
+              <Route path="/l3v3l-matches" element={<Navigate to="/search" replace />} />
               {/* MyLists removed - functionality merged into Dashboard */}
               <Route path="/my-lists" element={<Navigate to="/dashboard" replace />} />
               <Route path="/favorites" element={<ProtectedRoute><Favorites /></ProtectedRoute>} />

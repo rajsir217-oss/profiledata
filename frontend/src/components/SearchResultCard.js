@@ -49,7 +49,7 @@ const SearchResultCard = ({
 
   // Calculate PII request status summary
   const getPIIStatusSummary = () => {
-    const piiTypes = ['images', 'contact_info', 'date_of_birth', 'linkedin_url'];
+    const piiTypes = ['images', 'contact_info', 'linkedin_url'];
     let approved = 0;
     let pending = 0;
 
@@ -270,12 +270,34 @@ const SearchResultCard = ({
             {/* Column 4: Contact (PII) */}
             <div className="row-info-column-3">
               <p className="row-detail-pii">
-                <strong>📧</strong>
                 {hasPiiAccess ? (
-                  <span className="pii-data-sm">{user.contactEmail}</span>
+                  <button
+                    className="pii-icon-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(user.contactEmail);
+                      alert('Email copied to clipboard!');
+                    }}
+                    title={user.contactEmail}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '4px'
+                    }}
+                  >
+                    📧
+                  </button>
                 ) : (
                   <>
-                    <span className="pii-masked-sm">[Locked]</span>
+                    <span 
+                      className="pii-locked-icon" 
+                      style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
+                      title="Email locked - Request access"
+                    >
+                      📧
+                    </span>
                     {onPIIRequest && (
                       <button
                         className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
@@ -285,18 +307,40 @@ const SearchResultCard = ({
                         }}
                         title={piiStatus.text}
                       >
-                        {piiStatus.text}
+                        🔒
                       </button>
                     )}
                   </>
                 )}
               </p>
               <p className="row-detail-pii">
-                <strong>📱</strong>
                 {hasPiiAccess ? (
-                  <span className="pii-data-sm">{user.contactNumber}</span>
+                  <button
+                    className="pii-icon-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigator.clipboard.writeText(user.contactNumber);
+                      alert('Phone number copied to clipboard!');
+                    }}
+                    title={user.contactNumber}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      padding: '4px'
+                    }}
+                  >
+                    📱
+                  </button>
                 ) : (
-                  <span className="pii-masked-sm">[Locked]</span>
+                  <span 
+                    className="pii-locked-icon" 
+                    style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
+                    title="Phone locked - Request access"
+                  >
+                    📱
+                  </span>
                 )}
               </p>
             </div>
@@ -399,9 +443,9 @@ const SearchResultCard = ({
             {getDisplayName(user)}
           </h6>
           <div className="card-title-badges">
-            {user.matchScore != null && (
-              <span className="l3v3l-match-badge" title={user.compatibilityLevel}>
-                L3V3L MATCH • {Math.round(user.matchScore * 10) / 10}%
+            {user.matchScore && Number(user.matchScore) > 0 && (
+              <span className="l3v3l-match-badge" title={user.compatibilityLevel || `${user.matchScore}% compatibility`}>
+                🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
               </span>
             )}
             {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge} years</span>}

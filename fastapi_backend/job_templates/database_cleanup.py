@@ -125,6 +125,15 @@ class DatabaseCleanupTemplate(JobTemplate):
     async def execute(self, context: JobExecutionContext) -> JobResult:
         """Execute database cleanup"""
         params = context.parameters
+        
+        # Validate required parameters
+        if "collection" not in params:
+            return JobResult(
+                status="failed",
+                message="Missing required parameter: 'collection'. Please edit the job and specify which collection to clean up.",
+                errors=["collection parameter is required"]
+            )
+        
         collection_name = params["collection"]
         dry_run = params.get("dry_run", True)
         batch_size = params.get("batch_size", 1000)

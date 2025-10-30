@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import './Dashboard.css';
 import MessageModal from './MessageModal';
-import CategorySection from './CategorySection';
-import UserCard from './UserCard';
 import AccessRequestManager from './AccessRequestManager';
+import logger from '../utils/logger';
+import PageHeader from './PageHeader';
+import ProfileViewsModal from './ProfileViewsModal';
+import FavoritedByModal from './FavoritedByModal';
+import UserCard from './UserCard';
+import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
-import './Dashboard.css';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -16,6 +20,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const currentUser = localStorage.getItem('username');
   const toast = useToast();
+  
+  // Modal states
+  const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
+  const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -79,7 +87,7 @@ const Dashboard = () => {
         const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
         setUserProfile(response.data);
       } catch (error) {
-        console.error('Error loading user profile:', error);
+        logger.error('Error loading user profile:', error);
       }
     };
     
@@ -126,7 +134,7 @@ const Dashboard = () => {
     setLoading(true);
     setError('');
     
-    console.log('Loading dashboard for user:', user);
+    logger.info('Loading dashboard for user:', user);
     
     try {
       // Load all dashboard data
@@ -167,8 +175,8 @@ const Dashboard = () => {
         totalViews: profileViewsRes.data.totalViews || 0
       });
     } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      console.error('Error details:', err.response?.data || err.message);
+      logger.error('Error loading dashboard data:', err);
+      logger.error('Error details:', err.response?.data || err.message);
       
       const errorMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
@@ -198,7 +206,7 @@ const Dashboard = () => {
       const response = await api.get(`/profile/${username}?requester=${currentUser}`);
       setSelectedUserForMessage(response.data);
     } catch (err) {
-      console.error('Error loading user profile:', err);
+      logger.error('Error loading user profile:', err);
       // Fallback to basic user object
       setSelectedUserForMessage(userProfile || { username });
     }
@@ -223,7 +231,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to remove from favorites: ${err.message}`);
+      logger.error(`Failed to remove from favorites: ${err.message}`);
     }
   };
 
@@ -237,7 +245,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to remove from shortlist: ${err.message}`);
+      logger.error(`Failed to remove from shortlist: ${err.message}`);
     }
   };
 
@@ -251,7 +259,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to remove from exclusions: ${err.message}`);
+      logger.error(`Failed to remove from exclusions: ${err.message}`);
     }
   };
 
@@ -265,7 +273,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to delete message: ${err.message}`);
+      logger.error(`Failed to delete message: ${err.message}`);
     }
   };
 
@@ -279,7 +287,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to clear view history: ${err.message}`);
+      logger.error(`Failed to clear view history: ${err.message}`);
     }
   };
 
@@ -293,7 +301,7 @@ const Dashboard = () => {
         )
       }));
     } catch (err) {
-      console.error(`Failed to cancel request: ${err.message}`);
+      logger.error(`Failed to cancel request: ${err.message}`);
     }
   };
 
@@ -367,7 +375,7 @@ const Dashboard = () => {
         
         await api.put(endpoint, order);
       } catch (err) {
-        console.error('Error saving order:', err);
+        logger.error('Error saving order:', err);
       }
     }
     // Case 2: Different section - move between categories
@@ -397,7 +405,7 @@ const Dashboard = () => {
   // Handle cross-category drag & drop moves
   const handleCrossCategoryMove = async (username, sourceSection, targetSection) => {
     try {
-      console.log(`Moving ${username} from ${sourceSection} to ${targetSection}`);
+      logger.info(`Moving ${username} from ${sourceSection} to ${targetSection}`);
 
       // Define API operations for each section
       const addOperations = {
@@ -435,9 +443,9 @@ const Dashboard = () => {
       // Add to target (fetch fresh data to maintain consistency)
       await loadDashboardData();
 
-      console.log(`Successfully moved ${username} from ${sourceSection} to ${targetSection}`);
+      logger.success(`Successfully moved ${username} from ${sourceSection} to ${targetSection}`);
     } catch (err) {
-      console.error('Error moving between categories:', err);
+      logger.error('Error moving between categories:', err);
       toast.error(`Failed to move user: ${err.response?.data?.detail || err.message}`);
     }
   };
@@ -527,60 +535,68 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <div className="dashboard-header">
-        <div className="header-left">
-          <h1>My Dashboard</h1>
-          <p>Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</p>
-        </div>
-        <div className="header-quick-actions">
-          {/* Quick Action Buttons */}
-          <button 
-            className="btn-quick-action btn-l3v3l"
-            onClick={() => navigate('/l3v3l-matches')}
-            title="L3V3L Matches"
-          >
-            🦋
-          </button>
-          <button 
-            className="btn-quick-action btn-search"
-            onClick={() => navigate('/search')}
-            title="Advanced Search"
-          >
-            🔍
-          </button>
-        </div>
-        <div className="header-actions">
-          {/* View Mode Toggle */}
-          <div className="view-mode-toggle">
-            <button
-              className={`btn-view-mode ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
+      <PageHeader
+        icon="📊"
+        title="My Dashboard"
+        subtitle={`Welcome back, ${userProfile ? getDisplayName(userProfile) : currentUser}!`}
+        variant="gradient"
+        actions={
+          <>
+            {/* Quick Action Buttons */}
+            <button 
+              className="btn-quick-action btn-search btn-search-l3v3l"
+              onClick={() => navigate('/search')}
+              title="Search with L3V3L Scoring"
             >
-              ⊞ Cards
+              <span className="search-icon-wrapper">
+                <span className="magnifier-icon">🔍</span>
+                <span className="butterfly-icon">🦋</span>
+              </span>
             </button>
-            <button
-              className={`btn-view-mode ${viewMode === 'rows' ? 'active' : ''}`}
-              onClick={() => setViewMode('rows')}
-              title="Row View"
-            >
-              ☰ Rows
-            </button>
-          </div>
-          {/* Refresh Icon Button */}
-          <button 
-            className="btn-refresh-icon"
-            onClick={() => loadDashboardData(currentUser)}
-            title="Refresh Dashboard"
-          >
-            🔄
-          </button>
-        </div>
-      </div>
+            
+            {/* View Controls Group - Right Aligned */}
+            <div className="view-controls-group">
+              {/* View Mode Toggle */}
+              <div className="view-mode-toggle">
+                <button
+                  className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                  onClick={() => setViewMode('cards')}
+                  title="Card View"
+                >
+                  <span>⊞</span>
+                  <span>Cards</span>
+                </button>
+                <button
+                  className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
+                  onClick={() => setViewMode('rows')}
+                  title="Row View"
+                >
+                  <span>☰</span>
+                  <span>Rows</span>
+                </button>
+              </div>
+              
+              {/* Refresh Icon Button */}
+              <button 
+                className="btn-refresh-icon"
+                onClick={() => loadDashboardData(currentUser)}
+                title="Refresh Dashboard"
+              >
+                🔄
+              </button>
+            </div>
+          </>
+        }
+      />
 
       {/* Stats Overview Section */}
       <div className="dashboard-stats-overview">
-        <div className="stat-card-large stat-card-primary">
+        <div 
+          className="stat-card-large stat-card-primary clickable-card" 
+          onClick={() => setShowProfileViewsModal(true)}
+          style={{ cursor: 'pointer' }}
+          title="Click to see who viewed your profile"
+        >
           <div className="stat-icon">👁️</div>
           <div className="stat-content">
             <div className="stat-value">{viewMetrics.totalViews}</div>
@@ -589,7 +605,12 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-success">
+        <div 
+          className="stat-card-large stat-card-success clickable-card" 
+          onClick={() => setShowFavoritedByModal(true)}
+          style={{ cursor: 'pointer' }}
+          title="Click to see who favorited you"
+        >
           <div className="stat-icon">💖</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.theirFavorites.length}</div>
@@ -648,9 +669,9 @@ const Dashboard = () => {
                 onRequestProcessed={(action, request) => {
                   // Show success message
                   if (action === 'approved') {
-                    console.log(`✅ Access approved for ${request.requesterUsername}`);
+                    logger.info(`Access approved for ${request.requesterUsername}`);
                   } else if (action === 'rejected') {
-                    console.log(`❌ Access rejected for ${request.requesterUsername}`);
+                    logger.info(`Access rejected for ${request.requesterUsername}`);
                   }
                 }}
               />
@@ -671,6 +692,20 @@ const Dashboard = () => {
           setShowMessageModal(false);
           setSelectedUserForMessage(null);
         }}
+      />
+
+      {/* Profile Views Modal */}
+      <ProfileViewsModal
+        isOpen={showProfileViewsModal}
+        onClose={() => setShowProfileViewsModal(false)}
+        username={currentUser}
+      />
+
+      {/* Favorited By Modal */}
+      <FavoritedByModal
+        isOpen={showFavoritedByModal}
+        onClose={() => setShowFavoritedByModal(false)}
+        username={currentUser}
       />
     </div>
   );

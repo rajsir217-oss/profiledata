@@ -51,6 +51,14 @@ class Settings(BaseSettings):
     twilio_auth_token: Optional[str] = None
     twilio_from_phone: Optional[str] = None
     
+    # Firebase Push Notifications (FCM)
+    firebase_project_id: Optional[str] = None
+    firebase_private_key_id: Optional[str] = None
+    firebase_private_key: Optional[str] = None
+    firebase_client_email: Optional[str] = None
+    firebase_client_id: Optional[str] = None
+    firebase_cert_url: Optional[str] = None
+    
     # Feature Flags
     enable_notifications: Optional[bool] = True
     enable_scheduler: Optional[bool] = True

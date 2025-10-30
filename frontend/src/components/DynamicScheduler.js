@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
 import { getBackendApiUrl } from '../utils/urlHelper';
+import PageHeader from './PageHeader';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
 
 const DynamicScheduler = ({ currentUser }) => {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [templates, setTemplates] = useState([]);
   const [status, setStatus] = useState(null);
@@ -90,7 +92,11 @@ const DynamicScheduler = ({ currentUser }) => {
       
       const data = await response.json();
       console.log('Templates loaded:', data);
-      setTemplates(data.templates || []);
+      // Sort templates alphabetically by name
+      const sortedTemplates = (data.templates || []).sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      setTemplates(sortedTemplates);
     } catch (err) {
       console.error('Error loading templates:', err);
     }
@@ -408,18 +414,20 @@ const DynamicScheduler = ({ currentUser }) => {
 
   return (
     <div className="dynamic-scheduler">
-      <div className="scheduler-header">
-        <div className="header-content">
-          <h1>🗓️ Dynamic Scheduler</h1>
-          <p>Manage scheduled jobs and automation tasks</p>
-        </div>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setShowCreateModal(true)}
-        >
-          ➕ Create New Job
-        </button>
-      </div>
+      <PageHeader
+        icon="🗓️"
+        title="Dynamic Scheduler"
+        subtitle="Manage scheduled jobs and automation tasks"
+        variant="flat"
+        actions={
+          <button 
+            className="btn btn-primary"
+            onClick={() => setShowCreateModal(true)}
+          >
+            ➕ Create New Job
+          </button>
+        }
+      />
 
       {/* Status Cards */}
       {status && status.jobs && status.scheduler && status.executions && (
@@ -438,7 +446,11 @@ const DynamicScheduler = ({ currentUser }) => {
               <div className="status-label">Active Jobs</div>
             </div>
           </div>
-          <div className="status-card">
+          <div 
+            className="status-card clickable" 
+            onClick={() => navigate('/notification-management?tab=templates')}
+            title="Click to manage templates"
+          >
             <div className="status-icon">📋</div>
             <div className="status-info">
               <div className="status-value">{status.scheduler.template_count || 0}</div>

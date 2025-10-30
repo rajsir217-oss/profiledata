@@ -238,17 +238,22 @@ async def register_user(
     
     # Validate and save images
     image_paths = []
+    logger.info(f"📸 Images received: {len(images) if images else 0}")
+    for i, img in enumerate(images):
+        logger.info(f"  Image {i+1}: filename={img.filename}, content_type={img.content_type}, size={img.size if hasattr(img, 'size') else 'unknown'}")
+    
     if images and len(images) > 0:
         logger.info(f"📸 Processing {len(images)} image(s) for user '{username}'")
-        if len(images) > 5:
-            logger.warning(f"⚠️ Registration failed: User '{username}' tried to upload {len(images)} images (max 5)")
+        if len(images) > 6:
+            logger.warning(f"⚠️ User '{username}' attempted to upload {len(images)} images (max 6)")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Maximum 5 images allowed"
+                detail="Maximum 6 images allowed"
             )
         try:
             image_paths = await save_multiple_files(images)
             logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
+            logger.info(f"📂 Image paths: {image_paths}")
         except Exception as e:
             logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
             raise HTTPException(
@@ -376,6 +381,7 @@ async def register_user(
     # Insert into database
     try:
         logger.info(f"💾 Inserting user '{username}' into database...")
+        logger.info(f"📸 Images being saved to database: {user_data.get('images', [])}")
         result = await db.users.insert_one(user_data)
         logger.info(f"✅ User '{username}' successfully registered with ID: {result.inserted_id}")
     except Exception as e:
@@ -405,6 +411,28 @@ async def register_user(
         except Exception as e:
             logger.error(f"❌ Error sending verification email: {e}", exc_info=True)
             # Don't fail registration if email fails
+    
+    # Send welcome push notification
+    try:
+        from services.notification_service import NotificationService
+        from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
+        
+        notification_service = NotificationService(db)
+        await notification_service.enqueue_notification(
+            NotificationQueueCreate(
+                username=username,
+                trigger=NotificationTrigger.NEW_PROFILE_CREATED,
+                channels=[NotificationChannel.PUSH],
+                templateData={
+                    "firstName": firstName or username,
+                    "username": username
+                }
+            )
+        )
+        logger.info(f"🔔 Welcome push notification queued for {username}")
+    except Exception as e:
+        logger.error(f"❌ Failed to queue welcome notification: {e}")
+        # Don't fail registration if notification fails
     
     # Remove password from response
     created_user.pop("password", None)
@@ -1448,14 +1476,18 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        # Create saved search document
+        # Create saved search document - save ALL fields from frontend
         from datetime import datetime
         saved_search = {
             "username": username,
-            "name": search_data["name"],
-            "criteria": search_data["criteria"],
+            **search_data,  # Save entire payload from frontend (criteria, minMatchScore, description, etc.)
             "createdAt": datetime.utcnow().isoformat()
         }
+        
+        logger.info(f"📝 Saving search: {saved_search.get('name')}")
+        logger.info(f"   - Criteria: {saved_search.get('criteria')}")
+        logger.info(f"   - minMatchScore: {saved_search.get('minMatchScore')}")
+        logger.info(f"   - Description: {saved_search.get('description')}")
 
         # Insert into database
         result = await db.saved_searches.insert_one(saved_search)
@@ -1640,6 +1672,32 @@ async def add_to_favorites(username: str, target_username: str, db = Depends(get
         except Exception as event_err:
             logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
         
+        # Send push notification to target user
+        try:
+            from services.notification_service import NotificationService
+            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
+            
+            notification_service = NotificationService(db)
+            # Get favoriter's name
+            favoriter = await db.users.find_one({"username": username})
+            favoriter_name = favoriter.get("firstName", username) if favoriter else username
+            
+            await notification_service.enqueue_notification(
+                NotificationQueueCreate(
+                    username=target_username,  # Person being favorited
+                    trigger=NotificationTrigger.FAVORITED,
+                    channels=[NotificationChannel.PUSH],
+                    templateData={
+                        "favoriter": username,
+                        "favoritersName": favoriter_name
+                    }
+                )
+            )
+            logger.info(f"🔔 Favorited push notification queued for {target_username}")
+        except Exception as e:
+            logger.error(f"❌ Failed to queue favorited notification: {e}")
+            # Don't fail the favorite operation if notification fails
+        
         return {"message": "Added to favorites successfully"}
     except Exception as e:
         logger.error(f"❌ Error adding to favorites: {e}", exc_info=True)
@@ -1777,6 +1835,32 @@ async def add_to_shortlist(
             )
         except Exception as event_err:
             logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+        
+        # Send push notification to target user
+        try:
+            from services.notification_service import NotificationService
+            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
+            
+            notification_service = NotificationService(db)
+            # Get shortlister's name
+            shortlister = await db.users.find_one({"username": username})
+            shortlister_name = shortlister.get("firstName", username) if shortlister else username
+            
+            await notification_service.enqueue_notification(
+                NotificationQueueCreate(
+                    username=target_username,  # Person being shortlisted
+                    trigger=NotificationTrigger.SHORTLIST_ADDED,
+                    channels=[NotificationChannel.PUSH],
+                    templateData={
+                        "shortlister": username,
+                        "shortlisterName": shortlister_name
+                    }
+                )
+            )
+            logger.info(f"🔔 Shortlist push notification queued for {target_username}")
+        except Exception as e:
+            logger.error(f"❌ Failed to queue shortlist notification: {e}")
+            # Don't fail the shortlist operation if notification fails
         
         return {"message": "Added to shortlist successfully"}
     except Exception as e:
@@ -2283,6 +2367,36 @@ async def send_message(
             )
         except Exception as dispatch_err:
             logger.warning(f"⚠️ Failed to dispatch message event: {dispatch_err}")
+        
+        # Send push notification to recipient
+        try:
+            from services.notification_service import NotificationService
+            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
+            
+            notification_service = NotificationService(db)
+            # Get sender's name
+            sender = await db.users.find_one({"username": from_username})
+            sender_name = sender.get("firstName", from_username) if sender else from_username
+            
+            # Truncate message preview (first 100 chars)
+            message_preview = content.strip()[:100] + ("..." if len(content.strip()) > 100 else "")
+            
+            await notification_service.enqueue_notification(
+                NotificationQueueCreate(
+                    username=to_username,  # Recipient
+                    trigger=NotificationTrigger.NEW_MESSAGE,
+                    channels=[NotificationChannel.PUSH],
+                    templateData={
+                        "sender": from_username,
+                        "senderName": sender_name,
+                        "messagePreview": message_preview
+                    }
+                )
+            )
+            logger.info(f"🔔 New message push notification queued for {to_username}")
+        except Exception as e:
+            logger.error(f"❌ Failed to queue message notification: {e}")
+            # Don't fail the message send if notification fails
         
         return {"message": "Message sent successfully", "id": message_id}
     except Exception as e:
@@ -2898,14 +3012,25 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
 
 @router.get("/their-favorites/{username}")
 async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
-    """Get users who have favorited the current user"""
+    """Get users who have favorited the current user (filtered by admin-configured days)"""
     logger.info(f"💖 Getting users who favorited {username}")
     
     try:
-        # Find all favorites where current user is the target
-        favorites = await db.favorites.find(
-            {"favoriteUsername": username}
-        ).sort("createdAt", -1).to_list(100)
+        # Get system settings for view history retention (applies to favorites too)
+        settings = await db.system_settings.find_one({}) or {}
+        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        
+        # Calculate cutoff date
+        from datetime import timedelta
+        cutoff_date = datetime.utcnow() - timedelta(days=view_history_days)
+        
+        logger.info(f"📅 Filtering favorites from last {view_history_days} days (since {cutoff_date.isoformat()})")
+        
+        # Find all favorites where current user is the target, within time window
+        favorites = await db.favorites.find({
+            "favoriteUsername": username,
+            "createdAt": {"$gte": cutoff_date}
+        }).sort("createdAt", -1).to_list(100)
         
         # Get user details
         user_usernames = [f["userUsername"] for f in favorites]
@@ -3107,13 +3232,28 @@ async def get_profile_views(
     limit: int = Query(50, ge=1, le=200),
     db = Depends(get_database)
 ):
-    """Get list of users who viewed this profile"""
+    """Get list of users who viewed this profile (filtered by admin-configured days)"""
     logger.info(f"📊 Getting profile views for {username}")
     
     try:
-        # Get all profile views for this user
+        # Get system settings for view history retention
+        settings = await db.system_settings.find_one({}) or {}
+        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        
+        # Calculate cutoff date
+        from datetime import timedelta
+        cutoff_date = datetime.utcnow() - timedelta(days=view_history_days)
+        
+        logger.info(f"📅 Filtering views from last {view_history_days} days (since {cutoff_date.isoformat()})")
+        
+        # Get profile views within the time window
         all_views = await db.profile_views.find({
-            "profileUsername": username
+            "profileUsername": username,
+            "$or": [
+                {"lastViewedAt": {"$gte": cutoff_date}},
+                {"viewedAt": {"$gte": cutoff_date}},
+                {"createdAt": {"$gte": cutoff_date}}
+            ]
         }).to_list(None)
         
         # Group by viewer to consolidate duplicates
@@ -4331,20 +4471,27 @@ async def get_l3v3l_matches(
         query = {
             "username": {"$ne": username},  # Exclude self
             "gender": opposite_gender,
-            "status.status": {"$regex": "^active$", "$options": "i"}  # Only active users
+            # Include users with active status OR no status field (default to active)
+            "$or": [
+                {"status.status": {"$regex": "^active$", "$options": "i"}},
+                {"status.status": {"$exists": False}},
+                {"status": {"$exists": False}}
+            ]
         }
         
         # Get potential matches
         potential_matches = await db.users.find(query).to_list(1000)
+        logger.info(f"📊 Query returned {len(potential_matches)} opposite gender users")
         
         # Get user's exclusions
         exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
         excluded_usernames = {exc['excludedUsername'] for exc in exclusions}
+        logger.info(f"🚫 Excluding {len(excluded_usernames)} users")
         
         # Filter out excluded users
         potential_matches = [u for u in potential_matches if u['username'] not in excluded_usernames]
         
-        logger.info(f"📊 Found {len(potential_matches)} potential matches")
+        logger.info(f"📊 Found {len(potential_matches)} potential matches after exclusions")
         
         # Calculate match scores
         matches_with_scores = []
@@ -4397,13 +4544,18 @@ async def get_l3v3l_matches(
                 
                 matches_with_scores.append(profile)
         
+        logger.info(f"🎯 {len(matches_with_scores)} matches scored >= {min_score}%")
+        
         # Sort by match score (descending)
         matches_with_scores.sort(key=lambda x: x['matchScore'], reverse=True)
         
         # Limit results
         top_matches = matches_with_scores[:limit]
         
-        logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username}")
+        if top_matches:
+            logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username} (top score: {top_matches[0]['matchScore']}%)")
+        else:
+            logger.warning(f"⚠️ No matches found for {username} with min_score={min_score}%")
         
         return {
             "matches": top_matches,
@@ -4493,17 +4645,17 @@ async def get_l3v3l_match_details(
         component_scores = match_result.get('component_scores', {})
         
         # Build detailed breakdown with all dimensions
+        # Note: component_scores has: gender, l3v3l_pillars, demographics, partner_preferences, 
+        # habits_personality, career_education, physical_attributes, cultural_factors
         breakdown = {
-            'love': round(component_scores.get('l3v3l_values', {}).get('love_alignment', 0), 1),
-            'loyalty': round(component_scores.get('l3v3l_values', {}).get('loyalty_alignment', 0), 1),
-            'laughter': round(component_scores.get('l3v3l_values', {}).get('laughter_alignment', 0), 1),
-            'vulnerability': round(component_scores.get('l3v3l_values', {}).get('vulnerability_alignment', 0), 1),
-            'elevation': round(component_scores.get('l3v3l_values', {}).get('elevation_alignment', 0), 1),
-            'demographics': round(component_scores.get('demographics_score', 0), 1),
-            'career': round(component_scores.get('career_compatibility', 0), 1),
-            'cultural': round(component_scores.get('cultural_compatibility', 0), 1),
-            'physical': round(component_scores.get('physical_compatibility', 0), 1),
-            'lifestyle': round(component_scores.get('habits_personality', 0), 1)
+            'gender': round(component_scores.get('gender', 0), 1),
+            'l3v3l_pillars': round(component_scores.get('l3v3l_pillars', 0), 1),
+            'demographics': round(component_scores.get('demographics', 0), 1),
+            'partner_preferences': round(component_scores.get('partner_preferences', 0), 1),
+            'habits_personality': round(component_scores.get('habits_personality', 0), 1),
+            'career_education': round(component_scores.get('career_education', 0), 1),
+            'physical_attributes': round(component_scores.get('physical_attributes', 0), 1),
+            'cultural_factors': round(component_scores.get('cultural_factors', 0), 1)
         }
         
         # Add ML prediction if available
@@ -4964,14 +5116,16 @@ async def get_system_settings(db = Depends(get_database)):
             # Return defaults if no settings exist
             default_settings = {
                 "ticket_delete_days": 30,
-                "default_theme": "cozy-light"
+                "default_theme": "cozy-light",
+                "enable_l3v3l_for_all": True
             }
             logger.info("Using default settings")
             return default_settings
         
         return {
             "ticket_delete_days": settings.get("ticket_delete_days", 30),
-            "default_theme": settings.get("default_theme", "cozy-light")
+            "default_theme": settings.get("default_theme", "cozy-light"),
+            "enable_l3v3l_for_all": settings.get("enable_l3v3l_for_all", True)
         }
     except Exception as e:
         logger.error(f"❌ Error loading system settings: {e}", exc_info=True)
@@ -4985,8 +5139,9 @@ async def update_system_settings(
     """Update global system settings (admin only)"""
     ticket_delete_days = data.get("ticket_delete_days", 30)
     default_theme = data.get("default_theme", "cozy-light")
+    enable_l3v3l_for_all = data.get("enable_l3v3l_for_all", True)
     
-    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}")
+    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}, enable_l3v3l_for_all={enable_l3v3l_for_all}")
     
     try:
         # Upsert system settings
@@ -4996,6 +5151,7 @@ async def update_system_settings(
                 "$set": {
                     "ticket_delete_days": ticket_delete_days,
                     "default_theme": default_theme,
+                    "enable_l3v3l_for_all": enable_l3v3l_for_all,
                     "updated_at": datetime.utcnow()
                 }
             },
