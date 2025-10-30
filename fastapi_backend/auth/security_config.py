@@ -85,18 +85,11 @@ class SecuritySettings(BaseSettings):
     DEFAULT_USER_ROLE: str = "free_user"
     SYSTEM_ROLES: list = ["admin", "moderator", "premium_user", "free_user"]
     
-<<<<<<< HEAD
     model_config = ConfigDict(
         env_file=".env",
         case_sensitive=True,
         extra="ignore"  # Ignore extra fields in .env
     )
-=======
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra fields from .env
->>>>>>> dev
 
 # Global security settings instance
 security_settings = SecuritySettings()

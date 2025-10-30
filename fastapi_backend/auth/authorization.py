@@ -7,11 +7,7 @@ from fastapi import HTTPException, status, Depends
 from typing import List, Callable, Optional
 from functools import wraps
 from .jwt_auth import get_current_user_dependency
-<<<<<<< HEAD
-from .security_config import DEFAULT_PERMISSIONS
-=======
 from .security_config import DEFAULT_PERMISSIONS, ROLE_HIERARCHY, ROLE_LIMITS
->>>>>>> dev
 import re
 from datetime import datetime
 
