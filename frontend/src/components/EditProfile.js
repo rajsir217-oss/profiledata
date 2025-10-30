@@ -619,9 +619,8 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Section 4: Religion & Languages Spoken */}
+          {/* Section 4: Basic Info */}
           <div className="row mb-3">
-<<<<<<< HEAD
             <div className="col-md-3">
               <label className="form-label">Date of Birth</label>
               <input
@@ -646,10 +645,24 @@ const EditProfile = () => {
             </div>
             <div className="col-md-3">
               <label className="form-label">Sex</label>
-=======
+              <select
+                className="form-control"
+                name="sex"
+                value={formData.sex}
+                onChange={handleChange}
+              >
+                <option value="">Select Sex</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Section 5: Religion & Languages Spoken */}
+          <div className="row mb-3">
             <div className="col-md-6">
               <label className="form-label">Religion</label>
->>>>>>> dev
               <select
                 className="form-control"
                 name="religion"

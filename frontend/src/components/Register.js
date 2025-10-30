@@ -2380,7 +2380,6 @@ const Register = () => {
           </div>
         </div>
 
-<<<<<<< HEAD
         {/* Interests */}
         <div className="mb-3">
           <label className="form-label">Interests & Hobbies</label>
@@ -2436,8 +2435,6 @@ const Register = () => {
           )}
         </div>
 
-=======
->>>>>>> dev
         {/* Image Upload */}
         <h5 className="mt-4 mb-3 text-primary">Profile Images</h5>
         <div className="mb-3">
