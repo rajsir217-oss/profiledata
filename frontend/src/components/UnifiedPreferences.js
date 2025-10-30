@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import PageHeader from './PageHeader';
 import SystemStatus from './SystemStatus';
+import UniversalTabContainer from './UniversalTabContainer';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
 
 const UnifiedPreferences = () => {
-  const [activeTab, setActiveTab] = useState('account');
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
 
@@ -212,10 +212,10 @@ const UnifiedPreferences = () => {
   };
 
   useEffect(() => {
-    if (activeTab === 'admin' && isAdmin) {
+    if (isAdmin) {
       loadAdminSettings();
     }
-  }, [activeTab, isAdmin]);
+  }, [isAdmin]);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -360,33 +360,16 @@ const UnifiedPreferences = () => {
         variant="gradient"
       />
 
-      {/* Tab Navigation */}
-      <div className="preferences-tabs">
-        <button
-          className={`tab-button ${activeTab === 'account' ? 'active' : ''}`}
-          onClick={() => setActiveTab('account')}
-        >
-          🎨 Account Settings
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
-          onClick={() => setActiveTab('notifications')}
-        >
-          🔔 Notifications
-        </button>
-        {isAdmin && (
-          <button
-            className={`tab-button ${activeTab === 'admin' ? 'active' : ''}`}
-            onClick={() => setActiveTab('admin')}
-          >
-            ⚙️ System Config
-          </button>
-        )}
-      </div>
-
-      {/* Account Settings Tab */}
-      {activeTab === 'account' && (
-        <div className="tab-content account-settings">
+      <UniversalTabContainer
+        variant="underlined"
+        defaultTab="account"
+        tabs={[
+          {
+            id: 'account',
+            icon: '👤',
+            label: 'Account Settings',
+            content: (
+              <div className="account-settings">
           {/* Theme Selection */}
           <section className="settings-section">
             <h2>🎨 Theme</h2>
@@ -491,11 +474,14 @@ const UnifiedPreferences = () => {
             </form>
           </section>
         </div>
-      )}
-
-      {/* Notifications Tab */}
-      {activeTab === 'notifications' && notificationPreferences && (
-        <div className="tab-content notification-settings">
+            )
+          },
+          {
+            id: 'notifications',
+            icon: '🔔',
+            label: 'Notifications',
+            content: notificationPreferences && (
+              <div className="notification-settings">
           {/* Notification Channels */}
           <section className="settings-section">
             <h2>🔔 Notification Channels</h2>
@@ -597,20 +583,14 @@ const UnifiedPreferences = () => {
             </button>
           </div>
         </div>
-      )}
-
-      {/* Toast Notification */}
-      {toast && (
-        <div className={`toast-notification ${toast.type}`}>
-          {toast.type === 'success' && '✓ '}
-          {toast.type === 'error' && '✕ '}
-          {toast.message}
-        </div>
-      )}
-
-      {/* Admin Settings Tab */}
-      {activeTab === 'admin' && isAdmin && (
-        <div className="tab-content admin-settings">
+            )
+          },
+          ...(isAdmin ? [{
+            id: 'admin',
+            icon: '⚙️',
+            label: 'System Config',
+            content: (
+              <div className="admin-settings">
           <h2>⚙️ System Configuration</h2>
           <p className="section-description">Configure global system settings and preferences</p>
           
@@ -883,6 +863,18 @@ const UnifiedPreferences = () => {
               </div>
             </div>
           )}
+        </div>
+            )
+          }] : [])
+        ]}
+      />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className={`toast-notification ${toast.type}`}>
+          {toast.type === 'success' && '✓ '}
+          {toast.type === 'error' && '✕ '}
+          {toast.message}
         </div>
       )}
     </div>
