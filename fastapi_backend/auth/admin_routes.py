@@ -25,10 +25,7 @@ from .security_models import (
 )
 from .security_config import DEFAULT_PERMISSIONS, USER_STATUS, SECURITY_EVENTS
 from .password_utils import PasswordManager
-<<<<<<< HEAD
 import logging
-=======
->>>>>>> dev
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
