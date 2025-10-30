@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions, getAllLimits, formatLimit } from '../utils/permissions';
 import api from '../api';
 import PageHeader from './PageHeader';
+import UniversalTabContainer from './UniversalTabContainer';
 import './RoleManagement.css';
 
 const RoleManagement = () => {
   const [selectedRole, setSelectedRole] = useState('free_user');
-  const [activeTab, setActiveTab] = useState('permissions'); // permissions, limits, hierarchy
   const [editMode, setEditMode] = useState(false);
   const [roleConfig, setRoleConfig] = useState(null);
   const [editedLimits, setEditedLimits] = useState({});
@@ -377,32 +377,30 @@ const RoleManagement = () => {
         </div>
       </div>
 
-      <div className="role-tabs">
-        <button
-          className={`tab-button ${activeTab === 'permissions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('permissions')}
-        >
-          🔑 Permissions
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'limits' ? 'active' : ''}`}
-          onClick={() => setActiveTab('limits')}
-        >
-          📊 Limits
-        </button>
-        <button
-          className={`tab-button ${activeTab === 'hierarchy' ? 'active' : ''}`}
-          onClick={() => setActiveTab('hierarchy')}
-        >
-          🏆 Hierarchy
-        </button>
-      </div>
-
-      <div className="role-content">
-        {activeTab === 'permissions' && renderPermissionsTab()}
-        {activeTab === 'limits' && renderLimitsTab()}
-        {activeTab === 'hierarchy' && renderHierarchyTab()}
-      </div>
+      <UniversalTabContainer
+        variant="underlined"
+        defaultTab="permissions"
+        tabs={[
+          {
+            id: 'permissions',
+            icon: '🔑',
+            label: 'Permissions',
+            content: renderPermissionsTab()
+          },
+          {
+            id: 'limits',
+            icon: '📊',
+            label: 'Limits',
+            content: renderLimitsTab()
+          },
+          {
+            id: 'hierarchy',
+            icon: '🏆',
+            label: 'Hierarchy',
+            content: renderHierarchyTab()
+          }
+        ]}
+      />
     </div>
   );
 };
