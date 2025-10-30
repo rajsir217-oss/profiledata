@@ -20,6 +20,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
+  const [onlineCount, setOnlineCount] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
 
@@ -143,6 +144,32 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, [currentUser]);
 
+  // Listen for online count updates
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count || 0);
+    };
+
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+
+    // Get initial online count from API
+    const loadOnlineCount = async () => {
+      try {
+        const response = await api.get('/online-status/users');
+        setOnlineCount((response.data.onlineUsers || []).length);
+      } catch (error) {
+        logger.debug('Error loading online count:', error);
+      }
+    };
+    loadOnlineCount();
+
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
+    };
+  }, [currentUser]);
+
   const handleLogout = async () => {
     const username = currentUser;
     
@@ -255,6 +282,12 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           </div>
         </div>
         <div className="top-bar-right">
+          {/* Online Users Indicator */}
+          <div className="online-indicator" title={`${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}>
+            <span className="online-dot">🟢</span>
+            <span className="online-count">{onlineCount}</span>
+          </div>
+          
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
