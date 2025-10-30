@@ -235,9 +235,9 @@ age = random.randint(18, 45)  # Change range
 
 1. **Backup first**: Always backup your database before running cleanup
 2. **Protected users**: Make sure protected usernames are correct
-3. **Profile images**: Image paths are generated but files must exist:
-   - `/uploads/profile_images/{username}_1.jpg`
-   - `/uploads/profile_images/{username}_2.jpg`
+3. **Profile images**: All seeded users use default placeholder:
+   - `/uploads/default-avatar.svg` (automatically created)
+   - Users can upload their own images after account creation
 4. **Password**: All seeded users have password `"password123"`
 5. **Email verified**: All seeded users have `emailVerified: True`
 6. **No conflicts**: Script checks for username conflicts before inserting

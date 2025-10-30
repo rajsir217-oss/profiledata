@@ -11,6 +11,7 @@ import OnlineStatusBadge from './OnlineStatusBadge';
 import UniversalTabContainer from './UniversalTabContainer';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
+import logger from '../utils/logger';
 import './SearchPage.css';
 
 const SearchPage2 = () => {
@@ -249,12 +250,12 @@ const SearchPage2 = () => {
     const loadOnlineUsers = async () => {
       try {
         const response = await api.get('/online-status/users');
-        console.log('🟢 Loaded online users:', response.data.onlineUsers);
+        logger.debug('Loaded online users:', response.data.onlineUsers);
         const onlineSet = new Set(response.data.onlineUsers || []);
-        console.log('🟢 Online users Set:', onlineSet);
+        logger.debug('Online users Set:', onlineSet);
         setOnlineUsers(onlineSet);
       } catch (err) {
-        console.error('❌ Error loading online users:', err);
+        logger.error('Error loading online users:', err);
       }
     };
 
@@ -288,7 +289,7 @@ const SearchPage2 = () => {
     
     // Listen for online status updates
     const handleUserOnline = (data) => {
-      console.log('User came online:', data.username);
+      logger.debug('User came online:', data.username);
       setOnlineUsers(prev => new Set([...prev, data.username]));
     };
     

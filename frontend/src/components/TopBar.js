@@ -20,6 +20,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
+  const [onlineCount, setOnlineCount] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
 
@@ -143,6 +144,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, [currentUser]);
 
+  // Listen for online count updates (original implementation)
+  useEffect(() => {
+    const handleOnlineCountUpdate = (data) => {
+      setOnlineCount(data.count || 0);
+    };
+
+    socketService.on('online_count_update', handleOnlineCountUpdate);
+    
+    return () => {
+      socketService.off('online_count_update', handleOnlineCountUpdate);
+    };
+  }, []);
+
   const handleLogout = async () => {
     const username = currentUser;
     
@@ -251,8 +265,16 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             ☰
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
-            <span className="logo-text">L3V3L</span>
+            <span className="logo-text">
+              <span className="butterfly-icon">🦋</span> L3V3L
+            </span>
           </div>
+          {onlineCount > 0 && (
+            <div className="online-indicator">
+              <span className="online-dot">🟢</span>
+              <span className="online-count">{onlineCount}</span>
+            </div>
+          )}
         </div>
         <div className="top-bar-right">
           {/* Messages Icon with Dropdown */}
