@@ -4,6 +4,7 @@ import TestSuiteCard from './TestSuiteCard';
 import TestResultsList from './TestResultsList';
 import TestStatusIndicator from './TestStatusIndicator';
 import TestScheduler from './TestScheduler';
+import UniversalTabContainer from '../components/UniversalTabContainer';
 import './TestDashboard.css';
 
 const TestDashboard = () => {
@@ -12,7 +13,6 @@ const TestDashboard = () => {
   const [testStatus, setTestStatus] = useState({ is_running: false, running_tests: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [isAdmin, setIsAdmin] = useState(false);
 
   const loadData = useCallback(async () => {
@@ -132,30 +132,15 @@ const TestDashboard = () => {
         </div>
       </header>
 
-      <div className="dashboard-tabs">
-        <div className="tabs-nav">
-          <button
-            className={`tab-button ${activeTab === 'dashboard' ? 'active' : ''}`}
-            onClick={() => setActiveTab('dashboard')}
-          >
-            📊 Dashboard
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'results' ? 'active' : ''}`}
-            onClick={() => setActiveTab('results')}
-          >
-            📝 Results
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'scheduler' ? 'active' : ''}`}
-            onClick={() => setActiveTab('scheduler')}
-          >
-            ⏰ Scheduler
-          </button>
-        </div>
-
-        <div className="tab-content">
-          {activeTab === 'dashboard' && (
+      <UniversalTabContainer
+        variant="underlined"
+        defaultTab="dashboard"
+        tabs={[
+          {
+            id: 'dashboard',
+            icon: '📊',
+            label: 'Dashboard',
+            content: (
             <div className="dashboard-content">
               <section className="test-suites-section">
                 <h2>Test Suites</h2>
@@ -183,9 +168,13 @@ const TestDashboard = () => {
                 />
               </section>
             </div>
-          )}
-
-          {activeTab === 'results' && (
+            )
+          },
+          {
+            id: 'results',
+            icon: '📝',
+            label: 'Results',
+            content: (
             <section className="test-results-section">
               <h2>All Test Results</h2>
               <TestResultsList
@@ -194,15 +183,20 @@ const TestDashboard = () => {
                 isAdmin={isAdmin}
               />
             </section>
-          )}
-
-          {activeTab === 'scheduler' && (
+            )
+          },
+          {
+            id: 'scheduler',
+            icon: '⏰',
+            label: 'Scheduler',
+            content: (
             <section className="test-scheduler-section">
               <TestScheduler testSuites={testSuites} isAdmin={isAdmin} />
             </section>
-          )}
-        </div>
-      </div>
+            )
+          }
+        ]}
+      />
     </div>
   );
 };
