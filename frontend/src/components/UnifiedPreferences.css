@@ -25,54 +25,10 @@
   font-size: 1.1rem;
 }
 
-/* Tab Navigation */
-.preferences-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 30px;
-  border-bottom: 2px solid var(--border-color);
-  padding-bottom: 0;
-}
-
-.tab-button {
-  padding: 15px 30px;
-  font-size: 1.1rem;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border-bottom: 3px solid transparent;
-  margin-bottom: -2px;
-}
-
-.tab-button:hover {
-  color: var(--primary-color);
-  background: var(--hover-background);
-}
-
-.tab-button.active {
-  color: var(--primary-color);
-  border-bottom-color: var(--primary-color);
-  background: var(--surface-color);
-}
-
-/* Tab Content - scoped to avoid Bootstrap conflicts */
-.unified-preferences-container .tab-content {
-  animation: fadeIn 0.3s ease-in;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* ===== OBSOLETE TAB STYLES REMOVED =====
+ * Tabs now handled by UniversalTabContainer
+ * Old .preferences-tabs, .tab-button, .tab-content removed
+ * ======================================= */
 
 /* Settings Section */
 .settings-section {
@@ -518,11 +474,9 @@
     font-size: 2rem;
   }
 
-  .preferences-tabs {
-    flex-direction: column;
-  }
+  /* Old .preferences-tabs and .tab-button responsive styles removed - using UniversalTabContainer */
 
-  .tab-button {
+  button {
     width: 100%;
     text-align: left;
   }
