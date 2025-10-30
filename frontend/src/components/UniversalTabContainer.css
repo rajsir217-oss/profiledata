@@ -52,6 +52,8 @@
   white-space: nowrap;
   position: relative;
   font-family: var(--font-family);
+  flex-shrink: 0; /* Prevent tabs from shrinking */
+  flex-grow: 0;   /* Prevent tabs from growing to fill space */
 }
 
 .tab-button:hover {
