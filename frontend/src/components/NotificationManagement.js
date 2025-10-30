@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import PageHeader from './PageHeader';
+import UniversalTabContainer from './UniversalTabContainer';
 import './NotificationManagement.css';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
@@ -8,11 +9,9 @@ import TemplateManager from './TemplateManager';
 const NotificationManagement = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState(() => {
-    // Check URL param for initial tab
-    const tabParam = searchParams.get('tab');
-    return tabParam === 'templates' ? 'templates' : 'queue';
-  });
+  
+  // Check URL param for initial tab
+  const defaultTab = searchParams.get('tab') === 'templates' ? 'templates' : 'queue';
 
   // Admin-only protection
   useEffect(() => {
@@ -22,11 +21,6 @@ const NotificationManagement = () => {
       navigate('/dashboard');
     }
   }, [navigate]);
-
-  const tabs = [
-    { id: 'queue', label: 'Event Queue', icon: '📋' },
-    { id: 'templates', label: 'Templates', icon: '📧' }
-  ];
 
   return (
     <div className="notification-management">
@@ -39,27 +33,24 @@ const NotificationManagement = () => {
         variant="gradient"
       />
 
-      {/* Tab Navigation */}
-      <div className="tabs-container">
-        <div className="tabs">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              className={`tab ${activeTab === tab.id ? 'active' : ''}`}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              <span className="tab-icon">{tab.icon}</span>
-              <span className="tab-label">{tab.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="tab-content">
-        {activeTab === 'queue' && <EventQueueManager />}
-        {activeTab === 'templates' && <TemplateManager />}
-      </div>
+      <UniversalTabContainer
+        variant="underlined"
+        defaultTab={defaultTab}
+        tabs={[
+          {
+            id: 'queue',
+            icon: '📋',
+            label: 'Event Queue',
+            content: <EventQueueManager />
+          },
+          {
+            id: 'templates',
+            icon: '📧',
+            label: 'Templates',
+            content: <TemplateManager />
+          }
+        ]}
+      />
     </div>
   );
 };
