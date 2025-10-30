@@ -419,6 +419,7 @@ async def delete_execution(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Delete an execution record"""
+    logger.info(f"🗑️ Delete execution request for ID: {execution_id} by user: {current_user.get('username')}")
     username = current_user.get("username")
     if username != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
@@ -428,8 +429,10 @@ async def delete_execution(
         success = await executor.delete_execution(execution_id)
         
         if not success:
+            logger.warning(f"❌ Execution {execution_id} not found")
             raise HTTPException(status_code=404, detail="Execution not found")
         
+        logger.info(f"✅ Successfully deleted execution: {execution_id}")
         return {
             "success": True,
             "message": "Execution record deleted"

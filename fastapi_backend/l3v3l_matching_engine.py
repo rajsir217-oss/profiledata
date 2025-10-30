@@ -288,8 +288,9 @@ class L3V3LMatchingEngine:
         if 'ageRange' in criteria:
             age = self._calculate_age(profile.get('dateOfBirth'))
             if age:
-                min_age = criteria['ageRange'].get('min', 18)
-                max_age = criteria['ageRange'].get('max', 100)
+                # Convert to int to handle string values from MongoDB
+                min_age = int(criteria['ageRange'].get('min', 18))
+                max_age = int(criteria['ageRange'].get('max', 100))
                 if min_age <= age <= max_age:
                     score += 1.0
                 elif min_age - 2 <= age <= max_age + 2:
@@ -411,8 +412,10 @@ class L3V3LMatchingEngine:
         work2 = self._analyze_profession(user2)
         
         if work1 and work2:
-            # Stress level compatibility
-            stress_diff = abs(work1['stress'] - work2['stress'])
+            # Stress level compatibility (convert to int to handle any string values)
+            stress1 = int(work1.get('stress', 5))
+            stress2 = int(work2.get('stress', 5))
+            stress_diff = abs(stress1 - stress2)
             if stress_diff <= 2:
                 score += 1.0  # Similar stress levels
             elif stress_diff <= 4:
@@ -460,6 +463,10 @@ class L3V3LMatchingEngine:
         height2 = self._height_to_inches(user2.get('height', ''))
         
         if height1 and height2:
+            # Convert to int to handle any string values from MongoDB
+            height1 = int(height1)
+            height2 = int(height2)
+            
             # Assuming male should be taller (traditional preference)
             if user1.get('gender') == 'Male':
                 height_diff = height1 - height2
@@ -481,6 +488,10 @@ class L3V3LMatchingEngine:
         age2 = self._calculate_age(user2.get('dateOfBirth'))
         
         if age1 and age2:
+            # Convert to int to handle any string values from MongoDB
+            age1 = int(age1)
+            age2 = int(age2)
+            
             # Assuming male should be slightly older or same age
             if user1.get('gender') == 'Male':
                 age_diff = age1 - age2
