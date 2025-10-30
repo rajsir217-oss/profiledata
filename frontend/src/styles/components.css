@@ -229,6 +229,8 @@
 /* ========================================
    BADGE COMPONENTS
    ======================================== */
+
+/* Base badge for text status indicators */
 .status-badge {
   display: inline-flex;
   align-items: center;
@@ -239,24 +241,26 @@
   gap: 4px;
 }
 
+/* Circular online/offline indicators (for OnlineStatusBadge component) */
+.status-badge.online,
+.status-badge.offline {
+  /* Override base badge styles for circular dots */
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+  /* Width and height are set inline via component props */
+}
+
 .status-badge.online {
   background: var(--success-color);
-  color: white;
-  padding: 0; /* Remove padding for circular dot */
-  border-radius: 50%; /* Make it circular */
-  border: 2px solid white; /* White border for visibility */
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle outer shadow */
 }
 
 .status-badge.offline {
   background: var(--text-muted);
-  color: white;
-  padding: 0; /* Remove padding for circular dot */
-  border-radius: 50%; /* Make it circular */
-  border: 2px solid white; /* White border for visibility */
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1); /* Subtle outer shadow */
 }
 
+/* Other status badge types (keep as text badges) */
 .status-badge.away {
   background: rgba(245, 158, 11, 0.1);
   color: var(--warning-color);
