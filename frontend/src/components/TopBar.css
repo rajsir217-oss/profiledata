@@ -54,10 +54,10 @@
   min-width: 70px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.95); /* Solid white background for contrast */
-  border: 2px solid rgba(255, 255, 255, 1);
+  background: transparent; /* Transparent background */
+  border: 2px solid transparent;
   padding: 8px 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: none;
   flex-shrink: 0;
 }
 
@@ -65,8 +65,8 @@
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: var(--primary-color); /* Solid color instead of gradient */
-  text-shadow: none; /* Remove shadow for clarity */
+  color: white; /* White text for visibility on transparent background */
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Subtle shadow for legibility */
   font-family: 'Arial Black', 'Arial Bold', sans-serif;
   display: flex;
   align-items: center;
@@ -74,8 +74,9 @@
 
 .app-logo:hover {
   transform: translateY(-2px);
-  background: rgba(255, 255, 255, 1); /* Full white on hover */
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: rgba(255, 255, 255, 0.15); /* Subtle transparent white on hover */
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 /* Mobile: Slightly smaller text */
