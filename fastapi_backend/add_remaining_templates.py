@@ -14,55 +14,65 @@ DATABASE_NAME = "matrimonialDB"
 # Template generator function
 def create_template(trigger, category, subject, color, priority, description, cta_text, cta_link_type):
     """Generate a template with consistent structure"""
-    return {
-        "trigger": trigger,
-        "channel": "email",
-        "category": category,
-        "subject": subject,
-        "body": f"""
+    # Build HTML with proper single curly braces for template variables
+    html_body = """
 <!DOCTYPE html>
 <html>
 <head>
     <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .logo-container {{ text-align: center; padding: 20px 0; }}
-        .logo-container img {{ width: 120px; height: auto; }}
-        .header {{ background: linear-gradient(135deg, {color} 0%, {color}dd 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }}
-        .content {{ background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }}
-        .card {{ background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }}
-        .button {{ display: inline-block; background: {color}; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-weight: bold; }}
-        .footer {{ text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding: 20px; border-top: 1px solid #ddd; }}
-        .footer a {{ color: {color}; text-decoration: none; }}
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .logo-container { text-align: center; padding: 20px 0; }
+        .logo-container img { width: 120px; height: auto; }
+        .header { background: linear-gradient(135deg, COLOR 0%, COLORdd 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .button { display: inline-block; background: COLOR; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; font-weight: bold; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; padding: 20px; border-top: 1px solid #ddd; }
+        .footer a { color: COLOR; text-decoration: none; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="logo-container">
-            <img src="{{app.logoUrl}}" alt="L3V3L" />
+            <img src="{app.logoUrl}" alt="L3V3L" />
         </div>
         <div class="header">
-            <h1>{subject}</h1>
+            <h1>SUBJECT</h1>
         </div>
         <div class="content">
-            <p>Hi {{recipient.firstName}},</p>
+            <p>Hi {recipient.firstName},</p>
             
             <div class="card">
-                <p>{description}</p>
+                <p>DESCRIPTION</p>
             </div>
             
             <center>
-                <a href="{{app.{cta_link_type}Url_tracked}}" class="button">{cta_text}</a>
+                <a href="{app.CTA_LINK_TYPEUrl_tracked}" class="button">CTA_TEXT</a>
             </center>
         </div>
         <div class="footer">
-            <p><a href="{{app.unsubscribeUrl_tracked}}">Unsubscribe</a> | <a href="{{app.preferencesUrl_tracked}}">Preferences</a></p>
-            <img src="{{app.trackingPixelUrl}}" width="1" height="1" style="display:none;" alt="" />
+            <p><a href="{app.unsubscribeUrl_tracked}">Unsubscribe</a> | <a href="{app.preferencesUrl_tracked}">Preferences</a></p>
+            <img src="{app.trackingPixelUrl}" width="1" height="1" style="display:none;" alt="" />
         </div>
     </div>
 </body>
 </html>
-        """,
+    """
+    
+    # Replace placeholders
+    html_body = html_body.replace("COLOR", color)
+    html_body = html_body.replace("SUBJECT", subject)
+    html_body = html_body.replace("DESCRIPTION", description)
+    html_body = html_body.replace("CTA_TEXT", cta_text)
+    html_body = html_body.replace("CTA_LINK_TYPE", cta_link_type)
+    
+    return {
+        "trigger": trigger,
+        "channel": "email",
+        "category": category,
+        "subject": subject,
+        "body": html_body,
         "priority": priority,
         "enabled": True,
         "createdAt": datetime.utcnow(),
