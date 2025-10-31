@@ -81,7 +81,7 @@
   justify-content: center;
   align-items: center;
   gap: 1rem;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   background: var(--surface-color);
   border-bottom: 1px solid var(--divider-color);
 }
@@ -115,7 +115,7 @@
 
 /* Modal Body */
 .modal-body {
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   overflow-y: auto;
   flex: 1;
   background: var(--card-background) !important;
@@ -125,7 +125,7 @@
 .modal-step h3 {
   margin: 0 0 0.5rem 0;
   color: var(--text-color);
-  font-size: 1.3rem;
+  font-size: 1.2rem;
   font-weight: 600;
 }
 
@@ -389,7 +389,7 @@
 .modal-footer {
   display: flex;
   gap: 1rem;
-  padding: 1.5rem 2rem;
+  padding: 1rem 2rem;
   border-top: 2px solid var(--divider-color);
   background: var(--card-background) !important;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
@@ -461,7 +461,11 @@
   }
 
   .modal-body {
-    padding: 1.5rem;
+    padding: 1rem 1.5rem;
+  }
+
+  .modal-footer {
+    padding: 0.75rem 1.5rem;
   }
 
   .template-grid {
@@ -469,7 +473,7 @@
   }
 
   .modal-progress {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
   }
 
   .progress-step {
