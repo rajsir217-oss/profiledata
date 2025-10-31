@@ -266,7 +266,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           </button>
           <div className="app-logo" onClick={() => navigate('/dashboard')}>
             <span className="logo-text">
-              <span className="butterfly-icon">🦋</span> L3V3L
+              <span className="butterfly-icon">🦋</span>
+              <span className="logo-text-full"> L3V3L</span>
             </span>
           </div>
           {onlineCount > 0 && (
