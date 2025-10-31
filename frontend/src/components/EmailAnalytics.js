@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EmailAnalytics.css';
-import PageHeader from './common/PageHeader';
+import PageHeader from './PageHeader';
 import { API_ENDPOINTS } from '../config/apiConfig';
 
 const EmailAnalytics = () => {
