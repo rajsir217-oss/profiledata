@@ -29,37 +29,50 @@
   margin: 0;
 }
 
-/* Modal Header */
+/* Modal Header - Modal 1 Style */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 2rem;
+  padding: 20px 24px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   border-bottom: none;
+  border-radius: 16px 16px 0 0;
+  color: white;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
   margin: 0;
   color: white;
-  font-size: 1.5rem;
+  font-size: 20px;
   font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
+/* Circular Close Button - Modal 1 Style */
 .modal-close {
-  background: none;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  font-size: 1.5rem;
-  color: rgba(255, 255, 255, 0.9);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 20px;
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .modal-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
 }
 
 /* Progress Steps */
@@ -106,6 +119,7 @@
   overflow-y: auto;
   flex: 1;
   background: var(--card-background) !important;
+  min-height: 0;
 }
 
 .modal-step h3 {
@@ -379,6 +393,7 @@
   border-top: 2px solid var(--divider-color);
   background: var(--card-background) !important;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.05);
+  flex-shrink: 0;
 }
 
 .modal-footer .btn {
@@ -428,6 +443,21 @@
     max-width: 100%;
     max-height: 100vh;
     border-radius: 12px;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .modal-header h2 {
+    font-size: 18px;
+  }
+
+  .modal-close {
+    width: 28px;
+    height: 28px;
+    font-size: 18px;
   }
 
   .modal-body {

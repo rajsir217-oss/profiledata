@@ -43,6 +43,20 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
   const [scheduleDay, setScheduleDay] = useState('Monday');
   const [scheduleTime, setScheduleTime] = useState('09:00');
 
+  // ESC key handler to close modal - Modal 1 Style
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && !submitting) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose, submitting]);
+
   // Check for preselected template from Template Manager
   useEffect(() => {
     if (!isEditMode && templates.length > 0 && !formData.template_type) {
