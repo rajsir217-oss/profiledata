@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import axios from 'axios';
 import './UserManagement.css';
+import Pagination from './Pagination';
 
 // Create admin API client without baseURL prefix
 import { getBackendUrl } from '../config/apiConfig';
@@ -31,6 +32,7 @@ const UserManagement = () => {
   const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [showActionModal, setShowActionModal] = useState(false);
@@ -90,6 +92,7 @@ const UserManagement = () => {
       const loadedUsers = response.data.users || [];
       setUsers(loadedUsers);
       setTotalPages(response.data.pages || 1);
+      setTotalUsers(response.data.total || loadedUsers.length);
       
       // Load image validation status for each user
       loadImageValidationStatus(loadedUsers);
@@ -553,11 +556,11 @@ const UserManagement = () => {
               <th className="th-checkbox">
                 <input
                   type="checkbox"
-                  checked={selectedUsers.length === users.length && users.length > 0}
+                  checked={selectedUsers.length === sortedUsers.length && sortedUsers.length > 0}
                   onChange={handleSelectAll}
-                  title="Select all"
                 />
               </th>
+              <th>Actions</th>
               <th onClick={() => handleSort('username')}>
                 Username
                 {sortField === 'username' && (
@@ -589,7 +592,6 @@ const UserManagement = () => {
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
-              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -604,22 +606,6 @@ const UserManagement = () => {
                     title={user.username === 'admin' ? 'Admin user cannot be modified' : ''}
                   />
                 </td>
-                <td>
-                  <strong>{user.username}</strong>
-                </td>
-                <td>{user.firstName} {user.lastName}</td>
-                <td>{user.email}</td>
-                <td>
-                  <span className={`role-badge ${getRoleBadgeClass(user.role_name)}`}>
-                    {user.role_name || 'free_user'}
-                  </span>
-                </td>
-                <td>
-                  <span className={`status-badge ${getStatusBadgeClass(user.status?.status || user.accountStatus)}`}>
-                    {formatStatusDisplay(user.status?.status || user.accountStatus)}
-                  </span>
-                </td>
-                <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
                 <td>
                   <div className="action-dropdown-container">
                     <button
@@ -734,6 +720,22 @@ const UserManagement = () => {
                     )}
                   </div>
                 </td>
+                <td>
+                  <strong>{user.username}</strong>
+                </td>
+                <td>{user.firstName} {user.lastName}</td>
+                <td>{user.email}</td>
+                <td>
+                  <span className={`role-badge ${getRoleBadgeClass(user.role_name)}`}>
+                    {user.role_name || 'free_user'}
+                  </span>
+                </td>
+                <td>
+                  <span className={`status-badge ${getStatusBadgeClass(user.status?.status || user.accountStatus)}`}>
+                    {formatStatusDisplay(user.status?.status || user.accountStatus)}
+                  </span>
+                </td>
+                <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
               </tr>
             ))}
           </tbody>
@@ -741,25 +743,14 @@ const UserManagement = () => {
       </div>
 
       {/* Pagination */}
-      <div className="pagination">
-        <button
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1}
-          className="btn-page"
-        >
-          ← Previous
-        </button>
-        <span className="page-info">
-          Page {page} of {totalPages}
-        </span>
-        <button
-          onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-          className="btn-page"
-        >
-          Next →
-        </button>
-      </div>
+      <Pagination
+        currentPage={page}
+        totalPages={totalPages}
+        totalItems={totalUsers}
+        itemsPerPage={20}
+        onPageChange={setPage}
+        itemLabel="records"
+      />
 
       {/* Role Assignment Modal */}
       {showRoleModal && selectedUser && (

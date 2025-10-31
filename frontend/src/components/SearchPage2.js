@@ -1617,6 +1617,7 @@ const SearchPage2 = () => {
               tabs={[
                 {
                   id: 'saved',
+                  icon: '💾',
                   label: 'Saved Searches',
                   badge: savedSearches.length > 0 ? savedSearches.length : null,
                   content: (
@@ -1669,6 +1670,7 @@ const SearchPage2 = () => {
                 },
                 {
                   id: 'basic',
+                  icon: '🔍',
                   label: 'Basic Search',
                   content: (
               <div className="filter-section">
@@ -1816,6 +1818,7 @@ const SearchPage2 = () => {
                 },
                 {
                   id: 'advanced',
+                  icon: '⚙️',
                   label: 'Advanced Search',
                   content: (
               <div className="filter-section">
@@ -1953,23 +1956,11 @@ const SearchPage2 = () => {
                       border: '2px solid var(--border-color)',
                       marginBottom: '20px'
                     }}>
-                      <label htmlFor="matchScoreSlider" style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '15px', 
-                        marginBottom: '20px',
-                        fontSize: '18px',
-                        fontWeight: '600'
-                      }}>
-                        <span style={{ fontSize: '32px' }}>🎯</span>
-                        <span style={{ flex: 1 }}>Minimum Compatibility Score</span>
-                        <span style={{ 
-                          fontWeight: '700', 
-                          color: 'var(--primary-color)', 
-                          fontSize: '24px',
-                          minWidth: '60px',
-                          textAlign: 'right'
-                        }}>
+                      <label htmlFor="matchScoreSlider" className="l3v3l-score-label">
+                        <span className="l3v3l-icon">🎯</span>
+                        <span className="l3v3l-label-desktop">Minimum Compatibility Score</span>
+                        <span className="l3v3l-label-mobile">L3V3L Score:</span>
+                        <span className="l3v3l-score-value">
                           {minMatchScore}%
                         </span>
                       </label>
