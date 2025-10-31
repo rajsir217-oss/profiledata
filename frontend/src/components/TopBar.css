@@ -54,8 +54,8 @@
   min-width: 70px;
   height: 44px;
   border-radius: 12px;
-  background: transparent; /* Transparent background */
-  border: 2px solid transparent;
+  background: rgba(255, 255, 255, 0.2); /* Same as burger button */
+  border: 2px solid rgba(255, 255, 255, 0.3); /* Same border as burger button */
   padding: 8px 12px;
   box-shadow: none;
   flex-shrink: 0;
@@ -73,10 +73,9 @@
 }
 
 .app-logo:hover {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.15); /* Subtle transparent white on hover */
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.3); /* Match burger button hover */
+  border: 2px solid rgba(255, 255, 255, 0.4);
 }
 
 /* Mobile: Slightly smaller text */
