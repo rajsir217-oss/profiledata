@@ -81,13 +81,22 @@
 /* Mobile: Slightly smaller text */
 @media (max-width: 768px) {
   .app-logo {
-    min-width: 60px;
+    min-width: 44px; /* Smaller to fit just butterfly */
     height: 44px;
     padding: 6px 10px;
   }
   
   .logo-text {
-    font-size: 16px;
+    font-size: 20px; /* Bigger butterfly on mobile */
+  }
+  
+  /* Hide "L3V3L" text on mobile - show only butterfly */
+  .logo-text-full {
+    display: none;
+  }
+  
+  .butterfly-icon {
+    font-size: 24px; /* Make butterfly bigger and centered */
   }
 }
 
