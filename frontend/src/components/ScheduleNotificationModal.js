@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ScheduleNotificationModal.css';
 
 const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
@@ -16,6 +16,20 @@ const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // ESC key handler to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && !loading) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose, loading]);
 
   const handleScheduleTypeChange = (type) => {
     setFormData(prev => ({ ...prev, scheduleType: type }));
