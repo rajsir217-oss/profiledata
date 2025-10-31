@@ -30,7 +30,7 @@
 }
 
 /* Modal Header - Modal 1 Style */
-.modal-header {
+.modal-content .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -42,7 +42,7 @@
   flex-shrink: 0;
 }
 
-.modal-header h2 {
+.modal-content .modal-header h2 {
   margin: 0;
   color: white;
   font-size: 20px;
@@ -53,7 +53,7 @@
 }
 
 /* Circular Close Button - Modal 1 Style */
-.modal-close {
+.modal-content .modal-close {
   background: rgba(255, 255, 255, 0.2);
   border: none;
   width: 32px;
@@ -70,7 +70,7 @@
   padding: 0;
 }
 
-.modal-close:hover {
+.modal-content .modal-close:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: rotate(90deg);
 }
@@ -445,16 +445,16 @@
     border-radius: 12px;
   }
 
-  .modal-header {
+  .modal-content .modal-header {
     padding: 16px 20px;
     border-radius: 12px 12px 0 0;
   }
 
-  .modal-header h2 {
+  .modal-content .modal-header h2 {
     font-size: 18px;
   }
 
-  .modal-close {
+  .modal-content .modal-close {
     width: 28px;
     height: 28px;
     font-size: 18px;
