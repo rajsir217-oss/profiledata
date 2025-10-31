@@ -164,7 +164,7 @@ const TemplateManager = () => {
     );
 
     if (schedules.length === 0) {
-      return 'Schedule Notification - No active schedules';
+      return 'Schedule Notification Queue - No active schedules';
     }
 
     if (schedules.length === 1) {
