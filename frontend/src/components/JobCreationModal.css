@@ -17,7 +17,7 @@
 
 .modal-content {
   background: var(--card-background) !important;
-  border-radius: 0;
+  border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 90vw;
   max-width: 800px;
@@ -37,7 +37,7 @@
   padding: 20px 24px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   border-bottom: none;
-  border-radius: 0;
+  border-radius: 16px 16px 0 0;
   color: white;
   flex-shrink: 0;
 }
@@ -115,7 +115,8 @@
 
 /* Modal Body */
 .modal-body {
-  padding: 1.5rem 2rem;
+  /* padding: 1.5rem 2rem; */
+  padding: 1rem 2rem;
   overflow-y: auto;
   flex: 1;
   background: var(--card-background) !important;
@@ -442,12 +443,12 @@
     width: calc(100vw - 1rem);
     max-width: 100%;
     max-height: 100vh;
-    border-radius: 0;
+    border-radius: 12px;
   }
 
   .modal-content .modal-header {
     padding: 16px 20px;
-    border-radius: 0;
+    border-radius: 12px 12px 0 0;
   }
 
   .modal-content .modal-header h2 {
