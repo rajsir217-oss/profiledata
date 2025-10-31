@@ -97,6 +97,7 @@ class EventDispatcher:
         
         # Messages
         self.register_handler(UserEventType.MESSAGE_SENT, self._handle_message_sent)
+        self.register_handler(UserEventType.MESSAGE_READ, self._handle_message_read)
         self.register_handler(UserEventType.UNREAD_MESSAGES, self._handle_unread_messages)
         
         # PII
@@ -436,6 +437,37 @@ class EventDispatcher:
             
         except Exception as e:
             logger.error(f"❌ Error handling message_sent: {e}", exc_info=True)
+    
+    async def _handle_message_read(self, event_data: Dict):
+        """Handle message_read event - notify sender their message was read"""
+        try:
+            actor = event_data.get("actor")  # Person who read the message
+            target = event_data.get("target")  # Original sender
+            metadata = event_data.get("metadata", {})
+            
+            if not target:
+                logger.warning("No target (sender) specified for message_read event")
+                return
+            
+            # Get reader's info
+            reader = await self.db.users.find_one({"username": actor})
+            reader_name = reader.get("firstName", actor) if reader else actor
+            
+            await self.notification_service.queue_notification(
+                username=target,  # Notify the original sender
+                trigger="message_read",
+                channels=["push"],  # Low priority - push only
+                template_data={
+                    "match": {
+                        "firstName": reader_name
+                    }
+                },
+                priority="low"
+            )
+            logger.info(f"📧 Queued 'message_read' notification for {target}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error handling message_read: {e}", exc_info=True)
     
     async def _handle_unread_messages(self, event_data: Dict):
         """Handle unread_messages digest"""

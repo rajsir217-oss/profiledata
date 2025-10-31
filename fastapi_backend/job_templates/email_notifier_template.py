@@ -207,11 +207,34 @@ class EmailNotifierTemplate(JobTemplate):
     
     async def _render_email(self, service, notification, db) -> Tuple[str, str]:
         """Render email subject and body from template"""
+        from config import settings
+        
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
             "channel": NotificationChannel.EMAIL,
             "active": True
         })
+        
+        # Inject app URLs and tracking into template data
+        template_data = notification.templateData.copy() if notification.templateData else {}
+        tracking_id = str(notification.id)
+        backend_url = settings.backend_url or "http://localhost:8000"
+        
+        # Add app URLs with tracking
+        template_data["app"] = {
+            "logoUrl": f"{backend_url}/uploads/logo.png",
+            "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
+            "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/profile&link_type=profile",
+            "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/messages&link_type=chat",
+            "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/unsubscribe&link_type=unsubscribe",
+            "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/preferences&link_type=preferences",
+            "approveUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/pii/approve&link_type=approve",
+            "denyUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/pii/deny&link_type=deny",
+            "dashboardUrl": f"{backend_url}/dashboard",
+            "contactUrl": f"{backend_url}/contact",
+            "searchUrl": f"{backend_url}/search",
+            "securityUrl": f"{backend_url}/security"
+        }
         
         if not template:
             subject = f"New {notification.trigger} notification"
@@ -219,11 +242,12 @@ class EmailNotifierTemplate(JobTemplate):
         else:
             subject = service.render_template(
                 template.get("subject", ""),
-                notification.templateData
+                template_data
             )
+            # Use 'body' field for HTML templates
             body = service.render_template(
-                template.get("bodyTemplate", ""),
-                notification.templateData
+                template.get("body", template.get("bodyTemplate", "")),
+                template_data
             )
         
         return subject, body
