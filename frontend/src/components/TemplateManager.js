@@ -181,6 +181,23 @@ const TemplateManager = () => {
     loadScheduledNotifications();
   }, []);
 
+  // ESC key listener for preview modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showPreview) {
+        setShowPreview(false);
+      }
+    };
+
+    if (showPreview) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [showPreview]);
+
   const handleEdit = (template) => {
     setEditTemplate({ ...template });
     setShowEditModal(true);
