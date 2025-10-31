@@ -1132,18 +1132,28 @@
 }
 
 .btn-delete-saved {
-  background: none;
-  border: none;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
   font-size: 20px;
   cursor: pointer;
-  padding: 4px 8px;
-  opacity: 0.6;
+  padding: 8px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  flex-shrink: 0;
+  opacity: 0.8;
   transition: all 0.2s ease;
 }
 
 .btn-delete-saved:hover {
   opacity: 1;
-  transform: scale(1.1);
+  background: var(--danger-light);
+  color: var(--danger-color);
+  border-color: var(--danger-color);
+  transform: scale(1.05);
 }
 
 .saved-search-description {
@@ -1208,18 +1218,69 @@
   .saved-search-card {
     padding: 16px;
   }
+  
+  .saved-search-header {
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 12px;
+    gap: 12px;
+  }
 
   .saved-search-name {
     font-size: 16px;
+    flex: 1 1 auto !important;
+    padding-right: 8px;
+    word-break: break-word;
+    margin: 0 !important;
+  }
+  
+  .btn-delete-saved {
+    font-size: 24px !important;
+    padding: 8px !important;
+    flex-shrink: 0 !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    width: 44px;
+    height: 44px;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 8px;
+    background: var(--surface-color);
+  }
+  
+  .btn-delete-saved:hover {
+    background: var(--danger-light);
+    color: var(--danger-color);
   }
 
   .saved-search-description {
     padding: 12px;
+    margin-bottom: 12px;
   }
 
   .saved-search-description p {
     font-size: 13px;
     line-height: 1.5;
+  }
+  
+  .saved-search-footer {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+  
+  .btn-load-saved {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+  
+  .saved-date {
+    text-align: center;
+    font-size: 12px;
   }
 
   .empty-saved-searches {
@@ -1232,6 +1293,42 @@
 
   .empty-saved-searches h4 {
     font-size: 18px;
+  }
+}
+
+/* Extra small mobile - Saved search cards */
+@media (max-width: 480px) {
+  .saved-search-card {
+    padding: 12px;
+  }
+  
+  .saved-search-header {
+    gap: 8px !important;
+  }
+  
+  .saved-search-name {
+    font-size: 14px !important;
+  }
+  
+  .btn-delete-saved {
+    font-size: 20px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .saved-search-description {
+    padding: 10px;
+  }
+  
+  .saved-search-description p {
+    font-size: 12px;
+  }
+  
+  .btn-load-saved {
+    padding: 10px 14px;
+    font-size: 14px;
   }
 }
 
@@ -3401,6 +3498,11 @@
     padding: 12px 15px;
   }
   
+  /* Ensure tabs have proper spacing on mobile */
+  .search-filters .tab-container {
+    margin-bottom: 16px;
+  }
+  
   /* Custom mobile layouts defined earlier - DON'T override */
   /* Removed legacy single-column rule that conflicted with smart 2-column layout */
   
@@ -4002,6 +4104,79 @@
   background: linear-gradient(135deg, 
     var(--primary-color) 0%, 
     var(--secondary-color) 100%) !important;
-  padding: 14px 20px !important; /* Slightly more padding */
-  border-radius: 12px 12px 0 0 !important;
+}
+
+/* L3V3L Score Label - Responsive */
+.l3v3l-score-label {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.l3v3l-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.l3v3l-label-desktop {
+  flex: 1;
+}
+
+.l3v3l-label-mobile {
+  display: none;
+  flex: 1;
+}
+
+.l3v3l-score-value {
+  font-weight: 700;
+  color: var(--primary-color);
+  font-size: 24px;
+  min-width: 60px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Mobile: Show shorter label */
+@media (max-width: 768px) {
+  .l3v3l-score-label {
+    font-size: 16px;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  
+  .l3v3l-icon {
+    font-size: 24px;
+  }
+  
+  .l3v3l-label-desktop {
+    display: none;
+  }
+  
+  .l3v3l-label-mobile {
+    display: block;
+  }
+  
+  .l3v3l-score-value {
+    font-size: 20px;
+    min-width: 50px;
+  }
+}
+
+/* Extra small mobile */
+@media (max-width: 480px) {
+  .l3v3l-score-label {
+    font-size: 14px;
+    gap: 8px;
+  }
+  
+  .l3v3l-icon {
+    font-size: 20px;
+  }
+  
+  .l3v3l-score-value {
+    font-size: 18px;
+  }
 }
