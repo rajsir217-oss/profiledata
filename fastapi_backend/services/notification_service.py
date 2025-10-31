@@ -167,12 +167,23 @@ class NotificationService:
         channel: Optional[NotificationChannel] = None,
         limit: int = 100
     ) -> List[NotificationQueueItem]:
-        """Get pending notifications ready to send"""
+        """Get pending notifications ready to send (respects retry delays)"""
         query = {
             "status": {"$in": [NotificationStatus.PENDING, NotificationStatus.SCHEDULED]},
-            "$or": [
-                {"scheduledFor": None},
-                {"scheduledFor": {"$lte": datetime.utcnow()}}
+            "$and": [
+                {
+                    "$or": [
+                        {"scheduledFor": None},
+                        {"scheduledFor": {"$lte": datetime.utcnow()}}
+                    ]
+                },
+                {
+                    "$or": [
+                        {"nextRetryAt": None},  # First attempt
+                        {"nextRetryAt": {"$exists": False}},  # Legacy records
+                        {"nextRetryAt": {"$lte": datetime.utcnow()}}  # Retry time reached
+                    ]
+                }
             ]
         }
         
@@ -197,41 +208,78 @@ class NotificationService:
         success: bool,
         error: Optional[str] = None
     ) -> None:
-        """Mark notification as sent"""
+        """Mark notification as sent with retry logic"""
         from bson import ObjectId
+        from datetime import timedelta
         
-        # Build update document with separate operators
+        # Convert string ID to ObjectId
+        try:
+            obj_id = ObjectId(notification_id)
+        except Exception as e:
+            print(f"⚠️ Warning: Could not convert to ObjectId: {notification_id}, error: {e}")
+            obj_id = notification_id
+        
+        # Get current notification to check attempts
+        notification = await self.queue_collection.find_one({"_id": obj_id})
+        if not notification:
+            print(f"❌ Notification not found: {obj_id}")
+            return
+        
+        current_attempts = notification.get("attempts", 0) + 1  # Increment for this attempt
+        max_attempts = 3
+        
+        # Build update document
         set_fields = {
-            "status": NotificationStatus.SENT if success else NotificationStatus.FAILED,
             "updatedAt": datetime.utcnow(),
             "lastAttempt": datetime.utcnow()
         }
         
-        if error:
-            set_fields["error"] = error
+        if success:
+            # SUCCESS - Mark as sent
+            set_fields["status"] = NotificationStatus.SENT
+            set_fields["sentAt"] = datetime.utcnow()
+            if error:  # Clear any previous error
+                set_fields["error"] = None
+                set_fields["statusReason"] = None
+            print(f"✅ Notification sent successfully: {obj_id}")
+        else:
+            # FAILED - Check if we should retry
+            if current_attempts < max_attempts:
+                # RETRY - Keep as pending with exponential backoff
+                set_fields["status"] = NotificationStatus.PENDING
+                
+                # Exponential backoff: 5min, 30min, 2hrs
+                backoff_minutes = [5, 30, 120]
+                delay_minutes = backoff_minutes[current_attempts - 1] if current_attempts <= len(backoff_minutes) else 120
+                next_retry = datetime.utcnow() + timedelta(minutes=delay_minutes)
+                set_fields["nextRetryAt"] = next_retry
+                
+                # Store error details
+                set_fields["statusReason"] = error or "Unknown error"
+                set_fields["error"] = error
+                
+                print(f"🔄 Retry {current_attempts}/{max_attempts} scheduled for {next_retry.strftime('%Y-%m-%d %H:%M:%S')}: {obj_id}")
+            else:
+                # MAX ATTEMPTS REACHED - Mark as failed
+                set_fields["status"] = NotificationStatus.FAILED
+                set_fields["statusReason"] = error or "Max retry attempts reached"
+                set_fields["error"] = error
+                set_fields["failedAt"] = datetime.utcnow()
+                
+                print(f"❌ Notification failed after {current_attempts} attempts: {obj_id}")
+                print(f"   Reason: {error}")
         
         update_doc = {
             "$set": set_fields,
             "$inc": {"attempts": 1}
         }
         
-        # Convert string ID to ObjectId
-        try:
-            obj_id = ObjectId(notification_id)
-        except Exception as e:
-            # If not a valid ObjectId, treat as string
-            print(f"⚠️ Warning: Could not convert to ObjectId: {notification_id}, error: {e}")
-            obj_id = notification_id
-        
-        # Debug logging
-        print(f"🔍 Updating queue item: _id={obj_id}, status={set_fields['status']}")
-        
+        # Update notification
         result = await self.queue_collection.update_one(
             {"_id": obj_id},
             update_doc
         )
         
-        # Debug logging
         print(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
     
     # ============================================

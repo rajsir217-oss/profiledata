@@ -191,6 +191,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
       
       items.push({
+        icon: '📧',
+        label: 'Email Analytics',
+        subLabel: 'Track opens & clicks',
+        action: () => navigate('/email-analytics')
+      });
+      
+      items.push({
         icon: '📊',
         label: 'Activity Logs',
         subLabel: 'Monitor user activities',

@@ -37,7 +37,8 @@ const TemplateManager = () => {
       matchScore: 92,
       location: 'Boston',
       occupation: 'Software Engineer',
-      education: 'MBA'
+      education: 'MBA',
+      profession: 'Software Engineer'
     },
     event: {
       type: 'new_match',
@@ -45,17 +46,56 @@ const TemplateManager = () => {
       message: 'You have a new match!'
     },
     app: {
+      logoUrl: 'http://localhost:8000/uploads/logo.png',
+      trackingPixelUrl: 'http://localhost:8000/api/email-tracking/pixel/preview',
       profileUrl: `${getFrontendUrl()}/profile/mike_dev`,
+      profileUrl_tracked: `${getFrontendUrl()}/profile/mike_dev`,
       chatUrl: `${getFrontendUrl()}/messages`,
+      chatUrl_tracked: `${getFrontendUrl()}/messages`,
       matchUrl: `${getFrontendUrl()}/matches`,
       settingsUrl: `${getFrontendUrl()}/settings`,
-      unsubscribeUrl: `${getFrontendUrl()}/unsubscribe`
+      unsubscribeUrl: `${getFrontendUrl()}/unsubscribe`,
+      unsubscribeUrl_tracked: `${getFrontendUrl()}/unsubscribe`,
+      preferencesUrl_tracked: `${getFrontendUrl()}/preferences`,
+      approveUrl_tracked: `${getFrontendUrl()}/pii/approve`,
+      denyUrl_tracked: `${getFrontendUrl()}/pii/deny`,
+      dashboardUrl: `${getFrontendUrl()}/dashboard`,
+      contactUrl: `${getFrontendUrl()}/contact`,
+      searchUrl: `${getFrontendUrl()}/search`,
+      securityUrl: `${getFrontendUrl()}/security`
     },
     stats: {
       mutualMatches: 12,
       unreadMessages: 5,
       profileViews: 23,
-      newMatches: 3
+      newMatches: 3,
+      favorites: 8,
+      searchCount: 45,
+      increase: 25
+    },
+    message: {
+      preview: 'Hey! I saw your profile and would love to connect...'
+    },
+    pii: {
+      daysRemaining: 7,
+      expiryDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString()
+    },
+    milestone: {
+      description: '100 Profile Views',
+      value: 100
+    },
+    profile: {
+      completeness: 75,
+      missingFields: 'photos, bio'
+    },
+    matches: {
+      count: 5
+    },
+    login: {
+      location: 'San Francisco, CA',
+      device: 'Chrome on MacBook',
+      timestamp: new Date().toLocaleString(),
+      ipAddress: '192.168.1.1'
     }
   };
 
@@ -124,7 +164,7 @@ const TemplateManager = () => {
     );
 
     if (schedules.length === 0) {
-      return 'Schedule Notification - No active schedules';
+      return 'Schedule Notification Queue - No active schedules';
     }
 
     if (schedules.length === 1) {
@@ -180,6 +220,23 @@ const TemplateManager = () => {
     loadTemplates();
     loadScheduledNotifications();
   }, []);
+
+  // ESC key listener for preview modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showPreview) {
+        setShowPreview(false);
+      }
+    };
+
+    if (showPreview) {
+      document.addEventListener('keydown', handleEscKey);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [showPreview]);
 
   const handleEdit = (template) => {
     setEditTemplate({ ...template });
@@ -345,8 +402,8 @@ const TemplateManager = () => {
     <div className="template-manager">
       <div className="manager-header">
         <div className="header-left">
-          <h1>📧 Template Manager</h1>
-          <p>Manage notification templates and preview emails</p>
+          <h1>📧 Event Message Template Manager</h1>
+          <p>Manage email/SMS templates for notification events and preview messages</p>
         </div>
         <div className="header-actions">
           <button 

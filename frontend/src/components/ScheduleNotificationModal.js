@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ScheduleNotificationModal.css';
 
 const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
@@ -16,6 +16,20 @@ const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  // ESC key handler to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && !loading) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose, loading]);
 
   const handleScheduleTypeChange = (type) => {
     setFormData(prev => ({ ...prev, scheduleType: type }));
@@ -116,7 +130,7 @@ const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content schedule-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>⏰ Schedule Notification</h2>
+          <h2>⏰ Event Queue Schedule Notifications</h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -317,7 +331,7 @@ const ScheduleNotificationModal = ({ template, onClose, onSchedule }) => {
             onClick={handleSubmit}
             disabled={loading || (formData.scheduleType === 'one_time' && !formData.scheduledFor)}
           >
-            {loading ? 'Scheduling...' : '⏰ Schedule Notification'}
+            {loading ? 'Scheduling...' : '⏰ Schedule Notification Queue'}
           </button>
         </div>
       </div>
