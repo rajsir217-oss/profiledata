@@ -718,12 +718,33 @@
     padding: 16px 20px;
   }
   
-  .dashboard-header h1 {
+  .dashboard-header h2 {
     font-size: 20px;
   }
   
   .dashboard-header p {
     font-size: 13px;
+  }
+  
+  /* Hide title and subtitle on mobile to save space */
+  .dashboard-container .page-header .page-header-subtitle,
+  .dashboard-container .page-header .page-header-title,
+  .dashboard-container .page-header .page-header-icon {
+    display: none;
+  }
+  
+  /* Hide entire text container on mobile */
+  .dashboard-container .page-header .page-header-text {
+    display: none;
+  }
+  
+  /* Center header actions when title is hidden */
+  .dashboard-container .page-header .page-header-content {
+    justify-content: center;
+  }
+  
+  .dashboard-container .page-header .page-header-actions {
+    margin-left: 0 !important;
   }
   
   .dashboard-stats {
@@ -748,8 +769,33 @@
     font-size: 13px;
   }
   
+  /* Hide title and subtitle on mobile to save space */
+  .dashboard-container .page-header .page-header-subtitle,
+  .dashboard-container .page-header .page-header-title,
+  .dashboard-container .page-header .page-header-icon {
+    display: none;
+  }
+  
+  /* Hide entire text container on mobile */
+  .dashboard-container .page-header .page-header-text {
+    display: none;
+  }
+  
+  /* Center header actions when title is hidden */
+  .dashboard-container .page-header .page-header-content {
+    justify-content: center;
+  }
+  
+  .dashboard-container .page-header .page-header-actions {
+    margin-left: 0 !important;
+  }
+  
   /* Keep buttons on one line even on tiny screens */
   .header-actions {
+    gap: 6px;
+  }
+  
+  .view-controls-group {
     gap: 6px;
   }
   
@@ -764,6 +810,39 @@
     padding: 8px;
     font-size: 16px;
     min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+  }
+  
+  /* Search button - more compact on mobile */
+  .btn-quick-action.btn-search-l3v3l {
+    min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+  }
+  
+  .btn-search-l3v3l .magnifier-icon {
+    font-size: 18px;
+  }
+  
+  .btn-search-l3v3l .butterfly-icon {
+    font-size: 14px;
+  }
+  
+  /* View mode toggle - hide labels on mobile, show only icons */
+  .dashboard-container .view-mode-toggle .view-btn span:last-child {
+    display: none;
+  }
+  
+  .dashboard-container .view-mode-toggle .view-btn {
+    padding: 8px 12px;
+    min-width: auto;
+  }
+  
+  .dashboard-container .view-mode-toggle .view-btn span:first-child {
+    font-size: 18px;
   }
   
   .dashboard-grid {
@@ -999,7 +1078,7 @@
     width: 100%;
     justify-content: flex-end;
     flex-wrap: nowrap; /* FORCE one line */
-    gap: 8px;
+    gap: 6px;
   }
   
   .dashboard-container .page-header .page-header-actions {
@@ -1010,6 +1089,7 @@
   .view-controls-group {
     margin-left: auto;
     flex-shrink: 0;
+    gap: 6px;
   }
   
   .view-mode-toggle {
@@ -1027,6 +1107,39 @@
     padding: 8px;
     font-size: 18px;
     min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+  }
+  
+  /* Search button - compact on small mobile */
+  .btn-quick-action.btn-search-l3v3l {
+    min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+  }
+  
+  .btn-search-l3v3l .magnifier-icon {
+    font-size: 18px;
+  }
+  
+  .btn-search-l3v3l .butterfly-icon {
+    font-size: 14px;
+  }
+  
+  /* View mode toggle - hide labels on small mobile, show only icons */
+  .dashboard-container .view-mode-toggle .view-btn span:last-child {
+    display: none;
+  }
+  
+  .dashboard-container .view-mode-toggle .view-btn {
+    padding: 6px 10px;
+    min-width: auto;
+  }
+  
+  .dashboard-container .view-mode-toggle .view-btn span:first-child {
+    font-size: 18px;
   }
   
   .user-cards-rows .user-card {

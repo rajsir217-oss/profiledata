@@ -6,6 +6,7 @@ import PageHeader from './PageHeader';
 import './ActivityLogs.css';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
+import Pagination from './Pagination';
 
 const ActivityLogs = () => {
   const navigate = useNavigate();
@@ -526,25 +527,14 @@ const ActivityLogs = () => {
       </div>
       
       {/* Pagination */}
-      <div className="pagination">
-        <button
-          className="btn-secondary"
-          disabled={filters.page === 1}
-          onClick={() => setFilters({ ...filters, page: filters.page - 1 })}
-        >
-          ← Previous
-        </button>
-        <span className="page-info">
-          Page {filters.page} of {totalPages || 1} ({total} total)
-        </span>
-        <button
-          className="btn-secondary"
-          disabled={filters.page >= totalPages}
-          onClick={() => setFilters({ ...filters, page: filters.page + 1 })}
-        >
-          Next →
-        </button>
-      </div>
+      <Pagination
+        currentPage={filters.page}
+        totalPages={totalPages || 1}
+        totalItems={total}
+        itemsPerPage={filters.limit}
+        onPageChange={(newPage) => setFilters({ ...filters, page: newPage })}
+        itemLabel="total"
+      />
     </div>
   );
 };
