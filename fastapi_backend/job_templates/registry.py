@@ -152,6 +152,9 @@ def initialize_templates():
     from .push_notifier_template import PushNotifierTemplate
     from .saved_search_matches_notifier import SavedSearchMatchesNotifierTemplate
     from .pii_expiry_notifier import PIIExpiryNotifierTemplate
+    from .profile_completion_reminder import ProfileCompletionReminderTemplate
+    from .conversation_monitor import ConversationMonitorTemplate
+    from .analytics_notifier import AnalyticsNotifierTemplate
     
     registry = get_template_registry()
     
@@ -178,6 +181,9 @@ def initialize_templates():
     registry.register(PushNotifierTemplate())
     registry.register(SavedSearchMatchesNotifierTemplate())
     registry.register(PIIExpiryNotifierTemplate())
+    registry.register(ProfileCompletionReminderTemplate())
+    registry.register(ConversationMonitorTemplate())
+    registry.register(AnalyticsNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
