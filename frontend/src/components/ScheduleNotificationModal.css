@@ -6,7 +6,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  border-radius: 0;
+  border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 }
 
@@ -18,7 +18,7 @@
   justify-content: space-between;
   align-items: center;
   color: white;
-  border-radius: 0;
+  border-radius: 16px 16px 0 0;
   flex-shrink: 0;
 }
 
@@ -251,12 +251,12 @@
   .schedule-modal {
     max-width: calc(100vw - 2rem);
     max-height: 95vh;
-    border-radius: 0;
+    border-radius: 12px;
   }
 
   .schedule-modal .modal-header {
     padding: 16px 20px;
-    border-radius: 0;
+    border-radius: 12px 12px 0 0;
   }
 
   .schedule-modal .modal-header h2 {
