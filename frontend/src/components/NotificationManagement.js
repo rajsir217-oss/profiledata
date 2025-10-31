@@ -29,7 +29,7 @@ const NotificationManagement = () => {
       <PageHeader
         icon="🔔"
         title="Notification Management"
-        subtitle="Manage notification queue and email/SMS templates"
+        subtitle="Manage notification queue and email/SMS event message templates"
         variant="gradient"
       />
 
@@ -46,7 +46,7 @@ const NotificationManagement = () => {
           {
             id: 'templates',
             icon: '📧',
-            label: 'Templates',
+            label: 'Event Message Templates',
             content: <TemplateManager />
           }
         ]}
