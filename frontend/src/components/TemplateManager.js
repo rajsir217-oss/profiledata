@@ -402,8 +402,8 @@ const TemplateManager = () => {
     <div className="template-manager">
       <div className="manager-header">
         <div className="header-left">
-          <h1>📧 Template Manager</h1>
-          <p>Manage notification templates and preview emails</p>
+          <h1>📧 Event Message Template Manager</h1>
+          <p>Manage email/SMS templates for notification events and preview messages</p>
         </div>
         <div className="header-actions">
           <button 
