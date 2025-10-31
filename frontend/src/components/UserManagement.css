@@ -1484,10 +1484,10 @@
 
 .actions-dropdown-menu {
   position: absolute;
-  right: 0;
-  top: calc(100% + 12px);
-  background: white;
-  border: 1px solid #e5e7eb;
+  left: 0;
+  top: calc(100% + 8px);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
   border-radius: 16px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15), 0 4px 8px rgba(0, 0, 0, 0.08);
   min-width: 200px;
@@ -1523,7 +1523,7 @@
   text-align: left;
   font-size: 15px;
   font-weight: 500;
-  color: #1f2937;
+  color: var(--text-color);
   cursor: pointer;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   line-height: 1.4;
@@ -1562,7 +1562,7 @@
 .dropdown-item:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  background: #f9fafb;
+  background: var(--surface-color);
 }
 
 .dropdown-icon {
@@ -1578,7 +1578,7 @@
 
 .dropdown-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent 0%, #e5e7eb 50%, transparent 100%);
+  background: linear-gradient(90deg, transparent 0%, var(--border-color) 50%, transparent 100%);
   margin: 8px 12px;
   opacity: 0.6;
 }
@@ -1588,7 +1588,7 @@
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  color: #6b7280;
+  color: var(--text-secondary);
   letter-spacing: 0.8px;
   white-space: nowrap;
 }

@@ -6,6 +6,7 @@ import PageHeader from './PageHeader';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
+import Pagination from './Pagination';
 
 const DynamicScheduler = ({ currentUser }) => {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ const DynamicScheduler = ({ currentUser }) => {
   const [filterEnabled, setFilterEnabled] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalJobs, setTotalJobs] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const toast = useToast();
 
@@ -156,6 +158,7 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       setJobs(data.jobs || []);
       setTotalPages(data.pages || 1);
+      setTotalJobs(data.total || (data.jobs || []).length);
     } catch (err) {
       setError('Failed to load jobs');
       console.error('Error loading jobs:', err);
@@ -615,21 +618,14 @@ const DynamicScheduler = ({ currentUser }) => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="pagination">
-              <button 
-                disabled={currentPage === 1}
-                onClick={() => setCurrentPage(prev => prev - 1)}
-              >
-                ← Previous
-              </button>
-              <span>Page {currentPage} of {totalPages}</span>
-              <button 
-                disabled={currentPage === totalPages}
-                onClick={() => setCurrentPage(prev => prev + 1)}
-              >
-                Next →
-              </button>
-            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalJobs}
+              itemsPerPage={20}
+              onPageChange={setCurrentPage}
+              itemLabel="jobs"
+            />
           )}
         </>
       )}

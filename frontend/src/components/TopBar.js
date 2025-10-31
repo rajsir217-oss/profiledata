@@ -313,7 +313,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
           </div>
           <button className="btn-logout" onClick={handleLogout} title="Logout">
-            🚪 Logout
+            🚪 <span className="logout-text">Logout</span>
           </button>
         </div>
         

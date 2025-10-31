@@ -507,8 +507,8 @@
 
 @media (max-width: 768px) {
   .pii-management-page {
-    width: 95%;
-    padding: 15px;
+    width: 100%;
+    padding: 12px;
   }
 
   .pii-header h2 {
@@ -549,11 +549,28 @@
     padding-top: 16px;
     border-top: 1px solid #f0f0f0;
   }
+  
+  /* Better spacing for mobile panels */
+  .requests-section {
+    margin-bottom: 30px;
+  }
+  
+  .panel-header h3 {
+    font-size: 18px;
+  }
+  
+  .panel-header p {
+    font-size: 13px;
+  }
 
   /* Old .pii-tab responsive styles removed - using UniversalTabContainer */
 }
 
 @media (max-width: 480px) {
+  .pii-management-page {
+    padding: 8px;
+  }
+  
   .request-card-actions {
     flex-direction: column;
   }
@@ -562,6 +579,45 @@
   .btn-reject,
   .btn-cancel {
     width: 100%;
+  }
+  
+  /* Smaller cards on mobile */
+  .access-card,
+  .request-card {
+    padding: 16px;
+  }
+  
+  /* Smaller avatars on mobile */
+  .access-avatar,
+  .access-avatar-placeholder {
+    width: 60px;
+    height: 60px;
+    font-size: 24px;
+  }
+  
+  /* Better text sizing */
+  .access-username {
+    font-size: 15px;
+  }
+  
+  .access-user-handle {
+    font-size: 13px;
+  }
+  
+  .panel-header h3 {
+    font-size: 16px;
+  }
+  
+  .panel-header p {
+    font-size: 12px;
+  }
+  
+  .empty-state p {
+    font-size: 14px;
+  }
+  
+  .empty-state-small p {
+    font-size: 13px;
   }
 }
 

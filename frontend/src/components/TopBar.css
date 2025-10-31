@@ -421,6 +421,17 @@
     display: none;
   }
   
+  /* Hide logout text on mobile, keep only icon */
+  .logout-text {
+    display: none;
+  }
+  
+  /* Make logout button more compact without text */
+  .btn-logout {
+    padding: 0 12px;
+    min-width: 44px;
+  }
+  
   /* Mobile: Compact 44px square with vertical stack */
   .stat-badges-container {
     flex-direction: column;
@@ -523,6 +534,17 @@
     display: flex !important; /* KEEP VISIBLE */
     gap: 6px;
     flex-shrink: 0;
+  }
+  
+  /* Hide logout text on small mobile, keep only icon */
+  .logout-text {
+    display: none;
+  }
+  
+  /* Make logout button more compact without text */
+  .btn-logout {
+    padding: 0 12px;
+    min-width: 44px;
   }
   
   /* Logo stays readable on tiny screens */
