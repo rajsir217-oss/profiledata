@@ -49,7 +49,7 @@ async def get_mfa_status(
         
         mfa_info = user.get("mfa", {})
         phone = user.get("contactNumber")
-        email = user.get("email") or user.get("contactEmail")
+        email = user.get("contactEmail") or user.get("email")
         mfa_channel = mfa_info.get("mfa_type", "email")  # Default to email
         
         # Mask contact info
@@ -278,7 +278,7 @@ async def send_mfa_code(
         # Determine MFA channel (email or sms)
         mfa_channel = request.channel or mfa_info.get("mfa_type", "email")
         phone = user.get("contactNumber")
-        email = user.get("email") or user.get("contactEmail")
+        email = user.get("contactEmail") or user.get("email")
         
         # Validate contact info exists
         if mfa_channel == "sms" and not phone:
