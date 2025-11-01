@@ -45,10 +45,12 @@
 
 /* View Controls Group - Right aligned within header */
 .view-controls-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
   margin-left: auto !important;
+  flex-shrink: 0 !important;
 }
 
 /* Refresh Icon Button - Same Size as Other Buttons */

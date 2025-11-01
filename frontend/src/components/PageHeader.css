@@ -38,15 +38,17 @@
 .page-header-content {
   display: flex !important;
   justify-content: space-between !important;
-  align-items: center;
-  gap: var(--spacing-md, 1rem);
+  align-items: center !important;
+  gap: var(--spacing-md, 1rem) !important;
+  width: 100% !important;
 }
 
 .page-header-text {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-md, 1rem);
-  flex: 1;
+  display: flex !important;
+  align-items: center !important;
+  gap: var(--spacing-md, 1rem) !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
 }
 
 .page-header-icon {
@@ -94,10 +96,13 @@
 
 .page-header-actions {
   display: flex !important;
-  align-items: center;
-  gap: var(--spacing-sm, 0.75rem);
-  flex-shrink: 0;
-  margin-left: auto;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  gap: 8px !important;
+  flex-shrink: 0 !important;
+  flex-wrap: nowrap !important;
+  margin-left: auto !important;
+  width: auto !important;
 }
 
 /* View Mode Toggle - Used in PageHeader actions */
@@ -187,20 +192,23 @@
   }
 
   .page-header-content {
-    flex-direction: row;
-    align-items: center;
-    gap: var(--spacing-sm, 0.75rem);
-    flex-wrap: nowrap;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
   }
 
   .page-header-text {
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
   }
 
   .page-header-actions {
-    flex-shrink: 0;
-    margin-left: 0 !important;
+    flex-shrink: 0 !important;
+    flex-wrap: nowrap !important;
+    margin-left: auto !important;
+    gap: 6px !important;
   }
 
   .page-header-title {
