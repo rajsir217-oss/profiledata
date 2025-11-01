@@ -100,6 +100,7 @@ async def register_user(
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
+    smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
     dateOfBirth: Optional[str] = Form(None),  # Renamed from dob
     gender: Optional[str] = Form(None),  # Renamed from sex
     height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
@@ -286,6 +287,7 @@ async def register_user(
         "lastName": lastName,
         "contactNumber": contactNumber,
         "contactEmail": contactEmail,
+        "smsOptIn": smsOptIn,  # SMS notifications opt-in
         "dateOfBirth": dateOfBirth,  # Renamed from dob
         "gender": gender,  # Renamed from sex
         "height": height,
@@ -563,6 +565,7 @@ async def update_user_profile(
     lastName: Optional[str] = Form(None),
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
+    smsOptIn: Optional[bool] = Form(None),  # SMS notifications opt-in
     dateOfBirth: Optional[str] = Form(None),
     sex: Optional[str] = Form(None),
     gender: Optional[str] = Form(None),  # NEW: consistent naming
@@ -634,6 +637,8 @@ async def update_user_profile(
         update_data["contactNumber"] = contactNumber.strip()
     if contactEmail is not None and contactEmail.strip():
         update_data["contactEmail"] = contactEmail.strip()
+    if smsOptIn is not None:
+        update_data["smsOptIn"] = smsOptIn
     
     # Update date of birth
     if dateOfBirth is not None and dateOfBirth.strip():
@@ -2874,6 +2879,196 @@ async def get_conversation(
     except Exception as e:
         logger.error(f"❌ Error fetching conversation: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/messages/{message_id}")
+async def delete_message(
+    message_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """
+    Delete a message (only sender can delete their own messages)
+    """
+    try:
+        from bson import ObjectId
+        
+        logger.info(f"🗑️ Delete message request: message_id={message_id}, username={username}")
+        
+        # Convert string ID to ObjectId
+        try:
+            msg_id = ObjectId(message_id)
+        except Exception as e:
+            logger.error(f"❌ Invalid message ID format: {message_id}")
+            raise HTTPException(status_code=400, detail="Invalid message ID format")
+        
+        # Find the message
+        message = await db.messages.find_one({"_id": msg_id})
+        
+        if not message:
+            logger.warning(f"⚠️ Message not found: {message_id}")
+            raise HTTPException(status_code=404, detail="Message not found")
+        
+        # Check if user is the sender
+        if message.get("fromUsername") != username:
+            logger.warning(f"⚠️ Unauthorized delete attempt: {username} tried to delete message from {message.get('fromUsername')}")
+            raise HTTPException(status_code=403, detail="You can only delete your own messages")
+        
+        # Delete the message
+        result = await db.messages.delete_one({"_id": msg_id})
+        
+        if result.deleted_count == 0:
+            logger.error(f"❌ Failed to delete message: {message_id}")
+            raise HTTPException(status_code=500, detail="Failed to delete message")
+        
+        logger.info(f"✅ Message deleted successfully: {message_id}")
+        
+        return {
+            "success": True,
+            "message": "Message deleted successfully",
+            "messageId": message_id
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting message: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== SMS OPT-IN PREFERENCES =====
+
+@router.get("/users/{username}/sms-optin")
+async def get_sms_optin_status(
+    username: str,
+    db = Depends(get_database)
+):
+    """
+    Get SMS opt-in status for a user (READ operation)
+    """
+    try:
+        logger.info(f"📱 Getting SMS opt-in status for: {username}")
+        
+        user = await db.users.find_one({"username": username}, {"smsOptIn": 1, "contactNumber": 1})
+        
+        if not user:
+            logger.warning(f"⚠️ User not found: {username}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        sms_optin = user.get("smsOptIn", False)
+        has_phone = bool(user.get("contactNumber"))
+        
+        logger.info(f"✅ SMS opt-in status for {username}: {sms_optin}")
+        
+        return {
+            "success": True,
+            "username": username,
+            "smsOptIn": sms_optin,
+            "hasPhone": has_phone,
+            "message": "SMS notifications enabled" if sms_optin else "SMS notifications disabled"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting SMS opt-in status: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.put("/users/{username}/sms-optin")
+async def update_sms_optin_status(
+    username: str,
+    smsOptIn: bool,
+    db = Depends(get_database)
+):
+    """
+    Update SMS opt-in status for a user (UPDATE operation)
+    """
+    try:
+        logger.info(f"📱 Updating SMS opt-in for {username} to: {smsOptIn}")
+        
+        # Check if user exists
+        user = await db.users.find_one({"username": username})
+        if not user:
+            logger.warning(f"⚠️ User not found: {username}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Update SMS opt-in
+        result = await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "smsOptIn": smsOptIn,
+                    "updatedAt": datetime.utcnow().isoformat()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            logger.warning(f"⚠️ No changes made for {username}")
+        
+        logger.info(f"✅ SMS opt-in updated for {username}: {smsOptIn}")
+        
+        return {
+            "success": True,
+            "username": username,
+            "smsOptIn": smsOptIn,
+            "message": f"SMS notifications {'enabled' if smsOptIn else 'disabled'} successfully"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating SMS opt-in: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.patch("/users/{username}/sms-optin")
+async def toggle_sms_optin(
+    username: str,
+    db = Depends(get_database)
+):
+    """
+    Toggle SMS opt-in status (convenience endpoint)
+    """
+    try:
+        logger.info(f"📱 Toggling SMS opt-in for: {username}")
+        
+        # Get current status
+        user = await db.users.find_one({"username": username}, {"smsOptIn": 1})
+        if not user:
+            logger.warning(f"⚠️ User not found: {username}")
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        current_status = user.get("smsOptIn", False)
+        new_status = not current_status
+        
+        # Update status
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$set": {
+                    "smsOptIn": new_status,
+                    "updatedAt": datetime.utcnow().isoformat()
+                }
+            }
+        )
+        
+        logger.info(f"✅ SMS opt-in toggled for {username}: {current_status} → {new_status}")
+        
+        return {
+            "success": True,
+            "username": username,
+            "smsOptIn": new_status,
+            "message": f"SMS notifications {'enabled' if new_status else 'disabled'}"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error toggling SMS opt-in: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 # NOTE: /messages/conversations endpoint has been moved to line 1821 
 # to ensure it matches BEFORE /messages/{username} generic route

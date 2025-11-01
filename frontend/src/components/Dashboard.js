@@ -54,16 +54,33 @@ const Dashboard = () => {
   // Current user profile for display name
   const [userProfile, setUserProfile] = useState(null);
   
-  const [activeSections, setActiveSections] = useState({
-    myMessages: true,
-    myFavorites: true,
-    myShortlists: true,
-    myViews: true,
-    myExclusions: true,
-    myRequests: true,
-    theirFavorites: true,
-    theirShortlists: true
+  // Section expand/collapse states
+  const [activeSections, setActiveSections] = useState(() => {
+    const saved = localStorage.getItem('dashboardSections');
+    return saved ? JSON.parse(saved) : {
+      myMessages: true,
+      myFavorites: true,
+      myShortlists: true,
+      myViews: true,
+      myExclusions: true,
+      myRequests: true,
+      imageAccessRequests: true,
+      theirFavorites: true,
+      theirShortlists: true
+    };
   });
+
+  // Group expand/collapse states (NEW - for column groups)
+  const [expandedGroups, setExpandedGroups] = useState(() => {
+    const saved = localStorage.getItem('dashboardGroups');
+    return saved ? JSON.parse(saved) : {
+      myActivities: true,
+      othersActivities: true
+    };
+  });
+
+  // Track overall expand/collapse state for toggle button
+  const [isAllExpanded, setIsAllExpanded] = useState(true);
 
   // View mode and drag-drop states
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
@@ -213,11 +230,86 @@ const Dashboard = () => {
     setShowMessageModal(true);
   };
 
+  // Persist section states to localStorage
+  useEffect(() => {
+    localStorage.setItem('dashboardSections', JSON.stringify(activeSections));
+  }, [activeSections]);
+
+  // Persist group states to localStorage
+  useEffect(() => {
+    localStorage.setItem('dashboardGroups', JSON.stringify(expandedGroups));
+  }, [expandedGroups]);
+
   const toggleSection = (section) => {
     setActiveSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  // Toggle group (column) expand/collapse
+  const toggleGroup = (group) => {
+    setExpandedGroups(prev => ({
+      ...prev,
+      [group]: !prev[group]
+    }));
+  };
+
+  // Toggle all sections (single button)
+  const toggleAllSections = () => {
+    if (isAllExpanded) {
+      // Collapse all
+      setExpandedGroups({
+        myActivities: false,
+        othersActivities: false
+      });
+      setActiveSections({
+        myMessages: false,
+        myFavorites: false,
+        myShortlists: false,
+        myViews: false,
+        myExclusions: false,
+        myRequests: false,
+        imageAccessRequests: false,
+        theirFavorites: false,
+        theirShortlists: false
+      });
+      setIsAllExpanded(false);
+    } else {
+      // Expand all
+      setExpandedGroups({
+        myActivities: true,
+        othersActivities: true
+      });
+      setActiveSections({
+        myMessages: true,
+        myFavorites: true,
+        myShortlists: true,
+        myViews: true,
+        myExclusions: true,
+        myRequests: true,
+        imageAccessRequests: true,
+        theirFavorites: true,
+        theirShortlists: true
+      });
+      setIsAllExpanded(true);
+    }
+  };
+
+  // Calculate total items in a group
+  const getGroupCount = (group) => {
+    if (group === 'myActivities') {
+      return dashboardData.myMessages.length + 
+             dashboardData.myFavorites.length + 
+             dashboardData.myShortlists.length + 
+             dashboardData.myExclusions.length;
+    } else if (group === 'othersActivities') {
+      return dashboardData.myViews.length + 
+             dashboardData.myRequests.length + 
+             dashboardData.theirFavorites.length + 
+             dashboardData.theirShortlists.length;
+    }
+    return 0;
   };
 
   // Remove handlers for each category
@@ -556,25 +648,14 @@ const Dashboard = () => {
             
             {/* View Controls Group - Right Aligned */}
             <div className="view-controls-group">
-              {/* View Mode Toggle */}
-              <div className="view-mode-toggle">
-                <button
-                  className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
-                  onClick={() => setViewMode('cards')}
-                  title="Card View"
-                >
-                  <span>⊞</span>
-                  <span>Cards</span>
-                </button>
-                <button
-                  className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
-                  onClick={() => setViewMode('rows')}
-                  title="Row View"
-                >
-                  <span>☰</span>
-                  <span>Rows</span>
-                </button>
-              </div>
+              {/* View Mode Toggle - Single Button */}
+              <button
+                className={`btn-view-toggle ${viewMode}`}
+                onClick={() => setViewMode(viewMode === 'cards' ? 'rows' : 'cards')}
+                title={viewMode === 'cards' ? 'Switch to Row View' : 'Switch to Card View'}
+              >
+                {viewMode === 'cards' ? '⊞' : '☰'}
+              </button>
               
               {/* Refresh Icon Button */}
               <button 
@@ -583,6 +664,15 @@ const Dashboard = () => {
                 title="Refresh Dashboard"
               >
                 🔄
+              </button>
+              
+              {/* Toggle Expand/Collapse Button */}
+              <button 
+                className={`btn-toggle-sections ${isAllExpanded ? 'expanded' : 'collapsed'}`}
+                onClick={toggleAllSections}
+                title={isAllExpanded ? 'Collapse All Sections' : 'Expand All Sections'}
+              >
+                {isAllExpanded ? '⇱' : '⇲'}
               </button>
             </div>
           </>
@@ -641,27 +731,54 @@ const Dashboard = () => {
       <div className="dashboard-grid">
         {/* My Activities */}
         <div className="dashboard-column">
-          <h2 className="column-title">My Activities</h2>
-          {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage, '🗑️')}
-          {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites, '💔')}
-          {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist, '📤')}
-          {renderSection('My Exclusions', dashboardData.myExclusions, 'myExclusions', '❌', '#95a5a6', handleRemoveFromExclusions, '✅')}
+          <div 
+            className={`column-header ${expandedGroups.myActivities ? 'expanded' : 'collapsed'}`}
+            onClick={() => toggleGroup('myActivities')}
+          >
+            <div className="column-header-content">
+              <h2 className="column-title">My Activities</h2>
+              <span className="column-count">{getGroupCount('myActivities')}</span>
+            </div>
+            <span className="column-expand-icon">{expandedGroups.myActivities ? '▼' : '►'}</span>
+          </div>
+          
+          {expandedGroups.myActivities && (
+            <div className="column-sections">
+              {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage, '🗑️')}
+              {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites, '💔')}
+              {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist, '📤')}
+              {renderSection('My Exclusions', dashboardData.myExclusions, 'myExclusions', '❌', '#95a5a6', handleRemoveFromExclusions, '✅')}
+            </div>
+          )}
         </div>
 
         {/* Others' Activities */}
         <div className="dashboard-column">
-          <h2 className="column-title">Others' Activities</h2>
-          {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
-          {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+          <div 
+            className={`column-header ${expandedGroups.othersActivities ? 'expanded' : 'collapsed'}`}
+            onClick={() => toggleGroup('othersActivities')}
+          >
+            <div className="column-header-content">
+              <h2 className="column-title">Others' Activities</h2>
+              <span className="column-count">{getGroupCount('othersActivities')}</span>
+            </div>
+            <span className="column-expand-icon">{expandedGroups.othersActivities ? '▼' : '►'}</span>
+          </div>
+          
+          {expandedGroups.othersActivities && (
+            <div className="column-sections">
+              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
+              {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
           
           {/* Image Access Requests Section */}
           <CategorySection
             title="Image Access Requests"
             icon="📬"
             color="#10b981"
-            count={0}
-            isExpanded={false}
-            onToggle={() => {}}
+            sectionKey="imageAccessRequests"
+            data={[]}
+            isExpanded={activeSections.imageAccessRequests}
+            onToggle={toggleSection}
           >
             <div style={{ padding: '16px' }}>
               <AccessRequestManager
@@ -678,8 +795,10 @@ const Dashboard = () => {
             </div>
           </CategorySection>
           
-          {renderSection('Their Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
-          {renderSection('Their Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
+              {renderSection('Their Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
+              {renderSection('Their Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
+            </div>
+          )}
         </div>
       </div>
 

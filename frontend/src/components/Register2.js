@@ -84,6 +84,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     lastName: "",
     contactNumber: "",
     contactEmail: "",
+    smsOptIn: false,  // SMS notifications opt-in
     dateOfBirth: "",  // Renamed from dob
     gender: "",  // Renamed from sex
     heightFeet: "",  // Feet: 4-7
@@ -1126,6 +1127,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             // Don't pre-fill masked values - user needs to re-enter them
             contactNumber: isMaskedPhone ? '' : (userData.contactNumber || ''),
             contactEmail: isMaskedEmail ? '' : (userData.contactEmail || ''),
+            smsOptIn: userData.smsOptIn || false,  // SMS opt-in preference
             dateOfBirth: userData.dateOfBirth || '',
             gender: userData.gender || '',
             heightFeet,
@@ -1488,6 +1490,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {fieldErrors.contactNumber && touchedFields.contactNumber && (
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
+            {/* SMS Opt-in Checkbox */}
+            <div className="form-check mt-2 sms-optin-checkbox">
+              <input 
+                type="checkbox" 
+                className="form-check-input" 
+                id="smsOptIn"
+                name="smsOptIn"
+                checked={formData.smsOptIn}
+                onChange={(e) => setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }))}
+              />
+              <label className="form-check-label" htmlFor="smsOptIn">
+                📱 I want to receive SMS notifications and updates
+              </label>
+              <small className="d-block text-muted mt-1">
+                Standard messaging rates may apply. You can opt-out anytime.
+              </small>
+            </div>
           </div>
           <div className="col-md-6">
             <label className="form-label">Contact Email <span className="text-danger">*</span></label>

@@ -41,3 +41,10 @@ Reference Modals:
 ✅ Execution History - Original Modal 1
 ✅ Schedule Notification - Recently upgraded
 🔜 Any other modal you want upgraded
+
+
+===========================:AWS ACCOUNT:===========================
+Secret access key: [REMOVED - Stored in .env]
+AWS_ACCESS_KEY_ID=[REMOVED - Stored in .env]
+rajl3v3l@gmail.com / [REMOVED - Stored securely]
+===========================:AWS ACCOUNT:===========================
