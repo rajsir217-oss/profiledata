@@ -43,6 +43,117 @@
   font-weight: 400;
 }
 
+/* MFA Notification Banner */
+.mfa-notification-banner {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  animation: slideInDown 0.5s ease-out;
+}
+
+.mfa-notification-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.mfa-notification-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.mfa-notification-text {
+  flex: 1;
+  color: white;
+}
+
+.mfa-notification-text strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+
+.mfa-notification-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.mfa-notification-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-enable-mfa {
+  background: white;
+  color: #667eea;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-enable-mfa:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #f8f9ff;
+}
+
+.btn-dismiss-mfa {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn-dismiss-mfa:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive MFA Banner */
+@media (max-width: 768px) {
+  .mfa-notification-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .mfa-notification-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* View Controls Group - Right aligned within header */
 .view-controls-group {
   display: flex !important;
