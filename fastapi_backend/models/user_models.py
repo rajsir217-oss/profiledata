@@ -510,6 +510,8 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    mfa_code: Optional[str] = None
+    remember_me: Optional[bool] = False
 
 class PiiRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")

@@ -475,6 +475,74 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
             detail="Invalid credentials"
         )
     
+    # Check MFA if enabled
+    mfa = user.get("mfa", {})
+    if mfa.get("mfa_enabled"):
+        logger.debug(f"MFA is enabled for user '{login_data.username}'")
+        if not login_data.mfa_code:
+            # MFA required but not provided - return special status with details
+            mfa_channel = mfa.get("mfa_type", "email")
+            
+            # Get masked contact info
+            if mfa_channel == "sms":
+                phone = user.get("contactNumber", "")
+                contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
+            else:  # email
+                email = user.get("contactEmail") or user.get("email", "")
+                contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
+            
+            logger.info(f"🔒 MFA required for user '{login_data.username}' - returning MFA_REQUIRED")
+            return JSONResponse(
+                status_code=403,
+                content={
+                    "detail": "MFA_REQUIRED",
+                    "mfa_channel": mfa_channel,
+                    "contact_masked": contact_masked
+                }
+            )
+        
+        # Verify MFA code based on type
+        mfa_type = mfa.get("mfa_type", "email")
+        logger.debug(f"Verifying MFA code for user '{login_data.username}' (type: {mfa_type})")
+        
+        if mfa_type in ["sms", "email"]:
+            # SMS/Email-based MFA - verify OTP from database
+            from services.sms_service import OTPManager
+            otp_manager = OTPManager(db)
+            verify_result = await otp_manager.verify_otp(
+                identifier=login_data.username,
+                code=login_data.mfa_code,
+                purpose="mfa",
+                mark_as_used=True
+            )
+            
+            if not verify_result["success"]:
+                # Check if it's a backup code
+                backup_codes = mfa.get("mfa_backup_codes", [])
+                backup_code_valid = False
+                
+                if "-" in login_data.mfa_code and len(login_data.mfa_code) == 9:
+                    for idx, hashed_code in enumerate(backup_codes):
+                        if PasswordManager.verify_password(login_data.mfa_code, hashed_code):
+                            # Remove used backup code
+                            backup_codes.pop(idx)
+                            await db.users.update_one(
+                                {"username": login_data.username},
+                                {"$set": {"mfa.mfa_backup_codes": backup_codes}}
+                            )
+                            backup_code_valid = True
+                            logger.info(f"✅ Backup code used for login: {login_data.username}")
+                            break
+                
+                if not backup_code_valid:
+                    logger.warning(f"⚠️ Invalid MFA code for user '{login_data.username}'")
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid MFA code"
+                    )
+        
+        logger.info(f"✅ MFA verification successful for user '{login_data.username}'")
+    
     # Create access token
     logger.debug(f"Creating access token for user '{login_data.username}'")
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)

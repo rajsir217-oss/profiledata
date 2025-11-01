@@ -508,3 +508,332 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* =====================================
+   MFA / SECURITY SETTINGS STYLES
+   ===================================== */
+
+.security-settings {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* MFA Status Banner */
+.mfa-status-banner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 2px solid;
+}
+
+.mfa-status-banner.enabled {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.05) 100%);
+  border-color: var(--success-color, #10b981);
+}
+
+.mfa-status-banner.disabled {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+.mfa-status-banner .status-icon {
+  font-size: 3rem;
+  flex-shrink: 0;
+}
+
+.mfa-status-banner .status-info strong {
+  display: block;
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+  color: var(--text-color);
+}
+
+.mfa-status-banner .status-info p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.backup-codes-info {
+  margin-top: 8px !important;
+  font-size: 0.9rem !important;
+  color: var(--primary-color) !important;
+  font-weight: 600;
+}
+
+/* MFA Options */
+.mfa-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.mfa-option {
+  position: relative;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background: var(--card-background);
+}
+
+.mfa-option:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.mfa-option.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+}
+
+.mfa-option input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+}
+
+.mfa-option .option-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.mfa-option .option-icon {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+}
+
+.mfa-option strong {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  color: var(--text-color);
+}
+
+.mfa-option p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+/* MFA Info Box */
+.mfa-info-box {
+  background: var(--info-light, rgba(59, 130, 246, 0.1));
+  border: 1px solid var(--info-color, #3b82f6);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.mfa-info-box p {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+/* MFA Verify Step */
+.mfa-verify {
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.mfa-verify h3 {
+  margin-bottom: 12px;
+  color: var(--text-color);
+}
+
+.mfa-verify p {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+
+.verification-code-input {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  font-family: monospace;
+}
+
+.verification-code-input:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+/* Backup Codes Display */
+.mfa-backup-codes {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.mfa-backup-codes h3 {
+  color: var(--warning-color, #f59e0b);
+  margin-bottom: 12px;
+}
+
+.warning-text {
+  background: var(--warning-light, rgba(245, 158, 11, 0.1));
+  border: 1px solid var(--warning-color, #f59e0b);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0 24px;
+  color: var(--text-color);
+  font-size: 0.95rem;
+}
+
+.backup-codes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.backup-code {
+  background: var(--surface-color);
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  letter-spacing: 0.1em;
+}
+
+/* Button Groups */
+.button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.button-group button {
+  flex: 1;
+  min-width: 150px;
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: var(--card-background);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.3);
+}
+
+.modal-content h3 {
+  margin-bottom: 12px;
+  color: var(--text-color);
+}
+
+.modal-content p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+/* Danger Button */
+.btn-danger {
+  background: var(--danger-color, #ef4444);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+  background: var(--danger-dark, #dc2626);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+.btn-danger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Alerts */
+.alert {
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  border: 1px solid;
+}
+
+.alert-success {
+  background: var(--success-light, rgba(16, 185, 129, 0.1));
+  border-color: var(--success-color, #10b981);
+  color: var(--text-color);
+}
+
+.alert-error {
+  background: var(--danger-light, rgba(239, 68, 68, 0.1));
+  border-color: var(--danger-color, #ef4444);
+  color: var(--text-color);
+}
+
+.alert-warning {
+  background: var(--warning-light, rgba(245, 158, 11, 0.1));
+  border-color: var(--warning-color, #f59e0b);
+  color: var(--text-color);
+}
+
+.alert-info {
+  background: var(--info-light, rgba(59, 130, 246, 0.1));
+  border-color: var(--info-color, #3b82f6);
+  color: var(--text-color);
+}
+
+/* Mobile Responsive for MFA */
+@media (max-width: 768px) {
+  .mfa-options {
+    grid-template-columns: 1fr;
+  }
+
+  .backup-codes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group button {
+    width: 100%;
+  }
+
+  .mfa-status-banner {
+    flex-direction: column;
+    text-align: center;
+  }
+}

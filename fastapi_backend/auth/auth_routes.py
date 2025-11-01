@@ -254,18 +254,33 @@ async def login(
         mfa = user.get("mfa", {})
         if mfa.get("mfa_enabled"):
             if not request.mfa_code:
-                # MFA required but not provided - return special status
-                raise HTTPException(
-                    status_code=403, 
-                    detail="MFA code required",
-                    headers={"X-MFA-Required": "true"}
+                # MFA required but not provided - return special status with details
+                mfa_channel = mfa.get("mfa_type", "email")
+                
+                # Get masked contact info
+                if mfa_channel == "sms":
+                    phone = user.get("contactNumber", "")
+                    contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
+                else:  # email
+                    email = user.get("contactEmail") or user.get("email", "")
+                    contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
+                
+                # Return 403 with structured error response
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "MFA_REQUIRED",
+                        "mfa_channel": mfa_channel,
+                        "contact_masked": contact_masked
+                    }
                 )
             
             # Verify MFA code based on type
             mfa_type = mfa.get("mfa_type", "totp")
             
-            if mfa_type == "sms":
-                # SMS-based MFA - verify OTP from database
+            if mfa_type in ["sms", "email"]:
+                # SMS/Email-based MFA - verify OTP from database
                 from services.sms_service import OTPManager
                 otp_manager = OTPManager(db)
                 verify_result = await otp_manager.verify_otp(

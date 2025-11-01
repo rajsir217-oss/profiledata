@@ -37,7 +37,8 @@ async def send_otp_code(
     """
     try:
         username = current_user["username"]
-        user_email = current_user.get("email") or current_user.get("contactEmail")
+        # Prioritize contactEmail over legacy email field
+        user_email = current_user.get("contactEmail") or current_user.get("email")
         
         # Determine contact info
         email = request.email or user_email
@@ -203,7 +204,7 @@ async def get_verification_status(
         "email_verified": status_data.get("email_verified", False),
         "phone_verified": status_data.get("phone_verified", False),
         "verified_at": status_data.get("verified_at"),
-        "email": current_user.get("email") or current_user.get("contactEmail"),
+        "email": current_user.get("contactEmail") or current_user.get("email"),
         "phone": current_user.get("contactNumber")
     }
 
@@ -224,7 +225,7 @@ async def update_otp_preference(
         
         # Validate user has the required contact info
         if request.channel == "email":
-            email = current_user.get("email") or current_user.get("contactEmail")
+            email = current_user.get("contactEmail") or current_user.get("email")
             if not email:
                 raise HTTPException(
                     status_code=400,
@@ -276,7 +277,7 @@ async def get_otp_preference(
     
     # Determine available channels
     available_channels = []
-    if current_user.get("email") or current_user.get("contactEmail"):
+    if current_user.get("contactEmail") or current_user.get("email"):
         available_channels.append("email")
     if current_user.get("contactNumber"):
         available_channels.append("sms")
@@ -284,6 +285,6 @@ async def get_otp_preference(
     return {
         "preferred_channel": channel,
         "available_channels": available_channels,
-        "email": current_user.get("email") or current_user.get("contactEmail"),
+        "email": current_user.get("contactEmail") or current_user.get("email"),
         "phone": current_user.get("contactNumber")
     }
