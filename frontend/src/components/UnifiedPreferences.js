@@ -5,6 +5,8 @@ import UniversalTabContainer from './UniversalTabContainer';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 
 const UnifiedPreferences = () => {
   const [toast, setToast] = useState(null);
@@ -40,6 +42,22 @@ const UnifiedPreferences = () => {
   const [notificationPreferences, setNotificationPreferences] = useState(null);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
+
+  // MFA Settings State
+  const [mfaStatus, setMfaStatus] = useState({
+    mfa_enabled: false,
+    mfa_channel: null,
+    contact_masked: null,
+    backup_codes_count: 0
+  });
+  const [selectedMfaMethod, setSelectedMfaMethod] = useState('none');
+  const [mfaStep, setMfaStep] = useState('select'); // 'select', 'verify', 'backup_codes'
+  const [mfaVerificationCode, setMfaVerificationCode] = useState('');
+  const [backupCodes, setBackupCodes] = useState([]);
+  const [loadingMfa, setLoadingMfa] = useState(false);
+  const [mfaMessage, setMfaMessage] = useState({ type: '', text: '' });
+  const [showDisableMfaModal, setShowDisableMfaModal] = useState(false);
+  const [disableMfaPassword, setDisableMfaPassword] = useState('');
 
   const themes = [
     {
@@ -171,6 +189,26 @@ const UnifiedPreferences = () => {
 
     fetchNotificationPreferences();
     checkAdminStatus();
+  }, []);
+
+  // Load MFA status
+  useEffect(() => {
+    const fetchMfaStatus = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${getBackendUrl()}/api/auth/mfa/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setMfaStatus(response.data);
+        if (response.data.mfa_enabled) {
+          setSelectedMfaMethod(response.data.mfa_channel || 'email');
+        }
+      } catch (error) {
+        console.error('Error loading MFA status:', error);
+      }
+    };
+
+    fetchMfaStatus();
   }, []);
 
   const loadAdminSettings = async () => {
@@ -340,6 +378,151 @@ const UnifiedPreferences = () => {
     }
   };
 
+  // MFA Handlers
+  const handleMfaMethodChange = (method) => {
+    if (mfaStatus.mfa_enabled) {
+      showToast('Please disable MFA before changing methods', 'info');
+      return;
+    }
+    setSelectedMfaMethod(method);
+    setMfaMessage({ type: '', text: '' });
+  };
+
+  const handleSendMfaCode = async () => {
+    if (selectedMfaMethod === 'none') {
+      setMfaMessage({ type: 'error', text: 'Please select Email or SMS' });
+      return;
+    }
+
+    try {
+      setLoadingMfa(true);
+      setMfaMessage({ type: '', text: '' });
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${getBackendUrl()}/api/auth/otp/send`, 
+        { channel: selectedMfaMethod },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        setMfaStep('verify');
+        setMfaMessage({ 
+          type: 'success', 
+          text: `Verification code sent to ${response.data.contact_masked || 'your ' + selectedMfaMethod}` 
+        });
+      } else if (response.data.mock_code) {
+        setMfaStep('verify');
+        setMfaMessage({ 
+          type: 'warning', 
+          text: `DEV MODE: Use code ${response.data.mock_code}` 
+        });
+      }
+    } catch (error) {
+      console.error('Error sending MFA code:', error);
+      setMfaMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to send code' });
+    } finally {
+      setLoadingMfa(false);
+    }
+  };
+
+  const handleVerifyAndEnableMfa = async () => {
+    if (!mfaVerificationCode || mfaVerificationCode.length !== 6) {
+      setMfaMessage({ type: 'error', text: 'Please enter the 6-digit code' });
+      return;
+    }
+
+    try {
+      setLoadingMfa(true);
+      setMfaMessage({ type: '', text: '' });
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(`${getBackendUrl()}/api/auth/mfa/enable`,
+        {
+          verification_code: mfaVerificationCode,
+          channel: selectedMfaMethod
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.codes) {
+        setBackupCodes(response.data.codes);
+        setMfaStep('backup_codes');
+        setMfaMessage({ type: 'success', text: 'MFA enabled successfully!' });
+        
+        // Refresh MFA status
+        const statusResponse = await axios.get(`${getBackendUrl()}/api/auth/mfa/status`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setMfaStatus(statusResponse.data);
+      }
+    } catch (error) {
+      console.error('Error enabling MFA:', error);
+      setMfaMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to enable MFA' });
+    } finally {
+      setLoadingMfa(false);
+    }
+  };
+
+  const handleDisableMfa = async () => {
+    if (!disableMfaPassword) {
+      setMfaMessage({ type: 'error', text: 'Please enter your password' });
+      return;
+    }
+
+    try {
+      setLoadingMfa(true);
+      setMfaMessage({ type: '', text: '' });
+
+      const token = localStorage.getItem('token');
+      await axios.post(`${getBackendUrl()}/api/auth/mfa/disable`,
+        { password: disableMfaPassword },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      setMfaStatus({
+        mfa_enabled: false,
+        mfa_channel: null,
+        contact_masked: null,
+        backup_codes_count: 0
+      });
+      setSelectedMfaMethod('none');
+      setShowDisableMfaModal(false);
+      setDisableMfaPassword('');
+      setMfaMessage({ type: 'success', text: 'MFA disabled successfully' });
+      showToast('MFA has been disabled', 'success');
+    } catch (error) {
+      console.error('Error disabling MFA:', error);
+      setMfaMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to disable MFA' });
+    } finally {
+      setLoadingMfa(false);
+    }
+  };
+
+  const handleFinishMfaSetup = () => {
+    setMfaStep('select');
+    setMfaVerificationCode('');
+    setBackupCodes([]);
+    showToast('MFA setup complete!', 'success');
+  };
+
+  const copyBackupCodes = () => {
+    const codesText = backupCodes.join('\n');
+    navigator.clipboard.writeText(codesText);
+    showToast('Backup codes copied to clipboard', 'success');
+  };
+
+  const downloadBackupCodes = () => {
+    const codesText = backupCodes.join('\n');
+    const blob = new Blob([codesText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'mfa-backup-codes.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Backup codes downloaded', 'success');
+  };
+
   if (isLoading || loadingNotifications) {
     return (
       <div className="unified-preferences-container">
@@ -472,6 +655,252 @@ const UnifiedPreferences = () => {
                 {isChangingPassword ? 'Changing Password...' : 'Change Password'}
               </button>
             </form>
+          </section>
+        </div>
+            )
+          },
+          {
+            id: 'security',
+            icon: '🔐',
+            label: 'Security & MFA',
+            content: (
+              <div className="security-settings">
+          {/* MFA Status Banner */}
+          <section className="settings-section">
+            <h2>🔐 Multi-Factor Authentication (MFA)</h2>
+            <p className="section-description">Add an extra layer of security to your account</p>
+            
+            {/* Current Status */}
+            <div className={`mfa-status-banner ${mfaStatus.mfa_enabled ? 'enabled' : 'disabled'}`}>
+              <div className="status-icon">
+                {mfaStatus.mfa_enabled ? '✅' : '⚪'}
+              </div>
+              <div className="status-info">
+                <strong>{mfaStatus.mfa_enabled ? 'MFA Enabled' : 'MFA Disabled'}</strong>
+                <p>
+                  {mfaStatus.mfa_enabled 
+                    ? `Active via ${mfaStatus.mfa_channel?.toUpperCase()} - ${mfaStatus.contact_masked}`
+                    : 'Your account is not protected by MFA'
+                  }
+                </p>
+                {mfaStatus.mfa_enabled && (
+                  <p className="backup-codes-info">
+                    {mfaStatus.backup_codes_count} backup codes remaining
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* MFA Messages */}
+            {mfaMessage.text && (
+              <div className={`alert alert-${mfaMessage.type}`} style={{ marginTop: '16px' }}>
+                {mfaMessage.text}
+              </div>
+            )}
+
+            {/* MFA Setup/Management */}
+            {!mfaStatus.mfa_enabled ? (
+              <>
+                {/* Step 1: Select Method */}
+                {mfaStep === 'select' && (
+                  <div className="mfa-setup">
+                    <h3>Choose MFA Method</h3>
+                    <div className="mfa-options">
+                      <label className={`mfa-option ${selectedMfaMethod === 'none' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="mfa-method"
+                          value="none"
+                          checked={selectedMfaMethod === 'none'}
+                          onChange={() => handleMfaMethodChange('none')}
+                        />
+                        <div className="option-content">
+                          <span className="option-icon">⚪</span>
+                          <div>
+                            <strong>None (Disabled)</strong>
+                            <p>No additional security</p>
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className={`mfa-option ${selectedMfaMethod === 'email' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="mfa-method"
+                          value="email"
+                          checked={selectedMfaMethod === 'email'}
+                          onChange={() => handleMfaMethodChange('email')}
+                        />
+                        <div className="option-content">
+                          <span className="option-icon">📧</span>
+                          <div>
+                            <strong>Email OTP</strong>
+                            <p>Receive codes via email</p>
+                          </div>
+                        </div>
+                      </label>
+
+                      <label className={`mfa-option ${selectedMfaMethod === 'sms' ? 'selected' : ''}`}>
+                        <input
+                          type="radio"
+                          name="mfa-method"
+                          value="sms"
+                          checked={selectedMfaMethod === 'sms'}
+                          onChange={() => handleMfaMethodChange('sms')}
+                        />
+                        <div className="option-content">
+                          <span className="option-icon">📱</span>
+                          <div>
+                            <strong>SMS OTP</strong>
+                            <p>Receive codes via text message</p>
+                          </div>
+                        </div>
+                      </label>
+                    </div>
+
+                    {selectedMfaMethod !== 'none' && (
+                      <div className="mfa-info-box">
+                        <p>ℹ️ You'll receive a verification code to confirm ownership before MFA is enabled.</p>
+                      </div>
+                    )}
+
+                    <button
+                      className="btn-primary"
+                      onClick={handleSendMfaCode}
+                      disabled={loadingMfa || selectedMfaMethod === 'none'}
+                    >
+                      {loadingMfa ? 'Sending Code...' : 'Enable MFA'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Step 2: Verify Code */}
+                {mfaStep === 'verify' && (
+                  <div className="mfa-verify">
+                    <h3>Enter Verification Code</h3>
+                    <p>We sent a 6-digit code to your {selectedMfaMethod}</p>
+                    
+                    <input
+                      type="text"
+                      className="verification-code-input"
+                      placeholder="000000"
+                      maxLength="6"
+                      value={mfaVerificationCode}
+                      onChange={(e) => setMfaVerificationCode(e.target.value.replace(/\D/g, ''))}
+                      style={{ fontSize: '24px', textAlign: 'center', letterSpacing: '0.5em', padding: '16px' }}
+                    />
+
+                    <div className="button-group">
+                      <button
+                        className="btn-primary"
+                        onClick={handleVerifyAndEnableMfa}
+                        disabled={loadingMfa || mfaVerificationCode.length !== 6}
+                      >
+                        {loadingMfa ? 'Verifying...' : 'Verify & Enable'}
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={handleSendMfaCode}
+                        disabled={loadingMfa}
+                      >
+                        Resend Code
+                      </button>
+                      <button
+                        className="btn-secondary"
+                        onClick={() => {
+                          setMfaStep('select');
+                          setMfaVerificationCode('');
+                          setMfaMessage({ type: '', text: '' });
+                        }}
+                        disabled={loadingMfa}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Backup Codes */}
+                {mfaStep === 'backup_codes' && (
+                  <div className="mfa-backup-codes">
+                    <h3>⚠️ Save Your Backup Codes</h3>
+                    <p className="warning-text">
+                      Store these codes in a safe place. Each code can only be used once to access your account if you lose access to your {selectedMfaMethod}.
+                    </p>
+
+                    <div className="backup-codes-grid">
+                      {backupCodes.map((code, index) => (
+                        <div key={index} className="backup-code">
+                          {code}
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="button-group">
+                      <button className="btn-primary" onClick={copyBackupCodes}>
+                        📋 Copy Codes
+                      </button>
+                      <button className="btn-primary" onClick={downloadBackupCodes}>
+                        💾 Download Codes
+                      </button>
+                      <button className="btn-secondary" onClick={handleFinishMfaSetup}>
+                        I've Saved My Codes
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              /* MFA Enabled - Show Management Options */
+              <div className="mfa-management">
+                <div className="button-group">
+                  <button
+                    className="btn-danger"
+                    onClick={() => setShowDisableMfaModal(true)}
+                  >
+                    Disable MFA
+                  </button>
+                </div>
+
+                {/* Disable MFA Modal */}
+                {showDisableMfaModal && (
+                  <div className="modal-overlay" onClick={() => setShowDisableMfaModal(false)}>
+                    <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                      <h3>Disable MFA</h3>
+                      <p>Enter your password to confirm</p>
+                      
+                      <input
+                        type="password"
+                        placeholder="Password"
+                        value={disableMfaPassword}
+                        onChange={(e) => setDisableMfaPassword(e.target.value)}
+                        style={{ width: '100%', padding: '12px', marginBottom: '16px' }}
+                      />
+
+                      <div className="button-group">
+                        <button
+                          className="btn-danger"
+                          onClick={handleDisableMfa}
+                          disabled={loadingMfa}
+                        >
+                          {loadingMfa ? 'Disabling...' : 'Disable MFA'}
+                        </button>
+                        <button
+                          className="btn-secondary"
+                          onClick={() => {
+                            setShowDisableMfaModal(false);
+                            setDisableMfaPassword('');
+                          }}
+                          disabled={loadingMfa}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         </div>
             )

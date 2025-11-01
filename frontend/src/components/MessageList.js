@@ -4,6 +4,12 @@ import { getDisplayName } from '../utils/userDisplay';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
+  const [imageErrors, setImageErrors] = React.useState({});
+
+  const handleImageError = (username) => {
+    setImageErrors(prev => ({ ...prev, [username]: true }));
+  };
+
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
     const date = new Date(timestamp);
@@ -44,8 +50,12 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               onClick={() => onSelectUser(conv.username)}
             >
               <div className="conversation-avatar">
-                {conv.userProfile?.images?.[0] ? (
-                  <img src={conv.userProfile.images[0]} alt={conv.username} />
+                {conv.userProfile?.images?.[0] && !imageErrors[conv.username] ? (
+                  <img 
+                    src={conv.userProfile.images[0]} 
+                    alt={conv.username}
+                    onError={() => handleImageError(conv.username)}
+                  />
                 ) : (
                   <div className="avatar-placeholder">
                     {conv.userProfile?.firstName?.[0] || conv.username[0].toUpperCase()}

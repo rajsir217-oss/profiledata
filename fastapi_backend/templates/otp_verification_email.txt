@@ -1,0 +1,16 @@
+Hello {{username}},
+
+{{message}}
+
+Your verification code is:
+
+    {{otp_code}}
+
+⏱️ This code expires in {{expiry_minutes}} minutes.
+🔒 Don't share this code with anyone.
+
+If you didn't request this code, please ignore this email or contact support if you have concerns.
+
+---
+This is an automated message from {{app_name}}
+© 2025 {{app_name}}. All rights reserved.

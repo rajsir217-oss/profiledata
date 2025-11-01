@@ -373,6 +373,111 @@
   }
 }
 
+/* Message Actions - Delete Button */
+.message-content {
+  flex: 1;
+}
+
+.message-actions {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.message-bubble-container:hover .message-actions {
+  opacity: 1;
+}
+
+.delete-message-btn {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm, 4px);
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.delete-message-btn:hover:not(:disabled) {
+  opacity: 1;
+  background: var(--hover-background, rgba(0, 0, 0, 0.05));
+  transform: scale(1.1);
+}
+
+.delete-message-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.3;
+}
+
+/* Delete Confirmation */
+.delete-confirmation {
+  display: flex;
+  gap: 6px;
+  animation: fadeIn 0.2s ease;
+}
+
+.confirm-delete-btn,
+.cancel-delete-btn {
+  padding: 4px 10px;
+  border: none;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.confirm-delete-btn {
+  background: var(--danger-color, #ef4444);
+  color: white;
+}
+
+.confirm-delete-btn:hover:not(:disabled) {
+  background: var(--danger-hover, #dc2626);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.cancel-delete-btn {
+  background: var(--surface-color, #f0f0f0);
+  color: var(--text-color, #333);
+}
+
+.cancel-delete-btn:hover:not(:disabled) {
+  background: var(--hover-background, #e0e0e0);
+}
+
+.confirm-delete-btn:disabled,
+.cancel-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Deleting Animation */
+.message-bubble-container.deleting {
+  opacity: 0.5;
+  pointer-events: none;
+  animation: fadeOut 0.3s ease;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+/* Own message bubble adjustments for delete button */
+.message-bubble.own {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .message-bubble {
@@ -385,5 +490,15 @@
   
   .send-button {
     padding: 12px 20px;
+  }
+  
+  /* Make delete button always visible on mobile */
+  .message-actions {
+    opacity: 1;
+  }
+  
+  .delete-message-btn {
+    font-size: 14px;
+    padding: 6px 8px;
   }
 }
