@@ -252,12 +252,53 @@ async def login(
         
         # Check MFA if enabled
         mfa = user.get("mfa", {})
-        if mfa.get("mfa_enabled") and not request.mfa_code:
-            raise HTTPException(status_code=403, detail="MFA code required")
-        
-        if mfa.get("mfa_enabled") and request.mfa_code:
-            if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), request.mfa_code):
-                raise HTTPException(status_code=401, detail="Invalid MFA code")
+        if mfa.get("mfa_enabled"):
+            if not request.mfa_code:
+                # MFA required but not provided - return special status
+                raise HTTPException(
+                    status_code=403, 
+                    detail="MFA code required",
+                    headers={"X-MFA-Required": "true"}
+                )
+            
+            # Verify MFA code based on type
+            mfa_type = mfa.get("mfa_type", "totp")
+            
+            if mfa_type == "sms":
+                # SMS-based MFA - verify OTP from database
+                from services.sms_service import OTPManager
+                otp_manager = OTPManager(db)
+                verify_result = await otp_manager.verify_otp(
+                    identifier=request.username,
+                    code=request.mfa_code,
+                    purpose="mfa",
+                    mark_as_used=True
+                )
+                
+                if not verify_result["success"]:
+                    # Check if it's a backup code
+                    backup_codes = mfa.get("mfa_backup_codes", [])
+                    backup_code_valid = False
+                    
+                    if "-" in request.mfa_code and len(request.mfa_code) == 9:
+                        for idx, hashed_code in enumerate(backup_codes):
+                            if PasswordManager.verify_password(request.mfa_code, hashed_code):
+                                # Remove used backup code
+                                backup_codes.pop(idx)
+                                await db.users.update_one(
+                                    {"username": request.username},
+                                    {"$set": {"mfa.mfa_backup_codes": backup_codes}}
+                                )
+                                backup_code_valid = True
+                                logger.info(f"✅ Backup code used for login: {request.username}")
+                                break
+                    
+                    if not backup_code_valid:
+                        raise HTTPException(status_code=401, detail="Invalid MFA code")
+            else:
+                # TOTP-based MFA (legacy)
+                if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), request.mfa_code):
+                    raise HTTPException(status_code=401, detail="Invalid MFA code")
         
         # Check password expiry
         password_expires_at = security.get("password_expires_at")

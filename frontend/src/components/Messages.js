@@ -131,6 +131,13 @@ const Messages = () => {
     }
   };
 
+  const handleMessageDeleted = (messageId) => {
+    // Remove message from local state
+    setMessages(prev => prev.filter(msg => (msg._id || msg.id) !== messageId));
+    // Reload conversations to update last message
+    loadConversations();
+  };
+
   if (loading) {
     return (
       <div className="messages-loading">
@@ -168,6 +175,7 @@ const Messages = () => {
           currentUsername={currentUsername}
           otherUser={otherUser}
           onSendMessage={handleSendMessage}
+          onMessageDeleted={handleMessageDeleted}
         />
       </div>
     </div>

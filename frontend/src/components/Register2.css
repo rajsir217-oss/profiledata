@@ -168,3 +168,50 @@
     padding-right: 0 !important;
   }
 }
+
+/* SMS Opt-in Checkbox - Theme-aware styling */
+.sms-optin-checkbox {
+  padding: 10px 12px;
+  background: var(--surface-color, #f8f9fa);
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--border-color, #e0e0e0);
+  transition: all 0.2s ease;
+}
+
+.sms-optin-checkbox:hover {
+  background: var(--hover-background, #f0f0f0);
+  border-color: var(--primary-color, #667eea);
+}
+
+.sms-optin-checkbox .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  border: 2px solid var(--border-color, #d0d0d0);
+  transition: all 0.2s ease;
+}
+
+.sms-optin-checkbox .form-check-input:checked {
+  background-color: var(--primary-color, #667eea);
+  border-color: var(--primary-color, #667eea);
+}
+
+.sms-optin-checkbox .form-check-input:focus {
+  border-color: var(--primary-color, #667eea);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.sms-optin-checkbox .form-check-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  cursor: pointer;
+  margin-left: 8px;
+}
+
+.sms-optin-checkbox small {
+  font-size: 12px;
+  color: var(--text-muted, #999);
+  margin-left: 26px;
+}

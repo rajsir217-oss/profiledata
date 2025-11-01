@@ -8,7 +8,7 @@ echo "================================"
 
 # Switch to local environment
 echo "🔄 Switching to local environment..."
-"$(dirname "$0")/switch-env.sh" local
+"$(dirname "$0")/deploy_gcp/switch-env.sh" local
 echo ""
 
 # Change to backend directory

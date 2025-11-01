@@ -73,7 +73,7 @@ echo "$GIT_STATUS" | sed 's/^/  /'
 
 # Add all changes
 print_status "Adding files to staging area..."
-if git add .; then
+if git add --all; then
     print_success "Files added successfully"
 else
     print_error "Failed to add files"

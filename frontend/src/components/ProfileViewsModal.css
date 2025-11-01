@@ -23,17 +23,19 @@
   }
 }
 
-/* Modal Container */
+/* Modal Container - Modal 1 Style */
 .profile-views-modal {
   background: var(--card-background, white);
   border-radius: 16px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25), 
+              0 8px 16px rgba(0, 0, 0, 0.15);
   max-width: 700px;
   width: 90%;
-  max-height: 80vh;
+  max-height: 85vh;
   display: flex;
   flex-direction: column;
-  animation: slideUp 0.3s ease;
+  animation: slideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -47,48 +49,62 @@
   }
 }
 
-/* Modal Header */
+/* Modal Header - Modal 1 Style */
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 28px;
-  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  padding: 20px 28px;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.2);
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: -0.3px;
 }
 
 .close-button {
-  background: transparent;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
-  font-size: 32px;
-  color: var(--text-secondary, #666);
+  font-size: 28px;
+  color: white;
   cursor: pointer;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
+  border-radius: 8px;
   transition: all 0.2s ease;
+  font-weight: 300;
+  line-height: 1;
 }
 
 .close-button:hover {
-  background: var(--hover-background, rgba(0, 0, 0, 0.05));
-  color: var(--text-color, #333);
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.05);
 }
 
-/* Modal Body */
+.close-button:active {
+  transform: scale(0.95);
+}
+
+/* Modal Body - Modal 1 Style */
 .modal-body {
-  padding: 20px 28px;
+  padding: 24px 28px;
   overflow-y: auto;
   flex: 1;
   min-height: 300px;
+  background: var(--card-background, white);
 }
 
 /* Loading State */
@@ -142,29 +158,33 @@
   font-weight: 600;
 }
 
-/* Empty State */
+/* Empty State - Modal 1 Style */
 .empty-state {
   text-align: center;
-  padding: 60px 20px;
+  padding: 80px 20px;
 }
 
 .empty-icon {
-  font-size: 64px;
+  font-size: 80px;
   display: block;
-  margin-bottom: 16px;
-  opacity: 0.5;
+  margin-bottom: 20px;
+  opacity: 0.4;
+  filter: grayscale(20%);
 }
 
 .empty-state p {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--text-color, #333);
-  margin-bottom: 8px;
+  margin-bottom: 12px;
+  letter-spacing: -0.3px;
 }
 
 .empty-state small {
   color: var(--text-secondary, #666);
-  font-size: 14px;
+  font-size: 15px;
+  display: block;
+  line-height: 1.5;
 }
 
 /* Views List */
@@ -174,22 +194,24 @@
   gap: 16px;
 }
 
-/* View Item */
+/* View Item - Modal 1 Style */
 .view-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  background: var(--surface-color, #f9fafb);
-  border: 1px solid var(--border-color, #e0e0e0);
+  gap: 18px;
+  padding: 18px;
+  background: var(--card-background, white);
+  border: 2px solid var(--border-color, #e5e7eb);
   border-radius: 12px;
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .view-item:hover {
-  background: var(--hover-background, #f3f4f6);
-  border-color: var(--primary-color, #667eea);
+  background: var(--surface-color, #f9fafb);
+  border-color: #10b981;
   transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
 }
 
 /* Avatar */
@@ -263,7 +285,7 @@
 }
 
 .btn-view-profile {
-  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
   color: white;
   border: none;
   padding: 10px 20px;
@@ -273,11 +295,16 @@
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
 }
 
 .btn-view-profile:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+}
+
+.btn-view-profile:active {
+  transform: translateY(0);
 }
 
 /* Modal Footer */
