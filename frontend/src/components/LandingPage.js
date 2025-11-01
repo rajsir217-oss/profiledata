@@ -39,7 +39,7 @@ const LandingPage = () => {
           </p>
           
           <div className="hero-cta">
-            <button className="btn-get-started" onClick={() => navigate('/register')}>
+            <button className="btn-get-started" onClick={() => navigate('/register2')}>
               Get Started Free
             </button>
             <button className="btn-learn-more" onClick={() => document.querySelector('.how-it-works').scrollIntoView({ behavior: 'smooth' })}>
