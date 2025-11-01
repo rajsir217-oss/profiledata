@@ -1,9 +1,14 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import api from '../api';
 import './ChatWindow.css';
 
-const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => {
+const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted }) => {
   const messagesEndRef = useRef(null);
-  const [messageText, setMessageText] = React.useState('');
+  const [messageText, setMessageText] = useState('');
+  const [deletingMessage, setDeletingMessage] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [headerImageError, setHeaderImageError] = useState(false);
+  const [messageImageErrors, setMessageImageErrors] = useState({});
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -12,6 +17,12 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    // Reset image errors when switching conversations
+    setHeaderImageError(false);
+    setMessageImageErrors({});
+  }, [otherUser]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -34,6 +45,33 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
     }
   };
 
+  const handleDeleteMessage = async (messageId) => {
+    try {
+      setDeletingMessage(messageId);
+      await api.delete(`/messages/${messageId}?username=${currentUsername}`);
+      
+      // Notify parent to refresh messages
+      if (onMessageDeleted) {
+        onMessageDeleted(messageId);
+      }
+      
+      setDeleteConfirm(null);
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      alert(error.response?.data?.detail || 'Failed to delete message');
+    } finally {
+      setDeletingMessage(null);
+    }
+  };
+
+  const confirmDelete = (messageId) => {
+    setDeleteConfirm(messageId);
+  };
+
+  const cancelDelete = () => {
+    setDeleteConfirm(null);
+  };
+
   if (!otherUser) {
     return (
       <div className="chat-window">
@@ -51,8 +89,13 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
       {/* Chat Header */}
       <div className="chat-header">
         <div className="chat-user-info">
-          {otherUser.images?.[0] ? (
-            <img src={otherUser.images[0]} alt={otherUser.username} className="chat-avatar" />
+          {otherUser.images?.[0] && !headerImageError ? (
+            <img 
+              src={otherUser.images[0]} 
+              alt={otherUser.username} 
+              className="chat-avatar"
+              onError={() => setHeaderImageError(true)}
+            />
           ) : (
             <div className="chat-avatar-placeholder">
               {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
@@ -84,16 +127,23 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
           messages.map((msg, index) => {
             const isOwnMessage = (msg.fromUsername || msg.from_username) === currentUsername;
             const showAvatar = index === 0 || (messages[index - 1].fromUsername || messages[index - 1].from_username) !== (msg.fromUsername || msg.from_username);
+            const messageId = msg._id || msg.id;
+            const isConfirmingDelete = deleteConfirm === messageId;
+            const isDeleting = deletingMessage === messageId;
             
             return (
               <div
-                key={msg.id || index}
-                className={`message-bubble-container ${isOwnMessage ? 'own' : 'other'}`}
+                key={messageId || index}
+                className={`message-bubble-container ${isOwnMessage ? 'own' : 'other'} ${isDeleting ? 'deleting' : ''}`}
               >
                 {!isOwnMessage && showAvatar && (
                   <div className="message-avatar">
-                    {otherUser.images?.[0] ? (
-                      <img src={otherUser.images[0]} alt={otherUser.username} />
+                    {otherUser.images?.[0] && !messageImageErrors[index] ? (
+                      <img 
+                        src={otherUser.images[0]} 
+                        alt={otherUser.username}
+                        onError={() => setMessageImageErrors(prev => ({ ...prev, [index]: true }))}
+                      />
                     ) : (
                       <div className="avatar-small">
                         {otherUser.firstName?.[0] || otherUser.username?.[0]?.toUpperCase() || '?'}
@@ -104,8 +154,42 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage }) => 
                 {!isOwnMessage && !showAvatar && <div className="message-avatar-spacer" />}
                 
                 <div className={`message-bubble ${isOwnMessage ? 'own' : 'other'}`}>
-                  <p>{msg.content || msg.message}</p>
-                  <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
+                  <div className="message-content">
+                    <p>{msg.content || msg.message}</p>
+                    <span className="message-time">{formatTime(msg.createdAt || msg.timestamp)}</span>
+                  </div>
+                  
+                  {isOwnMessage && messageId && (
+                    <div className="message-actions">
+                      {isConfirmingDelete ? (
+                        <div className="delete-confirmation">
+                          <button
+                            className="confirm-delete-btn"
+                            onClick={() => handleDeleteMessage(messageId)}
+                            disabled={isDeleting}
+                          >
+                            ✓ Delete
+                          </button>
+                          <button
+                            className="cancel-delete-btn"
+                            onClick={cancelDelete}
+                            disabled={isDeleting}
+                          >
+                            ✗ Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          className="delete-message-btn"
+                          onClick={() => confirmDelete(messageId)}
+                          title="Delete message"
+                          disabled={isDeleting}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

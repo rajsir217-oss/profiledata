@@ -605,6 +605,23 @@ const EditProfile = () => {
                 onChange={handleChange}
                 required
               />
+              {/* SMS Opt-in Checkbox */}
+              <div className="form-check mt-2 sms-optin-checkbox">
+                <input 
+                  type="checkbox" 
+                  className="form-check-input" 
+                  id="smsOptIn"
+                  name="smsOptIn"
+                  checked={formData.smsOptIn || false}
+                  onChange={(e) => setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }))}
+                />
+                <label className="form-check-label" htmlFor="smsOptIn">
+                  📱 I want to receive SMS notifications and updates
+                </label>
+                <small className="d-block text-muted mt-1">
+                  Standard messaging rates may apply. You can opt-out anytime.
+                </small>
+              </div>
             </div>
             <div className="col-md-6">
               <label className="form-label">Contact Email</label>
