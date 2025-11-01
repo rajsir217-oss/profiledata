@@ -82,6 +82,10 @@ const Dashboard = () => {
   // Track overall expand/collapse state for toggle button
   const [isAllExpanded, setIsAllExpanded] = useState(true);
 
+  // MFA notification state
+  const [showMfaNotification, setShowMfaNotification] = useState(false);
+  const [mfaEnabled, setMfaEnabled] = useState(false);
+  
   // View mode and drag-drop states
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -109,6 +113,7 @@ const Dashboard = () => {
     };
     
     loadUserProfile();
+    checkMfaStatus(currentUser);
     
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
@@ -204,6 +209,50 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const checkMfaStatus = async (username) => {
+    // Check if user has dismissed the MFA notification
+    const dismissed = localStorage.getItem('mfaNotificationDismissed');
+    if (dismissed === 'true') {
+      return;
+    }
+    
+    try {
+      // Import axios and getBackendUrl to avoid double-prefixing
+      const axios = (await import('axios')).default;
+      const { getBackendUrl } = await import('../config/apiConfig');
+      
+      const response = await axios.get(
+        `${getBackendUrl()}/api/auth/mfa/status`,
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
+      
+      const mfaStatus = response.data.mfa_enabled;
+      setMfaEnabled(mfaStatus);
+      
+      // Show notification only if MFA is not enabled
+      if (!mfaStatus) {
+        setShowMfaNotification(true);
+      }
+    } catch (err) {
+      logger.error('Error checking MFA status:', err);
+      // Don't show notification if there's an error
+    }
+  };
+
+  const handleDismissMfaNotification = () => {
+    setShowMfaNotification(false);
+    localStorage.setItem('mfaNotificationDismissed', 'true');
+  };
+
+  const handleEnableMfa = () => {
+    navigate('/preferences?tab=security');
+    setShowMfaNotification(false);
   };
 
   const handleProfileClick = (username) => {
@@ -678,6 +727,34 @@ const Dashboard = () => {
           </>
         }
       />
+
+      {/* MFA Enablement Notification Banner */}
+      {showMfaNotification && (
+        <div className="mfa-notification-banner">
+          <div className="mfa-notification-content">
+            <div className="mfa-notification-icon">🔐</div>
+            <div className="mfa-notification-text">
+              <strong>Secure your account with Multi-Factor Authentication</strong>
+              <p>Add an extra layer of security by enabling MFA. It only takes a minute!</p>
+            </div>
+            <div className="mfa-notification-actions">
+              <button 
+                className="btn-enable-mfa"
+                onClick={handleEnableMfa}
+              >
+                Enable MFA
+              </button>
+              <button 
+                className="btn-dismiss-mfa"
+                onClick={handleDismissMfaNotification}
+                title="Don't show this again"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Overview Section */}
       <div className="dashboard-stats-overview">

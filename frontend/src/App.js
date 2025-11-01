@@ -1,11 +1,12 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 // Registration and Profile pages (both versions available)
 import Register from './components/Register';
 import Register2 from './components/Register2';
 import EditProfile from './components/EditProfile';
 import Login from './components/Login';
+import LandingPage from './components/LandingPage';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
 import MatchingCriteria from './components/MatchingCriteria';
@@ -76,8 +77,13 @@ const applyTheme = (themeId) => {
   }
 };
 
-function App() {
+// App Content Component (inside Router to use useLocation)
+function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const location = useLocation();
+  
+  // Routes where sidebar and topbar should be hidden
+  const hideNavigation = ['/', '/login', '/register', '/register2', '/verify-email'].includes(location.pathname);
 
   // Initialize theme on app load
   useEffect(() => {
@@ -204,23 +210,26 @@ function App() {
   };
   
   return (
-    <Router>
-      <div className="app-wrapper">
+    <div className="app-wrapper">
+      {!hideNavigation && (
         <Sidebar 
           isCollapsed={isSidebarCollapsed}
           onToggle={handleSidebarToggle}
         />
-        <div className={`app-layout ${!isSidebarCollapsed ? 'sidebar-open' : ''}`}>
+      )}
+      <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
+        {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
-          <div className="main-content">
-            <div className="container">
-              <Routes>
+        )}
+        <div className={hideNavigation ? "main-content-full" : "main-content"}>
+          <div className={hideNavigation ? "" : "container"}>
+            <Routes>
               {/* Public routes */}
+              <Route path="/" element={<LandingPage />} />
               <Route path="/register" element={<Register />} />
               <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/" element={<Login />} />
               
               {/* Legal pages - accessible to all */}
               <Route path="/terms" element={<TermsOfService />} />
@@ -276,9 +285,17 @@ function App() {
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />
             </Routes>
           </div>
-          </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// Main App Component (wrapper for Router)
+function App() {
+  return (
+    <Router>
+      <AppContent />
       <ToastContainer />
       <PIIAccessRefreshNotification />
     </Router>
