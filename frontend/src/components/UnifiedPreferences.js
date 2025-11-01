@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import PageHeader from './PageHeader';
 import SystemStatus from './SystemStatus';
 import UniversalTabContainer from './UniversalTabContainer';
@@ -9,8 +10,18 @@ import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 
 const UnifiedPreferences = () => {
+  const location = useLocation();
   const [toast, setToast] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  
+  // Get initial tab from URL parameter
+  const getInitialTab = () => {
+    const params = new URLSearchParams(location.search);
+    const tab = params.get('tab');
+    return tab || 'account';
+  };
+  
+  const [defaultTab, setDefaultTab] = useState(getInitialTab());
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
@@ -545,7 +556,7 @@ const UnifiedPreferences = () => {
 
       <UniversalTabContainer
         variant="underlined"
-        defaultTab="account"
+        defaultTab={defaultTab}
         tabs={[
           {
             id: 'account',
