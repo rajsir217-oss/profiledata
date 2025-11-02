@@ -7,7 +7,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from config import Settings
-from jinja2 import Template
 
 settings = Settings()
 
@@ -144,24 +143,19 @@ async def send_invitation_email(
         
         <div class="content">
             <div class="greeting">
-                Hello {{ to_name }}! 👋
+                Hello {to_name}! 👋
             </div>
             
             <div class="message">
                 <p>We're excited to invite you to join <strong>L3V3LMATCH</strong>, a premium matrimonial platform designed to help you find meaningful connections.</p>
                 
-                {% if custom_message %}
-                <div class="custom-message">
-                    <strong>Personal Message:</strong><br>
-                    {{ custom_message }}
-                </div>
-                {% endif %}
+                {custom_message_html}
                 
                 <p>Your exclusive invitation link is ready! Click the button below to create your profile and start your journey:</p>
             </div>
             
             <center>
-                <a href="{{ invitation_link }}" class="cta-button">
+                <a href="{invitation_link}" class="cta-button">
                     Create Your Profile →
                 </a>
             </center>
@@ -195,12 +189,21 @@ async def send_invitation_email(
 </html>
     """
     
-    # Render template
-    template = Template(html_template)
-    html_content = template.render(
+    # Prepare custom message HTML
+    custom_message_html = ""
+    if custom_message:
+        custom_message_html = f"""
+                <div class="custom-message">
+                    <strong>Personal Message:</strong><br>
+                    {custom_message}
+                </div>
+        """
+    
+    # Render template with Python format
+    html_content = html_template.format(
         to_name=to_name,
         invitation_link=invitation_link,
-        custom_message=custom_message
+        custom_message_html=custom_message_html
     )
     
     # Plain text version
