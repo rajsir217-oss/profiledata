@@ -17,7 +17,7 @@ const InvitationManager = () => {
     name: '',
     email: '',
     phone: '',
-    channel: 'EMAIL',
+    channel: 'email',
     customMessage: '',
     sendImmediately: true
   });
@@ -101,7 +101,7 @@ const InvitationManager = () => {
           name: '',
           email: '',
           phone: '',
-          channel: 'EMAIL',
+          channel: 'email',
           customMessage: '',
           sendImmediately: true
         });
@@ -316,7 +316,7 @@ const InvitationManager = () => {
                     {invitation.emailStatus !== 'accepted' && (
                       <button
                         className="btn-action btn-email"
-                        onClick={() => handleResend(invitation.id, 'EMAIL')}
+                        onClick={() => handleResend(invitation.id, 'email')}
                         disabled={invitation.archived}
                       >
                         {invitation.emailStatus === 'pending' ? 'Send' : 'Resend'}
@@ -331,7 +331,7 @@ const InvitationManager = () => {
                     {invitation.phone && invitation.smsStatus !== 'accepted' && (
                       <button
                         className="btn-action btn-sms"
-                        onClick={() => handleResend(invitation.id, 'SMS')}
+                        onClick={() => handleResend(invitation.id, 'sms')}
                         disabled={invitation.archived}
                       >
                         {invitation.smsStatus === 'pending' ? 'Send' : 'Resend'}
@@ -413,9 +413,9 @@ const InvitationManager = () => {
                   value={formData.channel}
                   onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
                 >
-                  <option value="EMAIL">Email Only</option>
-                  <option value="SMS">SMS Only</option>
-                  <option value="BOTH">Both Email & SMS</option>
+                  <option value="email">Email Only</option>
+                  <option value="sms">SMS Only</option>
+                  <option value="both">Both Email & SMS</option>
                 </select>
               </div>
 
