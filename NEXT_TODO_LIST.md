@@ -9,11 +9,11 @@
 ## 🚀 High Priority (Sprint 1)
 
 ### ✅ Task 9: Rename "Exclusion" to Less Offensive Term
-**Status:** 🔄 IN PROGRESS  
+**Status:** ✅ COMPLETED  
 **Priority:** 🔥 High  
 **Complexity:** 🟢 Very Easy  
-**Estimated Time:** 30 minutes  
-**Assigned:** Current Sprint
+**Actual Time:** 25 minutes  
+**Completed:** November 1, 2025
 
 **Implementation:**
 - Find and replace "Exclusion" → "Not Interested" (user-facing only)
@@ -21,11 +21,20 @@
 - Update all frontend components
 - Update UI text and labels
 
-**Files to Modify:**
-- Frontend components mentioning "exclusion"
-- Sidebar navigation
-- Profile cards
-- User-facing text only (not database fields)
+**Files Modified:**
+- ✅ `frontend/src/components/Exclusions.js` - Page title, messages
+- ✅ `frontend/src/components/Dashboard.js` - Section label and icon
+- ✅ `frontend/src/components/Profile.js` - Button labels, tooltips, messages
+- ✅ `frontend/src/components/SearchResultCard.js` - Button tooltips
+- ✅ `frontend/src/components/SearchPage2.js` - Status messages
+
+**Changes Made:**
+- "My Exclusions" → "Not Interested" (with 🙈 icon)
+- "Remove from Exclusions" → "Remove from Not Interested"
+- "Exclude from Search" → "Mark as Not Interested"
+- "Added to exclusions" → "Marked as not interested"
+- "Excluded" button label → "Not Interested"
+- Internal code/API endpoints unchanged
 
 ---
 
@@ -389,10 +398,11 @@ Preferred criteria:
 
 ## 🎯 Current Status
 
-**Active Task:** Task 9 - Rename "Exclusion" to "Not Interested"  
+**Completed:** Task 9 - Rename "Exclusion" to "Not Interested" ✅  
 **Next Up:** Task 1 - Last Login Display  
-**Branch:** main  
-**Last Updated:** November 1, 2025
+**Branch:** dev  
+**Last Updated:** November 2, 2025  
+**Progress:** 1/10 tasks completed (10%)
 
 ---
 
