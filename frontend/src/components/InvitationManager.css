@@ -88,6 +88,36 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
   overflow-x: auto;
+  position: relative;
+}
+
+/* Scroll hint for mobile */
+.table-container::after {
+  content: '← Scroll →';
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: rgba(102, 126, 234, 0.9);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .table-container::after {
+    opacity: 1;
+    animation: fadeInOut 3s ease-in-out;
+  }
+}
+
+@keyframes fadeInOut {
+  0%, 100% { opacity: 0; }
+  10%, 90% { opacity: 1; }
 }
 
 .invitation-table {
@@ -182,14 +212,15 @@
 
 /* Action Buttons */
 .btn-action {
-  padding: 6px 16px;
+  padding: 10px 20px;
   border: none;
-  border-radius: var(--radius-sm);
-  font-size: 13px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  min-width: 80px;
 }
 
 .btn-action:disabled {
@@ -205,6 +236,7 @@
 .btn-email:hover:not(:disabled) {
   background: var(--primary-color-dark, #0056b3);
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-sms {
@@ -215,6 +247,7 @@
 .btn-sms:hover:not(:disabled) {
   background: #00966d;
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .action-buttons {
@@ -226,16 +259,25 @@
 .btn-icon {
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 22px;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 8px 12px;
   border-radius: var(--radius-sm);
   transition: all 0.2s ease;
+  min-width: 40px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-icon:hover {
   background: var(--hover-bg, rgba(0, 0, 0, 0.05));
   transform: scale(1.1);
+}
+
+.btn-icon:active {
+  transform: scale(0.95);
 }
 
 /* Primary Button */
@@ -396,30 +438,162 @@ form {
 /* Responsive Design */
 @media (max-width: 768px) {
   .invitation-manager {
-    padding: 20px;
+    padding: 15px;
+  }
+
+  .invitation-header h1 {
+    font-size: 24px;
+  }
+
+  .invitation-header .subtitle {
+    font-size: 14px;
   }
 
   .stats-grid {
     grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-value {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 12px;
   }
 
   .action-bar {
     flex-direction: column;
-    gap: 16px;
+    gap: 12px;
     align-items: stretch;
+    padding: 12px 15px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    padding: 14px 20px;
+    font-size: 16px;
   }
 
   .table-container {
-    overflow-x: scroll;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .invitation-table {
-    min-width: 800px;
+    min-width: 1000px;
+    font-size: 13px;
+  }
+
+  .invitation-table th,
+  .invitation-table td {
+    padding: 12px 8px;
+    font-size: 13px;
+  }
+
+  .btn-action {
+    padding: 8px 16px;
+    font-size: 13px;
+    min-width: 70px;
+  }
+
+  .status-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  .modal-overlay {
+    padding: 0;
   }
 
   .modal-content {
     max-width: 100%;
     max-height: 100vh;
     border-radius: 0;
+    margin: 0;
+  }
+
+  .modal-header {
+    padding: 20px 15px;
+  }
+
+  .modal-header h2 {
+    font-size: 20px;
+  }
+
+  form {
+    padding: 20px 15px;
+  }
+
+  .form-group {
+    margin-bottom: 16px;
+  }
+
+  .form-group label {
+    font-size: 13px;
+  }
+
+  .form-group input[type="text"],
+  .form-group input[type="email"],
+  .form-group input[type="tel"],
+  .form-group select,
+  .form-group textarea {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  .modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button {
+    width: 100%;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .invitation-manager {
+    padding: 10px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .stat-card {
+    padding: 14px;
+  }
+
+  .action-bar {
+    padding: 10px;
+  }
+
+  .invitation-header h1 {
+    font-size: 20px;
+  }
+
+  .table-container {
+    margin: 0 -10px;
+  }
+
+  .btn-icon {
+    font-size: 18px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .modal-content {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
