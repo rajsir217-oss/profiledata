@@ -315,6 +315,9 @@
   border-radius: 3px;
   transition: all 0.2s ease;
   cursor: pointer;
+  border: none !important; /* Remove blue borders */
+  outline: none !important; /* Remove blue outlines */
+  box-shadow: none !important; /* Remove any shadows */
 }
 
 .profile-narrative-content .highlight:hover {
@@ -345,6 +348,9 @@
 .profile-narrative-content span.highlight strong {
   text-decoration: none !important;
   color: inherit !important;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Remove any default browser or theme blue backgrounds */
@@ -355,6 +361,9 @@
 
 .profile-narrative-section .highlight {
   background: transparent !important; /* No background by default */
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .profile-narrative-section .highlight:hover {
@@ -363,6 +372,8 @@
     rgba(255, 245, 157, 0.6) 0%,
     rgba(255, 238, 88, 0.5) 100%
   ) !important; /* Yellow highlight only on hover */
+  border: none !important;
+  outline: none !important;
 }
 
 /* Preferences List */
@@ -406,6 +417,9 @@
 .preferences-list .highlight {
   background: transparent !important; /* No background by default */
   cursor: pointer;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 .preferences-list .highlight:hover {
@@ -414,6 +428,8 @@
     rgba(255, 245, 157, 0.6) 0%,
     rgba(255, 238, 88, 0.5) 100%
   ) !important; /* Yellow highlight only on hover */
+  border: none !important;
+  outline: none !important;
 }
 
 .preferences-list strong {
