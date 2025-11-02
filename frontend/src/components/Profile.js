@@ -12,6 +12,7 @@ import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
+import { generateAboutMe, generatePartnerPreference, formatPreferencesList } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import "./Profile.css";
 
@@ -1081,6 +1082,39 @@ const Profile = () => {
           <p style={{ margin: 0, color: '#495057' }}>"{user.bio}"</p>
         </div>
       )}
+
+      {/* About Me Narrative */}
+      <div className="profile-section profile-narrative-section">
+        <h3>📝 About Me</h3>
+        <div 
+          className="profile-narrative-content"
+          dangerouslySetInnerHTML={{ __html: generateAboutMe(user) }}
+        />
+      </div>
+
+      {/* What I'm Looking For Narrative */}
+      <div className="profile-section profile-narrative-section">
+        <h3>💑 What I'm Looking For</h3>
+        <div 
+          className="profile-narrative-content"
+          dangerouslySetInnerHTML={{ __html: generatePartnerPreference(user) }}
+        />
+        
+        {/* Structured Preferences List */}
+        {formatPreferencesList(user, user).length > 0 && (
+          <div className="preferences-list">
+            <h4>Preferences:</h4>
+            <ul>
+              {formatPreferencesList(user, user).map((pref, index) => (
+                <li key={index}>
+                  <span className="pref-label">{pref.label}:</span>{' '}
+                  <span dangerouslySetInnerHTML={{ __html: pref.value }} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
       {/* Basic Info (Always visible) */}
       <div className="profile-section">
