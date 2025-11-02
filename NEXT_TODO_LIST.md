@@ -2,7 +2,7 @@
 
 **Created:** November 1, 2025  
 **Status:** Active Development  
-**Total Tasks:** 10
+**Total Tasks:** 11
 
 ---
 
@@ -486,19 +486,70 @@ Preferred criteria:
 
 ---
 
+### Task 11: Integrate Invitation Email Template with Template Manager
+**Status:** ⏳ Pending  
+**Priority:** 🔵 Low  
+**Complexity:** 🟡 Medium  
+**Estimated Time:** 1-2 hours
+
+**Background:**
+- Invitation system currently uses hardcoded HTML template in `email_sender.py`
+- Template Manager system exists for managing notification templates
+- Should consolidate all email templates into single management system
+
+**Implementation:**
+
+**Current State:**
+- Invitation email template is hardcoded in `fastapi_backend/services/email_sender.py`
+- Uses Python `.format()` for variable substitution
+- Separate from notification template system
+
+**Desired State:**
+- Invitation email template stored in `notification_templates` collection
+- Manageable via Template Manager UI
+- Uses same template engine as other notifications
+- Admin can customize invitation email without code changes
+
+**Files to Modify:**
+- `fastapi_backend/services/email_sender.py` - Load template from database
+- `fastapi_backend/routers/invitations.py` - Use template service
+- Template Manager UI - Add "Invitation Email" template type
+
+**Benefits:**
+- Centralized template management
+- No code deployment needed for email changes
+- A/B testing support
+- Version history
+- Admin-friendly customization
+
+**Considerations:**
+- Maintain backward compatibility during migration
+- Ensure CSS escaping still works with template engine
+- Test thoroughly to avoid breaking existing invitations
+- Consider creating default template migration script
+
+**Migration Steps:**
+1. Create invitation template in database (one-time)
+2. Update email_sender.py to load from database
+3. Fallback to hardcoded template if database unavailable
+4. Test both paths thoroughly
+5. Remove hardcoded template after verification
+
+---
+
 ## 📊 Summary
 
 ### By Priority:
 - **🔥 High Priority:** 4 tasks (~7 hours)
 - **🟠 Medium Priority:** 4 tasks (~9 hours)
-- **🔵 Low Priority:** 2 tasks (~5 hours)
+- **🔵 Low Priority:** 3 tasks (~6.5 hours)
 
 ### By Complexity:
 - **🟢 Easy:** 6 tasks
-- **🟡 Medium:** 4 tasks
+- **🟡 Medium:** 5 tasks
 
 ### Total Effort:
-- **~21 hours** (3 days of focused work)
+- **~22.5 hours** (3 days of focused work)
 
 ---
 
@@ -524,7 +575,8 @@ Preferred criteria:
 ### **Sprint 4 (Week 3+):** Nice-to-Have
 - Task 2: Pause Function (2-3 hours)
 - Task 8: Auto-Expire (2 hours)
-- **Total:** 4-5 hours
+- Task 11: Invitation Template Integration (1-2 hours)
+- **Total:** 5-7 hours
 
 ---
 
@@ -543,10 +595,10 @@ Preferred criteria:
 **Sprint 2 Complete!** 🎊🎊🎊  
 **Sprint 3 (Phase 1) Complete!** 🚀🚀🚀
 
-**Next Up:** Sprint 3 (Task 4: SEO Optimization) OR Sprint 4 (Task 2/8)  
+**Next Up:** Sprint 3 (Task 4: SEO Optimization) OR Sprint 4 (Task 2/8/11)  
 **Branch:** dev  
-**Last Updated:** November 2, 2025 (7:55 AM PST)  
-**Progress:** 7/10 tasks completed (70%!)  
+**Last Updated:** November 2, 2025 (8:57 AM PST)  
+**Progress:** 7/11 tasks completed (64%!)  
 **Time Spent:** ~7.25 hours total (Running 50%+ under budget!)
 
 ---
