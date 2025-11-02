@@ -172,15 +172,17 @@
 
 /* Status Badges */
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  vertical-align: middle;
-  line-height: 1.5;
+  line-height: 1;
+  min-height: 24px;
 }
 
 .status-pending {
