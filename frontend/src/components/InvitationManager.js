@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -137,23 +138,21 @@ const InvitationManager = () => {
 
       if (response.ok) {
         loadInvitations();
-        alert('Invitation resent successfully!');
+        toastService.success('Invitation resent successfully!');
       } else {
         const data = await response.json();
         const errorMsg = typeof data.detail === 'string' 
           ? data.detail 
           : data.detail?.[0]?.msg || 'Failed to resend invitation';
-        alert(errorMsg);
+        toastService.error(errorMsg);
       }
     } catch (err) {
-      alert('Error resending invitation: ' + err.message);
+      toastService.error('Error resending invitation: ' + err.message);
     }
   };
 
   const handleArchive = async (invitationId) => {
-    if (!window.confirm('Are you sure you want to archive this invitation?')) {
-      return;
-    }
+    // No confirmation needed - archive is reversible
 
     try {
       const token = localStorage.getItem('token');
@@ -170,22 +169,21 @@ const InvitationManager = () => {
       if (response.ok) {
         loadInvitations();
         loadStats();
+        toastService.success('Invitation archived successfully');
       } else {
         const data = await response.json();
         const errorMsg = typeof data.detail === 'string' 
           ? data.detail 
           : data.detail?.[0]?.msg || 'Failed to archive invitation';
-        alert(errorMsg);
+        toastService.error(errorMsg);
       }
     } catch (err) {
-      alert('Error archiving invitation: ' + err.message);
+      toastService.error('Error archiving invitation: ' + err.message);
     }
   };
 
   const handleDelete = async (invitationId) => {
-    if (!window.confirm('Are you sure you want to permanently delete this invitation? This cannot be undone.')) {
-      return;
-    }
+    // Delete archived invitations only (2-click pattern: Archive → Delete)
 
     try {
       const token = localStorage.getItem('token');
@@ -202,15 +200,16 @@ const InvitationManager = () => {
       if (response.ok) {
         loadInvitations();
         loadStats();
+        toastService.success('Invitation deleted permanently');
       } else {
         const data = await response.json();
         const errorMsg = typeof data.detail === 'string' 
           ? data.detail 
           : data.detail?.[0]?.msg || 'Failed to delete invitation';
-        alert(errorMsg);
+        toastService.error(errorMsg);
       }
     } catch (err) {
-      alert('Error deleting invitation: ' + err.message);
+      toastService.error('Error deleting invitation: ' + err.message);
     }
   };
 
@@ -454,6 +453,8 @@ const InvitationManager = () => {
           </div>
         </div>
       )}
+
+      {/* Toast notifications handled by ToastContainer in App.js */}
     </div>
   );
 };
