@@ -317,11 +317,59 @@
   );
   padding: 2px 4px;
   border-radius: 3px;
+  transition: all 0.2s ease;
+}
+
+.profile-narrative-content .highlight:hover {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 245, 157, 0.6) 0%,
+    rgba(255, 238, 88, 0.5) 100%
+  );
 }
 
 .profile-narrative-content strong {
   font-weight: 600;
   color: var(--text-color, #333);
+  background: none !important; /* Remove any blue background from strong tags */
+}
+
+/* Remove blue selection background */
+.profile-narrative-content .highlight::selection,
+.profile-narrative-content strong::selection {
+  background: rgba(255, 245, 157, 0.6);
+  color: var(--text-color, #333);
+}
+
+/* Ensure no link or anchor styling */
+.profile-narrative-content .highlight,
+.profile-narrative-content .highlight strong,
+.profile-narrative-content span.highlight,
+.profile-narrative-content span.highlight strong {
+  text-decoration: none !important;
+  color: inherit !important;
+}
+
+/* Remove any default browser or theme blue backgrounds */
+.profile-narrative-section .highlight,
+.profile-narrative-section strong {
+  background-color: transparent !important;
+}
+
+.profile-narrative-section .highlight {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 245, 157, 0.4) 0%,
+    rgba(255, 238, 88, 0.3) 100%
+  ) !important;
+}
+
+.profile-narrative-section .highlight:hover {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 245, 157, 0.6) 0%,
+    rgba(255, 238, 88, 0.5) 100%
+  ) !important;
 }
 
 /* Preferences List */
@@ -359,6 +407,28 @@
 .preferences-list li:hover {
   background: var(--hover-background, #f0f0f0);
   transform: translateX(4px);
+}
+
+/* Remove blue background from preferences list highlights */
+.preferences-list .highlight {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 245, 157, 0.4) 0%,
+    rgba(255, 238, 88, 0.3) 100%
+  ) !important;
+}
+
+.preferences-list .highlight:hover {
+  background: linear-gradient(
+    120deg,
+    rgba(255, 245, 157, 0.6) 0%,
+    rgba(255, 238, 88, 0.5) 100%
+  ) !important;
+}
+
+.preferences-list strong {
+  background: none !important;
+  color: var(--text-color, #333) !important;
 }
 
 .preferences-list .pref-label {
