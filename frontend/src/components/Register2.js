@@ -913,15 +913,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         const profileRes = await api.get(`/profile/${formData.username}`);
         setSavedUser(profileRes.data);
         
-        // Step 3: Show success modal
+        // Step 3: Redirect to email verification sent page
         setIsSubmitting(false); // Clear loading state
-        setSuccessMsg(res.data.message);
-        setShowSuccessModal(true);
-        
-        // Step 4: Redirect to login after 5 seconds
-        setTimeout(() => {
-          navigate('/login');
-        }, 5000);
+        navigate('/verify-email-sent', {
+          state: {
+            email: formData.contactEmail,
+            username: formData.username
+          }
+        });
       }
 
     } catch (err) {

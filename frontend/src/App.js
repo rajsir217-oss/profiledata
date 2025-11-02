@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 // Registration and Profile pages (both versions available)
 import Register from './components/Register';
 import Register2 from './components/Register2';
+import EmailVerificationSent from './components/EmailVerificationSent';
 import EditProfile from './components/EditProfile';
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
@@ -230,6 +231,7 @@ function AppContent() {
               <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/verify-email-sent" element={<EmailVerificationSent />} />
               
               {/* Legal pages - accessible to all */}
               <Route path="/terms" element={<TermsOfService />} />
