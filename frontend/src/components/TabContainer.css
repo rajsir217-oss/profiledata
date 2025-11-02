@@ -323,14 +323,17 @@
     padding: 8px;
     gap: 6px;
     border-radius: 0;
-    overflow-x: auto;
+    overflow-x: visible;
     overflow-y: visible;
+    display: flex;
+    width: 100%;
+    justify-content: stretch;
   }
 
   .tab-button {
-    min-width: 100px;
-    max-width: 120px;
-    flex: 0 0 auto;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
     padding: 10px 8px;
     flex-direction: column;
     gap: 4px;
@@ -397,11 +400,14 @@
   .tab-bar {
     padding: 6px;
     gap: 4px;
+    width: 100%;
+    justify-content: stretch;
   }
 
   .tab-button {
-    min-width: 90px;
-    max-width: 110px;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
     padding: 8px 6px;
   }
 
