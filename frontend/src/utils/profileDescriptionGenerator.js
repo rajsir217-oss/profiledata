@@ -17,17 +17,24 @@ export const generateAboutMe = (user) => {
   
   // Identity and basic info
   const age = user.age || calculateAge(user.dateOfBirth);
-  const location = user.location || user.state || '';
+  const location = user.location || user.state || user.city || '';
   const country = user.countryOfResidence || user.countryOfOrigin || '';
   
   para1 = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
   
-  if (user.workExperience && user.workExperience.length > 0) {
+  // Check if professional (has work or working status)
+  const isWorking = user.workingStatus === 'Yes' || user.workingStatus === true || 
+                    (user.workExperience && Array.isArray(user.workExperience) && user.workExperience.length > 0);
+  if (isWorking) {
     para1 += ' <span class="highlight"><strong>professional</strong></span>';
   }
   
-  if (location && country) {
-    para1 += ` from <span class="highlight"><strong>${location}, ${country}</strong></span>`;
+  // Add location - be more flexible
+  if (location) {
+    para1 += ` from <span class="highlight"><strong>${location}</strong></span>`;
+    if (country && location !== country) {
+      para1 += `, <span class="highlight"><strong>${country}</strong></span>`;
+    }
   } else if (country) {
     para1 += ` from <span class="highlight"><strong>${country}</strong></span>`;
   }
@@ -46,20 +53,38 @@ export const generateAboutMe = (user) => {
     }
   }
   
+  // Interests
+  if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
+    const interestsList = user.interests.slice(0, 4).map(i => 
+      `<span class="highlight"><strong>${i.toLowerCase()}</strong></span>`
+    ).join(', ');
+    para1 += `. I enjoy ${interestsList}`;
+  }
+  
   // Lifestyle details
   const lifestyleDetails = [];
-  if (user.drinking && user.drinking.toLowerCase() === 'socially') {
-    lifestyleDetails.push(`<span class="highlight"><strong>social drinker</strong></span>`);
+  if (user.drinking) {
+    const drinking = user.drinking.toLowerCase();
+    if (drinking === 'socially') {
+      lifestyleDetails.push(`<span class="highlight"><strong>social drinker</strong></span>`);
+    } else if (drinking === 'never') {
+      lifestyleDetails.push(`<span class="highlight"><strong>non-drinker</strong></span>`);
+    }
   }
-  if (user.smoking && user.smoking.toLowerCase() === 'socially') {
-    lifestyleDetails.push(`<span class="highlight"><strong>occasional smoker</strong></span>`);
+  if (user.smoking) {
+    const smoking = user.smoking.toLowerCase();
+    if (smoking === 'socially') {
+      lifestyleDetails.push(`<span class="highlight"><strong>occasional smoker</strong></span>`);
+    } else if (smoking === 'never') {
+      lifestyleDetails.push(`<span class="highlight"><strong>non-smoker</strong></span>`);
+    }
   }
   if (user.eatingPreference && user.eatingPreference.toLowerCase() !== 'any') {
     lifestyleDetails.push(`<span class="highlight"><strong>${user.eatingPreference.toLowerCase()}</strong></span> diet preference`);
   }
   
   if (lifestyleDetails.length > 0) {
-    para1 += `, I'm a ${lifestyleDetails.join(' and ')}`;
+    para1 += `, and I'm a ${lifestyleDetails.join(' and ')}`;
   }
   
   // Languages and religion
@@ -90,7 +115,7 @@ export const generateAboutMe = (user) => {
   
   para1 += '.';
 
-  // PARAGRAPH 2: Education, work, and family background
+  // PARAGRAPH 2: Education, work, About text, and family background
   let para2 = '';
   
   // Education and work
@@ -101,6 +126,8 @@ export const generateAboutMe = (user) => {
     }
   }
   
+  // Work experience - handle both array and About field
+  let workAdded = false;
   if (user.workExperience && Array.isArray(user.workExperience) && user.workExperience.length > 0) {
     const currentWork = user.workExperience.find(w => w.status && w.status.toLowerCase() === 'current');
     const work = currentWork || user.workExperience[0];
@@ -114,6 +141,16 @@ export const generateAboutMe = (user) => {
         para2 += ` in <span class="highlight"><strong>${work.location}</strong></span>`;
       }
       para2 += '.';
+      workAdded = true;
+    }
+  }
+  
+  // Check for About field (alternate source for work/personal info)
+  if (user.about && user.about.trim() && !workAdded) {
+    if (para2) {
+      para2 += ' ' + user.about;
+    } else {
+      para2 = user.about;
     }
   }
   
