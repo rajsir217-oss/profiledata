@@ -38,25 +38,40 @@
 
 ---
 
-### Task 1: Show Last Logged In on Dashboard
-**Status:** ⏳ Pending  
+### ✅ Task 1: Show Last Logged In on Dashboard
+**Status:** ✅ COMPLETED  
 **Priority:** 🔥 High  
 **Complexity:** 🟢 Easy  
-**Estimated Time:** 30 minutes
+**Actual Time:** 25 minutes  
+**Completed:** November 2, 2025
 
 **Implementation:**
-- Track `lastLoginAt` in user document during login
+- Backend already tracks `lastLoginAt` in `security.last_login_at` field
 - Display on Dashboard: "Last login: 2 hours ago"
-- Use relative time formatting
+- Use relative time formatting utility
 
-**Files to Modify:**
-- `fastapi_backend/auth/auth_routes.py` - Update lastLoginAt on login
-- `frontend/src/components/Dashboard.js` - Display login time
-- `frontend/src/components/Dashboard.css` - Style indicator
+**Files Created:**
+- ✅ `frontend/src/utils/timeFormatter.js` - Relative time utility (120 lines)
 
-**Considerations:**
-- Use relative time: "2 hours ago", "Yesterday", "3 days ago"
-- Privacy: Only show to user themselves
+**Files Modified:**
+- ✅ `frontend/src/components/Dashboard.js` - Fetch profile, display last login
+- ✅ `frontend/src/components/Dashboard.css` - Theme-aware styling
+
+**Features:**
+- Displays below page header with 🕐 icon
+- Relative time: "Just now", "2 hours ago", "Yesterday", "3 days ago", etc.
+- Theme-aware styling with subtle hover effect
+- Only shown to user viewing their own dashboard (privacy-first)
+- Auto-updates on dashboard refresh
+
+**Time Formats Supported:**
+- < 1 minute: "Just now"
+- < 1 hour: "X minutes ago"
+- < 1 day: "X hours ago"
+- < 1 week: "Yesterday" or "X days ago"
+- < 1 month: "X weeks ago"
+- < 1 year: "X months ago"
+- ≥ 1 year: "X years ago"
 
 ---
 
@@ -398,11 +413,14 @@ Preferred criteria:
 
 ## 🎯 Current Status
 
-**Completed:** Task 9 - Rename "Exclusion" to "Not Interested" ✅  
-**Next Up:** Task 1 - Last Login Display  
+**Completed:** 
+- ✅ Task 9 - Rename "Exclusion" to "Not Interested"
+- ✅ Task 1 - Last Login Display
+
+**Next Up:** Task 3 - Email Verification Screen  
 **Branch:** dev  
 **Last Updated:** November 2, 2025  
-**Progress:** 1/10 tasks completed (10%)
+**Progress:** 2/10 tasks completed (20%)
 
 ---
 
