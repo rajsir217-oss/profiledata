@@ -40,7 +40,7 @@
 
 /* Scrolling tabs - flows with content */
 .register-container .tab-bar {
-  position: relative !important;
+  /* position: relative !important; */
   width: 100% !important;
   margin-bottom: 0 !important;
   border-radius: 12px 12px 0 0 !important;

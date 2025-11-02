@@ -1766,21 +1766,21 @@ const Profile = () => {
                 if (isExcluded) {
                   await api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
                   setIsExcluded(false);
-                  setSuccessMessage('✅ Removed from exclusions');
+                  setSuccessMessage('✅ Removed from not interested');
                 } else {
                   await api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
                   setIsExcluded(true);
-                  setSuccessMessage('✅ Added to exclusions');
+                  setSuccessMessage('✅ Marked as not interested');
                 }
                 setTimeout(() => setSuccessMessage(''), 3000);
               } catch (err) {
-                setError('Failed to update exclusions');
+                setError('Failed to update not interested');
               }
             }}
-            title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+            title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
           >
             <span className="action-icon">✕</span>
-            <span className="action-label">{isExcluded ? 'Excluded' : 'Exclude'}</span>
+            <span className="action-label">{isExcluded ? 'Not Interested' : 'Not Interested'}</span>
           </button>
         </div>
       )}

@@ -824,7 +824,7 @@ const Dashboard = () => {
               {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage, '🗑️')}
               {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites, '💔')}
               {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist, '📤')}
-              {renderSection('My Exclusions', dashboardData.myExclusions, 'myExclusions', '❌', '#95a5a6', handleRemoveFromExclusions, '✅')}
+              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions, '✅')}
             </div>
           )}
         </div>

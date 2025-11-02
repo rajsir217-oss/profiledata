@@ -29,7 +29,7 @@ const Exclusions = () => {
       setExclusions(response.data.exclusions || []);
     } catch (err) {
       console.error('Error loading exclusions:', err);
-      setError('Failed to load exclusions');
+      setError('Failed to load not interested list');
     } finally {
       setLoading(false);
     }
@@ -106,13 +106,13 @@ const Exclusions = () => {
         return itemUsername !== targetUsername;
       }));
 
-      setStatusMessage('✅ Removed from exclusions!');
+      setStatusMessage('✅ Removed from not interested!');
       setTimeout(() => setStatusMessage(''), 3000);
       console.log(`Successfully removed ${targetUsername} from exclusions`);
     } catch (err) {
       console.error('Error removing exclusion:', err);
-      setError('Failed to remove exclusion');
-      setStatusMessage('❌ Failed to remove exclusion');
+      setError('Failed to remove from not interested');
+      setStatusMessage('❌ Failed to remove from not interested');
       setTimeout(() => setStatusMessage(''), 3000);
     }
   };
@@ -126,7 +126,7 @@ const Exclusions = () => {
   return (
     <div className="search-page">
       <div className="container-fluid">
-        <h2 className="mb-4">❌ My Exclusions</h2>
+        <h2 className="mb-4">🙈 Not Interested</h2>
 
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">
@@ -139,7 +139,7 @@ const Exclusions = () => {
 
         {exclusions.length === 0 ? (
           <div className="alert alert-info">
-            <p className="mb-0">No excluded profiles. These profiles will be hidden from your search results.</p>
+            <p className="mb-0">No profiles marked as not interested. These profiles will be hidden from your search results.</p>
           </div>
         ) : (
           <div className="results-grid">
@@ -157,13 +157,13 @@ const Exclusions = () => {
                         <h6 className="card-title">{user.username}</h6>
                       </div>
                       <div className="card-body">
-                        <p className="text-muted mb-3">This profile is excluded from search results</p>
+                        <p className="text-muted mb-3">This profile is hidden from search results</p>
                         <div className="card-actions">
                           <button
                             className="btn btn-sm btn-outline-danger"
                             onClick={() => removeExclusion(user)}
                           >
-                            Remove Exclusion
+                            Remove
                           </button>
                           <button
                             className="btn btn-sm btn-outline-primary"
@@ -196,7 +196,7 @@ const Exclusions = () => {
                   showShortlistButton={false}
                   showExcludeButton={false}
                   showRemoveButton={true}
-                  removeButtonLabel="Remove Exclusion"
+                  removeButtonLabel="Remove"
                   removeButtonIcon="🚫"
                 />
               );

@@ -1364,7 +1364,7 @@ const SearchPage2 = () => {
                 newSet.delete(targetUsername);
                 return newSet;
               });
-              setStatusMessage('✅ Removed from exclusions');
+              setStatusMessage('✅ Removed from not interested');
               setTimeout(() => setStatusMessage(''), 3000);
             } else {
               // Add to exclusions
@@ -1404,13 +1404,13 @@ const SearchPage2 = () => {
                 }
               }
               
-              setStatusMessage('✅ Added to exclusions');
+              setStatusMessage('✅ Marked as not interested');
               setTimeout(() => setStatusMessage(''), 3000);
             }
             setError(''); // Clear any previous errors
           } catch (err) {
             console.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
-            const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions. ` + (err.response?.data?.detail || err.message);
+            const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'mark as'} not interested. ` + (err.response?.data?.detail || err.message);
             setError(errorMsg);
             setStatusMessage(`❌ ${errorMsg}`);
             setTimeout(() => setStatusMessage(''), 3000);

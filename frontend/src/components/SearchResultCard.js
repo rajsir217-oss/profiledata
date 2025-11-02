@@ -395,7 +395,7 @@ const SearchResultCard = ({
                   e.stopPropagation();
                   onExclude(user);
                 }}
-                title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+                title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
               >
                 {isExcluded ? '🚫' : '❌'}
               </button>
@@ -543,7 +543,7 @@ const SearchResultCard = ({
                     e.stopPropagation();
                     onExclude(user);
                   }}
-                  title={isExcluded ? 'Remove from Exclusions' : 'Exclude from Search'}
+                  title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
                 >
                   ❌
                 </button>
