@@ -91,6 +91,23 @@ const Profile = () => {
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLightbox, setShowLightbox] = useState(false);
   
+  // Collapsed sections state (all collapsed by default)
+  const [collapsedSections, setCollapsedSections] = useState({
+    basicInfo: true,
+    personalLifestyle: true,
+    educationHistory: true,
+    workExperience: true,
+    preferencesBackground: true,
+    partnerCriteria: true
+  });
+  
+  const toggleSection = (sectionName) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionName]: !prev[sectionName]
+    }));
+  };
+  
   const currentUsername = localStorage.getItem('username');
   
   // Debug: Log user data when it changes
@@ -1101,10 +1118,13 @@ const Profile = () => {
         />
       </div>
 
-      {/* Basic Info (Always visible) */}
+      {/* Basic Info (Collapsible) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
-          <h3>👤 Basic Information</h3>
+          <h3 onClick={() => toggleSection('basicInfo')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{collapsedSections.basicInfo ? '▶' : '▼'}</span>
+            👤 Basic Information
+          </h3>
           {isOwnProfile && editingSection === 'basic' && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
@@ -1124,7 +1144,7 @@ const Profile = () => {
             </div>
           )}
         </div>
-        {editingSection === 'basic' ? (
+        {!collapsedSections.basicInfo && (editingSection === 'basic' ? (
           <div className="inline-edit-form">
             <div className="form-row">
               <div className="form-group">
@@ -1235,7 +1255,7 @@ const Profile = () => {
             {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
             {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
           </div>
-        )}
+        ))}
       </div>
 
       {/* Regional & Cultural Information */}
@@ -1265,8 +1285,12 @@ const Profile = () => {
       {(user.bodyType || user.drinking || user.smoking || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
         <div className="profile-section">
           <div className="section-header-with-edit">
-            <h3>💭 Personal & Lifestyle</h3>
+            <h3 onClick={() => toggleSection('personalLifestyle')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{collapsedSections.personalLifestyle ? '▶' : '▼'}</span>
+              💭 Personal & Lifestyle
+            </h3>
           </div>
+          {!collapsedSections.personalLifestyle && (
           <div className="profile-info">
             {user.bodyType && <p><strong>Body Type:</strong> {user.bodyType}</p>}
             {user.drinking && <p><strong>Drinking:</strong> {user.drinking}</p>}
@@ -1277,6 +1301,7 @@ const Profile = () => {
             {user.interests && <p><strong>Interests & Hobbies:</strong> {user.interests}</p>}
             {user.languages && <p><strong>Languages:</strong> {user.languages}</p>}
           </div>
+          )}
         </div>
       )}
 
@@ -1284,8 +1309,12 @@ const Profile = () => {
       {user.educationHistory && user.educationHistory.length > 0 && (
         <div className="profile-section">
           <div className="section-header-with-edit">
-            <h3>🎓 Education History</h3>
+            <h3 onClick={() => toggleSection('educationHistory')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{collapsedSections.educationHistory ? '▶' : '▼'}</span>
+              🎓 Education History
+            </h3>
           </div>
+          {!collapsedSections.educationHistory && (
           <div className="profile-info">
             {user.educationHistory.map((edu, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.educationHistory.length - 1 ? '1px solid #eee' : 'none'}}>
@@ -1294,6 +1323,7 @@ const Profile = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -1301,8 +1331,12 @@ const Profile = () => {
       {user.workExperience && user.workExperience.length > 0 && (
         <div className="profile-section">
           <div className="section-header-with-edit">
-            <h3>💼 Work Experience</h3>
+            <h3 onClick={() => toggleSection('workExperience')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{collapsedSections.workExperience ? '▶' : '▼'}</span>
+              💼 Work Experience
+            </h3>
           </div>
+          {!collapsedSections.workExperience && (
           <div className="profile-info">
             {user.workExperience.map((work, idx) => (
               <div key={idx} style={{marginBottom: '15px', paddingBottom: '15px', borderBottom: idx < user.workExperience.length - 1 ? '1px solid #eee' : 'none'}}>
@@ -1311,6 +1345,7 @@ const Profile = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
@@ -1401,11 +1436,15 @@ const Profile = () => {
         )}
       </div>
 
-      {/* Preferences & Background (Always visible) */}
+      {/* Preferences & Background (Collapsible) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
-          <h3>💭 Preferences & Background</h3>
+          <h3 onClick={() => toggleSection('preferencesBackground')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{collapsedSections.preferencesBackground ? '▶' : '▼'}</span>
+            💭 Preferences & Background
+          </h3>
         </div>
+        {!collapsedSections.preferencesBackground && (
         <div className="profile-info">
           {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
           {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
@@ -1415,14 +1454,19 @@ const Profile = () => {
           {(user.aboutMe || user.aboutYou) && <p><strong>About:</strong> {user.aboutMe || user.aboutYou}</p>}
           {user.partnerPreference && <p><strong>Partner Preference:</strong> {user.partnerPreference}</p>}
         </div>
+        )}
       </div>
 
       {/* Partner Matching Criteria */}
       {user.partnerCriteria && Object.keys(user.partnerCriteria).length > 0 && (
         <div className="profile-section">
           <div className="section-header-with-edit">
-            <h3>🎯 Partner Matching Criteria</h3>
+            <h3 onClick={() => toggleSection('partnerCriteria')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{collapsedSections.partnerCriteria ? '▶' : '▼'}</span>
+              🎯 Partner Matching Criteria
+            </h3>
           </div>
+          {!collapsedSections.partnerCriteria && (
           <div className="profile-info">
             {user.partnerCriteria.ageRangeRelative ? (
               <p>
@@ -1523,6 +1567,7 @@ const Profile = () => {
               <p><strong>Preferred Family Values:</strong> {user.partnerCriteria.familyValues.join(', ')}</p>
             )}
           </div>
+          )}
         </div>
       )}
 
