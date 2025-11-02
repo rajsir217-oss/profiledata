@@ -306,6 +306,13 @@
   line-height: 1.8;
   text-align: justify;
   margin-bottom: 0;
+  white-space: pre-line; /* Preserve line breaks */
+}
+
+.profile-narrative-content br {
+  display: block;
+  margin: 12px 0;
+  content: "";
 }
 
 /* Light Yellow Highlights for Keywords - Only on Hover */

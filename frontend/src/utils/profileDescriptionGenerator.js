@@ -12,165 +12,92 @@
 export const generateAboutMe = (user) => {
   if (!user) return '';
 
-  const parts = [];
-
-  // Part 1: Identity and Basic Info
+  // PARAGRAPH 1: Personal basics (age, location, physical, lifestyle, languages, religion)
+  let para1 = '';
+  
+  // Identity and basic info
   const age = user.age || calculateAge(user.dateOfBirth);
   const location = user.location || user.state || '';
   const country = user.countryOfResidence || user.countryOfOrigin || '';
   
-  let intro = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
+  para1 = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
   
-  // Add profession/student status
   if (user.workExperience && user.workExperience.length > 0) {
-    intro += ' <span class="highlight"><strong>professional</strong></span>';
-  } else if (user.educationHistory && user.educationHistory.length > 0) {
-    intro += ' <span class="highlight"><strong>student</strong></span>';
+    para1 += ' <span class="highlight"><strong>professional</strong></span>';
   }
   
-  // Add location
   if (location && country) {
-    intro += ` from <span class="highlight"><strong>${location}, ${country}</strong></span>`;
+    para1 += ` from <span class="highlight"><strong>${location}, ${country}</strong></span>`;
   } else if (country) {
-    intro += ` from <span class="highlight"><strong>${country}</strong></span>`;
+    para1 += ` from <span class="highlight"><strong>${country}</strong></span>`;
   }
   
-  // Add citizenship/working status
   if (user.citizenshipStatus && user.citizenshipStatus.toLowerCase().includes('greencard')) {
-    intro += ', currently working in the <span class="highlight"><strong>USA</strong></span>';
-  } else if (user.citizenshipStatus && user.citizenshipStatus.toLowerCase().includes('citizen')) {
-    const citizenCountry = user.citizenshipStatus.match(/\(([^)]+)\)/)?.[1];
-    if (citizenCountry) {
-      intro += `, <span class="highlight"><strong>${citizenCountry} citizen</strong></span>`;
-    }
+    para1 += ', currently working in the <span class="highlight"><strong>USA</strong></span>';
   }
   
-  intro += '.';
-  
-  // Add height and build
-  const height = formatHeight(user.heightFeet, user.heightInches) || user.height;
-  const bodyType = user.bodyType || '';
-  
+  // Height and build
+  const height = formatHeight(user.heightFeet, user.heightInches);
+  const bodyType = user.bodyType;
   if (height) {
-    intro += ` Standing at <span class="highlight"><strong>${height}</strong></span>`;
+    para1 += `. Standing at <span class="highlight"><strong>${height}</strong></span>`;
     if (bodyType && bodyType.toLowerCase() !== 'prefer not to say') {
-      intro += ` with <span class="highlight"><strong>${bodyType.toLowerCase()}</strong></span> build`;
-    }
-    intro += ',';
-  }
-  
-  // Add lifestyle traits
-  const lifestyle = [];
-  if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
-    const activeWords = ['trekking', 'sports', 'hiking', 'running', 'gym', 'yoga'];
-    const hasActive = user.interests.some(i => 
-      activeWords.some(word => i.toLowerCase().includes(word))
-    );
-    if (hasActive) {
-      lifestyle.push('lead an <span class="highlight"><strong>active lifestyle</strong></span>');
+      para1 += ` with <span class="highlight"><strong>${bodyType.toLowerCase()}</strong></span> build`;
     }
   }
   
-  // Add interests
-  if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
-    const interestsList = user.interests.slice(0, 4).map(i => 
-      `<span class="highlight"><strong>${i.toLowerCase()}</strong></span>`
-    ).join(', ');
-    if (lifestyle.length > 0) {
-      intro += ` ${lifestyle[0]} and enjoy ${interestsList}.`;
-    } else {
-      intro += ` I enjoy ${interestsList}.`;
-    }
-  } else if (lifestyle.length > 0) {
-    intro += ` I ${lifestyle[0]}.`;
-  }
-  
-  parts.push(intro);
-
-  // Part 2: Lifestyle Details and Cultural Background
-  const lifestyle2 = [];
-  
-  // Drinking and smoking
+  // Lifestyle details
+  const lifestyleDetails = [];
   if (user.drinking && user.drinking.toLowerCase() === 'socially') {
-    lifestyle2.push(`a <span class="highlight"><strong>social drinker</strong></span>`);
-  } else if (user.drinking && user.drinking.toLowerCase() !== 'no' && user.drinking.toLowerCase() !== 'prefer not to say') {
-    lifestyle2.push(`${user.drinking.toLowerCase()}`);
+    lifestyleDetails.push(`<span class="highlight"><strong>social drinker</strong></span>`);
   }
-  
   if (user.smoking && user.smoking.toLowerCase() === 'socially') {
-    lifestyle2.push(`<span class="highlight"><strong>occasional smoker</strong></span>`);
-  } else if (user.smoking && user.smoking.toLowerCase() !== 'no' && user.smoking.toLowerCase() !== 'prefer not to say') {
-    lifestyle2.push(`${user.smoking.toLowerCase()}`);
+    lifestyleDetails.push(`<span class="highlight"><strong>occasional smoker</strong></span>`);
   }
-  
-  // Eating preference
   if (user.eatingPreference && user.eatingPreference.toLowerCase() !== 'any') {
-    lifestyle2.push(`<span class="highlight"><strong>${user.eatingPreference.toLowerCase()}</strong></span> diet preference`);
+    lifestyleDetails.push(`<span class="highlight"><strong>${user.eatingPreference.toLowerCase()}</strong></span> diet preference`);
   }
   
-  if (lifestyle2.length > 0) {
-    parts.push(`I'm ${lifestyle2.join(' and ')}.`);
+  if (lifestyleDetails.length > 0) {
+    para1 += `, I'm a ${lifestyleDetails.join(' and ')}`;
   }
   
-  // Languages and cultural background
-  const cultural = [];
-  
+  // Languages and religion
   if (user.languagesSpoken && Array.isArray(user.languagesSpoken) && user.languagesSpoken.length > 0) {
     const langList = user.languagesSpoken.slice(0, 3).map(l => 
       `<span class="highlight"><strong>${l}</strong></span>`
     ).join(', ');
-    cultural.push(`I speak ${langList} fluently`);
-  }
-  
-  if (user.caste && user.caste.toLowerCase() !== 'no caste' && user.caste.toLowerCase() !== 'prefer not to say') {
-    cultural.push(`come from a <span class="highlight"><strong>${user.caste}</strong></span> background`);
+    para1 += `. I speak ${langList} fluently`;
   }
   
   if (user.religion && user.religion.toLowerCase() === 'other') {
-    cultural.push(`am <span class="highlight"><strong>open to any religion</strong></span>`);
+    para1 += `, and am <span class="highlight"><strong>open to any religion</strong></span>`;
   } else if (user.religion && user.religion.toLowerCase() !== 'prefer not to say') {
-    cultural.push(`follow <span class="highlight"><strong>${user.religion}</strong></span>`);
+    para1 += `, and follow <span class="highlight"><strong>${user.religion}</strong></span>`;
   }
   
-  if (cultural.length > 0) {
-    parts.push(cultural.join(', and ') + '.');
-  }
-
-  // Part 3: Family and Relationship Goals
-  const family = [];
-  
-  // Children status
+  // Children
   if (user.hasChildren === 'Yes' || user.hasChildren === true) {
     const childCount = typeof user.hasChildren === 'string' && user.hasChildren.includes('(') 
       ? user.hasChildren.match(/\((\d+)\)/)?.[1] 
       : '1';
-    const childText = childCount === '1' ? 'one child' : `${childCount} children`;
-    family.push(`I'm a <span class="highlight"><strong>single parent</strong></span> to ${childText}`);
-    
-    if (user.wantsChildren && user.wantsChildren.toLowerCase().includes('open')) {
-      family.push(`am <span class="highlight"><strong>open to discussing</strong></span> having more children with the right partner`);
-    } else if (user.wantsChildren && user.wantsChildren.toLowerCase() === 'yes') {
-      family.push(`would love to have more children`);
-    }
+    para1 += `. I'm a <span class="highlight"><strong>single parent</strong></span>`;
   } else if (user.wantsChildren && user.wantsChildren.toLowerCase() === 'yes') {
-    family.push(`I look forward to <span class="highlight"><strong>building a family</strong></span>`);
+    para1 += `. I look forward to <span class="highlight"><strong>building a family</strong></span>`;
   } else if (user.wantsChildren && user.wantsChildren.toLowerCase().includes('open')) {
-    family.push(`I'm <span class="highlight"><strong>open to discussing children</strong></span> in the future`);
+    para1 += `. I'm <span class="highlight"><strong>open to discussing children</strong></span> in the future`;
   }
   
-  if (family.length > 0) {
-    parts.push(family.join(' and ') + '.');
-  }
+  para1 += '.';
+
+  // PARAGRAPH 2: Education, work, and family background
+  let para2 = '';
   
-  // Education and Career
-  const education = [];
+  // Education and work
   if (user.educationHistory && Array.isArray(user.educationHistory) && user.educationHistory.length > 0) {
     const latestEdu = user.educationHistory[0];
     if (latestEdu.degree && latestEdu.institution) {
-      education.push(
-        `I hold a <span class="highlight"><strong>${latestEdu.degree}</strong></span> from ` +
-        `<span class="highlight"><strong>${latestEdu.institution}</strong></span>`
-      );
+      para2 = `I hold a <span class="highlight"><strong>${latestEdu.degree}</strong></span> from <span class="highlight"><strong>${latestEdu.institution}</strong></span>`;
     }
   }
   
@@ -178,33 +105,42 @@ export const generateAboutMe = (user) => {
     const currentWork = user.workExperience.find(w => w.status && w.status.toLowerCase() === 'current');
     const work = currentWork || user.workExperience[0];
     if (work.description) {
-      education.push(
-        `and currently work as a <span class="highlight"><strong>${work.description}</strong></span>` +
-        (work.location ? ` in <span class="highlight"><strong>${work.location}</strong></span>` : '')
-      );
+      if (para2) {
+        para2 += ` and currently work as a <span class="highlight"><strong>${work.description}</strong></span>`;
+      } else {
+        para2 = `I currently work as a <span class="highlight"><strong>${work.description}</strong></span>`;
+      }
+      if (work.location) {
+        para2 += ` in <span class="highlight"><strong>${work.location}</strong></span>`;
+      }
+      para2 += '.';
     }
   }
   
-  if (education.length > 0) {
-    parts.push(education.join(' ') + '.');
-  }
-
-  // Family Background
+  // Family background
   if (user.familyBackground && user.familyBackground.trim()) {
-    parts.push(user.familyBackground);
+    if (para2) {
+      para2 += ' ' + user.familyBackground;
+    } else {
+      para2 = user.familyBackground;
+    }
   }
 
-  // About Me (personal description)
+  // PARAGRAPH 3: Personal description + relationship goals
+  let para3 = '';
+  
   if (user.aboutMe && user.aboutMe.trim()) {
-    parts.push(user.aboutMe);
+    para3 = user.aboutMe;
   }
-
-  // Relationship goals
+  
+  // Add relationship goals
   const lookingFor = user.lookingFor || 'relationship';
-  const relationshipGoal = `I'm looking for a <span class="highlight"><strong>${lookingFor.toLowerCase()}</strong></span> with someone who values <span class="highlight"><strong>adventure, family</strong></span>, and building a <span class="highlight"><strong>meaningful connection</strong></span>.`;
-  parts.push(relationshipGoal);
+  const relationshipGoal = ` I'm looking for a <span class="highlight"><strong>${lookingFor.toLowerCase()}</strong></span> with someone who values <span class="highlight"><strong>adventure, family</strong></span>, and building a <span class="highlight"><strong>meaningful connection</strong></span>.`;
+  para3 += relationshipGoal;
 
-  return parts.join(' ');
+  // Combine paragraphs
+  const paragraphs = [para1, para2, para3].filter(p => p.trim());
+  return paragraphs.join('<br/><br/>');
 };
 
 /**
@@ -272,6 +208,7 @@ export const generatePartnerPreference = (prefs) => {
     parts.push(`I'm looking for ${preferenceDetails.join(' and ')}.`);
   }
 
+  // Join with space for partner preferences (shorter, keeps together)
   return parts.join(' ');
 };
 
