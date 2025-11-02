@@ -308,16 +308,13 @@
   margin-bottom: 0;
 }
 
-/* Light Yellow Highlights for Keywords */
+/* Light Yellow Highlights for Keywords - Only on Hover */
 .profile-narrative-content .highlight {
-  background: linear-gradient(
-    120deg,
-    rgba(255, 245, 157, 0.4) 0%,
-    rgba(255, 238, 88, 0.3) 100%
-  );
+  background: transparent; /* No background by default */
   padding: 2px 4px;
   border-radius: 3px;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .profile-narrative-content .highlight:hover {
@@ -325,7 +322,7 @@
     120deg,
     rgba(255, 245, 157, 0.6) 0%,
     rgba(255, 238, 88, 0.5) 100%
-  );
+  ); /* Yellow highlight only on hover */
 }
 
 .profile-narrative-content strong {
@@ -357,11 +354,7 @@
 }
 
 .profile-narrative-section .highlight {
-  background: linear-gradient(
-    120deg,
-    rgba(255, 245, 157, 0.4) 0%,
-    rgba(255, 238, 88, 0.3) 100%
-  ) !important;
+  background: transparent !important; /* No background by default */
 }
 
 .profile-narrative-section .highlight:hover {
@@ -369,7 +362,7 @@
     120deg,
     rgba(255, 245, 157, 0.6) 0%,
     rgba(255, 238, 88, 0.5) 100%
-  ) !important;
+  ) !important; /* Yellow highlight only on hover */
 }
 
 /* Preferences List */
@@ -409,13 +402,10 @@
   transform: translateX(4px);
 }
 
-/* Remove blue background from preferences list highlights */
+/* Hover-only highlights for preferences list */
 .preferences-list .highlight {
-  background: linear-gradient(
-    120deg,
-    rgba(255, 245, 157, 0.4) 0%,
-    rgba(255, 238, 88, 0.3) 100%
-  ) !important;
+  background: transparent !important; /* No background by default */
+  cursor: pointer;
 }
 
 .preferences-list .highlight:hover {
@@ -423,7 +413,7 @@
     120deg,
     rgba(255, 245, 157, 0.6) 0%,
     rgba(255, 238, 88, 0.5) 100%
-  ) !important;
+  ) !important; /* Yellow highlight only on hover */
 }
 
 .preferences-list strong {
