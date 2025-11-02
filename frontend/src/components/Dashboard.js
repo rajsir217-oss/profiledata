@@ -13,6 +13,7 @@ import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
+import { formatRelativeTime } from '../utils/timeFormatter';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -36,6 +37,7 @@ const Dashboard = () => {
     theirFavorites: [],
     theirShortlists: []
   });
+  const [lastLoginAt, setLastLoginAt] = useState(null);
   
   // Profile view metrics
   const [viewMetrics, setViewMetrics] = useState({
@@ -159,8 +161,9 @@ const Dashboard = () => {
     logger.info('Loading dashboard for user:', user);
     
     try {
-      // Load all dashboard data
+      // Load all dashboard data including user profile
       const [
+        profileRes,
         messagesRes,
         myFavoritesRes,
         myShortlistsRes,
@@ -170,6 +173,7 @@ const Dashboard = () => {
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
+        api.get(`/profile/${user}?requester=${user}`),
         api.get(`/messages/conversations?username=${user}`),
         api.get(`/favorites/${user}`),
         api.get(`/shortlist/${user}`),
@@ -179,6 +183,11 @@ const Dashboard = () => {
         api.get(`/their-favorites/${user}`),
         api.get(`/their-shortlists/${user}`)
       ]);
+      
+      // Extract last login time from profile
+      const profile = profileRes.data;
+      const lastLogin = profile?.security?.last_login_at;
+      setLastLoginAt(lastLogin);
 
       setDashboardData({
         myMessages: messagesRes.data.conversations || [],
@@ -727,6 +736,16 @@ const Dashboard = () => {
           </>
         }
       />
+
+      {/* Last Login Info */}
+      {lastLoginAt && (
+        <div className="last-login-info">
+          <span className="last-login-icon">🕐</span>
+          <span className="last-login-text">
+            Last login: <strong>{formatRelativeTime(lastLoginAt)}</strong>
+          </span>
+        </div>
+      )}
 
       {/* MFA Enablement Notification Banner */}
       {showMfaNotification && (
