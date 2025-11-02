@@ -21,8 +21,6 @@ from models.invitation_models import (
     ResendInvitationRequest
 )
 from services.invitation_service import InvitationService
-from services.notification_service import NotificationService
-from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
 
 
 router = APIRouter(prefix="/api/invitations", tags=["invitations"])
@@ -309,44 +307,23 @@ async def send_invitation_notifications(
     custom_message: Optional[str] = None,
     db=None
 ):
-    """Send invitation via notification system"""
+    """Send invitation directly via SMTP (bypasses notification queue)"""
     from config import Settings
+    from services.email_sender import send_invitation_email
     settings = Settings()
     
-    notification_service = NotificationService(db)
     invitation_service = InvitationService(db)
-    
-    # Prepare template data
-    template_data = {
-        "invitee": {
-            "name": invitation.name,
-            "email": invitation.email
-        },
-        "inviter": {
-            "name": "L3V3L Matrimony Team"
-        },
-        "invitation": {
-            "token": invitation.invitationToken,
-            "link": f"{settings.app_url}/register?invitation={invitation.invitationToken}",
-            "customMessage": custom_message or invitation.customMessage
-        }
-    }
+    invitation_link = f"{settings.app_url}/register?invitation={invitation.invitationToken}"
     
     # Send email
     if channel in [InvitationChannel.EMAIL, InvitationChannel.BOTH]:
         try:
-            # Queue email notification
-            await notification_service.enqueue_notification(
-                NotificationQueueCreate(
-                    username="_invitation_" + invitation.email,  # Temporary username
-                    trigger=NotificationTrigger.INVITATION_SENT,
-                    channels=[NotificationChannel.EMAIL],
-                    templateData=template_data,
-                    metadata={
-                        "invitationId": invitation.id,
-                        "inviteeEmail": invitation.email
-                    }
-                )
+            # Send email directly via SMTP
+            await send_invitation_email(
+                to_email=invitation.email,
+                to_name=invitation.name,
+                invitation_link=invitation_link,
+                custom_message=custom_message or invitation.customMessage
             )
             
             # Update status
@@ -363,30 +340,17 @@ async def send_invitation_notifications(
                 failed_reason=str(e)
             )
     
-    # Send SMS
+    # Send SMS (TODO: Implement direct SMS sender)
     if channel in [InvitationChannel.SMS, InvitationChannel.BOTH]:
         if invitation.phone:
             try:
-                # Queue SMS notification
-                await notification_service.enqueue_notification(
-                    NotificationQueueCreate(
-                        username="_invitation_" + invitation.email,
-                        trigger=NotificationTrigger.INVITATION_SENT,
-                        channels=[NotificationChannel.SMS],
-                        templateData=template_data,
-                        metadata={
-                            "invitationId": invitation.id,
-                            "inviteePhone": invitation.phone
-                        }
-                    )
-                )
-                
-                # Update status
+                # For now, mark as pending - SMS implementation needed
                 await invitation_service.update_invitation_status(
                     invitation.id,
                     InvitationChannel.SMS,
-                    InvitationStatus.SENT
+                    InvitationStatus.PENDING
                 )
+                # TODO: Implement direct SMS sending via Twilio
             except Exception as e:
                 await invitation_service.update_invitation_status(
                     invitation.id,
