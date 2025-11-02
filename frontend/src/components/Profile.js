@@ -94,6 +94,7 @@ const Profile = () => {
   // Collapsed sections state (all collapsed by default)
   const [collapsedSections, setCollapsedSections] = useState({
     basicInfo: true,
+    regionalCultural: true,
     personalLifestyle: true,
     educationHistory: true,
     workExperience: true,
@@ -1262,8 +1263,12 @@ const Profile = () => {
       {(user.countryOfOrigin || user.countryOfResidence || user.state || user.languagesSpoken?.length > 0 || user.motherTongue || user.caste || user.familyType || user.familyValues || user.castePreference || user.eatingPreference) && (
         <div className="profile-section">
           <div className="section-header-with-edit">
-            <h3>🌍 Regional & Cultural</h3>
+            <h3 onClick={() => toggleSection('regionalCultural')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span>{collapsedSections.regionalCultural ? '▶' : '▼'}</span>
+              🌍 Regional & Cultural
+            </h3>
           </div>
+          {!collapsedSections.regionalCultural && (
           <div className="profile-info">
             {user.countryOfOrigin && <p><strong>Country of Origin:</strong> {user.countryOfOrigin === 'IN' ? 'India' : user.countryOfOrigin === 'US' ? 'USA' : user.countryOfOrigin}</p>}
             {user.countryOfResidence && <p><strong>Residence:</strong> {user.countryOfResidence === 'IN' ? 'India' : user.countryOfResidence === 'US' ? 'USA' : user.countryOfResidence}</p>}
@@ -1278,6 +1283,7 @@ const Profile = () => {
             {user.familyType && <p><strong>Family Type:</strong> {user.familyType}</p>}
             {user.familyValues && <p><strong>Family Values:</strong> {user.familyValues}</p>}
           </div>
+          )}
         </div>
       )}
 
