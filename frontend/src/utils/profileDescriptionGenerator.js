@@ -61,7 +61,7 @@ export const generateAboutMe = (user) => {
   
   // Add lifestyle traits
   const lifestyle = [];
-  if (user.interests && user.interests.length > 0) {
+  if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
     const activeWords = ['trekking', 'sports', 'hiking', 'running', 'gym', 'yoga'];
     const hasActive = user.interests.some(i => 
       activeWords.some(word => i.toLowerCase().includes(word))
@@ -72,7 +72,7 @@ export const generateAboutMe = (user) => {
   }
   
   // Add interests
-  if (user.interests && user.interests.length > 0) {
+  if (user.interests && Array.isArray(user.interests) && user.interests.length > 0) {
     const interestsList = user.interests.slice(0, 4).map(i => 
       `<span class="highlight"><strong>${i.toLowerCase()}</strong></span>`
     ).join(', ');
@@ -115,7 +115,7 @@ export const generateAboutMe = (user) => {
   // Languages and cultural background
   const cultural = [];
   
-  if (user.languagesSpoken && user.languagesSpoken.length > 0) {
+  if (user.languagesSpoken && Array.isArray(user.languagesSpoken) && user.languagesSpoken.length > 0) {
     const langList = user.languagesSpoken.slice(0, 3).map(l => 
       `<span class="highlight"><strong>${l}</strong></span>`
     ).join(', ');
@@ -249,30 +249,39 @@ export const formatPreferencesList = (prefs, user) => {
   }
 
   // Education
-  if (prefs.educationLevel && Array.isArray(prefs.educationLevel) && prefs.educationLevel.length > 0) {
-    const edu = prefs.educationLevel.join(', ');
-    list.push({
-      label: 'Education',
-      value: `<span class="highlight"><strong>${edu}</strong></span>`
-    });
+  if (prefs.educationLevel) {
+    const eduArray = Array.isArray(prefs.educationLevel) ? prefs.educationLevel : [prefs.educationLevel];
+    if (eduArray.length > 0) {
+      const edu = eduArray.join(', ');
+      list.push({
+        label: 'Education',
+        value: `<span class="highlight"><strong>${edu}</strong></span>`
+      });
+    }
   }
 
   // Profession
-  if (prefs.profession && Array.isArray(prefs.profession) && prefs.profession.length > 0) {
-    const prof = prefs.profession.slice(0, 3).join(', ');
-    list.push({
-      label: 'Profession',
-      value: `<span class="highlight"><strong>${prof}</strong></span>`
-    });
+  if (prefs.profession) {
+    const profArray = Array.isArray(prefs.profession) ? prefs.profession : [prefs.profession];
+    if (profArray.length > 0) {
+      const prof = profArray.slice(0, 3).join(', ');
+      list.push({
+        label: 'Profession',
+        value: `<span class="highlight"><strong>${prof}</strong></span>`
+      });
+    }
   }
 
   // Location
-  if (prefs.partnerLocation && Array.isArray(prefs.partnerLocation) && prefs.partnerLocation.length > 0) {
-    const locations = prefs.partnerLocation.slice(0, 3).join(', ');
-    list.push({
-      label: 'Location',
-      value: `<span class="highlight"><strong>${locations}</strong></span>`
-    });
+  if (prefs.partnerLocation) {
+    const locArray = Array.isArray(prefs.partnerLocation) ? prefs.partnerLocation : [prefs.partnerLocation];
+    if (locArray.length > 0) {
+      const locations = locArray.slice(0, 3).join(', ');
+      list.push({
+        label: 'Location',
+        value: `<span class="highlight"><strong>${locations}</strong></span>`
+      });
+    }
   }
 
   // Eating preference
@@ -284,12 +293,15 @@ export const formatPreferencesList = (prefs, user) => {
   }
 
   // Languages
-  if (prefs.languages && Array.isArray(prefs.languages) && prefs.languages.length > 0) {
-    const langs = prefs.languages.join(', ');
-    list.push({
-      label: 'Languages',
-      value: `<span class="highlight"><strong>${langs}</strong></span>`
-    });
+  if (prefs.languages) {
+    const langArray = Array.isArray(prefs.languages) ? prefs.languages : [prefs.languages];
+    if (langArray.length > 0) {
+      const langs = langArray.join(', ');
+      list.push({
+        label: 'Languages',
+        value: `<span class="highlight"><strong>${langs}</strong></span>`
+      });
+    }
   }
 
   // Family type

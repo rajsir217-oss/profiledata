@@ -1092,9 +1092,9 @@ const Profile = () => {
         />
       </div>
 
-      {/* What I'm Looking For Narrative */}
+      {/* What You're Looking For Narrative */}
       <div className="profile-section profile-narrative-section">
-        <h3>💑 What I'm Looking For</h3>
+        <h3>💑 What You're Looking For</h3>
         <div 
           className="profile-narrative-content"
           dangerouslySetInnerHTML={{ __html: generatePartnerPreference(user) }}
