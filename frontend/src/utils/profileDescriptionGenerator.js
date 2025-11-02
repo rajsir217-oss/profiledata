@@ -210,6 +210,31 @@ export const generatePartnerPreference = (prefs) => {
     );
   }
 
+  // Add preferences for eating and languages if available
+  const preferenceDetails = [];
+  
+  if (prefs.eatingPreference && prefs.eatingPreference.toLowerCase() !== 'any') {
+    preferenceDetails.push(
+      `preferably <span class="highlight"><strong>${prefs.eatingPreference.toLowerCase()}</strong></span>`
+    );
+  }
+  
+  if (prefs.languages) {
+    const langArray = Array.isArray(prefs.languages) ? prefs.languages : [prefs.languages];
+    if (langArray.length > 0) {
+      const langList = langArray.slice(0, 3).map(l => 
+        `<span class="highlight"><strong>${l}</strong></span>`
+      ).join(', ');
+      preferenceDetails.push(
+        `someone who speaks ${langList}`
+      );
+    }
+  }
+  
+  if (preferenceDetails.length > 0) {
+    parts.push(`I'm looking for ${preferenceDetails.join(' and ')}.`);
+  }
+
   return parts.join(' ');
 };
 
