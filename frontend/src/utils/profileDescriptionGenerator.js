@@ -275,29 +275,94 @@ export const generatePartnerPreference = (prefs) => {
     );
   }
 
-  // Add preferences for eating and languages if available
+  // Add structured preferences from partnerCriteria
+  const criteria = prefs.partnerCriteria || prefs; // Support both nested and flat structure
   const preferenceDetails = [];
   
-  if (prefs.eatingPreference && prefs.eatingPreference.toLowerCase() !== 'any') {
+  // Age range
+  if (criteria.ageRange && (criteria.ageRange.min || criteria.ageRange.max)) {
+    const ageText = `between <span class="highlight"><strong>${criteria.ageRange.min || '18'}-${criteria.ageRange.max || '99'} years</strong></span>`;
+    preferenceDetails.push(ageText);
+  }
+  
+  // Height range
+  if (criteria.heightRange && (criteria.heightRange.min || criteria.heightRange.max)) {
+    const minHeight = criteria.heightRange.min || "4'0\"";
+    const maxHeight = criteria.heightRange.max || "7'0\"";
     preferenceDetails.push(
-      `preferably <span class="highlight"><strong>${prefs.eatingPreference.toLowerCase()}</strong></span>`
+      `height between <span class="highlight"><strong>${minHeight} to ${maxHeight}</strong></span>`
     );
   }
   
-  if (prefs.languages) {
-    const langArray = Array.isArray(prefs.languages) ? prefs.languages : [prefs.languages];
+  // Education
+  if (criteria.educationLevel) {
+    const eduArray = Array.isArray(criteria.educationLevel) ? criteria.educationLevel : [criteria.educationLevel];
+    if (eduArray.length > 0 && eduArray[0] !== 'Any') {
+      const eduList = eduArray.slice(0, 3).map(e => 
+        `<span class="highlight"><strong>${e}</strong></span>`
+      ).join(', ');
+      preferenceDetails.push(`with education in ${eduList}`);
+    }
+  }
+  
+  // Profession
+  if (criteria.profession) {
+    const profArray = Array.isArray(criteria.profession) ? criteria.profession : [criteria.profession];
+    if (profArray.length > 0 && profArray[0] !== 'Any') {
+      const profList = profArray.slice(0, 3).map(p => 
+        `<span class="highlight"><strong>${p}</strong></span>`
+      ).join(', ');
+      preferenceDetails.push(`working as ${profList}`);
+    }
+  }
+  
+  // Location
+  if (criteria.location) {
+    const locArray = Array.isArray(criteria.location) ? criteria.location : [criteria.location];
+    if (locArray.length > 0 && locArray[0] !== 'Any' && locArray[0] !== 'Any location') {
+      const locList = locArray.slice(0, 3).map(l => 
+        `<span class="highlight"><strong>${l}</strong></span>`
+      ).join(', ');
+      preferenceDetails.push(`living in ${locList}`);
+    }
+  }
+  
+  // Religion
+  if (criteria.religion) {
+    const relArray = Array.isArray(criteria.religion) ? criteria.religion : [criteria.religion];
+    if (relArray.length > 0 && relArray[0] !== 'Any' && relArray[0] !== 'Any Religion') {
+      const relList = relArray.slice(0, 3).map(r => 
+        `<span class="highlight"><strong>${r}</strong></span>`
+      ).join(', ');
+      preferenceDetails.push(`following ${relList}`);
+    }
+  }
+  
+  // Eating preference
+  if (criteria.eatingPreference) {
+    const eatPref = Array.isArray(criteria.eatingPreference) ? criteria.eatingPreference[0] : criteria.eatingPreference;
+    if (eatPref && eatPref.toLowerCase() !== 'any') {
+      preferenceDetails.push(
+        `preferably <span class="highlight"><strong>${eatPref.toLowerCase()}</strong></span>`
+      );
+    }
+  }
+  
+  // Languages
+  if (criteria.languages) {
+    const langArray = Array.isArray(criteria.languages) ? criteria.languages : [criteria.languages];
     if (langArray.length > 0) {
       const langList = langArray.slice(0, 3).map(l => 
         `<span class="highlight"><strong>${l}</strong></span>`
       ).join(', ');
       preferenceDetails.push(
-        `someone who speaks ${langList}`
+        `who speaks ${langList}`
       );
     }
   }
   
   if (preferenceDetails.length > 0) {
-    parts.push(`I'm looking for ${preferenceDetails.join(' and ')}.`);
+    parts.push(`Ideally, ${preferenceDetails.join(', ')}.`);
   }
 
   // Join with space for partner preferences (shorter, keeps together)
