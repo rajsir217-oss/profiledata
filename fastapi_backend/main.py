@@ -27,6 +27,7 @@ from routers.activity_logs import router as activity_logs_router
 from routers.verification import router as verification_router
 from routers.push_subscriptions import router as push_subscriptions_router
 from routers.system_health import router as system_health_router
+from routers.invitations import router as invitations_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -201,6 +202,7 @@ app.include_router(notifications_router)  # Notification routes (already has /ap
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
 app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)
 app.include_router(push_subscriptions_router)  # Push notification subscriptions (already has /api/push-subscriptions prefix)
+app.include_router(invitations_router)  # Invitation routes (already has /api/invitations prefix)
 app.include_router(system_health_router, prefix="/api/users/system", tags=["system"])  # System health routes
 
 # Health check endpoint

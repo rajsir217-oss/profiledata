@@ -205,6 +205,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📧',
+        label: 'Invitations',
+        subLabel: 'Manage user invitations',
+        action: () => navigate('/invitations')
+      });
+      
+      items.push({
         icon: '🗓️',
         label: 'Scheduler & Jobs',
         subLabel: 'Manage automated tasks',

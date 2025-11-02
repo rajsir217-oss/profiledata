@@ -62,6 +62,9 @@ class NotificationTrigger(str, Enum):
     # Digest emails
     WEEKLY_DIGEST = "weekly_digest"
     MONTHLY_DIGEST = "monthly_digest"
+    
+    # Invitations
+    INVITATION_SENT = "invitation_sent"
 
 
 class FrequencyType(str, Enum):

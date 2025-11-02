@@ -37,6 +37,7 @@ import NotificationManagement from './components/NotificationManagement';
 import EmailAnalytics from './components/EmailAnalytics';
 import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
+import InvitationManager from './components/InvitationManager';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
@@ -282,6 +283,7 @@ function AppContent() {
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
               <Route path="/email-analytics" element={<ProtectedRoute><EmailAnalytics /></ProtectedRoute>} />
               <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
+              <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />
