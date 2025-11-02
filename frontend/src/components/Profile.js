@@ -1099,21 +1099,6 @@ const Profile = () => {
           className="profile-narrative-content"
           dangerouslySetInnerHTML={{ __html: generatePartnerPreference(user) }}
         />
-        
-        {/* Structured Preferences List */}
-        {formatPreferencesList(user, user).length > 0 && (
-          <div className="preferences-list">
-            <h4>Preferences:</h4>
-            <ul>
-              {formatPreferencesList(user, user).map((pref, index) => (
-                <li key={index}>
-                  <span className="pref-label">{pref.label}:</span>{' '}
-                  <span dangerouslySetInnerHTML={{ __html: pref.value }} />
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
 
       {/* Basic Info (Always visible) */}
