@@ -162,6 +162,43 @@ export const generateAboutMe = (user) => {
     parts.push(family.join(' and ') + '.');
   }
   
+  // Education and Career
+  const education = [];
+  if (user.educationHistory && Array.isArray(user.educationHistory) && user.educationHistory.length > 0) {
+    const latestEdu = user.educationHistory[0];
+    if (latestEdu.degree && latestEdu.institution) {
+      education.push(
+        `I hold a <span class="highlight"><strong>${latestEdu.degree}</strong></span> from ` +
+        `<span class="highlight"><strong>${latestEdu.institution}</strong></span>`
+      );
+    }
+  }
+  
+  if (user.workExperience && Array.isArray(user.workExperience) && user.workExperience.length > 0) {
+    const currentWork = user.workExperience.find(w => w.status && w.status.toLowerCase() === 'current');
+    const work = currentWork || user.workExperience[0];
+    if (work.description) {
+      education.push(
+        `and currently work as a <span class="highlight"><strong>${work.description}</strong></span>` +
+        (work.location ? ` in <span class="highlight"><strong>${work.location}</strong></span>` : '')
+      );
+    }
+  }
+  
+  if (education.length > 0) {
+    parts.push(education.join(' ') + '.');
+  }
+
+  // Family Background
+  if (user.familyBackground && user.familyBackground.trim()) {
+    parts.push(user.familyBackground);
+  }
+
+  // About Me (personal description)
+  if (user.aboutMe && user.aboutMe.trim()) {
+    parts.push(user.aboutMe);
+  }
+
   // Relationship goals
   const lookingFor = user.lookingFor || 'relationship';
   const relationshipGoal = `I'm looking for a <span class="highlight"><strong>${lookingFor.toLowerCase()}</strong></span> with someone who values <span class="highlight"><strong>adventure, family</strong></span>, and building a <span class="highlight"><strong>meaningful connection</strong></span>.`;
