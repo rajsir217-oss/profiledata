@@ -12,7 +12,7 @@ import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
-import { generateAboutMe, generatePartnerPreference, formatPreferencesList } from "../utils/profileDescriptionGenerator";
+import { generateAboutMe, generatePartnerPreference } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import "./Profile.css";
 

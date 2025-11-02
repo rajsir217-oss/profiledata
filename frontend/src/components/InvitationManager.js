@@ -34,6 +34,7 @@ const InvitationManager = () => {
   useEffect(() => {
     loadInvitations();
     loadStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeArchived]);
 
   const loadInvitations = async () => {
@@ -108,7 +109,11 @@ const InvitationManager = () => {
         loadStats();
       } else {
         const data = await response.json();
-        setError(data.detail || 'Failed to create invitation');
+        // Handle both string errors and validation error objects
+        const errorMsg = typeof data.detail === 'string' 
+          ? data.detail 
+          : data.detail?.[0]?.msg || JSON.stringify(data.detail) || 'Failed to create invitation';
+        setError(errorMsg);
       }
     } catch (err) {
       setError('Error creating invitation: ' + err.message);
@@ -135,7 +140,10 @@ const InvitationManager = () => {
         alert('Invitation resent successfully!');
       } else {
         const data = await response.json();
-        alert(data.detail || 'Failed to resend invitation');
+        const errorMsg = typeof data.detail === 'string' 
+          ? data.detail 
+          : data.detail?.[0]?.msg || 'Failed to resend invitation';
+        alert(errorMsg);
       }
     } catch (err) {
       alert('Error resending invitation: ' + err.message);
@@ -164,7 +172,10 @@ const InvitationManager = () => {
         loadStats();
       } else {
         const data = await response.json();
-        alert(data.detail || 'Failed to archive invitation');
+        const errorMsg = typeof data.detail === 'string' 
+          ? data.detail 
+          : data.detail?.[0]?.msg || 'Failed to archive invitation';
+        alert(errorMsg);
       }
     } catch (err) {
       alert('Error archiving invitation: ' + err.message);
@@ -193,7 +204,10 @@ const InvitationManager = () => {
         loadStats();
       } else {
         const data = await response.json();
-        alert(data.detail || 'Failed to delete invitation');
+        const errorMsg = typeof data.detail === 'string' 
+          ? data.detail 
+          : data.detail?.[0]?.msg || 'Failed to delete invitation';
+        alert(errorMsg);
       }
     } catch (err) {
       alert('Error deleting invitation: ' + err.message);

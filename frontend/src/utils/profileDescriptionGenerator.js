@@ -120,9 +120,6 @@ export const generateAboutMe = (user) => {
   
   // Children
   if (user.hasChildren === 'Yes' || user.hasChildren === true) {
-    const childCount = typeof user.hasChildren === 'string' && user.hasChildren.includes('(') 
-      ? user.hasChildren.match(/\((\d+)\)/)?.[1] 
-      : '1';
     para1 += `. I'm a <span class="highlight"><strong>single parent</strong></span>`;
   } else if (user.wantsChildren && user.wantsChildren.toLowerCase() === 'yes') {
     para1 += `. I look forward to <span class="highlight"><strong>building a family</strong></span>`;
