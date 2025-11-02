@@ -30,61 +30,61 @@ async def send_invitation_email(
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
-        body {
+        body {{
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             line-height: 1.6;
             color: #333;
             margin: 0;
             padding: 0;
             background-color: #f4f4f4;
-        }
-        .container {
+        }}
+        .container {{
             max-width: 600px;
             margin: 20px auto;
             background: white;
             border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .header {
+        }}
+        .header {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             padding: 40px 20px;
             text-align: center;
-        }
-        .header h1 {
+        }}
+        .header h1 {{
             margin: 0;
             font-size: 28px;
             font-weight: 600;
-        }
-        .header p {
+        }}
+        .header p {{
             margin: 10px 0 0 0;
             font-size: 16px;
             opacity: 0.9;
-        }
-        .content {
+        }}
+        .content {{
             padding: 40px 30px;
-        }
-        .greeting {
+        }}
+        .greeting {{
             font-size: 20px;
             color: #667eea;
             margin-bottom: 20px;
             font-weight: 600;
-        }
-        .message {
+        }}
+        .message {{
             font-size: 16px;
             line-height: 1.8;
             margin-bottom: 30px;
-        }
-        .custom-message {
+        }}
+        .custom-message {{
             background: #f8f9fa;
             border-left: 4px solid #667eea;
             padding: 15px 20px;
             margin: 20px 0;
             font-style: italic;
             color: #555;
-        }
-        .cta-button {
+        }}
+        .cta-button {{
             display: inline-block;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white !important;
@@ -96,42 +96,42 @@ async def send_invitation_email(
             text-align: center;
             margin: 20px 0;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
-        }
-        .features {
+        }}
+        .features {{
             background: #f8f9fa;
             padding: 20px;
             border-radius: 8px;
             margin: 30px 0;
-        }
-        .features h3 {
+        }}
+        .features h3 {{
             color: #667eea;
             margin-top: 0;
             font-size: 18px;
-        }
-        .feature-list {
+        }}
+        .feature-list {{
             list-style: none;
             padding: 0;
             margin: 0;
-        }
-        .feature-list li {
+        }}
+        .feature-list li {{
             padding: 8px 0;
             padding-left: 25px;
             position: relative;
-        }
-        .feature-list li:before {
+        }}
+        .feature-list li:before {{
             content: "✓";
             position: absolute;
             left: 0;
             color: #667eea;
             font-weight: bold;
-        }
-        .footer {
+        }}
+        .footer {{
             background: #f8f9fa;
             padding: 30px 20px;
             text-align: center;
             color: #666;
             font-size: 14px;
-        }
+        }}
     </style>
 </head>
 <body>
