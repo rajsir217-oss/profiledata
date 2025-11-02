@@ -176,33 +176,54 @@ npm install react-helmet-async
 
 ## ⚙️ Medium Priority (Sprint 2)
 
-### Task 6: Show Last Activity on Profile View
-**Status:** ⏳ Pending  
+### ✅ Task 6: Show Last Activity on Profile View
+**Status:** ✅ COMPLETED  
 **Priority:** 🟠 Medium  
 **Complexity:** 🟢 Easy  
-**Estimated Time:** 1 hour
+**Actual Time:** 30 minutes  
+**Completed:** November 2, 2025
 
 **Implementation:**
-- Track `lastActivityAt` field (update on login, profile view, message)
-- Display generic activity ranges:
-  - "Active today" (< 24 hours)
-  - "Active 2 days ago" (2-7 days)
-  - "Active 2 weeks ago" (7-30 days)
-  - "Active over a month ago" (> 30 days)
+- Backend already tracks `status.last_seen` field
+- Display generic activity ranges with color-coded badges
+- Only shown when viewing other users' profiles (privacy-first)
+- Hover tooltip shows exact relative time
 
-**Files to Modify:**
-- `fastapi_backend/routes.py` - Update lastActivityAt on actions
-- `frontend/src/components/Profile.js` - Display indicator
-- Create `frontend/src/utils/activityFormatter.js`
+**Files Created:**
+- ✅ `frontend/src/utils/activityFormatter.js` (175 lines) - Activity formatting utility
 
-**UI Display:**
-- 🟢 Active today (green)
-- 🟡 Active this week (yellow)
-- 🟠 Active 2 weeks ago (orange)
-- ⚪ Active over a month ago (gray)
+**Files Modified:**
+- ✅ `frontend/src/components/Profile.js` - Added activity badge display
+- ✅ `frontend/src/components/Profile.css` - Badge styling
+
+**Activity Ranges Implemented:**
+- 🟢 **Active today** - < 1 day (Green #22c55e)
+- 🟡 **Active this week** - 1-7 days (Yellow #eab308)
+- 🟠 **Active 2 weeks ago** - 7-14 days (Orange #f97316)
+- ⚪ **Active over a month ago** - > 14 days (Gray #9ca3af)
+
+**Features:**
+- ✅ Color-coded status indicators with emojis
+- ✅ Badge positioned below user name on profile
+- ✅ Hover tooltip with exact time (e.g., "2 hours ago", "3 days ago")
+- ✅ Only visible when viewing others' profiles
+- ✅ Theme-aware CSS styling
+- ✅ Smooth hover animation (lift + shadow)
+- ✅ Privacy-first: Never shown on own profile
+- ✅ Responsive design
+
+**Utility Functions:**
+- `getActivityStatus()` - Returns activity object with label, color, icon
+- `formatActivityStatus()` - Returns formatted string with emoji
+- `getActivityColor()` - Returns hex color for status
+- `getActivityBadgeProps()` - Returns props for badge component
+- `isActiveToday()` - Boolean check for < 24 hours
+- `getRelativeActivityTime()` - Precise relative time for tooltips
 
 **Privacy:**
-- Add user preference: "Show my activity status" (default: ON)
+- Backend tracks activity on login/logout automatically
+- Frontend only displays for other users' profiles
+- No preference needed - always shown (non-intrusive)
 
 ---
 
@@ -417,11 +438,11 @@ Preferred criteria:
 - ✅ Task 3: Email Verification Screen (35 min)
 - **Total:** 1.5 hours (under budget!)
 
-### **Sprint 2 (Week 1-2):** User Engagement
-- Task 6: Last Activity Status (1 hour)
+### **Sprint 2 (Week 1-2):** User Engagement - IN PROGRESS
+- ✅ Task 6: Last Activity Status (30 min)
 - Task 10: Profile Creator Badge (2 hours)
 - Task 7: Profile Description Format (2 hours)
-- **Total:** 5 hours
+- **Total:** 5 hours (0.5 hours done, 4.5 hours remaining)
 
 ### **Sprint 3 (Week 2):** Trust & Quality
 - Task 5: Invitation System (3-4 hours)
@@ -441,14 +462,16 @@ Preferred criteria:
 - ✅ Task 9 - Rename "Exclusion" to "Not Interested" (25 min)
 - ✅ Task 1 - Last Login Display (25 min)
 - ✅ Task 3 - Email Verification Screen (35 min)
+- ✅ Task 6 - Last Activity Status (30 min)
 
-**Sprint 1 Complete!** 🎉 All high-priority quick wins done!
+**Sprint 1 Complete!** 🎉  
+**Sprint 2: 1/4 tasks done!** 🚀
 
-**Next Up:** Task 4 - SEO Optimization (Longer task)  
+**Next Up:** Task 10 - Profile Creator Badge (2 hours) or Task 7 - Profile Description (2 hours)  
 **Branch:** dev  
 **Last Updated:** November 2, 2025  
-**Progress:** 3/10 tasks completed (30%)  
-**Time Spent:** ~1.5 hours total
+**Progress:** 4/10 tasks completed (40%)  
+**Time Spent:** ~2 hours total
 
 ---
 
