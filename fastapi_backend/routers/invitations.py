@@ -362,3 +362,96 @@ async def send_invitation_notifications(
 
 # Import datetime for update_invitation
 from datetime import datetime
+
+
+# PUBLIC ENDPOINTS (No authentication required)
+
+@router.get("/validate/{token}")
+async def validate_invitation(
+    token: str,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Validate invitation token and return invitation data
+    PUBLIC endpoint - no authentication required
+    Used by registration page to pre-fill user data
+    """
+    invitation_service = InvitationService(db)
+    
+    # Find invitation by token
+    invitation = await invitation_service.get_invitation_by_token(token)
+    
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation not found or invalid token"
+        )
+    
+    # Check if token is expired
+    if invitation.tokenExpiresAt < datetime.utcnow():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invitation link has expired"
+        )
+    
+    # Check if already accepted
+    if invitation.emailStatus == InvitationStatus.ACCEPTED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invitation already accepted by {invitation.registeredUsername}"
+        )
+    
+    # Return invitation data (excluding sensitive fields)
+    return {
+        "id": invitation.id,
+        "name": invitation.name,
+        "email": invitation.email,
+        "phone": invitation.phone,
+        "invitedBy": invitation.invitedBy,
+        "customMessage": invitation.customMessage,
+        "createdAt": invitation.createdAt
+    }
+
+
+@router.post("/accept/{token}")
+async def accept_invitation(
+    token: str,
+    data: dict,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Mark invitation as accepted after successful registration
+    PUBLIC endpoint - no authentication required
+    Called automatically after user completes registration
+    """
+    invitation_service = InvitationService(db)
+    
+    # Find invitation by token
+    invitation = await invitation_service.get_invitation_by_token(token)
+    
+    if not invitation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invitation not found"
+        )
+    
+    # Update invitation status
+    registered_username = data.get("registeredUsername")
+    
+    if not registered_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Registered username is required"
+        )
+    
+    # Mark as accepted
+    await invitation_service.mark_as_accepted(
+        invitation.id,
+        registered_username
+    )
+    
+    return {
+        "message": "Invitation accepted successfully",
+        "invitationId": invitation.id,
+        "registeredUsername": registered_username
+    }

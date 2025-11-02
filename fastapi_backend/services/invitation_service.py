@@ -343,3 +343,30 @@ class InvitationService:
             acceptanceRate=round(acceptance_rate, 2),
             averageTimeToAccept=avg_time_str
         )
+    
+    async def get_invitation_by_token(self, token: str) -> Optional[InvitationDB]:
+        """
+        Get invitation by invitation token
+        Used for validating invitation links
+        """
+        data = await self.collection.find_one({"invitationToken": token})
+        if data:
+            return InvitationDB(**data)
+        return None
+    
+    async def mark_as_accepted(self, invitation_id: str, registered_username: str):
+        """
+        Mark invitation as accepted and link to registered user
+        """
+        await self.collection.update_one(
+            {"_id": ObjectId(invitation_id)},
+            {
+                "$set": {
+                    "emailStatus": InvitationStatus.ACCEPTED,
+                    "smsStatus": InvitationStatus.ACCEPTED,
+                    "registeredUsername": registered_username,
+                    "registeredAt": datetime.utcnow(),
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )

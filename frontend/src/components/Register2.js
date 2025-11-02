@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
@@ -168,6 +168,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   });
 
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Invitation state
+  const [invitationToken, setInvitationToken] = useState(null);
+  const [invitationData, setInvitationData] = useState(null);
+  const [loadingInvitation, setLoadingInvitation] = useState(false);
+  
   // ImageManager state - For registration, we only have new images (no existing)
   const [existingImages, setExistingImages] = useState([]); // Empty for new registration
   const [imagesToDelete, setImagesToDelete] = useState([]); // Not used in registration
@@ -913,6 +920,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         const profileRes = await api.get(`/profile/${formData.username}`);
         setSavedUser(profileRes.data);
         
+        // Step 2.5: Update invitation status if user registered via invitation
+        if (invitationToken) {
+          try {
+            await api.post(`/api/invitations/accept/${invitationToken}`, {
+              registeredUsername: formData.username
+            });
+            console.log('✅ Invitation accepted successfully');
+          } catch (invErr) {
+            console.error('Failed to update invitation status:', invErr);
+            // Don't block registration if invitation update fails
+          }
+        }
+        
         // Step 3: Redirect to email verification sent page
         setIsSubmitting(false); // Clear loading state
         navigate('/verify-email-sent', {
@@ -1069,6 +1089,45 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       }
     }
   }, [isEditMode]);
+
+  // Load invitation data if invitation token is present in URL
+  useEffect(() => {
+    const loadInvitationData = async () => {
+      if (!isEditMode) {
+        const token = searchParams.get('invitation');
+        if (token) {
+          setInvitationToken(token);
+          setLoadingInvitation(true);
+          
+          try {
+            const response = await api.get(`/api/invitations/validate/${token}`);
+            const invitation = response.data;
+            
+            setInvitationData(invitation);
+            
+            // Pre-fill form with invitation data
+            setFormData(prev => ({
+              ...prev,
+              firstName: invitation.name ? invitation.name.split(' ')[0] : prev.firstName,
+              lastName: invitation.name ? invitation.name.split(' ').slice(1).join(' ') : prev.lastName,
+              contactEmail: invitation.email || prev.contactEmail,
+              contactNumber: invitation.phone || prev.contactNumber
+            }));
+            
+            setSuccessMsg(`✨ Welcome! You're registering with an invitation from ${invitation.invitedBy}`);
+          } catch (err) {
+            console.error('Failed to load invitation:', err);
+            const errorMsg = err.response?.data?.detail || 'Invalid or expired invitation link';
+            setErrorMsg(`⚠️ ${errorMsg}`);
+          } finally {
+            setLoadingInvitation(false);
+          }
+        }
+      }
+    };
+    
+    loadInvitationData();
+  }, [isEditMode, searchParams]);
 
   // Load user data for edit mode
   useEffect(() => {
