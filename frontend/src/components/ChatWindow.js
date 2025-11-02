@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import api from '../api';
+import ProfileCreatorBadge from './ProfileCreatorBadge';
 import './ChatWindow.css';
 
 const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted }) => {
@@ -102,7 +103,18 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             </div>
           )}
           <div className="chat-user-details">
-            <h4>{otherUser.firstName || otherUser.username}</h4>
+            <h4>
+              {otherUser.firstName || otherUser.username}
+              {/* Profile Creator Badge */}
+              {otherUser.profileCreatedBy && (
+                <ProfileCreatorBadge 
+                  creatorType={otherUser.profileCreatedBy}
+                  size="small"
+                  showLabel={true}
+                  showIcon={true}
+                />
+              )}
+            </h4>
             <p>{otherUser.location || 'Location not specified'}</p>
           </div>
         </div>

@@ -12,6 +12,7 @@ import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
+import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import "./Profile.css";
 
 // Create axios instance for verification API
@@ -861,6 +862,15 @@ const Profile = () => {
                 <span className={`status-bulb-profile ${isOnline ? 'online' : 'offline'}`} title={isOnline ? 'Online Now' : 'Offline'}>
                   {isOnline ? '🟢' : '⚪'}
                 </span>
+              )}
+              {/* Profile Creator Badge */}
+              {user.profileCreatedBy && (
+                <ProfileCreatorBadge 
+                  creatorType={user.profileCreatedBy}
+                  size="medium"
+                  showLabel={true}
+                  showIcon={true}
+                />
               )}
             </h2>
             

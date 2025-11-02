@@ -1,0 +1,150 @@
+/* Profile Creator Badge Component */
+
+.profile-creator-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: var(--surface-color, #f8f9fa);
+  border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: var(--radius-sm, 6px);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-color, #333);
+  transition: all 0.2s ease;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.profile-creator-badge:hover {
+  background: var(--hover-background, #f0f0f0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Size Variants */
+.profile-creator-badge-small {
+  padding: 3px 6px;
+  font-size: 11px;
+  gap: 3px;
+}
+
+.profile-creator-badge-small .badge-icon {
+  font-size: 12px;
+}
+
+.profile-creator-badge-medium {
+  padding: 4px 8px;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.profile-creator-badge-medium .badge-icon {
+  font-size: 14px;
+}
+
+.profile-creator-badge-large {
+  padding: 6px 12px;
+  font-size: 13px;
+  gap: 5px;
+}
+
+.profile-creator-badge-large .badge-icon {
+  font-size: 16px;
+}
+
+/* Position Variants */
+.profile-creator-badge-inline {
+  /* Default inline positioning */
+  margin-left: 4px;
+}
+
+.profile-creator-badge-overlay {
+  /* Overlay positioning (for profile images) */
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+}
+
+/* Badge Elements */
+.badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.badge-label {
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+/* Color Accent (using custom property) */
+.profile-creator-badge::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--badge-color, var(--primary-color));
+  border-radius: var(--radius-sm, 6px) 0 0 var(--radius-sm, 6px);
+}
+
+/* Add left padding to account for accent bar */
+.profile-creator-badge {
+  padding-left: 10px;
+}
+
+.profile-creator-badge-small {
+  padding-left: 8px;
+}
+
+.profile-creator-badge-large {
+  padding-left: 14px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 576px) {
+  .profile-creator-badge {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .profile-creator-badge-large {
+    font-size: 12px;
+    padding: 5px 10px;
+  }
+  
+  .badge-icon {
+    font-size: 13px;
+  }
+}
+
+/* Dark theme support */
+@media (prefers-color-scheme: dark) {
+  .profile-creator-badge-overlay {
+    background: rgba(30, 30, 30, 0.95);
+  }
+}
+
+/* Animation */
+@keyframes badgeFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.profile-creator-badge {
+  animation: badgeFadeIn 0.2s ease-out;
+}

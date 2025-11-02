@@ -1,5 +1,6 @@
 import React from 'react';
 import OnlineStatusBadge from './OnlineStatusBadge';
+import ProfileCreatorBadge from './ProfileCreatorBadge';
 import { getDisplayName } from '../utils/userDisplay';
 import './MessageList.css';
 
@@ -74,6 +75,15 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                 <div className="conversation-header">
                   <span className="conversation-name">
                     {getDisplayName(conv.userProfile) || conv.username}
+                    {/* Profile Creator Badge */}
+                    {conv.userProfile?.profileCreatedBy && (
+                      <ProfileCreatorBadge 
+                        creatorType={conv.userProfile.profileCreatedBy}
+                        size="small"
+                        showLabel={false}
+                        showIcon={true}
+                      />
+                    )}
                   </span>
                   <span className="conversation-time">
                     {formatTime(conv.lastMessageTime)}
