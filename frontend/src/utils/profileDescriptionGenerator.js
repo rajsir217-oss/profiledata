@@ -22,6 +22,11 @@ export const generateAboutMe = (user) => {
   
   para1 = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
   
+  // Add relationship status
+  if (user.relationshipStatus && user.relationshipStatus.toLowerCase() !== 'single') {
+    para1 += `, <span class="highlight"><strong>${user.relationshipStatus.toLowerCase()}</strong></span>`;
+  }
+  
   // Check if professional (has work or working status)
   const isWorking = user.workingStatus === 'Yes' || user.workingStatus === true || 
                     (user.workExperience && Array.isArray(user.workExperience) && user.workExperience.length > 0);
@@ -93,12 +98,24 @@ export const generateAboutMe = (user) => {
       `<span class="highlight"><strong>${l}</strong></span>`
     ).join(', ');
     para1 += `. I speak ${langList} fluently`;
+    
+    // Add mother tongue if different from spoken languages
+    if (user.motherTongue && !user.languagesSpoken.includes(user.motherTongue)) {
+      para1 += `, with <span class="highlight"><strong>${user.motherTongue}</strong></span> as my mother tongue`;
+    }
+  } else if (user.motherTongue) {
+    para1 += `. My mother tongue is <span class="highlight"><strong>${user.motherTongue}</strong></span>`;
   }
   
+  // Religion and caste
   if (user.religion && user.religion.toLowerCase() === 'other') {
     para1 += `, and am <span class="highlight"><strong>open to any religion</strong></span>`;
   } else if (user.religion && user.religion.toLowerCase() !== 'prefer not to say') {
     para1 += `, and follow <span class="highlight"><strong>${user.religion}</strong></span>`;
+  }
+  
+  if (user.caste && user.caste.toLowerCase() !== 'no caste' && user.caste.toLowerCase() !== 'prefer not to say' && user.caste.toLowerCase() !== 'none') {
+    para1 += `, from a <span class="highlight"><strong>${user.caste}</strong></span> background`;
   }
   
   // Children
@@ -111,6 +128,11 @@ export const generateAboutMe = (user) => {
     para1 += `. I look forward to <span class="highlight"><strong>building a family</strong></span>`;
   } else if (user.wantsChildren && user.wantsChildren.toLowerCase().includes('open')) {
     para1 += `. I'm <span class="highlight"><strong>open to discussing children</strong></span> in the future`;
+  }
+  
+  // Pets
+  if (user.pets && user.pets.toLowerCase() !== 'none' && user.pets.toLowerCase() !== 'no') {
+    para1 += `. I have <span class="highlight"><strong>${user.pets.toLowerCase()}</strong></span>`;
   }
   
   para1 += '.';
@@ -154,20 +176,53 @@ export const generateAboutMe = (user) => {
     }
   }
   
-  // Family background
+  // Family background with family type and values
+  let familyInfo = [];
+  
+  if (user.familyType && user.familyType.toLowerCase() !== 'prefer not to say') {
+    familyInfo.push(`I come from a <span class="highlight"><strong>${user.familyType.toLowerCase()} family</strong></span>`);
+  }
+  
+  if (user.familyValues && user.familyValues.toLowerCase() !== 'prefer not to say') {
+    if (familyInfo.length > 0) {
+      familyInfo.push(`with <span class="highlight"><strong>${user.familyValues.toLowerCase()} values</strong></span>`);
+    } else {
+      familyInfo.push(`My family has <span class="highlight"><strong>${user.familyValues.toLowerCase()} values</strong></span>`);
+    }
+  }
+  
+  if (familyInfo.length > 0) {
+    if (para2) {
+      para2 += '. ' + familyInfo.join(' ');
+    } else {
+      para2 = familyInfo.join(' ');
+    }
+  }
+  
+  // Family background text
   if (user.familyBackground && user.familyBackground.trim()) {
     if (para2) {
-      para2 += ' ' + user.familyBackground;
+      para2 += '. ' + user.familyBackground;
     } else {
       para2 = user.familyBackground;
     }
   }
 
-  // PARAGRAPH 3: Personal description + relationship goals
+  // PARAGRAPH 3: Bio (tagline), personal description + relationship goals
   let para3 = '';
   
+  // Start with bio if available
+  if (user.bio && user.bio.trim()) {
+    para3 = user.bio;
+  }
+  
+  // Add aboutMe (personal description)
   if (user.aboutMe && user.aboutMe.trim()) {
-    para3 = user.aboutMe;
+    if (para3) {
+      para3 += ' ' + user.aboutMe;
+    } else {
+      para3 = user.aboutMe;
+    }
   }
   
   // Add relationship goals
