@@ -420,36 +420,278 @@ Preferred criteria:
 
 ## 📅 Low Priority (Sprint 3+)
 
-### Task 2: Pause Function (Go MIA)
-**Status:** ⏳ Pending  
-**Priority:** 🔵 Low  
+### Task 2: Pause Function (Go MIA) - APPROVED FOR IMPLEMENTATION ✅
+**Status:** 🚧 IN PROGRESS  
+**Priority:** 🔥 HIGH (User requested immediate implementation)  
 **Complexity:** 🟡 Medium  
-**Estimated Time:** 2-3 hours
+**Estimated Time:** 6-8 hours (All 3 phases)  
+**Approved:** November 2, 2025
 
-**Implementation:**
-- Add `accountStatus` field: `"active" | "paused" | "deactivated"`
-- When paused:
-  - Hide from search results
-  - Hide from L3V3L matches
-  - Block viewing other profiles
-  - Show "Account Paused" banner
-  - Keep messages read-only
+**User Requirements Confirmed:**
+- ✅ Auto-unpause: BOTH (scheduled timer + manual)
+- ✅ Billing: Subscription continues during pause
+- ✅ Notifications: Stop ALL email notifications while paused
+- ✅ Profile editing: User CAN edit profile while paused
+- ✅ Pause limit: Unlimited (no restrictions for now)
+- ✅ Un-pause notification: YES, notify conversation partners when user returns
+
+---
+
+## **PHASE 1: MVP (Core Functionality)** 🚀
+
+### **Backend Changes:**
+
+**Database Schema:**
+```javascript
+// users collection - Add fields:
+{
+  accountStatus: "active" | "paused" | "deactivated",
+  pausedAt: ISODate | null,
+  pausedUntil: ISODate | null,  // null = manual unpause only
+  pauseReason: string | null,
+  pauseMessage: string | null,   // Custom message to show others
+  pauseCount: number,            // Track total pauses (analytics)
+  lastUnpausedAt: ISODate | null
+}
+```
+
+**Files to Create:**
+- `fastapi_backend/routers/account_status.py` - Pause/unpause endpoints
+- `frontend/src/components/PauseSettings.js` - Pause modal/settings UI
+- `fastapi_backend/job_templates/auto_unpause.py` - Scheduler for auto-unpause
 
 **Files to Modify:**
+- `fastapi_backend/models/user.py` - Add pause fields to UserDB model
 - `fastapi_backend/routes.py` - Filter paused users from search
 - `fastapi_backend/routes_matches.py` - Exclude from L3V3L matches
+- `fastapi_backend/routes_messaging.py` - Block new messages to/from paused users
 - `frontend/src/components/UnifiedPreferences.js` - Add pause toggle
-- `frontend/src/components/Dashboard.js` - Show pause banner
+- `frontend/src/components/Dashboard.js` - Show pause banner when paused
+- `frontend/src/components/Messages.js` - Show "PAUSED" indicator in conversations
+- `frontend/src/components/Profile.js` - Show pause banner on paused profiles
+- `frontend/src/components/SearchPage2.js` - Filter paused users from results
 
-**Considerations:**
-- ⚠️ Should existing matches persist?
-- ⚠️ Should messages be accessible?
-- ⚠️ Auto-unpause after X days?
-- Database index on `accountStatus` for performance
+**API Endpoints:**
+```
+POST   /api/account/pause           - Pause account
+POST   /api/account/unpause         - Unpause account
+GET    /api/account/pause-status    - Get pause status
+PATCH  /api/account/pause-settings  - Update pause duration/message
+```
 
-**Privacy Implications:**
-- Maintain PII access grants
-- Keep favorites/shortlist but hide from others
+**Search/Matching Updates:**
+```python
+# In search query:
+query["accountStatus"] = {"$ne": "paused"}
+
+# In L3V3L matching:
+if user.accountStatus == "paused":
+    skip_user()
+```
+
+**Message System:**
+```python
+# Block sending to paused users:
+if recipient.accountStatus == "paused":
+    raise HTTPException(403, "User is currently paused")
+    
+# Show in conversation list:
+{
+  "isPaused": True,
+  "pauseMessage": "Taking a break, back soon!"
+}
+```
+
+---
+
+## **PHASE 2: Enhanced Features** 📈
+
+**Auto-Unpause Scheduler:**
+- Cron job runs every hour
+- Checks `pausedUntil < now()`
+- Auto-unpauses users
+- Sends notification email
+
+**Pause Reason Selection:**
+```javascript
+pauseReasons: [
+  "Busy with work",
+  "Traveling/Vacation",
+  "Focusing on current match",
+  "Personal reasons",
+  "Need a mental break",
+  "Custom..." // Free text
+]
+```
+
+**Customizable Pause Message:**
+```javascript
+// User can write custom message shown to others:
+pauseMessage: "Traveling abroad! Back Dec 1st 🌍"
+pauseMessage: "Busy season at work. Will return soon!"
+pauseMessage: "Taking some me-time 💜"
+```
+
+**Email Notifications:**
+```
+1. Pause confirmation email
+2. "24h before auto-unpause" reminder
+3. "You're back!" welcome email
+4. Notify conversation partners when unpaused
+```
+
+**Files to Create:**
+- `frontend/src/components/PauseReasonModal.js` - Reason selection UI
+- `fastapi_backend/services/pause_service.py` - Business logic
+- Email templates for pause notifications
+
+**Files to Modify:**
+- `frontend/src/components/PauseSettings.js` - Add reason/message fields
+- `fastapi_backend/routers/account_status.py` - Add reason/message params
+
+---
+
+## **PHASE 3: Advanced Features** 🌟
+
+**Pause Analytics:**
+```javascript
+// User dashboard:
+{
+  totalPauses: 3,
+  averagePauseDuration: "12 days",
+  lastPausedAt: "2 weeks ago",
+  mostCommonReason: "Work"
+}
+```
+
+**Admin Dashboard Metrics:**
+```
+- Current paused users: 145 (12%)
+- Avg pause duration: 9 days
+- Return rate: 78%
+- Pause trend graph
+```
+
+**"Focus Mode" Variant:**
+```javascript
+focusMode: {
+  enabled: true,
+  maxActiveChats: 3,
+  allowNewMatches: false,
+  currentFocusUsers: ["user1", "user2", "user3"]
+}
+```
+
+**Files to Create:**
+- `frontend/src/components/PauseAnalytics.js` - User analytics
+- `frontend/src/components/admin/PauseDashboard.js` - Admin view
+- `frontend/src/components/FocusMode.js` - Focus mode UI
+
+---
+
+## **Implementation Checklist:**
+
+### **Phase 1 (Day 1-2):**
+- [ ] Create database migration for pause fields
+- [ ] Create `account_status.py` router with pause/unpause endpoints
+- [ ] Update `UserDB` model with pause fields
+- [ ] Update search query to filter paused users
+- [ ] Update L3V3L matching to skip paused users
+- [ ] Create `PauseSettings.js` modal component
+- [ ] Add pause toggle to UnifiedPreferences
+- [ ] Add pause banner to Dashboard
+- [ ] Update Messages UI to show paused indicator
+- [ ] Block message sending to/from paused users
+- [ ] Test pause/unpause flow
+
+### **Phase 2 (Day 3-4):**
+- [ ] Create auto-unpause scheduler job
+- [ ] Add pause reason selection dropdown
+- [ ] Add customizable pause message field
+- [ ] Create pause notification email templates
+- [ ] Send pause confirmation email
+- [ ] Send "24h before unpause" reminder
+- [ ] Send "you're back!" welcome email
+- [ ] Notify conversation partners on unpause
+- [ ] Test auto-unpause scheduling
+- [ ] Test email notifications
+
+### **Phase 3 (Day 5-6):**
+- [ ] Build pause analytics dashboard
+- [ ] Create admin pause metrics view
+- [ ] Add pause trend graphs
+- [ ] Implement Focus Mode variant
+- [ ] Add pause history to user profile
+- [ ] Create A/B test framework for messaging
+- [ ] Test analytics accuracy
+- [ ] Test admin dashboard
+
+---
+
+## **Database Indexes:**
+```javascript
+// For performance:
+db.users.createIndex({ accountStatus: 1 });
+db.users.createIndex({ pausedUntil: 1 }); // For auto-unpause job
+```
+
+---
+
+## **Testing Scenarios:**
+
+1. **Basic Pause/Unpause:**
+   - [ ] User pauses account
+   - [ ] User disappears from search
+   - [ ] User can't send messages
+   - [ ] Others can't message user
+   - [ ] User can unpause anytime
+
+2. **Auto-Unpause:**
+   - [ ] Set pause for 7 days
+   - [ ] User auto-unpauses after 7 days
+   - [ ] Email sent 24h before
+   - [ ] Email sent on unpause
+
+3. **Profile Visibility:**
+   - [ ] Paused profile shows banner
+   - [ ] Direct URL shows "on break"
+   - [ ] Search results exclude user
+   - [ ] Matches don't generate
+
+4. **Communication:**
+   - [ ] Can't send new messages
+   - [ ] Old messages remain visible
+   - [ ] Conversation shows "PAUSED"
+   - [ ] Partners notified on unpause
+
+5. **Edge Cases:**
+   - [ ] Pause while in conversation
+   - [ ] Unpause with pending messages
+   - [ ] Multiple pause/unpause cycles
+   - [ ] Profile edit while paused
+
+---
+
+## **Privacy & Security:**
+
+- ✅ Pause status is visible to conversation partners (transparency)
+- ✅ Custom message is optional (user choice)
+- ✅ Existing conversations preserved (no data loss)
+- ✅ Subscription continues (billing clarity)
+- ✅ Can edit profile while paused (user control)
+- ✅ No limit on pauses (user freedom)
+
+---
+
+## **Success Metrics:**
+
+- **30-day retention rate** increase
+- **Account deletion rate** decrease
+- **User satisfaction** scores
+- **Pause adoption rate** (target: 15-25%)
+- **Return rate** after pause (target: >70%)
+- **Average pause duration**
+- **Support tickets** related to breaks/overwhelm
 
 ---
 
