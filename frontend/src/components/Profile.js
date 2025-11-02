@@ -11,6 +11,7 @@ import onlineStatusService from "../services/onlineStatusService";
 import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
+import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
 import "./Profile.css";
 
 // Create axios instance for verification API
@@ -862,6 +863,18 @@ const Profile = () => {
                 </span>
               )}
             </h2>
+            
+            {/* Last Activity Status - Only show for other users' profiles */}
+            {!isOwnProfile && user.status?.last_seen && (
+              <div className="last-activity-badge" title={`Last seen: ${getRelativeActivityTime(user.status.last_seen)}`}>
+                <span className="activity-icon" style={{ color: getActivityBadgeProps(user.status.last_seen).color }}>
+                  {getActivityBadgeProps(user.status.last_seen).icon}
+                </span>
+                <span className="activity-text">
+                  {getActivityBadgeProps(user.status.last_seen).label}
+                </span>
+              </div>
+            )}
             {/* Username - visible to admin and profile owner only */}
             {(isAdmin || isOwnProfile) && user.username && (
               <p style={{ 
