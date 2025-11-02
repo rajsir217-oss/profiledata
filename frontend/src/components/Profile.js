@@ -98,6 +98,7 @@ const Profile = () => {
     personalLifestyle: true,
     educationHistory: true,
     workExperience: true,
+    contactInformation: true,
     preferencesBackground: true,
     partnerCriteria: true
   });
@@ -1388,7 +1389,10 @@ const Profile = () => {
       {/* Contact Information (PII Protected) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
-          <h3>📧 Contact Information</h3>
+          <h3 onClick={() => toggleSection('contactInformation')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span>{collapsedSections.contactInformation ? '▶' : '▼'}</span>
+            📧 Contact Information
+          </h3>
           {isOwnProfile && editingSection === 'contact' && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <button 
@@ -1408,6 +1412,8 @@ const Profile = () => {
             </div>
           )}
         </div>
+        {!collapsedSections.contactInformation && (
+        <>
         {isOwnProfile || piiAccess.contact_info ? (
           editingSection === 'contact' ? (
             <div className="inline-edit-form">
@@ -1439,6 +1445,8 @@ const Profile = () => {
               Request Access
             </button>
           </div>
+        )}
+        </>
         )}
       </div>
 
