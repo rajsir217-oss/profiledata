@@ -210,6 +210,23 @@ export const generatePartnerPreference = (prefs) => {
     );
   }
 
+  // Add dietary preference if specified
+  if (prefs.eatingPreference && prefs.eatingPreference.toLowerCase() !== 'any') {
+    const preference = `<span class="highlight"><strong>${prefs.eatingPreference}</strong></span>`;
+    parts.push(`I prefer someone who follows a ${preference} diet.`);
+  }
+
+  // Add language preference if specified
+  if (prefs.languages) {
+    const langArray = Array.isArray(prefs.languages) ? prefs.languages : [prefs.languages];
+    if (langArray.length > 0) {
+      const langList = langArray.map(l => 
+        `<span class="highlight"><strong>${l}</strong></span>`
+      ).join(', ');
+      parts.push(`It would be wonderful if they speak ${langList}.`);
+    }
+  }
+
   return parts.join(' ');
 };
 

@@ -317,15 +317,6 @@
   );
   padding: 2px 4px;
   border-radius: 3px;
-  transition: all 0.2s ease;
-}
-
-.profile-narrative-content .highlight:hover {
-  background: linear-gradient(
-    120deg,
-    rgba(255, 245, 157, 0.6) 0%,
-    rgba(255, 238, 88, 0.5) 100%
-  );
 }
 
 .profile-narrative-content strong {
