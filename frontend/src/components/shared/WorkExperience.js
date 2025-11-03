@@ -163,7 +163,7 @@ const WorkExperience = ({
           </div>
 
           <div className="col-md-4">
-            <label className="form-label">Description (Type of work & industry) <span className="text-danger">*</span></label>
+            <label className="form-label">Type of work & Industry <span className="text-danger">*</span></label>
             <input
               type="text"
               className="form-control"
