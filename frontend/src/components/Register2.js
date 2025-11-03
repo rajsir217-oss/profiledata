@@ -175,8 +175,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
-  const [invitationData, setInvitationData] = useState(null);
-  const [loadingInvitation, setLoadingInvitation] = useState(false);
+  const [, setInvitationData] = useState(null); // eslint-disable-line no-unused-vars
+  const [, setLoadingInvitation] = useState(false); // eslint-disable-line no-unused-vars
   
   // ImageManager state - For registration, we only have new images (no existing)
   const [existingImages, setExistingImages] = useState([]); // Empty for new registration
@@ -189,7 +189,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [, setShowSuccessModal] = useState(false); // eslint-disable-line no-unused-vars
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const usernameCheckTimeout = useRef(null);
@@ -917,7 +917,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       } else {
         // REGISTER MODE: Create new user
         // Step 1: Register user (email is sent automatically by backend)
-        const res = await api.post("/register", data);
+        await api.post("/register", data);
 
         // Step 2: Fetch the saved user profile from backend to get final image URLs
         const profileRes = await api.get(`/profile/${formData.username}`);

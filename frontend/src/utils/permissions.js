@@ -311,7 +311,7 @@ export const getLimitStatus = (limitName, currentCount) => {
 };
 
 // Export all functions as default object as well
-export default {
+const permissions = {
   getCurrentUserRole,
   getCurrentUsername,
   getInheritedPermissions,
@@ -336,3 +336,5 @@ export default {
   formatLimit,
   getLimitStatus
 };
+
+export default permissions;

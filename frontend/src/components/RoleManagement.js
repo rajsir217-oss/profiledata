@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions, getAllLimits, formatLimit } from '../utils/permissions';
+import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions } from '../utils/permissions';
 import api from '../api';
 import PageHeader from './PageHeader';
 import UniversalTabContainer from './UniversalTabContainer';

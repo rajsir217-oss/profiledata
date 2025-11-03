@@ -45,7 +45,6 @@ const NotificationTester = () => {
   const [currentUser, setCurrentUser] = useState(null);
   const [queue, setQueue] = useState([]);
   const [analytics, setAnalytics] = useState(null);
-  const [preferences, setPreferences] = useState(null);
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState(null);
 

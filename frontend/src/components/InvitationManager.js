@@ -224,7 +224,7 @@ const InvitationManager = () => {
     };
 
     return (
-      <span className={`status-badge ${statusClasses[status] || ''}`}>
+      <span className={`btn-action ${statusClasses[status] || ''}`}>
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );

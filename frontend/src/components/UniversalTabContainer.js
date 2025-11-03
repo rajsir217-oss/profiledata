@@ -39,8 +39,6 @@ const UniversalTabContainer = ({
     }
   };
 
-  const activeTabData = tabs.find(tab => tab.id === activeTab);
-
   return (
     <div className={`universal-tab-container variant-${variant} ${className}`}>
       {/* Tab Navigation */}

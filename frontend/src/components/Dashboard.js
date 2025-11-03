@@ -89,7 +89,6 @@ const Dashboard = () => {
 
   // MFA notification state
   const [showMfaNotification, setShowMfaNotification] = useState(false);
-  const [mfaEnabled, setMfaEnabled] = useState(false);
   
   // Pause feature state
   const [pauseStatus, setPauseStatus] = useState(null);
