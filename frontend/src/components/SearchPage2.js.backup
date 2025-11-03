@@ -1675,78 +1675,7 @@ const SearchPage2 = () => {
                   id: 'basic',
                   icon: '🔍',
                   label: 'Basic Search',
-                  badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
                   content: (
-                    <>
-                      {/* L3V3L COMPATIBILITY SLIDER */}
-                      {(systemConfig.enable_l3v3l_for_all || isPremiumUser) && (
-                        <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
-                          <div style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            justifyContent: 'space-between',
-                            marginBottom: '16px'
-                          }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                              <span style={{ fontSize: '20px' }}>🎯</span>
-                              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-color)' }}>Minimum Compatibility Score</h4>
-                            </div>
-                            <span style={{ 
-                              fontSize: '20px', 
-                              fontWeight: 700,
-                              color: 'var(--primary-color)'
-                            }}>
-                              {minMatchScore}%
-                            </span>
-                          </div>
-                          
-                          <input
-                            id="matchScoreSlider"
-                            type="range"
-                            min="0"
-                            max="100"
-                            step="5"
-                            value={minMatchScore}
-                            onChange={(e) => {
-                              const newScore = Number(e.target.value);
-                              logger.debug('L3V3L Slider changed:', minMatchScore, '→', newScore);
-                              setMinMatchScore(newScore);
-                              setTimeout(() => handleSearch(1), 600);
-                            }}
-                            className="match-score-slider"
-                            style={{ width: '100%', height: '8px', cursor: 'pointer', marginBottom: '12px' }}
-                          />
-                          
-                          <div className="slider-labels" style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            fontSize: '13px', 
-                            color: 'var(--text-secondary)',
-                            fontWeight: '500'
-                          }}>
-                            <span>0%</span>
-                            <span>25%</span>
-                            <span>50%</span>
-                            <span>75%</span>
-                            <span>100%</span>
-                          </div>
-                          
-                          {minMatchScore === 0 && (
-                            <div style={{ 
-                              marginTop: '12px',
-                              padding: '8px 12px',
-                              background: 'var(--info-color-light, rgba(66, 153, 225, 0.1))',
-                              borderRadius: '6px',
-                              fontSize: '13px',
-                              color: 'var(--text-color)',
-                              textAlign: 'center'
-                            }}>
-                              ℹ️ Set to 0% to disable L3V3L filtering (show all matches)
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      
               <div className="filter-section">
                 <div className="row filter-row-1">
                   <div className="col-keyword">
@@ -1888,7 +1817,6 @@ const SearchPage2 = () => {
                   </div>
                 </div>
               </div>
-                    </>
                   )
                 },
                 {
