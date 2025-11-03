@@ -84,6 +84,12 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                         showIcon={true}
                       />
                     )}
+                    {/* Pause Status Badge */}
+                    {conv.userProfile?.accountStatus === 'paused' && (
+                      <span className="pause-badge" title="User is on a break">
+                        ⏸️
+                      </span>
+                    )}
                   </span>
                   <span className="conversation-time">
                     {formatTime(conv.lastMessageTime)}

@@ -114,6 +114,12 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                   showIcon={true}
                 />
               )}
+              {/* Pause Status Badge */}
+              {otherUser.accountStatus === 'paused' && (
+                <span className="pause-badge-header" title="User is on a break">
+                  ⏸️ PAUSED
+                </span>
+              )}
             </h4>
             <p>{otherUser.location || 'Location not specified'}</p>
           </div>
@@ -127,6 +133,17 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           <strong>Be Professional.</strong> No vulgar or abusive language. Violations result in immediate suspension or ban.
         </span>
       </div>
+
+      {/* Pause Status Notice */}
+      {otherUser.accountStatus === 'paused' && (
+        <div className="chat-pause-notice">
+          <span className="pause-notice-icon">⏸️</span>
+          <div className="pause-notice-text">
+            <strong>This user is taking a break</strong>
+            <p>{otherUser.pauseMessage || 'They have temporarily paused their account and cannot receive messages.'}</p>
+          </div>
+        </div>
+      )}
 
       {/* Messages Area */}
       <div className="messages-area">
@@ -218,14 +235,15 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Type a message..."
+            placeholder={otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'}
             className="message-input"
             maxLength={1000}
+            disabled={otherUser.accountStatus === 'paused'}
           />
           <button
             type="submit"
             className="send-button"
-            disabled={!messageText.trim()}
+            disabled={!messageText.trim() || otherUser.accountStatus === 'paused'}
           >
             Send ➤
           </button>

@@ -129,6 +129,27 @@
   font-weight: 600;
   color: var(--text-color, #333);
   font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pause-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  opacity: 0.8;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 0.8;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 .conversation-time {
