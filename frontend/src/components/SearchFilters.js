@@ -1,5 +1,6 @@
 import React from 'react';
 import logger from '../utils/logger';
+import './SearchFilters.css';
 
 /**
  * Reusable Search Filters Component
@@ -124,12 +125,7 @@ const SearchFilters = ({
       )}
       
       {/* 2. BASIC FILTERS - Always Visible */}
-      <div className="basic-filters-section" style={{ 
-        marginBottom: '20px',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '16px'
-      }}>
+      <div className="basic-filters-section">
           <div className="col-keyword">
             <div className="form-group">
               <label>Keyword Search</label>
@@ -327,12 +323,7 @@ const SearchFilters = ({
       {/* 5. ADVANCED FILTERS - Collapsible */}
       {showAdvancedFilters && (
         <>
-          <div className="advanced-filters-section" style={{ 
-            marginBottom: '20px',
-            display: 'grid',
-            gridTemplateColumns: 'repeat(2, 1fr)',
-            gap: '16px'
-          }}>
+          <div className="advanced-filters-section">
               <div className="col-gender">
                 <div className="form-group">
                   <label>Gender</label>
