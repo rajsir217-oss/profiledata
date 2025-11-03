@@ -58,10 +58,11 @@
 
 /* Effects List */
 .pause-effects {
-  background: var(--card-bg, #f8f9fa);
+  background: var(--surface-color, #f8f9fa);
   border-radius: var(--radius-md);
   padding: 16px;
   margin-bottom: 24px;
+  border: 1px solid var(--border-color);
 }
 
 .effect-item {
@@ -71,6 +72,7 @@
   padding: 10px 0;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--text-color);
 }
 
 .effect-item:not(:last-child) {
@@ -84,11 +86,11 @@
   text-align: center;
 }
 
-.effect-item.positive {
+.effect-item.positive .icon {
   color: var(--success-color, #28a745);
 }
 
-.effect-item.negative {
+.effect-item.negative .icon {
   color: var(--danger-color, #dc3545);
 }
 

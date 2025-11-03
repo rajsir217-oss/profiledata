@@ -841,7 +841,7 @@
 /* Pause Account Section */
 .pause-active-card,
 .pause-inactive-card {
-  background: var(--card-bg, #f8f9fa);
+  background: var(--card-background, #f8f9fa);
   border-radius: var(--radius-md, 8px);
   padding: 24px;
   border: 1px solid var(--border-color);
@@ -885,7 +885,8 @@
 }
 
 .pause-effects-summary {
-  background: white;
+  background: var(--surface-color, #f8f9fa);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-sm, 4px);
   padding: 16px;
   margin-bottom: 20px;
@@ -907,6 +908,7 @@
   padding: 6px 0;
   font-size: 14px;
   line-height: 1.5;
+  color: var(--text-color);
 }
 
 .btn-unpause {
@@ -946,6 +948,7 @@
   padding: 10px 0;
   font-size: 14px;
   line-height: 1.6;
+  color: var(--text-color);
   border-bottom: 1px solid var(--border-color);
 }
 
