@@ -126,19 +126,23 @@ const SearchFilters = ({
       
       {/* 2. BASIC FILTERS - Always Visible */}
       <div className="basic-filters-section">
-          <div className="col-keyword">
-            <div className="form-group">
-              <label>Keyword Search</label>
-              <input
-                type="text"
-                className="form-control"
-                name="keyword"
-                value={searchCriteria.keyword || ''}
-                onChange={handleInputChange}
-                placeholder="Search any field..."
-              />
-            </div>
+        {/* Row 1: Keyword Search (Full Width) */}
+        <div className="col-keyword">
+          <div className="form-group">
+            <label>Keyword Search</label>
+            <input
+              type="text"
+              className="form-control"
+              name="keyword"
+              value={searchCriteria.keyword || ''}
+              onChange={handleInputChange}
+              placeholder="Search any field..."
+            />
           </div>
+        </div>
+        
+        {/* Row 2: Location and Age Range */}
+        <div className="filter-row-location-age">
           <div className="col-location">
             <div className="form-group">
               <label>Location</label>
@@ -181,6 +185,10 @@ const SearchFilters = ({
               </div>
             </div>
           </div>
+        </div>
+        
+        {/* Row 3: Height Min and Height Max */}
+        <div className="filter-row-height">
           <div className="col-height-min">
             <div className="form-group">
               <label>Height (Min)</label>
@@ -245,6 +253,7 @@ const SearchFilters = ({
               </div>
             </div>
           </div>
+        </div>
       </div>
       
       {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}

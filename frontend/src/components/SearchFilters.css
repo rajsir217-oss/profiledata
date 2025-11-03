@@ -4,12 +4,31 @@
   width: 100%;
 }
 
-/* Basic Filters Grid Layout - 2 columns */
+/* Basic Filters Grid Layout - Custom layout */
 .basic-filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Keyword Search - Full width */
+.basic-filters-section .col-keyword {
+  width: 100%;
+}
+
+/* Second row: Location and Age Range */
+.basic-filters-section .filter-row-location-age {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
-  margin-bottom: 20px;
+}
+
+/* Third row: Height Min and Height Max */
+.basic-filters-section .filter-row-height {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
 /* Advanced Filters Grid Layout - 3 columns */
@@ -22,7 +41,8 @@
 
 /* Responsive: Single column on mobile */
 @media (max-width: 768px) {
-  .basic-filters-section,
+  .basic-filters-section .filter-row-location-age,
+  .basic-filters-section .filter-row-height,
   .advanced-filters-section {
     grid-template-columns: 1fr;
     gap: 12px;
