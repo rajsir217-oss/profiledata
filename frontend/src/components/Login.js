@@ -5,6 +5,8 @@ import axios from "axios";
 import api from "../api";
 import socketService from "../services/socketService";
 import { getBackendUrl } from "../config/apiConfig";
+import SEO from "./SEO";
+import { getPageSEO } from "../utils/seo";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -12,6 +14,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const pageSEO = getPageSEO('login');
 
   // MFA State
   const [mfaRequired, setMfaRequired] = useState(false);
@@ -183,6 +186,14 @@ const Login = () => {
   };
 
   return (
+    <>
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+        noindex={pageSEO.noindex}
+      />
     <div className="login-page-wrapper" style={{
       minHeight: '100vh',
       height: '100vh',
@@ -548,6 +559,7 @@ const Login = () => {
       )}
       </div>
     </div>
+    </>
   );
 };
 

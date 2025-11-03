@@ -1,11 +1,34 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import SEO from './SEO';
+import { getPageSEO, getOrganizationSchema, getWebsiteSchema, injectStructuredData } from '../utils/seo';
 import './LandingPage.css';
 
 const LandingPage = () => {
   const navigate = useNavigate();
 
+  // Inject structured data for SEO
+  useEffect(() => {
+    const schemas = [
+      getOrganizationSchema(),
+      getWebsiteSchema()
+    ];
+    injectStructuredData(schemas);
+  }, []);
+
+  // Get page-specific SEO data
+  const pageSEO = getPageSEO('home');
+
   return (
+    <>
+      {/* SEO Meta Tags */}
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+        type={pageSEO.type}
+      />
     <div className="landing-page">
       {/* Header */}
       <header className="landing-header">
@@ -195,6 +218,7 @@ const LandingPage = () => {
         </div>
       </footer>
     </div>
+    </>
   );
 };
 
