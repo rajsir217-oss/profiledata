@@ -275,6 +275,88 @@
   letter-spacing: 0.2px;
 }
 
+/* Pause Status Badge (in header) */
+.pause-badge-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-left: 8px;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Pause Status Notice Banner */
+.profile-pause-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(245, 87, 108, 0.15) 100%);
+  border-left: 4px solid #f5576c;
+  border-radius: var(--radius-md, 8px);
+  margin: 20px 0;
+  animation: slideDown 0.3s ease;
+  box-shadow: 0 2px 8px rgba(245, 87, 108, 0.1);
+}
+
+.pause-notice-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+.pause-notice-content {
+  flex: 1;
+}
+
+.pause-notice-content strong {
+  display: block;
+  font-size: 18px;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.pause-notice-content p {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.pause-until {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f5576c;
+  margin-top: 8px;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 0.9;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Profile Narrative Sections */
 .profile-narrative-section {
   background: var(--card-background, #ffffff);

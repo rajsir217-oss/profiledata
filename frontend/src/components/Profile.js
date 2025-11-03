@@ -892,6 +892,12 @@ const Profile = () => {
                   showIcon={true}
                 />
               )}
+              {/* Pause Status Badge */}
+              {!isOwnProfile && user.accountStatus === 'paused' && (
+                <span className="pause-badge-profile" title="User is taking a break">
+                  ⏸️ PAUSED
+                </span>
+              )}
             </h2>
             
             {/* Last Activity Status - Only show for other users' profiles */}
@@ -1778,6 +1784,24 @@ const Profile = () => {
         </div>
       )}
 
+      {/* Pause Status Notice */}
+      {!isOwnProfile && user.accountStatus === 'paused' && (
+        <div className="profile-pause-notice">
+          <span className="pause-notice-icon">⏸️</span>
+          <div className="pause-notice-content">
+            <strong>This user is taking a break</strong>
+            <p>
+              {user.pauseMessage || 'They have temporarily paused their account. Messaging is disabled, but you can still add them to your favorites or shortlist.'}
+            </p>
+            {user.pausedUntil && (
+              <p className="pause-until">
+                Scheduled to return: {new Date(user.pausedUntil).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Action Buttons (only for others' profiles) - Moved to bottom */}
       {!isOwnProfile && (
         <div className="profile-action-buttons">
@@ -1785,7 +1809,8 @@ const Profile = () => {
           <button
             className="btn-profile-action btn-action-message"
             onClick={() => setShowMessageModal(true)}
-            title="Send Message"
+            disabled={user.accountStatus === 'paused'}
+            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : 'Send Message'}
           >
             <span className="action-icon">💬</span>
             <span className="action-label">Message</span>
