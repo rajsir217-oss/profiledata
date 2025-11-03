@@ -25,7 +25,7 @@ echo "Step 1: Mapping www.$DOMAIN to Frontend"
 echo "=========================================="
 echo ""
 
-gcloud run domain-mappings create \
+gcloud beta run domain-mappings create \
   --service matrimonial-frontend \
   --domain www.$DOMAIN \
   --region $REGION \
@@ -41,7 +41,7 @@ echo "Step 2: Mapping $DOMAIN to Frontend"
 echo "=========================================="
 echo ""
 
-gcloud run domain-mappings create \
+gcloud beta run domain-mappings create \
   --service matrimonial-frontend \
   --domain $DOMAIN \
   --region $REGION \
@@ -57,7 +57,7 @@ echo "Step 3: Mapping api.$DOMAIN to Backend"
 echo "=========================================="
 echo ""
 
-gcloud run domain-mappings create \
+gcloud beta run domain-mappings create \
   --service matrimonial-backend \
   --domain api.$DOMAIN \
   --region $REGION \
@@ -75,21 +75,21 @@ echo ""
 echo "You need to add these DNS records in Google Cloud DNS:"
 echo ""
 echo "Getting DNS records for www.$DOMAIN..."
-gcloud run domain-mappings describe www.$DOMAIN \
+gcloud beta run domain-mappings describe www.$DOMAIN \
   --region $REGION \
   --project $PROJECT_ID \
   --format="value(status.resourceRecords)"
 
 echo ""
 echo "Getting DNS records for $DOMAIN..."
-gcloud run domain-mappings describe $DOMAIN \
+gcloud beta run domain-mappings describe $DOMAIN \
   --region $REGION \
   --project $PROJECT_ID \
   --format="value(status.resourceRecords)"
 
 echo ""
 echo "Getting DNS records for api.$DOMAIN..."
-gcloud run domain-mappings describe api.$DOMAIN \
+gcloud beta run domain-mappings describe api.$DOMAIN \
   --region $REGION \
   --project $PROJECT_ID \
   --format="value(status.resourceRecords)"
