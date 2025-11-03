@@ -1,6 +1,7 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages (both versions available)
 import Register from './components/Register';
 import Register2 from './components/Register2';
@@ -300,11 +301,13 @@ function AppContent() {
 // Main App Component (wrapper for Router)
 function App() {
   return (
-    <Router>
-      <AppContent />
-      <ToastContainer />
-      <PIIAccessRefreshNotification />
-    </Router>
+    <HelmetProvider>
+      <Router>
+        <AppContent />
+        <ToastContainer />
+        <PIIAccessRefreshNotification />
+      </Router>
+    </HelmetProvider>
   );
 }
 
