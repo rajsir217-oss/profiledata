@@ -4,11 +4,18 @@
   width: 100%;
 }
 
-/* Basic and Advanced Filters Grid Layout */
-.basic-filters-section,
-.advanced-filters-section {
+/* Basic Filters Grid Layout - 2 columns */
+.basic-filters-section {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Advanced Filters Grid Layout - 3 columns */
+.advanced-filters-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 20px;
 }
@@ -19,6 +26,13 @@
   .advanced-filters-section {
     grid-template-columns: 1fr;
     gap: 12px;
+  }
+}
+
+/* Responsive: 2 columns on tablet for advanced filters */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .advanced-filters-section {
+    grid-template-columns: repeat(2, 1fr);
   }
 }
 
