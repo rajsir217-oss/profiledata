@@ -12,7 +12,6 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
 
   const piiTypes = [
     { value: 'images', label: '📷 View Photos', description: 'Access to profile pictures' },
-    { value: 'contact_info', label: '📧 Contact Information', description: 'Email and phone number' },
     { value: 'linkedin_url', label: '🔗 LinkedIn Profile', description: 'LinkedIn profile URL' }
   ];
 

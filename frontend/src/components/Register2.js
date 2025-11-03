@@ -2036,11 +2036,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             },
             {
               id: 'background',
-              label: 'Education & Career',
+              label: 'Qualifications',
               icon: '🎓',
               content: (
                 <div className="tab-section">
-                  <h3 className="section-title">🎓 Education & Career</h3>
+                  <h3 className="section-title">🎓 Qualifications</h3>
 
         {/* Education History Section - Using Shared Component */}
         <EducationHistory

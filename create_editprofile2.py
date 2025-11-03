@@ -85,11 +85,11 @@ if form_start and tab1_end and tab2_end and tab3_end:
             },
             {
               id: 'background',
-              label: 'Education & Career',
+              label: 'Qualifications',
               icon: '🎓',
               content: (
                 <div className="tab-section">
-                  <h3 className="section-title">🎓 Education & Career</h3>
+                  <h3 className="section-title">🎓 Qualifications</h3>
 """
 
     # Close Tab 2, Open Tab 3

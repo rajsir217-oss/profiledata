@@ -10,6 +10,8 @@ import logger from '../utils/logger';
 import PageHeader from './PageHeader';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
+import PhotoRequestsModal from './PhotoRequestsModal';
+import ConversationsModal from './ConversationsModal';
 import UserCard from './UserCard';
 import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
@@ -28,6 +30,8 @@ const Dashboard = () => {
   // Modal states
   const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
   const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
+  const [showPhotoRequestsModal, setShowPhotoRequestsModal] = useState(false);
+  const [showConversationsModal, setShowConversationsModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -875,7 +879,11 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-info">
+        <div 
+          className="stat-card-large stat-card-info clickable"
+          onClick={() => setShowConversationsModal(true)}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="stat-icon">💬</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myMessages.length}</div>
@@ -884,11 +892,15 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-warning">
+        <div 
+          className="stat-card-large stat-card-warning clickable"
+          onClick={() => setShowPhotoRequestsModal(true)}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="stat-icon">🔒</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myRequests.length}</div>
-            <div className="stat-label">PII Requests</div>
+            <div className="stat-label">Photo Requests</div>
             <div className="stat-sublabel">Pending approvals</div>
           </div>
         </div>
@@ -934,7 +946,7 @@ const Dashboard = () => {
           {expandedGroups.othersActivities && (
             <div className="column-sections">
               {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
-              {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
           
           {/* Image Access Requests Section */}
           <CategorySection
@@ -990,6 +1002,21 @@ const Dashboard = () => {
       <FavoritedByModal
         isOpen={showFavoritedByModal}
         onClose={() => setShowFavoritedByModal(false)}
+        username={currentUser}
+      />
+
+      {/* Photo Requests Modal */}
+      <PhotoRequestsModal
+        isOpen={showPhotoRequestsModal}
+        onClose={() => setShowPhotoRequestsModal(false)}
+        username={currentUser}
+        onRequestHandled={() => loadDashboardData(currentUser)}
+      />
+
+      {/* Conversations Modal */}
+      <ConversationsModal
+        isOpen={showConversationsModal}
+        onClose={() => setShowConversationsModal(false)}
         username={currentUser}
       />
 
