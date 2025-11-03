@@ -514,11 +514,6 @@ form {
     min-width: 65px;
     min-height: 36px; /* Touch-friendly */
   }
-
-  .status-badge {
-    font-size: 10px;
-    padding: 6px 10px;
-  }
   
   .btn-icon {
     min-width: 40px;
@@ -638,11 +633,6 @@ form {
     font-size: 11px;
     min-width: 60px;
     min-height: 32px;
-  }
-
-  .status-badge {
-    font-size: 9px;
-    padding: 5px 8px;
   }
 
   .btn-icon {
