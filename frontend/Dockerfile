@@ -5,8 +5,8 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install dependencies (use legacy-peer-deps for React 19 compatibility)
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy app source
 COPY . .
