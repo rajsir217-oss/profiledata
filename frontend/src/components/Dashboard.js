@@ -11,6 +11,7 @@ import PageHeader from './PageHeader';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
 import PhotoRequestsModal from './PhotoRequestsModal';
+import ConversationsModal from './ConversationsModal';
 import UserCard from './UserCard';
 import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
@@ -30,6 +31,7 @@ const Dashboard = () => {
   const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
   const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
   const [showPhotoRequestsModal, setShowPhotoRequestsModal] = useState(false);
+  const [showConversationsModal, setShowConversationsModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -877,7 +879,11 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-info">
+        <div 
+          className="stat-card-large stat-card-info clickable"
+          onClick={() => setShowConversationsModal(true)}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="stat-icon">💬</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myMessages.length}</div>
@@ -1005,6 +1011,13 @@ const Dashboard = () => {
         onClose={() => setShowPhotoRequestsModal(false)}
         username={currentUser}
         onRequestHandled={() => loadDashboardData(currentUser)}
+      />
+
+      {/* Conversations Modal */}
+      <ConversationsModal
+        isOpen={showConversationsModal}
+        onClose={() => setShowConversationsModal(false)}
+        username={currentUser}
       />
 
       {/* Pause Settings Modal */}
