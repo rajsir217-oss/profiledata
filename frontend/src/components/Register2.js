@@ -2085,6 +2085,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             // Exclude legal consent fields (backend-only metadata, not profile fields)
             "agreedToAge", "agreedToTerms", "agreedToPrivacy", "agreedToGuidelines",
             "agreedToDataProcessing", "agreedToMarketing",
+            // Exclude SMS opt-in (rendered as checkbox with Contact Number)
+            "smsOptIn",
             // Exclude aboutMe, partnerPreference, and partnerCriteria (rendered explicitly)
             "aboutMe", "partnerPreference", "partnerCriteria"
           ];
