@@ -249,7 +249,6 @@ const Dashboard = () => {
       );
       
       const mfaStatus = response.data.mfa_enabled;
-      setMfaEnabled(mfaStatus);
       
       // Show notification only if MFA is not enabled
       if (!mfaStatus) {
