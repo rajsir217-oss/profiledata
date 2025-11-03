@@ -10,6 +10,7 @@ import logger from '../utils/logger';
 import PageHeader from './PageHeader';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
+import PhotoRequestsModal from './PhotoRequestsModal';
 import UserCard from './UserCard';
 import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
@@ -28,6 +29,7 @@ const Dashboard = () => {
   // Modal states
   const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
   const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
+  const [showPhotoRequestsModal, setShowPhotoRequestsModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -886,7 +888,7 @@ const Dashboard = () => {
         
         <div 
           className="stat-card-large stat-card-warning clickable"
-          onClick={() => navigate('/pii-management')}
+          onClick={() => setShowPhotoRequestsModal(true)}
           style={{ cursor: 'pointer' }}
         >
           <div className="stat-icon">🔒</div>
@@ -995,6 +997,14 @@ const Dashboard = () => {
         isOpen={showFavoritedByModal}
         onClose={() => setShowFavoritedByModal(false)}
         username={currentUser}
+      />
+
+      {/* Photo Requests Modal */}
+      <PhotoRequestsModal
+        isOpen={showPhotoRequestsModal}
+        onClose={() => setShowPhotoRequestsModal(false)}
+        username={currentUser}
+        onRequestHandled={loadAllDashboardData}
       />
 
       {/* Pause Settings Modal */}
