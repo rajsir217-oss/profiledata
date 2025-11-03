@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import useToast from '../hooks/useToast';
 import './Testimonials.css';
@@ -14,7 +13,6 @@ const Testimonials = () => {
     isAnonymous: false
   });
   const [submitting, setSubmitting] = useState(false);
-  const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
   const isAdmin = currentUsername === 'admin';
   const toast = useToast();

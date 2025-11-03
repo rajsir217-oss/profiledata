@@ -22,7 +22,7 @@ const UnifiedPreferences = () => {
     return tab || 'account';
   };
   
-  const [defaultTab, setDefaultTab] = useState(getInitialTab());
+  const [defaultTab] = useState(getInitialTab());
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
