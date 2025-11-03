@@ -1729,17 +1729,16 @@ const SearchPage2 = () => {
         <div className="search-results">
           <div className="results-header">
             <div className="results-title-section">
-              <h4>Results:</h4>
-              <div className="results-info">
+              <div className="results-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: '600', color: 'var(--text-color)', fontSize: '15px' }}>Results:</span>
                 {users.length > 0 ? (
-                  <>
-                    <span className="badge bg-primary">Profiles: {totalResults} | Showing: {filteredUsers.length}</span>
-                    {users.length !== filteredUsers.length && (
-                      <span className="badge bg-warning ms-2">
-                        {users.length - filteredUsers.length} hidden
-                      </span>
-                    )}
-                  </>
+                  <span 
+                    className="badge bg-primary" 
+                    style={{ fontSize: '13px', padding: '6px 12px' }}
+                    title={`Total: ${totalResults} | Shown: ${filteredUsers.length} | Hidden: ${users.length - filteredUsers.length}`}
+                  >
+                    Profiles: {totalResults} | {filteredUsers.length} | {users.length - filteredUsers.length}
+                  </span>
                 ) : (
                   <span className="badge bg-secondary">No search performed yet</span>
                 )}

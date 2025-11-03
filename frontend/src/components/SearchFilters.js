@@ -107,20 +107,6 @@ const SearchFilters = ({
             <span>75%</span>
             <span>100%</span>
           </div>
-          
-          {minMatchScore === 0 && (
-            <div style={{ 
-              marginTop: '12px',
-              padding: '8px 12px',
-              background: 'var(--info-color-light, rgba(66, 153, 225, 0.1))',
-              borderRadius: '6px',
-              fontSize: '13px',
-              color: 'var(--text-color)',
-              textAlign: 'center'
-            }}>
-              ℹ️ Set to 0% to disable L3V3L filtering (show all matches)
-            </div>
-          )}
         </div>
       )}
       

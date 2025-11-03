@@ -2139,13 +2139,44 @@
     gap: 20px;
   }
   
+  /* Better pagination on mobile */
+  .pagination-container {
+    margin-top: 20px;
+    padding: 15px 10px;
+  }
+  
+  .pagination-info {
+    font-size: 12px;
+    margin-bottom: 15px;
+    line-height: 1.4;
+  }
+  
   .pagination-controls {
-    padding: 0 10px;
+    padding: 0;
+    gap: 4px;
+    flex-wrap: wrap;
   }
   
   .pagination-controls .btn {
     padding: 6px 10px;
-    font-size: 13px;
+    font-size: 12px;
+    min-width: 32px;
+  }
+  
+  /* Results controls at bottom - mobile responsive */
+  .results-controls-bottom {
+    flex-direction: column !important;
+    gap: 15px !important;
+    padding: 15px 10px !important;
+  }
+  
+  .cards-per-row-selector {
+    justify-content: center;
+  }
+  
+  .cards-per-row-selector .btn {
+    padding: 6px 12px;
+    font-size: 12px;
     min-width: 35px;
   }
   
@@ -2567,6 +2598,43 @@
   
   .search-results {
     padding: 12px;
+  }
+  
+  /* Extra small pagination */
+  .pagination-container {
+    margin-top: 15px;
+    padding: 12px 8px;
+  }
+  
+  .pagination-info {
+    font-size: 11px;
+    margin-bottom: 12px;
+  }
+  
+  .pagination-controls {
+    gap: 3px;
+  }
+  
+  .pagination-controls .btn {
+    padding: 5px 8px;
+    font-size: 11px;
+    min-width: 28px;
+  }
+  
+  /* Results controls bottom - extra small */
+  .results-controls-bottom {
+    padding: 12px 8px !important;
+    gap: 12px !important;
+  }
+  
+  .cards-per-row-selector .selector-label {
+    font-size: 12px;
+  }
+  
+  .cards-per-row-selector .btn {
+    padding: 5px 10px;
+    font-size: 11px;
+    min-width: 30px;
   }
   
   /* Limit container heights on tiny screens */
