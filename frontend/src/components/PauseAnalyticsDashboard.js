@@ -8,9 +8,8 @@ import './PauseAnalyticsDashboard.css';
 
 const PauseAnalyticsDashboard = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const toast = useToast();
   const [loading, setLoading] = useState(true);
-  const [currentUser, setCurrentUser] = useState(null);
   
   // Analytics data
   const [overview, setOverview] = useState(null);
@@ -22,17 +21,17 @@ const PauseAnalyticsDashboard = () => {
 
   useEffect(() => {
     const username = localStorage.getItem('username');
-    setCurrentUser(username);
 
     // Check admin access
     if (username !== 'admin') {
-      toast('Admin access required', 'error');
+      toast.error('Admin access required');
       navigate('/dashboard');
       return;
     }
 
     loadAnalytics();
-  }, [navigate, toast]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [navigate]);
 
   const loadAnalytics = async () => {
     setLoading(true);
@@ -56,7 +55,7 @@ const PauseAnalyticsDashboard = () => {
       setTopPausers(topPausersRes.data);
     } catch (error) {
       console.error('Failed to load analytics:', error);
-      toast('Failed to load analytics data', 'error');
+      toast.error('Failed to load analytics data');
     } finally {
       setLoading(false);
     }
@@ -64,7 +63,7 @@ const PauseAnalyticsDashboard = () => {
 
   const handleRefresh = () => {
     loadAnalytics();
-    toast('Analytics refreshed', 'success');
+    toast.success('Analytics refreshed');
   };
 
   const formatDate = (dateString) => {
