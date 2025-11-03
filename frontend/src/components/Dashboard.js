@@ -884,11 +884,15 @@ const Dashboard = () => {
           </div>
         </div>
         
-        <div className="stat-card-large stat-card-warning">
+        <div 
+          className="stat-card-large stat-card-warning clickable"
+          onClick={() => navigate('/pii-management')}
+          style={{ cursor: 'pointer' }}
+        >
           <div className="stat-icon">🔒</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myRequests.length}</div>
-            <div className="stat-label">PII Requests</div>
+            <div className="stat-label">Photo Requests</div>
             <div className="stat-sublabel">Pending approvals</div>
           </div>
         </div>
@@ -934,7 +938,7 @@ const Dashboard = () => {
           {expandedGroups.othersActivities && (
             <div className="column-sections">
               {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
-              {renderSection('PII Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
           
           {/* Image Access Requests Section */}
           <CategorySection
