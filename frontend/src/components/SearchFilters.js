@@ -166,10 +166,11 @@ const SearchFilters = ({
                   name="ageMin"
                   value={searchCriteria.ageMin || ''}
                   onChange={handleInputChange}
-                  min="18"
+                  min="19"
                   max="80"
                   placeholder="19"
                   style={{ flex: 1 }}
+                  title="Minimum age must be 19 or older"
                 />
                 <input
                   type="number"
@@ -177,10 +178,11 @@ const SearchFilters = ({
                   name="ageMax"
                   value={searchCriteria.ageMax || ''}
                   onChange={handleInputChange}
-                  min="18"
+                  min="19"
                   max="80"
                   placeholder="23"
                   style={{ flex: 1 }}
+                  title="Maximum age must be 19 or older"
                 />
               </div>
             </div>
