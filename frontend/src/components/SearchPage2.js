@@ -1612,6 +1612,7 @@ const SearchPage2 = () => {
                   <span className="filter-count-badge">{savedSearches.length}</span>
                 )}
               </button>
+            </div>
 
             {/* Search Tabs */}
             <UniversalTabContainer
