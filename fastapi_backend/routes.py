@@ -1381,6 +1381,9 @@ async def search_users(
     # Build query
     query = {}
     
+    # PAUSE FEATURE: Exclude paused users from search
+    query["accountStatus"] = {"$ne": "paused"}
+    
     # Status filter - only show active users by default
     if status_filter:
         query["status.status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
@@ -2801,6 +2804,22 @@ async def send_message_enhanced(
     recipient = await db.users.find_one({"username": message_data.toUsername})
     if not recipient:
         raise HTTPException(status_code=404, detail="Recipient not found")
+    
+    # PAUSE FEATURE: Check if recipient is paused
+    if recipient.get("accountStatus") == "paused":
+        pause_message = recipient.get("pauseMessage", "This user is taking a break")
+        raise HTTPException(
+            status_code=403,
+            detail=f"⏸️ Cannot send message. {pause_message}"
+        )
+    
+    # PAUSE FEATURE: Check if sender is paused
+    sender = await db.users.find_one({"username": username})
+    if sender and sender.get("accountStatus") == "paused":
+        raise HTTPException(
+            status_code=403,
+            detail="⏸️ You cannot send messages while your account is paused. Please unpause your account first."
+        )
     
     # Check if messaging is allowed (not blocked/excluded)
     is_visible = await check_message_visibility(username, message_data.toUsername, db)
@@ -4734,6 +4753,8 @@ async def get_l3v3l_matches(
         query = {
             "username": {"$ne": username},  # Exclude self
             "gender": opposite_gender,
+            # PAUSE FEATURE: Exclude paused users from matching
+            "accountStatus": {"$ne": "paused"},
             # Include users with active status OR no status field (default to active)
             "$or": [
                 {"status.status": {"$regex": "^active$", "$options": "i"}},
