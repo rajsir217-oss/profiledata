@@ -14,6 +14,7 @@ import socketService from '../services/socketService';
 import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
 import { formatRelativeTime } from '../utils/timeFormatter';
+import PauseSettings from './PauseSettings';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -88,6 +89,10 @@ const Dashboard = () => {
   const [showMfaNotification, setShowMfaNotification] = useState(false);
   const [mfaEnabled, setMfaEnabled] = useState(false);
   
+  // Pause feature state
+  const [pauseStatus, setPauseStatus] = useState(null);
+  const [showPauseSettings, setShowPauseSettings] = useState(false);
+  
   // View mode and drag-drop states
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -116,6 +121,7 @@ const Dashboard = () => {
     
     loadUserProfile();
     checkMfaStatus(currentUser);
+    loadPauseStatus(currentUser);
     
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
@@ -262,6 +268,34 @@ const Dashboard = () => {
   const handleEnableMfa = () => {
     navigate('/preferences?tab=security');
     setShowMfaNotification(false);
+  };
+
+  // Pause feature functions
+  const loadPauseStatus = async (username) => {
+    try {
+      const response = await api.get('/api/account/pause-status');
+      setPauseStatus(response.data);
+    } catch (err) {
+      logger.error('Error loading pause status:', err);
+    }
+  };
+
+  const handleUnpause = async () => {
+    try {
+      await api.post('/api/account/unpause');
+      toast.success('Welcome back! Your profile is now active.');
+      await loadPauseStatus(currentUser);
+      await loadDashboardData(currentUser);
+    } catch (err) {
+      logger.error('Error unpausing account:', err);
+      toast.error('Failed to unpause account');
+    }
+  };
+
+  const handlePauseSuccess = async (data) => {
+    toast.success('Your profile has been paused successfully');
+    await loadPauseStatus(currentUser);
+    await loadDashboardData(currentUser);
   };
 
   const handleProfileClick = (username) => {
@@ -747,6 +781,33 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Pause Status Banner */}
+      {pauseStatus?.isPaused && (
+        <div className="pause-status-banner">
+          <div className="pause-banner-content">
+            <div className="pause-banner-icon">⏸️</div>
+            <div className="pause-banner-text">
+              <strong>Your profile is PAUSED</strong>
+              <p>
+                You're taking a break. 
+                {pauseStatus.pausedUntil && (
+                  <> Your profile will automatically unpause on {new Date(pauseStatus.pausedUntil).toLocaleDateString()}.</>
+                )}
+                {!pauseStatus.pausedUntil && <> Ready to return?</>}
+              </p>
+            </div>
+            <div className="pause-banner-actions">
+              <button 
+                className="btn-unpause"
+                onClick={handleUnpause}
+              >
+                ▶️ Un-Pause Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MFA Enablement Notification Banner */}
       {showMfaNotification && (
         <div className="mfa-notification-banner">
@@ -921,6 +982,14 @@ const Dashboard = () => {
         isOpen={showFavoritedByModal}
         onClose={() => setShowFavoritedByModal(false)}
         username={currentUser}
+      />
+
+      {/* Pause Settings Modal */}
+      <PauseSettings
+        isOpen={showPauseSettings}
+        onClose={() => setShowPauseSettings(false)}
+        onPause={handlePauseSuccess}
+        currentStatus={pauseStatus}
       />
     </div>
   );

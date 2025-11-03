@@ -1,0 +1,274 @@
+/* Pause Settings Modal Styles */
+
+.pause-modal {
+  max-width: 600px;
+  width: 90%;
+}
+
+.pause-modal .modal-header {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  padding: 24px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pause-modal .modal-header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pause-modal .modal-header .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease;
+}
+
+.pause-modal .modal-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.pause-modal .modal-body {
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.pause-description {
+  font-size: 15px;
+  color: var(--text-color);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+/* Effects List */
+.pause-effects {
+  background: var(--card-bg, #f8f9fa);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 24px;
+}
+
+.effect-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.effect-item:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.effect-item .icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 24px;
+  text-align: center;
+}
+
+.effect-item.positive {
+  color: var(--success-color, #28a745);
+}
+
+.effect-item.negative {
+  color: var(--danger-color, #dc3545);
+}
+
+/* Form Groups */
+.pause-modal .form-group {
+  margin-bottom: 20px;
+}
+
+.pause-modal .form-group label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.pause-modal .form-group select,
+.pause-modal .form-group textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-family: inherit;
+  background: var(--input-bg, white);
+  color: var(--text-color);
+  transition: all 0.2s ease;
+}
+
+.pause-modal .form-group select:focus,
+.pause-modal .form-group textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.pause-modal .form-group select:disabled,
+.pause-modal .form-group textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--disabled-bg, #e9ecef);
+}
+
+.pause-modal .form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.form-hint {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted, #6c757d);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+/* Error Message */
+.pause-modal .error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  border: 1px solid #f5c6cb;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pause-modal .error-message .icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+/* Modal Actions */
+.pause-modal .modal-actions {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.pause-modal .modal-actions button {
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius-md);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.pause-modal .btn-secondary {
+  background: var(--secondary-bg, #6c757d);
+  color: white;
+}
+
+.pause-modal .btn-secondary:hover:not(:disabled) {
+  background: var(--secondary-bg-dark, #5a6268);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.pause-modal .btn-pause {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.pause-modal .btn-pause:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+}
+
+.pause-modal .btn-pause:disabled,
+.pause-modal .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .pause-modal {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .pause-modal .modal-header {
+    padding: 20px 16px;
+    border-radius: 0;
+  }
+
+  .pause-modal .modal-header h2 {
+    font-size: 20px;
+  }
+
+  .pause-modal .modal-body {
+    padding: 20px 16px;
+    max-height: calc(100vh - 160px);
+  }
+
+  .pause-modal .modal-actions {
+    padding: 16px;
+    flex-direction: column-reverse;
+  }
+
+  .pause-modal .modal-actions button {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .pause-effects {
+    padding: 12px;
+  }
+
+  .effect-item {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .pause-modal .modal-header h2 {
+    font-size: 18px;
+  }
+
+  .pause-modal .form-group label {
+    font-size: 13px;
+  }
+
+  .pause-modal .form-group select,
+  .pause-modal .form-group textarea {
+    font-size: 16px; /* Prevents iOS zoom */
+  }
+}
