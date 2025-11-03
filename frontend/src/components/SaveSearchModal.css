@@ -392,8 +392,41 @@
     padding: 15px;
     border-radius: 12px 12px 0 0;
   }
+  
+  .save-search-modal .modal-header h2 {
+    font-size: 16px;
+  }
+  
+  .save-search-modal .modal-close {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
 
   .modal-overlay {
     padding: 5px;
+  }
+  
+  .save-search-modal .modal-body {
+    padding: 12px;
+  }
+  
+  .form-control {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .btn {
+    padding: 12px 16px;
+    font-size: 15px;
+    min-height: 44px; /* Better touch target */
+  }
+  
+  .criteria-badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  
+  .saved-search-item {
+    padding: 12px;
   }
 }
