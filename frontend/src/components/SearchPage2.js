@@ -70,6 +70,9 @@ const SearchPage2 = () => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 3;
   });
+  
+  // Advanced filters collapse state
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Saved searches state
   // eslint-disable-next-line no-unused-vars
