@@ -124,8 +124,12 @@ const SearchFilters = ({
       )}
       
       {/* 2. BASIC FILTERS - Always Visible */}
-      <div className="basic-filters-section" style={{ marginBottom: '20px' }}>
-        <div className="row filter-row-1">
+      <div className="basic-filters-section" style={{ 
+        marginBottom: '20px',
+        display: 'grid',
+        gridTemplateColumns: 'repeat(2, 1fr)',
+        gap: '16px'
+      }}>
           <div className="col-keyword">
             <div className="form-group">
               <label>Keyword Search</label>
@@ -245,7 +249,6 @@ const SearchFilters = ({
               </div>
             </div>
           </div>
-        </div>
       </div>
       
       {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
@@ -324,8 +327,12 @@ const SearchFilters = ({
       {/* 5. ADVANCED FILTERS - Collapsible */}
       {showAdvancedFilters && (
         <>
-          <div className="advanced-filters-section" style={{ marginBottom: '20px' }}>
-            <div className="row filter-row-1">
+          <div className="advanced-filters-section" style={{ 
+            marginBottom: '20px',
+            display: 'grid',
+            gridTemplateColumns: 'repeat(2, 1fr)',
+            gap: '16px'
+          }}>
               <div className="col-gender">
                 <div className="form-group">
                   <label>Gender</label>
@@ -444,7 +451,6 @@ const SearchFilters = ({
                   />
                 </div>
               </div>
-            </div>
           </div>
           
           {/* 6. ACTION BUTTONS - Second appearance (after advanced filters) */}
