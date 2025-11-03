@@ -73,7 +73,7 @@ tab1_to_tab2 = """
               icon: '🎓',
               content: (
                 <div className="tab-section">
-                  <h3 className="section-title">🎓 Education & Career</h3>
+                  <h3 className="section-title">🎓 Qualifications</h3>
 """
 
 # At tab2_end, close tab 2 and open tab 3
