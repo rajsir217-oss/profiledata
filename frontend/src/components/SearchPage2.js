@@ -1616,7 +1616,7 @@ const SearchPage2 = () => {
             {/* Search Tabs */}
             <UniversalTabContainer
               variant="underlined"
-              defaultTab="basic"
+              defaultTab="search"
               tabs={[
                 {
                   id: 'saved',
