@@ -280,7 +280,11 @@ const UnifiedPreferences = () => {
   // Pause feature functions
   const loadPauseStatus = async () => {
     try {
-      const response = await api.get('/api/account/pause-status');
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${getBackendUrl()}/api/account/pause-status`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       setPauseStatus(response.data);
     } catch (error) {
       console.error('Error loading pause status:', error);
@@ -294,7 +298,12 @@ const UnifiedPreferences = () => {
 
   const handleUnpause = async () => {
     try {
-      await api.post('/api/account/unpause');
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${getBackendUrl()}/api/account/unpause`,
+        {},
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       showToast('Welcome back! Your profile is now active.', 'success');
       await loadPauseStatus();
     } catch (error) {

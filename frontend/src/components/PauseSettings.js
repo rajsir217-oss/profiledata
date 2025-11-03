@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 import './PauseSettings.css';
 
 const PauseSettings = ({ isOpen, onClose, onPause, currentStatus }) => {
@@ -27,25 +28,41 @@ const PauseSettings = ({ isOpen, onClose, onPause, currentStatus }) => {
     { value: '30', label: '1 month' }
   ];
 
-  const handlePause = async () => {
+  const handlePause = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      const response = await api.post('/api/account/pause', {
-        duration: duration === 'manual' ? null : parseInt(duration),
-        reason: reason || null,
-        message: customMessage.trim() || null
-      });
-
-      // Show success message
+      // Get auth token
+      const token = localStorage.getItem('token');
+      
+      // Call pause API directly with backend URL
+      const response = await axios.post(
+        `${getBackendUrl()}/api/account/pause`,
+        {
+          duration: duration === 'manual' ? null : parseInt(duration),
+          reason: reason || null,
+          message: customMessage.trim() || null
+        },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+      
+      // Call success callback
       if (onPause) {
         onPause(response.data);
       }
       
+      // Close modal
       onClose();
     } catch (err) {
-      setError(err.response?.data?.detail || 'Failed to pause account');
+      console.error('Error pausing account:', err);
+      setError(err.response?.data?.detail || 'Failed to pause account. Please try again.');
     } finally {
       setLoading(false);
     }

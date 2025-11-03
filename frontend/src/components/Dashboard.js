@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 import './Dashboard.css';
 import MessageModal from './MessageModal';
 import AccessRequestManager from './AccessRequestManager';
@@ -273,7 +275,11 @@ const Dashboard = () => {
   // Pause feature functions
   const loadPauseStatus = async (username) => {
     try {
-      const response = await api.get('/api/account/pause-status');
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${getBackendUrl()}/api/account/pause-status`,
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       setPauseStatus(response.data);
     } catch (err) {
       logger.error('Error loading pause status:', err);
@@ -282,7 +288,12 @@ const Dashboard = () => {
 
   const handleUnpause = async () => {
     try {
-      await api.post('/api/account/unpause');
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${getBackendUrl()}/api/account/unpause`,
+        {},
+        { headers: { 'Authorization': `Bearer ${token}` } }
+      );
       toast.success('Welcome back! Your profile is now active.');
       await loadPauseStatus(currentUser);
       await loadDashboardData(currentUser);
