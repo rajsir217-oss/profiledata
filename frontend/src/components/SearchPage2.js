@@ -1574,15 +1574,6 @@ const SearchPage2 = () => {
             <div className="search-action-buttons">
               <button
                 type="button"
-                className="header-icon-btn primary"
-                onClick={(e) => { e.stopPropagation(); handleSearch(1); }}
-                disabled={loading}
-                title="Search"
-              >
-                {loading ? '⟳' : '🔍'}
-              </button>
-              <button
-                type="button"
                 className={`header-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
                 onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
                 disabled={loading || !hasActiveFilters()}
@@ -1591,25 +1582,6 @@ const SearchPage2 = () => {
                 ✕
                 {hasActiveFilters() && (
                   <span className="filter-count-badge">{countActiveFilters()}</span>
-                )}
-              </button>
-              <button
-                type="button"
-                className="header-icon-btn"
-                onClick={(e) => { e.stopPropagation(); setShowSaveModal(true); }}
-                title="Save Current Search"
-              >
-                💾
-              </button>
-              <button
-                type="button"
-                className="header-icon-btn"
-                onClick={(e) => { e.stopPropagation(); setShowSavedSearches(!showSavedSearches); }}
-                title={`Saved Searches${savedSearches.length > 0 ? ` (${savedSearches.length})` : ''}`}
-              >
-                📋
-                {savedSearches.length > 0 && (
-                  <span className="filter-count-badge">{savedSearches.length}</span>
                 )}
               </button>
             </div>
