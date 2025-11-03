@@ -54,10 +54,10 @@
   min-width: 70px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.2); /* Same as burger button */
-  border: 2px solid rgba(255, 255, 255, 0.3); /* Same border as burger button */
+  background: rgba(0, 0, 0, 0.15); /* Dark background for better butterfly visibility */
+  border: 2px solid rgba(255, 255, 255, 0.4); /* Slightly stronger border */
   padding: 8px 12px;
-  box-shadow: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Subtle depth */
   flex-shrink: 0;
 }
 
@@ -74,8 +74,9 @@
 
 .app-logo:hover {
   transform: translateY(-1px);
-  background: rgba(255, 255, 255, 0.3); /* Match burger button hover */
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(0, 0, 0, 0.25); /* Darker on hover for better visibility */
+  border: 2px solid rgba(255, 255, 255, 0.6);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
 }
 
 /* Mobile: Slightly smaller text */
@@ -746,15 +747,23 @@
   display: inline-block;
   animation: butterflyFloat 3s ease-in-out infinite;
   transform-origin: center;
-  font-size: 24px; /* Larger for better visibility */
+  font-size: 26px; /* Even larger for maximum clarity */
   line-height: 1;
   margin-right: 6px; /* More spacing from text */
   position: relative;
   z-index: 10; /* Above the semi-transparent background */
-  filter: contrast(1.3) saturate(1.4) drop-shadow(0 0 2px rgba(0, 0, 0, 0.4)) drop-shadow(0 0 4px rgba(255, 255, 255, 0.6)); /* Dark outline + white glow */
+  
+  /* Crystal clear visibility with vivid colors */
+  filter: contrast(1.4) saturate(1.5) brightness(1.1)
+          drop-shadow(0 0 3px rgba(0, 0, 0, 0.6))     /* Strong black outline */
+          drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) /* Bright white glow */
+          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));   /* Depth shadow */
+  
+  /* Multi-layer text shadow for razor-sharp edges */
   text-shadow: 
-    -1px -1px 0 rgba(0, 0, 0, 0.3),
-    1px -1px 0 rgba(0, 0, 0, 0.3),
-    -1px 1px 0 rgba(0, 0, 0, 0.3),
-    1px 1px 0 rgba(0, 0, 0, 0.3); /* Black outline for sharp edges */
+    -1.5px -1.5px 0 rgba(0, 0, 0, 0.5),
+     1.5px -1.5px 0 rgba(0, 0, 0, 0.5),
+    -1.5px  1.5px 0 rgba(0, 0, 0, 0.5),
+     1.5px  1.5px 0 rgba(0, 0, 0, 0.5),
+    0 0 8px rgba(255, 255, 255, 0.6); /* White glow for pop */
 }
