@@ -55,7 +55,7 @@ const L3V3LMatchingTable = ({ matchingData }) => {
       description: 'Daily routines, hobbies, personality traits'
     },
     {
-      title: '💼 Career & Education',
+      title: '💼 Qualifications',
       score: matchingData.career_education || 0,
       description: 'Professional goals & educational alignment'
     },

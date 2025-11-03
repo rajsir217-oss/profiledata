@@ -112,7 +112,7 @@ class L3V3LMatchingEngine:
             # 5. Habits & Personality (10%)
             scores['habits_personality'] = self._score_habits_personality(user1, user2)
             
-            # 6. Career & Education (10%)
+            # 6. Qualifications (10%)
             scores['career_education'] = self._score_career_education(user1, user2)
             
             # 7. Physical Attributes (10%)
