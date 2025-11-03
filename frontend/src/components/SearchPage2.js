@@ -1579,7 +1579,7 @@ const SearchPage2 = () => {
                 disabled={loading || !hasActiveFilters()}
                 title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
               >
-                ✕
+                ✕ Clear Search
                 {hasActiveFilters() && (
                   <span className="filter-count-badge">{countActiveFilters()}</span>
                 )}
