@@ -1004,7 +1004,7 @@ const Dashboard = () => {
         isOpen={showPhotoRequestsModal}
         onClose={() => setShowPhotoRequestsModal(false)}
         username={currentUser}
-        onRequestHandled={loadAllDashboardData}
+        onRequestHandled={() => loadDashboardData(currentUser)}
       />
 
       {/* Pause Settings Modal */}
