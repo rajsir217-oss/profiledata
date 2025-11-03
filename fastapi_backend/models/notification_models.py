@@ -65,6 +65,12 @@ class NotificationTrigger(str, Enum):
     
     # Invitations
     INVITATION_SENT = "invitation_sent"
+    
+    # Account pause/unpause
+    ACCOUNT_PAUSED = "account_paused"
+    ACCOUNT_UNPAUSED = "account_unpaused"
+    AUTO_UNPAUSE_REMINDER = "auto_unpause_reminder"
+    PAUSE_WEEKLY_SUMMARY = "pause_weekly_summary"
 
 
 class FrequencyType(str, Enum):

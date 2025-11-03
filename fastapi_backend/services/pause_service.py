@@ -9,6 +9,12 @@ Purpose: Handle user account pause/unpause functionality
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
+from services.notification_service import NotificationService
+from models.notification_models import (
+    NotificationTrigger,
+    NotificationChannel,
+    NotificationQueueCreate
+)
 
 
 class PauseService:
@@ -17,6 +23,7 @@ class PauseService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.users_collection = db.users
+        self.notification_service = NotificationService(db)
     
     async def pause_user(
         self,
@@ -69,8 +76,24 @@ class PauseService:
                 "message": "Failed to pause account. User not found."
             }
         
-        # TODO Phase 2: Send pause confirmation email
-        # TODO Phase 2: Notify conversation partners
+        # Send pause confirmation notification
+        try:
+            await self.notification_service.enqueue_notification(
+                NotificationQueueCreate(
+                    username=username,
+                    trigger=NotificationTrigger.ACCOUNT_PAUSED,
+                    channels=[NotificationChannel.EMAIL],
+                    templateData={
+                        "pauseReason": reason or "Not specified",
+                        "pauseMessage": message or "",
+                        "pausedUntil": paused_until.isoformat() if paused_until else None,
+                        "isDurationBased": paused_until is not None
+                    }
+                )
+            )
+        except Exception as e:
+            # Log error but don't fail the pause operation
+            print(f"Failed to send pause notification: {e}")
         
         duration_text = ""
         if paused_until:
@@ -134,8 +157,22 @@ class PauseService:
                 "message": "Account is already active"
             }
         
-        # TODO Phase 2: Send welcome back email
-        # TODO Phase 2: Notify conversation partners of return
+        # Send unpause notification
+        try:
+            await self.notification_service.enqueue_notification(
+                NotificationQueueCreate(
+                    username=username,
+                    trigger=NotificationTrigger.ACCOUNT_UNPAUSED,
+                    channels=[NotificationChannel.EMAIL],
+                    templateData={
+                        "wasAutoUnpause": not was_paused,
+                        "unpausedAt": now.isoformat()
+                    }
+                )
+            )
+        except Exception as e:
+            # Log error but don't fail the unpause operation
+            print(f"Failed to send unpause notification: {e}")
         
         return {
             "success": True,
@@ -203,7 +240,7 @@ class PauseService:
             result = await self.unpause_user(user["username"])
             if result["success"]:
                 unpause_count += 1
-                # TODO Phase 2: Send "you're back!" email
+                # Unpause notification is already sent by unpause_user()
         
         return unpause_count
     

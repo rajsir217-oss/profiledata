@@ -29,6 +29,7 @@ from routers.push_subscriptions import router as push_subscriptions_router
 from routers.system_health import router as system_health_router
 from routers.invitations import router as invitations_router
 from routers.account_status import router as account_status_router
+from routers.pause_analytics import router as pause_analytics_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -205,6 +206,7 @@ app.include_router(verification_router)  # Email verification routes (already ha
 app.include_router(push_subscriptions_router)  # Push notification subscriptions (already has /api/push-subscriptions prefix)
 app.include_router(invitations_router)  # Invitation routes (already has /api/invitations prefix)
 app.include_router(account_status_router)  # Account status/pause routes (already has /api/account prefix)
+app.include_router(pause_analytics_router)  # Pause analytics routes (already has /api/pause-analytics prefix)
 app.include_router(system_health_router, prefix="/api/users/system", tags=["system"])  # System health routes
 
 # Health check endpoint
