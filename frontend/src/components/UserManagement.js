@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
 import axios from 'axios';
 import './UserManagement.css';
 import Pagination from './Pagination';
@@ -35,8 +34,6 @@ const UserManagement = () => {
   const [totalUsers, setTotalUsers] = useState(0);
   const [selectedUser, setSelectedUser] = useState(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
-  const [showActionModal, setShowActionModal] = useState(false);
-  const [actionType, setActionType] = useState('');
   const [selectedUsers, setSelectedUsers] = useState([]); // For bulk operations
   const [sortField, setSortField] = useState('username'); // Sort field
   const [sortOrder, setSortOrder] = useState('asc'); // Sort order
@@ -187,14 +184,6 @@ const UserManagement = () => {
   const openRoleModal = (user) => {
     // For now, just show a simple prompt for role selection
     // We'll make this a quick inline action
-    const roles = ['admin', 'moderator', 'premium_user', 'free_user'];
-    const roleLabels = {
-      'admin': 'Admin',
-      'moderator': 'Moderator', 
-      'premium_user': 'Premium User',
-      'free_user': 'Free User'
-    };
-    
     // Show role options inline - we'll create a better UX
     // For now, let's keep the modal but make it simpler
     setSelectedUser(user);
@@ -944,6 +933,7 @@ const RoleModal = ({ user, onClose, onAssign }) => {
 };
 
 // Action Confirmation Modal Component
+// eslint-disable-next-line no-unused-vars
 const ActionModal = ({ user, action, onClose, onConfirm }) => {
   const [reason, setReason] = useState('');
 

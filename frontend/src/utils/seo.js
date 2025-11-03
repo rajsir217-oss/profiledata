@@ -302,7 +302,7 @@ export const injectStructuredData = (schema) => {
   document.head.appendChild(script);
 };
 
-export default {
+const seoUtils = {
   getOrganizationSchema,
   getWebsiteSchema,
   getBreadcrumbSchema,
@@ -315,3 +315,5 @@ export default {
   shouldIndex,
   injectStructuredData
 };
+
+export default seoUtils;

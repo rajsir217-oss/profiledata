@@ -1,0 +1,250 @@
+/* SearchFilters Component Styles */
+
+.unified-search-filters {
+  width: 100%;
+}
+
+/* Basic Filters Grid Layout - Custom layout */
+.basic-filters-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Keyword Search - Full width */
+.basic-filters-section .col-keyword {
+  width: 100%;
+}
+
+/* Second row: Location and Age Range */
+.basic-filters-section .filter-row-location-age {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Third row: Height Min and Height Max */
+.basic-filters-section .filter-row-height {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+/* Advanced Filters Grid Layout - 3 columns */
+.advanced-filters-section {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* Responsive: Single column on mobile */
+@media (max-width: 768px) {
+  .basic-filters-section .filter-row-location-age,
+  .basic-filters-section .filter-row-height,
+  .advanced-filters-section {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .basic-filters-section,
+  .advanced-filters-section {
+    margin-bottom: 16px;
+  }
+  
+  .unified-search-filters .form-control {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .unified-search-filters .btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  /* Stack action buttons vertically on very small screens */
+  .unified-search-filters > div[style*="flex"] {
+    flex-direction: column;
+  }
+  
+  .unified-search-filters > div[style*="flex"] button {
+    width: 100%;
+  }
+}
+
+/* Responsive: 2 columns on tablet for advanced filters */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .advanced-filters-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Extra small devices (phones, portrait) */
+@media (max-width: 480px) {
+  .l3v3l-slider-section {
+    margin-bottom: 20px;
+  }
+  
+  .l3v3l-slider-section h4 {
+    font-size: 14px;
+  }
+  
+  .slider-labels {
+    font-size: 11px;
+  }
+  
+  .unified-search-filters .form-group label {
+    font-size: 13px;
+  }
+  
+  .unified-search-filters .btn {
+    padding: 12px 16px;
+    font-size: 15px;
+  }
+}
+
+/* Form Group Styling */
+.unified-search-filters .form-group {
+  margin-bottom: 0;
+}
+
+.unified-search-filters .form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.unified-search-filters .form-control {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg, rgba(255, 255, 255, 0.9));
+  color: var(--text-color);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.unified-search-filters .form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.unified-search-filters .form-control:disabled {
+  background: var(--disabled-bg, #f0f0f0);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* L3V3L Slider Section */
+.l3v3l-slider-section {
+  margin-bottom: 24px;
+}
+
+.match-score-slider {
+  width: 100%;
+  height: 8px;
+  cursor: pointer;
+  margin-bottom: 12px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: linear-gradient(to right, 
+    #ef4444 0%, 
+    #f59e0b 25%, 
+    #eab308 50%, 
+    #84cc16 75%, 
+    #22c55e 100%
+  );
+  border-radius: 4px;
+  outline: none;
+}
+
+.match-score-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--primary-color);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.match-score-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.match-score-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: white;
+  border: 3px solid var(--primary-color);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.match-score-slider::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+.slider-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Action Buttons */
+.unified-search-filters .btn {
+  padding: 10px 24px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.unified-search-filters .btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.unified-search-filters .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.unified-search-filters .btn-secondary {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+.unified-search-filters .btn-secondary:hover:not(:disabled) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+.unified-search-filters .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* View More/Less Button */
+.unified-search-filters button[type="button"] {
+  transition: background 0.2s ease;
+}

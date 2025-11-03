@@ -18,6 +18,20 @@ const SaveSearchModal = ({
   const [activeTab, setActiveTab] = useState('save'); // 'save' or 'manage'
   const toast = useToast();
 
+  // ESC key handler to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && show) {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [show, onClose]);
+
   // Set default search name when modal opens
   useEffect(() => {
     if (show && activeTab === 'save') {
@@ -111,18 +125,10 @@ const SaveSearchModal = ({
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="save-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <div className="modal-user-info">
-            <div className="modal-avatar-placeholder">
-              💾
-            </div>
-            <div>
-              <h3>Saved Searches</h3>
-              <p>Manage your search criteria</p>
-            </div>
-          </div>
-          <button className="modal-close-btn" onClick={onClose}>×</button>
+          <h2>💾 Saved Searches</h2>
+          <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-tabs">

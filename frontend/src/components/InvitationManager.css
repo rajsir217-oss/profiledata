@@ -155,10 +155,21 @@
 }
 
 .invitation-table td {
-  padding: 16px 12px;
+  padding: 12px;
   font-size: 14px;
   color: var(--text-color);
+}
+
+/* Force table cells to use flexbox for perfect vertical centering */
+.invitation-table tbody td {
+  display: table-cell;
   vertical-align: middle;
+}
+
+/* Wrapper for content in cells with badges/buttons */
+.invitation-table td .btn-action {
+  margin: 0;
+  display: inline-block;
 }
 
 .invitation-table td a {
@@ -170,21 +181,7 @@
   text-decoration: underline;
 }
 
-/* Status Badges */
-.status-badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 16px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  line-height: 1;
-  white-space: nowrap;
-}
-
+/* Status Badge Colors (use btn-action as base class for alignment) */
 .status-pending {
   background: #ffeaa7;
   color: #d63031;
@@ -226,6 +223,10 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   min-width: 80px;
+  vertical-align: middle;
+  line-height: 1;
+  display: inline-block;
+  text-align: center;
 }
 
 .btn-action:disabled {
@@ -240,7 +241,6 @@
 
 .btn-email:hover:not(:disabled) {
   background: var(--primary-color-dark, #0056b3);
-  transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
@@ -251,15 +251,15 @@
 
 .btn-sms:hover:not(:disabled) {
   background: #00966d;
-  transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .action-buttons {
   display: flex;
   gap: 8px;
-  justify-content: center;
+  justify-content: flex-start;
   align-items: center;
+  height: 100%;
 }
 
 .btn-icon {
@@ -514,11 +514,6 @@ form {
     min-width: 65px;
     min-height: 36px; /* Touch-friendly */
   }
-
-  .status-badge {
-    font-size: 10px;
-    padding: 6px 10px;
-  }
   
   .btn-icon {
     min-width: 40px;
@@ -638,11 +633,6 @@ form {
     font-size: 11px;
     min-width: 60px;
     min-height: 32px;
-  }
-
-  .status-badge {
-    font-size: 9px;
-    padding: 5px 8px;
   }
 
   .btn-icon {
