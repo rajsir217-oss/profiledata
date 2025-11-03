@@ -127,8 +127,8 @@ const NotificationTester = () => {
   const loadPreferences = async (username) => {
     try {
       // Backend uses JWT token for username, not query param
-      const response = await notificationApi.get('/api/notifications/preferences');
-      setPreferences(response.data);
+      await notificationApi.get('/api/notifications/preferences');
+      // Preferences loaded successfully
     } catch (error) {
       console.error('Error loading preferences:', error);
       showToast('Failed to load preferences', 'error');

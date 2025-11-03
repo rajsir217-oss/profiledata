@@ -189,7 +189,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [, setShowSuccessModal] = useState(false); // eslint-disable-line no-unused-vars
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const usernameCheckTimeout = useRef(null);
