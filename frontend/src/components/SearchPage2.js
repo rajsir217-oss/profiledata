@@ -1771,45 +1771,6 @@ const SearchPage2 = () => {
                   🔄
                 </button>
               </div>
-
-              {/* Cards Per Row (only show in card view) */}
-              {viewMode === 'cards' && (
-                <div className="cards-per-row-selector">
-                  <span className="selector-label">Row Cards:</span>
-                  {[2, 3, 4, 5].map(num => (
-                    <button
-                      key={num}
-                      className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => {
-                        setCardsPerRow(num);
-                        localStorage.setItem('searchCardsPerRow', num.toString());
-                      }}
-                      title={`${num} ROW CARDS`}  
-                    >
-                      {num}
-                    </button>
-                  ))}
-                </div>
-              )}
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>Show:</span>
-                <select 
-                  id="perPage"
-                  className="form-select form-select-sm per-page-select"
-                  value={recordsPerPage}
-                  onChange={(e) => {
-                    setRecordsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  style={{ width: 'auto', minWidth: '130px' }}
-                >
-                  <option value="10">10 per page</option>
-                  <option value="20">20 per page</option>
-                  <option value="50">50 per page</option>
-                  <option value="100">100 per page</option>
-                </select>
-              </div>
             </div>
           </div>
 
@@ -1860,6 +1821,50 @@ const SearchPage2 = () => {
               );
             })}
           </div>
+
+          {/* View Options - Moved to bottom for better UX */}
+          {filteredUsers.length > 0 && (
+            <div className="results-controls-bottom" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', padding: '20px 0', borderTop: '1px solid var(--border-color)', marginTop: '20px' }}>
+              {/* Cards Per Row (only show in card view) */}
+              {viewMode === 'cards' && (
+                <div className="cards-per-row-selector">
+                  <span className="selector-label">Row Cards:</span>
+                  {[2, 3, 4, 5].map(num => (
+                    <button
+                      key={num}
+                      className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => {
+                        setCardsPerRow(num);
+                        localStorage.setItem('searchCardsPerRow', num.toString());
+                      }}
+                      title={`${num} ROW CARDS`}  
+                    >
+                      {num}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '14px', fontWeight: '500' }}>Show:</span>
+                <select 
+                  id="perPage"
+                  className="form-select form-select-sm per-page-select"
+                  value={recordsPerPage}
+                  onChange={(e) => {
+                    setRecordsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  style={{ width: 'auto', minWidth: '130px' }}
+                >
+                  <option value="10">10 per page</option>
+                  <option value="20">20 per page</option>
+                  <option value="50">50 per page</option>
+                  <option value="100">100 per page</option>
+                </select>
+              </div>
+            </div>
+          )}
 
           {filteredUsers.length > 0 && (
             <div className="pagination-container">
