@@ -1,8 +1,20 @@
 import React from 'react';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './L3V3LInfo.css';
 
 const L3V3LInfo = () => {
+  const pageSEO = getPageSEO('l3v3l-info');
+
   return (
+    <>
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+        type={pageSEO.type}
+      />
     <div className="l3v3l-info-container">
       <div className="l3v3l-header">
         <h1>🦋 L3V3L: A Fresh Dating Philosophy</h1>
@@ -117,6 +129,7 @@ const L3V3LInfo = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

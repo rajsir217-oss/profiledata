@@ -5,12 +5,15 @@ import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
 import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
+import SEO from "./SEO";
+import { getPageSEO } from "../utils/seo";
 import "./Register.css";
 import "./Register2.css";
 
 const Register2 = ({ mode = 'register', editUsername = null }) => {
   // Detect if we're in edit mode
   const isEditMode = mode === 'edit' || editUsername !== null;
+  const pageSEO = getPageSEO('register');
   // Helper function to calculate age from DOB
   const calculateAge = (dob) => {
     if (!dob) return null;
@@ -1276,6 +1279,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   };
 
   return (
+    <>
+      {!isEditMode && (
+        <SEO
+          title={pageSEO.title}
+          description={pageSEO.description}
+          keywords={pageSEO.keywords}
+          url={pageSEO.url}
+        />
+      )}
     <div className={`register-container ${isEditMode ? 'edit-mode' : 'registration-mode'}`} style={{
       ...(!isEditMode && {
         // Wedding background only for registration
@@ -3298,6 +3310,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

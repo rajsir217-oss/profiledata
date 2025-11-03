@@ -1,8 +1,13 @@
 import React from 'react';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './LegalPages.css';
 
 const CookiePolicy = () => {
+  const pageSEO = getPageSEO('cookie-policy');
   return (
+    <>
+      <SEO title={pageSEO.title} description={pageSEO.description} keywords={pageSEO.keywords} url={pageSEO.url} type={pageSEO.type} />
     <div className="legal-page-container">
       <div className="legal-content">
         <h1>Cookie Policy</h1>

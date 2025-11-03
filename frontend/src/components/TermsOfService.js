@@ -1,8 +1,13 @@
 import React from 'react';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './LegalPages.css';
 
 const TermsOfService = () => {
+  const pageSEO = getPageSEO('terms-of-service');
   return (
+    <>
+      <SEO title={pageSEO.title} description={pageSEO.description} keywords={pageSEO.keywords} url={pageSEO.url} type={pageSEO.type} />
     <div className="legal-page-container">
       <div className="legal-content">
         <h1>Terms of Service</h1>
@@ -191,6 +196,7 @@ const TermsOfService = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

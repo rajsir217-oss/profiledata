@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getBackendApiUrl } from '../utils/urlHelper';
 import api from '../api';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './ContactUs.css';
 
 /**
@@ -8,6 +10,7 @@ import './ContactUs.css';
  * Modern conversational UI for user support requests
  */
 const ContactUs = () => {
+  const pageSEO = getPageSEO('contact');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
@@ -247,6 +250,13 @@ const ContactUs = () => {
   };
 
   return (
+    <>
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+      />
     <div className="contact-page">
       <div className="contact-container">
         {/* Header */}
@@ -639,6 +649,7 @@ const ContactUs = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

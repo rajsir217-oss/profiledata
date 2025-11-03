@@ -48,3 +48,18 @@ Secret access key: [REMOVED - Stored in .env]
 AWS_ACCESS_KEY_ID=[REMOVED - Stored in .env]
 rajl3v3l@gmail.com / [REMOVED - Stored securely]
 ===========================:AWS ACCOUNT:===========================
+
+
+**** ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ****
+1. show on dashboard : Last logged in date+time
+2. Pause function, that will go MIA from others, also user can not view others 
+3. After register, show email verification screen and describe it, on click ok redirect  it to login page
+4. Seo optimization
+5. Admin can send an invitation to a user by email and sms. Indicate it on profile page and card that "ByInvite" or something like this. the intent of this function is to show how reliable is the profile
+6. Show last activity on profile view page for others who are viewing the matched profile. it has to be generic like active 7, 10, 15 and a month ago
+7. Profile view... modify to generic description format 
+Describe about me and describe about partner preferences on view page
+8. Create a user preferences : Keep favorites and shortlists for n days, after that remove
+9. Rename "exclusion" to ignore or less offensive
+10. On messages chatting - on profile icon indicate that the profile is created by who? Myself, parent etc
+**** ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ****

@@ -1,8 +1,20 @@
 import React from 'react';
+import SEO from './SEO';
+import { getPageSEO } from '../utils/seo';
 import './LegalPages.css';
 
 const PrivacyPolicy = () => {
+  const pageSEO = getPageSEO('privacy-policy');
+
   return (
+    <>
+      <SEO
+        title={pageSEO.title}
+        description={pageSEO.description}
+        keywords={pageSEO.keywords}
+        url={pageSEO.url}
+        type={pageSEO.type}
+      />
     <div className="legal-page-container">
       <div className="legal-content">
         <h1>Privacy Policy</h1>
@@ -246,6 +258,7 @@ const PrivacyPolicy = () => {
         </section>
       </div>
     </div>
+    </>
   );
 };
 
