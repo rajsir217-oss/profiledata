@@ -408,14 +408,19 @@
   }
 
   .admin-table .btn-group {
-    flex-direction: column;
-    gap: 3px;
+    display: flex;
+    flex-direction: row !important; /* Keep horizontal on mobile */
+    flex-wrap: nowrap;
+    gap: 2px;
+    justify-content: center;
   }
 
   .admin-table .btn-sm {
-    width: 100%;
-    font-size: 10px;
-    padding: 4px 6px;
+    font-size: 16px; /* Larger emoji size for visibility */
+    padding: 6px 4px;
+    min-width: 32px;
+    flex: 0 0 auto; /* Don't grow or shrink */
+    border-radius: 6px;
   }
 
   .modal-content {
@@ -449,9 +454,14 @@
     font-size: 10px;
   }
 
+  .admin-table .btn-group {
+    gap: 1px; /* Even tighter spacing on tiny screens */
+  }
+
   .admin-table .btn-sm {
-    font-size: 9px;
-    padding: 3px 5px;
+    font-size: 14px; /* Slightly smaller emoji */
+    padding: 5px 3px;
+    min-width: 28px;
   }
 }
 
