@@ -205,6 +205,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '⏸️',
+        label: 'Pause Analytics',
+        subLabel: 'Track pause patterns',
+        action: () => navigate('/pause-analytics')
+      });
+      
+      items.push({
         icon: '📧',
         label: 'Invitations',
         subLabel: 'Manage user invitations',
