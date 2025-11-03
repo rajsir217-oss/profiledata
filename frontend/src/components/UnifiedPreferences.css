@@ -837,3 +837,158 @@
     text-align: center;
   }
 }
+
+/* Pause Account Section */
+.pause-active-card,
+.pause-inactive-card {
+  background: var(--card-bg, #f8f9fa);
+  border-radius: var(--radius-md, 8px);
+  padding: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.pause-active-card {
+  border-left: 4px solid #f5576c;
+}
+
+.pause-active-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.pause-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.pause-info strong {
+  display: block;
+  font-size: 18px;
+  color: var(--text-color);
+  margin-bottom: 6px;
+}
+
+.pause-details {
+  font-size: 14px;
+  color: var(--text-muted, #6c757d);
+  margin: 4px 0;
+}
+
+.pause-reason {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-top: 8px;
+  text-transform: capitalize;
+}
+
+.pause-effects-summary {
+  background: white;
+  border-radius: var(--radius-sm, 4px);
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.pause-effects-summary p {
+  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--text-color);
+}
+
+.pause-effects-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pause-effects-summary li {
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.btn-unpause {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.btn-unpause:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(16, 185, 129, 0.3);
+}
+
+.pause-description {
+  font-size: 15px;
+  color: var(--text-color);
+  margin-bottom: 16px;
+}
+
+.pause-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.pause-benefits li {
+  padding: 10px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pause-benefits li:last-child {
+  border-bottom: none;
+}
+
+.btn-configure-pause {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-md, 8px);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+}
+
+.btn-configure-pause:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 12px rgba(245, 87, 108, 0.3);
+}
+
+/* Pause Section Mobile Responsive */
+@media (max-width: 768px) {
+  .pause-active-header {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .pause-icon {
+    font-size: 28px;
+  }
+
+  .btn-unpause,
+  .btn-configure-pause {
+    width: 100%;
+    justify-content: center;
+  }
+}

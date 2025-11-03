@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import PageHeader from './PageHeader';
 import SystemStatus from './SystemStatus';
 import UniversalTabContainer from './UniversalTabContainer';
+import PauseSettings from './PauseSettings';
 import './UnifiedPreferences.css';
 import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
 import api from '../api';
@@ -53,6 +54,10 @@ const UnifiedPreferences = () => {
   const [notificationPreferences, setNotificationPreferences] = useState(null);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
+
+  // Pause Settings State
+  const [pauseStatus, setPauseStatus] = useState(null);
+  const [showPauseModal, setShowPauseModal] = useState(false);
 
   // MFA Settings State
   const [mfaStatus, setMfaStatus] = useState({
@@ -200,6 +205,7 @@ const UnifiedPreferences = () => {
 
     fetchNotificationPreferences();
     checkAdminStatus();
+    loadPauseStatus();
   }, []);
 
   // Load MFA status
@@ -269,6 +275,32 @@ const UnifiedPreferences = () => {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // Pause feature functions
+  const loadPauseStatus = async () => {
+    try {
+      const response = await api.get('/api/account/pause-status');
+      setPauseStatus(response.data);
+    } catch (error) {
+      console.error('Error loading pause status:', error);
+    }
+  };
+
+  const handlePauseSuccess = async (data) => {
+    showToast('Your profile has been paused successfully', 'success');
+    await loadPauseStatus();
+  };
+
+  const handleUnpause = async () => {
+    try {
+      await api.post('/api/account/unpause');
+      showToast('Welcome back! Your profile is now active.', 'success');
+      await loadPauseStatus();
+    } catch (error) {
+      console.error('Error unpausing account:', error);
+      showToast('Failed to unpause account', 'error');
+    }
   };
 
   // Theme change handler
@@ -666,6 +698,70 @@ const UnifiedPreferences = () => {
                 {isChangingPassword ? 'Changing Password...' : 'Change Password'}
               </button>
             </form>
+          </section>
+
+          {/* Pause Account Section */}
+          <section className="settings-section">
+            <h2>⏸️ Account Pause</h2>
+            <p className="section-description">
+              Take a break from matchmaking without deactivating your account
+            </p>
+            
+            {pauseStatus?.isPaused ? (
+              <div className="pause-active-card">
+                <div className="pause-active-header">
+                  <span className="pause-icon">⏸️</span>
+                  <div className="pause-info">
+                    <strong>Your account is currently PAUSED</strong>
+                    <p className="pause-details">
+                      Paused {pauseStatus.pausedAt && `on ${new Date(pauseStatus.pausedAt).toLocaleDateString()}`}
+                      {pauseStatus.pausedUntil && (
+                        <> • Auto-unpause on {new Date(pauseStatus.pausedUntil).toLocaleDateString()}</>
+                      )}
+                    </p>
+                    {pauseStatus.pauseReason && (
+                      <p className="pause-reason">Reason: {pauseStatus.pauseReason.replace(/_/g, ' ')}</p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="pause-effects-summary">
+                  <p>While paused:</p>
+                  <ul>
+                    <li>❌ Hidden from all searches</li>
+                    <li>❌ No new matches generated</li>
+                    <li>❌ Cannot send/receive messages</li>
+                    <li>✅ Can still edit your profile</li>
+                    <li>✅ Subscription remains active</li>
+                  </ul>
+                </div>
+                
+                <button
+                  className="btn-unpause"
+                  onClick={handleUnpause}
+                >
+                  ▶️ Un-Pause My Account
+                </button>
+              </div>
+            ) : (
+              <div className="pause-inactive-card">
+                <p className="pause-description">
+                  Need a break? Pause your account to:
+                </p>
+                <ul className="pause-benefits">
+                  <li>✅ Temporarily hide from searches and matches</li>
+                  <li>✅ Stop receiving messages (read-only access)</li>
+                  <li>✅ Keep your subscription and profile data</li>
+                  <li>✅ Un-pause anytime you want to return</li>
+                </ul>
+                <button
+                  className="btn-configure-pause"
+                  onClick={() => setShowPauseModal(true)}
+                >
+                  ⏸️ Configure Pause Settings
+                </button>
+              </div>
+            )}
           </section>
         </div>
             )
@@ -1317,6 +1413,14 @@ const UnifiedPreferences = () => {
           {toast.message}
         </div>
       )}
+
+      {/* Pause Settings Modal */}
+      <PauseSettings
+        isOpen={showPauseModal}
+        onClose={() => setShowPauseModal(false)}
+        onPause={handlePauseSuccess}
+        currentStatus={pauseStatus}
+      />
     </div>
   );
 };
