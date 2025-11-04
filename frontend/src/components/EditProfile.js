@@ -782,16 +782,19 @@ const EditProfile = () => {
             <div className="col-md-3">
               <label className="form-label">State</label>
               {formData.countryOfResidence === 'United States' ? (
-                <Autocomplete
-                  value={formData.state}
-                  onChange={(value) => {
-                    setFormData({ ...formData, state: value, location: '' });
-                  }}
-                  suggestions={US_STATES}
-                  placeholder="Type to search states..."
+                <select
+                  className={`form-control ${getFieldClass('state', formData.state)}`}
                   name="state"
-                  className={getFieldClass('state', formData.state)}
-                />
+                  value={formData.state}
+                  onChange={(e) => {
+                    setFormData({ ...formData, state: e.target.value, location: '' });
+                  }}
+                >
+                  <option value="">Select State</option>
+                  {US_STATES.map(state => (
+                    <option key={state} value={state}>{state}</option>
+                  ))}
+                </select>
               ) : (
                 <input
                   type="text"
@@ -804,7 +807,9 @@ const EditProfile = () => {
               )}
             </div>
             <div className="col-md-3">
-              <label className="form-label">Location (City)</label>
+              <label className="form-label">
+                Location (City) <span className="text-danger">*</span>
+              </label>
               {formData.countryOfResidence === 'United States' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
                 <Autocomplete
                   value={formData.location}
