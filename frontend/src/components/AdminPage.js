@@ -40,11 +40,6 @@ const AdminPage = () => {
   const [selectedUserForStatus, setSelectedUserForStatus] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusChangeReason, setStatusChangeReason] = useState('');
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordError, setPasswordError] = useState('');
   const [selectedUserForMeta, setSelectedUserForMeta] = useState(null);
 
   // Multi-layer security check
@@ -173,41 +168,6 @@ const AdminPage = () => {
     }
   };
 
-  const handleChangePassword = async () => {
-    setPasswordError('');
-
-    // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      setPasswordError('All fields are required');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters');
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
-      return;
-    }
-
-    try {
-      await adminApi.post('/api/admin/change-password', {
-        currentPassword,
-        newPassword
-      });
-
-      setSuccessMsg('✅ Password changed successfully!');
-      setShowPasswordModal(false);
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (err) {
-      console.error('Error changing password:', err);
-      setPasswordError(err.response?.data?.detail || 'Failed to change password');
-    }
-  };
 
   const handleSort = (field) => {
     if (sortField === field) {
@@ -354,15 +314,8 @@ const AdminPage = () => {
             <p className="text-muted mb-0">Manage all user profiles</p>
           </div>
           <div className="d-flex align-items-center gap-2">
-            <button
-              className="btn btn-warning"
-              onClick={() => setShowPasswordModal(true)}
-              title="Change Admin Password"
-            >
-              🔒 Change Password
-            </button>
             <div className="admin-stats">
-              <span className="badge bg-primary">Total Users: {users.length}</span>
+              <span className="badge bg-primary">Users: {users.length}</span>
               <span className="badge bg-success ms-2">Filtered: {filteredUsers.length}</span>
               <span className="badge bg-info ms-2">Page: {currentPage}/{totalPages}</span>
             </div>
@@ -730,163 +683,6 @@ const AdminPage = () => {
         </div>
       )}
 
-      {/* Change Password Modal */}
-      {showPasswordModal && (
-        <div className="modal-overlay" onClick={() => setShowPasswordModal(false)}>
-          <div className="status-modal" onClick={(e) => e.stopPropagation()}>
-            {/* Header */}
-            <div className="status-modal-header">
-              <div className="user-info">
-                <div className="user-avatar">
-                  🔐
-                </div>
-                <div className="user-details">
-                  <h4>Change Admin Password</h4>
-                  <p>Update your admin account password</p>
-                </div>
-              </div>
-              <button 
-                className="close-btn" 
-                onClick={() => setShowPasswordModal(false)}
-                title="Close"
-              >
-                ✕
-              </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="status-modal-body">
-              <h3>🔒 Password Settings</h3>
-              <p className="current-status">
-                Enter your current password and choose a new secure password.
-              </p>
-
-              {passwordError && (
-                <div style={{ 
-                  background: 'rgba(239, 68, 68, 0.1)', 
-                  color: '#ef4444', 
-                  padding: '12px', 
-                  borderRadius: '8px', 
-                  marginBottom: '16px',
-                  border: '1px solid rgba(239, 68, 68, 0.3)'
-                }}>
-                  ⚠️ {passwordError}
-                </div>
-              )}
-
-              {/* Current Password */}
-              <div className="status-reason" style={{ marginTop: '0' }}>
-                <label>Current Password</label>
-                <input
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter your current password"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-color)',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary-color)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border-color)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              {/* New Password */}
-              <div className="status-reason">
-                <label>New Password</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter new password (min. 6 characters)"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-color)',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary-color)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border-color)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              {/* Confirm Password */}
-              <div className="status-reason">
-                <label>Confirm New Password</label>
-                <input
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter new password"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '2px solid var(--border-color)',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontFamily: 'inherit',
-                    background: 'var(--input-bg)',
-                    color: 'var(--text-color)',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = 'var(--primary-color)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = 'var(--border-color)';
-                    e.target.style.boxShadow = 'none';
-                  }}
-                />
-              </div>
-
-              {/* Footer Buttons */}
-              <div className="status-modal-footer">
-                <button className="btn-cancel" onClick={() => {
-                  setShowPasswordModal(false);
-                  setPasswordError('');
-                  setCurrentPassword('');
-                  setNewPassword('');
-                  setConfirmPassword('');
-                }}>
-                  Cancel
-                </button>
-                <button 
-                  className="btn-confirm" 
-                  onClick={handleChangePassword}
-                  disabled={!currentPassword || !newPassword || !confirmPassword}
-                >
-                  🔒 Change Password
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Meta Fields Modal */}
       {selectedUserForMeta && (
