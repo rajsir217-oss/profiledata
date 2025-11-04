@@ -351,7 +351,7 @@ const EditProfile = () => {
     setFormData((prev) => ({
       ...prev,
       creatorInfo: {
-        ...prev.creatorInfo,
+        ...(prev.creatorInfo || { fullName: '', relationship: '', notes: '' }),
         [name]: value
       }
     }));
@@ -637,7 +637,7 @@ const EditProfile = () => {
                     name="fullName"
                     className="form-control"
                     placeholder="Enter your full name"
-                    value={formData.creatorInfo.fullName}
+                    value={formData.creatorInfo?.fullName || ''}
                     onChange={handleCreatorInfoChange}
                     required={formData.profileCreatedBy !== 'me'}
                   />
@@ -656,7 +656,7 @@ const EditProfile = () => {
                     name="relationship"
                     className="form-control"
                     placeholder="e.g., Mother, Father, Brother, Sister, Friend"
-                    value={formData.creatorInfo.relationship}
+                    value={formData.creatorInfo?.relationship || ''}
                     onChange={handleCreatorInfoChange}
                     required={formData.profileCreatedBy !== 'me'}
                   />
@@ -676,7 +676,7 @@ const EditProfile = () => {
                   className="form-control"
                   rows="3"
                   placeholder="Any relevant information about why you're creating this profile or special circumstances..."
-                  value={formData.creatorInfo.notes}
+                  value={formData.creatorInfo?.notes || ''}
                   onChange={handleCreatorInfoChange}
                 />
                 <small className="form-text text-muted">

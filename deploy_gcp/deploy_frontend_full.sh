@@ -9,7 +9,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$SCRIPT_DIR"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 FRONTEND_DIR="$REPO_ROOT/frontend"
 
 # -----------------------------------------------------------------------------
@@ -120,6 +120,7 @@ console.log('✅ Runtime config loaded for', window.RUNTIME_CONFIG.ENVIRONMENT);
 EOF
 
 echo "📝 Updating frontend src/config/apiConfig.js pod configuration"
+export BACKEND_URL
 python3 - <<'PY'
 from pathlib import Path
 import os

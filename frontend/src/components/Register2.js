@@ -691,7 +691,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     setFormData((prev) => ({
       ...prev,
       creatorInfo: {
-        ...prev.creatorInfo,
+        ...(prev.creatorInfo || { fullName: '', relationship: '', notes: '' }),
         [name]: value
       }
     }));
@@ -1623,7 +1623,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 className="form-control"
                 rows="3"
                 placeholder="Any relevant information about why you're creating this profile or special circumstances..."
-                value={formData.creatorInfo.notes}
+                value={formData.creatorInfo?.notes || ''}
                 onChange={handleCreatorInfoChange}
               />
               <small className="form-text text-muted">
