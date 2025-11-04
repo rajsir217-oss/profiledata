@@ -86,6 +86,12 @@ const EditProfile = () => {
     heightFeet: '',
     heightInches: '',
     profileCreatedBy: 'me',  // Who created this profile
+    // Creator Information (for non-self profiles)
+    creatorInfo: {
+      fullName: '',
+      relationship: '',
+      notes: ''
+    },
     // Regional/Cultural
     religion: '',
     languagesSpoken: [],
@@ -232,6 +238,11 @@ const EditProfile = () => {
           heightFeet: heightFeet,
           heightInches: heightInches,
           profileCreatedBy: userData.profileCreatedBy || 'me',  // Load existing value
+          creatorInfo: userData.creatorInfo || {
+            fullName: '',
+            relationship: '',
+            notes: ''
+          },
           // Regional/Cultural
           religion: userData.religion || '',
           languagesSpoken: userData.languagesSpoken || [],
@@ -332,6 +343,18 @@ const EditProfile = () => {
     
     setFormData(prev => ({ ...prev, [name]: value }));
     setErrorMsg('');
+  };
+
+  // Handle creator info changes (nested object)
+  const handleCreatorInfoChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      creatorInfo: {
+        ...prev.creatorInfo,
+        [name]: value
+      }
+    }));
   };
 
   // handleImageChange removed - now handled by ImageManager component
@@ -592,6 +615,76 @@ const EditProfile = () => {
               Who created this profile?
             </small>
           </div>
+
+          {/* Creator Information Section (shown when not creating for self) */}
+          {formData.profileCreatedBy !== 'me' && (
+            <div className="creator-info-section">
+              <div className="section-header mb-3">
+                <h5 className="section-title">👤 Profile Creator Information</h5>
+                <p className="section-subtitle">
+                  Please provide your information as the person creating this profile
+                </p>
+              </div>
+
+              <div className="row">
+                <div className="col-md-6 mb-3">
+                  <label htmlFor="creatorFullName" className="form-label">
+                    Your Full Name <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="creatorFullName"
+                    name="fullName"
+                    className="form-control"
+                    placeholder="Enter your full name"
+                    value={formData.creatorInfo.fullName}
+                    onChange={handleCreatorInfoChange}
+                    required={formData.profileCreatedBy !== 'me'}
+                  />
+                  <small className="form-text text-muted">
+                    Name of the person creating this profile
+                  </small>
+                </div>
+
+                <div className="col-md-6 mb-3">
+                  <label htmlFor="creatorRelationship" className="form-label">
+                    Relationship to Profile Owner <span className="text-danger">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    id="creatorRelationship"
+                    name="relationship"
+                    className="form-control"
+                    placeholder="e.g., Mother, Father, Brother, Sister, Friend"
+                    value={formData.creatorInfo.relationship}
+                    onChange={handleCreatorInfoChange}
+                    required={formData.profileCreatedBy !== 'me'}
+                  />
+                  <small className="form-text text-muted">
+                    Your relationship to the profile owner
+                  </small>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="creatorNotes" className="form-label">
+                  Additional Notes/Comments <span className="text-muted">(Optional)</span>
+                </label>
+                <textarea
+                  id="creatorNotes"
+                  name="notes"
+                  className="form-control"
+                  rows="3"
+                  placeholder="Any relevant information about why you're creating this profile or special circumstances..."
+                  value={formData.creatorInfo.notes}
+                  onChange={handleCreatorInfoChange}
+                />
+                <small className="form-text text-muted">
+                  Optional: Add context about the profile creation for admin review
+                </small>
+              </div>
+            </div>
+          )}
 
           {/* Section 3: Contact Fields (MOVED FROM TOP) */}
           <div className="row mb-3">

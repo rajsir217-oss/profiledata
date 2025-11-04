@@ -154,6 +154,15 @@ class UserBase(BaseModel):
         default="me", 
         description="Who created this profile: me, parent, other"
     )
+    creatorInfo: Optional[dict] = Field(
+        default=None,
+        description="Information about the profile creator when profileCreatedBy is not 'me'"
+    )
+    # Expected structure: {
+    #   "fullName": str,
+    #   "relationship": str,
+    #   "notes": str (optional)
+    # }
     
     # Personal Information
     dateOfBirth: Optional[str] = None  # Renamed from dob
@@ -427,7 +436,7 @@ class UserBase(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'indian-wedding']
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding']
         if v and v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v
@@ -683,7 +692,7 @@ class UserPreferencesUpdate(BaseModel):
 
     @validator('themePreference')
     def validate_theme(cls, v):
-        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'indian-wedding']
+        valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding']
         if v not in valid_themes:
             raise ValueError(f'Theme must be one of: {", ".join(valid_themes)}')
         return v

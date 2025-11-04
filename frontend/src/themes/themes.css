@@ -1170,8 +1170,8 @@ body.theme-ultra-light-green {
    ======================================== */
 body.theme-ultra-black {
   /* Primary Colors - Vibrant contrast on black */
-  --primary-color: #00d4ff;
-  --secondary-color: #7c3aed;
+  --primary-color: #7c3aed;
+  --secondary-color: #6b7280;
   --accent-color: #ff0080;
   
   /* Backgrounds - True blacks for OLED */
@@ -1246,7 +1246,7 @@ body.theme-ultra-black {
 
 .theme-ultra-black .dashboard-header,
 .theme-ultra-black .preferences-header {
-  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
 }
 
 .theme-ultra-black .user-card,
@@ -1275,7 +1275,7 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .sidebar-item:hover {
-  background: rgba(0, 212, 255, 0.15);
+  background: rgba(124, 58, 237, 0.15);
   color: var(--primary-color);
 }
 
@@ -1364,7 +1364,7 @@ body.theme-ultra-black {
 }
 
 .theme-ultra-black .admin-header {
-  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
 }
 
 .theme-ultra-black .admin-table {
@@ -1395,28 +1395,28 @@ body.theme-ultra-black {
 
 /* Match score badges */
 .theme-ultra-black .match-score-badge {
-  background: linear-gradient(135deg, #00d4ff 0%, #7c3aed 100%);
-  color: #000000;
+  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
+  color: #ffffff;
 }
 
 .theme-ultra-black .match-score-badge[title*="Excellent"] {
-  background: linear-gradient(135deg, #00ff88 0%, #00d4ff 100%);
-  color: #000000;
+  background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+  color: #ffffff;
 }
 
 .theme-ultra-black .match-score-badge[title*="Great"] {
-  background: linear-gradient(135deg, #00d4ff 0%, #0084ff 100%);
-  color: #000000;
+  background: linear-gradient(135deg, #7c3aed 0%, #6b7280 100%);
+  color: #ffffff;
 }
 
 .theme-ultra-black .match-score-badge[title*="Good"] {
-  background: linear-gradient(135deg, #7c3aed 0%, #00d4ff 100%);
+  background: linear-gradient(135deg, #6b7280 0%, #7c3aed 100%);
   color: #ffffff;
 }
 
 /* Buttons for Ultra Black */
 .theme-ultra-black .channel-toggle input:checked + .channel-icon.email {
-  background: linear-gradient(135deg, #00d4ff, #0084ff);
+  background: linear-gradient(135deg, #7c3aed, #6b7280);
 }
 
 .theme-ultra-black .channel-toggle input:checked + .channel-icon.sms {

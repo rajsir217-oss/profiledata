@@ -215,3 +215,103 @@
   color: var(--text-muted, #999);
   margin-left: 26px;
 }
+
+/* ========================================
+   CREATOR INFORMATION SECTION
+   Theme-aware styling for profile creator fields
+   ======================================== */
+.creator-info-section {
+  margin: 20px 0;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--info-background) 0%, var(--surface-color) 100%);
+  border: 2px solid var(--info-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.creator-info-section .section-header {
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.creator-info-section .section-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin: 0 0 8px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.creator-info-section .section-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0;
+  font-style: italic;
+}
+
+.creator-info-section .form-control {
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  color: var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.creator-info-section .form-control:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  background: var(--card-background);
+}
+
+.creator-info-section .form-control::placeholder {
+  color: var(--text-muted);
+  opacity: 0.7;
+}
+
+.creator-info-section .form-label {
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+}
+
+.creator-info-section .form-text {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.creator-info-section textarea.form-control {
+  resize: vertical;
+  min-height: 80px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .creator-info-section {
+    padding: 16px;
+    margin: 15px 0;
+  }
+
+  .creator-info-section .section-title {
+    font-size: 16px;
+  }
+
+  .creator-info-section .section-subtitle {
+    font-size: 13px;
+  }
+
+  .creator-info-section .row > [class*="col-"] {
+    margin-bottom: 12px;
+  }
+}
+
+/* Theme-specific adjustments */
+.theme-dark .creator-info-section {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, var(--surface-color) 100%);
+  border-color: var(--border-color);
+}
+
+.theme-rose .creator-info-section {
+  background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, var(--surface-color) 100%);
+}

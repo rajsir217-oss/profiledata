@@ -1091,7 +1091,7 @@ async def update_user_preferences(
     logger.info(f"⚙️ Updating preferences for user '{username}': theme={theme_preference}")
     
     # Validate theme
-    valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'indian-wedding']
+    valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding']
     if theme_preference and theme_preference not in valid_themes:
         logger.warning(f"⚠️ Invalid theme preference: {theme_preference}")
         raise HTTPException(

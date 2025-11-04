@@ -93,6 +93,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     heightFeet: "",  // Feet: 4-7
     heightInches: "0",  // Inches: 0-11, default to 0
     profileCreatedBy: "me",  // Who created this profile
+    // Creator Information (for non-self profiles)
+    creatorInfo: {
+      fullName: "",
+      relationship: "",
+      notes: ""
+    },
     // Preferences & Cultural Information
     religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
@@ -189,7 +195,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const usernameCheckTimeout = useRef(null);
@@ -678,6 +683,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     
     const error = validateField(name, value);
     setFieldErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  // Handle creator info changes (nested object)
+  const handleCreatorInfoChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      creatorInfo: {
+        ...prev.creatorInfo,
+        [name]: value
+      }
+    }));
   };
 
   // Education and Work Experience handlers are now in shared components
@@ -1190,6 +1207,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             heightFeet,
             heightInches,
             profileCreatedBy: userData.profileCreatedBy || 'me',
+            creatorInfo: userData.creatorInfo || {
+              fullName: '',
+              relationship: '',
+              notes: ''
+            },
             religion: userData.religion || 'No Religion',
             languagesSpoken: userData.languagesSpoken || ['English'],
             castePreference: userData.castePreference || 'No Preference',
@@ -1263,7 +1285,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const handleRestoreDraft = () => {
     if (draftData) {
       const { images: savedImageNames, ...restData } = draftData;
-      setFormData(restData);
+      // Ensure creatorInfo exists
+      setFormData({
+        ...restData,
+        creatorInfo: restData.creatorInfo || {
+          fullName: '',
+          relationship: '',
+          notes: ''
+        }
+      });
     }
     setShowDraftModal(false);
   };
@@ -1532,6 +1562,76 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             Who is creating this matrimonial profile?
           </small>
         </div>
+
+        {/* Creator Information Section (shown when not creating for self) */}
+        {formData.profileCreatedBy !== 'me' && (
+          <div className="creator-info-section">
+            <div className="section-header mb-3">
+              <h5 className="section-title">👤 Profile Creator Information</h5>
+              <p className="section-subtitle">
+                Please provide your information as the person creating this profile
+              </p>
+            </div>
+
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label htmlFor="creatorFullName" className="form-label">
+                  Your Full Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="creatorFullName"
+                  name="fullName"
+                  className="form-control"
+                  placeholder="Enter your full name"
+                  value={formData.creatorInfo?.fullName || ''}
+                  onChange={handleCreatorInfoChange}
+                  required={formData.profileCreatedBy !== 'me'}
+                />
+                <small className="form-text text-muted">
+                  Name of the person creating this profile
+                </small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label htmlFor="creatorRelationship" className="form-label">
+                  Relationship to Profile Owner <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="creatorRelationship"
+                  name="relationship"
+                  className="form-control"
+                  placeholder="e.g., Mother, Father, Brother, Sister, Friend"
+                  value={formData.creatorInfo?.relationship || ''}
+                  onChange={handleCreatorInfoChange}
+                  required={formData.profileCreatedBy !== 'me'}
+                />
+                <small className="form-text text-muted">
+                  Your relationship to the profile owner
+                </small>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="creatorNotes" className="form-label">
+                Additional Notes/Comments <span className="text-muted">(Optional)</span>
+              </label>
+              <textarea
+                id="creatorNotes"
+                name="notes"
+                className="form-control"
+                rows="3"
+                placeholder="Any relevant information about why you're creating this profile or special circumstances..."
+                value={formData.creatorInfo.notes}
+                onChange={handleCreatorInfoChange}
+              />
+              <small className="form-text text-muted">
+                Optional: Add context about the profile creation for admin review
+              </small>
+            </div>
+          </div>
+        )}
 
         {/* Custom row for contactNumber and contactEmail */}
         {isEditMode && !formData.contactNumber && !formData.contactEmail && (
@@ -3263,56 +3363,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                   onClick={handleRestoreDraft}
                 >
                   Continue Draft
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header" style={{
-                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
-                color: 'white',
-                border: 'none'
-              }}>
-                <h5 className="modal-title">
-                  ✅ Profile Created Successfully!
-                </h5>
-              </div>
-              <div className="modal-body text-center p-4">
-                <div className="mb-3">
-                  <div className="spinner-border text-primary mb-3" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <h4>Check Your Email!</h4>
-                </div>
-                <p className="lead">
-                  We've sent a verification email to <strong>{formData.contactEmail}</strong>
-                </p>
-                <div className="alert alert-info" role="alert">
-                  <strong>📧 Next Steps:</strong>
-                  <ol className="text-start mt-2 mb-0">
-                    <li>Check your email inbox (and spam folder)</li>
-                    <li>Click the verification link</li>
-                    <li>Wait for admin approval (usually within 24 hours)</li>
-                    <li>Start matching!</li>
-                  </ol>
-                </div>
-                <p className="text-muted">
-                  Redirecting to login page in 5 seconds...
-                </p>
-              </div>
-              <div className="modal-footer justify-content-center">
-                <button 
-                  className="btn btn-primary" 
-                  onClick={() => navigate('/login')}
-                >
-                  Go to Login Now
                 </button>
               </div>
             </div>
