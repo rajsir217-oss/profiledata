@@ -1,17 +1,15 @@
 /**
  * Runtime Configuration
  * Auto-generated during deployment
- * 
- * NOTE: For local development, this is set to 'local'
- * For production deployment, this should be updated to 'pod' with GCP URLs
  */
 window.RUNTIME_CONFIG = {
-  ENVIRONMENT: 'local',
-  SOCKET_URL: 'http://localhost:8000',
-  API_URL: 'http://localhost:8000/api/users',
-  WS_URL: 'ws://localhost:8000',
-  FRONTEND_URL: 'http://localhost:3000',
+  ENVIRONMENT: 'pod',
+  SOCKET_URL: 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
+  API_URL: 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users',
+  WS_URL: 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
+  FRONTEND_URL: 'https://matrimonial-frontend-458052696267.us-central1.run.app',
+  ENABLE_WEBSOCKETS: true,
   ENABLE_NOTIFICATIONS: true,
-  DEBUG: true
+  DEBUG: false
 };
 console.log('✅ Runtime config loaded:', window.RUNTIME_CONFIG.ENVIRONMENT);
