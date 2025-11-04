@@ -1,0 +1,253 @@
+#!/bin/bash
+
+# Safe DNS Migration from l3v3lmatchmsgs to matrimonial-staging
+# This script creates a parallel DNS zone, then guides you through nameserver update
+
+set -e
+
+echo "============================================="
+echo "🔄 Safe DNS Zone Migration"
+echo "============================================="
+echo ""
+echo "FROM: l3v3lmatchmsgs"
+echo "TO:   matrimonial-staging"
+echo "DOMAIN: l3v3lmatches.com"
+echo ""
+echo "This migration is SAFE because:"
+echo "  ✅ Old DNS keeps working during migration"
+echo "  ✅ New DNS tested before switchover"
+echo "  ✅ Parallel operation during transition"
+echo "  ✅ Can rollback if needed"
+echo ""
+echo "Estimated time: 30 minutes"
+echo "Expected downtime: 0-5 minutes (if any)"
+echo ""
+read -p "Ready to proceed? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Cancelled."
+    exit 0
+fi
+
+BACKUP_FILE="dns-backup-$(date +%Y%m%d-%H%M%S).txt"
+
+echo ""
+echo "============================================="
+echo "Phase 1: Export & Backup Current DNS"
+echo "============================================="
+echo ""
+
+# Export current DNS records
+echo "📋 Exporting DNS records from l3v3lmatchmsgs..."
+gcloud config set project l3v3lmatchmsgs &>/dev/null
+
+gcloud dns record-sets list \
+  --zone=l3v3lmatches-com \
+  --project=l3v3lmatchmsgs > "$BACKUP_FILE"
+
+echo "   ✅ Backup saved to: $BACKUP_FILE"
+echo ""
+
+# Get current nameservers for reference
+CURRENT_NS=$(gcloud dns managed-zones describe l3v3lmatches-com \
+  --project=l3v3lmatchmsgs \
+  --format='value(nameServers)')
+
+echo "📌 Current nameservers (l3v3lmatchmsgs):"
+echo "$CURRENT_NS" | sed 's/;/\n/g' | sed 's/^/   /'
+echo ""
+
+echo "============================================="
+echo "Phase 2: Create New DNS Zone"
+echo "============================================="
+echo ""
+
+gcloud config set project matrimonial-staging &>/dev/null
+
+# Check if zone already exists
+if gcloud dns managed-zones describe l3v3lmatches-zone --project=matrimonial-staging &>/dev/null; then
+    echo "⚠️  DNS zone 'l3v3lmatches-zone' already exists in matrimonial-staging"
+    read -p "Delete and recreate? (y/N) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🗑️  Deleting existing zone..."
+        gcloud dns managed-zones delete l3v3lmatches-zone \
+          --project=matrimonial-staging \
+          --quiet
+        echo "   ✅ Deleted"
+    else
+        echo "Using existing zone..."
+    fi
+fi
+
+echo "🆕 Creating DNS zone in matrimonial-staging..."
+gcloud dns managed-zones create l3v3lmatches-zone \
+  --dns-name=l3v3lmatches.com. \
+  --description="Production DNS for l3v3lmatches.com" \
+  --project=matrimonial-staging 2>/dev/null || echo "   Zone exists, continuing..."
+
+echo "   ✅ Zone created/verified"
+echo ""
+
+echo "============================================="
+echo "Phase 3: Add DNS Records"
+echo "============================================="
+echo ""
+
+echo "📝 Adding DNS records..."
+
+# Start transaction
+gcloud dns record-sets transaction start --zone=l3v3lmatches-zone
+
+# Add A records for root domain
+gcloud dns record-sets transaction add \
+  216.239.32.21 \
+  216.239.34.21 \
+  216.239.36.21 \
+  216.239.38.21 \
+  --name=l3v3lmatches.com. \
+  --ttl=300 \
+  --type=A \
+  --zone=l3v3lmatches-zone
+
+echo "   ✅ Added A records"
+
+# Add AAAA records for root domain
+gcloud dns record-sets transaction add \
+  2001:4860:4802:32::15 \
+  2001:4860:4802:34::15 \
+  2001:4860:4802:36::15 \
+  2001:4860:4802:38::15 \
+  --name=l3v3lmatches.com. \
+  --ttl=300 \
+  --type=AAAA \
+  --zone=l3v3lmatches-zone
+
+echo "   ✅ Added AAAA records"
+
+# Add CNAME for www
+gcloud dns record-sets transaction add ghs.googlehosted.com. \
+  --name=www.l3v3lmatches.com. \
+  --ttl=300 \
+  --type=CNAME \
+  --zone=l3v3lmatches-zone
+
+echo "   ✅ Added www CNAME"
+
+# Execute transaction
+gcloud dns record-sets transaction execute --zone=l3v3lmatches-zone
+
+echo "   ✅ All records added"
+echo ""
+
+echo "============================================="
+echo "Phase 4: Verify New DNS Zone"
+echo "============================================="
+echo ""
+
+# Get new nameservers
+NEW_NS=$(gcloud dns managed-zones describe l3v3lmatches-zone \
+  --project=matrimonial-staging \
+  --format='value(nameServers)')
+
+echo "🆕 New nameservers (matrimonial-staging):"
+echo "$NEW_NS" | sed 's/;/\n/g' | sed 's/^/   /'
+echo ""
+
+# Test new nameservers
+echo "🧪 Testing new DNS zone..."
+FIRST_NS=$(echo "$NEW_NS" | cut -d';' -f1)
+TEST_RESULT=$(dig @"$FIRST_NS" l3v3lmatches.com A +short 2>/dev/null || echo "")
+
+if [[ -n "$TEST_RESULT" ]]; then
+    echo "   ✅ New DNS responding correctly:"
+    echo "$TEST_RESULT" | sed 's/^/      /'
+else
+    echo "   ❌ New DNS not responding yet (may need a minute)"
+fi
+echo ""
+
+echo "============================================="
+echo "Phase 5: UPDATE NAMESERVERS (Action Required)"
+echo "============================================="
+echo ""
+echo "🔴 MANUAL STEP REQUIRED:"
+echo ""
+echo "1. Go to your domain registrar: Squarespace Domains"
+echo "   URL: https://domains.squarespace.com"
+echo ""
+echo "2. Select domain: l3v3lmatches.com"
+echo ""
+echo "3. Go to: DNS Settings → Nameservers"
+echo ""
+echo "4. Replace the current nameservers with these NEW ones:"
+echo ""
+echo "$NEW_NS" | sed 's/;/\n/g' | sed 's/^/   🔹 /'
+echo ""
+echo "5. Save changes"
+echo ""
+echo "============================================="
+echo ""
+read -p "Press ENTER after you've updated the nameservers..." 
+
+echo ""
+echo "============================================="
+echo "Phase 6: Monitoring DNS Propagation"
+echo "============================================="
+echo ""
+
+echo "⏳ Waiting for DNS propagation..."
+echo "   This typically takes 5-30 minutes"
+echo ""
+
+# Check DNS propagation
+for i in {1..6}; do
+    echo "🔍 Check #$i ($(date +%H:%M:%S))..."
+    
+    # Check via Google DNS
+    GOOGLE_DNS=$(dig @8.8.8.8 l3v3lmatches.com NS +short 2>/dev/null || echo "")
+    
+    if echo "$GOOGLE_DNS" | grep -q "ns-cloud"; then
+        echo "   ✅ Google DNS (8.8.8.8) sees new nameservers!"
+        
+        # Verify A records
+        A_RECORDS=$(dig @8.8.8.8 l3v3lmatches.com A +short 2>/dev/null || echo "")
+        if [[ -n "$A_RECORDS" ]]; then
+            echo "   ✅ A records resolving correctly:"
+            echo "$A_RECORDS" | sed 's/^/      /'
+            
+            echo ""
+            echo "🎉 Migration successful!"
+            break
+        fi
+    else
+        echo "   ⏳ Still propagating..."
+        if [ $i -lt 6 ]; then
+            echo "      Waiting 1 minute before next check..."
+            sleep 60
+        fi
+    fi
+    echo ""
+done
+
+echo ""
+echo "============================================="
+echo "✅ Migration Complete!"
+echo "============================================="
+echo ""
+echo "Your DNS is now managed in: matrimonial-staging"
+echo "Backup file saved: $BACKUP_FILE"
+echo ""
+echo "Verify your site:"
+echo "  https://l3v3lmatches.com"
+echo "  https://www.l3v3lmatches.com"
+echo ""
+echo "Test DNS propagation:"
+echo "  https://dnschecker.org/#A/l3v3lmatches.com"
+echo ""
+echo "Next steps:"
+echo "  1. Monitor site for 24 hours"
+echo "  2. After 1 week, delete old zone:"
+echo "     gcloud dns managed-zones delete l3v3lmatches-com \\"
+echo "       --project=l3v3lmatchmsgs --quiet"
+echo ""

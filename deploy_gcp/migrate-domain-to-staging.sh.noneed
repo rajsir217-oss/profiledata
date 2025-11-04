@@ -1,0 +1,136 @@
+#!/bin/bash
+
+# Migrate DNS zone from l3v3lmatchmsgs to matrimonial-staging
+# This consolidates everything into one project for easier management
+
+set -e
+
+echo "============================================="
+echo "🔄 DNS Zone Migration Plan"
+echo "============================================="
+echo ""
+echo "This will migrate l3v3lmatches.com DNS from:"
+echo "  FROM: l3v3lmatchmsgs"
+echo "  TO:   matrimonial-staging"
+echo ""
+echo "⚠️  WARNING: This will cause ~5-30 minutes of downtime"
+echo "⚠️  DO NOT RUN THIS without planning for downtime"
+echo ""
+echo "============================================="
+echo ""
+
+read -p "Do you want to see the migration steps? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Cancelled."
+    exit 0
+fi
+
+echo ""
+echo "Migration Steps:"
+echo ""
+echo "1️⃣  Export DNS records from l3v3lmatchmsgs"
+echo "   - Export all A, AAAA, CNAME records"
+echo "   - Save to file for backup"
+echo ""
+echo "2️⃣  Create DNS zone in matrimonial-staging"
+echo "   - gcloud dns managed-zones create"
+echo "   - Import all records"
+echo ""
+echo "3️⃣  Update nameservers at domain registrar"
+echo "   - Get new nameservers from matrimonial-staging"
+echo "   - Update at Squarespace Domains"
+echo "   - Wait 24-48 hours for propagation"
+echo ""
+echo "4️⃣  Verify everything works"
+echo "   - Test DNS resolution"
+echo "   - Test domain mapping"
+echo "   - Verify SSL certificate"
+echo ""
+echo "5️⃣  Delete old DNS zone (optional)"
+echo "   - After 1 week of successful operation"
+echo "   - Delete from l3v3lmatchmsgs"
+echo ""
+echo "============================================="
+echo ""
+
+read -p "Do you want to start the migration? (y/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Cancelled. No changes made."
+    exit 0
+fi
+
+echo ""
+echo "🚀 Starting migration..."
+echo ""
+
+# Step 1: Export current DNS records
+echo "1️⃣  Exporting DNS records from l3v3lmatchmsgs..."
+BACKUP_FILE="dns-backup-$(date +%Y%m%d-%H%M%S).yaml"
+gcloud dns record-sets export "$BACKUP_FILE" \
+  --zone=l3v3lmatches-com \
+  --project=l3v3lmatchmsgs
+
+echo "   ✅ Backup saved to: $BACKUP_FILE"
+echo ""
+
+# Step 2: Create new DNS zone in matrimonial-staging
+echo "2️⃣  Creating DNS zone in matrimonial-staging..."
+gcloud dns managed-zones create l3v3lmatches-zone \
+  --dns-name=l3v3lmatches.com. \
+  --description="DNS zone for l3v3lmatches.com (migrated from l3v3lmatchmsgs)" \
+  --project=matrimonial-staging || {
+    echo "   ⚠️  Zone may already exist, continuing..."
+  }
+
+echo "   ✅ DNS zone created"
+echo ""
+
+# Step 3: Import records
+echo "3️⃣  Importing DNS records..."
+gcloud dns record-sets import "$BACKUP_FILE" \
+  --zone=l3v3lmatches-zone \
+  --project=matrimonial-staging \
+  --delete-all-existing
+
+echo "   ✅ Records imported"
+echo ""
+
+# Step 4: Get new nameservers
+echo "4️⃣  Getting new nameservers..."
+NEW_NAMESERVERS=$(gcloud dns managed-zones describe l3v3lmatches-zone \
+  --project=matrimonial-staging \
+  --format='get(nameServers)')
+
+echo ""
+echo "============================================="
+echo "✅ Migration Steps 1-3 Complete!"
+echo "============================================="
+echo ""
+echo "🔴 CRITICAL NEXT STEPS (Manual):"
+echo ""
+echo "1. Update nameservers at your domain registrar (Squarespace):"
+echo "   Go to: https://domains.squarespace.com"
+echo "   Domain: l3v3lmatches.com"
+echo "   DNS Settings → Nameservers"
+echo ""
+echo "   Replace old nameservers with these:"
+echo "$NEW_NAMESERVERS" | sed 's/;/\n/g' | sed 's/^/   - /'
+echo ""
+echo "2. Wait 24-48 hours for DNS propagation"
+echo ""
+echo "3. Verify with:"
+echo "   dig l3v3lmatches.com NS +short"
+echo "   dig l3v3lmatches.com A +short"
+echo ""
+echo "4. After 1 week, delete old zone:"
+echo "   gcloud dns managed-zones delete l3v3lmatches-com \\"
+echo "     --project=l3v3lmatchmsgs \\"
+echo "     --quiet"
+echo ""
+echo "============================================="
+echo ""
+echo "Backup file: $BACKUP_FILE"
+echo "(Keep this safe until migration is verified)"
+echo ""

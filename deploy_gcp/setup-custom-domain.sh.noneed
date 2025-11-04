@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Setup custom domain for Cloud Run services
+# Run this to configure l3v3lmatches.com
+
+set -e
+
+PROJECT_ID="matrimonial-staging"
+REGION="us-central1"
+FRONTEND_SERVICE="matrimonial-frontend"
+CUSTOM_DOMAIN="l3v3lmatches.com"
+
+echo "============================================="
+echo "🌐 Setting up custom domain: $CUSTOM_DOMAIN"
+echo "============================================="
+
+# Set project
+gcloud config set project $PROJECT_ID
+
+echo ""
+echo "📝 Step 1: Create domain mapping..."
+echo "This will give you DNS records to add to your domain registrar."
+echo ""
+
+# Create domain mapping
+gcloud beta run domain-mappings create \
+  --service $FRONTEND_SERVICE \
+  --domain $CUSTOM_DOMAIN \
+  --region $REGION \
+  --project $PROJECT_ID || {
+    echo ""
+    echo "⚠️  Domain mapping may already exist. Checking status..."
+    gcloud beta run domain-mappings describe \
+      --domain $CUSTOM_DOMAIN \
+      --region $REGION \
+      --project $PROJECT_ID
+  }
+
+echo ""
+echo "============================================="
+echo "✅ Next Steps:"
+echo "============================================="
+echo ""
+echo "1. Go to your domain registrar (GoDaddy, Namecheap, etc.)"
+echo "2. Add the DNS records shown above"
+echo "3. Wait 5-60 minutes for DNS propagation"
+echo "4. Verify with: nslookup $CUSTOM_DOMAIN"
+echo ""
+echo "Common DNS Records Format:"
+echo "  Type: A"
+echo "  Name: @ (or leave blank for root)"
+echo "  Value: [IP address from above]"
+echo ""
+echo "  Type: AAAA (IPv6 - optional)"
+echo "  Name: @"
+echo "  Value: [IPv6 address from above]"
+echo ""
+echo "============================================="
+echo ""
+echo "Current Cloud Run URL (works now):"
+echo "https://matrimonial-frontend-458052696267.us-central1.run.app"
+echo ""

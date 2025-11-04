@@ -1,0 +1,84 @@
+#!/bin/bash
+
+# Fix l3v3lmatches.com DNS to point to matrimonial-staging Cloud Run services
+# The domain is registered in l3v3lmatchmsgs but services are in matrimonial-staging
+
+set -e
+
+echo "============================================="
+echo "🔧 Fixing l3v3lmatches.com DNS Configuration"
+echo "============================================="
+echo ""
+echo "Domain Project: l3v3lmatchmsgs"
+echo "Services Project: matrimonial-staging"
+echo ""
+
+# Get Cloud Run IPs from matrimonial-staging domain mapping
+echo "📍 Getting Cloud Run IP addresses..."
+gcloud config set project matrimonial-staging
+
+# These are the standard Cloud Run anycast IPs
+A_RECORDS="216.239.32.21,216.239.34.21,216.239.36.21,216.239.38.21"
+AAAA_RECORDS="2001:4860:4802:32::15,2001:4860:4802:34::15,2001:4860:4802:36::15,2001:4860:4802:38::15"
+
+echo "✅ A Records: $A_RECORDS"
+echo "✅ AAAA Records: $AAAA_RECORDS"
+echo ""
+
+# Switch to domain project
+gcloud config set project l3v3lmatchmsgs
+
+# Create transaction
+echo "📝 Adding DNS records to l3v3lmatches.com..."
+gcloud dns record-sets transaction start --zone=l3v3lmatches-com
+
+# Add A records (each IP separately)
+gcloud dns record-sets transaction add \
+  216.239.32.21 \
+  216.239.34.21 \
+  216.239.36.21 \
+  216.239.38.21 \
+  --name=l3v3lmatches.com. \
+  --ttl=300 \
+  --type=A \
+  --zone=l3v3lmatches-com
+
+# Add AAAA records (IPv6, each IP separately)
+gcloud dns record-sets transaction add \
+  2001:4860:4802:32::15 \
+  2001:4860:4802:34::15 \
+  2001:4860:4802:36::15 \
+  2001:4860:4802:38::15 \
+  --name=l3v3lmatches.com. \
+  --ttl=300 \
+  --type=AAAA \
+  --zone=l3v3lmatches-com
+
+# Add www CNAME
+gcloud dns record-sets transaction add ghs.googlehosted.com. \
+  --name=www.l3v3lmatches.com. \
+  --ttl=300 \
+  --type=CNAME \
+  --zone=l3v3lmatches-com
+
+# Execute transaction
+gcloud dns record-sets transaction execute --zone=l3v3lmatches-com
+
+echo ""
+echo "============================================="
+echo "✅ DNS Records Added Successfully!"
+echo "============================================="
+echo ""
+echo "Added records:"
+echo "  l3v3lmatches.com.     A     300  $A_RECORDS"
+echo "  l3v3lmatches.com.     AAAA  300  $AAAA_RECORDS"
+echo "  www.l3v3lmatches.com. CNAME 300  ghs.googlehosted.com."
+echo ""
+echo "⏳ DNS propagation will take 5-30 minutes"
+echo ""
+echo "Test with:"
+echo "  dig l3v3lmatches.com"
+echo "  nslookup l3v3lmatches.com"
+echo ""
+echo "Or visit: https://dnschecker.org/#A/l3v3lmatches.com"
+echo ""
