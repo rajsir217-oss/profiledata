@@ -87,7 +87,7 @@ function AppContent() {
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
-  const hideNavigation = ['/', '/login', '/register', '/register2', '/verify-email'].includes(location.pathname);
+  const hideNavigation = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent'].includes(location.pathname);
 
   // Initialize theme on app load
   useEffect(() => {

@@ -18,7 +18,7 @@
   top: 10px; /* Below the purple TopBar (which is fixed at top: 0 with height 60px + padding) */
   z-index: 50; /* Higher than content but below modals */
   display: flex;
-  gap: 8px;
+  gap: 16px; /* Increased from 8px for more space between tabs */
   padding: 12px;
   background: var(--card-background);
   border-bottom: 3px solid var(--border-color);

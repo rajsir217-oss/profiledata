@@ -91,7 +91,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     dateOfBirth: "",  // Renamed from dob
     gender: "",  // Renamed from sex
     heightFeet: "",  // Feet: 4-7
-    heightInches: "",  // Inches: 0-11
+    heightInches: "0",  // Inches: 0-11, default to 0
     profileCreatedBy: "me",  // Who created this profile
     // Preferences & Cultural Information
     religion: "No Religion",  // Default value
@@ -606,11 +606,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         break;
 
       case "location":
-        // Skip location validation in edit mode
-        if (isEditMode) {
-          break; // No validation in edit mode
-        }
-        
+        // Location is now mandatory for both register and edit modes
         if (!value.trim()) {
           error = "Location is required";
         } else if (value.length < 2) {
@@ -1838,18 +1834,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               {formData.countryOfResidence === 'IN' ? 'State' : 'State/Province'} <span className="text-danger">*</span>
             </label>
             {formData.countryOfResidence === 'US' ? (
-              <Autocomplete
+              <select
+                className={`form-control ${getFieldClass('state', formData.state)} ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
+                name="state"
                 value={formData.state}
-                onChange={(value) => {
-                  setFormData({ ...formData, state: value, location: '' });
+                onChange={(e) => {
+                  setFormData({ ...formData, state: e.target.value, location: '' });
                   setFieldErrors({ ...fieldErrors, state: '' });
                   setTouchedFields({ ...touchedFields, state: true });
                 }}
-                suggestions={US_STATES}
-                placeholder="Type to search states..."
-                name="state"
-                className={`${getFieldClass('state', formData.state)} ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
-              />
+                onBlur={handleBlur}
+                required
+              >
+                <option value="">Select State</option>
+                {US_STATES.map(state => (
+                  <option key={state} value={state}>{state}</option>
+                ))}
+              </select>
             ) : (
               <select
                 className={`form-control ${fieldErrors.state && touchedFields.state ? 'is-invalid' : ''}`}
@@ -1890,28 +1891,37 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         {/* Location (City/Town) & Citizenship Status for USA */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">City/Town (Optional)</label>
+            <label className="form-label">
+              City/Town <span className="text-danger">*</span>
+            </label>
             {formData.countryOfResidence === 'US' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
               <Autocomplete
                 value={formData.location}
                 onChange={(value) => {
                   setFormData({ ...formData, location: value });
+                  setFieldErrors({ ...fieldErrors, location: '' });
+                  setTouchedFields({ ...touchedFields, location: true });
                 }}
                 suggestions={US_CITIES_BY_STATE[formData.state]}
                 placeholder="Type to search cities..."
                 name="location"
                 disabled={!formData.state}
-                className={getFieldClass('location', formData.location)}
+                className={`${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
               />
             ) : (
               <input
                 type="text"
-                className="form-control"
+                className={`form-control ${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
                 name="location"
                 value={formData.location}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="e.g., Bangalore, New York City"
+                required
               />
+            )}
+            {fieldErrors.location && touchedFields.location && (
+              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
             )}
           </div>
           <div className="col-md-6">

@@ -589,7 +589,7 @@ const PIIManagement = () => {
           {
             id: 'granted',
             icon: '🔓',
-            label: "Access I've Granted",
+            label: "Granted",
             badge: grantedAccess.length,
             content: (
               <>
@@ -613,7 +613,7 @@ const PIIManagement = () => {
           {
             id: 'received',
             icon: '✅',
-            label: 'Access I Have',
+            label: 'Received',
             badge: receivedAccess.length,
             content: (
               <>
@@ -637,7 +637,7 @@ const PIIManagement = () => {
           {
             id: 'requests',
             icon: '📬',
-            label: 'Pending Requests',
+            label: 'Requests',
             badge: incomingRequests.length + outgoingRequests.length,
             content: (
               <>
