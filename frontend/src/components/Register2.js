@@ -93,6 +93,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     heightFeet: "",  // Feet: 4-7
     heightInches: "0",  // Inches: 0-11, default to 0
     profileCreatedBy: "me",  // Who created this profile
+    // Creator Information (for non-self profiles)
+    creatorInfo: {
+      fullName: "",
+      relationship: "",
+      notes: ""
+    },
     // Preferences & Cultural Information
     religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
@@ -189,7 +195,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const usernameCheckTimeout = useRef(null);
@@ -678,6 +683,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     
     const error = validateField(name, value);
     setFieldErrors((prev) => ({ ...prev, [name]: error }));
+  };
+
+  // Handle creator info changes (nested object)
+  const handleCreatorInfoChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      creatorInfo: {
+        ...(prev.creatorInfo || { fullName: '', relationship: '', notes: '' }),
+        [name]: value
+      }
+    }));
   };
 
   // Education and Work Experience handlers are now in shared components
@@ -1190,6 +1207,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             heightFeet,
             heightInches,
             profileCreatedBy: userData.profileCreatedBy || 'me',
+            creatorInfo: userData.creatorInfo || {
+              fullName: '',
+              relationship: '',
+              notes: ''
+            },
             religion: userData.religion || 'No Religion',
             languagesSpoken: userData.languagesSpoken || ['English'],
             castePreference: userData.castePreference || 'No Preference',
@@ -1263,7 +1285,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const handleRestoreDraft = () => {
     if (draftData) {
       const { images: savedImageNames, ...restData } = draftData;
-      setFormData(restData);
+      // Ensure creatorInfo exists
+      setFormData({
+        ...restData,
+        creatorInfo: restData.creatorInfo || {
+          fullName: '',
+          relationship: '',
+          notes: ''
+        }
+      });
     }
     setShowDraftModal(false);
   };
@@ -1532,6 +1562,76 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             Who is creating this matrimonial profile?
           </small>
         </div>
+
+        {/* Creator Information Section (shown when not creating for self) */}
+        {formData.profileCreatedBy !== 'me' && (
+          <div className="creator-info-section">
+            <div className="section-header mb-3">
+              <h5 className="section-title">👤 Profile Creator Information</h5>
+              <p className="section-subtitle">
+                Please provide your information as the person creating this profile
+              </p>
+            </div>
+
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <label htmlFor="creatorFullName" className="form-label">
+                  Your Full Name <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="creatorFullName"
+                  name="fullName"
+                  className="form-control"
+                  placeholder="Enter your full name"
+                  value={formData.creatorInfo?.fullName || ''}
+                  onChange={handleCreatorInfoChange}
+                  required={formData.profileCreatedBy !== 'me'}
+                />
+                <small className="form-text text-muted">
+                  Name of the person creating this profile
+                </small>
+              </div>
+
+              <div className="col-md-6 mb-3">
+                <label htmlFor="creatorRelationship" className="form-label">
+                  Relationship to Profile Owner <span className="text-danger">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="creatorRelationship"
+                  name="relationship"
+                  className="form-control"
+                  placeholder="e.g., Mother, Father, Brother, Sister, Friend"
+                  value={formData.creatorInfo?.relationship || ''}
+                  onChange={handleCreatorInfoChange}
+                  required={formData.profileCreatedBy !== 'me'}
+                />
+                <small className="form-text text-muted">
+                  Your relationship to the profile owner
+                </small>
+              </div>
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="creatorNotes" className="form-label">
+                Additional Notes/Comments <span className="text-muted">(Optional)</span>
+              </label>
+              <textarea
+                id="creatorNotes"
+                name="notes"
+                className="form-control"
+                rows="3"
+                placeholder="Any relevant information about why you're creating this profile or special circumstances..."
+                value={formData.creatorInfo?.notes || ''}
+                onChange={handleCreatorInfoChange}
+              />
+              <small className="form-text text-muted">
+                Optional: Add context about the profile creation for admin review
+              </small>
+            </div>
+          </div>
+        )}
 
         {/* Custom row for contactNumber and contactEmail */}
         {isEditMode && !formData.contactNumber && !formData.contactEmail && (
@@ -3041,6 +3141,203 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
                 </div>
               )
+            },
+            {
+              id: 'complete',
+              label: 'Complete',
+              icon: '📋',
+              content: (
+                <div className="tab-section">
+                  <h3 className="section-title">📋 Legal Agreements (Required)</h3>
+                  
+                  {/* Only show legal agreements in register mode */}
+                  {!isEditMode ? (
+                    <>
+                      <p className="small mb-3" style={{ color: 'var(--text-secondary)' }}>
+                        Please review and accept all agreements below before completing your registration.
+                        These are mandatory to create your profile.
+                      </p>
+
+                      {/* Select All Checkbox */}
+                      <div className="form-check select-all-agreements mb-4">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="selectAllAgreements"
+                          checked={
+                            formData.agreedToAge &&
+                            formData.agreedToTerms &&
+                            formData.agreedToPrivacy &&
+                            formData.agreedToGuidelines &&
+                            formData.agreedToDataProcessing
+                          }
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setFormData({
+                              ...formData,
+                              agreedToAge: checked,
+                              agreedToTerms: checked,
+                              agreedToPrivacy: checked,
+                              agreedToGuidelines: checked,
+                              agreedToDataProcessing: checked
+                              // Note: agreedToMarketing not included (it's optional)
+                            });
+                          }}
+                        />
+                        <label className="form-check-label" htmlFor="selectAllAgreements">
+                          ✅ Select All Required Agreements
+                        </label>
+                      </div>
+
+                      <hr className="my-3" />
+                      
+                      {/* Age Verification */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="ageConfirmation"
+                          checked={formData.agreedToAge}
+                          onChange={(e) => setFormData({...formData, agreedToAge: e.target.checked})}
+                          required
+                        />
+                        <label className="form-check-label" htmlFor="ageConfirmation">
+                          <strong>I confirm that I am at least 18 years old</strong> and have legal capacity to enter into a binding agreement.
+                        </label>
+                      </div>
+
+                      {/* Terms of Service */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="termsAgreement"
+                          checked={formData.agreedToTerms}
+                          onChange={(e) => setFormData({...formData, agreedToTerms: e.target.checked})}
+                          required
+                        />
+                        <label className="form-check-label" htmlFor="termsAgreement">
+                          I have read and agree to the{' '}
+                          <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary">
+                            Terms of Service
+                          </a>
+                        </label>
+                      </div>
+
+                      {/* Privacy Policy */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="privacyAgreement"
+                          checked={formData.agreedToPrivacy}
+                          onChange={(e) => setFormData({...formData, agreedToPrivacy: e.target.checked})}
+                          required
+                        />
+                        <label className="form-check-label" htmlFor="privacyAgreement">
+                          I have read and agree to the{' '}
+                          <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary">
+                            Privacy Policy
+                          </a>
+                        </label>
+                      </div>
+
+                      {/* Community Guidelines */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="guidelinesAgreement"
+                          checked={formData.agreedToGuidelines}
+                          onChange={(e) => setFormData({...formData, agreedToGuidelines: e.target.checked})}
+                          required
+                        />
+                        <label className="form-check-label" htmlFor="guidelinesAgreement">
+                          I agree to follow the{' '}
+                          <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary">
+                            Community Guidelines
+                          </a>
+                        </label>
+                      </div>
+
+                      {/* Data Processing Consent (GDPR) */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="dataProcessingConsent"
+                          checked={formData.agreedToDataProcessing}
+                          onChange={(e) => setFormData({...formData, agreedToDataProcessing: e.target.checked})}
+                          required
+                        />
+                        <label className="form-check-label" htmlFor="dataProcessingConsent">
+                          I consent to the processing of my personal data for matchmaking purposes as described in the Privacy Policy
+                        </label>
+                      </div>
+
+                      {/* Marketing Communications (Optional) */}
+                      <div className="form-check mb-3">
+                        <input
+                          type="checkbox"
+                          className="form-check-input"
+                          id="marketingConsent"
+                          checked={formData.agreedToMarketing}
+                          onChange={(e) => setFormData({...formData, agreedToMarketing: e.target.checked})}
+                        />
+                        <label className="form-check-label" htmlFor="marketingConsent">
+                          <em>(Optional)</em> I would like to receive updates, promotions, and newsletters
+                        </label>
+                      </div>
+
+                      <div className="alert alert-info mt-4">
+                        <small>
+                          By clicking "Complete Registration", you confirm that you have filled out all required fields and agreed to all legal agreements above.
+                        </small>
+                      </div>
+
+                      {/* Submit Button - Inside Complete Tab */}
+                      <div className="text-center mt-4">
+                        <button className="btn btn-success btn-lg px-5" type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                              Creating Your Profile...
+                            </>
+                          ) : (
+                            "Register My Profile 🚀"
+                          )}
+                        </button>
+                        <p className="text-muted small mt-2">
+                          By clicking "Complete Registration", you confirm that you have filled out all required fields 
+                          and agreed to all legal agreements above.
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="alert alert-info">
+                        <p>Legal agreements are only required during initial registration.</p>
+                        <p>You already accepted these agreements when you created your profile.</p>
+                      </div>
+
+                      {/* Submit Button - Edit Mode */}
+                      <div className="text-center mt-4">
+                        <button className="btn btn-success btn-lg px-5" type="submit" disabled={isSubmitting}>
+                          {isSubmitting ? (
+                            <>
+                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                              Saving Changes...
+                            </>
+                          ) : (
+                            "💾 Save Changes"
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                </div>
+              )
             }
           ]}
           calculateProgress={calculateTabProgress}
@@ -3048,166 +3345,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           onAutoSave={handleTabAutoSave}
           enableAutoSave={!isEditMode}
         />
-
-        {/* Legal Agreements - OUTSIDE TABS, BEFORE SUBMIT BUTTON - Only show in register mode */}
-        {!isEditMode && (
-        <div className="legal-agreements-section mt-5 p-4 border rounded">
-          <h4 className="mb-2" style={{ color: 'var(--danger-color)' }}>📋 Legal Agreements (Required)</h4>
-          <p className="small mb-3" style={{ color: 'var(--text-secondary)' }}>
-            Please review and accept all agreements below before completing your registration.
-            These are mandatory to create your profile.
-          </p>
-
-          {/* Select All Checkbox */}
-          <div className="form-check select-all-agreements mb-4">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="selectAllAgreements"
-              checked={
-                formData.agreedToAge &&
-                formData.agreedToTerms &&
-                formData.agreedToPrivacy &&
-                formData.agreedToGuidelines &&
-                formData.agreedToDataProcessing
-              }
-              onChange={(e) => {
-                const checked = e.target.checked;
-                setFormData({
-                  ...formData,
-                  agreedToAge: checked,
-                  agreedToTerms: checked,
-                  agreedToPrivacy: checked,
-                  agreedToGuidelines: checked,
-                  agreedToDataProcessing: checked
-                  // Note: agreedToMarketing not included (it's optional)
-                });
-              }}
-            />
-            <label className="form-check-label" htmlFor="selectAllAgreements">
-              ✅ Select All Required Agreements
-            </label>
-          </div>
-
-          <hr className="my-3" />
-          
-          {/* Age Verification */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="ageConfirmation"
-              checked={formData.agreedToAge}
-              onChange={(e) => setFormData({...formData, agreedToAge: e.target.checked})}
-              required
-            />
-            <label className="form-check-label" htmlFor="ageConfirmation">
-              <strong>I confirm that I am at least 18 years old</strong> and have legal capacity to enter into a binding agreement.
-            </label>
-          </div>
-
-          {/* Terms of Service */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="termsAgreement"
-              checked={formData.agreedToTerms}
-              onChange={(e) => setFormData({...formData, agreedToTerms: e.target.checked})}
-              required
-            />
-            <label className="form-check-label" htmlFor="termsAgreement">
-              I have read and agree to the{' '}
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary">
-                Terms of Service
-              </a>
-            </label>
-          </div>
-
-          {/* Privacy Policy */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="privacyAgreement"
-              checked={formData.agreedToPrivacy}
-              onChange={(e) => setFormData({...formData, agreedToPrivacy: e.target.checked})}
-              required
-            />
-            <label className="form-check-label" htmlFor="privacyAgreement">
-              I have read and agree to the{' '}
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-primary">
-                Privacy Policy
-              </a>
-            </label>
-          </div>
-
-          {/* Community Guidelines */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="guidelinesAgreement"
-              checked={formData.agreedToGuidelines}
-              onChange={(e) => setFormData({...formData, agreedToGuidelines: e.target.checked})}
-              required
-            />
-            <label className="form-check-label" htmlFor="guidelinesAgreement">
-              I agree to follow the{' '}
-              <a href="/community-guidelines" target="_blank" rel="noopener noreferrer" className="text-primary">
-                Community Guidelines
-              </a>
-            </label>
-          </div>
-
-          {/* Data Processing Consent (GDPR) */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="dataProcessingConsent"
-              checked={formData.agreedToDataProcessing}
-              onChange={(e) => setFormData({...formData, agreedToDataProcessing: e.target.checked})}
-              required
-            />
-            <label className="form-check-label" htmlFor="dataProcessingConsent">
-              I consent to the processing of my personal data for matchmaking purposes as described in the Privacy Policy
-            </label>
-          </div>
-
-          {/* Marketing Communications (Optional) */}
-          <div className="form-check mb-3">
-            <input
-              type="checkbox"
-              className="form-check-input"
-              id="marketingConsent"
-              checked={formData.agreedToMarketing}
-              onChange={(e) => setFormData({...formData, agreedToMarketing: e.target.checked})}
-            />
-            <label className="form-check-label" htmlFor="marketingConsent">
-              <em>(Optional)</em> I would like to receive updates, promotions, and newsletters
-            </label>
-          </div>
-        </div>
-        )}
-
-        {/* Submit Button - AFTER Legal Agreements */}
-        <div className="text-center mt-4">
-          <button className="btn btn-success btn-lg px-5" type="submit" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                {isEditMode ? 'Saving Changes...' : 'Creating Your Profile...'}
-              </>
-            ) : (
-              isEditMode ? "💾 Save Changes" : "Register My Profile 🚀"
-            )}
-          </button>
-          <p className="text-muted small mt-2">
-            By clicking "Complete Registration", you confirm that you have filled out all required fields 
-            and agreed to all legal agreements above.
-          </p>
-        </div>
       </form>
       {/* Show backend images after save */}
       {savedUser && savedUser.images?.length > 0 && (
@@ -3263,56 +3400,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                   onClick={handleRestoreDraft}
                 >
                   Continue Draft
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content">
-              <div className="modal-header" style={{
-                background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',
-                color: 'white',
-                border: 'none'
-              }}>
-                <h5 className="modal-title">
-                  ✅ Profile Created Successfully!
-                </h5>
-              </div>
-              <div className="modal-body text-center p-4">
-                <div className="mb-3">
-                  <div className="spinner-border text-primary mb-3" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                  <h4>Check Your Email!</h4>
-                </div>
-                <p className="lead">
-                  We've sent a verification email to <strong>{formData.contactEmail}</strong>
-                </p>
-                <div className="alert alert-info" role="alert">
-                  <strong>📧 Next Steps:</strong>
-                  <ol className="text-start mt-2 mb-0">
-                    <li>Check your email inbox (and spam folder)</li>
-                    <li>Click the verification link</li>
-                    <li>Wait for admin approval (usually within 24 hours)</li>
-                    <li>Start matching!</li>
-                  </ol>
-                </div>
-                <p className="text-muted">
-                  Redirecting to login page in 5 seconds...
-                </p>
-              </div>
-              <div className="modal-footer justify-content-center">
-                <button 
-                  className="btn btn-primary" 
-                  onClick={() => navigate('/login')}
-                >
-                  Go to Login Now
                 </button>
               </div>
             </div>

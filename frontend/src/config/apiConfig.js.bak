@@ -29,7 +29,7 @@ const ENVIRONMENT_URLS = {
   pod: {
     backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
     api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users',
-    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
+    ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app' || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
   }
 };
 

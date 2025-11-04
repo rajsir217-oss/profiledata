@@ -5,7 +5,7 @@
 .l3v3l-matching-section {
   margin: 40px 0;
   padding: 30px;
-  background: var(--card-bg, #ffffff);
+  background: var(--card-background);
   border-radius: 12px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
 }
@@ -21,7 +21,7 @@
 
 .l3v3l-matching-header h3 {
   margin: 0;
-  color: var(--text-color, #333);
+  color: var(--text-color);
   font-size: 24px;
   font-weight: 700;
 }
@@ -57,7 +57,7 @@
 }
 
 .matching-subtitle {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   margin-bottom: 30px;
   font-size: 15px;
 }
@@ -66,19 +66,19 @@
 .matching-subsection {
   margin: 30px 0;
   padding: 25px;
-  background: var(--subsection-bg, #f8f9fa);
+  background: var(--surface-color);
   border-radius: 12px;
-  border: 2px solid var(--border-color, #e0e0e0);
+  border: 2px solid var(--border-color);
 }
 
 .matching-subsection.personal-matching {
-  background: linear-gradient(135deg, #fef3c7 0%, #fff7ed 100%);
-  border-color: #fbbf24;
+  background: linear-gradient(135deg, var(--warning-light) 0%, var(--warning-background) 100%);
+  border-color: var(--warning-color);
 }
 
 .matching-subsection.l3v3l-core {
-  background: linear-gradient(135deg, #e0e7ff 0%, #f5f3ff 100%);
-  border-color: #667eea;
+  background: linear-gradient(135deg, var(--info-light) 0%, var(--info-background) 100%);
+  border-color: var(--primary-color);
 }
 
 .subsection-header {
@@ -94,7 +94,7 @@
   margin: 0;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: var(--text-color);
 }
 
 .section-score-badge {
@@ -114,7 +114,7 @@
 }
 
 .subsection-subtitle {
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   margin-bottom: 20px;
   font-size: 14px;
   font-style: italic;
@@ -129,10 +129,10 @@
 }
 
 .matching-item {
-  background: var(--bg-color, #f8f9fa);
+  background: var(--card-background);
   padding: 20px;
   border-radius: 12px;
-  border: 2px solid var(--border-color, #e0e0e0);
+  border: 2px solid var(--border-color);
   transition: all 0.3s ease;
 }
 
@@ -151,7 +151,7 @@
 .matching-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: var(--text-color);
 }
 
 /* Match Bubbles with Color Coding */
@@ -172,37 +172,37 @@
   text-align: center;
 }
 
-/* Color Classes - Shades of Green */
+/* Color Classes - Theme-Aware */
 .perfect-match {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-hover) 100%);
   color: #ffffff;
 }
 
 .high-match {
-  background: linear-gradient(135deg, #34d399 0%, #10b981 100%);
+  background: linear-gradient(135deg, var(--success-hover) 0%, var(--success-color) 100%);
   color: #ffffff;
 }
 
 .good-match {
-  background: linear-gradient(135deg, #6ee7b7 0%, #34d399 100%);
-  color: #ffffff;
+  background: linear-gradient(135deg, var(--success-light) 0%, var(--success-hover) 100%);
+  color: var(--text-color);
 }
 
 .medium-match {
-  background: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%);
-  color: #064e3b;
+  background: linear-gradient(135deg, var(--info-light) 0%, var(--success-light) 100%);
+  color: var(--text-color);
 }
 
 .low-match {
-  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-  color: #78350f;
+  background: linear-gradient(135deg, var(--warning-color) 0%, var(--warning-dark) 100%);
+  color: var(--warning-dark);
 }
 
 /* Progress Bar */
 .matching-progress-bar {
   width: 100%;
   height: 8px;
-  background: var(--border-color, #e0e0e0);
+  background: var(--border-color);
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 10px;
@@ -215,28 +215,28 @@
 }
 
 .matching-progress-fill.perfect-match {
-  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(90deg, var(--success-color) 0%, var(--success-hover) 100%);
 }
 
 .matching-progress-fill.high-match {
-  background: linear-gradient(90deg, #34d399 0%, #10b981 100%);
+  background: linear-gradient(90deg, var(--success-hover) 0%, var(--success-color) 100%);
 }
 
 .matching-progress-fill.good-match {
-  background: linear-gradient(90deg, #6ee7b7 0%, #34d399 100%);
+  background: linear-gradient(90deg, var(--success-light) 0%, var(--success-hover) 100%);
 }
 
 .matching-progress-fill.medium-match {
-  background: linear-gradient(90deg, #a7f3d0 0%, #6ee7b7 100%);
+  background: linear-gradient(90deg, var(--info-light) 0%, var(--success-light) 100%);
 }
 
 .matching-progress-fill.low-match {
-  background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 100%);
+  background: linear-gradient(90deg, var(--warning-color) 0%, var(--warning-dark) 100%);
 }
 
 .matching-description {
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
@@ -252,44 +252,44 @@
 }
 
 .match-label.perfect-match {
-  background: #d1fae5;
-  color: #065f46;
+  background: var(--success-light);
+  color: var(--success-hover);
 }
 
 .match-label.high-match {
-  background: #d1fae5;
-  color: #047857;
+  background: var(--success-light);
+  color: var(--success-color);
 }
 
 .match-label.good-match {
-  background: #d1fae5;
-  color: #059669;
+  background: var(--success-light);
+  color: var(--success-color);
 }
 
 .match-label.medium-match {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-light);
+  color: var(--warning-dark);
 }
 
 .match-label.low-match {
-  background: #fef3c7;
-  color: #92400e;
+  background: var(--warning-light);
+  color: var(--warning-dark);
 }
 
 /* Legend */
 .matching-legend {
   margin-top: 30px;
   padding: 20px;
-  background: var(--bg-color, #f8f9fa);
+  background: var(--surface-color);
   border-radius: 10px;
-  border: 2px dashed var(--border-color, #e0e0e0);
+  border: 2px dashed var(--border-color);
 }
 
 .matching-legend h4 {
   margin: 0 0 15px 0;
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-color, #333);
+  color: var(--text-color);
 }
 
 .legend-items {
@@ -303,7 +303,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary);
 }
 
 .legend-bubble {
@@ -312,23 +312,23 @@
 }
 
 .legend-bubble.perfect-match {
-  color: #10b981;
+  color: var(--success-color);
 }
 
 .legend-bubble.high-match {
-  color: #34d399;
+  color: var(--success-hover);
 }
 
 .legend-bubble.good-match {
-  color: #6ee7b7;
+  color: var(--success-light);
 }
 
 .legend-bubble.medium-match {
-  color: #a7f3d0;
+  color: var(--info-light);
 }
 
 .legend-bubble.low-match {
-  color: #fbbf24;
+  color: var(--warning-color);
 }
 
 /* Responsive Design */
@@ -394,18 +394,5 @@
   }
 }
 
-/* Dark Theme Support */
-.theme-dark .l3v3l-matching-section {
-  background: var(--card-bg-dark, #1f2937);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-}
-
-.theme-dark .matching-item {
-  background: var(--bg-color-dark, #111827);
-  border-color: var(--border-color-dark, #374151);
-}
-
-.theme-dark .matching-legend {
-  background: var(--bg-color-dark, #111827);
-  border-color: var(--border-color-dark, #374151);
-}
+/* Theme support is now automatic via CSS variables */
+/* All colors adapt to active theme (Cozy Light, Cozy Night, Rose Garden, etc.) */
