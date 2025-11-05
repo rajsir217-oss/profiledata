@@ -15,6 +15,7 @@ export { default as HeightSelector } from './HeightSelector';
 export { default as GenderSelector } from './GenderSelector';
 export { default as Autocomplete } from './Autocomplete';
 export { default as ButtonGroup } from './ButtonGroup';
+export { default as ErrorModal } from './ErrorModal';
 
 // Form Sections
 export { default as BasicInformation } from './sections/BasicInformation';

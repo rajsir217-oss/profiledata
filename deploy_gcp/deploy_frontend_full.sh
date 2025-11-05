@@ -121,12 +121,14 @@ EOF
 
 echo "📝 Updating frontend src/config/apiConfig.js pod configuration"
 export BACKEND_URL
+export FRONTEND_DIR
 python3 - <<'PY'
 from pathlib import Path
 import os
 import sys
 
-path = Path("frontend/src/config/apiConfig.js")
+frontend_dir = Path(os.environ["FRONTEND_DIR"])
+path = frontend_dir / "src/config/apiConfig.js"
 backend_url = os.environ["BACKEND_URL"]
 api_url = f"{backend_url}/api/users"
 ws_host = backend_url.replace("https://", "").replace("http://", "")

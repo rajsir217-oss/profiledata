@@ -4,7 +4,7 @@ import api from "../api";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
 import ProfileConfirmationModal from "./ProfileConfirmationModal";
-import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete, ButtonGroup } from "./shared";
+import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
@@ -199,6 +199,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorModalData, setErrorModalData] = useState({ title: '', message: '', errors: [] });
   const [activeTab, setActiveTab] = useState('about-me');
   const usernameCheckTimeout = useRef(null);
 
@@ -680,12 +682,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   };
 
   // Handle field blur (when user leaves the field)
-  const handleBlur = (e) => {
+  const handleBlur = async (e) => {
     const { name, value } = e.target;
     setTouchedFields((prev) => ({ ...prev, [name]: true }));
     
     const error = validateField(name, value);
     setFieldErrors((prev) => ({ ...prev, [name]: error }));
+    
+    // Check username availability on blur (only in register mode)
+    if (name === 'username' && !isEditMode && value && !error) {
+      await checkUsernameAvailability(value);
+    }
   };
 
   // Handle creator info changes (nested object)
@@ -1034,19 +1041,29 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       setIsSubmitting(false);
       const errorDetail = err.response?.data?.detail || err.response?.data?.error || "❌ Something went wrong.";
       
-      // Handle specific backend validation errors
+      // Handle specific backend validation errors with modal
       if (errorDetail.includes("Username already exists")) {
         setFieldErrors((prev) => ({ ...prev, username: "❌ " + errorDetail }));
-        setErrorMsg("❌ Username already exists. Please choose a different username.");
+        setErrorModalData({
+          title: 'Username Already Taken',
+          message: `The username "${formData.username}" is already registered.`,
+          errors: ['Please choose a different username and try again.']
+        });
+        setShowErrorModal(true);
         scrollToAndFocusField('username'); // Auto-scroll to username field
       } else if (errorDetail.includes("Email already registered")) {
         setFieldErrors((prev) => ({ ...prev, contactEmail: "❌ " + errorDetail }));
-        setErrorMsg("❌ Email already registered. Please use a different email.");
+        setErrorModalData({
+          title: 'Email Already Registered',
+          message: `The email "${formData.contactEmail}" is already registered.`,
+          errors: ['Please use a different email address or try logging in.']
+        });
+        setShowErrorModal(true);
         scrollToAndFocusField('contactEmail'); // Auto-scroll to email field
       } else {
         setErrorMsg(errorDetail);
-        window.scrollTo({ top: 0, behavior: 'auto' });
-      }
+      }  
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
   };
 
@@ -1124,6 +1141,41 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         const error = validateField(field, formData[field]);
         if (error) errors[field] = error;
       });
+      
+      // Check username availability (only in register mode)
+      if (!isEditMode && formData.username && !errors.username) {
+        try {
+          setCheckingUsername(true);
+          const response = await api.get(`/profile/${formData.username}`);
+          
+          // If we get a response, username exists
+          if (response.data) {
+            errors.username = "❌ Username already exists. Please choose another.";
+            setFieldErrors((prev) => ({ 
+              ...prev, 
+              username: "❌ Username already exists. Please choose another." 
+            }));
+            
+            // Show error modal
+            setErrorModalData({
+              title: 'Username Already Taken',
+              message: `The username "${formData.username}" is already in use.`,
+              errors: ['Please choose a different username to continue.']
+            });
+            setShowErrorModal(true);
+          }
+        } catch (error) {
+          // 404 means username doesn't exist (available) - this is good!
+          if (error.response && error.response.status === 404) {
+            // Username is available
+          } else {
+            // Network error or other issue - allow to proceed
+            console.error('Error checking username:', error);
+          }
+        } finally {
+          setCheckingUsername(false);
+        }
+      }
       
     } else if (tabId === 'background') {
       const error = validateField('aboutMe', formData.aboutMe);
@@ -3435,6 +3487,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           isEditMode={isEditMode}
         />
       )}
+
+      {/* Error Modal */}
+      <ErrorModal
+        show={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title={errorModalData.title}
+        message={errorModalData.message}
+        errors={errorModalData.errors}
+      />
 
       {/* Draft Recovery Modal */}
       {showDraftModal && draftData && (
