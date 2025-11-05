@@ -315,3 +315,334 @@
 .theme-rose .creator-info-section {
   background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, var(--surface-color) 100%);
 }
+
+/* ========================================
+   TAB NAVIGATION BUTTONS
+   Previous/Continue buttons at bottom of tabs
+   ======================================== */
+.tab-navigation-buttons {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.tab-navigation-buttons .btn {
+  flex: 1;
+  min-width: 140px;
+  max-width: 250px;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 14px 24px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+  white-space: nowrap;
+}
+
+.tab-navigation-buttons .btn-primary {
+  color: white !important;
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)) !important;
+  border: none !important;
+  font-weight: 700 !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.tab-navigation-buttons .btn-outline-secondary {
+  color: var(--text-color) !important;
+  background: white !important;
+  border: 2px solid var(--border-color) !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tab-navigation-buttons .btn-outline-secondary:hover {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  background: var(--hover-background) !important;
+}
+
+.tab-navigation-buttons .btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+}
+
+.tab-navigation-buttons .btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .tab-navigation-buttons {
+    gap: 10px;
+    flex-direction: row;
+  }
+
+  .tab-navigation-buttons .btn {
+    flex: 1;
+    min-width: unset;
+    max-width: unset;
+    font-size: 15px;
+    padding: 12px 16px;
+  }
+}
+
+/* Extra small screens - stack vertically if needed */
+@media (max-width: 400px) {
+  .tab-navigation-buttons .btn {
+    font-size: 14px;
+    padding: 12px 12px;
+  }
+}
+
+/* Mobile responsive - continued */
+@media (max-width: 768px) {
+  /* Fix form overflow on mobile */
+  .register-container {
+    padding: 0 8px;
+  }
+  
+  .register-container .card {
+    margin: 0;
+    border-radius: 12px;
+  }
+  
+  /* Ensure all inputs fit within viewport */
+  .register-container .form-control,
+  .register-container .form-select,
+  .register-container input,
+  .register-container textarea,
+  .register-container select {
+    max-width: 100%;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  /* Stack form rows vertically */
+  .register-container .row > [class*="col-"] {
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-bottom: 12px;
+  }
+  
+  /* Tab content padding */
+  .register-container .tab-section {
+    padding: 12px;
+  }
+  
+  /* Reduce section spacing */
+  .register-container h5 {
+    font-size: 16px;
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .register-container h6 {
+    font-size: 14px;
+  }
+  
+  /* Button sizing */
+  .register-container .btn-sm {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+  
+  /* Alert boxes */
+  .register-container .alert {
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    white-space: normal;
+  }
+
+  /* Alert small text */
+  .register-container .alert small {
+    display: block !important;
+    font-size: 11px !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    max-width: 100% !important;
+  }
+
+  .register-container .alert small strong {
+    display: inline !important;
+    font-size: 11px !important;
+    white-space: normal !important;
+  }
+
+  /* Section headings - mobile responsive */
+  .register-container h5 {
+    font-size: 16px !important;
+    line-height: 1.4 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  .register-container h5.text-primary {
+    font-size: 15px !important;
+  }
+
+  /* Alert info boxes - default block display for proper wrapping */
+  .register-container .alert-info {
+    font-size: 11px !important;
+    padding: 8px 10px !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    white-space: normal !important;
+  }
+
+  .register-container .alert-info strong {
+    font-size: 12px !important;
+    display: inline !important;
+    white-space: normal !important;
+  }
+
+  /* Preview boxes with data - use flexbox */
+  .register-container .alert-info:has(.text-muted) {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .register-container .alert-info .text-muted,
+  .register-container .alert-info small {
+    font-size: 10px;
+  }
+
+  /* Preview box numbers/values should stay together */
+  .register-container .alert-info strong {
+    white-space: nowrap;
+  }
+  
+  /* Image manager on mobile */
+  .register-container .image-manager {
+    margin: 0 -8px;
+  }
+  
+  /* Legal agreements checkboxes */
+  .register-container .form-check {
+    padding-left: 1.5rem;
+    font-size: 14px;
+  }
+  
+  .register-container .form-check-input {
+    width: 18px;
+    height: 18px;
+  }
+  
+  /* Submit buttons */
+  .register-container .text-center .btn {
+    width: 100%;
+    max-width: none;
+    padding: 14px 20px;
+  }
+  
+  /* Draft Recovery Modal - Mobile responsive */
+  .register-container .modal-dialog {
+    max-width: calc(100vw - 2rem);
+    margin: 1rem;
+  }
+  
+  .register-container .modal-content {
+    border-radius: 12px;
+  }
+  
+  .register-container .modal-header {
+    padding: 14px 16px;
+    border-radius: 12px 12px 0 0;
+  }
+  
+  .register-container .modal-header .modal-title {
+    font-size: 17px;
+  }
+  
+  .register-container .modal-body {
+    padding: 1rem;
+  }
+  
+  .register-container .modal-body .lead {
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 1rem;
+  }
+  
+  .register-container .modal-body p {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  
+  .register-container .modal-footer {
+    padding: 12px;
+    flex-direction: column-reverse;
+    gap: 10px;
+  }
+  
+  .register-container .modal-footer .btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 15px;
+    min-height: 48px;
+  }
+  
+  .register-container .modal-footer .btn-primary {
+    margin-bottom: 0;
+    margin-left: 0;
+  }
+}
+
+/* Extra small screens - Draft Modal */
+@media (max-width: 480px) {
+  .register-container .modal-dialog {
+    margin: 0.5rem;
+    max-width: calc(100vw - 1rem);
+  }
+  
+  .register-container .modal-body .lead {
+    font-size: 14px;
+  }
+  
+  .register-container .modal-body p {
+    font-size: 13px;
+  }
+
+  /* Preview boxes on very small screens */
+  .register-container .alert-info {
+    font-size: 10px;
+    padding: 6px 8px;
+    gap: 3px;
+  }
+
+  .register-container .alert-info strong {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .register-container .alert-info .text-muted,
+  .register-container .alert-info small {
+    font-size: 9px;
+    white-space: nowrap;
+  }
+
+  /* Section headings on extra small screens */
+  .register-container h5 {
+    font-size: 14px;
+  }
+
+  .register-container h5.text-primary {
+    font-size: 13px;
+  }
+}

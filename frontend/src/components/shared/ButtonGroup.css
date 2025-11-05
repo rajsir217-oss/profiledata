@@ -1,0 +1,106 @@
+/* ButtonGroup - Segmented Control Styling */
+
+.button-group-container {
+  width: 100%;
+}
+
+.button-group {
+  display: inline-flex;
+  background: var(--surface-color, #f8f9fa);
+  border: 2px solid var(--border-color, #dee2e6);
+  border-radius: 10px;
+  padding: 4px;
+  gap: 4px;
+  overflow: hidden;
+  flex-wrap: nowrap;
+}
+
+.button-group-vertical {
+  flex-direction: column;
+  width: 100%;
+}
+
+.button-group.is-invalid {
+  border-color: #dc3545;
+}
+
+.button-group .btn-option {
+  flex: 1;
+  min-width: 80px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color, #495057);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.button-group .btn-option:hover {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--primary-color, #6366f1);
+}
+
+.button-group .btn-option.active {
+  background: var(--primary-color, #6366f1);
+  color: white;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+  font-weight: 600;
+}
+
+.button-group .btn-option:active {
+  transform: scale(0.98);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .button-group {
+    width: 100%;
+    padding: 3px;
+    gap: 3px;
+  }
+
+  .button-group .btn-option {
+    min-width: 60px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .button-group .btn-option {
+    min-width: 50px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+}
+
+/* Theme support */
+.theme-dark .button-group {
+  background: #2d3748;
+  border-color: #4a5568;
+}
+
+.theme-dark .button-group .btn-option {
+  color: #e2e8f0;
+}
+
+.theme-dark .button-group .btn-option:hover {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+.theme-rose .button-group .btn-option.active {
+  background: var(--primary-color, #ec4899);
+  box-shadow: 0 2px 6px rgba(236, 72, 153, 0.3);
+}
+
+.theme-rose .button-group .btn-option:hover {
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--primary-color, #ec4899);
+}

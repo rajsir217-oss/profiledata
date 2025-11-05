@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Toast from './Toast';
 import './TabContainer.css';
 
 /**
@@ -35,6 +36,7 @@ const TabContainer = ({
   const [tabProgress, setTabProgress] = useState({});
   const [tabErrors, setTabErrors] = useState({});
   const [isSaving, setIsSaving] = useState(false);
+  const [toast, setToast] = useState(null);
 
   // Update active tab if controlled
   useEffect(() => {
@@ -58,12 +60,24 @@ const TabContainer = ({
     if (newTabId === activeTab) return;
 
     const oldTab = activeTab;
+    const oldTabLabel = tabs.find(t => t.id === oldTab)?.label || 'current tab';
 
     // Validate current tab before switching
     if (validateTab) {
       const errors = await validateTab(oldTab);
       if (errors && Object.keys(errors).length > 0) {
         setTabErrors({ ...tabErrors, [oldTab]: errors });
+        
+        // Show toast notification with specific missing fields
+        const errorFields = Object.keys(errors);
+        const fieldList = errorFields.slice(0, 3).join(', ');
+        const moreCount = errorFields.length > 3 ? ` and ${errorFields.length - 3} more` : '';
+        
+        setToast({
+          message: `⚠️ Please complete ${oldTabLabel}: ${fieldList}${moreCount}`,
+          type: 'warning'
+        });
+        
         // Don't switch if validation fails
         return;
       }
@@ -173,6 +187,16 @@ const TabContainer = ({
           </div>
         ))}
       </div>
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+          duration={4000}
+        />
+      )}
 
       {/* Progress Summary */}
       <div className="progress-summary">

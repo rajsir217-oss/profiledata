@@ -14,6 +14,7 @@ export { default as TextAreaWithSamples } from './TextAreaWithSamples';
 export { default as HeightSelector } from './HeightSelector';
 export { default as GenderSelector } from './GenderSelector';
 export { default as Autocomplete } from './Autocomplete';
+export { default as ButtonGroup } from './ButtonGroup';
 
 // Form Sections
 export { default as BasicInformation } from './sections/BasicInformation';

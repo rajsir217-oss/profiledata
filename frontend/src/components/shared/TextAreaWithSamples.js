@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './TextAreaWithSamples.css';
 
 /**
  * Reusable TextArea with Sample Text Carousel
@@ -44,7 +45,7 @@ const TextAreaWithSamples = ({
   };
 
   return (
-    <div className="mb-3">
+    <div className="mb-3 text-area-with-samples">
       <label className="form-label">
         {label} {required && <span className="text-danger">*</span>}
       </label>

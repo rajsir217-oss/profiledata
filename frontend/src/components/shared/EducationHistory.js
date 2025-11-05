@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './SharedComponents.css';
 
 /**
  * Reusable Education History Manager
@@ -101,8 +102,8 @@ const EducationHistory = ({
 
       {/* Saved Education Entries */}
       {educationHistory.length > 0 && (
-        <div className="mb-3">
-          <table className="table table-bordered" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
+        <div className="mb-3 table-container-scroll">
+          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
             <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
               <tr>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Level</th>
@@ -114,17 +115,18 @@ const EducationHistory = ({
             <tbody>
               {educationHistory.map((edu, index) => (
                 <tr key={index}>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.level}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.degree}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.institution}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>
+                  <td data-label="Level" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.level}</td>
+                  <td data-label="Degree" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.degree}</td>
+                  <td data-label="Institution" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{edu.institution}</td>
+                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
                     <button
                       type="button"
                       className="btn btn-sm btn-warning me-2"
                       onClick={() => handleEditEducation(index)}
                       title="Edit"
                     >
-                      ✏️
+                      <span className="btn-icon">✏️</span>
+                      <span className="btn-text">Edit</span>
                     </button>
                     <button
                       type="button"
@@ -132,7 +134,8 @@ const EducationHistory = ({
                       onClick={() => handleDeleteEducation(index)}
                       title="Delete"
                     >
-                      ×
+                      <span className="btn-icon">🗑️</span>
+                      <span className="btn-text">Delete</span>
                     </button>
                   </td>
                 </tr>
@@ -188,15 +191,13 @@ const EducationHistory = ({
             />
           </div>
 
-          <div className="col-md-2 d-flex align-items-end">
+          <div className="col-md-2 d-flex align-items-end justify-content-center">
             <button
               type="button"
-              className={`btn btn-primary w-100 ${editingIndex === null ? 'btn-add-entry' : ''}`}
+              className={`btn btn-primary btn-square-action ${editingIndex === null ? 'btn-add-entry' : ''}`}
               onClick={handleAddEducation}
-              // style={{ minWidth: '44px', whiteSpace: 'nowrap' }}
             >
-              <span style={{ fontSize: '16px' }}>{editingIndex !== null ? '✓' : '+'}</span>
-              <span className="d-none d-lg-inline">{editingIndex !== null ? ' Update' : 'Add'}</span>
+              <span className="btn-icon" style={{ fontSize: '24px' }}>{editingIndex !== null ? '✓' : '+'}</span>
             </button>
           </div>
         </div>

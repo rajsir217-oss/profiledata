@@ -1,0 +1,494 @@
+/* ========================================
+   SHARED COMPONENTS - MOBILE RESPONSIVE
+   Styles for Education, Work, Tables
+   ======================================== */
+
+/* Desktop table buttons - icon only */
+@media (min-width: 769px) {
+  .table .btn .btn-text {
+    display: none;
+  }
+
+  .table .btn .btn-icon {
+    font-size: 16px;
+  }
+
+  .table .btn-sm {
+    padding: 6px 12px;
+    min-width: 38px;
+  }
+
+  .table .actions-cell {
+    text-align: right !important;
+  }
+}
+
+/* Make tables responsive on mobile */
+@media (max-width: 768px) {
+  /* Wrap tables in horizontal scroll container */
+  .table-responsive-mobile {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+  }
+
+  /* Stack table rows vertically on mobile */
+  .table-stacked,
+  .table-stacked.table {
+    display: block !important;
+    width: 100% !important;
+    border: none !important;
+  }
+
+  .table-stacked thead {
+    display: none !important;
+  }
+
+  .table-stacked tbody {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  .table-stacked tr {
+    display: block !important;
+    width: 100% !important;
+    margin-bottom: 1rem !important;
+    padding: 14px !important;
+    background: var(--surface-color, #fff) !important;
+    border: 1px solid var(--border-color, #dee2e6) !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05) !important;
+  }
+
+  .table-stacked td {
+    display: block !important;
+    width: 100% !important;
+    text-align: left !important;
+    padding: 8px 0 8px 0 !important;
+    border: none !important;
+    background: transparent !important;
+    position: relative !important;
+    min-height: 36px !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+    white-space: normal !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Create two-column layout for label and value */
+  .table-stacked td::before {
+    content: attr(data-label) !important;
+    display: block !important;
+    width: 35% !important;
+    font-weight: 700 !important;
+    color: var(--text-secondary, #666) !important;
+    font-size: 13px !important;
+    text-transform: capitalize !important;
+    padding-right: 8px !important;
+    float: left !important;
+    line-height: 1.6 !important;
+  }
+
+  /* Value takes remaining space */
+  .table-stacked td {
+    padding-left: 0 !important;
+  }
+
+  .table-stacked td::after {
+    content: '' !important;
+    display: table !important;
+    clear: both !important;
+  }
+
+  /* Actions column - buttons side by side */
+  .table-stacked td:last-child {
+    text-align: center !important;
+    padding: 12px 0 0 0 !important;
+    margin-top: 8px !important;
+    border-top: 1px dashed var(--border-color, #dee2e6) !important;
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+    justify-content: center !important;
+  }
+
+  .table-stacked td:last-child::before {
+    display: none !important;
+  }
+
+  .table-stacked td:last-child::after {
+    display: none !important;
+  }
+
+  /* Button spacing and sizing in actions column - rounded square buttons */
+  .table-stacked td:last-child .btn {
+    width: 52px !important;
+    height: 52px !important;
+    flex: 0 0 52px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 22px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  /* Override Bootstrap margin utilities on mobile */
+  .table-stacked td:last-child .btn.me-2 {
+    margin-right: 0 !important;
+  }
+
+  .table-stacked td:last-child .btn-sm {
+    width: 52px !important;
+    height: 52px !important;
+    padding: 0 !important;
+    font-size: 22px !important;
+  }
+
+  /* Ensure button text is visible */
+  .table-stacked td:last-child .btn::before {
+    display: none !important;
+  }
+
+  /* Button icons on mobile - larger, no text */
+  .table-stacked td:last-child .btn .btn-icon {
+    font-size: 22px !important;
+    margin: 0 !important;
+  }
+
+  /* Hide button text on mobile - icon only */
+  .table-stacked td:last-child .btn .btn-text {
+    display: none !important;
+  }
+
+  /* Button hover effects - consistent with tab icons */
+  .table-stacked td:last-child .btn:active:not(:disabled) {
+    transform: scale(0.95) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .table-stacked td:last-child .btn-warning {
+    background-color: var(--warning-color, #ffc107) !important;
+    border-color: var(--warning-color, #ffc107) !important;
+  }
+
+  .table-stacked td:last-child .btn-danger {
+    background-color: var(--danger-color, #dc3545) !important;
+    border-color: var(--danger-color, #dc3545) !important;
+  }
+
+  /* Form fields in rows - stack vertically on mobile */
+  .row.mb-3 .col-md-4,
+  .row.mb-3 .col-md-6 {
+    margin-bottom: 1rem;
+  }
+
+  /* Education/Work cards */
+  .card.p-3 {
+    padding: 1rem !important;
+  }
+
+  /* Button groups - general buttons */
+  .btn-sm {
+    padding: 10px 16px !important;
+    font-size: 15px !important;
+    min-height: 42px !important;
+  }
+
+  /* Primary action buttons (Add/Save) - consistent height */
+  .card .btn-primary,
+  .card .btn-success {
+    width: 100% !important;
+    height: 50px !important;
+    padding: 0 20px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 8px !important;
+    margin-top: 8px !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* Cancel/Secondary buttons - match primary height */
+  .card .btn-secondary,
+  .card .btn-outline-secondary {
+    width: 100% !important;
+    height: 50px !important;
+    padding: 0 16px !important;
+    font-size: 15px !important;
+    border-radius: 10px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-top: 8px !important;
+  }
+
+  /* Button icon/text spacing */
+  .card .btn span:first-child {
+    line-height: 1 !important;
+  }
+
+  /* Button active state */
+  .card .btn:active:not(:disabled) {
+    transform: scale(0.98) !important;
+  }
+
+  /* Square action buttons (Add/Update in forms) - match Edit/Delete style */
+  .btn-square-action {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    min-height: 52px !important;
+    max-width: 52px !important;
+    max-height: 52px !important;
+    padding: 0 !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12) !important;
+  }
+
+  .btn-square-action .btn-icon {
+    font-size: 24px !important;
+    line-height: 1 !important;
+  }
+
+  /* Active state for square buttons */
+  .btn-square-action:active:not(:disabled) {
+    transform: scale(0.95) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* Ensure all standalone action buttons match */
+  .btn-primary,
+  .btn-success,
+  .btn-secondary {
+    min-height: 50px;
+    border-radius: 10px;
+  }
+
+  /* Education/Work form fields - stack vertically */
+  .row.mb-3 {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  .row.mb-3 > [class*="col-"] {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: 100% !important;
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Form labels and inputs */
+  .form-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .form-control,
+  .form-select {
+    font-size: 15px;
+    padding: 10px 12px;
+  }
+
+  /* Section titles */
+  h5.text-primary {
+    font-size: 16px !important;
+    margin-top: 1.5rem !important;
+  }
+
+  h6 {
+    font-size: 14px !important;
+  }
+}
+
+/* TextAreaWithSamples - Mobile responsive */
+@media (max-width: 768px) {
+  .samples-section {
+    margin-top: 1rem;
+  }
+
+  .sample-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1rem;
+  }
+
+  .sample-tab {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 120px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .sample-content {
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* Pagination controls */
+  .pagination-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .pagination-controls button {
+    width: 100%;
+  }
+}
+
+/* Partner Preference Preview boxes */
+@media (max-width: 768px) {
+  .preview-section,
+  .criteria-preview {
+    padding: 10px;
+    font-size: 12px;
+  }
+
+  .preview-section h6,
+  .criteria-preview h6 {
+    font-size: 13px;
+  }
+
+  .preview-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .preview-item {
+    font-size: 12px;
+    word-break: break-word;
+  }
+
+  /* Alert info boxes (Preview sections) */
+  .alert.alert-info {
+    padding: 10px !important;
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+    word-wrap: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+
+  .alert.alert-info strong {
+    white-space: nowrap !important;
+  }
+
+  /* Icon and label spacing */
+  .alert.alert-info > *:first-child {
+    display: inline-block;
+    margin-right: 4px;
+  }
+}
+
+/* Age/Height Range selects - Better mobile spacing */
+@media (max-width: 768px) {
+  .range-inputs {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .range-input-group {
+    width: 100%;
+  }
+
+  .range-input-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 13px;
+  }
+
+  .range-input-group select,
+  .range-input-group input {
+    width: 100%;
+  }
+}
+
+/* Fix overflow issues */
+@media (max-width: 768px) {
+  .tab-section,
+  .register-container,
+  .edit-profile-container {
+    overflow-x: hidden;
+    max-width: 100vw;
+  }
+
+  .tab-panel {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* Ensure form controls don't overflow */
+  .form-control,
+  .form-select,
+  textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Card padding adjustments */
+  .card,
+  .card-body {
+    padding: 12px !important;
+  }
+
+  /* Section titles */
+  .section-title {
+    font-size: 18px !important;
+  }
+
+  h5 {
+    font-size: 16px !important;
+  }
+
+  h6 {
+    font-size: 14px !important;
+  }
+
+  /* Alert boxes */
+  .alert {
+    padding: 10px 12px !important;
+    font-size: 13px !important;
+  }
+}
+
+/* Horizontal scroll for tables (fallback) */
+.table-container-scroll {
+  overflow: visible;
+  -webkit-overflow-scrolling: touch;
+}
+
+@media (max-width: 768px) {
+  .table-container-scroll {
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* For non-stacked tables, enable horizontal scroll */
+  .table-container-scroll table:not(.table-stacked) {
+    display: table;
+    min-width: 600px;
+    font-size: 13px;
+    overflow-x: auto;
+  }
+
+  .table-container-scroll:not(.table-stacked) th,
+  .table-container-scroll:not(.table-stacked) td {
+    white-space: nowrap;
+    padding: 8px !important;
+  }
+}

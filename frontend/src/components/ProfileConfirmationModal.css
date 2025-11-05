@@ -1,0 +1,410 @@
+/* Profile Confirmation Modal - Modal 1 Style */
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.profile-confirmation-modal {
+  background: var(--card-background);
+  border-radius: 16px;
+  max-width: 700px;
+  width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(50px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal 1 Style Header - Purple Gradient */
+.profile-confirmation-modal .modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+}
+
+.profile-confirmation-modal .modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Modal 1 Style Close Button - DARK Circular */
+.profile-confirmation-modal .modal-close {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.profile-confirmation-modal .modal-close:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.profile-confirmation-modal .modal-close:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal Body - Scrollable */
+.profile-confirmation-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem 2rem;
+  background: var(--card-background);
+}
+
+.confirmation-intro {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin-bottom: 1.5rem;
+  padding: 12px;
+  background: var(--info-light);
+  border-left: 4px solid var(--info-color);
+  border-radius: 4px;
+}
+
+.confirmation-section {
+  margin-bottom: 2rem;
+}
+
+.confirmation-section:last-child {
+  margin-bottom: 0;
+}
+
+.confirmation-section .section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 576px) {
+  .field-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.field-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field-item label {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.field-display {
+  font-size: 14px;
+  color: var(--text-color);
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-display input,
+.confirmation-section textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--input-bg);
+  color: var(--text-color);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.field-display input:focus,
+.confirmation-section textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+.field-display input:disabled,
+.confirmation-section textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: var(--surface-color);
+}
+
+.confirmation-section textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.alert {
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-top: 1rem;
+  font-size: 14px;
+}
+
+.alert-warning {
+  background: var(--warning-light);
+  border-left: 4px solid var(--warning-color);
+  color: var(--warning-dark);
+}
+
+/* Modal Footer */
+.profile-confirmation-modal .modal-footer {
+  padding: 1rem 2rem;
+  border-top: 2px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  background: var(--card-background);
+  flex-shrink: 0;
+  border-radius: 0 0 16px 16px;
+}
+
+.profile-confirmation-modal .btn-primary,
+.profile-confirmation-modal .btn-secondary {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.profile-confirmation-modal .btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.profile-confirmation-modal .btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+}
+
+.profile-confirmation-modal .btn-secondary {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+}
+
+.profile-confirmation-modal .btn-secondary:hover:not(:disabled) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.profile-confirmation-modal .btn-primary:disabled,
+.profile-confirmation-modal .btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .modal-overlay {
+    padding: 0;
+  }
+
+  .profile-confirmation-modal {
+    max-width: 100vw;
+    width: 100%;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .profile-confirmation-modal .modal-header {
+    padding: 14px 16px;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+
+  .profile-confirmation-modal .modal-header h2 {
+    font-size: 17px;
+  }
+
+  .profile-confirmation-modal .modal-close {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .profile-confirmation-modal .modal-body {
+    padding: 1rem;
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .confirmation-intro {
+    font-size: 13px;
+    padding: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .confirmation-section {
+    margin-bottom: 1.5rem;
+  }
+
+  .confirmation-section .section-title {
+    font-size: 15px;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+  }
+
+  .field-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .field-item label {
+    font-size: 12px;
+  }
+
+  .field-display {
+    font-size: 13px;
+    padding: 6px 10px;
+  }
+
+  .field-display input,
+  .confirmation-section textarea {
+    padding: 8px 10px;
+    font-size: 15px; /* Prevent iOS zoom */
+  }
+
+  .confirmation-section textarea {
+    min-height: 70px;
+  }
+
+  .alert {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  .profile-confirmation-modal .modal-footer {
+    flex-direction: column-reverse;
+    padding: 12px;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .profile-confirmation-modal .btn-primary,
+  .profile-confirmation-modal .btn-secondary {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 15px;
+  }
+
+  /* Ensure buttons are easy to tap */
+  .profile-confirmation-modal .btn-primary,
+  .profile-confirmation-modal .btn-secondary {
+    min-height: 48px;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .profile-confirmation-modal .modal-header h2 {
+    font-size: 16px;
+  }
+
+  .profile-confirmation-modal .modal-body {
+    padding: 0.75rem;
+  }
+
+  .confirmation-section .section-title {
+    font-size: 14px;
+  }
+
+  .field-display input,
+  .confirmation-section textarea {
+    font-size: 14px;
+  }
+}

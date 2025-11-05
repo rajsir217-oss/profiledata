@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
-import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete } from "./shared";
+import ProfileConfirmationModal from "./ProfileConfirmationModal";
+import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete, ButtonGroup } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
@@ -197,6 +198,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [activeTab, setActiveTab] = useState('about-me');
   const usernameCheckTimeout = useRef(null);
 
   // Helper function to get field CSS class based on value state
@@ -231,7 +234,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   };
 
   // Sample description carousel states
-  const [aboutMeSampleIndex, setAboutMeSampleIndex] = useState(0);  // Renamed from aboutYouSampleIndex
+  // aboutMeSampleIndex is now managed inside TextAreaWithSamples component
   const [partnerPrefSampleIndex, setPartnerPrefSampleIndex] = useState(0);
   const [bioSampleIndex, setBioSampleIndex] = useState(0);
   // familyBackgroundSampleIndex is now managed inside TextAreaWithSamples component
@@ -772,6 +775,73 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     } else {
       // Fallback to scrolling to top if element not found
       window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
+  // ========== NAVIGATION HELPER FUNCTIONS ==========
+  
+  // Handle Continue/Next button click
+  const handleContinue = async () => {
+    const tabOrder = ['about-me', 'background', 'partner-preferences', 'complete'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    
+    if (currentIndex < tabOrder.length - 1) {
+      // Validate current tab
+      const errors = await validateTabBeforeSwitch(activeTab);
+      if (errors && Object.keys(errors).length > 0) {
+        // Validation failed - scroll to first error field
+        const firstErrorField = Object.keys(errors)[0];
+        scrollToAndFocusField(firstErrorField);
+        
+        // Show error message
+        const errorFields = Object.keys(errors);
+        const fieldList = errorFields.slice(0, 3).join(', ');
+        const moreCount = errorFields.length > 3 ? ` and ${errorFields.length - 3} more` : '';
+        setErrorMsg(`⚠️ Please complete: ${fieldList}${moreCount}`);
+        
+        return;
+      }
+      
+      // Clear any previous errors
+      setErrorMsg('');
+      
+      // Switch to next tab
+      const nextTab = tabOrder[currentIndex + 1];
+      setActiveTab(nextTab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Handle Previous button click
+  const handlePrevious = () => {
+    const tabOrder = ['about-me', 'background', 'partner-preferences', 'complete'];
+    const currentIndex = tabOrder.indexOf(activeTab);
+    
+    if (currentIndex > 0) {
+      // Switch to previous tab (no validation needed)
+      const prevTab = tabOrder[currentIndex - 1];
+      setActiveTab(prevTab);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+  
+  // Handle tab change from TabContainer
+  const handleTabChange = (oldTab, newTab) => {
+    setActiveTab(newTab);
+  };
+  
+  // Handle field change in confirmation modal
+  const handleModalFieldChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+  
+  // Handle confirmation modal proceed
+  const handleConfirmAndSubmit = () => {
+    setShowConfirmationModal(false);
+    // Trigger actual form submission
+    const form = document.querySelector('form');
+    if (form) {
+      form.requestSubmit();
     }
   };
 
@@ -1528,17 +1598,38 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </div>
           </div>
           <div className="col-md-4">
-            <GenderSelector
+            <label className="form-label">Gender <span className="text-danger">*</span></label>
+            <ButtonGroup
+              options={[
+                { value: 'Male', label: '👨 Male' },
+                { value: 'Female', label: '👩 Female' }
+              ]}
               value={formData.gender}
               onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              label="Gender"
               name="gender"
+              required
               error={fieldErrors.gender}
               touched={touchedFields.gender}
             />
           </div>
+        </div>
+
+        {/* About Me with Sample Carousel */}
+        <div className="mt-4 mb-3">
+          <TextAreaWithSamples
+            label="About Me"
+            name="aboutMe"
+            value={formData.aboutMe}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            required
+            rows={5}
+            placeholder="Click the sample texts above to load a description, then customize it to your liking..."
+            samples={aboutMeSamples}
+            error={fieldErrors.aboutMe}
+            touched={touchedFields.aboutMe}
+            className={getFieldClass('aboutMe', formData.aboutMe)}
+          />
         </div>
 
         {/* Profile Created By Field */}
@@ -1767,7 +1858,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               >
                 ‹
               </button>
-              <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
+              <span className="badge bg-primary" style={{ lineHeight: '2', minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
                 {bioSampleIndex + 1}/{bioSamples.length}
               </span>
               <button
@@ -2140,6 +2231,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           />
         </div>
 
+        {/* Continue Button */}
+        <div className="tab-navigation-buttons mt-4">
+          <button
+            type="button"
+            className="btn btn-primary btn-lg w-100"
+            onClick={handleContinue}
+          >
+            Continue to Qualifications →
+          </button>
+        </div>
 
                 </div>
               )
@@ -2179,6 +2280,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             "username", "password", "passwordConfirm", "firstName", "lastName", "contactNumber", "contactEmail", 
             "dateOfBirth", "heightFeet", "heightInches", "gender", "citizenshipStatus", 
             "profileCreatedBy",  // Rendered explicitly above
+            "creatorInfo",  // Creator information object (rendered explicitly in creator section)
             "religion", "languagesSpoken",  // NEW: rendered explicitly
             "castePreference", "eatingPreference", "location",
             // Exclude country/regional fields (rendered explicitly above)
@@ -2198,7 +2300,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             // Exclude SMS opt-in (rendered as checkbox with Contact Number)
             "smsOptIn",
             // Exclude aboutMe, partnerPreference, and partnerCriteria (rendered explicitly)
-            "aboutMe", "partnerPreference", "partnerCriteria"
+            "aboutMe", "partnerPreference", "partnerCriteria",
+            // Exclude draft auto-save metadata (internal tracking only)
+            "lastSaved", "lastTab", "images"
           ];
           
           if (excludedFields.includes(key)) return null;
@@ -2241,73 +2345,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           );
         })}
         
-        {/* About Me with Sample Carousel */}
-        <div className="mb-3">
-          <div className="d-flex justify-content-between align-items-center mb-2">
-            <label className="form-label mb-0">About Me</label>
-            <div className="d-flex align-items-center gap-2">
-              <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => setAboutMeSampleIndex((prev) => (prev - 1 + aboutMeSamples.length) % aboutMeSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                title="Previous sample"
-              >
-                ‹
-              </button>
-              <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
-                {aboutMeSampleIndex + 1}/{aboutMeSamples.length}
-              </span>
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary"
-                onClick={() => setAboutMeSampleIndex((prev) => (prev + 1) % aboutMeSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
-                title="Next sample"
-              >
-                ›
-              </button>
-            </div>
-          </div>
-          <div 
-            className="card p-2 mb-2" 
-            onClick={() => setFormData({ ...formData, aboutMe: aboutMeSamples[aboutMeSampleIndex] })}
-            style={{ 
-              backgroundColor: '#f8f9fa', 
-              border: '1px dashed #dee2e6',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#e3f2fd';
-              e.currentTarget.style.borderColor = '#2196f3';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#f8f9fa';
-              e.currentTarget.style.borderColor = '#dee2e6';
-            }}
-            title="Click to load this sample"
-          >
-            <small className="text-muted" style={{ fontSize: '12px', lineHeight: '1.4' }}>
-              <strong>Sample {aboutMeSampleIndex + 1}:</strong> {aboutMeSamples[aboutMeSampleIndex].substring(0, 150)}... <span style={{ color: '#2196f3', fontWeight: 'bold' }}>↓ Click to use</span>
-            </small>
-          </div>
-          <textarea
-            className={`form-control ${getFieldClass('aboutMe', formData.aboutMe)} ${fieldErrors.aboutMe && touchedFields.aboutMe ? 'is-invalid' : ''}`}
-            name="aboutMe"
-            value={formData.aboutMe}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            rows={5}
-            placeholder="Click 'Use This Sample' above to load a sample description, then customize it to your liking..."
-            required
-          />
-          {fieldErrors.aboutMe && touchedFields.aboutMe && (
-            <div className="invalid-feedback d-block">{fieldErrors.aboutMe}</div>
-          )}
-        </div>
-
         {/* Partner Matching Criteria Section */}
         <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
         <div className="alert alert-info">
@@ -2316,6 +2353,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </small>
         </div>
         
+        {/* Navigation Buttons */}
+        <div className="tab-navigation-buttons mt-4">
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-lg"
+            onClick={handlePrevious}
+          >
+            ← Previous
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            onClick={handleContinue}
+          >
+            Continue →
+          </button>
+        </div>
 
                 </div>
               )
@@ -2343,7 +2397,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               >
                 ‹
               </button>
-              <span className="badge bg-primary" style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
+              <span className="badge bg-primary" style={{ lineHeight: '2', minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
                 {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
               </span>
               <button
@@ -2922,183 +2976,159 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         <div className="row mb-3">
           <div className="col-md-3">
             <label className="form-label">Relationship Status</label>
-            <select
-              className={`form-control ${fieldErrors.relationshipStatus && touchedFields.relationshipStatus ? 'is-invalid' : ''}`}
-              name="relationshipStatus"
+            <ButtonGroup
+              options={[
+                { value: 'Single', label: 'Single' },
+                { value: 'Divorced', label: 'Divorced' },
+                { value: 'Widowed', label: 'Widowed' },
+                { value: 'Separated', label: 'Separated' }
+              ]}
               value={formData.relationshipStatus}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Single">Single</option>
-              <option value="Divorced">Divorced</option>
-              <option value="Widowed">Widowed</option>
-              <option value="Separated">Separated</option>
-            </select>
-            {fieldErrors.relationshipStatus && touchedFields.relationshipStatus && (
-              <div className="invalid-feedback d-block">{fieldErrors.relationshipStatus}</div>
-            )}
+              name="relationshipStatus"
+              error={fieldErrors.relationshipStatus}
+              touched={touchedFields.relationshipStatus}
+            />
           </div>
           <div className="col-md-3">
             <label className="form-label">Looking For</label>
-            <select
-              className={`form-control ${fieldErrors.lookingFor && touchedFields.lookingFor ? 'is-invalid' : ''}`}
-              name="lookingFor"
+            <ButtonGroup
+              options={[
+                { value: 'Serious Relationship', label: '💑 Serious' },
+                { value: 'Marriage', label: '💍 Marriage' },
+                { value: 'Casual Dating', label: '☕ Casual' },
+                { value: 'Friendship', label: '🤝 Friends' }
+              ]}
               value={formData.lookingFor}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Serious Relationship">Serious Relationship</option>
-              <option value="Marriage">Marriage</option>
-              <option value="Casual Dating">Casual Dating</option>
-              <option value="Friendship">Friendship</option>
-            </select>
-            {fieldErrors.lookingFor && touchedFields.lookingFor && (
-              <div className="invalid-feedback d-block">{fieldErrors.lookingFor}</div>
-            )}
+              name="lookingFor"
+              error={fieldErrors.lookingFor}
+              touched={touchedFields.lookingFor}
+              vertical={true}
+            />
           </div>
           <div className="col-md-3">
             <label className="form-label">Religion</label>
-            <select
-              className={`form-control ${fieldErrors.religion && touchedFields.religion ? 'is-invalid' : ''}`}
-              name="religion"
+            <ButtonGroup
+              options={[
+                { value: 'Hindu', label: '🕉️ Hindu' },
+                { value: 'Christian', label: '✝️ Christian' },
+                { value: 'Muslim', label: '☪️ Muslim' },
+                { value: 'Other', label: 'Other' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' }
+              ]}
               value={formData.religion}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Hindu">Hindu</option>
-              <option value="Muslim">Muslim</option>
-              <option value="Christian">Christian</option>
-              <option value="Sikh">Sikh</option>
-              <option value="Buddhist">Buddhist</option>
-              <option value="Jain">Jain</option>
-              <option value="Other">Other</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            {fieldErrors.religion && touchedFields.religion && (
-              <div className="invalid-feedback d-block">{fieldErrors.religion}</div>
-            )}
+              name="religion"
+              error={fieldErrors.religion}
+              touched={touchedFields.religion}
+              vertical={true}
+            />
           </div>
           <div className="col-md-3">
             <label className="form-label">Pets</label>
-            <select
-              className={`form-control ${fieldErrors.pets && touchedFields.pets ? 'is-invalid' : ''}`}
-              name="pets"
+            <ButtonGroup
+              options={[
+                { value: 'Dog', label: '🐕 Dog' },
+                { value: 'Cat', label: '🐈 Cat' },
+                { value: 'Both', label: '🐕🐈 Both' },
+                { value: 'Other', label: 'Other' },
+                { value: 'None', label: 'None' }
+              ]}
               value={formData.pets}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Dog">Dog</option>
-              <option value="Cat">Cat</option>
-              <option value="Both">Both</option>
-              <option value="Other">Other</option>
-              <option value="None">None</option>
-            </select>
-            {fieldErrors.pets && touchedFields.pets && (
-              <div className="invalid-feedback d-block">{fieldErrors.pets}</div>
-            )}
+              name="pets"
+              error={fieldErrors.pets}
+              touched={touchedFields.pets}
+            />
           </div>
         </div>
 
         {/* ROW 4: Body Type | Drinking | Smoking | Has Children | Wants Children */}
         <div className="row mb-3">
-          <div className="col-md-2">
+          <div className="col-md-12 mb-3">
             <label className="form-label">Body Type</label>
-            <select
-              className={`form-control ${fieldErrors.bodyType && touchedFields.bodyType ? 'is-invalid' : ''}`}
-              name="bodyType"
+            <ButtonGroup
+              options={[
+                { value: 'Slim', label: 'Slim' },
+                { value: 'Athletic', label: 'Athletic' },
+                { value: 'Average', label: 'Average' },
+                { value: 'Curvy', label: 'Curvy' },
+                { value: 'Heavyset', label: 'Heavyset' }
+              ]}
               value={formData.bodyType}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Slim">Slim</option>
-              <option value="Athletic">Athletic</option>
-              <option value="Average">Average</option>
-              <option value="Curvy">Curvy</option>
-              <option value="Heavyset">Heavyset</option>
-            </select>
-            {fieldErrors.bodyType && touchedFields.bodyType && (
-              <div className="invalid-feedback d-block">{fieldErrors.bodyType}</div>
-            )}
+              name="bodyType"
+              error={fieldErrors.bodyType}
+              touched={touchedFields.bodyType}
+            />
           </div>
-          <div className="col-md-2">
+        </div>
+
+        {/* ROW 4b: Drinking | Smoking */}
+        <div className="row mb-3">
+          <div className="col-md-5">
             <label className="form-label">Drinking</label>
-            <select
-              className={`form-control ${fieldErrors.drinking && touchedFields.drinking ? 'is-invalid' : ''}`}
-              name="drinking"
+            <ButtonGroup
+              options={[
+                { value: 'Never', label: 'Never' },
+                { value: 'Socially', label: 'Socially' },
+                { value: 'Regularly', label: 'Regularly' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' }
+              ]}
               value={formData.drinking}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Never">Never</option>
-              <option value="Socially">Socially</option>
-              <option value="Regularly">Regularly</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            {fieldErrors.drinking && touchedFields.drinking && (
-              <div className="invalid-feedback d-block">{fieldErrors.drinking}</div>
-            )}
+              name="drinking"
+              error={fieldErrors.drinking}
+              touched={touchedFields.drinking}
+            />
           </div>
-          <div className="col-md-3">
+          <div className="col-md-5">
             <label className="form-label">Smoking</label>
-            <select
-              className={`form-control ${fieldErrors.smoking && touchedFields.smoking ? 'is-invalid' : ''}`}
-              name="smoking"
+            <ButtonGroup
+              options={[
+                { value: 'Never', label: 'Never' },
+                { value: 'Socially', label: 'Socially' },
+                { value: 'Regularly', label: 'Regularly' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' }
+              ]}
               value={formData.smoking}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Never">Never</option>
-              <option value="Socially">Socially</option>
-              <option value="Regularly">Regularly</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            {fieldErrors.smoking && touchedFields.smoking && (
-              <div className="invalid-feedback d-block">{fieldErrors.smoking}</div>
-            )}
+              name="smoking"
+              error={fieldErrors.smoking}
+              touched={touchedFields.smoking}
+            />
           </div>
           <div className="col-md-3">
             <label className="form-label">Has Children</label>
-            <select
-              className={`form-control ${fieldErrors.hasChildren && touchedFields.hasChildren ? 'is-invalid' : ''}`}
-              name="hasChildren"
+            <ButtonGroup
+              options={[
+                { value: 'Yes', label: 'Yes' },
+                { value: 'No', label: 'No' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' }
+              ]}
               value={formData.hasChildren}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            {fieldErrors.hasChildren && touchedFields.hasChildren && (
-              <div className="invalid-feedback d-block">{fieldErrors.hasChildren}</div>
-            )}
+              name="hasChildren"
+              error={fieldErrors.hasChildren}
+              touched={touchedFields.hasChildren}
+            />
           </div>
-          <div className="col-md-2">
+          <div className="col-md-4">
             <label className="form-label">Wants Children</label>
-            <select
-              className={`form-control ${fieldErrors.wantsChildren && touchedFields.wantsChildren ? 'is-invalid' : ''}`}
-              name="wantsChildren"
+            <ButtonGroup
+              options={[
+                { value: 'Yes', label: 'Yes' },
+                { value: 'No', label: 'No' },
+                { value: 'Maybe', label: 'Maybe' },
+                { value: 'Prefer not to say', label: 'Prefer not to say' }
+              ]}
               value={formData.wantsChildren}
               onChange={handleChange}
-              onBlur={handleBlur}
-            >
-              <option value="">Select...</option>
-              <option value="Yes">Yes</option>
-              <option value="No">No</option>
-              <option value="Maybe">Maybe</option>
-              <option value="Prefer not to say">Prefer not to say</option>
-            </select>
-            {fieldErrors.wantsChildren && touchedFields.wantsChildren && (
-              <div className="invalid-feedback d-block">{fieldErrors.wantsChildren}</div>
-            )}
+              name="wantsChildren"
+              error={fieldErrors.wantsChildren}
+              touched={touchedFields.wantsChildren}
+            />
           </div>
         </div>
 
@@ -3138,6 +3168,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
+        {/* Navigation Buttons */}
+        <div className="tab-navigation-buttons mt-4">
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-lg"
+            onClick={handlePrevious}
+          >
+            ← Previous
+          </button>
+          <button
+            type="button"
+            className="btn btn-primary btn-lg"
+            onClick={handleContinue}
+          >
+            Continue →
+          </button>
+        </div>
 
                 </div>
               )
@@ -3185,7 +3232,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                           }}
                         />
                         <label className="form-check-label" htmlFor="selectAllAgreements">
-                          ✅ Select All Required Agreements
+                          Select All
                         </label>
                       </div>
 
@@ -3291,27 +3338,31 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
                       <div className="alert alert-info mt-4">
                         <small>
-                          By clicking "Complete Registration", you confirm that you have filled out all required fields and agreed to all legal agreements above.
+                          By clicking "Review & Register", you'll see a summary of your profile before final submission.
                         </small>
                       </div>
 
-                      {/* Submit Button - Inside Complete Tab */}
-                      <div className="text-center mt-4">
-                        <button className="btn btn-success btn-lg px-5" type="submit" disabled={isSubmitting}>
-                          {isSubmitting ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                              Creating Your Profile...
-                            </>
-                          ) : (
-                            "Register My Profile 🚀"
-                          )}
+                      {/* Navigation Buttons */}
+                      <div className="tab-navigation-buttons mt-4">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-lg"
+                          onClick={handlePrevious}
+                        >
+                          ← Previous
                         </button>
-                        <p className="text-muted small mt-2">
-                          By clicking "Complete Registration", you confirm that you have filled out all required fields 
-                          and agreed to all legal agreements above.
-                        </p>
+                        <button 
+                          className="btn btn-success btn-lg" 
+                          type="button"
+                          onClick={() => setShowConfirmationModal(true)}
+                          disabled={isSubmitting}
+                        >
+                          📋 Review & Register
+                        </button>
                       </div>
+                      <p className="text-muted small text-center mt-2">
+                        Review your information before final submission
+                      </p>
                     </>
                   ) : (
                     <>
@@ -3320,19 +3371,27 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                         <p>You already accepted these agreements when you created your profile.</p>
                       </div>
 
-                      {/* Submit Button - Edit Mode */}
-                      <div className="text-center mt-4">
-                        <button className="btn btn-success btn-lg px-5" type="submit" disabled={isSubmitting}>
-                          {isSubmitting ? (
-                            <>
-                              <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                              Saving Changes...
-                            </>
-                          ) : (
-                            "💾 Save Changes"
-                          )}
+                      {/* Navigation Buttons - Edit Mode */}
+                      <div className="tab-navigation-buttons mt-4">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-lg"
+                          onClick={handlePrevious}
+                        >
+                          ← Previous
+                        </button>
+                        <button 
+                          className="btn btn-success btn-lg" 
+                          type="button"
+                          onClick={() => setShowConfirmationModal(true)}
+                          disabled={isSubmitting}
+                        >
+                          📋 Review & Save
                         </button>
                       </div>
+                      <p className="text-muted small text-center mt-2">
+                        Review your changes before saving
+                      </p>
                     </>
                   )}
 
@@ -3344,6 +3403,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           validateTab={validateTabBeforeSwitch}
           onAutoSave={handleTabAutoSave}
           enableAutoSave={!isEditMode}
+          activeTabId={activeTab}
+          onTabChange={handleTabChange}
         />
       </form>
       {/* Show backend images after save */}
@@ -3361,6 +3422,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             />
           ))}
         </div>
+      )}
+
+      {/* Profile Confirmation Modal */}
+      {showConfirmationModal && (
+        <ProfileConfirmationModal
+          formData={formData}
+          onConfirm={handleConfirmAndSubmit}
+          onCancel={() => setShowConfirmationModal(false)}
+          onFieldChange={handleModalFieldChange}
+          isSubmitting={isSubmitting}
+          isEditMode={isEditMode}
+        />
       )}
 
       {/* Draft Recovery Modal */}

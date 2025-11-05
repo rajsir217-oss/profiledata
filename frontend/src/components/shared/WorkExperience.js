@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './SharedComponents.css';
 
 /**
  * Reusable Work Experience Manager
@@ -97,8 +98,8 @@ const WorkExperience = ({
 
       {/* Saved Work Experience Entries */}
       {workExperience.length > 0 && (
-        <div className="mb-3">
-          <table className="table table-bordered" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
+        <div className="mb-3 table-container-scroll">
+          <table className="table table-bordered table-stacked" style={{ backgroundColor: 'var(--surface-color, #fff)', borderColor: 'var(--border-color, #dee2e6)' }}>
             <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
               <tr>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
@@ -110,21 +111,22 @@ const WorkExperience = ({
             <tbody>
               {workExperience.map((work, index) => (
                 <tr key={index}>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
+                  <td data-label="Status" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
                     <span className={`badge ${work.status === 'current' ? 'bg-success' : 'bg-secondary'}`}>
                       {work.status}
                     </span>
                   </td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
-                  <td style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>
+                  <td data-label="Description" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
+                  <td data-label="Location" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
+                  <td data-label="Actions" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }} className="actions-cell">
                     <button
                       type="button"
                       className="btn btn-sm btn-warning me-2"
                       onClick={() => handleEditWorkExperience(index)}
                       title="Edit"
                     >
-                      ✏️
+                      <span className="btn-icon">✏️</span>
+                      <span className="btn-text">Edit</span>
                     </button>
                     <button
                       type="button"
@@ -132,7 +134,8 @@ const WorkExperience = ({
                       onClick={() => handleDeleteWorkExperience(index)}
                       title="Delete"
                     >
-                      ×
+                      <span className="btn-icon">🗑️</span>
+                      <span className="btn-text">Delete</span>
                     </button>
                   </td>
                 </tr>
@@ -186,15 +189,13 @@ const WorkExperience = ({
             />
           </div>
 
-          <div className="col-md-2 d-flex align-items-end">
+          <div className="col-md-2 d-flex align-items-end justify-content-center">
             <button
               type="button"
-              className={`btn btn-primary w-100 ${editingIndex === null ? 'btn-add-entry' : ''}`}
+              className={`btn btn-primary btn-square-action ${editingIndex === null ? 'btn-add-entry' : ''}`}
               onClick={handleAddWorkExperience}
-              // style={{ minWidth: '44px', whiteSpace: 'nowrap' }}
             >
-              <span style={{ fontSize: '16px' }}>{editingIndex !== null ? '✓' : '+'}</span>
-              <span className="d-none d-lg-inline">{editingIndex !== null ? ' Update' : 'Add'}</span>
+              <span className="btn-icon" style={{ fontSize: '24px' }}>{editingIndex !== null ? '✓' : '+'}</span>
             </button>
           </div>
         </div>
