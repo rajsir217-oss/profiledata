@@ -1778,7 +1778,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
         {/* Custom row for contactNumber and contactEmail */}
         {isEditMode && !formData.contactNumber && !formData.contactEmail && (
-          <div className="alert alert-info mb-3">
+          <div className="alert alert-info info-tip-box mb-3">
             <strong>🔒 Security Note:</strong> For your privacy, contact information was hidden. 
             Please enter your current contact number and email below to continue editing your profile.
           </div>
@@ -2195,7 +2195,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         {/* India-Specific Fields (Conditional) */}
         {formData.countryOfOrigin === 'IN' && (
           <>
-            <div className="alert alert-info" style={{marginBottom: '20px'}}>
+            <div className="alert alert-info info-tip-box" style={{marginBottom: '20px'}}>
               <strong>🇮🇳 India-Specific Fields</strong> - These fields are important for matrimonial matchmaking in India
             </div>
             <div className="row mb-3">
@@ -2399,7 +2399,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         
         {/* Partner Matching Criteria Section */}
         <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
-        <div className="alert alert-info">
+        <div className="alert alert-info info-tip-box">
           <small>
             <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
           </small>
@@ -2607,7 +2607,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </div>
           </div>
           {formData.dateOfBirth && (
-            <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+            <div className="alert alert-info info-preview-box mb-0" style={{ fontSize: '14px' }}>
               📊 <strong>Preview:</strong> Looking for ages{' '}
               <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
               <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
@@ -2673,7 +2673,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </div>
           </div>
           {(formData.heightFeet && formData.heightInches !== '') && (
-            <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
+            <div className="alert alert-info info-preview-box mb-0" style={{ fontSize: '14px' }}>
               📊 <strong>Preview:</strong> Looking for heights{' '}
               <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.minInches)}</strong> to{' '}
               <strong>{inchesToHeightString(heightToInches(formData.heightFeet, formData.heightInches) + formData.partnerCriteria.heightRangeRelative.maxInches)}</strong>{' '}
@@ -3388,7 +3388,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                         </label>
                       </div>
 
-                      <div className="alert alert-info mt-4">
+                      <div className="alert alert-info info-tip-box mt-4">
                         <small>
                           By clicking "Review & Register", you'll see a summary of your profile before final submission.
                         </small>
@@ -3418,9 +3418,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                     </>
                   ) : (
                     <>
-                      <div className="alert alert-info">
-                        <p>Legal agreements are only required during initial registration.</p>
-                        <p>You already accepted these agreements when you created your profile.</p>
+                      <div className="alert alert-info edit-mode-legal-notice">
+                        <p className="mb-2"><strong>ℹ️ Legal Agreements Not Required</strong></p>
+                        <p className="mb-1">Legal agreements are only required during initial registration.</p>
+                        <p className="mb-0">You already accepted these agreements when you created your profile.</p>
                       </div>
 
                       {/* Navigation Buttons - Edit Mode */}

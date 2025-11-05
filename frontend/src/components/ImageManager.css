@@ -350,17 +350,18 @@
 
 /* Photo Tips */
 .photo-tips {
-  background: var(--info-background, #e7f3ff);
-  border: 2px solid var(--info-border, #b3d9ff);
-  border-radius: 8px;
-  padding: 16px;
+  background: #e7f3ff !important;
+  border: 2px solid #0066cc !important;
+  border-radius: 10px !important;
+  padding: 18px !important;
   margin-top: 20px;
 }
 
 .photo-tips h6 {
-  color: var(--text-color, #333);
+  color: #002952 !important;
   margin: 0 0 12px 0;
-  font-weight: 600;
+  font-weight: 700 !important;
+  font-size: 15px !important;
 }
 
 .photo-tips ul {
@@ -370,13 +371,45 @@
 
 .photo-tips li {
   margin-bottom: 8px;
-  font-size: 13px;
-  color: var(--text-secondary, #555);
-  line-height: 1.5;
+  font-size: 14px !important;
+  color: #003d7a !important;
+  line-height: 1.6 !important;
 }
 
 .photo-tips li strong {
-  color: var(--text-color, #333);
+  color: #002952 !important;
+  font-weight: 600 !important;
+}
+
+/* Theme: Dark */
+.theme-dark .photo-tips {
+  background: rgba(99, 102, 241, 0.12) !important;
+  border-color: rgba(99, 102, 241, 0.4) !important;
+}
+
+.theme-dark .photo-tips h6 {
+  color: white !important;
+}
+
+.theme-dark .photo-tips li {
+  color: #e2e8f0 !important;
+}
+
+.theme-dark .photo-tips li strong {
+  color: white !important;
+}
+
+/* Theme: Rose */
+.theme-rose .photo-tips {
+  background: rgba(236, 72, 153, 0.1) !important;
+  border-color: rgba(236, 72, 153, 0.3) !important;
+}
+
+/* Theme: Light Gray & Ultra Light Gray */
+.theme-light-gray .photo-tips,
+.theme-ultra-light-gray .photo-tips {
+  background: #f0f7ff !important;
+  border-color: #99c9ff !important;
 }
 
 /* Responsive */
