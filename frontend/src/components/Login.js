@@ -281,21 +281,24 @@ const Login = () => {
             display: 'block'
           }}>Username</label>
           <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute',
-              left: '16px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '18px',
-              color: '#9ca3af',
-              pointerEvents: 'none'
-            }}>👤</span>
+            {!form.username && (
+              <span style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '18px',
+                color: '#9ca3af',
+                pointerEvents: 'none'
+              }}>👤</span>
+            )}
             <input
               type="text"
               name="username"
               value={form.username}
               onChange={handleChange}
               placeholder="Enter your username"
+              autoComplete="username"
               style={{
                 width: '100%',
                 padding: '14px 16px 14px 48px',
@@ -322,24 +325,27 @@ const Login = () => {
             display: 'block'
           }}>Password</label>
           <div style={{ position: 'relative' }}>
-            <span style={{
-              position: 'absolute',
-              left: '16px',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              fontSize: '18px',
-              color: '#9ca3af',
-              pointerEvents: 'none'
-            }}>🔒</span>
+            {!form.password && (
+              <span style={{
+                position: 'absolute',
+                left: '16px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                fontSize: '18px',
+                color: '#9ca3af',
+                pointerEvents: 'none'
+              }}>🔒</span>
+            )}
             <input
               type={showPassword ? "text" : "password"}
               name="password"
               value={form.password}
               onChange={handleChange}
               placeholder="Enter your password"
+              autoComplete="current-password"
               style={{
                 width: '100%',
-                padding: '14px 56px 14px 48px',
+                padding: '14px 50px 14px 48px',
                 border: '2px solid #e5e7eb',
                 borderRadius: '12px',
                 fontSize: '15px',
@@ -358,21 +364,22 @@ const Login = () => {
               onClick={() => setShowPassword(!showPassword)}
               style={{
                 position: 'absolute',
-                right: '8px',
+                right: '12px',
                 top: '50%',
                 transform: 'translateY(-50%)',
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
-                fontSize: '20px',
-                padding: '10px',
-                minWidth: '44px',
-                minHeight: '44px',
+                fontSize: '18px',
+                padding: '6px',
+                width: '32px',
+                height: '32px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: '#6b7280',
-                borderRadius: '8px'
+                borderRadius: '6px',
+                zIndex: 10
               }}
               onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}

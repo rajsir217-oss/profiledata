@@ -12,8 +12,16 @@
 .dashboard-container {
   padding: 20px;
   width: 80%;
+  max-width: 1400px;
   margin: 0 auto;
   background: var(--background-color);
+}
+
+/* Responsive container widths */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    width: 95%;
+  }
 }
 
 /* Dashboard Header */
@@ -950,8 +958,8 @@
 
 @media (max-width: 768px) {
   .dashboard-container {
-    width: 95%;
-    padding: 15px;
+    width: 100%;
+    padding: 10px;
   }
 
   .dashboard-header {

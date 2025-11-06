@@ -350,8 +350,8 @@
   gap: 15px;
 }
 
-/* Result Card - Clean Rebuild */
-.result-card {
+/* Result Card - Clean Rebuild - Scoped to test dashboard only */
+.test-dashboard-container .result-card {
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -360,7 +360,7 @@
   transition: all 0.3s ease;
 }
 
-.result-card:hover {
+.test-dashboard-container .result-card:hover {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 

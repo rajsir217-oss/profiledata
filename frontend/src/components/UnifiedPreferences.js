@@ -609,7 +609,7 @@ const UnifiedPreferences = () => {
           {
             id: 'account',
             icon: '👤',
-            label: 'Account Settings',
+            label: 'Settings',
             content: (
               <div className="account-settings">
           {/* Theme Selection */}
@@ -785,7 +785,7 @@ const UnifiedPreferences = () => {
           {
             id: 'security',
             icon: '🔐',
-            label: 'Security & MFA',
+            label: 'MFA',
             content: (
               <div className="security-settings">
           {/* MFA Status Banner */}
@@ -1031,7 +1031,7 @@ const UnifiedPreferences = () => {
           {
             id: 'notifications',
             icon: '🔔',
-            label: 'Notifications',
+            label: 'Notifications ',
             content: notificationPreferences && (
               <div className="notification-settings">
           {/* Notification Channels */}
@@ -1140,7 +1140,7 @@ const UnifiedPreferences = () => {
           ...(isAdmin ? [{
             id: 'admin',
             icon: '⚙️',
-            label: 'System Config',
+            label: 'SysConfig',
             content: (
               <div className="admin-settings">
           <h2>⚙️ System Configuration</h2>

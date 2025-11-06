@@ -6,6 +6,14 @@
   padding: 0 20px;
   margin: 0 auto;
   width: 80%;
+  max-width: 1400px;
+}
+
+/* Responsive container widths */
+@media (max-width: 1024px) {
+  .messages-page {
+    width: 95%;
+  }
 }
 
 .messages-loading {
@@ -48,7 +56,8 @@
 
 @media (max-width: 768px) {
   .messages-page {
-    width: 95%;
+    width: 100%;
+    padding: 0 10px;
   }
 
   .messages-container {

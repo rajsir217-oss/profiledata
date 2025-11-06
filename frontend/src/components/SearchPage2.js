@@ -1592,9 +1592,34 @@ const SearchPage2 = () => {
               defaultTab="search"
               tabs={[
                 {
+                  id: 'search',
+                  icon: '🔍',
+                  label: 'Search',
+                  badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
+                  content: (
+                    <SearchFilters
+                      searchCriteria={searchCriteria}
+                      minMatchScore={minMatchScore}
+                      setMinMatchScore={setMinMatchScore}
+                      handleInputChange={handleInputChange}
+                      showAdvancedFilters={showAdvancedFilters}
+                      setShowAdvancedFilters={setShowAdvancedFilters}
+                      onSearch={() => handleSearch(1)}
+                      onSave={() => setShowSaveModal(true)}
+                      systemConfig={systemConfig}
+                      isPremiumUser={isPremiumUser}
+                      currentUserProfile={currentUserProfile}
+                      bodyTypeOptions={bodyTypeOptions}
+                      occupationOptions={occupationOptions}
+                      eatingOptions={eatingOptions}
+                      lifestyleOptions={lifestyleOptions}
+                    />
+                  )
+                },
+                {
                   id: 'saved',
                   icon: '💾',
-                  label: 'Saved Searches',
+                  label: 'Saved',
                   badge: savedSearches.length > 0 ? savedSearches.length : null,
                   content: (
                     <div className="saved-searches-tab">
@@ -1643,32 +1668,7 @@ const SearchPage2 = () => {
                       )}
                     </div>
                   )
-                },
-                {
-                  id: 'search',
-                  icon: '🔍',
-                  label: 'Search',
-                  badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
-                  content: (
-                    <SearchFilters
-                      searchCriteria={searchCriteria}
-                      minMatchScore={minMatchScore}
-                      setMinMatchScore={setMinMatchScore}
-                      handleInputChange={handleInputChange}
-                      showAdvancedFilters={showAdvancedFilters}
-                      setShowAdvancedFilters={setShowAdvancedFilters}
-                      onSearch={() => handleSearch(1)}
-                      onSave={() => setShowSaveModal(true)}
-                      systemConfig={systemConfig}
-                      isPremiumUser={isPremiumUser}
-                      currentUserProfile={currentUserProfile}
-                      bodyTypeOptions={bodyTypeOptions}
-                      occupationOptions={occupationOptions}
-                      eatingOptions={eatingOptions}
-                      lifestyleOptions={lifestyleOptions}
-                    />
-                  )
-                },
+                }
               ]}
             />
 
@@ -1827,7 +1827,7 @@ const SearchPage2 = () => {
               {/* Cards Per Row (only show in card view) */}
               {viewMode === 'cards' && (
                 <div className="cards-per-row-selector">
-                  <span className="selector-label">Row Cards:</span>
+                  <span className="selector-label">Cards:</span>
                   {[2, 3, 4, 5].map(num => (
                     <button
                       key={num}

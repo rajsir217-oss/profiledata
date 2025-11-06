@@ -12,9 +12,24 @@
 .user-management-container  {
   padding: 20px;
   width: 80%;
+  max-width: 1400px;
   margin: 0 auto;
   background: var(--background-color);
   /* min-height: 100vh; */
+}
+
+/* Responsive container widths to match Admin Dashboard */
+@media (max-width: 1024px) {
+  .user-management-container {
+    width: 95%;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-management-container {
+    width: 100%;
+    padding: 10px;
+  }
 }
 
 

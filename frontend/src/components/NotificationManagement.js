@@ -40,13 +40,13 @@ const NotificationManagement = () => {
           {
             id: 'queue',
             icon: '📋',
-            label: 'Event Queue',
+            label: 'EventQ',
             content: <EventQueueManager />
           },
           {
             id: 'templates',
             icon: '📧',
-            label: 'Event Message Templates',
+            label: 'MsgTempl',
             content: <TemplateManager />
           }
         ]}

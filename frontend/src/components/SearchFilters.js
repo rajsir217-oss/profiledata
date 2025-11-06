@@ -247,28 +247,6 @@ const SearchFilters = ({
       {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
       {!hideActionButtons && (
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginBottom: '20px' }}>
-          {onSave && (
-            <button
-              type="button"
-              onClick={onSave}
-              className="btn btn-secondary"
-              style={{
-                padding: '10px 24px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'var(--surface-color)',
-                color: 'var(--text-color)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '14px'
-              }}
-            >
-              {saveButtonText}
-            </button>
-          )}
           {onSearch && (
             <button
               type="button"
@@ -289,6 +267,28 @@ const SearchFilters = ({
               }}
             >
               {searchButtonText}
+            </button>
+          )}
+          {onSave && (
+            <button
+              type="button"
+              onClick={onSave}
+              className="btn btn-secondary"
+              style={{
+                padding: '10px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'var(--surface-color)',
+                color: 'var(--text-color)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px'
+              }}
+            >
+              {saveButtonText}
             </button>
           )}
         </div>
@@ -444,28 +444,6 @@ const SearchFilters = ({
           {/* 6. ACTION BUTTONS - Second appearance (after advanced filters) */}
           {!hideActionButtons && (
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginBottom: '20px' }}>
-              {onSave && (
-                <button
-                  type="button"
-                  onClick={onSave}
-                  className="btn btn-secondary"
-                  style={{
-                    padding: '10px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    background: 'var(--surface-color)',
-                    color: 'var(--text-color)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontWeight: 600,
-                    fontSize: '14px'
-                  }}
-                >
-                  {saveButtonText}
-                </button>
-              )}
               {onSearch && (
                 <button
                   type="button"
@@ -486,6 +464,28 @@ const SearchFilters = ({
                   }}
                 >
                   {searchButtonText}
+                </button>
+              )}
+              {onSave && (
+                <button
+                  type="button"
+                  onClick={onSave}
+                  className="btn btn-secondary"
+                  style={{
+                    padding: '10px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'var(--surface-color)',
+                    color: 'var(--text-color)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '14px'
+                  }}
+                >
+                  {saveButtonText}
                 </button>
               )}
             </div>

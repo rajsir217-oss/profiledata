@@ -3,16 +3,24 @@
 /* Profile Page Container */
 .container.mt-4 {
   width: 80% !important;
-  max-width: 80% !important;
+  max-width: 1400px !important;
   margin: 0 auto !important;
   padding: 20px;
 }
 
-@media (max-width: 768px) {
+/* Responsive container widths */
+@media (max-width: 1024px) {
   .container.mt-4 {
     width: 95% !important;
     max-width: 95% !important;
-    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .container.mt-4 {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px;
   }
 }
 

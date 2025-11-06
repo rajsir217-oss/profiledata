@@ -1,7 +1,24 @@
 /* SearchFilters Component Styles */
 
 .unified-search-filters {
-  width: 100%;
+  width: 80%;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Responsive width to match result cards */
+@media (max-width: 1024px) {
+  .unified-search-filters {
+    width: 95%;
+  }
+}
+
+@media (max-width: 768px) {
+  .unified-search-filters {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+  }
 }
 
 /* Basic Filters Grid Layout - Custom layout */

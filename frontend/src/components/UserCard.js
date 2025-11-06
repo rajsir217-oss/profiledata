@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
@@ -40,6 +40,7 @@ const UserCard = ({
   showMessageBadge = true
 }) => {
   const navigate = useNavigate();
+  const [imageError, setImageError] = useState(false);
 
   if (!user) return null;
 
@@ -49,7 +50,23 @@ const UserCard = ({
   const displayName = getDisplayName(profileData) || username;
   const avatarPath = profileData?.images?.[0] || profileData?.profileImage || user.profileImage;
   const avatar = avatarPath ? getImageUrl(avatarPath) : null;
-  const initials = profileData?.firstName?.[0] || username?.[0]?.toUpperCase() || '?';
+  
+  // Get initials from first and last name, fallback to username
+  const getInitials = () => {
+    const firstName = profileData?.firstName || '';
+    const lastName = profileData?.lastName || '';
+    
+    if (firstName && lastName) {
+      return (firstName[0] + lastName[0]).toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    } else if (username) {
+      return username[0].toUpperCase();
+    }
+    return '?';
+  };
+  
+  const initials = getInitials();
 
   // Additional metadata from Dashboard
   const viewedAt = user.viewedAt;
@@ -78,10 +95,15 @@ const UserCard = ({
     >
       {/* Avatar Section */}
       <div className="user-card-avatar">
-        {avatar ? (
-          <img src={avatar} alt={displayName} className="avatar-image" />
+        {avatar && !imageError ? (
+          <img 
+            src={avatar} 
+            alt={displayName} 
+            className="avatar-image"
+            onError={() => setImageError(true)}
+          />
         ) : (
-          <div className="avatar-placeholder">{initials}</div>
+          <div className="avatar-placeholder" data-initials={initials}></div>
         )}
         
         {/* Badges */}

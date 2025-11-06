@@ -555,10 +555,50 @@
   }
 }
 
+@media (max-width: 768px) {
+  .already-member {
+    font-size: 13px;
+  }
+
+  .btn-login {
+    padding: 8px 22px;
+    font-size: 13px;
+  }
+
+  .btn-help {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+}
+
 @media (max-width: 640px) {
   .landing-header-content {
     flex-direction: column;
     gap: 12px;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .already-member {
+    display: none;
+  }
+
+  .btn-login {
+    padding: 8px 20px;
+    font-size: 13px;
+    flex: 0 0 auto;
+    max-width: 120px;
+  }
+
+  .btn-help {
+    padding: 8px 12px;
+    font-size: 13px;
+    flex: 0 0 auto;
+    max-width: 100px;
   }
 
   .hero-content-centered {

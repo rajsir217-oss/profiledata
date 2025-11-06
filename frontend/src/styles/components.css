@@ -37,7 +37,7 @@
 /* ========================================
    CARD COMPONENTS
    ======================================== */
-.result-card,
+/* Removed .result-card from global styles - SearchPage has custom styling */
 .profile-card,
 .stat-card,
 .info-card,
@@ -52,7 +52,6 @@
   overflow: hidden;
 }
 
-.result-card:hover,
 .profile-card:hover,
 .dashboard-card:hover {
   box-shadow: var(--shadow-lg);
