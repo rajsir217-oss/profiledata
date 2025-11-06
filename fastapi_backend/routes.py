@@ -278,10 +278,11 @@ async def register_user(
     # For now, set to "No" by default during registration
     workingStatus = "No"  # Will be updated when workExperience is added
     
-    user_data = {
-        # Basic Information
+    # Create user document
+    logger.info(f"Creating user document for '{username}' with profileId '{profile_id}'...")
+    user_doc = {
         "username": username,
-        "profileId": profile_id,  # 8-char unique alphanumeric ID
+        "profileId": profile_id,
         "password": hashed_password,
         "firstName": firstName,
         "lastName": lastName,
@@ -586,6 +587,9 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Remove password and _id from response
     user.pop("password", None)
     user.pop("_id", None)
+    
+    # Debug: Log profileId presence
+    logger.debug(f"📋 ProfileId in DB response: {user.get('profileId', 'NOT FOUND')}")
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
