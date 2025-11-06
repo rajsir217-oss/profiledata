@@ -93,3 +93,13 @@ gcloud run services update $SERVICE_NAME \
 echo "✅ Backend configured:"
 echo "   BACKEND_URL: $BACKEND_URL"
 echo "   FRONTEND_URL: $FRONTEND_URL"
+echo ""
+
+# Restore local environment
+echo "🔄 Restoring local environment configuration..."
+if [ -f "$SCRIPT_DIR/switch-env.sh" ]; then
+    bash "$SCRIPT_DIR/switch-env.sh" local
+    echo "✅ Local environment restored - you can now run local backend with ./bstart.sh"
+else
+    echo "⚠️  switch-env.sh not found, manually run: ./switch-env.sh local"
+fi

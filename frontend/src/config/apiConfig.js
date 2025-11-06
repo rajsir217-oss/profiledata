@@ -37,19 +37,24 @@ const ENVIRONMENT_URLS = {
 export const getCurrentEnvironment = () => {
   const hostname = window.location.hostname;
   
-  // Priority 1: FORCE localhost detection (highest priority for local development)
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    console.log('🔧 FORCED LOCAL ENVIRONMENT - localhost detected');
-    return 'local';
-  }
-  
   console.log('🔍 ENVIRONMENT DEBUG:', {
     hostname: hostname,
     REACT_APP_ENVIRONMENT: process.env.REACT_APP_ENVIRONMENT,
     RUNTIME_CONFIG: window.RUNTIME_CONFIG?.ENVIRONMENT
   });
   
-  // Priority 2: Runtime config override (for manual override)
+  // Priority 1: FORCE localhost detection (ABSOLUTE highest priority - cannot be overridden)
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    console.log('🔧 FORCED LOCAL ENVIRONMENT - localhost detected (overriding all other configs)');
+    // Delete any runtime config that might try to override
+    if (window.RUNTIME_CONFIG?.ENVIRONMENT && window.RUNTIME_CONFIG.ENVIRONMENT !== 'local') {
+      console.warn('⚠️ Removing conflicting RUNTIME_CONFIG. Localhost always uses local environment!');
+      delete window.RUNTIME_CONFIG;
+    }
+    return 'local';
+  }
+  
+  // Priority 2: Runtime config override (for deployed environments only)
   if (window.RUNTIME_CONFIG?.ENVIRONMENT) {
     console.log('✅ Using runtime config:', window.RUNTIME_CONFIG.ENVIRONMENT);
     return window.RUNTIME_CONFIG.ENVIRONMENT;

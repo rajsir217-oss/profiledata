@@ -191,3 +191,34 @@ echo "🎉 Frontend deployment complete"
 echo "   Frontend URL : $SERVICE_URL"
 echo "   Backend URL  : $BACKEND_URL"
 echo "============================================="
+echo ""
+
+# Restore local environment for development
+echo "🔄 Restoring local development environment..."
+cd "$FRONTEND_DIR"
+
+# Clean React cache to ensure fresh build
+echo "🧹 Cleaning React cache..."
+rm -rf node_modules/.cache build 2>/dev/null || true
+
+# Ensure .env.local is set to local
+if [ ! -f ".env.local" ] || ! grep -q "REACT_APP_ENVIRONMENT=local" ".env.local"; then
+    echo "📝 Creating/updating .env.local for local development..."
+    cat > ".env.local" <<'ENVLOCAL'
+# Local Development Environment
+REACT_APP_ENVIRONMENT=local
+REACT_APP_SOCKET_URL=http://localhost:8000
+REACT_APP_API_URL=http://localhost:8000/api/users
+REACT_APP_WS_URL=ws://localhost:8000
+ENVLOCAL
+fi
+
+echo "✅ Local environment restored!"
+echo ""
+echo "📝 To run local development:"
+echo "   cd frontend && npm start"
+echo "   Your app will connect to http://localhost:8000"
+echo ""
+echo "⚠️  If React dev server is running, restart it to pick up local config:"
+echo "   Press Ctrl+C in the terminal running 'npm start'"
+echo "   Then run: npm start"
