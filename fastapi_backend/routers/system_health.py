@@ -8,6 +8,18 @@ from redis_manager import redis_manager, redis_host, redis_port
 from config import settings, current_env
 import logging
 
+# Import build info
+try:
+    from build_info import get_build_info
+except ImportError:
+    def get_build_info():
+        return {
+            'buildTime': 'unknown',
+            'buildDate': 'unknown',
+            'version': '1.0.0',
+            'environment': 'unknown'
+        }
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
@@ -19,12 +31,16 @@ startup_time = time.time()
 async def get_system_health(db = Depends(get_database)):
     """Get system health status for all backend services"""
     
+    # Get build information
+    build_info = get_build_info()
+    
     health_data = {
         "timestamp": datetime.utcnow().isoformat(),
         "environment": current_env or os.getenv("APP_ENVIRONMENT", "local"),
         "backend_url": settings.backend_url,
-        "version": "1.0.0",
+        "version": build_info.get('version', '1.0.0'),
         "uptime": format_uptime(time.time() - startup_time),
+        "buildInfo": build_info,
         "services": {}
     }
     

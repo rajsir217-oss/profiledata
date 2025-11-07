@@ -29,6 +29,12 @@ echo ""
 # Set project
 gcloud config set project $PROJECT_ID
 
+# Generate build info before deployment
+echo "📝 Generating build information..."
+cd "$PROJECT_ROOT/fastapi_backend"
+python3 generate_build_info.py || echo "⚠️  Could not generate build info (continuing anyway)"
+cd "$PROJECT_ROOT"
+
 # Build and deploy in one command
 echo "📦 Building and deploying..."
 gcloud run deploy $SERVICE_NAME \

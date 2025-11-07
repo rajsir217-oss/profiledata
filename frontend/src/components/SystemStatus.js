@@ -6,6 +6,7 @@ const SystemStatus = () => {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [frontendBuildInfo, setFrontendBuildInfo] = useState(null);
 
   // Check frontend Firebase configuration
   const frontendFirebaseConfigured = Boolean(
@@ -16,6 +17,7 @@ const SystemStatus = () => {
 
   useEffect(() => {
     loadSystemStatus();
+    loadFrontendBuildInfo();
     // Refresh every 30 seconds
     const interval = setInterval(loadSystemStatus, 30000);
     return () => clearInterval(interval);
@@ -32,6 +34,22 @@ const SystemStatus = () => {
       setError('Failed to load system status');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadFrontendBuildInfo = async () => {
+    try {
+      const response = await fetch('/build-info.json');
+      const data = await response.json();
+      setFrontendBuildInfo(data);
+    } catch (err) {
+      console.error('Error loading frontend build info:', err);
+      // Fallback to default values
+      setFrontendBuildInfo({
+        buildTime: 'unknown',
+        buildDate: 'unknown',
+        version: '1.0.0'
+      });
     }
   };
 
@@ -244,6 +262,62 @@ const SystemStatus = () => {
           <div className="info-item">
             <span className="info-label">Version:</span>
             <span className="info-value">{status?.version || '1.0.0'}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Build Information */}
+      <div className="status-section">
+        <h4 style={{ marginBottom: '12px', fontSize: '16px' }}>📦 Build Information</h4>
+        
+        {/* Backend Build Info */}
+        <div className="build-info-block" style={{ 
+          background: 'var(--surface-color, #f9fafb)', 
+          padding: '12px', 
+          borderRadius: '8px',
+          marginBottom: '12px'
+        }}>
+          <h5 style={{ fontSize: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>⚙️</span> Backend
+          </h5>
+          <div className="info-grid">
+            <div className="info-item">
+              <span className="info-label">Build Date:</span>
+              <span className="info-value" style={{ fontSize: '13px' }}>
+                {status?.buildInfo?.buildDate || 'unknown'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Version:</span>
+              <span className="info-value">
+                {status?.buildInfo?.version || '1.0.0'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Frontend Build Info */}
+        <div className="build-info-block" style={{ 
+          background: 'var(--surface-color, #f9fafb)', 
+          padding: '12px', 
+          borderRadius: '8px'
+        }}>
+          <h5 style={{ fontSize: '14px', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span>🌐</span> Frontend
+          </h5>
+          <div className="info-grid">
+            <div className="info-item">
+              <span className="info-label">Build Date:</span>
+              <span className="info-value" style={{ fontSize: '13px' }}>
+                {frontendBuildInfo?.buildDate || 'unknown'}
+              </span>
+            </div>
+            <div className="info-item">
+              <span className="info-label">Version:</span>
+              <span className="info-value">
+                {frontendBuildInfo?.version || '1.0.0'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
