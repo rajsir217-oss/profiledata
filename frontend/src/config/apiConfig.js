@@ -2,18 +2,34 @@
 // Centralized API configuration
 
 /**
+ * POD Configuration (for deployment script compatibility)
+ * These are modified by deploy script at build time
+ */
+const POD_CONFIG = {
+  backend: process.env.REACT_APP_POD_BACKEND_URL,
+  api: process.env.REACT_APP_POD_API_URL,
+  ws: process.env.REACT_APP_POD_WS_URL
+};
+
+/**
  * Get the backend API URL based on environment
  * @returns {string} Backend URL without /api/users suffix
  * 
  * Environment variables (set in .env.local, .env.production, etc.):
  * - REACT_APP_BACKEND_URL: Full backend URL (e.g., http://localhost:8000)
+ * - REACT_APP_POD_BACKEND_URL: POD backend URL (set by deployment script)
  * - REACT_APP_SOCKET_URL: WebSocket URL (optional, defaults to BACKEND_URL)
  * 
  * Local Dev (.env.local):     http://localhost:8000
  * Production (.env.production): https://matrimonial-backend-7cxoxmouuq-uc.a.run.app
  */
 export const getBackendUrl = () => {
-  // ALWAYS prefer environment variable (from .env files)
+  // Priority 1: POD config (set by deployment script)
+  if (POD_CONFIG.backend) {
+    return POD_CONFIG.backend;
+  }
+  
+  // Priority 2: Environment variable (from .env files)
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
@@ -34,6 +50,11 @@ export const getBackendUrl = () => {
  * @returns {string} Full API URL with /api/users prefix
  */
 export const getApiUrl = () => {
+  // Priority 1: POD config API URL (set by deployment script)
+  if (POD_CONFIG.api) {
+    return POD_CONFIG.api;
+  }
+  // Priority 2: Construct from backend URL
   return `${getBackendUrl()}/api/users`;
 };
 
@@ -43,7 +64,8 @@ export const getApiUrl = () => {
  */
 export const getFrontendUrl = () => {
   if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_FRONTEND_URL || 'https://l3v3lmatches.com';
+    return process.env.REACT_APP_FRONTEND_URL || 'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app';
+   
   }
   return process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
 };
