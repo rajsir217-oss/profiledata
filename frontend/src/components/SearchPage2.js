@@ -1806,16 +1806,7 @@ const SearchPage2 = () => {
 
           {/* Sort Controls - Before Results */}
           {sortedUsers.length > 0 && (
-            <div className="sort-controls-top" style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '12px 16px',
-              background: 'var(--surface-color)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--radius-md)',
-              marginBottom: '16px'
-            }}>
+            <div className="sort-controls-top">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Sort by:
