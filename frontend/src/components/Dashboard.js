@@ -83,13 +83,13 @@ const Dashboard = () => {
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const saved = localStorage.getItem('dashboardGroups');
     return saved ? JSON.parse(saved) : {
-      myActivities: true,
-      othersActivities: true
+      myActivities: false,
+      othersActivities: false
     };
   });
 
   // Track overall expand/collapse state for toggle button
-  const [isAllExpanded, setIsAllExpanded] = useState(true);
+  const [isAllExpanded, setIsAllExpanded] = useState(false);
 
   // MFA notification state
   const [showMfaNotification, setShowMfaNotification] = useState(false);
