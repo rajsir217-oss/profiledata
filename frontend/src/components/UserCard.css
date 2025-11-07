@@ -110,18 +110,19 @@
 
 .user-meta {
   font-size: 12px;
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-muted, #2d5eb33c);
   margin: 4px 0 0 0;
   font-style: italic;
 }
 
 .user-meta.last-message {
   font-style: normal;
-  color: var(--text-color, #1f2937);
-  background: #f3f4f6;
+  color: var(--text-color);
+  background: var(--hover-color);
   padding: 6px 8px;
   border-radius: 6px;
   margin-top: 6px;
+  border: 1px solid var(--border-color);
 }
 
 .view-count {
@@ -442,11 +443,6 @@ body.theme-dark .user-location,
 body.theme-dark .user-occupation,
 body.theme-dark .user-education {
   color: var(--text-muted-dark, #9ca3af);
-}
-
-body.theme-dark .user-meta.last-message {
-  background: #374151;
-  color: var(--text-color-dark, #f9fafb);
 }
 
 body.theme-dark .user-card-actions {

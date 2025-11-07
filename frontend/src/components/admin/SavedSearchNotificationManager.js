@@ -73,10 +73,12 @@ const SavedSearchNotificationManager = () => {
   useEffect(() => {
     fetchSavedSearches();
     fetchAnalytics();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     applyFilters();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searches, statusFilter, searchQuery]);
 
   const fetchSavedSearches = async () => {

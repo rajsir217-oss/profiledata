@@ -109,9 +109,11 @@ export const API_ENDPOINTS = {
   get MESSAGES() { return `${getBackendUrl()}/api/messages`; }
 };
 
-export default {
+const apiConfig = {
   getBackendUrl,
   getApiUrl,
   getFrontendUrl,
   API_ENDPOINTS
 };
+
+export default apiConfig;
