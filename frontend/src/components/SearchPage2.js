@@ -28,8 +28,7 @@ const SearchPage2 = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
-  const [currentPage, setCurrentPage] = useState(1);
-  // recordsPerPage removed - using LoadMore incremental loading instead
+  // currentPage removed - using LoadMore incremental loading instead
 
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
@@ -691,7 +690,6 @@ const SearchPage2 = () => {
       sortBy: 'newest',
       sortOrder: 'desc'
     });
-    setCurrentPage(1);
     setUsers([]);
     setTotalResults(0);
     setSaveSearchName('');
@@ -699,29 +697,6 @@ const SearchPage2 = () => {
     setSelectedSearch(null); // Clear selected search badge
     setDisplayedCount(20); // Reset to initial display count
     setFiltersCollapsed(false); // Expand filters when clearing
-  };
-
-  // Check if any filters are active and count them
-  const countActiveFilters = () => {
-    let count = 0;
-    if (searchCriteria.keyword !== '') count++;
-    // Gender is not counted as it's a default (opposite sex)
-    if (searchCriteria.ageMin !== '') count++;
-    if (searchCriteria.ageMax !== '') count++;
-    if (searchCriteria.heightMinFeet !== '' || searchCriteria.heightMinInches !== '') count++;
-    if (searchCriteria.heightMaxFeet !== '' || searchCriteria.heightMaxInches !== '') count++;
-    if (searchCriteria.location !== '') count++;
-    if (searchCriteria.education !== '') count++;
-    if (searchCriteria.occupation !== '') count++;
-    if (searchCriteria.religion !== '') count++;
-    if (searchCriteria.caste !== '') count++;
-    if (searchCriteria.eatingPreference !== '') count++;
-    if (searchCriteria.drinking !== '') count++;
-    if (searchCriteria.smoking !== '') count++;
-    if (searchCriteria.relationshipStatus !== '') count++;
-    if (searchCriteria.bodyType !== '') count++;
-    if (searchCriteria.newlyAdded === true) count++;
-    return count;
   };
 
   const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null) => {
@@ -856,13 +831,11 @@ const SearchPage2 = () => {
 
       if (page === 1) {
         setUsers(filteredUsers);
-        setCurrentPage(1);
-      } else {
+          } else {
         setUsers(prev => [...prev, ...filteredUsers]);
       }
 
       setTotalResults(filteredUsers.length);
-      setCurrentPage(page);
 
     } catch (err) {
       console.error('Error searching users:', err);
@@ -1133,7 +1106,6 @@ const SearchPage2 = () => {
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setUsers([]);
     setTotalResults(0);
-    setCurrentPage(1);
     setStatusMessage('✅ Search cleared - showing all active users');
     setTimeout(() => setStatusMessage(''), 3000);
     
@@ -1151,8 +1123,7 @@ const SearchPage2 = () => {
       const response = await api.get('/search', { params });
       setUsers(response.data.users || []);
       setTotalResults(response.data.total || 0);
-      setCurrentPage(1);
-    } catch (err) {
+      } catch (err) {
       console.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
