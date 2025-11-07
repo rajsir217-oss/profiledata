@@ -105,6 +105,9 @@ const SearchPage2 = () => {
   const [sortBy, setSortBy] = useState('matchScore'); // matchScore, age, height, location, occupation, newest
   const [sortOrder, setSortOrder] = useState('desc'); // desc or asc
 
+  // Collapse state for filters panel
+  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -695,6 +698,7 @@ const SearchPage2 = () => {
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
     setDisplayedCount(20); // Reset to initial display count
+    setFiltersCollapsed(false); // Expand filters when clearing
   };
 
   // Check if any filters are active and count them
@@ -878,6 +882,10 @@ const SearchPage2 = () => {
       setError(errorMsg);
     } finally {
       setLoading(false);
+      // Auto-collapse filters after search to show more results
+      if (page === 1) {
+        setFiltersCollapsed(true);
+      }
     }
   };
 
@@ -1065,6 +1073,7 @@ const SearchPage2 = () => {
     setMinMatchScore(loadedMinScore);
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
+    setFiltersCollapsed(false); // Expand filters to show loaded search
     
     // Automatically perform search with loaded criteria
     // Pass both criteria and minMatchScore directly to avoid React state timing issues
@@ -1592,11 +1601,74 @@ const SearchPage2 = () => {
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
 
-            {/* Search Tabs */}
-            <UniversalTabContainer
-              variant="underlined"
-              defaultTab="search"
-              tabs={[
+            {/* Collapsible Filters Container */}
+            <div className={`filters-container ${filtersCollapsed ? 'collapsed' : 'expanded'}`}>
+              
+              {/* Collapsed Header - Minimal Tab Bar */}
+              {filtersCollapsed && (
+                <div className="filters-collapsed-header" style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '16px',
+                  cursor: 'pointer'
+                }} onClick={() => setFiltersCollapsed(false)}>
+                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
+                      🔍 Search
+                    </span>
+                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>|</span>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
+                      💾 Saved {savedSearches.length > 0 && `(${savedSearches.length})`}
+                    </span>
+                    {minMatchScore > 0 && (
+                      <span className="badge bg-primary" style={{ fontSize: '11px' }}>
+                        {minMatchScore}%
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setFiltersCollapsed(false);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <span>▼ Show Filters</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Expanded Content - Full Tabs */}
+              {!filtersCollapsed && (
+                <>
+                  {/* Collapse Button at Top Right */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    marginBottom: '8px' 
+                  }}>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => setFiltersCollapsed(true)}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                    >
+                      <span>▲ Hide Filters</span>
+                    </button>
+                  </div>
+
+                  {/* Search Tabs */}
+                  <UniversalTabContainer
+                    variant="underlined"
+                    defaultTab="search"
+                    tabs={[
                 {
                   id: 'search',
                   icon: '🔍',
@@ -1687,6 +1759,9 @@ const SearchPage2 = () => {
                 }
               ]}
             />
+                </>
+              )}
+            </div>
 
             {/* Additional filters (hidden) */}
             <div className="filter-section" style={{display: 'none'}}>

@@ -8,6 +8,29 @@
   /* background: transparent; */
 }
 
+/* Collapsible Filters Container */
+.filters-container {
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.filters-container.collapsed {
+  max-height: 80px;
+}
+
+.filters-container.expanded {
+  max-height: none;
+}
+
+.filters-collapsed-header {
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.filters-collapsed-header:hover {
+  background: var(--hover-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
 /* Responsive container widths */
 @media (max-width: 1024px) {
   .search-page {
