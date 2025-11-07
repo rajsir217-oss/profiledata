@@ -1113,13 +1113,10 @@ const SearchPage2 = () => {
     setMinMatchScore(loadedMinScore);
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
-    setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
     
     // Automatically perform search with loaded criteria
     // Pass both criteria and minMatchScore directly to avoid React state timing issues
     handleSearch(1, loadedMinScore, loadedCriteria);
-    
-    setTimeout(() => setStatusMessage(''), 3000);
   };
 
   const handleDeleteSavedSearch = async (searchId) => {
@@ -1587,21 +1584,6 @@ const SearchPage2 = () => {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-            {/* Action Buttons - Above Tabs */}
-            <div className="search-action-buttons">
-              <button
-                type="button"
-                className={`header-icon-btn ${hasActiveFilters() ? 'has-filters' : ''}`}
-                onClick={(e) => { e.stopPropagation(); handleClearFilters(); }}
-                disabled={loading || !hasActiveFilters()}
-                title={`Clear Filters${hasActiveFilters() ? ` (${countActiveFilters()})` : ''}`}
-              >
-                ✕ Clear Search
-                {hasActiveFilters() && (
-                  <span className="filter-count-badge">{countActiveFilters()}</span>
-                )}
-              </button>
-            </div>
 
             {/* Search Tabs */}
             <UniversalTabContainer
@@ -1622,6 +1604,7 @@ const SearchPage2 = () => {
                       showAdvancedFilters={showAdvancedFilters}
                       setShowAdvancedFilters={setShowAdvancedFilters}
                       onSearch={() => handleSearch(1)}
+                      onClear={handleClearFilters}
                       onSave={() => setShowSaveModal(true)}
                       systemConfig={systemConfig}
                       isPremiumUser={isPremiumUser}

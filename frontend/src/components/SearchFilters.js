@@ -13,6 +13,7 @@ import './SearchFilters.css';
  * @param {Boolean} showAdvancedFilters - Controls advanced filters visibility
  * @param {Function} setShowAdvancedFilters - Toggles advanced filters
  * @param {Function} onSearch - Callback when Search button clicked
+ * @param {Function} onClear - Callback when Clear Search button clicked
  * @param {Function} onSave - Callback when Save Search button clicked
  * @param {Object} systemConfig - System configuration (for L3V3L enable check)
  * @param {Boolean} isPremiumUser - Whether user has premium access
@@ -33,6 +34,7 @@ const SearchFilters = ({
   showAdvancedFilters,
   setShowAdvancedFilters,
   onSearch,
+  onClear,
   onSave,
   systemConfig,
   isPremiumUser,
@@ -269,6 +271,31 @@ const SearchFilters = ({
               {searchButtonText}
             </button>
           )}
+          {onClear && (
+            <button
+              type="button"
+              onClick={onClear}
+              className="btn btn-clear"
+              style={{
+                padding: '10px 24px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: '#d84315',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 600,
+                fontSize: '14px',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.target.style.background = '#bf360c'}
+              onMouseLeave={(e) => e.target.style.background = '#d84315'}
+            >
+              🗑️ Clear
+            </button>
+          )}
           {onSave && (
             <button
               type="button"
@@ -464,6 +491,31 @@ const SearchFilters = ({
                   }}
                 >
                   {searchButtonText}
+                </button>
+              )}
+              {onClear && (
+                <button
+                  type="button"
+                  onClick={onClear}
+                  className="btn btn-clear"
+                  style={{
+                    padding: '10px 24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: '#d84315',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => e.target.style.background = '#bf360c'}
+                  onMouseLeave={(e) => e.target.style.background = '#d84315'}
+                >
+                  🗑️ Clear
                 </button>
               )}
               {onSave && (

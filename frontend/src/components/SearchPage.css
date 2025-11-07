@@ -2245,9 +2245,7 @@
     width: 100%;
     margin: 0 0 15px 0;
     padding: 12px 15px;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    overflow: visible;
   }
   
   /* Custom scrollbar styling for mobile */
