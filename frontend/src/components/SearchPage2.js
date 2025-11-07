@@ -101,6 +101,10 @@ const SearchPage2 = () => {
   const [displayedCount, setDisplayedCount] = useState(20);
   const [loadingMore, setLoadingMore] = useState(false);
 
+  // Sort state
+  const [sortBy, setSortBy] = useState('matchScore'); // matchScore, age, height, location, occupation, newest
+  const [sortOrder, setSortOrder] = useState('desc'); // desc or asc
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -640,6 +644,21 @@ const SearchPage2 = () => {
     setDisplayedCount(20); // Reset to show first 20 of filtered results
   };
 
+  // Handle sort changes
+  const handleSortChange = (e) => {
+    const newSortBy = e.target.value;
+    setSortBy(newSortBy);
+    setDisplayedCount(20); // Reset to show first 20 of sorted results
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Toggle sort order
+  const toggleSortOrder = () => {
+    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    setDisplayedCount(20); // Reset to show first 20
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleClearFilters = () => {
     // Preserve gender (opposite sex) when clearing filters
     const preservedGender = searchCriteria.gender;
@@ -867,7 +886,7 @@ const SearchPage2 = () => {
     setLoadingMore(true);
     // Simulate a small delay for better UX (can be removed if not needed)
     setTimeout(() => {
-      setDisplayedCount(prev => Math.min(prev + 20, filteredUsers.length));
+      setDisplayedCount(prev => prev + 20); // Let render clamp to actual length
       setLoadingMore(false);
       // Smooth scroll to show newly loaded items
       window.scrollTo({ 
@@ -1455,8 +1474,55 @@ const SearchPage2 = () => {
     return true;
   });
 
+  // Apply sorting to filtered users
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    let compareValue = 0;
+
+    switch (sortBy) {
+      case 'matchScore':
+        compareValue = (b.matchScore || 0) - (a.matchScore || 0);
+        break;
+      
+      case 'age':
+        const ageA = calculateAge(a.dateOfBirth) || 999;
+        const ageB = calculateAge(b.dateOfBirth) || 999;
+        compareValue = ageA - ageB;
+        break;
+      
+      case 'height':
+        const heightA = parseHeight(a.height) || 0;
+        const heightB = parseHeight(b.height) || 0;
+        compareValue = heightB - heightA; // Taller first by default
+        break;
+      
+      case 'location':
+        const locA = (a.location || '').toLowerCase();
+        const locB = (b.location || '').toLowerCase();
+        compareValue = locA.localeCompare(locB);
+        break;
+      
+      case 'occupation':
+        const occA = (a.occupation || '').toLowerCase();
+        const occB = (b.occupation || '').toLowerCase();
+        compareValue = occA.localeCompare(occB);
+        break;
+      
+      case 'newest':
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
+        compareValue = dateB - dateA; // Newest first
+        break;
+      
+      default:
+        compareValue = 0;
+    }
+
+    // Apply sort order
+    return sortOrder === 'asc' ? compareValue : -compareValue;
+  });
+
   // Use displayedCount for incremental loading instead of pagination
-  const currentRecords = filteredUsers.slice(0, displayedCount);
+  const currentRecords = sortedUsers.slice(0, displayedCount);
 
   return (
     <div className="search-page">
@@ -1692,6 +1758,67 @@ const SearchPage2 = () => {
             </div>
           )}
 
+          {/* Sort Controls - Before Results */}
+          {sortedUsers.length > 0 && (
+            <div className="sort-controls-top" style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '12px 16px',
+              background: 'var(--surface-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Sort by:
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={handleSortChange}
+                  className="form-select form-select-sm"
+                  style={{
+                    width: 'auto',
+                    fontSize: '14px',
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--input-bg)',
+                    color: 'var(--text-color)',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="matchScore">🎯 Compatibility Score</option>
+                  <option value="age">📅 Age</option>
+                  <option value="height">📏 Height</option>
+                  <option value="location">📍 Location</option>
+                  <option value="occupation">💼 Profession</option>
+                  <option value="newest">🆕 Newest Members</option>
+                </select>
+                <button
+                  onClick={toggleSortOrder}
+                  className="btn btn-sm btn-outline-secondary"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '6px 12px',
+                    fontSize: '14px',
+                    borderRadius: 'var(--radius-sm)'
+                  }}
+                  title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
+                >
+                  {sortOrder === 'desc' ? '↓' : '↑'}
+                  <span>{sortOrder === 'desc' ? 'High to Low' : 'Low to High'}</span>
+                </button>
+              </div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                {sortedUsers.length} profile{sortedUsers.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          )}
+
           <div 
             className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
             style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
@@ -1726,10 +1853,10 @@ const SearchPage2 = () => {
           </div>
 
           {/* LoadMore at Top */}
-          {filteredUsers.length > 0 && (
+          {sortedUsers.length > 0 && (
             <LoadMore
-              currentCount={Math.min(displayedCount, filteredUsers.length)}
-              totalCount={filteredUsers.length}
+              currentCount={Math.min(displayedCount, sortedUsers.length)}
+              totalCount={sortedUsers.length}
               onLoadMore={handleLoadMore}
               loading={loadingMore}
               itemsPerLoad={20}
@@ -1739,7 +1866,7 @@ const SearchPage2 = () => {
           )}
 
           {/* Consolidated Bottom Navigation Bar */}
-          {filteredUsers.length > 0 && (
+          {sortedUsers.length > 0 && (
             <div className="results-controls-bottom">
               {/* Left: Results Badge */}
               <div className="results-info">
@@ -1747,9 +1874,9 @@ const SearchPage2 = () => {
                 {users.length > 0 ? (
                   <span 
                     className="badge bg-primary" 
-                    title={`Total: ${totalResults} | Shown: ${filteredUsers.length} | Hidden: ${users.length - filteredUsers.length}`}
+                    title={`Total: ${totalResults} | Shown: ${sortedUsers.length} | Hidden: ${users.length - sortedUsers.length}`}
                   >
-                    Profiles: {totalResults} | {filteredUsers.length} | {users.length - filteredUsers.length}
+                    Profiles: {totalResults} | {sortedUsers.length} | {users.length - sortedUsers.length}
                   </span>
                 ) : (
                   <span className="badge bg-secondary">No search performed yet</span>
