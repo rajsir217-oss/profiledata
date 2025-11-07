@@ -82,6 +82,7 @@ const SearchPage2 = () => {
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [selectedSearch, setSelectedSearch] = useState(null);
+  const [editingScheduleFor, setEditingScheduleFor] = useState(null); // Track which search is being edited for schedule
 
   // PII access state
   const [piiRequests, setPiiRequests] = useState({});
@@ -1039,7 +1040,7 @@ const SearchPage2 = () => {
     return parts.join(', ') + ' and ' + lastPart;
   };
 
-  const handleSaveSearch = async (searchName) => {
+  const handleSaveSearch = async (saveData) => {
     try {
       const username = localStorage.getItem('username');
       if (!username) {
@@ -1052,19 +1053,27 @@ const SearchPage2 = () => {
       const description = generateSearchDescription(searchCriteria, minMatchScore);
       console.log('📝 Generated description:', description);
 
+      // Handle both old format (string) and new format (object with notifications)
+      const searchName = typeof saveData === 'string' ? saveData : saveData.name;
+      const notifications = typeof saveData === 'object' ? saveData.notifications : null;
+
       const searchData = {
         name: searchName.trim(),
         description: description,
         criteria: searchCriteria,
         minMatchScore: minMatchScore, // Save L3V3L match score
-        created_at: new Date().toISOString()
+        created_at: new Date().toISOString(),
+        ...(notifications && { notifications }) // Add notifications if provided
       };
       
       console.log('💾 Search data to save:', searchData);
 
       await api.post(`/${username}/saved-searches`, searchData);
 
-      setStatusMessage(`✅ Search saved: "${searchName}"`);
+      const notificationMsg = notifications?.enabled 
+        ? ` with ${notifications.frequency} notifications`
+        : '';
+      setStatusMessage(`✅ Search saved: "${searchName}"${notificationMsg}`);
       setTimeout(() => setStatusMessage(''), 3000);
       loadSavedSearches();
     } catch (err) {
@@ -1084,6 +1093,12 @@ const SearchPage2 = () => {
       console.error('Error updating saved search:', err);
       setError('Failed to update saved search');
     }
+  };
+
+  // Handler to open modal for editing notification schedule
+  const handleEditSchedule = (search) => {
+    setEditingScheduleFor(search);
+    setShowSaveModal(true);
   };
 
   const handleLoadSavedSearch = (savedSearch) => {
@@ -1638,13 +1653,22 @@ const SearchPage2 = () => {
                             <div key={search.id} className="saved-search-card">
                               <div className="saved-search-header">
                                 <h5 className="saved-search-name">{search.name}</h5>
-                                <button
-                                  className="btn-delete-saved"
-                                  onClick={() => handleDeleteSavedSearch(search.id)}
-                                  title="Delete this saved search"
-                                >
-                                  🗑️
-                                </button>
+                                <div className="saved-search-actions">
+                                  <button
+                                    className="btn-schedule-saved"
+                                    onClick={() => handleEditSchedule(search)}
+                                    title="Edit notification schedule"
+                                  >
+                                    ⏰
+                                  </button>
+                                  <button
+                                    className="btn-delete-saved"
+                                    onClick={() => handleDeleteSavedSearch(search.id)}
+                                    title="Delete this saved search"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
                               </div>
                               
                               <div className="saved-search-description">
@@ -1727,52 +1751,6 @@ const SearchPage2 = () => {
         </div>
 
         <div className="search-results">
-          <div className="results-header">
-            <div className="results-title-section">
-              <div className="results-info" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontWeight: '600', color: 'var(--text-color)', fontSize: '15px' }}>Results:</span>
-                {users.length > 0 ? (
-                  <span 
-                    className="badge bg-primary" 
-                    style={{ fontSize: '13px', padding: '6px 12px' }}
-                    title={`Total: ${totalResults} | Shown: ${filteredUsers.length} | Hidden: ${users.length - filteredUsers.length}`}
-                  >
-                    Profiles: {totalResults} | {filteredUsers.length} | {users.length - filteredUsers.length}
-                  </span>
-                ) : (
-                  <span className="badge bg-secondary">No search performed yet</span>
-                )}
-              </div>
-            </div>
-            <div className="results-controls">
-              {/* View Toggle + Refresh */}
-              <div className="view-toggle-group">
-                <button
-                  className={`btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => setViewMode('cards')}
-                  title="Card view"
-                >
-                  ▦
-                </button>
-                <button
-                  className={`btn btn-sm ${viewMode === 'rows' ? 'btn-primary' : 'btn-outline-primary'}`}
-                  onClick={() => setViewMode('rows')}
-                  title="Row view"
-                >
-                  ☰
-                </button>
-                <button 
-                  className="btn btn-sm btn-warning"
-                  onClick={() => handleSearch(1)}
-                  disabled={loading}
-                  title="Refresh results"
-                >
-                  🔄
-                </button>
-              </div>
-            </div>
-          </div>
-
           {loading && (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status">
@@ -1821,46 +1799,90 @@ const SearchPage2 = () => {
             })}
           </div>
 
-          {/* View Options - Moved to bottom for better UX */}
+          {/* Consolidated Bottom Navigation Bar */}
           {filteredUsers.length > 0 && (
-            <div className="results-controls-bottom" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '20px', padding: '20px 0', borderTop: '1px solid var(--border-color)', marginTop: '20px' }}>
-              {/* Cards Per Row (only show in card view) */}
-              {viewMode === 'cards' && (
-                <div className="cards-per-row-selector">
-                  <span className="selector-label">Cards:</span>
-                  {[2, 3, 4, 5].map(num => (
-                    <button
-                      key={num}
-                      className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => {
-                        setCardsPerRow(num);
-                        localStorage.setItem('searchCardsPerRow', num.toString());
-                      }}
-                      title={`${num} ROW CARDS`}  
-                    >
-                      {num}
-                    </button>
-                  ))}
+            <div className="results-controls-bottom">
+              {/* Left: Results Badge */}
+              <div className="results-info">
+                <span className="results-label">Results:</span>
+                {users.length > 0 ? (
+                  <span 
+                    className="badge bg-primary" 
+                    title={`Total: ${totalResults} | Shown: ${filteredUsers.length} | Hidden: ${users.length - filteredUsers.length}`}
+                  >
+                    Profiles: {totalResults} | {filteredUsers.length} | {users.length - filteredUsers.length}
+                  </span>
+                ) : (
+                  <span className="badge bg-secondary">No search performed yet</span>
+                )}
+              </div>
+
+              {/* Center: Cards Per Row + Show Per Page */}
+              <div className="center-controls">
+                {/* Cards Per Row (only show in card view) */}
+                {viewMode === 'cards' && (
+                  <div className="cards-per-row-selector">
+                    <span className="selector-label">Cards:</span>
+                    {[2, 3, 4, 5].map(num => (
+                      <button
+                        key={num}
+                        className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        onClick={() => {
+                          setCardsPerRow(num);
+                          localStorage.setItem('searchCardsPerRow', num.toString());
+                        }}
+                        title={`${num} cards per row`}  
+                      >
+                        {num}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                
+                {/* Show Per Page */}
+                <div className="per-page-control">
+                  <span className="selector-label">Show:</span>
+                  <select 
+                    id="perPage"
+                    className="form-select form-select-sm per-page-select"
+                    value={recordsPerPage}
+                    onChange={(e) => {
+                      setRecordsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                  >
+                    <option value="10">10 per page</option>
+                    <option value="20">20 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                  </select>
                 </div>
-              )}
-              
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '14px', fontWeight: '500' }}>Show:</span>
-                <select 
-                  id="perPage"
-                  className="form-select form-select-sm per-page-select"
-                  value={recordsPerPage}
-                  onChange={(e) => {
-                    setRecordsPerPage(Number(e.target.value));
-                    setCurrentPage(1);
-                  }}
-                  style={{ width: 'auto', minWidth: '130px' }}
+              </div>
+
+              {/* Right: View Toggle Buttons */}
+              <div className="view-toggle-group">
+                <button
+                  className={`btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  onClick={() => setViewMode('cards')}
+                  title="Card view"
                 >
-                  <option value="10">10 per page</option>
-                  <option value="20">20 per page</option>
-                  <option value="50">50 per page</option>
-                  <option value="100">100 per page</option>
-                </select>
+                  ▦
+                </button>
+                <button
+                  className={`btn btn-sm ${viewMode === 'rows' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  onClick={() => setViewMode('rows')}
+                  title="Row view"
+                >
+                  ☰
+                </button>
+                <button 
+                  className="btn btn-sm btn-warning"
+                  onClick={() => handleSearch(1)}
+                  disabled={loading}
+                  title="Refresh results"
+                >
+                  🔄
+                </button>
               </div>
             </div>
           )}
@@ -1898,13 +1920,17 @@ const SearchPage2 = () => {
       {/* Save Search Modal */}
       <SaveSearchModal
         show={showSaveModal}
-        onClose={() => setShowSaveModal(false)}
+        onClose={() => {
+          setShowSaveModal(false);
+          setEditingScheduleFor(null);
+        }}
         onSave={handleSaveSearch}
         savedSearches={savedSearches}
         onUpdate={handleUpdateSavedSearch}
         onDelete={handleDeleteSavedSearch}
         currentCriteria={searchCriteria}
         minMatchScore={minMatchScore}
+        editingScheduleFor={editingScheduleFor}
       />
 
       {/* PII Request Modal */}

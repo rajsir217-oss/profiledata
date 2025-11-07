@@ -10,13 +10,87 @@ const SaveSearchModal = ({
   onUpdate, 
   onDelete,
   currentCriteria,
-  minMatchScore = 0
+  minMatchScore = 0,
+  editingScheduleFor = null  // Passed when editing notification schedule for existing search
 }) => {
   const [searchName, setSearchName] = useState('');
   const [editingId, setEditingId] = useState(null);
   const [editingName, setEditingName] = useState('');
   const [activeTab, setActiveTab] = useState('save'); // 'save' or 'manage'
   const toast = useToast();
+
+  // Notification schedule state
+  const [enableNotifications, setEnableNotifications] = useState(false);
+  const [notificationFrequency, setNotificationFrequency] = useState('daily'); // 'daily' or 'weekly'
+  const [notificationTime, setNotificationTime] = useState('09:00'); // 24-hour format
+  const [notificationDay, setNotificationDay] = useState('monday'); // for weekly
+
+  // When editingScheduleFor is set, pre-populate notification fields
+  useEffect(() => {
+    if (editingScheduleFor && show) {
+      // Auto-generate corrected name from saved criteria
+      const criteria = editingScheduleFor.criteria || {};
+      const score = editingScheduleFor.minMatchScore || 0;
+      const parts = [];
+      
+      // Gender
+      const gender = criteria.gender ? criteria.gender.charAt(0).toUpperCase() : '';
+      parts.push(gender);
+      
+      // Age range
+      const ageMin = criteria.ageMin || '';
+      const ageMax = criteria.ageMax || '';
+      const ageRange = ageMin && ageMax ? `${ageMin}-${ageMax}` : (ageMin || ageMax || '');
+      parts.push(ageRange);
+      
+      // Height range
+      let heightRange = '';
+      if (criteria.heightMinFeet && criteria.heightMaxFeet) {
+        const minFt = criteria.heightMinFeet;
+        const minIn = criteria.heightMinInches || 0;
+        const maxFt = criteria.heightMaxFeet;
+        const maxIn = criteria.heightMaxInches || 0;
+        heightRange = `${minFt}'${minIn}-${maxFt}'${maxIn}`;
+      } else if (criteria.heightMinFeet) {
+        const minFt = criteria.heightMinFeet;
+        const minIn = criteria.heightMinInches || 0;
+        heightRange = `${minFt}'${minIn}+`;
+      } else if (criteria.heightMaxFeet) {
+        const maxFt = criteria.heightMaxFeet;
+        const maxIn = criteria.heightMaxInches || 0;
+        heightRange = `<${maxFt}'${maxIn}`;
+      }
+      parts.push(heightRange);
+      
+      // L3V3L Score
+      parts.push(score.toString());
+      
+      // Keep existing unique number or generate new one
+      const currentName = editingScheduleFor.name || '';
+      const currentParts = currentName.split('|');
+      const uniqueNum = currentParts.length === 5 ? currentParts[4] : String(Date.now() % 1000).padStart(3, '0');
+      parts.push(uniqueNum);
+      
+      const correctedName = parts.join('|');
+      setSearchName(correctedName);
+      
+      // Pre-populate notification settings
+      const notifications = editingScheduleFor.notifications || {};
+      setEnableNotifications(notifications.enabled || false);
+      setNotificationFrequency(notifications.frequency || 'daily');
+      setNotificationTime(notifications.time || '09:00');
+      setNotificationDay(notifications.dayOfWeek || 'monday');
+      
+      // Switch to save tab to show schedule options
+      setActiveTab('save');
+    } else if (show && !editingScheduleFor) {
+      // Reset to defaults when opening for new search
+      setEnableNotifications(false);
+      setNotificationFrequency('daily');
+      setNotificationTime('09:00');
+      setNotificationDay('monday');
+    }
+  }, [editingScheduleFor, show]);
 
   // ESC key handler to close modal
   useEffect(() => {
@@ -34,67 +108,117 @@ const SaveSearchModal = ({
 
   // Set default search name when modal opens
   useEffect(() => {
+    // Skip name generation if editing schedule (name already set from editingScheduleFor)
+    if (editingScheduleFor) {
+      return;
+    }
+    
     if (show && activeTab === 'save') {
-      // Generate short search name based on criteria (max 12 chars)
+      // Generate search name in format: gender|minage-maxage|minheight-maxheight|l3v3lscore|uniquenumber
+      // Example: M|19-77|5'6-5'9|55|001
+      
       const parts = [];
       
-      // Gender (1 char: M/F)
-      if (currentCriteria.gender) {
-        parts.push(currentCriteria.gender.charAt(0).toUpperCase());
-      }
+      // Gender (M/F or blank)
+      const gender = currentCriteria.gender ? currentCriteria.gender.charAt(0).toUpperCase() : '';
+      parts.push(gender);
       
-      // Age range (format: 30-34)
-      if (currentCriteria.ageMin || currentCriteria.ageMax) {
-        const min = currentCriteria.ageMin || '?';
-        const max = currentCriteria.ageMax || '?';
-        parts.push(`${min}-${max}`);
-      }
+      // Age range (format: 19-77 or just min/max if one is missing)
+      const ageMin = currentCriteria.ageMin || '';
+      const ageMax = currentCriteria.ageMax || '';
+      const ageRange = ageMin && ageMax ? `${ageMin}-${ageMax}` : (ageMin || ageMax || '');
+      parts.push(ageRange);
       
-      // Height (format: 5'6-5'9 or just 5-6 if same feet)
+      // Height range (format: 5'6-5'9)
+      let heightRange = '';
       if (currentCriteria.heightMinFeet && currentCriteria.heightMaxFeet) {
         const minFt = currentCriteria.heightMinFeet;
         const minIn = currentCriteria.heightMinInches || 0;
         const maxFt = currentCriteria.heightMaxFeet;
         const maxIn = currentCriteria.heightMaxInches || 0;
-        
-        if (minFt === maxFt) {
-          // Same feet, just show inches range: 5'6-9
-          parts.push(`${minFt}'${minIn}-${maxIn}`);
-        } else {
-          // Different feet: 5'6-6'2
-          parts.push(`${minFt}'${minIn}-${maxFt}'${maxIn}`);
-        }
+        heightRange = `${minFt}'${minIn}-${maxFt}'${maxIn}`;
+      } else if (currentCriteria.heightMinFeet) {
+        const minFt = currentCriteria.heightMinFeet;
+        const minIn = currentCriteria.heightMinInches || 0;
+        heightRange = `${minFt}'${minIn}+`;
+      } else if (currentCriteria.heightMaxFeet) {
+        const maxFt = currentCriteria.heightMaxFeet;
+        const maxIn = currentCriteria.heightMaxInches || 0;
+        heightRange = `<${maxFt}'${maxIn}`;
       }
+      parts.push(heightRange);
       
-      // L3V3L Score (format: L55) - only include if > 0
-      // (L0 means no filtering, so we skip it to save space)
-      if (minMatchScore > 0) {
-        parts.push(`L${minMatchScore}`);
-      }
+      // L3V3L Score (just the number)
+      const score = minMatchScore > 0 ? minMatchScore.toString() : '0';
+      parts.push(score);
       
-      // Location (first 3 chars)
-      if (currentCriteria.location) {
-        parts.push(currentCriteria.location.substring(0, 3));
-      }
+      // Unique number (3 digits based on timestamp + existing search count)
+      const uniqueNum = String((Date.now() % 1000) + (savedSearches.length || 0)).padStart(3, '0');
+      parts.push(uniqueNum);
       
-      // Join and truncate to 12 chars
-      const name = parts.join(' ').substring(0, 12);
+      // Join with pipe separator
+      const name = parts.join('|');
       
-      // Set default or generic name
-      setSearchName(name || 'Search');
+      // Set default name
+      setSearchName(name);
     }
-  }, [show, activeTab, currentCriteria, minMatchScore]);
+  }, [show, activeTab, currentCriteria, minMatchScore, savedSearches.length, editingScheduleFor]);
 
   if (!show) return null;
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!searchName.trim()) {
-      toast.warning('Please enter a search name');
+      toast.error('Please enter a search name');
       return;
     }
-    onSave(searchName);
+
+    const saveData = {
+      name: searchName,
+      notifications: {
+        enabled: enableNotifications,
+        frequency: notificationFrequency,
+        time: notificationTime,
+        dayOfWeek: notificationDay // Only used for weekly
+      }
+    };
+
+    // If editing schedule for existing search, update it
+    if (editingScheduleFor) {
+      try {
+        const username = localStorage.getItem('username');
+        const api = require('../api').default;
+        
+        // Update the existing saved search with new notification settings
+        await api.put(`/${username}/saved-searches/${editingScheduleFor.id}`, {
+          ...editingScheduleFor,
+          name: searchName,
+          notifications: saveData.notifications
+        });
+        
+        toast.success(`✅ Notification schedule updated for "${searchName}"`);
+        
+        // Reload saved searches (if there's a callback)
+        if (onUpdate) {
+          // Trigger reload by calling onUpdate with dummy data (SearchPage2 will reload)
+          setTimeout(() => window.location.reload(), 500);
+        }
+      } catch (error) {
+        console.error('Error updating notification schedule:', error);
+        toast.error('Failed to update notification schedule');
+        return;
+      }
+    } else {
+      // Creating new search
+      onSave(saveData);
+    }
+
+    // Reset form
     setSearchName('');
-    setActiveTab('manage');
+    setEnableNotifications(false);
+    setNotificationFrequency('daily');
+    setNotificationTime('09:00');
+    setNotificationDay('monday');
+    onClose();
   };
 
   const handleUpdate = (id) => {
@@ -127,27 +251,147 @@ const SaveSearchModal = ({
     <div className="modal-overlay" onClick={onClose}>
       <div className="save-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>💾 Saved Searches</h2>
+          <h2>
+            {editingScheduleFor ? '⏰ Edit Notification Schedule' : '💾 Saved Searches'}
+          </h2>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-tabs">
-          <button 
-            className={`tab-btn ${activeTab === 'save' ? 'active' : ''}`}
-            onClick={() => setActiveTab('save')}
-          >
-            ➕ Save Current Search
-          </button>
-          <button 
-            className={`tab-btn ${activeTab === 'manage' ? 'active' : ''}`}
-            onClick={() => setActiveTab('manage')}
-          >
-            📋 Manage Searches ({savedSearches.length})
-          </button>
-        </div>
+        {/* Hide tabs when editing schedule - show single unified view */}
+        {!editingScheduleFor && (
+          <div className="modal-tabs">
+            <button 
+              className={`tab-btn ${activeTab === 'save' ? 'active' : ''}`}
+              onClick={() => setActiveTab('save')}
+            >
+              ➕ Save Current Search
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'manage' ? 'active' : ''}`}
+              onClick={() => setActiveTab('manage')}
+            >
+              📋 Manage Searches ({savedSearches.length})
+            </button>
+          </div>
+        )}
 
         <div className="modal-body">
-          {activeTab === 'save' ? (
+          {/* Single unified view for editing schedules */}
+          {editingScheduleFor ? (
+            <div className="edit-schedule-section">
+              <div className="form-group">
+                <label>Search Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={searchName}
+                  onChange={(e) => setSearchName(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSave()}
+                />
+                <small className="text-muted">
+                  You can rename this search if needed
+                </small>
+              </div>
+
+              {/* Show search criteria preview */}
+              {editingScheduleFor && editingScheduleFor.criteria && (
+                <div className="criteria-preview">
+                  <h5>Current Criteria:</h5>
+                  <div className="criteria-list">
+                    {Object.entries(editingScheduleFor.criteria)
+                      .filter(([key, value]) => value && value !== '' && key !== 'page' && key !== 'limit' && key !== 'status')
+                      .map(([key, value]) => (
+                        <span key={key} className="criteria-badge">
+                          <strong>{key}:</strong> {value}
+                        </span>
+                      ))}
+                    {editingScheduleFor.minMatchScore > 0 ? (
+                      <span key="l3v3l-score" className="criteria-badge criteria-badge-l3v3l">
+                        <strong>L3V3L Score:</strong> ≥{editingScheduleFor.minMatchScore}%
+                      </span>
+                    ) : (
+                      <span key="l3v3l-score" className="criteria-badge" style={{opacity: 0.5}}>
+                        <strong>L3V3L Score:</strong> Not set (0%)
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="notification-schedule-section">
+                <h5>📧 Email Notifications for New Matches</h5>
+                <p className="text-muted">Get notified when new profiles match this search</p>
+                
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={enableNotifications}
+                      onChange={(e) => setEnableNotifications(e.target.checked)}
+                    />
+                    <span>Enable email notifications</span>
+                  </label>
+                </div>
+
+                {enableNotifications && (
+                  <>
+                    <div className="form-group">
+                      <label>Frequency</label>
+                      <select
+                        className="form-control"
+                        value={notificationFrequency}
+                        onChange={(e) => setNotificationFrequency(e.target.value)}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                    </div>
+
+                    {notificationFrequency === 'weekly' && (
+                      <div className="form-group">
+                        <label>Day of Week</label>
+                        <select
+                          className="form-control"
+                          value={notificationDay}
+                          onChange={(e) => setNotificationDay(e.target.value)}
+                        >
+                          <option value="monday">Monday</option>
+                          <option value="tuesday">Tuesday</option>
+                          <option value="wednesday">Wednesday</option>
+                          <option value="thursday">Thursday</option>
+                          <option value="friday">Friday</option>
+                          <option value="saturday">Saturday</option>
+                          <option value="sunday">Sunday</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>Time</label>
+                      <input
+                        type="time"
+                        className="form-control"
+                        value={notificationTime}
+                        onChange={(e) => setNotificationTime(e.target.value)}
+                      />
+                      <small className="text-muted">
+                        {formatTimeDisplay(notificationTime)}
+                      </small>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="modal-actions">
+                <button className="btn btn-secondary" onClick={onClose}>
+                  Cancel
+                </button>
+                <button className="btn btn-primary" onClick={handleSave}>
+                  ⏰ Update Schedule
+                </button>
+              </div>
+            </div>
+          ) : activeTab === 'save' ? (
             <div className="save-section">
               <h4>Save Current Search Criteria</h4>
               <p className="text-muted">Auto-generated name (edit if needed)</p>
@@ -186,12 +430,76 @@ const SaveSearchModal = ({
                 </div>
               </div>
 
+              <div className="notification-schedule-section">
+                <h5>📧 Email Notifications for New Matches</h5>
+                <p className="text-muted">Get notified when new profiles match this search</p>
+                
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={enableNotifications}
+                      onChange={(e) => setEnableNotifications(e.target.checked)}
+                    />
+                    <span>Enable email notifications</span>
+                  </label>
+                </div>
+
+                {enableNotifications && (
+                  <>
+                    <div className="form-group">
+                      <label>Frequency</label>
+                      <select
+                        className="form-control"
+                        value={notificationFrequency}
+                        onChange={(e) => setNotificationFrequency(e.target.value)}
+                      >
+                        <option value="daily">Daily</option>
+                        <option value="weekly">Weekly</option>
+                      </select>
+                    </div>
+
+                    {notificationFrequency === 'weekly' && (
+                      <div className="form-group">
+                        <label>Day of Week</label>
+                        <select
+                          className="form-control"
+                          value={notificationDay}
+                          onChange={(e) => setNotificationDay(e.target.value)}
+                        >
+                          <option value="monday">Monday</option>
+                          <option value="tuesday">Tuesday</option>
+                          <option value="wednesday">Wednesday</option>
+                          <option value="thursday">Thursday</option>
+                          <option value="friday">Friday</option>
+                          <option value="saturday">Saturday</option>
+                          <option value="sunday">Sunday</option>
+                        </select>
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label>Time</label>
+                      <input
+                        type="time"
+                        className="form-control"
+                        value={notificationTime}
+                        onChange={(e) => setNotificationTime(e.target.value)}
+                      />
+                      <small className="text-muted">
+                        {formatTimeDisplay(notificationTime)}
+                      </small>
+                    </div>
+                  </>
+                )}
+              </div>
+
               <div className="modal-actions">
                 <button className="btn btn-secondary" onClick={onClose}>
                   Cancel
                 </button>
                 <button className="btn btn-primary" onClick={handleSave}>
-                  💾 Save Search
+                  {editingScheduleFor ? '⏰ Update Schedule' : '💾 Save Search'}
                 </button>
               </div>
             </div>
@@ -238,6 +546,11 @@ const SaveSearchModal = ({
                             <p className="text-muted">
                               Created: {new Date(search.created_at).toLocaleDateString()}
                             </p>
+                            {search.notifications?.enabled && (
+                              <div className="notification-badge">
+                                📧 {search.notifications.frequency === 'daily' ? 'Daily' : search.notifications.dayOfWeek} at {formatTimeDisplay(search.notifications.time)}
+                              </div>
+                            )}
                           </div>
                           <div className="search-actions">
                             <button 
@@ -268,5 +581,15 @@ const SaveSearchModal = ({
     </div>
   );
 };
+
+// Helper function to format time display
+function formatTimeDisplay(time) {
+  if (!time) return '';
+  const [hours, minutes] = time.split(':');
+  const hour = parseInt(hours);
+  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const displayHour = hour === 0 ? 12 : hour > 12 ? hour - 12 : hour;
+  return `${displayHour}:${minutes} ${ampm}`;
+}
 
 export default SaveSearchModal;

@@ -257,6 +257,66 @@
   gap: 8px;
 }
 
+/* Notification Schedule Section */
+.notification-schedule-section {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.notification-schedule-section h5 {
+  margin: 0 0 8px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.notification-schedule-section .text-muted {
+  margin: 0 0 16px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--primary-color);
+}
+
+.checkbox-label span {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.text-muted {
+  color: var(--text-secondary, #666);
+}
+
+.notification-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border: 1px solid var(--primary-color);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-top: 8px;
+}
+
 /* Buttons */
 .btn {
   padding: 10px 20px;
@@ -323,6 +383,33 @@
 
 .btn-success:hover {
   background: #218838;
+}
+
+/* Edit Schedule Section - Single Unified View */
+.edit-schedule-section {
+  padding: 8px 0;
+}
+
+.edit-schedule-section .form-group:first-child {
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.edit-schedule-section .form-group:first-child label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.edit-schedule-section .form-group:first-child input {
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px;
+}
+
+.edit-schedule-section .notification-schedule-section {
+  margin-top: 0;
 }
 
 /* Animations */

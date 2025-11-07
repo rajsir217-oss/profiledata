@@ -281,8 +281,11 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
     stats = {
         'users_processed': 0,
         'searches_checked': 0,
+        'searches_with_schedule': 0,
+        'searches_due_now': 0,
         'emails_sent': 0,
         'total_matches_found': 0,
+        'skipped_not_due': 0,
         'errors': 0
     }
     
@@ -330,6 +333,23 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         search_description = search.get('description', '')
                         criteria = search.get('criteria', {})
                         
+                        # Check if notifications are enabled for this search
+                        notifications = search.get('notifications', {})
+                        if not notifications or not notifications.get('enabled'):
+                            logger.debug(f"  ⏭️ Skipping '{search_name}' - notifications not enabled")
+                            continue
+                        
+                        stats['searches_with_schedule'] += 1
+                        
+                        # Check if it's time to send based on schedule
+                        if not is_notification_due(search, db, username, search_id):
+                            stats['skipped_not_due'] += 1
+                            logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
+                            continue
+                        
+                        stats['searches_due_now'] += 1
+                        logger.info(f"  ✅ Processing '{search_name}' - due for notification")
+                        
                         # Find matches for this search
                         matches = await find_matches_for_search(db, username, criteria, lookback_hours)
                         
@@ -363,6 +383,9 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                             # Mark matches as notified
                             await mark_matches_notified(db, username, search_id, new_matches)
                             
+                            # Update last notification time
+                            await update_last_notification_time(db, username, search_id)
+                            
                             logger.info(f"✅ Sent email to {username} with {len(new_matches)} new matches for '{search_name}'")
                         
                     except Exception as e:
@@ -379,7 +402,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         
         return JobResult(
             status="success",
-            message=f"Processed {stats['users_processed']} users, sent {stats['emails_sent']} emails with {stats['total_matches_found']} total matches",
+            message=f"Processed {stats['users_processed']} users, {stats['searches_checked']} searches ({stats['searches_due_now']} due, {stats['skipped_not_due']} skipped), sent {stats['emails_sent']} emails with {stats['total_matches_found']} total matches",
             details=stats,
             records_processed=stats['users_processed'],
             records_affected=stats['emails_sent'],
@@ -627,6 +650,80 @@ async def send_matches_email(
     except Exception as e:
         logger.error(f"❌ Error sending email to {to_email}: {e}")
         return False
+
+
+def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str) -> bool:
+    """
+    Check if it's time to send notification based on the search's schedule
+    
+    Args:
+        search: The saved search document
+        db: Database instance (for async call later)
+        username: Username
+        search_id: Search ID
+        
+    Returns:
+        True if notification should be sent now, False otherwise
+    """
+    notifications = search.get('notifications', {})
+    if not notifications.get('enabled'):
+        return False
+    
+    frequency = notifications.get('frequency', 'daily')
+    notification_time = notifications.get('time', '09:00')  # HH:MM format
+    day_of_week = notifications.get('dayOfWeek', 'monday')  # for weekly
+    
+    # Get current time (you might want to use user's timezone here)
+    now = datetime.utcnow()
+    current_hour = now.hour
+    current_minute = now.minute
+    current_weekday = now.strftime('%A').lower()  # 'monday', 'tuesday', etc.
+    
+    # Parse notification time
+    try:
+        notif_hour, notif_minute = map(int, notification_time.split(':'))
+    except:
+        logger.warning(f"Invalid notification time format: {notification_time}, defaulting to 09:00")
+        notif_hour, notif_minute = 9, 0
+    
+    # Check if we're within the notification window (within 1 hour of scheduled time)
+    # This allows the job to run hourly and still catch the notifications
+    time_matches = (
+        current_hour == notif_hour and 
+        abs(current_minute - notif_minute) < 60  # Within same hour
+    )
+    
+    if not time_matches:
+        return False
+    
+    # For weekly notifications, also check the day
+    if frequency == 'weekly':
+        if current_weekday != day_of_week.lower():
+            return False
+    
+    # Check if we already sent a notification today (or this week for weekly)
+    # This prevents duplicate sends if the job runs multiple times in the window
+    # We'll implement this check in update_last_notification_time tracking
+    
+    return True
+
+
+async def update_last_notification_time(db, username: str, search_id: str):
+    """
+    Update the last notification timestamp for a search
+    """
+    await db.saved_search_notifications.update_one(
+        {
+            'username': username,
+            'search_id': search_id
+        },
+        {
+            '$set': {
+                'last_notification_sent': datetime.utcnow()
+            }
+        },
+        upsert=True
+    )
 
 
 def calculate_age(date_of_birth):

@@ -1583,6 +1583,52 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         logger.error(f"❌ Error saving search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/{username}/saved-searches/{search_id}")
+async def update_saved_search(username: str, search_id: str, search_data: dict, db = Depends(get_database)):
+    """Update a saved search (e.g., notification schedule, name, criteria)"""
+    logger.info(f"✏️ Updating saved search {search_id} for user '{username}'")
+    
+    try:
+        from bson import ObjectId
+        from datetime import datetime
+        
+        # Verify user exists
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Prepare update data
+        update_data = {
+            **search_data,
+            "updatedAt": datetime.utcnow().isoformat()
+        }
+        
+        # Remove id and _id fields if present (can't update _id)
+        update_data.pop("id", None)
+        update_data.pop("_id", None)
+        
+        logger.info(f"📝 Updating search '{search_data.get('name')}' with data: {update_data}")
+        
+        # Update the saved search
+        result = await db.saved_searches.update_one(
+            {"_id": ObjectId(search_id), "username": username},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Saved search not found")
+        
+        logger.info(f"✅ Updated saved search {search_id} for user '{username}'")
+        return {
+            "message": "Saved search updated successfully",
+            "updated": True
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating saved search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/{username}/saved-searches/{search_id}")
 async def delete_saved_search(username: str, search_id: str, db = Depends(get_database)):
     """Delete a saved search"""

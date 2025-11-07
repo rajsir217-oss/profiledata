@@ -137,8 +137,11 @@ function AppContent() {
       
       if (token) {
         // User is logged in, request notification permission
+        // TEMPORARILY DISABLED: Backend endpoint not yet implemented
+        // TODO: Enable when /api/users/push-subscriptions/subscribe endpoint is ready
         try {
-          await requestNotificationPermission();
+          // await requestNotificationPermission();
+          logger.info('Push notifications temporarily disabled - endpoint not implemented');
         } catch (error) {
           logger.error('Failed to initialize push notifications:', error);
         }
