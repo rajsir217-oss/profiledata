@@ -544,11 +544,19 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
         
         logger.info(f"✅ MFA verification successful for user '{login_data.username}'")
     
-    # Create access token
+    # Create access token with role
     logger.debug(f"Creating access token for user '{login_data.username}'")
     access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+    
+    # Determine user role - admin gets "admin" role, others get "user"
+    user_role = "admin" if user["username"] == "admin" else user.get("role", "user")
+    
     access_token = create_access_token(
-        data={"sub": user["username"]}, expires_delta=access_token_expires
+        data={
+            "sub": user["username"],
+            "role": user_role
+        }, 
+        expires_delta=access_token_expires
     )
     
     # Remove password and _id from response

@@ -232,6 +232,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/notification-management')
       });
       
+      items.push({
+        icon: '📧',
+        label: 'Saved Search Notifications',
+        subLabel: 'Override & manage user alerts',
+        action: () => navigate('/admin/notifications')
+      });
+      
       // === CONFIGURATION ===
       items.push({ isHeader: true, label: 'CONFIGURATION' });
       

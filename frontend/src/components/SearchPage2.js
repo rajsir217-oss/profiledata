@@ -1575,16 +1575,13 @@ const SearchPage2 = () => {
           {/* Selected Search Display */}
           {selectedSearch && (
             <div className="selected-search-banner">
-              <div className="selected-search-info">
-                <span className="selected-label">📌 Selected Search:</span>
-                <span className="selected-name">{selectedSearch.name}</span>
-              </div>
+              <span className="selected-search-name">{selectedSearch.name}</span>
               <button 
-                className="btn btn-sm btn-outline-danger"
+                className="btn-clear-x"
                 onClick={handleClearSelectedSearch}
                 title="Clear selected search"
               >
-                ✕ Clear
+                ✕
               </button>
             </div>
           )}
