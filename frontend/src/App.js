@@ -31,6 +31,7 @@ import AdminContactManagement from './components/AdminContactManagement';
 import UserManagement from './components/UserManagement';
 import ChangeAdminPassword from './components/ChangeAdminPassword';
 import RoleManagement from './components/RoleManagement';
+import SavedSearchNotificationManager from './components/admin/SavedSearchNotificationManager';
 import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
 import NotificationTester from './components/NotificationTester';
@@ -264,6 +265,7 @@ function AppContent() {
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
               <Route path="/admin/contact" element={<ProtectedRoute><AdminContactManagement /></ProtectedRoute>} />
+              <Route path="/admin/notifications" element={<ProtectedRoute><SavedSearchNotificationManager /></ProtectedRoute>} />
               <Route path="/admin/settings" element={<Navigate to="/preferences" replace />} />
               <Route path="/matching-criteria" element={<ProtectedRoute><MatchingCriteria /></ProtectedRoute>} />
               <Route path="/top-matches" element={<ProtectedRoute><TopMatches /></ProtectedRoute>} />

@@ -693,7 +693,7 @@ const SearchPage2 = () => {
     return count;
   };
 
-  const handleSearch = async (page = 1, overrideMinMatchScore = null) => {
+  const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null) => {
     const currentUser = localStorage.getItem('username');
     
     try {
@@ -701,8 +701,10 @@ const SearchPage2 = () => {
       setError('');
 
       // STEP 1: Apply traditional search filters
+      // Use overrideCriteria if provided (for immediate load), otherwise use state
+      const criteriaToUse = overrideCriteria !== null ? overrideCriteria : searchCriteria;
       const params = {
-        ...searchCriteria,
+        ...criteriaToUse,
         status: 'active',  // Only search for active users
         page: page,
         limit: 500  // Get more results from backend
@@ -1102,18 +1104,21 @@ const SearchPage2 = () => {
   };
 
   const handleLoadSavedSearch = (savedSearch) => {
-    setSearchCriteria(savedSearch.criteria);
     // Restore L3V3L match score if saved
     const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
+    const loadedCriteria = savedSearch.criteria;
+    
+    // Update state for UI display
+    setSearchCriteria(loadedCriteria);
     setMinMatchScore(loadedMinScore);
     setSelectedSearch(savedSearch);
     setShowSavedSearches(false);
     setStatusMessage(`✅ Loaded saved search: "${savedSearch.name}"`);
+    
     // Automatically perform search with loaded criteria
-    // Pass the minMatchScore directly to avoid React state timing issues
-    setTimeout(() => {
-      handleSearch(1, loadedMinScore);
-    }, 100);
+    // Pass both criteria and minMatchScore directly to avoid React state timing issues
+    handleSearch(1, loadedMinScore, loadedCriteria);
+    
     setTimeout(() => setStatusMessage(''), 3000);
   };
 

@@ -30,6 +30,7 @@ from routers.system_health import router as system_health_router
 from routers.invitations import router as invitations_router
 from routers.account_status import router as account_status_router
 from routers.pause_analytics import router as pause_analytics_router
+from routers.admin_notifications import router as admin_notifications_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -201,6 +202,7 @@ app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Met
 app.include_router(image_access_router)  # Image access routes (already has /api/image-access prefix)
 app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
 app.include_router(notifications_router)  # Notification routes (already has /api/notifications prefix)
+app.include_router(admin_notifications_router, prefix="/api/admin", tags=["admin-notifications"])  # Admin saved search notification management
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
 app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)
 app.include_router(push_subscriptions_router)  # Push notification subscriptions (already has /api/push-subscriptions prefix)
