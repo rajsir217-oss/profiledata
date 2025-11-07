@@ -41,6 +41,20 @@ const ScheduleListModal = ({ template, onClose, onUpdate }) => {
     loadSchedules();
   }, [loadSchedules]);
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
+
   const handleDeleteClick = (scheduleId) => {
     if (deleteConfirm === scheduleId) {
       // Second click - actually delete

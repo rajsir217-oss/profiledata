@@ -745,10 +745,7 @@ const Dashboard = () => {
               onClick={() => navigate('/search')}
               title="Search with L3V3L Scoring"
             >
-              <span className="search-icon-wrapper">
-                <span className="magnifier-icon">🔍</span>
-                <span className="butterfly-icon">🦋</span>
-              </span>
+              🔍
             </button>
             
             {/* View Controls Group - Right Aligned */}

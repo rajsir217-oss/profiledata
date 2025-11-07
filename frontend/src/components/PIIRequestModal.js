@@ -15,6 +15,22 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     { value: 'linkedin_url', label: '🔗 LinkedIn Profile', description: 'LinkedIn profile URL' }
   ];
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen && !submitting) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [isOpen, onClose, submitting]);
+
   // Initialize selected types with already granted access or pending requests
   useEffect(() => {
     if (isOpen) {

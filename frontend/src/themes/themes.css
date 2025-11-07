@@ -574,34 +574,34 @@ body.theme-light-gray {
    ULTRA LIGHT GRAY THEME
    ======================================== */
 body.theme-ultra-light-gray {
-  /* Primary Colors - Subtle slate */
-  --primary-color: #475569;
-  --secondary-color: #64748b;
-  --accent-color: #0ea5e9;
+  /* Primary Colors - Brighter for dark background */
+  --primary-color: #94a3b8;
+  --secondary-color: #cbd5e1;
+  --accent-color: #38bdf8;
   
   /* Backgrounds - Maximum whitespace with subtle tint */
-  --background-color: #fcfcfd;
-  --surface-color: #fafbfc;
-  --card-background: #fdfeff; /* Almost white with cool tint */
+  --background-color: #5e5e6a;
+  --surface-color: #4a4a54;
+  --card-background: #6b6b77; /* Lighter gray for cards */
   
   /* Bootstrap Modal Variables Override */
-  --bs-modal-bg: #fdfeff;
-  --bs-modal-color: #0f172a;
-  --bs-modal-border-color: #f1f5f9;
+  --bs-modal-bg: #6b6b77;
+  --bs-modal-color: #f3f4f6;
+  --bs-modal-border-color: #7a7a86;
   
   /* Text Colors - Gentle contrast */
-  --text-color: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-color: #f3f4f6;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
   
   /* Borders & Dividers - Very subtle */
-  --border-color: #f1f5f9;
-  --divider-color: #f8fafc;
+  --border-color: #7a7a86;
+  --divider-color: #8a8a96;
   
   /* Interactive States - Minimal */
-  --hover-background: #f8fafc;
-  --active-background: #f1f5f9;
-  --selected-background: rgba(71, 85, 105, 0.05);
+  --hover-background: #7a7a86;
+  --active-background: #8a8a96;
+  --selected-background: rgba(139, 139, 150, 0.2);
   
   /* Status Colors */
   --success-color: #10b981;

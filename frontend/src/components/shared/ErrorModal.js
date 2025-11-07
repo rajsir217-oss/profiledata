@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import './ErrorModal.css';
 
 /**
@@ -7,6 +7,22 @@ import './ErrorModal.css';
  * Similar style to ProfileConfirmationModal
  */
 const ErrorModal = ({ show, onClose, title, message, errors = [] }) => {
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && show) {
+        onClose();
+      }
+    };
+
+    if (show) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [show, onClose]);
+
   if (!show) return null;
 
   return (

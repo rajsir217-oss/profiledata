@@ -137,30 +137,32 @@
 /* Actions Section */
 .user-card-actions {
   display: flex;
-  gap: 8px;
-  justify-content: flex-end;
-  padding-top: 12px;
-  padding-bottom: 8px;
-  padding-right: 8px;
-  padding-left: 8px;
+  gap: 6px;
+  justify-content: center;
+  padding: 10px 0 8px 0;
+  margin: 0 -16px;
+  padding-left: 16px;
+  padding-right: 16px;
   border-top: 1px solid #e5e7eb;
   margin-top: auto;
-  min-height: 56px;
+  min-height: 52px;
   align-items: center;
+  flex-wrap: nowrap;
 }
 
 .user-action-btn {
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
   border: 2px solid #ddd;
   background: white;
-  font-size: 18px;
+  font-size: 17px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .user-action-btn:hover {
@@ -302,12 +304,14 @@
 
 .user-card-compact .user-card-actions {
   gap: 4px;
+  padding: 8px 12px;
+  margin: 0 -12px;
 }
 
 .user-card-compact .user-action-btn {
-  width: 32px;
-  height: 32px;
-  font-size: 16px;
+  width: 30px;
+  height: 30px;
+  font-size: 15px;
 }
 
 /* Dashboard Variant */
@@ -393,15 +397,26 @@
   }
   
   .user-action-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 16px;
+    width: 32px;
+    height: 32px;
+    font-size: 15px;
+  }
+  
+  .user-card-actions {
+    gap: 5px;
+    padding: 8px 14px;
+    margin: 0 -14px;
   }
 }
 
 @media (max-width: 576px) {
   .user-card {
     padding: 12px;
+  }
+  
+  .user-card-actions {
+    padding: 8px 12px;
+    margin: 0 -12px;
   }
   
   .user-card-view-rows {

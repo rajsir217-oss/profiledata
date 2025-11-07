@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './ImageManagerModal.css';
 
 const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant }) => {
@@ -12,6 +12,22 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
       return acc;
     }, {}) || {}
   );
+
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && isOpen && !granting) {
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscKey);
+      };
+    }
+  }, [isOpen, onClose, granting]);
 
   const durationOptions = [
     { value: 'onetime', label: 'One-time view only' },

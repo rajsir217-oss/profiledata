@@ -23,6 +23,20 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
     }
   }, [toast]);
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [onClose]);
+
   const loadMetaFields = async () => {
     try {
       setLoading(true);

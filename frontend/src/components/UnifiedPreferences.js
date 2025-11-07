@@ -109,7 +109,7 @@ const UnifiedPreferences = () => {
       name: 'Ultra Light',
       icon: '🤍',
       description: 'Ultra minimal white theme',
-      preview: { primary: '#9ca3af', secondary: '#d1d5db', background: '#ffffff', text: '#111827' }
+      preview: { primary: '#94a3b8', secondary: '#cbd5e1', background: '#5e5e6a', text: '#f3f4f6' }
     },
     {
       id: 'ultra-light-green',
