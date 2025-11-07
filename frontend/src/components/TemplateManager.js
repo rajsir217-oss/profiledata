@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getFrontendUrl } from '../utils/urlHelper';
 import './TemplateManager.css';
 import useToast from '../hooks/useToast';
@@ -99,7 +99,7 @@ const TemplateManager = () => {
     }
   };
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
@@ -137,9 +137,9 @@ const TemplateManager = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadScheduledNotifications = async () => {
+  const loadScheduledNotifications = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(API_ENDPOINTS.NOTIFICATION_SCHEDULED, {
@@ -155,7 +155,7 @@ const TemplateManager = () => {
     } catch (err) {
       console.error('Error loading scheduled notifications:', err);
     }
-  };
+  }, []);
 
   const getScheduleTooltip = (template) => {
     // Find all schedules for this template
@@ -219,7 +219,7 @@ const TemplateManager = () => {
   useEffect(() => {
     loadTemplates();
     loadScheduledNotifications();
-  }, []);
+  }, [loadTemplates, loadScheduledNotifications]);
 
   // ESC key listener for preview modal
   useEffect(() => {

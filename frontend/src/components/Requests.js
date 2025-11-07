@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 
@@ -10,11 +10,7 @@ const Requests = () => {
   const [activeTab, setActiveTab] = useState('received');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadRequests();
-  }, []);
-
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       const username = localStorage.getItem('username');
       if (!username) {
@@ -36,7 +32,11 @@ const Requests = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests]);
 
   const respondToRequest = async (requestId, response) => {
     try {

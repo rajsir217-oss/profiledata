@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
@@ -18,21 +18,7 @@ const VerifyEmail = () => {
   const [username, setUsername] = useState('');
   const [isResending, setIsResending] = useState(false);
 
-  useEffect(() => {
-    const token = searchParams.get('token');
-    const user = searchParams.get('username');
-
-    if (!token || !user) {
-      setStatus('error');
-      setMessage('Invalid verification link. Missing token or username.');
-      return;
-    }
-
-    setUsername(user);
-    verifyEmail(user, token);
-  }, [searchParams]);
-
-  const verifyEmail = async (user, token) => {
+  const verifyEmail = useCallback(async (user, token) => {
     try {
       setStatus('verifying');
       const response = await verificationApi.post('/api/verification/verify-email', {
@@ -71,7 +57,21 @@ const VerifyEmail = () => {
         'An error occurred during verification. Please try again.'
       );
     }
-  };
+  }, [navigate]);
+
+  useEffect(() => {
+    const token = searchParams.get('token');
+    const user = searchParams.get('username');
+
+    if (!token || !user) {
+      setStatus('error');
+      setMessage('Invalid verification link. Missing token or username.');
+      return;
+    }
+
+    setUsername(user);
+    verifyEmail(user, token);
+  }, [searchParams, verifyEmail]);
 
   const handleResend = async () => {
     if (!username) {

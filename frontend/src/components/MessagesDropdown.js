@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import { getDisplayName } from '../utils/userDisplay';
 import OnlineStatusBadge from './OnlineStatusBadge';
@@ -13,13 +13,7 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
   const [loading, setLoading] = useState(false);
   const currentUsername = localStorage.getItem('username');
 
-  useEffect(() => {
-    if (isOpen) {
-      loadConversations();
-    }
-  }, [isOpen]);
-
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!currentUsername) return;
 
     setLoading(true);
@@ -31,7 +25,13 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentUsername]);
+
+  useEffect(() => {
+    if (isOpen) {
+      loadConversations();
+    }
+  }, [isOpen, loadConversations]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';

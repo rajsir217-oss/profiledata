@@ -174,9 +174,20 @@
     #eab308 50%, 
     #84cc16 75%, 
     #22c55e 100%
-  );
+  ) !important;
   border-radius: 4px;
   outline: none;
+}
+
+.match-score-slider:focus,
+.match-score-slider:active {
+  background: linear-gradient(to right, 
+    #ef4444 0%, 
+    #f59e0b 25%, 
+    #eab308 50%, 
+    #84cc16 75%, 
+    #22c55e 100%
+  ) !important;
 }
 
 .match-score-slider::-webkit-slider-thumb {

@@ -52,10 +52,8 @@ const SearchFilters = ({
     const newScore = Number(e.target.value);
     logger.debug('L3V3L Slider changed:', minMatchScore, '→', newScore);
     setMinMatchScore(newScore);
-    // Auto-trigger search after debounce (600ms)
-    if (onSearch) {
-      setTimeout(() => onSearch(), 600);
-    }
+    // Instant client-side filtering - no need to trigger search
+    // The filteredUsers in SearchPage2 will automatically re-compute
   };
 
   return (

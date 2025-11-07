@@ -583,6 +583,7 @@ body.theme-ultra-light-gray {
   --background-color: #5e5e6a;
   --surface-color: #4a4a54;
   --card-background: #6b6b77; /* Lighter gray for cards */
+  --input-bg: #ffffff; /* White inputs for contrast */
   
   /* Bootstrap Modal Variables Override */
   --bs-modal-bg: #6b6b77;
@@ -1440,4 +1441,52 @@ body.theme-ultra-black {
 
 .theme-ultra-black ::-webkit-scrollbar-thumb:hover {
   background: #404040;
+}
+
+/* ========================================
+   GLOBAL INPUT & TEXTAREA STYLES
+   Ensures text is always readable
+   ======================================== */
+
+/* All input fields and textareas should use theme text color */
+/* Exclude range sliders to preserve their gradients */
+input:not([type="range"]),
+textarea,
+select,
+.form-control,
+.form-select {
+  color: var(--text-color) !important;
+}
+
+/* Placeholders should use muted text color */
+input::placeholder,
+textarea::placeholder,
+.form-control::placeholder {
+  color: var(--text-muted) !important;
+  opacity: 0.7;
+}
+
+/* Ensure dark themes have proper contrast */
+.theme-dark input:not([type="range"]),
+.theme-dark textarea,
+.theme-dark select,
+.theme-dark .form-control,
+.theme-dark .form-select,
+.theme-ultra-black input:not([type="range"]),
+.theme-ultra-black textarea,
+.theme-ultra-black select,
+.theme-ultra-black .form-control,
+.theme-ultra-black .form-select {
+  color: var(--text-color) !important;
+  background: var(--input-bg) !important;
+}
+
+/* Ultra Light Gray theme needs dark text on light inputs */
+.theme-ultra-light-gray input:not([type="range"]),
+.theme-ultra-light-gray textarea,
+.theme-ultra-light-gray select,
+.theme-ultra-light-gray .form-control,
+.theme-ultra-light-gray .form-select {
+  color: #1f2937 !important;
+  background: #ffffff !important;
 }

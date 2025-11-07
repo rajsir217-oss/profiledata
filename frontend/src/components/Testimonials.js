@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import useToast from '../hooks/useToast';
 import './Testimonials.css';
@@ -17,11 +17,7 @@ const Testimonials = () => {
   const isAdmin = currentUsername === 'admin';
   const toast = useToast();
 
-  useEffect(() => {
-    loadTestimonials();
-  }, []);
-
-  const loadTestimonials = async () => {
+  const loadTestimonials = useCallback(async () => {
     try {
       // Admin sees all testimonials, regular users see only approved
       const status = isAdmin ? 'all' : 'approved';
@@ -32,7 +28,11 @@ const Testimonials = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [isAdmin]);
+
+  useEffect(() => {
+    loadTestimonials();
+  }, [loadTestimonials]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

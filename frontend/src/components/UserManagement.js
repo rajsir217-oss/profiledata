@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UserManagement.css';
@@ -49,28 +49,19 @@ const UserManagement = () => {
 
   const currentUser = localStorage.getItem('username');
 
-  // Check if user is admin
-  useEffect(() => {
-    if (currentUser !== 'admin') {
-      navigate('/dashboard');
-      return;
-    }
-    loadUsers();
-  }, [page, statusFilter, roleFilter, searchTerm]);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (openDropdown && !event.target.closest('.action-dropdown-container')) {
-        setOpenDropdown(null);
-      }
-    };
+  const loadImageValidationStatus = useCallback(async (userList) => {
+    const statusMap = {};
     
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [openDropdown]);
+    for (const user of userList) {
+      if (user.imageValidation) {
+        statusMap[user.username] = user.imageValidation;
+      }
+    }
+    
+    setImageValidationStatus(statusMap);
+  }, []);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     setError('');
     
@@ -115,19 +106,28 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, statusFilter, roleFilter, searchTerm, navigate, loadImageValidationStatus]);
 
-  const loadImageValidationStatus = async (userList) => {
-    const statusMap = {};
-    
-    for (const user of userList) {
-      if (user.imageValidation) {
-        statusMap[user.username] = user.imageValidation;
-      }
+  // Check if user is admin
+  useEffect(() => {
+    if (currentUser !== 'admin') {
+      navigate('/dashboard');
+      return;
     }
+    loadUsers();
+  }, [currentUser, navigate, loadUsers, page, statusFilter, roleFilter, searchTerm]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (openDropdown && !event.target.closest('.action-dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
     
-    setImageValidationStatus(statusMap);
-  };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [openDropdown]);
 
   const handleValidateImages = async (username) => {
     try {

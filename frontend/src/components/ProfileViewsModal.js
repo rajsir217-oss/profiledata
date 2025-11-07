@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import './ProfileViewsModal.css';
 
@@ -7,11 +7,25 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const loadProfileViews = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/profile-views/${username}`);
+      setViews(response.data.views || []);
+    } catch (err) {
+      console.error('Error loading profile views:', err);
+      setError('Failed to load profile views');
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
+
   useEffect(() => {
     if (isOpen && username) {
       loadProfileViews();
     }
-  }, [isOpen, username]);
+  }, [isOpen, username, loadProfileViews]);
 
   // ESC key to close modal
   useEffect(() => {
@@ -28,20 +42,6 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
       };
     }
   }, [isOpen, onClose]);
-
-  const loadProfileViews = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get(`/profile-views/${username}`);
-      setViews(response.data.views || []);
-    } catch (err) {
-      console.error('Error loading profile views:', err);
-      setError('Failed to load profile views');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const formatTimeAgo = (dateString) => {
     const date = new Date(dateString);

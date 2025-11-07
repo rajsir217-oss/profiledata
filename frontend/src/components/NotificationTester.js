@@ -1,5 +1,5 @@
 // frontend/src/components/NotificationTester.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import './NotificationTester.css';
 import DeleteButton from './DeleteButton';
@@ -65,11 +65,7 @@ const NotificationTester = () => {
 
   const channels = ['email', 'sms', 'push'];
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
-
-  const loadUserData = async () => {
+  const loadUserData = useCallback(async () => {
     try {
       // Try getting username from localStorage (it's stored as a string, not object)
       const username = localStorage.getItem('username');
@@ -96,7 +92,11 @@ const NotificationTester = () => {
     } catch (error) {
       console.error('❌ Error loading user data:', error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadUserData();
+  }, [loadUserData]);
 
   const loadQueue = async (username) => {
     try {

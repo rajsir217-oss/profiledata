@@ -4,7 +4,7 @@ import api from "../api";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
 import ProfileConfirmationModal from "./ProfileConfirmationModal";
-import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
+import { EducationHistory, WorkExperience, TextAreaWithSamples, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";

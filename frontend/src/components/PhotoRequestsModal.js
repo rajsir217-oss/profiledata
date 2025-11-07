@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './PhotoRequestsModal.css';
@@ -11,11 +11,25 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
   const [processingId, setProcessingId] = useState(null);
   const navigate = useNavigate();
 
+  const loadPendingRequests = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/pii-requests/${username}/incoming?status_filter=pending`);
+      setRequests(response.data.requests || []);
+    } catch (err) {
+      console.error('Error loading photo requests:', err);
+      setError('Failed to load photo requests');
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
+
   useEffect(() => {
     if (isOpen && username) {
       loadPendingRequests();
     }
-  }, [isOpen, username]);
+  }, [isOpen, username, loadPendingRequests]);
 
   // ESC key to close modal
   useEffect(() => {
@@ -32,20 +46,6 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
       };
     }
   }, [isOpen, onClose]);
-
-  const loadPendingRequests = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get(`/pii-requests/${username}/incoming?status_filter=pending`);
-      setRequests(response.data.requests || []);
-    } catch (err) {
-      console.error('Error loading photo requests:', err);
-      setError('Failed to load photo requests');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleApprove = async (request) => {
     setProcessingId(request.id);

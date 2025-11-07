@@ -10,6 +10,7 @@ import PageHeader from './PageHeader';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import UniversalTabContainer from './UniversalTabContainer';
 import SearchFilters from './SearchFilters';
+import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
@@ -28,7 +29,7 @@ const SearchPage2 = () => {
   const [error, setError] = useState('');
   const [totalResults, setTotalResults] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage, setRecordsPerPage] = useState(20);
+  // recordsPerPage removed - using LoadMore incremental loading instead
 
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
@@ -95,6 +96,10 @@ const SearchPage2 = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   const [currentPIIAccess, setCurrentPIIAccess] = useState({});
+
+  // Load more state (for incremental loading instead of pagination)
+  const [displayedCount, setDisplayedCount] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const navigate = useNavigate();
 
@@ -629,6 +634,12 @@ const SearchPage2 = () => {
     }));
   };
 
+  // Wrapper for minMatchScore changes to reset display count
+  const handleMinMatchScoreChange = (newScore) => {
+    setMinMatchScore(newScore);
+    setDisplayedCount(20); // Reset to show first 20 of filtered results
+  };
+
   const handleClearFilters = () => {
     // Preserve gender (opposite sex) when clearing filters
     const preservedGender = searchCriteria.gender;
@@ -664,13 +675,10 @@ const SearchPage2 = () => {
     setSaveSearchName('');
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
+    setDisplayedCount(20); // Reset to initial display count
   };
 
   // Check if any filters are active and count them
-  const hasActiveFilters = () => {
-    return countActiveFilters() > 0;
-  };
-
   const countActiveFilters = () => {
     let count = 0;
     if (searchCriteria.keyword !== '') count++;
@@ -699,6 +707,7 @@ const SearchPage2 = () => {
     try {
       setLoading(true);
       setError('');
+      setDisplayedCount(20); // Reset to show first 20 results
 
       // STEP 1: Apply traditional search filters
       // Use overrideCriteria if provided (for immediate load), otherwise use state
@@ -770,11 +779,11 @@ const SearchPage2 = () => {
         return true;
       });
 
-      // STEP 2: Apply L3V3L match score filtering (if enabled and score > 0)
+      // STEP 2: Fetch and attach L3V3L match scores (if enabled)
+      // Always fetch scores so they're available for client-side filtering
       const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      const effectiveMinScore = overrideMinMatchScore !== null ? overrideMinMatchScore : minMatchScore;
-      if (canUseL3V3L && effectiveMinScore > 0) {
-        console.log(`🦋 L3V3L enabled: Applying L3V3L score filter (min: ${effectiveMinScore}%)`);
+      if (canUseL3V3L) {
+        console.log(`🦋 L3V3L enabled: Fetching compatibility scores`);
         
         // Get L3V3L scores for filtered users
         try {
@@ -797,7 +806,7 @@ const SearchPage2 = () => {
           console.log(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
           console.log(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
           
-          // Filter users by min match score and attach scores
+          // Attach scores to all users (don't filter here - let client-side handle it)
           filteredUsers = filteredUsers
             .map(user => {
               const score = scoresMap[user.username];
@@ -812,10 +821,9 @@ const SearchPage2 = () => {
                 compatibilityLevel: matchesWithScores.find(m => m.username === user.username)?.compatibilityLevel
               };
             })
-            .filter(user => user.matchScore >= effectiveMinScore)
             .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
           
-          console.log(`✅ Found ${filteredUsers.length} users matching criteria with L3V3L score ≥${effectiveMinScore}%`);
+          console.log(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
           console.log(`🎯 Sample user with score:`, filteredUsers[0]);
         } catch (err) {
           console.error('❌ Error fetching L3V3L scores:', err);
@@ -854,94 +862,19 @@ const SearchPage2 = () => {
     }
   };
 
-
-  const handlePageChange = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const renderPaginationButtons = () => {
-    const buttons = [];
-    const maxButtons = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-    let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-    
-    if (endPage - startPage + 1 < maxButtons) {
-      startPage = Math.max(1, endPage - maxButtons + 1);
-    }
-
-    // Previous button
-    buttons.push(
-      <button
-        key="prev"
-        className="btn btn-outline-primary"
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        Previous
-      </button>
-    );
-
-    // First page
-    if (startPage > 1) {
-      buttons.push(
-        <button
-          key={1}
-          className="btn btn-outline-primary"
-          onClick={() => handlePageChange(1)}
-        >
-          1
-        </button>
-      );
-      if (startPage > 2) {
-        buttons.push(<span key="dots1" className="pagination-dots">...</span>);
-      }
-    }
-
-    // Page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      buttons.push(
-        <button
-          key={i}
-          className={`btn ${i === currentPage ? 'btn-primary' : 'btn-outline-primary'}`}
-          onClick={() => handlePageChange(i)}
-        >
-          {i}
-        </button>
-      );
-    }
-
-    // Last page
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        buttons.push(<span key="dots2" className="pagination-dots">...</span>);
-      }
-      buttons.push(
-        <button
-          key={totalPages}
-          className="btn btn-outline-primary"
-          onClick={() => handlePageChange(totalPages)}
-        >
-          {totalPages}
-        </button>
-      );
-    }
-
-    // Next button
-    buttons.push(
-      <button
-        key="next"
-        className="btn btn-outline-primary"
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        Next
-      </button>
-    );
-
-    return buttons;
+  // Handle load more for incremental loading
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    // Simulate a small delay for better UX (can be removed if not needed)
+    setTimeout(() => {
+      setDisplayedCount(prev => Math.min(prev + 20, filteredUsers.length));
+      setLoadingMore(false);
+      // Smooth scroll to show newly loaded items
+      window.scrollTo({ 
+        top: document.documentElement.scrollHeight - 800, 
+        behavior: 'smooth' 
+      });
+    }, 300);
   };
 
   // Generate human-readable description from search criteria
@@ -1148,6 +1081,7 @@ const SearchPage2 = () => {
 
   const handleClearSelectedSearch = async () => {
     setSelectedSearch(null);
+    setDisplayedCount(20); // Reset to initial display count
     const clearedCriteria = {
       keyword: '',
       gender: '',
@@ -1482,6 +1416,15 @@ const SearchPage2 = () => {
       return false;
     }
 
+    // Filter by minimum compatibility score (L3V3L)
+    if (minMatchScore > 0) {
+      // If user has no match score (0 or undefined), hide them when filter is active
+      const userScore = user.matchScore || 0;
+      if (userScore < minMatchScore) {
+        return false;
+      }
+    }
+
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
       const age = calculateAge(user.dateOfBirth);
       if (age === null) return false;
@@ -1512,10 +1455,8 @@ const SearchPage2 = () => {
     return true;
   });
 
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = filteredUsers.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
+  // Use displayedCount for incremental loading instead of pagination
+  const currentRecords = filteredUsers.slice(0, displayedCount);
 
   return (
     <div className="search-page">
@@ -1599,7 +1540,7 @@ const SearchPage2 = () => {
                     <SearchFilters
                       searchCriteria={searchCriteria}
                       minMatchScore={minMatchScore}
-                      setMinMatchScore={setMinMatchScore}
+                      setMinMatchScore={handleMinMatchScoreChange}
                       handleInputChange={handleInputChange}
                       showAdvancedFilters={showAdvancedFilters}
                       setShowAdvancedFilters={setShowAdvancedFilters}
@@ -1784,6 +1725,19 @@ const SearchPage2 = () => {
             })}
           </div>
 
+          {/* LoadMore at Top */}
+          {filteredUsers.length > 0 && (
+            <LoadMore
+              currentCount={Math.min(displayedCount, filteredUsers.length)}
+              totalCount={filteredUsers.length}
+              onLoadMore={handleLoadMore}
+              loading={loadingMore}
+              itemsPerLoad={20}
+              itemLabel="profiles"
+              buttonText="View more"
+            />
+          )}
+
           {/* Consolidated Bottom Navigation Bar */}
           {filteredUsers.length > 0 && (
             <div className="results-controls-bottom">
@@ -1823,25 +1777,6 @@ const SearchPage2 = () => {
                     ))}
                   </div>
                 )}
-                
-                {/* Show Per Page */}
-                <div className="per-page-control">
-                  <span className="selector-label">Show:</span>
-                  <select 
-                    id="perPage"
-                    className="form-select form-select-sm per-page-select"
-                    value={recordsPerPage}
-                    onChange={(e) => {
-                      setRecordsPerPage(Number(e.target.value));
-                      setCurrentPage(1);
-                    }}
-                  >
-                    <option value="10">10 per page</option>
-                    <option value="20">20 per page</option>
-                    <option value="50">50 per page</option>
-                    <option value="100">100 per page</option>
-                  </select>
-                </div>
               </div>
 
               {/* Right: View Toggle Buttons */}
@@ -1869,24 +1804,6 @@ const SearchPage2 = () => {
                   🔄
                 </button>
               </div>
-            </div>
-          )}
-
-          {filteredUsers.length > 0 && (
-            <div className="pagination-container">
-              <div className="pagination-info">
-                Showing {indexOfFirstRecord + 1}-{Math.min(indexOfLastRecord, filteredUsers.length)} of {filteredUsers.length} filtered results
-                {totalResults > 0 && totalResults !== filteredUsers.length && (
-                  <span className="text-muted ms-2">
-                    ({totalResults} total in database)
-                  </span>
-                )}
-              </div>
-              {totalPages > 1 && (
-                <div className="pagination-controls">
-                  {renderPaginationButtons()}
-                </div>
-              )}
             </div>
           )}
         </div> {/* Close search-results */}
