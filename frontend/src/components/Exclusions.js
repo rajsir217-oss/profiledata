@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
@@ -12,12 +12,7 @@ const Exclusions = () => {
   const [piiRequests, setPiiRequests] = useState({});
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadExclusions();
-    loadPiiRequests();
-  }, []);
-
-  const loadExclusions = async () => {
+  const loadExclusions = useCallback(async () => {
     try {
       const username = localStorage.getItem('username');
       if (!username) {
@@ -33,9 +28,9 @@ const Exclusions = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const loadPiiRequests = async () => {
+  const loadPiiRequests = useCallback(async () => {
     const currentUser = localStorage.getItem('username');
     if (!currentUser) return;
 
@@ -65,7 +60,12 @@ const Exclusions = () => {
     } catch (err) {
       console.error('Error loading PII requests:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadExclusions();
+    loadPiiRequests();
+  }, [loadExclusions, loadPiiRequests]);
 
   const hasPiiAccess = (targetUsername) => {
     return piiRequests[`${targetUsername}_contact_info`] === 'approved';
