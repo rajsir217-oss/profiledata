@@ -266,25 +266,6 @@
   display: none;
 }
 
-/* Custom scrollbar for filters */
-.search-filters::-webkit-scrollbar {
-  width: 6px;
-}
-
-.search-filters::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 3px;
-}
-
-.search-filters::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 3px;
-}
-
-.search-filters::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
 /* Search Results */
 .search-results {
   background: var(--card-background, white);
@@ -2248,24 +2229,6 @@
     overflow: visible;
   }
   
-  /* Custom scrollbar styling for mobile */
-  .search-filters::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  .search-filters::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  
-  .search-filters::-webkit-scrollbar-thumb {
-    background: var(--border-color);
-    border-radius: 3px;
-  }
-  
-  .search-filters::-webkit-scrollbar-thumb:hover {
-    background: var(--text-secondary);
-  }
-  
   /* Selected Search Banner - Mobile Optimized */
   .selected-search-banner {
     padding: 12px 14px;
@@ -2799,8 +2762,7 @@
 
   .search-filters {
     padding: 12px;
-    max-height: calc(100vh - 100px); /* Smaller header space on tiny screens */
-    overflow-y: auto;
+    overflow: visible;
   }
   
   .search-results {
