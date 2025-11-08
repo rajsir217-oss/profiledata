@@ -62,6 +62,10 @@ const EmailTemplatePreview = () => {
 
   const renderSampleData = (body) => {
     // Replace template variables with sample data for preview
+    if (!body) {
+      return '<div style="padding: 20px; text-align: center;">No template body available</div>';
+    }
+    
     return body
       .replace(/{recipient\.firstName}/g, 'John')
       .replace(/{recipient\.lastName}/g, 'Doe')
@@ -234,8 +238,8 @@ const EmailTemplatePreview = () => {
                   <h3>Email Preview (with sample data)</h3>
                   <div className="email-iframe-container">
                     <iframe
-                      title={`Preview of ${selectedTemplate.trigger}`}
-                      srcDoc={renderSampleData(selectedTemplate.body)}
+                      title={`Preview of ${selectedTemplate.trigger || 'Template'}`}
+                      srcDoc={renderSampleData(selectedTemplate?.body)}
                       className="email-iframe"
                     />
                   </div>
