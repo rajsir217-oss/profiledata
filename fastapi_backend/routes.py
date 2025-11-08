@@ -4845,7 +4845,15 @@ async def get_l3v3l_matches(
                     'total_score': 0,
                     'breakdown': {'gender_compatibility': 0},
                     'compatibility_level': 'Incompatible',
-                    'explanation': 'Same gender - no romantic compatibility'
+                    'explanation': 'Same gender - no romantic compatibility',
+                    'match_reasons': ['Same gender - not compatible for romantic matching'],
+                    'component_scores': {
+                        'gender': 0,
+                        'demographics': 0,
+                        'preferences': 0,
+                        'personality': 0,
+                        'lifestyle': 0
+                    }
                 }
             else:
                 # Calculate comprehensive match score for opposite gender
