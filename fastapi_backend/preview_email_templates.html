@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Email Template Preview - 5 Existing Templates</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            margin: 0;
+        }
+        .preview-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .summary {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(600px, 1fr));
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        .template-wrapper {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .template-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .template-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .template-meta {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-high { background: #ef4444; color: white; }
+        .badge-medium { background: #f59e0b; color: white; }
+        .badge-low { background: #10b981; color: white; }
+        .template-preview {
+            padding: 20px;
+            background: #fafafa;
+            border-top: 1px solid #eee;
+        }
+        iframe {
+            width: 100%;
+            height: 500px;
+            border: none;
+            background: white;
+            border-radius: 5px;
+        }
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            margin: 0 10px;
+        }
+        button:hover {
+            background: #5568d3;
+        }
+        .legend {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        .legend-item {
+            display: inline-block;
+            margin: 0 15px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="preview-container">
+        <h1>📧 Email Template Preview</h1>
+        <div class="summary">
+            <strong>5 Existing Templates</strong> (25% coverage) • Modern HTML Design • Mobile Responsive
+        </div>
+
+        <div class="legend">
+            <div class="legend-item"><strong>Categories:</strong></div>
+            <div class="legend-item">🎯 Match</div>
+            <div class="legend-item">👀 Activity</div>
+            <div class="legend-item">💬 Messages</div>
+            <div class="legend-item">🔒 Privacy</div>
+            <div class="legend-item">⏰ Engagement</div>
+        </div>
+
+        <div class="controls">
+            <button onclick="refreshAll()">🔄 Refresh All</button>
+            <button onclick="toggleMobile()">📱 Toggle Mobile View</button>
+        </div>
+
+        <div class="template-grid">
+            <!-- Template 1: New Match -->
+            <div class="template-wrapper">
+                <div class="template-header">
+                    <div>
+                        <div class="template-title">🎉 New Match</div>
+                        <div class="template-meta">Category: Match<span class="badge badge-high">HIGH PRIORITY</span></div>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    <iframe id="template1" srcdoc='<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .match-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .match-score { font-size: 24px; font-weight: bold; color: #667eea; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎉 Congratulations!</h1>
+            <p>You have a new match</p>
+        </div>
+        <div class="content">
+            <p>Hi Sarah,</p>
+            
+            <p>Great news! We found someone who matches your preferences.</p>
+            
+            <div class="match-card">
+                <h2>Raj, 28</h2>
+                <p><strong>Location:</strong> Mumbai, India</p>
+                <p><strong>Profession:</strong> Software Engineer</p>
+                <p class="match-score">Match Score: 87%</p>
+            </div>
+            
+            <p>This match was selected based on your preferences and compatibility factors.</p>
+            
+            <center>
+                <a href="#" class="button">View Full Profile</a>
+            </center>
+            
+            <p>Don\'t wait too long - good matches don\'t last!</p>
+        </div>
+        <div class="footer">
+            <p>You\'re receiving this because you opted in for match notifications.</p>
+            <p><a href="#">Unsubscribe</a> | <a href="#">Manage Preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>'></iframe>
+                </div>
+            </div>
+
+            <!-- Template 2: Profile Viewed -->
+            <div class="template-wrapper">
+                <div class="template-header">
+                    <div>
+                        <div class="template-title">👀 Profile Viewed</div>
+                        <div class="template-meta">Category: Activity<span class="badge badge-medium">MEDIUM PRIORITY</span></div>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    <iframe id="template2" srcdoc='<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .profile-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .stats { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat { text-align: center; }
+        .stat-number { font-size: 24px; font-weight: bold; color: #667eea; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>👀 Someone\'s Interested!</h1>
+        </div>
+        <div class="content">
+            <p>Hi Sarah,</p>
+            
+            <p>Your profile is getting attention!</p>
+            
+            <div class="profile-card">
+                <h2>Michael, 30</h2>
+                <p>San Francisco, CA</p>
+                <p><strong>Product Manager</strong></p>
+            </div>
+            
+            <p>viewed your profile recently. This could be your perfect match!</p>
+            
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number">15</div>
+                    <div>Profile Views</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">7</div>
+                    <div>Favorites</div>
+                </div>
+            </div>
+            
+            <center>
+                <a href="#" class="button">View Their Profile</a>
+            </center>
+            
+            <p><em>Tip: Profiles with photos get 5x more attention!</em></p>
+        </div>
+        <div class="footer">
+            <p>You\'re receiving this because you opted in for activity notifications.</p>
+            <p><a href="#">Unsubscribe</a> | <a href="#">Manage Preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>'></iframe>
+                </div>
+            </div>
+
+            <!-- Template 3: New Message -->
+            <div class="template-wrapper">
+                <div class="template-header">
+                    <div>
+                        <div class="template-title">💬 New Message</div>
+                        <div class="template-meta">Category: Messages<span class="badge badge-high">HIGH PRIORITY</span></div>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    <iframe id="template3" srcdoc='<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .message-box { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #667eea; }
+        .sender { font-weight: bold; color: #667eea; margin-bottom: 10px; }
+        .message-preview { font-style: italic; color: #666; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 New Message</h1>
+        </div>
+        <div class="content">
+            <p>Hi Sarah,</p>
+            
+            <p>You have a new message waiting for you!</p>
+            
+            <div class="message-box">
+                <div class="sender">From: David, 32</div>
+                <div class="message-preview">"Hi! I saw your profile and we have so much in common. Would love to chat!"</div>
+            </div>
+            
+            <p><strong>Don\'t keep them waiting!</strong> Reply now to keep the conversation going.</p>
+            
+            <center>
+                <a href="#" class="button">Read & Reply</a>
+            </center>
+            
+            <p><em>Quick responses lead to better connections!</em></p>
+            
+            <p>You also have 3 other unread messages.</p>
+        </div>
+        <div class="footer">
+            <p>You\'re receiving this because you opted in for message notifications.</p>
+            <p><a href="#">Unsubscribe</a> | <a href="#">Manage Preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>'></iframe>
+                </div>
+            </div>
+
+            <!-- Template 4: PII Request -->
+            <div class="template-wrapper">
+                <div class="template-header">
+                    <div>
+                        <div class="template-title">🔒 Contact Request</div>
+                        <div class="template-meta">Category: Privacy<span class="badge badge-high">HIGH PRIORITY</span></div>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    <iframe id="template4" srcdoc='<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .request-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .button { display: inline-block; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 5px; }
+        .button-approve { background: #10b981; color: white; }
+        .button-deny { background: #ef4444; color: white; }
+        .privacy-note { background: #fef3c7; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #f59e0b; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔒 Contact Request</h1>
+        </div>
+        <div class="content">
+            <p>Hi Sarah,</p>
+            
+            <p>Someone wants to connect with you!</p>
+            
+            <div class="request-card">
+                <h2>James, 29</h2>
+                <p><strong>Location:</strong> New York, NY</p>
+                <p><strong>Profession:</strong> Financial Analyst</p>
+                <p><strong>Match Score:</strong> 92%</p>
+            </div>
+            
+            <p>has requested access to your contact information (email and phone number).</p>
+            
+            <div class="privacy-note">
+                <strong>🛡️ Your Privacy Matters</strong>
+                <p>You have full control over who can access your contact details. You can approve or deny this request, and revoke access anytime.</p>
+            </div>
+            
+            <center>
+                <a href="#" class="button button-approve">✓ Approve Request</a>
+                <a href="#" class="button button-deny">✕ Deny Request</a>
+            </center>
+            
+            <p><a href="#">View James\'s full profile</a> before deciding.</p>
+        </div>
+        <div class="footer">
+            <p>You\'re receiving this because someone requested your contact information.</p>
+            <p><a href="#">Privacy Settings</a></p>
+        </div>
+    </div>
+</body>
+</html>'></iframe>
+                </div>
+            </div>
+
+            <!-- Template 5: Unread Messages -->
+            <div class="template-wrapper">
+                <div class="template-header">
+                    <div>
+                        <div class="template-title">⏰ Unread Messages Reminder</div>
+                        <div class="template-meta">Category: Engagement<span class="badge badge-medium">MEDIUM PRIORITY</span></div>
+                    </div>
+                </div>
+                <div class="template-preview">
+                    <iframe id="template5" srcdoc='<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .stats-card { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center; }
+        .big-number { font-size: 48px; font-weight: bold; color: #667eea; }
+        .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 10px 0; }
+        .highlights { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        .highlight-item { padding: 10px 0; border-bottom: 1px solid #eee; }
+        .footer { text-align: center; color: #666; font-size: 12px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⏰ Don\'t Miss Out!</h1>
+        </div>
+        <div class="content">
+            <p>Hi Sarah,</p>
+            
+            <p>You have messages waiting for you!</p>
+            
+            <div class="stats-card">
+                <div class="big-number">12</div>
+                <p>Unread Messages</p>
+            </div>
+            
+            <p>People are trying to connect with you. Don\'t let opportunities slip away!</p>
+            
+            <div class="highlights">
+                <h3>📊 Your Activity Summary</h3>
+                <div class="highlight-item">
+                    <strong>45</strong> profile views this week
+                </div>
+                <div class="highlight-item">
+                    <strong>8</strong> new matches
+                </div>
+                <div class="highlight-item">
+                    <strong>15</strong> people added you to favorites
+                </div>
+            </div>
+            
+            <center>
+                <a href="#" class="button">Check Your Messages</a>
+            </center>
+            
+            <p><em>Active users find matches 3x faster!</em></p>
+        </div>
+        <div class="footer">
+            <p>You\'re receiving this because you have unread messages.</p>
+            <p><a href="#">Unsubscribe</a> | <a href="#">Manage Preferences</a></p>
+        </div>
+    </div>
+</body>
+</html>'></iframe>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <p style="color: #666; font-size: 14px; margin-top: 30px;">
+                ✅ All templates use modern HTML/CSS with gradients<br>
+                ✅ Mobile-responsive design<br>
+                ✅ Consistent branding and color scheme<br>
+                ✅ Variable placeholders for personalization
+            </p>
+        </div>
+    </div>
+
+    <script>
+        function refreshAll() {
+            for (let i = 1; i <= 5; i++) {
+                const iframe = document.getElementById('template' + i);
+                iframe.src = iframe.src;
+            }
+        }
+
+        function toggleMobile() {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(iframe => {
+                if (iframe.style.width === '375px') {
+                    iframe.style.width = '100%';
+                } else {
+                    iframe.style.width = '375px';
+                    iframe.style.margin = '0 auto';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

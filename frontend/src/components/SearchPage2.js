@@ -1083,9 +1083,21 @@ const SearchPage2 = () => {
   const handleClearSelectedSearch = async () => {
     setSelectedSearch(null);
     setDisplayedCount(20); // Reset to initial display count
+    
+    // Calculate opposite gender for default search
+    let defaultGender = '';
+    if (currentUserProfile) {
+      const userGender = currentUserProfile.gender?.toLowerCase();
+      if (userGender === 'male') {
+        defaultGender = 'female';
+      } else if (userGender === 'female') {
+        defaultGender = 'male';
+      }
+    }
+    
     const clearedCriteria = {
       keyword: '',
-      gender: '',
+      gender: defaultGender, // Preserve opposite gender default
       ageMin: '',
       ageMax: '',
       heightMin: '',
@@ -1106,7 +1118,7 @@ const SearchPage2 = () => {
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setUsers([]);
     setTotalResults(0);
-    setStatusMessage('✅ Search cleared - showing all active users');
+    setStatusMessage('✅ Returning to default search (opposite gender)');
     setTimeout(() => setStatusMessage(''), 3000);
     
     // Perform search directly with cleared criteria instead of relying on state update
@@ -1115,6 +1127,7 @@ const SearchPage2 = () => {
       setError('');
 
       const params = {
+        gender: defaultGender, // Include default gender filter
         status: 'active',  // Only search for active users
         page: 1,
         limit: 500
