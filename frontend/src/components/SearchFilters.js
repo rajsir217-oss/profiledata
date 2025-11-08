@@ -151,24 +151,54 @@ const SearchFilters = ({
                   className="form-control"
                   name="ageMin"
                   value={searchCriteria.ageMin || ''}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (e.target.value === '' || (value >= 19 && value <= 100)) {
+                      handleInputChange(e);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value < 19) {
+                      e.target.value = 19;
+                      handleInputChange(e);
+                    } else if (value > 100) {
+                      e.target.value = 100;
+                      handleInputChange(e);
+                    }
+                  }}
                   min="19"
-                  max="80"
+                  max="100"
                   placeholder="19"
                   style={{ flex: 1 }}
-                  title="Minimum age must be 19 or older"
+                  title="Minimum age: 19 | Maximum age: 100"
                 />
                 <input
                   type="number"
                   className="form-control"
                   name="ageMax"
                   value={searchCriteria.ageMax || ''}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (e.target.value === '' || (value >= 19 && value <= 100)) {
+                      handleInputChange(e);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const value = parseInt(e.target.value);
+                    if (value < 19) {
+                      e.target.value = 19;
+                      handleInputChange(e);
+                    } else if (value > 100) {
+                      e.target.value = 100;
+                      handleInputChange(e);
+                    }
+                  }}
                   min="19"
-                  max="80"
+                  max="100"
                   placeholder="23"
                   style={{ flex: 1 }}
-                  title="Maximum age must be 19 or older"
+                  title="Minimum age: 19 | Maximum age: 100"
                 />
               </div>
             </div>
