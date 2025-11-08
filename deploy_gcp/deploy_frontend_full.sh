@@ -80,19 +80,26 @@ fi
 
 echo "✅ Backend URL: $BACKEND_URL"
 
-# Verify backend is accessible
+# Verify backend is accessible (with retries for cold start)
 echo "🔍 Verifying backend health..."
-if curl -sf --max-time 10 "${BACKEND_URL}/health" >/dev/null 2>&1; then
-  echo "✅ Backend is responding"
-else
-  echo "⚠️  Warning: Backend not responding at ${BACKEND_URL}"
-  echo "   Frontend deployment will continue, but may not work correctly."
-  read -p "Continue anyway? (y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "❌ Deployment cancelled"
-    exit 1
+HEALTH_CHECK_SUCCESS=false
+for i in {1..3}; do
+  if curl -sf --max-time 10 "${BACKEND_URL}/health" >/dev/null 2>&1; then
+    echo "✅ Backend is responding"
+    HEALTH_CHECK_SUCCESS=true
+    break
+  else
+    if [ $i -lt 3 ]; then
+      echo "⏳ Attempt $i/3 failed, waiting 10s for backend cold start..."
+      sleep 10
+    fi
   fi
+done
+
+if [ "$HEALTH_CHECK_SUCCESS" = false ]; then
+  echo "⚠️  Warning: Backend not responding after 3 attempts at ${BACKEND_URL}"
+  echo "   This might be due to cold start. Frontend will deploy anyway."
+  echo "   Backend should be accessible within 1-2 minutes."
 fi
 
 # -----------------------------------------------------------------------------
