@@ -80,6 +80,21 @@ fi
 
 echo "✅ Backend URL: $BACKEND_URL"
 
+# Verify backend is accessible
+echo "🔍 Verifying backend health..."
+if curl -sf --max-time 10 "${BACKEND_URL}/health" >/dev/null 2>&1; then
+  echo "✅ Backend is responding"
+else
+  echo "⚠️  Warning: Backend not responding at ${BACKEND_URL}"
+  echo "   Frontend deployment will continue, but may not work correctly."
+  read -p "Continue anyway? (y/N) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "❌ Deployment cancelled"
+    exit 1
+  fi
+fi
+
 # -----------------------------------------------------------------------------
 # Prepare runtime configuration (temporary file modifications)
 # -----------------------------------------------------------------------------
@@ -207,6 +222,8 @@ if [ ! -f ".env.local" ] || ! grep -q "REACT_APP_ENVIRONMENT=local" ".env.local"
     cat > ".env.local" <<'ENVLOCAL'
 # Local Development Environment
 REACT_APP_ENVIRONMENT=local
+REACT_APP_BACKEND_URL=http://localhost:8000
+REACT_APP_FRONTEND_URL=http://localhost:3000
 REACT_APP_SOCKET_URL=http://localhost:8000
 REACT_APP_API_URL=http://localhost:8000/api/users
 REACT_APP_WS_URL=ws://localhost:8000
