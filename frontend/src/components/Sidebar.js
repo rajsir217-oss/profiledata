@@ -363,6 +363,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
         {/* Footer Links */}
         <div className="sidebar-footer">
+          <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/help'))}>📚 Help</span>
+          <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/l3v3l-info'))}>🦋 L3V3L</span>
           <span className="footer-separator">|</span>
           <span className="footer-link" onClick={() => handleMenuClick(() => navigate('/privacy'))}>Privacy</span>

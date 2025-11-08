@@ -44,6 +44,7 @@ import InvitationManager from './components/InvitationManager';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
+import HelpPage from './components/HelpPage';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -251,6 +252,9 @@ function AppContent() {
               
               {/* L3V3L Info page - accessible to all */}
               <Route path="/l3v3l-info" element={<L3V3LInfo />} />
+              
+              {/* Help Center - accessible to all */}
+              <Route path="/help" element={<HelpPage />} />
               
               {/* Logo Showcase - for design review */}
               <Route path="/logo-showcase" element={<LogoShowcase />} />
