@@ -5,10 +5,34 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create Socket.IO server
+# Create Socket.IO server with proper CORS
+import os
+
+# Get allowed origins from environment
+allowed_origins = []
+env = os.getenv('ENV', 'development')
+if env == 'production':
+    # Production: Allow actual domain
+    frontend_url = os.getenv('FRONTEND_URL', 'https://l3v3lmatches.com')
+    allowed_origins = [
+        frontend_url,
+        'https://l3v3lmatches.com',
+        'https://www.l3v3lmatches.com',
+        'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app'
+    ]
+else:
+    # Development: Allow localhost
+    allowed_origins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://127.0.0.1:3000',
+        'http://127.0.0.1:3001'
+    ]
+
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins='*',  # Configure properly in production
+    cors_allowed_origins=allowed_origins,
+    cors_credentials=True,
     logger=True,
     engineio_logger=True
 )

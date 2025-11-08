@@ -139,18 +139,27 @@ if os.path.exists(settings.upload_dir):
     logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # CORS middleware (must be added before other middleware)
-# Allow all origins for Cloud Run (production handles this at the load balancer)
-# In production, you should restrict this to specific origins
-cors_origins = ["*"]  # Allow all origins temporarily for debugging
-
-# If running locally, use specific origins
-if os.getenv("ENV") == "development":
+env = os.getenv("ENV", "development")
+if env == "production":
+    # Production: Use actual domains
+    frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
+    cors_origins = [
+        frontend_url,
+        "https://l3v3lmatches.com",
+        "https://www.l3v3lmatches.com",
+        "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",
+        "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
+    ]
+    logger.info(f"🔒 Production CORS enabled for: {cors_origins}")
+else:
+    # Development: Allow localhost
     cors_origins = [
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
     ]
+    logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
