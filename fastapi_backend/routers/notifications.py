@@ -172,7 +172,32 @@ async def get_notification_queue(
         # Convert ObjectId to string for JSON serialization
         if "_id" in doc:
             doc["_id"] = str(doc["_id"])
-        notifications.append(NotificationQueueItem(**doc))
+        
+        # Transform MongoDB document to match Pydantic model
+        # Old schema: recipient.username, channel (singular)
+        # New schema: username, channels (list)
+        transformed = {
+            "_id": doc.get("_id"),
+            "username": doc.get("recipient", {}).get("username") if "recipient" in doc else doc.get("username", "unknown"),
+            "trigger": doc.get("trigger"),
+            "priority": doc.get("priority", "medium"),
+            "channels": [doc.get("channel")] if "channel" in doc else doc.get("channels", ["email"]),
+            "templateData": doc.get("data", doc.get("templateData", {})),
+            "status": doc.get("status", "pending"),
+            "scheduledFor": doc.get("scheduledFor"),
+            "attempts": doc.get("attempts", 0),
+            "lastAttempt": doc.get("lastAttempt"),
+            "error": doc.get("error"),
+            "createdAt": doc.get("createdAt"),
+            "updatedAt": doc.get("updatedAt")
+        }
+        
+        try:
+            notifications.append(NotificationQueueItem(**transformed))
+        except Exception as e:
+            # If validation still fails, skip this item with a warning
+            print(f"⚠️ Skipping invalid notification {doc.get('_id')}: {e}")
+            continue
     
     return notifications
 
