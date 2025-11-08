@@ -151,18 +151,13 @@ const SearchFilters = ({
                   className="form-control"
                   name="ageMin"
                   value={searchCriteria.ageMin || ''}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (e.target.value === '' || (value >= 19 && value <= 100)) {
-                      handleInputChange(e);
-                    }
-                  }}
+                  onChange={handleInputChange}
                   onBlur={(e) => {
                     const value = parseInt(e.target.value);
-                    if (value < 19) {
+                    if (e.target.value && value < 19) {
                       e.target.value = 19;
                       handleInputChange(e);
-                    } else if (value > 100) {
+                    } else if (e.target.value && value > 100) {
                       e.target.value = 100;
                       handleInputChange(e);
                     }
@@ -178,18 +173,13 @@ const SearchFilters = ({
                   className="form-control"
                   name="ageMax"
                   value={searchCriteria.ageMax || ''}
-                  onChange={(e) => {
-                    const value = parseInt(e.target.value);
-                    if (e.target.value === '' || (value >= 19 && value <= 100)) {
-                      handleInputChange(e);
-                    }
-                  }}
+                  onChange={handleInputChange}
                   onBlur={(e) => {
                     const value = parseInt(e.target.value);
-                    if (value < 19) {
+                    if (e.target.value && value < 19) {
                       e.target.value = 19;
                       handleInputChange(e);
-                    } else if (value > 100) {
+                    } else if (e.target.value && value > 100) {
                       e.target.value = 100;
                       handleInputChange(e);
                     }
