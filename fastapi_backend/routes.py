@@ -4807,10 +4807,9 @@ async def get_l3v3l_matches(
         # Get opposite gender users
         opposite_gender = "Female" if current_user.get('gender') == 'Male' else "Male"
         
-        # Build query
+        # Build query - include all users for scoring (will handle same-gender differently)
         query = {
             "username": {"$ne": username},  # Exclude self
-            "gender": opposite_gender,
             # PAUSE FEATURE: Exclude paused users from matching
             "accountStatus": {"$ne": "paused"},
             # Include users with active status OR no status field (default to active)
@@ -4823,7 +4822,7 @@ async def get_l3v3l_matches(
         
         # Get potential matches
         potential_matches = await db.users.find(query).to_list(1000)
-        logger.info(f"📊 Query returned {len(potential_matches)} opposite gender users")
+        logger.info(f"📊 Query returned {len(potential_matches)} users (all genders)")
         
         # Get user's exclusions
         exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
@@ -4840,18 +4839,27 @@ async def get_l3v3l_matches(
         for candidate in potential_matches:
             candidate['_id'] = str(candidate['_id'])
             
-            # Calculate comprehensive match score
-            match_result = matching_engine.calculate_match_score(current_user, candidate)
+            # Check if same gender - automatically 0% compatibility
+            if candidate.get('gender') == current_user.get('gender'):
+                match_result = {
+                    'total_score': 0,
+                    'breakdown': {'gender_compatibility': 0},
+                    'compatibility_level': 'Incompatible',
+                    'explanation': 'Same gender - no romantic compatibility'
+                }
+            else:
+                # Calculate comprehensive match score for opposite gender
+                match_result = matching_engine.calculate_match_score(current_user, candidate)
+                
+                # Add ML prediction if model is trained
+                ml_score = 0
+                if ml_enhancer.is_trained:
+                    ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
+                    # Blend ML score with rule-based score (70% rule-based, 30% ML)
+                    match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
+                    match_result['ml_prediction'] = round(ml_score * 100, 2)
             
-            # Add ML prediction if model is trained
-            ml_score = 0
-            if ml_enhancer.is_trained:
-                ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
-                # Blend ML score with rule-based score (70% rule-based, 30% ML)
-                match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
-                match_result['ml_prediction'] = round(ml_score * 100, 2)
-            
-            # Filter by minimum score
+            # Filter by minimum score (now includes same-gender with 0%)
             if match_result['total_score'] >= min_score:
                 # Prepare profile data - consistent with SearchResultCard expectations
                 profile = {
