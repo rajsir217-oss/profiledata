@@ -49,6 +49,7 @@ gcloud run deploy $SERVICE_NAME \
   --min-instances 0 \
   --max-instances 10 \
   --set-env-vars "\
+ENV=production,\
 MONGODB_URL=$MONGODB_URL,\
 DATABASE_NAME=$DATABASE_NAME,\
 REDIS_URL=$REDIS_URL,\
@@ -80,21 +81,16 @@ echo "Service URL: $BACKEND_URL"
 echo ""
 
 # Update BACKEND_URL and FRONTEND_URL environment variables
-echo "🔧 Updating BACKEND_URL environment variable..."
+echo "🔧 Updating BACKEND_URL and FRONTEND_URL environment variables..."
 
-# Check if frontend service exists to get its URL
-FRONTEND_URL=$(gcloud run services describe matrimonial-frontend \
-  --region $REGION \
-  --format "value(status.url)" 2>/dev/null || echo "")
-
-if [ -z "$FRONTEND_URL" ]; then
-  echo "⚠️  Frontend not deployed yet, setting placeholder"
-  FRONTEND_URL="https://matrimonial-frontend-458052696267.us-central1.run.app"
-fi
+# Use actual domain for FRONTEND_URL, not Cloud Run URL
+# This is critical for CORS to work correctly!
+FRONTEND_URL="https://l3v3lmatches.com"
+APP_URL="https://l3v3lmatches.com"
 
 gcloud run services update $SERVICE_NAME \
   --region $REGION \
-  --set-env-vars "BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL,APP_URL=$FRONTEND_URL"
+  --set-env-vars "BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL,APP_URL=$APP_URL"
 
 echo "✅ Backend configured:"
 echo "   BACKEND_URL: $BACKEND_URL"
