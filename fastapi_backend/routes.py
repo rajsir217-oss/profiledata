@@ -4804,12 +4804,13 @@ async def get_l3v3l_matches(
         
         current_user['_id'] = str(current_user['_id'])
         
-        # Get opposite gender users
+        # Get opposite gender users (heterosexual platform - only opposite gender matches)
         opposite_gender = "Female" if current_user.get('gender') == 'Male' else "Male"
         
-        # Build query - include all users for scoring (will handle same-gender differently)
+        # Build query - only opposite gender (heterosexual matrimonial platform)
         query = {
             "username": {"$ne": username},  # Exclude self
+            "gender": opposite_gender,  # Only opposite gender
             # PAUSE FEATURE: Exclude paused users from matching
             "accountStatus": {"$ne": "paused"},
             # Include users with active status OR no status field (default to active)
@@ -4822,7 +4823,7 @@ async def get_l3v3l_matches(
         
         # Get potential matches
         potential_matches = await db.users.find(query).to_list(1000)
-        logger.info(f"📊 Query returned {len(potential_matches)} users (all genders)")
+        logger.info(f"📊 Query returned {len(potential_matches)} opposite gender users")
         
         # Get user's exclusions
         exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
@@ -4839,35 +4840,18 @@ async def get_l3v3l_matches(
         for candidate in potential_matches:
             candidate['_id'] = str(candidate['_id'])
             
-            # Check if same gender - automatically 0% compatibility
-            if candidate.get('gender') == current_user.get('gender'):
-                match_result = {
-                    'total_score': 0,
-                    'breakdown': {'gender_compatibility': 0},
-                    'compatibility_level': 'Incompatible',
-                    'explanation': 'Same gender - no romantic compatibility',
-                    'match_reasons': ['Same gender - not compatible for romantic matching'],
-                    'component_scores': {
-                        'gender': 0,
-                        'demographics': 0,
-                        'preferences': 0,
-                        'personality': 0,
-                        'lifestyle': 0
-                    }
-                }
-            else:
-                # Calculate comprehensive match score for opposite gender
-                match_result = matching_engine.calculate_match_score(current_user, candidate)
-                
-                # Add ML prediction if model is trained
-                ml_score = 0
-                if ml_enhancer.is_trained:
-                    ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
-                    # Blend ML score with rule-based score (70% rule-based, 30% ML)
-                    match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
-                    match_result['ml_prediction'] = round(ml_score * 100, 2)
+            # Calculate comprehensive match score
+            match_result = matching_engine.calculate_match_score(current_user, candidate)
             
-            # Filter by minimum score (now includes same-gender with 0%)
+            # Add ML prediction if model is trained
+            ml_score = 0
+            if ml_enhancer.is_trained:
+                ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
+                # Blend ML score with rule-based score (70% rule-based, 30% ML)
+                match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
+                match_result['ml_prediction'] = round(ml_score * 100, 2)
+            
+            # Filter by minimum score
             if match_result['total_score'] >= min_score:
                 # Prepare profile data - consistent with SearchResultCard expectations
                 profile = {
