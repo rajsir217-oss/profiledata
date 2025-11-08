@@ -4,6 +4,7 @@
 /**
  * POD Configuration (for deployment script compatibility)
  * These are modified by deploy script at build time
+ * NO FALLBACKS - Must use environment variables!
  */
 const POD_CONFIG = {
   backend: process.env.REACT_APP_POD_BACKEND_URL,
@@ -37,7 +38,7 @@ export const getBackendUrl = () => {
   // Fallback only if env var is not set
   if (process.env.NODE_ENV === 'production') {
     console.warn('⚠️ REACT_APP_BACKEND_URL not set! Using fallback production URL.');
-    return 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app';
+    return 'https://matrimonial-backend-458052696267.us-central1.run.app';
   }
   
   // Development fallback
@@ -64,8 +65,7 @@ export const getApiUrl = () => {
  */
 export const getFrontendUrl = () => {
   if (process.env.NODE_ENV === 'production') {
-    return process.env.REACT_APP_FRONTEND_URL || 'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app';
-   
+    return process.env.REACT_APP_FRONTEND_URL || 'https://profiledata-pod.ue.r.appspot.com';
   }
   return process.env.REACT_APP_FRONTEND_URL || 'http://localhost:3000';
 };
