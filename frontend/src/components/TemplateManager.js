@@ -125,8 +125,6 @@ const TemplateManager = () => {
       }
 
       const data = await response.json();
-      console.log('✅ Loaded templates from API:', data);
-      console.log('   Template count:', Array.isArray(data) ? data.length : 'not an array');
       
       // Handle different response formats
       const templateArray = Array.isArray(data) ? data : (data.templates || []);
@@ -219,7 +217,8 @@ const TemplateManager = () => {
   useEffect(() => {
     loadTemplates();
     loadScheduledNotifications();
-  }, [loadTemplates, loadScheduledNotifications]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount only
 
   // ESC key listener for preview modal
   useEffect(() => {
