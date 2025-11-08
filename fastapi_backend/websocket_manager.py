@@ -35,44 +35,20 @@ def get_cors_origins():
         print(f"🔓 Development Socket.IO CORS: {origins}")
         return origins
 
-# Configure Redis for session management in production
-redis_url = os.getenv('REDIS_URL')
+# Create Socket.IO server
+# NOTE: Using in-memory sessions for now
+# TODO: Add Redis session manager for production multi-instance support
 env = os.getenv('ENV', 'development')
+print(f"🔍 Socket.IO - ENV={env}")
 
-if redis_url and env == 'production':
-    # Use Redis for session persistence across multiple instances
-    print(f"🔴 Using Redis for Socket.IO session management")
-    import socketio.asyncio_redis_manager as redis_mgr
-    try:
-        mgr = redis_mgr.AsyncRedisManager(redis_url)
-        sio = socketio.AsyncServer(
-            async_mode='asgi',
-            client_manager=mgr,
-            cors_allowed_origins='*',
-            cors_credentials=True,
-            logger=True,
-            engineio_logger=True
-        )
-        print(f"✅ Socket.IO configured with Redis session manager")
-    except Exception as e:
-        print(f"⚠️  Redis manager failed: {e}, using in-memory sessions")
-        sio = socketio.AsyncServer(
-            async_mode='asgi',
-            cors_allowed_origins='*',
-            cors_credentials=True,
-            logger=True,
-            engineio_logger=True
-        )
-else:
-    # Development: Use in-memory sessions
-    print(f"📝 Using in-memory Socket.IO sessions (development mode)")
-    sio = socketio.AsyncServer(
-        async_mode='asgi',
-        cors_allowed_origins='*',
-        cors_credentials=True,
-        logger=True,
-        engineio_logger=True
-    )
+sio = socketio.AsyncServer(
+    async_mode='asgi',
+    cors_allowed_origins='*',
+    cors_credentials=True,
+    logger=True,
+    engineio_logger=True
+)
+print(f"✅ Socket.IO server created (in-memory sessions)")
 
 # Store online users: {username: sid}
 online_users = {}
