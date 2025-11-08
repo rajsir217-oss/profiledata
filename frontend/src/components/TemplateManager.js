@@ -370,11 +370,14 @@ const TemplateManager = () => {
 
   const getFilteredTemplates = () => {
     return templates.filter(t => {
+      // Skip templates with missing required fields
+      if (!t) return false;
+      
       const matchesCategory = filterCategory === 'all' || t.category === filterCategory;
       const matchesChannel = filterChannel === 'all' || t.channel === filterChannel;
       const matchesSearch = !searchQuery || 
-        t.trigger.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        t.subject.toLowerCase().includes(searchQuery.toLowerCase());
+        (t.trigger && t.trigger.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (t.subject && t.subject.toLowerCase().includes(searchQuery.toLowerCase()));
       
       return matchesCategory && matchesChannel && matchesSearch;
     });
@@ -495,14 +498,18 @@ const TemplateManager = () => {
         </div>
       ) : (
         <div className="templates-grid">
-          {filteredTemplates.map(template => (
+          {filteredTemplates.map(template => {
+            // Skip invalid templates
+            if (!template || !template.trigger) return null;
+            
+            return (
             <div key={template._id || template.trigger} className="template-card">
               <div className="template-card-header">
                 <div className="template-icon">
                   {getCategoryIcon(template.category)}
                 </div>
                 <div className="header-content">
-                  <h3>{template.trigger.replace(/_/g, ' ').toUpperCase()}</h3>
+                  <h3>{(template.trigger || 'unknown').replace(/_/g, ' ').toUpperCase()}</h3>
                   <span className={`status-badge ${template.active ? 'active' : 'inactive'}`}>
                     {template.active ? '🟢 Active' : '🔴 Disabled'}
                   </span>
@@ -511,8 +518,8 @@ const TemplateManager = () => {
 
               <div className="template-card-body">
                 <div className="template-meta">
-                  <span className="meta-item">📨 {template.channel}</span>
-                  <span className="meta-item">🏷️ {template.category}</span>
+                  <span className="meta-item">📨 {template.channel || 'email'}</span>
+                  <span className="meta-item">🏷️ {template.category || 'uncategorized'}</span>
                   {template.type === 'job' && template.schedule && (
                     <span className="meta-item">⏰ {template.schedule}</span>
                   )}
@@ -643,7 +650,8 @@ const TemplateManager = () => {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
