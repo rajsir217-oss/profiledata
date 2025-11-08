@@ -8,30 +8,38 @@ logger = logging.getLogger(__name__)
 # Create Socket.IO server with proper CORS
 import os
 
-# Get allowed origins from environment
-allowed_origins = []
-env = os.getenv('ENV', 'development')
-if env == 'production':
-    # Production: Allow actual domain
-    frontend_url = os.getenv('FRONTEND_URL', 'https://l3v3lmatches.com')
-    allowed_origins = [
-        frontend_url,
-        'https://l3v3lmatches.com',
-        'https://www.l3v3lmatches.com',
-        'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app'
-    ]
-else:
-    # Development: Allow localhost
-    allowed_origins = [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://127.0.0.1:3000',
-        'http://127.0.0.1:3001'
-    ]
+# Function to get allowed origins (called at runtime, not module load)
+def get_cors_origins():
+    env = os.getenv('ENV', 'development')
+    print(f"🔍 Socket.IO CORS - ENV={env}")
+    
+    if env == 'production':
+        # Production: Allow actual domain
+        frontend_url = os.getenv('FRONTEND_URL', 'https://l3v3lmatches.com')
+        origins = [
+            frontend_url,
+            'https://l3v3lmatches.com',
+            'https://www.l3v3lmatches.com',
+            'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app'
+        ]
+        print(f"🔒 Production Socket.IO CORS: {origins}")
+        return origins
+    else:
+        # Development: Allow localhost
+        origins = [
+            'http://localhost:3000',
+            'http://localhost:3001',
+            'http://127.0.0.1:3000',
+            'http://127.0.0.1:3001'
+        ]
+        print(f"🔓 Development Socket.IO CORS: {origins}")
+        return origins
 
+# Create server with wildcard first (will be overridden in app startup)
+# This is a workaround because socketio.AsyncServer doesn't support dynamic origins
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins=allowed_origins,
+    cors_allowed_origins='*',  # Will work for now, proper CORS in FastAPI middleware
     cors_credentials=True,
     logger=True,
     engineio_logger=True

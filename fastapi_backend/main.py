@@ -140,9 +140,15 @@ if os.path.exists(settings.upload_dir):
 
 # CORS middleware (must be added before other middleware)
 env = os.getenv("ENV", "development")
+frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
+
+# Log environment for debugging
+print(f"🔍 CORS Configuration:")
+print(f"   ENV = {env}")
+print(f"   FRONTEND_URL = {frontend_url}")
+
 if env == "production":
     # Production: Use actual domains
-    frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
     cors_origins = [
         frontend_url,
         "https://l3v3lmatches.com",
@@ -150,6 +156,7 @@ if env == "production":
         "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",
         "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
     ]
+    print(f"🔒 Production CORS enabled for: {cors_origins}")
     logger.info(f"🔒 Production CORS enabled for: {cors_origins}")
 else:
     # Development: Allow localhost
@@ -159,6 +166,7 @@ else:
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
     ]
+    print(f"🔓 Development CORS enabled for: {cors_origins}")
     logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
 
 app.add_middleware(
