@@ -1210,23 +1210,63 @@ const SearchPage2 = () => {
       setLoading(true);
       setError('');
 
+      // Build params object
       const params = {
         gender: defaults.gender,
         ageMin: defaults.ageMin,
         ageMax: defaults.ageMax,
-        heightMinFeet: defaults.heightMinFeet,
-        heightMinInches: defaults.heightMinInches,
-        heightMaxFeet: defaults.heightMaxFeet,
-        heightMaxInches: defaults.heightMaxInches,
-        status: 'active',  // Only search for active users
+        status: 'active',
         page: 1,
         limit: 500
       };
 
+      // Convert height feet+inches to total inches (like handleSearch does)
+      if (defaults.heightMinFeet && defaults.heightMinInches) {
+        const feet = parseInt(defaults.heightMinFeet);
+        const inches = parseInt(defaults.heightMinInches);
+        if (!isNaN(feet) && !isNaN(inches)) {
+          params.heightMin = feet * 12 + inches;
+        }
+      }
+
+      if (defaults.heightMaxFeet && defaults.heightMaxInches) {
+        const feet = parseInt(defaults.heightMaxFeet);
+        const inches = parseInt(defaults.heightMaxInches);
+        if (!isNaN(feet) && !isNaN(inches)) {
+          params.heightMax = feet * 12 + inches;
+        }
+      }
+
+      // Clean up empty strings
+      Object.keys(params).forEach(key => {
+        if (params[key] === '' || params[key] === null || params[key] === undefined) {
+          delete params[key];
+        }
+      });
+
+      // Ensure integer fields are numbers
+      ['ageMin', 'ageMax', 'heightMin', 'heightMax'].forEach(field => {
+        if (params[field] !== undefined) {
+          const num = parseInt(params[field]);
+          if (!isNaN(num)) {
+            params[field] = num;
+          } else {
+            delete params[field];
+          }
+        }
+      });
+
+      console.log('🔍 Clear saved search params:', params);
+
       const response = await api.get('/search', { params });
-      setUsers(response.data.users || []);
-      setTotalResults(response.data.total || 0);
-      } catch (err) {
+      const fetchedUsers = response.data.users || [];
+      
+      setUsers(fetchedUsers);
+      setTotalResults(fetchedUsers.length);
+      setFiltersCollapsed(true); // Auto-collapse filters after search
+      
+      console.log(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);
+    } catch (err) {
       console.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
