@@ -36,6 +36,7 @@ import { TestDashboard } from './test-dashboard';
 import DynamicScheduler from './components/DynamicScheduler';
 import NotificationTester from './components/NotificationTester';
 import NotificationManagement from './components/NotificationManagement';
+import EmailTemplatePreview from './components/EmailTemplatePreview';
 import EmailAnalytics from './components/EmailAnalytics';
 import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
@@ -288,6 +289,7 @@ function AppContent() {
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
+              <Route path="/email-templates" element={<ProtectedRoute><EmailTemplatePreview /></ProtectedRoute>} />
               <Route path="/email-analytics" element={<ProtectedRoute><EmailAnalytics /></ProtectedRoute>} />
               <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
               <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
