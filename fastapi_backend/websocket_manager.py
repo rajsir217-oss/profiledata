@@ -35,20 +35,65 @@ def get_cors_origins():
         print(f"🔓 Development Socket.IO CORS: {origins}")
         return origins
 
-# Create Socket.IO server
-# NOTE: Using in-memory sessions for now
-# TODO: Add Redis session manager for production multi-instance support
+# Create Socket.IO server with Redis session management for production
 env = os.getenv('ENV', 'development')
-print(f"🔍 Socket.IO - ENV={env}")
+redis_url = os.getenv('REDIS_URL')
 
-sio = socketio.AsyncServer(
-    async_mode='asgi',
-    cors_allowed_origins='*',
-    cors_credentials=True,
-    logger=True,
-    engineio_logger=True
-)
-print(f"✅ Socket.IO server created (in-memory sessions)")
+print(f"🔍 Socket.IO Configuration:")
+print(f"   ENV: {env}")
+print(f"   Redis URL: {'configured' if redis_url else 'not configured'}")
+
+# Use Redis for session management in production
+if env == 'production' and redis_url:
+    print(f"🔴 Configuring Redis session manager for production...")
+    try:
+        # Import Redis manager from python-socketio
+        from socketio import AsyncRedisManager
+        
+        # Create Redis manager for session persistence across instances
+        manager = AsyncRedisManager(redis_url)
+        
+        sio = socketio.AsyncServer(
+            async_mode='asgi',
+            client_manager=manager,
+            cors_allowed_origins='*',
+            cors_credentials=True,
+            logger=True,
+            engineio_logger=True
+        )
+        print(f"✅ Socket.IO configured with Redis session manager")
+        print(f"   Sessions will persist across multiple Cloud Run instances")
+        
+    except ImportError as e:
+        print(f"⚠️  Failed to import AsyncRedisManager: {e}")
+        print(f"   Falling back to in-memory sessions")
+        sio = socketio.AsyncServer(
+            async_mode='asgi',
+            cors_allowed_origins='*',
+            cors_credentials=True,
+            logger=True,
+            engineio_logger=True
+        )
+    except Exception as e:
+        print(f"⚠️  Redis manager initialization failed: {e}")
+        print(f"   Falling back to in-memory sessions")
+        sio = socketio.AsyncServer(
+            async_mode='asgi',
+            cors_allowed_origins='*',
+            cors_credentials=True,
+            logger=True,
+            engineio_logger=True
+        )
+else:
+    # Development or no Redis: Use in-memory sessions
+    print(f"📝 Using in-memory Socket.IO sessions (development mode)")
+    sio = socketio.AsyncServer(
+        async_mode='asgi',
+        cors_allowed_origins='*',
+        cors_credentials=True,
+        logger=True,
+        engineio_logger=True
+    )
 
 # Store online users: {username: sid}
 online_users = {}
