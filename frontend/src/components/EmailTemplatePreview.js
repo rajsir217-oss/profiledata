@@ -22,7 +22,8 @@ const EmailTemplatePreview = () => {
 
     loadCategories();
     loadTemplates();
-  }, [navigate]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
   const loadCategories = async () => {
     try {
