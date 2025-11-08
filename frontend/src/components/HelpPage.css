@@ -160,13 +160,15 @@
 .help-tip {
   margin: 30px 0;
   padding: 20px;
-  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  background: var(--info-background);
   border-radius: var(--radius-md, 8px);
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid var(--primary-color);
+  color: var(--text-color);
 }
 
 .help-tip strong {
-  color: #92400e;
+  color: var(--primary-color);
+  font-weight: 600;
 }
 
 /* Score Breakdown */
