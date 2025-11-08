@@ -90,7 +90,7 @@ APP_URL="https://l3v3lmatches.com"
 
 gcloud run services update $SERVICE_NAME \
   --region $REGION \
-  --set-env-vars "BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL,APP_URL=$APP_URL"
+  --update-env-vars "BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL,APP_URL=$APP_URL"
 
 echo "✅ Backend configured:"
 echo "   BACKEND_URL: $BACKEND_URL"
