@@ -746,20 +746,20 @@ const SearchPage2 = () => {
   };
 
   const handleClearFilters = () => {
-    // Get default search criteria from user profile
+    // Minimal global defaults - Gender only (widest search)
     const defaults = getDefaultSearchCriteria();
     
     setSearchCriteria({
       keyword: '',
-      gender: defaults.gender, // Opposite gender
-      ageMin: defaults.ageMin, // Default age range
-      ageMax: defaults.ageMax,
+      gender: defaults.gender, // Opposite gender only
+      ageMin: '', // Empty - search all ages
+      ageMax: '',
       heightMin: '',
       heightMax: '',
-      heightMinFeet: defaults.heightMinFeet, // Default height range
-      heightMinInches: defaults.heightMinInches,
-      heightMaxFeet: defaults.heightMaxFeet,
-      heightMaxInches: defaults.heightMaxInches,
+      heightMinFeet: '', // Empty - search all heights
+      heightMinInches: '',
+      heightMaxFeet: '',
+      heightMaxInches: '',
       location: '',
       education: '',
       occupation: '',
