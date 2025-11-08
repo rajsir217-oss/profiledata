@@ -22,6 +22,10 @@ yarn-error.log*
 *.swp
 *.swo
 
+# Documentation (internal notes)
+zdocs/
+test_results/
+
 # Environment
 .env
 .env.local

@@ -21,9 +21,10 @@ RUN mkdir -p uploads
 EXPOSE 8080
 
 # Start with gunicorn using full main.py with MongoDB support
+# Use 1 worker for Socket.IO (in-memory sessions require single process)
 CMD exec gunicorn main:socket_app \
     --bind 0.0.0.0:8080 \
-    --workers 2 \
+    --workers 1 \
     --worker-class uvicorn.workers.UvicornWorker \
     --timeout 300 \
     --access-logfile - \
