@@ -234,6 +234,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       
       items.push({
         icon: '📧',
+        label: 'Email Templates',
+        subLabel: 'Preview & manage templates',
+        action: () => navigate('/email-templates')
+      });
+      
+      items.push({
+        icon: '📧',
         label: 'Saved Search Notifications',
         subLabel: 'Override & manage user alerts',
         action: () => navigate('/admin/notifications')
