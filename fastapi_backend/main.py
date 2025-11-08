@@ -210,7 +210,7 @@ app.include_router(push_subscriptions_router)  # Push notification subscriptions
 app.include_router(invitations_router)  # Invitation routes (already has /api/invitations prefix)
 app.include_router(account_status_router)  # Account status/pause routes (already has /api/account prefix)
 app.include_router(pause_analytics_router)  # Pause analytics routes (already has /api/pause-analytics prefix)
-app.include_router(email_templates_router, prefix="/api/email-templates", tags=["email-templates"])  # Email template management
+app.include_router(email_templates_router, prefix="/api/users/email-templates", tags=["email-templates"])  # Email template management
 app.include_router(system_health_router, prefix="/api/users/system", tags=["system"])  # System health routes
 
 # Health check endpoint
