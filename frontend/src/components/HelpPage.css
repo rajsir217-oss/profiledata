@@ -1,12 +1,13 @@
 /* Help Page Styles */
 .help-page {
   min-height: 100vh;
-  background: var(--background-color, #f5f7fa);
+  background: var(--background-color);
   padding-bottom: 40px;
+  color: var(--text-color);
 }
 
 .help-header {
-  background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, var(--secondary-color, #8b5cf6) 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   padding: 40px 20px;
   text-align: center;
@@ -60,7 +61,7 @@
 }
 
 .help-nav {
-  background: white;
+  background: var(--card-background, white);
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   overflow: hidden;
@@ -70,14 +71,15 @@
   width: 100%;
   padding: 16px 20px;
   border: none;
-  background: white;
+  background: var(--card-background, white);
+  color: var(--text-color);
   text-align: left;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   gap: 12px;
-  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .help-nav-item:last-child {
@@ -85,14 +87,14 @@
 }
 
 .help-nav-item:hover {
-  background: var(--hover-background, #f9fafb);
+  background: var(--hover-background);
 }
 
 .help-nav-item.active {
-  background: var(--primary-light, #eef2ff);
-  color: var(--primary-color, #6366f1);
+  background: var(--primary-light);
+  color: var(--primary-color);
   font-weight: 500;
-  border-left: 4px solid var(--primary-color, #6366f1);
+  border-left: 4px solid var(--primary-color);
 }
 
 .nav-icon {
@@ -105,7 +107,7 @@
 
 /* Main Content */
 .help-main {
-  background: white;
+  background: var(--card-background, white);
   border-radius: var(--radius-lg, 12px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   padding: 40px;
@@ -114,26 +116,26 @@
 .help-content h2 {
   margin: 0 0 30px 0;
   font-size: 28px;
-  color: var(--text-color, #1f2937);
-  border-bottom: 3px solid var(--primary-color, #6366f1);
+  color: var(--text-color);
+  border-bottom: 3px solid var(--primary-color);
   padding-bottom: 12px;
 }
 
 .help-content h3 {
   margin: 25px 0 15px 0;
   font-size: 20px;
-  color: var(--text-color, #374151);
+  color: var(--text-color);
 }
 
 .help-content p {
   line-height: 1.7;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin: 10px 0;
 }
 
 .help-content ul, .help-content ol {
   line-height: 1.8;
-  color: var(--text-secondary, #6b7280);
+  color: var(--text-secondary);
   margin: 15px 0;
   padding-left: 25px;
 }
@@ -143,16 +145,16 @@
 }
 
 .help-content strong {
-  color: var(--text-color, #1f2937);
+  color: var(--text-color);
   font-weight: 600;
 }
 
 .help-section {
   margin: 30px 0;
   padding: 20px;
-  background: var(--section-background, #f9fafb);
+  background: var(--section-background);
   border-radius: var(--radius-md, 8px);
-  border-left: 4px solid var(--primary-color, #6366f1);
+  border-left: 4px solid var(--primary-color);
 }
 
 .help-tip {
@@ -175,40 +177,42 @@
 .score-item {
   padding: 15px;
   margin: 12px 0;
-  background: white;
+  background: var(--card-background, white);
   border-radius: var(--radius-md, 8px);
-  border-left: 4px solid var(--primary-color, #6366f1);
+  border-left: 4px solid var(--primary-color);
 }
 
 .score-item strong {
   display: block;
   font-size: 16px;
   margin-bottom: 5px;
-  color: var(--primary-color, #6366f1);
+  color: var(--primary-color);
 }
 
 .score-item p {
   margin: 5px 0 0 0;
   font-size: 14px;
+  color: var(--text-secondary);
 }
 
 /* FAQ Items */
 .faq-item {
   margin: 25px 0;
   padding: 20px;
-  background: var(--section-background, #f9fafb);
+  background: var(--section-background);
   border-radius: var(--radius-md, 8px);
-  border-left: 4px solid var(--primary-color, #6366f1);
+  border-left: 4px solid var(--primary-color);
 }
 
 .faq-item h3 {
   margin: 0 0 10px 0;
   font-size: 16px;
-  color: var(--primary-color, #6366f1);
+  color: var(--primary-color);
 }
 
 .faq-item p {
   margin: 5px 0 0 0;
+  color: var(--text-secondary);
 }
 
 /* Mobile Responsive */
