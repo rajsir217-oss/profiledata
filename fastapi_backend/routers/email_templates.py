@@ -17,6 +17,36 @@ client = AsyncIOMotorClient(settings.mongodb_url)
 db = client[settings.database_name]
 
 
+@router.get("/templates/categories")
+async def get_template_categories(
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get list of unique template categories
+    Admin only
+    """
+    # Security: Only admin can view templates
+    if current_user["username"] != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Get distinct categories
+    categories = await db.notification_templates.distinct("category", {"channel": "email"})
+    
+    # Get count per category
+    category_counts = {}
+    for category in categories:
+        count = await db.notification_templates.count_documents({
+            "channel": "email",
+            "category": category
+        })
+        category_counts[category] = count
+    
+    return {
+        "categories": categories,
+        "counts": category_counts
+    }
+
+
 @router.get("/templates")
 async def get_all_templates(
     current_user: dict = Depends(get_current_user),
@@ -70,33 +100,3 @@ async def get_template_by_trigger(
     template["_id"] = str(template["_id"])
     
     return template
-
-
-@router.get("/templates/categories")
-async def get_template_categories(
-    current_user: dict = Depends(get_current_user)
-):
-    """
-    Get list of unique template categories
-    Admin only
-    """
-    # Security: Only admin can view templates
-    if current_user["username"] != "admin":
-        raise HTTPException(status_code=403, detail="Admin access required")
-    
-    # Get distinct categories
-    categories = await db.notification_templates.distinct("category", {"channel": "email"})
-    
-    # Get count per category
-    category_counts = {}
-    for category in categories:
-        count = await db.notification_templates.count_documents({
-            "channel": "email",
-            "category": category
-        })
-        category_counts[category] = count
-    
-    return {
-        "categories": categories,
-        "counts": category_counts
-    }
