@@ -640,6 +640,90 @@ const SearchPage2 = () => {
     }));
   };
 
+  // Calculate default search criteria from user profile
+  const getDefaultSearchCriteria = () => {
+    let defaultGender = '';
+    let defaultAgeMin = '';
+    let defaultAgeMax = '';
+    let defaultHeightMinFeet = '';
+    let defaultHeightMinInches = '';
+    let defaultHeightMaxFeet = '';
+    let defaultHeightMaxInches = '';
+
+    if (currentUserProfile) {
+      // Calculate opposite gender
+      const userGender = currentUserProfile.gender?.toLowerCase();
+      if (userGender === 'male') {
+        defaultGender = 'female';
+      } else if (userGender === 'female') {
+        defaultGender = 'male';
+      }
+
+      // Calculate user's age
+      let userAge = null;
+      if (currentUserProfile.dateOfBirth) {
+        const birthDate = new Date(currentUserProfile.dateOfBirth);
+        const today = new Date();
+        userAge = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          userAge--;
+        }
+      }
+
+      // Set default age range based on gender
+      if (userAge && userGender) {
+        if (userGender === 'male') {
+          defaultAgeMin = (userAge - 3).toString();
+          defaultAgeMax = (userAge + 1).toString();
+        } else if (userGender === 'female') {
+          defaultAgeMin = (userAge - 1).toString();
+          defaultAgeMax = (userAge + 3).toString();
+        }
+      }
+
+      // Parse user's height
+      let userHeightTotalInches = null;
+      if (currentUserProfile.height) {
+        const heightMatch = currentUserProfile.height.match(/(\d+)'(\d+)"/);
+        if (heightMatch) {
+          const userHeightFeet = parseInt(heightMatch[1]);
+          const userHeightInches = parseInt(heightMatch[2]);
+          userHeightTotalInches = userHeightFeet * 12 + userHeightInches;
+        }
+      }
+
+      // Set default height range based on gender
+      if (userHeightTotalInches && userGender) {
+        if (userGender === 'male') {
+          const minTotalInches = userHeightTotalInches - 3;
+          const maxTotalInches = userHeightTotalInches;
+          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+          defaultHeightMinInches = (minTotalInches % 12).toString();
+          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+          defaultHeightMaxInches = (maxTotalInches % 12).toString();
+        } else if (userGender === 'female') {
+          const minTotalInches = userHeightTotalInches;
+          const maxTotalInches = userHeightTotalInches + 3;
+          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+          defaultHeightMinInches = (minTotalInches % 12).toString();
+          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+          defaultHeightMaxInches = (maxTotalInches % 12).toString();
+        }
+      }
+    }
+
+    return {
+      gender: defaultGender,
+      ageMin: defaultAgeMin,
+      ageMax: defaultAgeMax,
+      heightMinFeet: defaultHeightMinFeet,
+      heightMinInches: defaultHeightMinInches,
+      heightMaxFeet: defaultHeightMaxFeet,
+      heightMaxInches: defaultHeightMaxInches
+    };
+  };
+
   // Wrapper for minMatchScore changes to reset display count
   const handleMinMatchScoreChange = (newScore) => {
     setMinMatchScore(newScore);
@@ -662,20 +746,20 @@ const SearchPage2 = () => {
   };
 
   const handleClearFilters = () => {
-    // Preserve gender (opposite sex) when clearing filters
-    const preservedGender = searchCriteria.gender;
+    // Get default search criteria from user profile
+    const defaults = getDefaultSearchCriteria();
     
     setSearchCriteria({
       keyword: '',
-      gender: preservedGender, // Keep opposite gender
-      ageMin: '',
-      ageMax: '',
+      gender: defaults.gender, // Opposite gender
+      ageMin: defaults.ageMin, // Default age range
+      ageMax: defaults.ageMax,
       heightMin: '',
       heightMax: '',
-      heightMinFeet: '',
-      heightMinInches: '',
-      heightMaxFeet: '',
-      heightMaxInches: '',
+      heightMinFeet: defaults.heightMinFeet, // Default height range
+      heightMinInches: defaults.heightMinInches,
+      heightMaxFeet: defaults.heightMaxFeet,
+      heightMaxInches: defaults.heightMaxInches,
       location: '',
       education: '',
       occupation: '',
@@ -1084,33 +1168,33 @@ const SearchPage2 = () => {
     setSelectedSearch(null);
     setDisplayedCount(20); // Reset to initial display count
     
-    // Calculate opposite gender for default search
-    let defaultGender = '';
-    if (currentUserProfile) {
-      const userGender = currentUserProfile.gender?.toLowerCase();
-      if (userGender === 'male') {
-        defaultGender = 'female';
-      } else if (userGender === 'female') {
-        defaultGender = 'male';
-      }
-    }
+    // Get default search criteria from user profile
+    const defaults = getDefaultSearchCriteria();
     
     const clearedCriteria = {
       keyword: '',
-      gender: defaultGender, // Preserve opposite gender default
-      ageMin: '',
-      ageMax: '',
+      gender: defaults.gender,
+      ageMin: defaults.ageMin,
+      ageMax: defaults.ageMax,
       heightMin: '',
       heightMax: '',
+      heightMinFeet: defaults.heightMinFeet,
+      heightMinInches: defaults.heightMinInches,
+      heightMaxFeet: defaults.heightMaxFeet,
+      heightMaxInches: defaults.heightMaxInches,
       location: '',
       education: '',
       occupation: '',
       religion: '',
       caste: '',
+      eatingPreference: '',
       drinking: '',
       smoking: '',
       relationshipStatus: '',
+      bodyType: '',
       newlyAdded: false,
+      sortBy: 'newest',
+      sortOrder: 'desc'
     };
     
     // Update criteria and clear results
@@ -1118,7 +1202,7 @@ const SearchPage2 = () => {
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setUsers([]);
     setTotalResults(0);
-    setStatusMessage('✅ Returning to default search (opposite gender)');
+    setStatusMessage('✅ Returning to default search criteria');
     setTimeout(() => setStatusMessage(''), 3000);
     
     // Perform search directly with cleared criteria instead of relying on state update
@@ -1127,7 +1211,13 @@ const SearchPage2 = () => {
       setError('');
 
       const params = {
-        gender: defaultGender, // Include default gender filter
+        gender: defaults.gender,
+        ageMin: defaults.ageMin,
+        ageMax: defaults.ageMax,
+        heightMinFeet: defaults.heightMinFeet,
+        heightMinInches: defaults.heightMinInches,
+        heightMaxFeet: defaults.heightMaxFeet,
+        heightMaxInches: defaults.heightMaxInches,
         status: 'active',  // Only search for active users
         page: 1,
         limit: 500
