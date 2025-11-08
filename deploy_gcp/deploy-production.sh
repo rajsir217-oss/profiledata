@@ -118,6 +118,11 @@ case $choice in
         echo "📦 Deploying Backend..."
         cd "$PROJECT_ROOT"
         ./deploy_gcp/deploy_backend_simple.sh
+        
+        echo ""
+        echo "🗄️  Running Database Migrations..."
+        cd "$PROJECT_ROOT/fastapi_backend"
+        python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         ;;
     2)
         echo ""
@@ -132,7 +137,13 @@ case $choice in
         ./deploy_gcp/deploy_backend_simple.sh
         
         echo ""
+        echo "🗄️  Running Database Migrations..."
+        cd "$PROJECT_ROOT/fastapi_backend"
+        python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
+        
+        echo ""
         echo "📦 Deploying Frontend..."
+        cd "$PROJECT_ROOT"
         ./deploy_gcp/deploy_frontend_full.sh
         ;;
     *)
