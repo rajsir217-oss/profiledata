@@ -5,7 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Create Socket.IO server with proper CORS
+# Create Socket.IO server with proper CORS and Redis session management
 import os
 
 # Function to get allowed origins (called at runtime, not module load)
@@ -35,15 +35,44 @@ def get_cors_origins():
         print(f"🔓 Development Socket.IO CORS: {origins}")
         return origins
 
-# Create server with wildcard first (will be overridden in app startup)
-# This is a workaround because socketio.AsyncServer doesn't support dynamic origins
-sio = socketio.AsyncServer(
-    async_mode='asgi',
-    cors_allowed_origins='*',  # Will work for now, proper CORS in FastAPI middleware
-    cors_credentials=True,
-    logger=True,
-    engineio_logger=True
-)
+# Configure Redis for session management in production
+redis_url = os.getenv('REDIS_URL')
+env = os.getenv('ENV', 'development')
+
+if redis_url and env == 'production':
+    # Use Redis for session persistence across multiple instances
+    print(f"🔴 Using Redis for Socket.IO session management")
+    import socketio.asyncio_redis_manager as redis_mgr
+    try:
+        mgr = redis_mgr.AsyncRedisManager(redis_url)
+        sio = socketio.AsyncServer(
+            async_mode='asgi',
+            client_manager=mgr,
+            cors_allowed_origins='*',
+            cors_credentials=True,
+            logger=True,
+            engineio_logger=True
+        )
+        print(f"✅ Socket.IO configured with Redis session manager")
+    except Exception as e:
+        print(f"⚠️  Redis manager failed: {e}, using in-memory sessions")
+        sio = socketio.AsyncServer(
+            async_mode='asgi',
+            cors_allowed_origins='*',
+            cors_credentials=True,
+            logger=True,
+            engineio_logger=True
+        )
+else:
+    # Development: Use in-memory sessions
+    print(f"📝 Using in-memory Socket.IO sessions (development mode)")
+    sio = socketio.AsyncServer(
+        async_mode='asgi',
+        cors_allowed_origins='*',
+        cors_credentials=True,
+        logger=True,
+        engineio_logger=True
+    )
 
 # Store online users: {username: sid}
 online_users = {}
