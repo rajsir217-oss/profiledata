@@ -237,7 +237,6 @@ const EmailTemplatePreview = () => {
                       title={`Preview of ${selectedTemplate.trigger}`}
                       srcDoc={renderSampleData(selectedTemplate.body)}
                       className="email-iframe"
-                      sandbox="allow-same-origin"
                     />
                   </div>
                 </div>
