@@ -569,7 +569,7 @@ const SearchResultCard = ({
                         }}
                         title="Request access to view photos"
                       >
-                        🔓 Request Pics
+                        Request
                       </button>
                     ) : (
                       <div className="request-pending-btn-main">

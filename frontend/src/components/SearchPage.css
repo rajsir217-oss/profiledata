@@ -3439,6 +3439,13 @@ body.theme-rose .request-pics-bubble:active {
 }
 
 /* Bio in Right Panel - When no image access */
+/* Ensure right panel uses flexbox for proper button positioning */
+.user-details-right:has(.bio-details-section) {
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
 .bio-details-section {
   display: flex;
   flex-direction: column;
@@ -3446,6 +3453,7 @@ body.theme-rose .request-pics-bubble:active {
   background: linear-gradient(135deg, var(--surface-color, #f8f9fa) 0%, var(--background-color, #ffffff) 100%);
   border-radius: 8px;
   margin-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .bio-text-main {
@@ -3475,9 +3483,9 @@ body.theme-rose .request-pics-bubble:active {
 
 .bio-action-section {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
   padding-top: 12px;
-  border-top: 1px solid var(--border-color, #e5e7eb);
+  margin-top: auto;
 }
 
 .request-pics-btn-main {
@@ -3535,9 +3543,6 @@ body.theme-dark .bio-placeholder-main {
   color: var(--text-muted-dark, #6b7280);
 }
 
-body.theme-dark .bio-action-section {
-  border-top-color: #374151;
-}
 
 /* Rose Theme - Bio Right Panel */
 body.theme-rose .bio-details-section {
