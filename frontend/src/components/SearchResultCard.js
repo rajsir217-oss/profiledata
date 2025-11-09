@@ -157,7 +157,7 @@ const SearchResultCard = ({
     // Check if user has image access (own profile always has access)
     const isOwnProfile = currentUsername === user.username;
     
-    // If no access to images, show bio instead of locked icon
+    // If no access to images, show bio with "Request Pics" bubble
     if (!isOwnProfile && !hasImageAccess) {
       return (
         <div className="profile-image-container">
@@ -170,10 +170,31 @@ const SearchResultCard = ({
                 </p>
               ) : (
                 <p className="search-bio-text-large search-bio-placeholder">
-                  "Images locked. {isImageRequestPending ? 'Request sent - awaiting approval.' : 'Request access to view photos.'}"
+                  "No bio available. Request access to view photos."
                 </p>
               )}
             </div>
+            
+            {/* Request Pics Bubble - Floating on top */}
+            {!isImageRequestPending ? (
+              <button
+                className="request-pics-bubble"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onPIIRequest) {
+                    onPIIRequest(user);
+                  }
+                }}
+                title="Request access to view photos"
+              >
+                🔓 Request Pics
+              </button>
+            ) : (
+              <div className="request-pending-bubble">
+                📨 Request Sent
+              </div>
+            )}
+            
             {/* Online Status Badge */}
             <div className="status-badge-absolute">
               <OnlineStatusBadge username={user.username} size="medium" />
