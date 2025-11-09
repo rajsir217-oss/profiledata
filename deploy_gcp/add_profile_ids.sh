@@ -15,13 +15,14 @@ if [ ! -f "../fastapi_backend/migrations/scripts/003_add_profile_ids.py" ]; then
     exit 1
 fi
 
-# Load production environment
+# Load production environment - extract only MONGODB_URL
 if [ -f "../fastapi_backend/.env.production" ]; then
     echo "📝 Loading production environment..."
-    export $(grep -v '^#' ../fastapi_backend/.env.production | xargs)
+    # Extract MONGODB_URL from .env.production (handles quoted values)
+    export MONGODB_URL=$(grep "^MONGODB_URL=" ../fastapi_backend/.env.production | cut -d '=' -f2- | sed 's/^"//' | sed 's/"$//')
 elif [ -f "../fastapi_backend/.env" ]; then
     echo "📝 Loading .env file..."
-    export $(grep -v '^#' ../fastapi_backend/.env | xargs)
+    export MONGODB_URL=$(grep "^MONGODB_URL=" ../fastapi_backend/.env | cut -d '=' -f2- | sed 's/^"//' | sed 's/"$//')
 else
     echo "⚠️  Warning: No .env file found"
     echo "   MONGODB_URL must be set manually"
