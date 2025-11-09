@@ -76,6 +76,145 @@
   z-index: 2;
 }
 
+/* Bio Section - When no image available */
+.user-card-bio-section {
+  width: 100%;
+  aspect-ratio: 3/4;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Bio Header - Small initials + name */
+.user-card-bio-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.bio-initials-circle {
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 1px;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.bio-initials-circle::before {
+  content: attr(data-initials);
+}
+
+.bio-header-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bio-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color, #1f2937);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bio-age-bubble {
+  display: inline-block;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+/* Bio Content - The "About Me" text */
+.user-card-bio-content {
+  flex: 1;
+  padding: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-start;
+}
+
+.bio-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-color, #374151);
+  font-style: italic;
+  
+  /* Multi-line truncation with ellipsis */
+  display: -webkit-box;
+  -webkit-line-clamp: 7; /* Show ~7 lines */
+  line-clamp: 7;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  
+  /* Gradient fade at bottom */
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.bio-text::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent 0%, rgba(248, 249, 250, 0.9) 100%);
+  pointer-events: none;
+}
+
+.bio-placeholder {
+  color: var(--text-muted, #9ca3af);
+  opacity: 0.7;
+}
+
+/* Bio Footer - Minimal location/occupation */
+.user-card-bio-footer {
+  display: flex;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.8);
+  border-top: 1px solid #e5e7eb;
+  font-size: 12px;
+  color: var(--text-muted, #6b7280);
+  flex-wrap: wrap;
+}
+
+.bio-location,
+.bio-occupation {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.bio-location .icon,
+.bio-occupation .icon {
+  font-size: 11px;
+}
+
 /* Body Section */
 .user-card-body {
   flex: 1;
@@ -619,4 +758,133 @@ body.theme-dark .user-action-btn {
 body.theme-dark .user-action-btn:hover {
   background: var(--primary-color, #667eea);
   color: white;
+}
+
+/* Dark Mode - Bio Section */
+body.theme-dark .user-card-bio-section {
+  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+  border-bottom-color: #374151;
+}
+
+body.theme-dark .user-card-bio-header {
+  background: #1f2937;
+  border-bottom-color: #374151;
+}
+
+body.theme-dark .bio-name {
+  color: var(--text-color-dark, #f9fafb);
+}
+
+body.theme-dark .bio-age-bubble {
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  color: white;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.5);
+}
+
+body.theme-dark .bio-text {
+  color: var(--text-color-dark, #e5e7eb);
+}
+
+body.theme-dark .bio-text::after {
+  background: linear-gradient(to bottom, transparent 0%, rgba(31, 41, 55, 0.9) 100%);
+}
+
+body.theme-dark .bio-placeholder {
+  color: var(--text-muted-dark, #6b7280);
+}
+
+body.theme-dark .user-card-bio-footer {
+  background: rgba(31, 41, 55, 0.8);
+  border-top-color: #374151;
+  color: var(--text-muted-dark, #9ca3af);
+}
+
+/* Rose Theme - Bio Section */
+body.theme-rose .user-card-bio-section {
+  background: linear-gradient(135deg, #fff5f7 0%, #ffe4e9 100%);
+}
+
+body.theme-rose .bio-initials-circle {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  box-shadow: 0 2px 8px rgba(225, 29, 72, 0.3);
+}
+
+body.theme-rose .bio-age-bubble {
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
+  box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3);
+}
+
+/* Responsive - Bio Section */
+@media (max-width: 768px) {
+  .bio-initials-circle {
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    font-size: 16px;
+  }
+  
+  .bio-name {
+    font-size: 15px;
+  }
+  
+  .bio-age-bubble {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+  
+  .bio-text {
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
+  }
+  
+  .user-card-bio-content {
+    padding: 12px;
+  }
+  
+  .user-card-bio-footer {
+    padding: 8px 12px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 576px) {
+  .user-card-bio-header {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  
+  .bio-initials-circle {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 14px;
+  }
+  
+  .bio-name {
+    font-size: 14px;
+  }
+  
+  .bio-age-bubble {
+    padding: 2px 7px;
+    font-size: 9px;
+  }
+  
+  .bio-text {
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-line-clamp: 5;
+    line-clamp: 5;
+  }
+  
+  .user-card-bio-content {
+    padding: 10px;
+  }
+  
+  .user-card-bio-footer {
+    padding: 6px 10px;
+    font-size: 10px;
+    gap: 8px;
+  }
 }
