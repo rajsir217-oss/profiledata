@@ -827,6 +827,10 @@ body.theme-ultra-light-gray .bio-text {
   color: var(--text-color, #f3f4f6);
 }
 
+body.theme-ultra-light-gray .bio-text::after {
+  background: linear-gradient(to bottom, transparent 0%, rgba(107, 107, 119, 0.9) 100%);
+}
+
 body.theme-ultra-light-gray .user-card-bio-section {
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
 }
@@ -896,6 +900,10 @@ body.theme-ultra-black .bio-name {
 
 body.theme-ultra-black .bio-text {
   color: var(--text-color, #e5e5e5);
+}
+
+body.theme-ultra-black .bio-text::after {
+  background: linear-gradient(to bottom, transparent 0%, rgba(10, 10, 10, 0.95) 100%);
 }
 
 body.theme-ultra-black .user-card-bio-footer {
