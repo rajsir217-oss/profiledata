@@ -164,8 +164,8 @@
   
   /* Multi-line truncation with ellipsis */
   display: -webkit-box;
-  -webkit-line-clamp: 7; /* Show ~7 lines */
-  line-clamp: 7;
+  -webkit-line-clamp: 10; /* Show ~10 lines, footer has more items now */
+  line-clamp: 10;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -191,28 +191,28 @@
   opacity: 0.7;
 }
 
-/* Bio Footer - Minimal location/occupation */
+/* Bio Footer - Location, profession, education */
 .user-card-bio-footer {
   display: flex;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
   padding: 10px 14px;
-  background: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid #e5e7eb;
+  background: rgba(248, 249, 250, 0.9);
+  border-top: 1px solid var(--border-color, #e0e0e0);
   font-size: 12px;
-  color: var(--text-muted, #6b7280);
-  flex-wrap: wrap;
+  color: var(--text-secondary, #666);
 }
 
-.bio-location,
-.bio-occupation {
+.bio-detail {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  line-height: 1.4;
 }
 
-.bio-location .icon,
-.bio-occupation .icon {
-  font-size: 11px;
+.bio-detail .icon {
+  font-size: 12px;
+  flex-shrink: 0;
 }
 
 /* Body Section */
@@ -835,8 +835,8 @@ body.theme-rose .bio-age-bubble {
   .bio-text {
     font-size: 13px;
     line-height: 1.5;
-    -webkit-line-clamp: 6;
-    line-clamp: 6;
+    -webkit-line-clamp: 8;
+    line-clamp: 8;
   }
   
   .user-card-bio-content {
@@ -874,8 +874,8 @@ body.theme-rose .bio-age-bubble {
   .bio-text {
     font-size: 12px;
     line-height: 1.4;
-    -webkit-line-clamp: 5;
-    line-clamp: 5;
+    -webkit-line-clamp: 6;
+    line-clamp: 6;
   }
   
   .user-card-bio-content {
@@ -885,6 +885,6 @@ body.theme-rose .bio-age-bubble {
   .user-card-bio-footer {
     padding: 6px 10px;
     font-size: 10px;
-    gap: 8px;
+    gap: 3px;
   }
 }

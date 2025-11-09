@@ -139,16 +139,21 @@ const UserCard = ({
             )}
           </div>
           
-          {/* Minimal Footer */}
+          {/* Footer with location, profession, education */}
           <div className="user-card-bio-footer">
             {profileData?.location && (
-              <span className="bio-location">
+              <span className="bio-detail">
                 <span className="icon">📍</span> {profileData.location}
               </span>
             )}
             {profileData?.occupation && (
-              <span className="bio-occupation">
+              <span className="bio-detail">
                 <span className="icon">💼</span> {profileData.occupation}
+              </span>
+            )}
+            {profileData?.education && (
+              <span className="bio-detail">
+                <span className="icon">🎓</span> {profileData.education}
               </span>
             )}
           </div>
