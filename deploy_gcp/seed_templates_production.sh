@@ -1,0 +1,66 @@
+#!/bin/bash
+# Seed all email templates to production database
+# Run this from deploy_gcp directory
+
+set -e
+
+echo "=============================================="
+echo "🌱 Seed Production Email Templates"
+echo "=============================================="
+echo ""
+
+# Check if we're in the right directory
+if [ ! -f "../fastapi_backend/seed_production_complete.py" ]; then
+    echo "❌ Error: Run this from deploy_gcp directory"
+    exit 1
+fi
+
+# Load production environment
+if [ -f "../fastapi_backend/.env.production" ]; then
+    echo "📝 Loading production environment..."
+    export $(grep -v '^#' ../fastapi_backend/.env.production | xargs)
+elif [ -f "../fastapi_backend/.env" ]; then
+    echo "📝 Loading .env file..."
+    export $(grep -v '^#' ../fastapi_backend/.env | xargs)
+else
+    echo "⚠️  Warning: No .env file found"
+    echo "   MONGODB_URL must be set manually"
+fi
+
+# Check if MONGODB_URL is set
+if [ -z "$MONGODB_URL" ]; then
+    echo ""
+    echo "❌ MONGODB_URL is not set!"
+    echo ""
+    echo "Please set it manually:"
+    echo "  export MONGODB_URL='your-production-mongodb-url'"
+    echo ""
+    exit 1
+fi
+
+# Show what we're about to do
+echo ""
+echo "Configuration:"
+echo "  MongoDB: ${MONGODB_URL:0:50}..."
+echo "  Templates: 21 email templates"
+echo ""
+echo "⚠️  This will seed/update production database!"
+echo ""
+read -p "Continue? (yes/no): " -r
+echo ""
+
+if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
+    echo "❌ Cancelled"
+    exit 0
+fi
+
+# Run the seed script
+echo "🚀 Running seed script..."
+echo ""
+cd ../fastapi_backend
+python3 seed_production_complete.py
+
+echo ""
+echo "✅ Done! Check your production email templates at:"
+echo "   https://l3v3lmatches.com/email-templates"
+echo ""
