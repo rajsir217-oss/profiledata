@@ -144,6 +144,8 @@
   border-radius: 12px;
   box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
   white-space: nowrap;
+  align-self: flex-start;
+  width: fit-content;
 }
 
 /* Bio Content - The "About Me" text */
