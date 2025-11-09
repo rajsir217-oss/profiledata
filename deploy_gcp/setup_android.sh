@@ -139,6 +139,15 @@ npx cap sync android
 echo -e "${GREEN}✅ Synced to Android${NC}"
 echo ""
 
+# Step 10: Configure network security (allow HTTP for development)
+echo -e "${BLUE}📋 Step 9: Configuring network security...${NC}"
+cd ../deploy_gcp
+chmod +x configure_android_network.sh
+./configure_android_network.sh > /dev/null 2>&1
+cd ../frontend
+echo -e "${GREEN}✅ Network security configured${NC}"
+echo ""
+
 echo "=============================================="
 echo -e "${GREEN}🎉 Android Setup Complete!${NC}"
 echo "=============================================="
