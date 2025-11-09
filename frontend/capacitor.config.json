@@ -4,8 +4,6 @@
   "webDir": "build",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://l3v3lmatches.com",
-    "cleartext": true,
     "androidScheme": "https"
   },
   "android": {
