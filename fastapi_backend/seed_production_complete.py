@@ -319,11 +319,18 @@ async def seed_production():
         raise
 
 if __name__ == "__main__":
-    print("\n⚠️  This will seed/update email templates in PRODUCTION database!")
-    print(f"MongoDB: {os.getenv('MONGODB_URL', 'NOT SET')[:50]}...")
-    response = input("\nContinue? (yes/no): ")
+    import sys
     
-    if response.lower() == 'yes':
-        asyncio.run(seed_production())
-    else:
-        print("❌ Cancelled")
+    # Check if running with --auto flag (for scripted execution)
+    auto_mode = '--auto' in sys.argv
+    
+    if not auto_mode:
+        print("\n⚠️  This will seed/update email templates in PRODUCTION database!")
+        print(f"MongoDB: {os.getenv('MONGODB_URL', 'NOT SET')[:50]}...")
+        response = input("\nContinue? (yes/no): ")
+        
+        if response.lower() != 'yes':
+            print("❌ Cancelled")
+            sys.exit(0)
+    
+    asyncio.run(seed_production())

@@ -55,11 +55,16 @@ if [[ ! $REPLY =~ ^[Yy][Ee][Ss]$ ]]; then
     exit 0
 fi
 
-# Run the seed script
-echo "🚀 Running seed script..."
+# Step 1: Cleanup duplicates first
+echo "🧹 Step 1: Cleaning up duplicate templates..."
 echo ""
 cd ../fastapi_backend
-python3 seed_production_complete.py
+python3 cleanup_duplicate_templates.py --auto
+
+echo ""
+echo "🚀 Step 2: Seeding fresh templates..."
+echo ""
+python3 seed_production_complete.py --auto
 
 echo ""
 echo "✅ Done! Check your production email templates at:"
