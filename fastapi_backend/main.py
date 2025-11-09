@@ -166,6 +166,7 @@ else:
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
+        "http://192.168.1.246:3000",  # Mac local IP
     ]
     print(f"🔓 Development CORS enabled for: {cors_origins}")
     logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
