@@ -517,29 +517,72 @@ const SearchResultCard = ({
 
         <div className="card-body">
           <div className="d-flex gap-3 mb-3">
-            <div className="profile-image-left">
-              {renderProfileImage()}
-            </div>
+            {/* Hide image area if no access, show if access granted */}
+            {(hasImageAccess || currentUsername === user.username) && (
+              <div className="profile-image-left">
+                {renderProfileImage()}
+              </div>
+            )}
 
             <div className="user-details-right flex-grow-1">
-              <div className="user-details">
-                <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
-                <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
-
-                {/* Simplified badges - max 2 priority tags */}
-                <div className="user-badges-compact">
-                  {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
-                  {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
-                </div>
-
-                {/* PII Status - Show only if granted */}
-                {hasPiiAccess && (
-                  <div className="pii-granted-compact">
-                    <span className="pii-status-badge">✓ Contact Info Granted</span>
+              {/* Show bio + request button when NO access, normal details when HAS access */}
+              {!hasImageAccess && currentUsername !== user.username ? (
+                <div className="bio-details-section">
+                  {/* Bio Text - Large and prominent */}
+                  <div className="bio-text-main">
+                    {user?.bio || user?.aboutMe || user?.about || user?.description ? (
+                      <p className="bio-quote-main">
+                        "{user.bio || user.aboutMe || user.about || user.description}"
+                      </p>
+                    ) : (
+                      <p className="bio-quote-main bio-placeholder-main">
+                        "No bio available. Request access to view photos and more details."
+                      </p>
+                    )}
                   </div>
-                )}
-              </div>
+                  
+                  {/* Request Pics Button - Bottom of bio section */}
+                  <div className="bio-action-section">
+                    {!isImageRequestPending ? (
+                      <button
+                        className="request-pics-btn-main"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onPIIRequest) {
+                            onPIIRequest(user);
+                          }
+                        }}
+                        title="Request access to view photos"
+                      >
+                        🔓 Request Pics
+                      </button>
+                    ) : (
+                      <div className="request-pending-btn-main">
+                        📨 Request Sent - Awaiting Approval
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="user-details">
+                  <p className="detail-line"><strong>📍</strong> {user.location}</p>
+                  <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
+                  <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
+
+                  {/* Simplified badges - max 2 priority tags */}
+                  <div className="user-badges-compact">
+                    {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
+                    {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
+                  </div>
+
+                  {/* PII Status - Show only if granted */}
+                  {hasPiiAccess && (
+                    <div className="pii-granted-compact">
+                      <span className="pii-status-badge">✓ Contact Info Granted</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
