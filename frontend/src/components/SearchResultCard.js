@@ -157,16 +157,22 @@ const SearchResultCard = ({
     // Check if user has image access (own profile always has access)
     const isOwnProfile = currentUsername === user.username;
     
-    // If no access to images, show locked version
+    // If no access to images, show bio instead of locked icon
     if (!isOwnProfile && !hasImageAccess) {
       return (
         <div className="profile-image-container">
-          <div className="profile-thumbnail-locked">
-            <div className="locked-overlay">
-              <span className="no-image-icon">👤</span>
-              <p className="text-muted small">
-                {isImageRequestPending ? '📨 Request Sent - Awaiting Approval' : 'Images Locked'}
-              </p>
+          <div className="search-card-bio-section">
+            {/* Bio Text - Images are locked */}
+            <div className="search-bio-content-full">
+              {user?.bio || user?.aboutMe || user?.about || user?.description ? (
+                <p className="search-bio-text-large">
+                  "{user.bio || user.aboutMe || user.about || user.description}"
+                </p>
+              ) : (
+                <p className="search-bio-text-large search-bio-placeholder">
+                  "Images locked. {isImageRequestPending ? 'Request sent - awaiting approval.' : 'Request access to view photos.'}"
+                </p>
+              )}
             </div>
             {/* Online Status Badge */}
             <div className="status-badge-absolute">
@@ -185,6 +191,16 @@ const SearchResultCard = ({
     const imageSrc = currentImage && currentImage.startsWith('http') 
       ? currentImage 
       : getImageUrl(currentImage);
+
+    // Debug: Log image status
+    if (!currentImage) {
+      console.log(`[SearchCard] ${user.username} - No image, should show bio:`, {
+        hasImages: !!user.images,
+        imageCount: user.images?.length,
+        bio: user.bio?.substring(0, 30),
+        aboutMe: user.aboutMe?.substring(0, 30)
+      });
+    }
 
     return (
       <div className="profile-image-container">

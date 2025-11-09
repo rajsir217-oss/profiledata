@@ -3310,7 +3310,7 @@
   background: linear-gradient(135deg, var(--surface-color, #f8f9fa) 0%, var(--background-color, #e9ecef) 100%);
   border-radius: 8px;
   overflow: hidden;
-  padding: 20px;
+  padding: 12px;
   align-items: center;
   justify-content: center;
 }
@@ -3321,22 +3321,26 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 5px;
 }
 
 .search-bio-text-large {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-color, #374151);
   font-style: italic;
   text-align: center;
   display: -webkit-box;
-  -webkit-line-clamp: 8;
-  line-clamp: 8;
+  -webkit-line-clamp: 7;
+  line-clamp: 7;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
 }
 
 .search-bio-placeholder {
