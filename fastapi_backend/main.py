@@ -161,6 +161,7 @@ if env == "production":
 else:
     # Development: Allow localhost
     cors_origins = [
+        "http://localhost",           # Android Capacitor
         "http://localhost:3000",
         "http://localhost:3001",
         "http://127.0.0.1:3000",
