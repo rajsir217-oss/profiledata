@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import { getBackendUrl } from '../config/apiConfig';
 import './EmailTemplatePreview.css';
 
 const EmailTemplatePreview = () => {
@@ -90,8 +91,8 @@ const EmailTemplatePreview = () => {
       .replace(/{matches\.count}/g, '5')
       .replace(/{stats\.viewsIncrease}/g, '50%')
       .replace(/{stats\.period}/g, 'this week')
-      .replace(/{app\.logoUrl}/g, 'https://storage.googleapis.com/l3v3l-profile-images/logo_butterfly.png')
-      .replace(/{app\.trackingPixelUrl}/g, 'https://l3v3lmatches.com/api/email-tracking/pixel/preview')
+      .replace(/{app\.logoUrl}/g, `${getBackendUrl()}/uploads/logo.png`)
+      .replace(/{app\.trackingPixelUrl}/g, `${getBackendUrl()}/api/email-tracking/pixel/preview`)
       .replace(/{app\.profileUrl}/g, '#profile')
       .replace(/{app\.profileUrl_tracked}/g, '#profile')
       .replace(/{app\.conversationUrl}/g, '#conversation')
