@@ -189,7 +189,7 @@
 }
 
 .bio-placeholder {
-  color: var(--text-muted, #9ca3af);
+  color: var(--text-secondary, #9ca3af);
   opacity: 0.7;
 }
 
@@ -202,7 +202,7 @@
   background: rgba(248, 249, 250, 0.9);
   border-top: 1px solid var(--border-color, #e0e0e0);
   font-size: 12px;
-  color: var(--text-secondary, #666);
+  color: var(--text-secondary, #4b5563);
 }
 
 .bio-detail {
@@ -247,7 +247,7 @@
 .user-occupation,
 .user-education {
   font-size: 12px;
-  color: var(--text-muted, #6c757d);
+  color: var(--text-secondary, #4b5563);
   margin: 0;
   display: flex;
   align-items: center;
@@ -268,7 +268,7 @@
 
 .user-meta {
   font-size: 12px;
-  color: var(--text-muted, #2d5eb33c);
+  color: var(--text-secondary, #6b7280);
   margin: 4px 0 0 0;
   font-style: italic;
 }
@@ -744,7 +744,7 @@ body.theme-dark .user-age,
 body.theme-dark .user-location,
 body.theme-dark .user-occupation,
 body.theme-dark .user-education {
-  color: var(--text-muted-dark, #9ca3af);
+  color: var(--text-secondary, #d1d5db);
 }
 
 body.theme-dark .user-card-actions {
@@ -764,13 +764,13 @@ body.theme-dark .user-action-btn:hover {
 
 /* Dark Mode - Bio Section */
 body.theme-dark .user-card-bio-section {
-  background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-  border-bottom-color: #374151;
+  background: linear-gradient(135deg, var(--surface-color, #2a2740) 0%, var(--card-background, #3a3450) 100%);
+  border-bottom-color: var(--border-color, #374151);
 }
 
 body.theme-dark .user-card-bio-header {
-  background: #1f2937;
-  border-bottom-color: #374151;
+  background: var(--surface-color, #2a2740);
+  border-bottom-color: var(--border-color, #374151);
 }
 
 body.theme-dark .bio-name {
@@ -798,7 +798,54 @@ body.theme-dark .bio-placeholder {
 body.theme-dark .user-card-bio-footer {
   background: rgba(31, 41, 55, 0.8);
   border-top-color: #374151;
-  color: var(--text-muted-dark, #9ca3af);
+  color: var(--text-secondary, #d1d5db);
+}
+
+/* Ultra Light Gray Theme - Dark background needs light text */
+body.theme-ultra-light-gray .user-card {
+  background: var(--card-background);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
+
+body.theme-ultra-light-gray .user-name {
+  color: var(--text-color, #f3f4f6);
+}
+
+body.theme-ultra-light-gray .user-age,
+body.theme-ultra-light-gray .user-location,
+body.theme-ultra-light-gray .user-occupation,
+body.theme-ultra-light-gray .user-education {
+  color: var(--text-secondary, #d1d5db);
+}
+
+body.theme-ultra-light-gray .bio-name {
+  color: var(--text-color, #f3f4f6);
+}
+
+body.theme-ultra-light-gray .bio-text {
+  color: var(--text-color, #f3f4f6);
+}
+
+body.theme-ultra-light-gray .user-card-bio-section {
+  background: linear-gradient(135deg, var(--surface-color) 0%, var(--card-background) 100%);
+}
+
+body.theme-ultra-light-gray .user-card-bio-header {
+  background: var(--surface-color);
+  border-bottom-color: var(--border-color);
+}
+
+body.theme-ultra-light-gray .user-card-bio-footer {
+  background: rgba(107, 107, 119, 0.8);
+  border-top-color: var(--border-color);
+  color: var(--text-secondary, #d1d5db);
+}
+
+body.theme-ultra-light-gray .user-action-btn {
+  background: var(--surface-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
 }
 
 /* Rose Theme - Bio Section */
@@ -814,6 +861,53 @@ body.theme-rose .bio-initials-circle {
 body.theme-rose .bio-age-bubble {
   background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
   box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3);
+}
+
+/* Ultra Black Theme (Midnight) - Pure black OLED theme */
+body.theme-ultra-black .user-card {
+  background: var(--card-background, #111111);
+  border-color: var(--border-color, #1f1f1f);
+}
+
+body.theme-ultra-black .user-name {
+  color: var(--text-color, #e5e5e5);
+}
+
+body.theme-ultra-black .user-age,
+body.theme-ultra-black .user-location,
+body.theme-ultra-black .user-occupation,
+body.theme-ultra-black .user-education {
+  color: var(--text-secondary, #a3a3a3);
+}
+
+body.theme-ultra-black .user-card-bio-section {
+  background: linear-gradient(135deg, var(--surface-color, #0a0a0a) 0%, var(--card-background, #111111) 100%);
+  border-bottom-color: var(--border-color, #1f1f1f);
+}
+
+body.theme-ultra-black .user-card-bio-header {
+  background: var(--surface-color, #0a0a0a);
+  border-bottom-color: var(--border-color, #1f1f1f);
+}
+
+body.theme-ultra-black .bio-name {
+  color: var(--text-color, #e5e5e5);
+}
+
+body.theme-ultra-black .bio-text {
+  color: var(--text-color, #e5e5e5);
+}
+
+body.theme-ultra-black .user-card-bio-footer {
+  background: rgba(10, 10, 10, 0.9);
+  border-top-color: var(--border-color, #1f1f1f);
+  color: var(--text-secondary, #a3a3a3);
+}
+
+body.theme-ultra-black .user-action-btn {
+  background: var(--surface-color, #0a0a0a);
+  border-color: var(--border-color, #1f1f1f);
+  color: var(--text-color, #e5e5e5);
 }
 
 /* Responsive - Bio Section */

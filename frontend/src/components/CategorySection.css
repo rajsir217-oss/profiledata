@@ -249,3 +249,43 @@ body.theme-dark .category-item-fallback {
   border-color: #4b5563;
   color: #f9fafb;
 }
+
+/* Ultra Light Gray Theme */
+body.theme-ultra-light-gray .category-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+body.theme-ultra-light-gray .category-section-content {
+  background: var(--card-background);
+}
+
+body.theme-ultra-light-gray .category-empty-state {
+  color: var(--text-secondary, #d1d5db);
+}
+
+body.theme-ultra-light-gray .category-item-fallback {
+  background: var(--surface-color);
+  border-color: var(--border-color);
+  color: #f9fafb;
+}
+
+/* Ultra Black Theme (Midnight) */
+body.theme-ultra-black .category-section {
+  background: var(--card-background);
+  border-color: var(--border-color);
+}
+
+body.theme-ultra-black .category-section-content {
+  background: var(--card-background);
+}
+
+body.theme-ultra-black .category-empty-state {
+  color: var(--text-secondary, #a3a3a3);
+}
+
+body.theme-ultra-black .category-item-fallback {
+  background: var(--surface-color);
+  border-color: var(--border-color);
+  color: var(--text-color);
+}
