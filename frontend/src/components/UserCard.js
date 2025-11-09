@@ -54,6 +54,7 @@ const UserCard = ({
   // Debug: Log bio fields
   if (!avatar) {
     console.log(`[UserCard Debug] ${username}:`, {
+      bio: profileData?.bio?.substring(0, 50),
       aboutMe: profileData?.aboutMe?.substring(0, 50),
       about: profileData?.about?.substring(0, 50),
       description: profileData?.description?.substring(0, 50),
@@ -138,9 +139,9 @@ const UserCard = ({
           
           {/* Bio Text */}
           <div className="user-card-bio-content">
-            {profileData?.aboutMe || profileData?.about || profileData?.description || profileData?.aboutYou ? (
+            {profileData?.bio || profileData?.aboutMe || profileData?.about || profileData?.description || profileData?.aboutYou ? (
               <p className="bio-text">
-                "{profileData.aboutMe || profileData.about || profileData.description || profileData.aboutYou}"
+                "{profileData.bio || profileData.aboutMe || profileData.about || profileData.description || profileData.aboutYou}"
               </p>
             ) : (
               <p className="bio-text bio-placeholder">
