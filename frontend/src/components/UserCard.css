@@ -152,34 +152,39 @@
 /* Actions Section */
 .user-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: space-between;
-  padding: 12px;
-  padding-top: 8px;
+  padding: 10px;
+  padding-top: 6px;
   border-top: none;
   margin-top: auto;
   min-height: auto;
-  align-items: stretch;
+  align-items: center;
   flex-wrap: nowrap;
+  overflow: visible;
 }
 
 /* Primary CTA Button (View Profile) */
 .user-card-actions .user-action-btn:first-child {
   flex: 1;
   width: auto;
-  height: 40px;
-  border-radius: 20px;
+  min-width: 0;
+  height: 36px;
+  border-radius: 18px;
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  padding: 0 20px;
+  padding: 0 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-card-actions .user-action-btn:first-child:hover {
@@ -188,12 +193,13 @@
 }
 
 .user-action-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
   border-radius: 8px;
   border: 2px solid #ddd;
   background: white;
-  font-size: 17px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
@@ -347,19 +353,21 @@
 }
 
 .user-card-compact .user-card-actions {
-  gap: 6px;
-  padding: 10px;
+  gap: 5px;
+  padding: 8px;
 }
 
 .user-card-compact .user-action-btn:first-child {
-  height: 36px;
-  font-size: 13px;
+  height: 32px;
+  font-size: 12px;
+  padding: 0 12px;
 }
 
 .user-card-compact .user-action-btn {
-  width: 32px;
-  height: 32px;
-  font-size: 15px;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  font-size: 14px;
 }
 
 /* Dashboard Variant */
@@ -448,19 +456,22 @@
   }
   
   .user-action-btn {
-    width: 34px;
-    height: 34px;
-    font-size: 16px;
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 15px;
   }
   
   .user-card-actions {
-    gap: 6px;
-    padding: 10px;
+    gap: 5px;
+    padding: 8px;
+    padding-top: 5px;
   }
   
   .user-card-actions .user-action-btn:first-child {
-    height: 38px;
-    font-size: 13px;
+    height: 34px;
+    font-size: 12px;
+    padding: 0 12px;
   }
 }
 
@@ -471,7 +482,21 @@
   }
   
   .user-card-actions {
-    padding: 10px;
+    padding: 8px;
+    gap: 5px;
+  }
+  
+  .user-action-btn {
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    font-size: 14px;
+  }
+  
+  .user-card-actions .user-action-btn:first-child {
+    height: 32px;
+    font-size: 11px;
+    padding: 0 10px;
   }
   
   .user-card-view-rows {
