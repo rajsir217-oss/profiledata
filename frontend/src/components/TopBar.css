@@ -419,7 +419,9 @@
   
   /* Hide username but keep avatar */
   .user-name {
-    display: none;
+    display: none !important;
+    width: 0 !important;
+    overflow: hidden !important;
   }
   
   /* Hide logout text on mobile, keep only icon */
@@ -516,6 +518,7 @@
     width: 44px;
     justify-content: center;
     flex-shrink: 0;
+    gap: 0;
   }
 }
 
@@ -541,6 +544,13 @@
     display: flex !important; /* KEEP VISIBLE */
     gap: 6px;
     flex-shrink: 0;
+  }
+  
+  /* Hide username but keep avatar */
+  .user-name {
+    display: none !important;
+    width: 0 !important;
+    overflow: hidden !important;
   }
   
   /* Hide logout text on small mobile, keep only icon */
@@ -606,6 +616,8 @@
     max-width: 44px;
     width: 44px;
     flex-shrink: 0;
+    gap: 0;
+    justify-content: center;
   }
   
   /* Profile icon stays visible and tappable */
