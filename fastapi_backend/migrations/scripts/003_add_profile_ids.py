@@ -9,6 +9,7 @@ import string
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 import os
+import certifi
 
 # Get MongoDB URL from environment
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
@@ -35,7 +36,8 @@ async def migrate_add_profile_ids():
     print("=" * 60)
     
     try:
-        client = AsyncIOMotorClient(MONGODB_URL)
+        # Connect with proper SSL certificate handling
+        client = AsyncIOMotorClient(MONGODB_URL, tlsCAFile=certifi.where())
         db = client[DATABASE_NAME]
         
         # Test connection

@@ -8,6 +8,7 @@ import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
+import certifi
 
 # Get MongoDB URL from environment or use production default
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb+srv://matrimonial-prod-cluster.mongodb.net")
@@ -246,7 +247,8 @@ async def seed_production():
     print("=" * 60)
     
     try:
-        client = AsyncIOMotorClient(MONGODB_URL)
+        # Connect with proper SSL certificate handling
+        client = AsyncIOMotorClient(MONGODB_URL, tlsCAFile=certifi.where())
         db = client[DATABASE_NAME]
         collection = db.notification_templates
         
