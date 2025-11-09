@@ -525,23 +525,38 @@ const SearchResultCard = ({
             )}
 
             <div className="user-details-right flex-grow-1">
-              {/* Show bio + request button when NO access, normal details when HAS access */}
+              {/* Show bio + details + request button when NO access */}
               {!hasImageAccess && currentUsername !== user.username ? (
-                <div className="bio-details-section">
-                  {/* Bio Text - Large and prominent */}
-                  <div className="bio-text-main">
-                    {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-                      <p className="bio-quote-main">
-                        "{user.bio || user.aboutMe || user.about || user.description}"
-                      </p>
-                    ) : (
-                      <p className="bio-quote-main bio-placeholder-main">
-                        "No bio available. Request access to view photos and more details."
-                      </p>
-                    )}
+                <>
+                  {/* Bio Text Section */}
+                  <div className="bio-details-section">
+                    <div className="bio-text-main">
+                      {user?.bio || user?.aboutMe || user?.about || user?.description ? (
+                        <p className="bio-quote-main">
+                          "{user.bio || user.aboutMe || user.about || user.description}"
+                        </p>
+                      ) : (
+                        <p className="bio-quote-main bio-placeholder-main">
+                          "No bio available. Request access to view photos and more details."
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* User Details - ALWAYS show */}
+                  <div className="user-details">
+                    <p className="detail-line"><strong>📍</strong> {user.location}</p>
+                    <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
+                    <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
+
+                    {/* Simplified badges - max 2 priority tags */}
+                    <div className="user-badges-compact">
+                      {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
+                      {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
+                    </div>
                   </div>
                   
-                  {/* Request Pics Button - Bottom of bio section */}
+                  {/* Request Pics Button - At bottom */}
                   <div className="bio-action-section">
                     {!isImageRequestPending ? (
                       <button
@@ -562,7 +577,7 @@ const SearchResultCard = ({
                       </div>
                     )}
                   </div>
-                </div>
+                </>
               ) : (
                 <div className="user-details">
                   <p className="detail-line"><strong>📍</strong> {user.location}</p>
