@@ -313,8 +313,9 @@
 .user-action-btn.btn-warning {
   background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
   border: 2px solid #ff9800 !important;
+  border-radius: 50% !important;
   color: white !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
   font-weight: bold !important;
   box-shadow: 0 4px 12px rgba(255, 193, 7, 0.6), 0 0 20px rgba(255, 193, 7, 0.4) !important;
   transform: scale(1.05);
@@ -331,8 +332,9 @@
 .user-action-btn.btn-outline-warning {
   background: transparent !important;
   border: 2px solid #ddd !important;
+  border-radius: 50% !important;
   color: #999 !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
   opacity: 0.6;
 }
 
@@ -348,8 +350,9 @@
 .user-action-btn.btn-info {
   background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
   border: 2px solid #138496 !important;
+  border-radius: 50% !important;
   color: white !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
   font-weight: bold !important;
   box-shadow: 0 4px 12px rgba(23, 162, 184, 0.6), 0 0 20px rgba(23, 162, 184, 0.4) !important;
   transform: scale(1.05);
@@ -366,8 +369,9 @@
 .user-action-btn.btn-outline-info {
   background: transparent !important;
   border: 2px solid #ddd !important;
+  border-radius: 50% !important;
   color: #999 !important;
-  font-size: 18px !important;
+  font-size: 16px !important;
   opacity: 0.6;
 }
 
