@@ -33,3 +33,11 @@ Dockerfile.dev
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Mobile apps (Capacitor) - not needed for web deployment
+android/
+ios/
+capacitor.config.json
+capacitor.config.ts
+*.keystore
+*.jks

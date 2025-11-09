@@ -55,10 +55,10 @@ echo ""
 
 # Step 3: Install Capacitor dependencies
 echo -e "${BLUE}📋 Step 3: Installing Capacitor packages...${NC}"
-npm install --save @capacitor/core @capacitor/cli @capacitor/android
+npm install --save --legacy-peer-deps @capacitor/core @capacitor/cli @capacitor/android
 
 # Also install useful plugins
-npm install --save @capacitor/splash-screen @capacitor/status-bar @capacitor/keyboard
+npm install --save --legacy-peer-deps @capacitor/splash-screen @capacitor/status-bar @capacitor/keyboard
 
 echo -e "${GREEN}✅ Capacitor packages installed${NC}"
 echo ""
