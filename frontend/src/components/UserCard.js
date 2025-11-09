@@ -51,17 +51,6 @@ const UserCard = ({
   const avatarPath = profileData?.images?.[0] || profileData?.profileImage || user.profileImage;
   const avatar = avatarPath ? getImageUrl(avatarPath) : null;
   
-  // Debug: Log bio fields
-  if (!avatar) {
-    console.log(`[UserCard Debug] ${username}:`, {
-      bio: profileData?.bio?.substring(0, 50),
-      aboutMe: profileData?.aboutMe?.substring(0, 50),
-      about: profileData?.about?.substring(0, 50),
-      description: profileData?.description?.substring(0, 50),
-      aboutYou: profileData?.aboutYou?.substring(0, 50)
-    });
-  }
-  
   // Get initials from first and last name, fallback to username
   const getInitials = () => {
     const firstName = profileData?.firstName || '';
