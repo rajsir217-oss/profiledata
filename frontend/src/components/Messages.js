@@ -65,6 +65,7 @@ const Messages = () => {
     return () => {
       socketService.off('new_message', handleNewMessage);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, selectedUser, currentUsername]);
 
   const loadConversations = async () => {

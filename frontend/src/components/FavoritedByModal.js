@@ -11,6 +11,7 @@ const FavoritedByModal = ({ isOpen, onClose, username }) => {
     if (isOpen && username) {
       loadFavoritedBy();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, username]);
 
   // ESC key to close modal

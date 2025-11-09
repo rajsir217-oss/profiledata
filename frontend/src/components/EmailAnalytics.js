@@ -18,6 +18,7 @@ const EmailAnalytics = () => {
     } else {
       loadSummary();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, period]);
 
   const loadSummary = async () => {

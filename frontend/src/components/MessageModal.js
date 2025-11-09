@@ -83,6 +83,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
         socketService.off('user_offline', handleUserOffline);
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, profile, currentUsername]);
 
   // ESC key to close modal

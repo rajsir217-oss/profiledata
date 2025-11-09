@@ -92,6 +92,7 @@ const NotificationTester = () => {
     } catch (error) {
       console.error('❌ Error loading user data:', error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

@@ -57,7 +57,7 @@ import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
 import { getApiUrl } from './config/apiConfig';
-import { requestNotificationPermission, onMessageListener } from './services/pushNotificationService';
+import { onMessageListener } from './services/pushNotificationService';
 import toastService from './services/toastService';
 import logger from './utils/logger';
 

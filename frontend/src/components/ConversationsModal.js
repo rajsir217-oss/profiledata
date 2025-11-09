@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import './ConversationsModal.css';
@@ -10,11 +10,25 @@ const ConversationsModal = ({ isOpen, onClose, username }) => {
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
+  const loadConversations = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await api.get(`/messages/conversations?username=${username}`);
+      setConversations(response.data.conversations || []);
+    } catch (err) {
+      console.error('Error loading conversations:', err);
+      setError('Failed to load conversations');
+    } finally {
+      setLoading(false);
+    }
+  }, [username]);
+
   useEffect(() => {
     if (isOpen && username) {
       loadConversations();
     }
-  }, [isOpen, username]);
+  }, [isOpen, username, loadConversations]);
 
   // ESC key to close modal
   useEffect(() => {
@@ -31,20 +45,6 @@ const ConversationsModal = ({ isOpen, onClose, username }) => {
       };
     }
   }, [isOpen, onClose]);
-
-  const loadConversations = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const response = await api.get(`/messages/conversations?username=${username}`);
-      setConversations(response.data.conversations || []);
-    } catch (err) {
-      console.error('Error loading conversations:', err);
-      setError('Failed to load conversations');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleOpenConversation = (conversationUser) => {
     // Navigate to messages page with the selected conversation
