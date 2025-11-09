@@ -154,36 +154,38 @@
 /* Actions Section */
 .user-card-actions {
   display: flex;
-  gap: clamp(4px, 2cqi, 8px);
-  justify-content: space-between;
-  padding: clamp(8px, 3cqi, 12px);
-  padding-top: clamp(4px, 2cqi, 8px);
+  gap: clamp(5px, 2cqi, 6px);
+  justify-content: center;
+  padding: clamp(9px, 3cqi, 10px);
+  padding-top: clamp(5px, 2cqi, 6px);
   border-top: none;
   margin-top: auto;
   min-height: auto;
   align-items: center;
   flex-wrap: nowrap;
   overflow: visible;
+  max-width: 100%;
 }
 
 /* Primary CTA Button (View Profile) */
 .user-card-actions .user-action-btn:first-child {
-  flex: 1;
+  flex: 0 1 auto;
   width: auto;
-  min-width: 0;
-  height: clamp(32px, 12cqi, 40px);
-  border-radius: clamp(16px, 6cqi, 20px);
+  min-width: fit-content;
+  max-width: 160px;
+  height: clamp(34px, 12cqi, 36px);
+  border-radius: 18px;
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
-  font-size: clamp(11px, 4.5cqi, 14px);
+  font-size: clamp(12px, 4.5cqi, 13px);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-  padding: 0 clamp(10px, 5cqi, 20px);
+  padding: 0 clamp(12px, 5cqi, 16px);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(2px, 1.5cqi, 6px);
+  gap: 4px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -195,19 +197,20 @@
 }
 
 .user-action-btn {
-  width: clamp(28px, 11cqi, 36px);
-  height: clamp(28px, 11cqi, 36px);
-  min-width: clamp(28px, 11cqi, 36px);
-  border-radius: clamp(6px, 2.5cqi, 8px);
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 50%;
   border: 2px solid #ddd;
   background: white;
-  font-size: clamp(14px, 5.5cqi, 18px);
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  aspect-ratio: 1 / 1;
 }
 
 .user-action-btn:hover {
@@ -244,7 +247,7 @@
   }
   
   .user-card-actions .user-action-btn:first-child {
-    height: 32px;
+    height: 30px;
     font-size: 11px;
     padding: 0 10px;
   }
@@ -266,7 +269,7 @@
   }
   
   .user-card-actions .user-action-btn:first-child {
-    height: 34px;
+    height: 32px;
     font-size: 12px;
     padding: 0 12px;
   }
@@ -288,7 +291,7 @@
   }
   
   .user-card-actions .user-action-btn:first-child {
-    height: 36px;
+    height: 34px;
     font-size: 13px;
     padding: 0 16px;
   }
@@ -301,27 +304,8 @@
   }
 }
 
-/* Extra large cards (> 350px) */
-@container usercard (min-width: 350px) {
-  .user-card-actions {
-    gap: 8px;
-    padding: 12px;
-    padding-top: 8px;
-  }
-  
-  .user-card-actions .user-action-btn:first-child {
-    height: 40px;
-    font-size: 14px;
-    padding: 0 20px;
-  }
-  
-  .user-action-btn {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    font-size: 18px;
-  }
-}
+/* Extra large cards (> 350px) - REMOVED to prevent oversized buttons */
+/* Cards wider than 350px will use the 280px+ styles */
 
 /* Enhanced Active State Styling - Matching SearchResultCard */
 
@@ -546,24 +530,8 @@
     font-size: 11px;
   }
   
-  .user-action-btn {
-    width: 30px;
-    height: 30px;
-    min-width: 30px;
-    font-size: 15px;
-  }
-  
-  .user-card-actions {
-    gap: 5px;
-    padding: 8px;
-    padding-top: 5px;
-  }
-  
-  .user-card-actions .user-action-btn:first-child {
-    height: 34px;
-    font-size: 12px;
-    padding: 0 12px;
-  }
+  /* Container queries handle button sizing */
+  /* Fallback only for very old browsers */
 }
 
 @media (max-width: 576px) {
@@ -572,23 +540,8 @@
     gap: 5px;
   }
   
-  .user-card-actions {
-    padding: 8px;
-    gap: 5px;
-  }
-  
-  .user-action-btn {
-    width: 28px;
-    height: 28px;
-    min-width: 28px;
-    font-size: 14px;
-  }
-  
-  .user-card-actions .user-action-btn:first-child {
-    height: 32px;
-    font-size: 11px;
-    padding: 0 10px;
-  }
+  /* Container queries handle button sizing */
+  /* Fallback only for very old browsers */
   
   .user-card-view-rows {
     flex-direction: column;
