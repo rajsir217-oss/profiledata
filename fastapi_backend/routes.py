@@ -26,6 +26,7 @@ from l3v3l_matching_engine import matching_engine
 from l3v3l_ml_enhancer import ml_enhancer
 from config import settings
 from utils import get_full_image_url, save_multiple_files
+from crypto_utils import get_encryptor
 
 # Compatibility aliases for old code
 def get_password_hash(password: str) -> str:
@@ -599,6 +600,15 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Debug: Log profileId presence
     logger.debug(f"📋 ProfileId in DB response: {user.get('profileId', 'NOT FOUND')}")
     
+    # 🔓 DECRYPT PII fields (if encrypted)
+    try:
+        encryptor = get_encryptor()
+        user = encryptor.decrypt_user_pii(user)
+        logger.debug(f"🔓 PII decrypted for {username}")
+    except Exception as decrypt_err:
+        logger.warning(f"⚠️ Decryption skipped (encryption may not be enabled): {decrypt_err}")
+        # Continue without decryption if encryption not configured
+    
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
     
@@ -990,6 +1000,15 @@ async def update_user_profile(
     # Log what's being updated
     logger.info(f"📝 update_data keys: {list(update_data.keys())}")
     
+    # 🔒 ENCRYPT PII fields before saving
+    try:
+        encryptor = get_encryptor()
+        update_data = encryptor.encrypt_user_pii(update_data)
+        logger.debug(f"🔒 PII encrypted before saving for {username}")
+    except Exception as encrypt_err:
+        logger.warning(f"⚠️ Encryption skipped (encryption may not be enabled): {encrypt_err}")
+        # Continue without encryption if not configured
+    
     # Update in database
     try:
         logger.info(f"💾 Updating profile for user '{username}' with {len(update_data)} fields...")
@@ -1040,6 +1059,14 @@ async def update_user_profile(
         updated_user = await db.users.find_one({"username": username})
         updated_user.pop("password", None)
         updated_user.pop("_id", None)
+        
+        # 🔓 DECRYPT PII fields for response
+        try:
+            encryptor = get_encryptor()
+            updated_user = encryptor.decrypt_user_pii(updated_user)
+        except Exception as decrypt_err:
+            logger.warning(f"⚠️ Decryption skipped on response: {decrypt_err}")
+        
         # Remove consent metadata (backend-only fields)
         remove_consent_metadata(updated_user)
         updated_user["images"] = [get_full_image_url(img) for img in updated_user.get("images", [])]
@@ -1190,12 +1217,20 @@ async def get_all_users(
         users_cursor = db.users.find(query).skip(skip).limit(limit)
         users = await users_cursor.to_list(length=limit)
         
-        # Remove sensitive data
-        for user in users:
+        # Remove sensitive data and decrypt PII
+        for i, user in enumerate(users):
             user.pop("password", None)
             user.pop("_id", None)
+            
+            # 🔓 DECRYPT PII fields
+            try:
+                encryptor = get_encryptor()
+                users[i] = encryptor.decrypt_user_pii(user)  # ✅ Assign back to list!
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username', 'unknown')}: {decrypt_err}")
+            
             # Convert image paths to full URLs
-            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]
         
         logger.info(f"✅ Retrieved {len(users)} users (page {page}/{total_pages}, total: {total_count})")
         return {
@@ -1421,24 +1456,15 @@ async def search_users(
     if gender:
         query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
 
-    # Age filter - Calculate DOB range from age range
-    # Note: Older age = earlier DOB, Younger age = later DOB
+    # Age filter - Use the age field (not encrypted dateOfBirth)
+    # ⚠️ IMPORTANT: Can't search on encrypted dateOfBirth, use age field instead
     if ageMin > 0 or ageMax > 0:
-        from datetime import datetime, timedelta
-        now = datetime.now()
-
-        # ageMax (younger) → person born MORE RECENTLY → DOB >= max_date
-        if ageMax > 0:
-            max_date = now - timedelta(days=ageMax * 365.25)
-            query["dateOfBirth"] = {"$gte": max_date.strftime("%Y-%m-%d")}
-
-        # ageMin (older) → person born LONGER AGO → DOB <= min_date
+        age_query = {}
         if ageMin > 0:
-            min_date = now - timedelta(days=ageMin * 365.25)
-            if "dateOfBirth" in query:
-                query["dateOfBirth"]["$lte"] = min_date.strftime("%Y-%m-%d")
-            else:
-                query["dateOfBirth"] = {"$lte": min_date.strftime("%Y-%m-%d")}
+            age_query["$gte"] = ageMin
+        if ageMax > 0:
+            age_query["$lte"] = ageMax
+        query["age"] = age_query
 
     # Height filter - now using heightInches (numeric field)
     if heightMin > 0 or heightMax > 0:
@@ -1500,13 +1526,21 @@ async def search_users(
         # Get total count for pagination
         total = await db.users.count_documents(query)
 
-        # Remove sensitive data
-        for user in users:
+        # Remove sensitive data and decrypt PII
+        for i, user in enumerate(users):
             user.pop("password", None)
             user.pop("_id", None)
+            
+            # 🔓 DECRYPT PII fields
+            try:
+                encryptor = get_encryptor()
+                users[i] = encryptor.decrypt_user_pii(user)  # ✅ Assign back to list!
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username', 'unknown')}: {decrypt_err}")
+            
             # Remove consent metadata (backend-only fields)
-            remove_consent_metadata(user)
-            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            remove_consent_metadata(users[i])
+            users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]
             
             # No field conversion needed
 
@@ -1882,6 +1916,14 @@ async def get_favorites(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                
+                # 🔓 DECRYPT PII fields
+                try:
+                    encryptor = get_encryptor()
+                    user = encryptor.decrypt_user_pii(user)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {fav['favoriteUsername']}: {decrypt_err}")
+                
                 remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["addedToFavoritesAt"] = fav["createdAt"]
@@ -2017,6 +2059,14 @@ async def get_shortlist(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                
+                # 🔓 DECRYPT PII fields
+                try:
+                    encryptor = get_encryptor()
+                    user = encryptor.decrypt_user_pii(user)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {item['shortlistedUsername']}: {decrypt_err}")
+                
                 remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["notes"] = item.get("notes")
@@ -2142,6 +2192,14 @@ async def get_exclusions(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                
+                # 🔓 DECRYPT PII fields
+                try:
+                    encryptor = get_encryptor()
+                    user = encryptor.decrypt_user_pii(user)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {exc['excludedUsername']}: {decrypt_err}")
+                
                 remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 user["excludedAt"] = exc.get("createdAt")
@@ -2333,6 +2391,14 @@ async def get_conversations_enhanced(
             # Build user profile
             user.pop("password", None)
             user["_id"] = str(user["_id"])
+            
+            # 🔓 DECRYPT PII fields
+            try:
+                encryptor = get_encryptor()
+                user = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
+            
             user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
             
             # Serialize datetime
@@ -2647,6 +2713,14 @@ async def get_conversations(username: str, db = Depends(get_database)):
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
+                
+                # 🔓 DECRYPT PII fields
+                try:
+                    encryptor = get_encryptor()
+                    user = encryptor.decrypt_user_pii(user)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
+                
                 remove_consent_metadata(user)
                 user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
                 conv["otherUser"] = user
@@ -2722,6 +2796,13 @@ async def get_recent_conversations(
             user = await db.users.find_one({"username": other_username})
             
             if user:
+                # 🔓 DECRYPT PII fields
+                try:
+                    encryptor = get_encryptor()
+                    user = encryptor.decrypt_user_pii(user)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
+                
                 # Check online status
                 is_online = redis.is_user_online(other_username)
                 
@@ -3013,6 +3094,14 @@ async def get_conversation(
         if other_user:
             other_user.pop("password", None)
             other_user["_id"] = str(other_user["_id"])
+            
+            # 🔓 DECRYPT PII fields
+            try:
+                encryptor = get_encryptor()
+                other_user = encryptor.decrypt_user_pii(other_user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
+            
             other_user["images"] = [get_full_image_url(img) for img in other_user.get("images", [])]
         
         logger.info(f"✅ Found {len(messages)} messages in conversation")
@@ -3330,6 +3419,15 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         
         viewer_dict = {u["username"]: u for u in viewer_users}
         
+        # 🔓 DECRYPT PII fields for all users
+        for user in viewer_users:
+            try:
+                encryptor = get_encryptor()
+                decrypted_user = encryptor.decrypt_user_pii(user)
+                viewer_dict[user["username"]] = decrypted_user
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+        
         result = []
         for viewer in viewers:
             user_data = viewer_dict.get(viewer["viewerUsername"], {})
@@ -3378,7 +3476,16 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
             {"username": {"$in": user_usernames}}
         ).to_list(100)
         
-        user_dict = {u["username"]: u for u in users}
+        # 🔓 DECRYPT PII fields for all users
+        user_dict = {}
+        for user in users:
+            try:
+                encryptor = get_encryptor()
+                decrypted_user = encryptor.decrypt_user_pii(user)
+                user_dict[user["username"]] = decrypted_user
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+                user_dict[user["username"]] = user
         
         result = []
         for fav in favorites:
@@ -3417,7 +3524,16 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
             {"username": {"$in": user_usernames}}
         ).to_list(100)
         
-        user_dict = {u["username"]: u for u in users}
+        # 🔓 DECRYPT PII fields for all users
+        user_dict = {}
+        for user in users:
+            try:
+                encryptor = get_encryptor()
+                decrypted_user = encryptor.decrypt_user_pii(user)
+                user_dict[user["username"]] = decrypted_user
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+                user_dict[user["username"]] = user
         
         result = []
         for shortlist in shortlists:
@@ -4853,6 +4969,13 @@ async def get_l3v3l_matches(
             
             # Filter by minimum score
             if match_result['total_score'] >= min_score:
+                # 🔓 DECRYPT PII fields before building profile
+                try:
+                    encryptor = get_encryptor()
+                    candidate = encryptor.decrypt_user_pii(candidate)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {candidate.get('username')}: {decrypt_err}")
+                
                 # Prepare profile data - consistent with SearchResultCard expectations
                 profile = {
                     'username': candidate['username'],

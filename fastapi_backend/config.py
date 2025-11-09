@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
+    # PII Encryption (Fernet symmetric encryption for data at rest)
+    encryption_key: Optional[str] = None  # Generate with: python crypto_utils.py
+    
     # Application URLs
     frontend_url: str = "http://localhost:3000"
     backend_url: str = "http://localhost:8000"
