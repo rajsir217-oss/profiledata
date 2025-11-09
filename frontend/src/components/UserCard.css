@@ -79,7 +79,7 @@
 /* Bio Section - When no image available */
 .user-card-bio-section {
   width: 100%;
-  aspect-ratio: 3/4;
+  min-height: 200px;
   display: flex;
   flex-direction: column;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -148,7 +148,6 @@
 
 /* Bio Content - The "About Me" text */
 .user-card-bio-content {
-  flex: 1;
   padding: 14px;
   overflow: hidden;
   display: flex;
@@ -165,8 +164,8 @@
   
   /* Multi-line truncation with ellipsis */
   display: -webkit-box;
-  -webkit-line-clamp: 10; /* Show ~10 lines, footer has more items now */
-  line-clamp: 10;
+  -webkit-line-clamp: 5; /* Show 5 lines max for compact cards */
+  line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
