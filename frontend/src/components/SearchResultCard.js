@@ -209,41 +209,16 @@ const SearchResultCard = ({
           />
         ) : (
           <div className="search-card-bio-section">
-            {/* Header with small initials + name */}
-            <div className="search-bio-header">
-              <div className="search-bio-initials" data-initials={getInitials()}></div>
-              <div className="search-bio-header-info">
-                <h4 className="search-bio-name">{getDisplayName(user)}</h4>
-                {displayAge && displayAge !== 'N/A' && (
-                  <span className="search-bio-age-bubble">{displayAge} years</span>
-                )}
-              </div>
-            </div>
-            
-            {/* Bio Text */}
-            <div className="search-bio-content">
+            {/* Bio Text Only - Header is already shown above */}
+            <div className="search-bio-content-full">
               {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-                <p className="search-bio-text">
+                <p className="search-bio-text-large">
                   "{user.bio || user.aboutMe || user.about || user.description}"
                 </p>
               ) : (
-                <p className="search-bio-text search-bio-placeholder">
+                <p className="search-bio-text-large search-bio-placeholder">
                   "No bio available. Click to view full profile..."
                 </p>
-              )}
-            </div>
-            
-            {/* Minimal Footer */}
-            <div className="search-bio-footer">
-              {user.location && (
-                <span className="search-bio-location">
-                  <span className="icon">📍</span> {user.location}
-                </span>
-              )}
-              {user.occupation && (
-                <span className="search-bio-occupation">
-                  <span className="icon">💼</span> {user.occupation}
-                </span>
               )}
             </div>
           </div>

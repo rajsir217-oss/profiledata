@@ -3301,110 +3301,42 @@
 }
 
 /* Bio Section - When no image available (Search Page) */
+/* Simple version - just shows bio text since header with name/age exists above */
 .search-card-bio-section {
   width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: linear-gradient(135deg, var(--surface-color, #f8f9fa) 0%, var(--background-color, #e9ecef) 100%);
   border-radius: 8px;
   overflow: hidden;
-}
-
-.search-bio-header {
-  display: flex;
+  padding: 20px;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  background: white;
-  border-bottom: 1px solid #e5e7eb;
-  flex-shrink: 0;
+  justify-content: center;
 }
 
-.search-bio-initials {
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+.search-bio-content-full {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-  color: white;
-  letter-spacing: 1px;
-  box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
+  padding: 10px;
 }
 
-.search-bio-initials::before {
-  content: attr(data-initials);
-}
-
-.search-bio-header-info {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.search-bio-name {
+.search-bio-text-large {
   margin: 0;
   font-size: 14px;
-  font-weight: 600;
-  color: var(--text-color, #1f2937);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.search-bio-age-bubble {
-  display: inline-block;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  color: white;
-  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
-  border-radius: 10px;
-  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
-  white-space: nowrap;
-  align-self: flex-start;
-}
-
-.search-bio-content {
-  flex: 1;
-  padding: 12px;
-  overflow: hidden;
-  display: flex;
-  align-items: flex-start;
-}
-
-.search-bio-text {
-  margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
+  line-height: 1.6;
   color: var(--text-color, #374151);
   font-style: italic;
+  text-align: center;
   display: -webkit-box;
-  -webkit-line-clamp: 6;
-  line-clamp: 6;
+  -webkit-line-clamp: 8;
+  line-clamp: 8;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  position: relative;
-  padding-bottom: 2px;
-}
-
-.search-bio-text::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 15px;
-  background: linear-gradient(to bottom, transparent 0%, rgba(248, 249, 250, 0.9) 100%);
-  pointer-events: none;
 }
 
 .search-bio-placeholder {
@@ -3412,75 +3344,22 @@
   opacity: 0.7;
 }
 
-.search-bio-footer {
-  display: flex;
-  gap: 10px;
-  padding: 8px 12px;
-  background: rgba(255, 255, 255, 0.8);
-  border-top: 1px solid #e5e7eb;
-  font-size: 10px;
-  color: var(--text-muted, #6b7280);
-  flex-wrap: wrap;
-  flex-shrink: 0;
-}
-
-.search-bio-location,
-.search-bio-occupation {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.search-bio-location .icon,
-.search-bio-occupation .icon {
-  font-size: 10px;
-}
-
 /* Dark Mode - Search Bio Section */
 body.theme-dark .search-card-bio-section {
   background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
 }
 
-body.theme-dark .search-bio-header {
-  background: #1f2937;
-  border-bottom-color: #374151;
-}
-
-body.theme-dark .search-bio-name {
-  color: var(--text-color-dark, #f9fafb);
-}
-
-body.theme-dark .search-bio-text {
+body.theme-dark .search-bio-text-large {
   color: var(--text-color-dark, #e5e7eb);
-}
-
-body.theme-dark .search-bio-text::after {
-  background: linear-gradient(to bottom, transparent 0%, rgba(31, 41, 55, 0.9) 100%);
 }
 
 body.theme-dark .search-bio-placeholder {
   color: var(--text-muted-dark, #6b7280);
 }
 
-body.theme-dark .search-bio-footer {
-  background: rgba(31, 41, 55, 0.8);
-  border-top-color: #374151;
-  color: var(--text-muted-dark, #9ca3af);
-}
-
 /* Rose Theme - Search Bio Section */
 body.theme-rose .search-card-bio-section {
   background: linear-gradient(135deg, #fff5f7 0%, #ffe4e9 100%);
-}
-
-body.theme-rose .search-bio-initials {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-  box-shadow: 0 2px 6px rgba(225, 29, 72, 0.3);
-}
-
-body.theme-rose .search-bio-age-bubble {
-  background: linear-gradient(135deg, #e11d48 0%, #be123c 100%);
-  box-shadow: 0 2px 4px rgba(225, 29, 72, 0.3);
 }
 
 .no-image-icon-overlay {
