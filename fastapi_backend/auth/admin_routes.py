@@ -75,15 +75,25 @@ async def get_all_users(
         users_cursor = db.users.find(query).skip(skip).limit(limit).sort("created_at", -1)
         users = await users_cursor.to_list(length=limit)
         
-        # Remove sensitive data
-        for user in users:
+        # Remove sensitive data and decrypt PII
+        from crypto_utils import get_encryptor
+        
+        for i, user in enumerate(users):
             user["_id"] = str(user["_id"])
-            if "security" in user:
-                user["security"].pop("password_hash", None)
-                user["security"].pop("password_history", None)
-            if "mfa" in user:
-                user["mfa"].pop("mfa_secret", None)
-                user["mfa"].pop("mfa_backup_codes", None)
+            
+            # 🔓 DECRYPT PII fields
+            try:
+                encryptor = get_encryptor()
+                users[i] = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username', 'unknown')}: {decrypt_err}")
+            
+            if "security" in users[i]:
+                users[i]["security"].pop("password_hash", None)
+                users[i]["security"].pop("password_history", None)
+            if "mfa" in users[i]:
+                users[i]["mfa"].pop("mfa_secret", None)
+                users[i]["mfa"].pop("mfa_backup_codes", None)
         
         return {
             "users": users,
@@ -110,6 +120,14 @@ async def get_user_details(
             raise HTTPException(status_code=404, detail="User not found")
         
         user["_id"] = str(user["_id"])
+        
+        # 🔓 DECRYPT PII fields
+        from crypto_utils import get_encryptor
+        try:
+            encryptor = get_encryptor()
+            user = encryptor.decrypt_user_pii(user)
+        except Exception as decrypt_err:
+            logger.warning(f"⚠️ Decryption skipped for {username}: {decrypt_err}")
         
         # Remove sensitive data
         if "security" in user:

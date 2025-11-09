@@ -3,7 +3,7 @@ Pause Analytics API Routes
 Admin-only endpoints for pause feature analytics
 """
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from datetime import datetime
 from pydantic import BaseModel, Field
 
@@ -52,8 +52,8 @@ class TopPauserResponse(BaseModel):
     username: str
     pauseCount: int
     currentStatus: str
-    pausedAt: datetime = None
-    pauseReason: str = None
+    pausedAt: Optional[datetime] = None  # Optional datetime
+    pauseReason: Optional[str] = None
 
 
 class AutoUnpauseStatsResponse(BaseModel):

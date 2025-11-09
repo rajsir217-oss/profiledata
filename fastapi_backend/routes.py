@@ -1439,12 +1439,13 @@ async def search_users(
         query["status.status"] = {"$regex": "^active$", "$options": "i"}
 
     # Text search
+    # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region)
     if keyword:
         query["$or"] = [
             {"firstName": {"$regex": keyword, "$options": "i"}},
             {"lastName": {"$regex": keyword, "$options": "i"}},
             {"username": {"$regex": keyword, "$options": "i"}},
-            {"location": {"$regex": keyword, "$options": "i"}},
+            {"region": {"$regex": keyword, "$options": "i"}},  # Search region, not location
             {"education": {"$regex": keyword, "$options": "i"}},
             {"occupation": {"$regex": keyword, "$options": "i"}},
             {"aboutYou": {"$regex": keyword, "$options": "i"}},
@@ -1476,8 +1477,10 @@ async def search_users(
         query["heightInches"] = height_query
 
     # Other filters
+    # ⚠️ IMPORTANT: Can't search on encrypted location, search on region instead
     if location:
-        query["location"] = {"$regex": location, "$options": "i"}
+        # Search in region field (unencrypted) instead of location (encrypted)
+        query["region"] = {"$regex": location, "$options": "i"}
     if occupation:
         query["occupation"] = occupation
     if religion:
