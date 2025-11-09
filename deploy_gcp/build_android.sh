@@ -37,9 +37,19 @@ if [ ! -d "android" ]; then
     exit 1
 fi
 
+# Set up Android SDK paths
+if [ -z "$ANDROID_HOME" ]; then
+    export ANDROID_HOME=$HOME/Library/Android/sdk
+fi
+export PATH=$PATH:$ANDROID_HOME/emulator
+export PATH=$PATH:$ANDROID_HOME/platform-tools
+
 # Check if emulator is available
 echo -e "${BLUE}📋 Checking for Android emulators...${NC}"
-EMULATOR_LIST=$(emulator -list-avds 2>/dev/null || echo "")
+EMULATOR_CMD="$ANDROID_HOME/emulator/emulator"
+ADB_CMD="$ANDROID_HOME/platform-tools/adb"
+
+EMULATOR_LIST=$($EMULATOR_CMD -list-avds 2>/dev/null || echo "")
 if [ -z "$EMULATOR_LIST" ]; then
     echo -e "${RED}❌ No Android emulators found${NC}"
     echo "Please create an emulator in Android Studio first."
@@ -51,7 +61,7 @@ echo ""
 
 # Check if emulator is already running
 echo -e "${BLUE}📋 Checking running devices...${NC}"
-RUNNING_DEVICES=$(adb devices | grep -v "List of devices" | grep "device$" | wc -l | tr -d ' ')
+RUNNING_DEVICES=$($ADB_CMD devices | grep -v "List of devices" | grep "device$" | wc -l | tr -d ' ')
 
 if [ "$RUNNING_DEVICES" -eq "0" ]; then
     echo -e "${YELLOW}⚠️  No emulator running${NC}"
@@ -62,17 +72,17 @@ if [ "$RUNNING_DEVICES" -eq "0" ]; then
     echo "Launching: $FIRST_EMULATOR"
     
     # Start emulator in background
-    emulator -avd "$FIRST_EMULATOR" -no-snapshot-load > /dev/null 2>&1 &
+    $EMULATOR_CMD -avd "$FIRST_EMULATOR" -no-snapshot-load > /dev/null 2>&1 &
     EMULATOR_PID=$!
     
     echo -e "${BLUE}⏳ Waiting for emulator to boot...${NC}"
     echo "   (This may take 30-60 seconds)"
     
     # Wait for device to be ready
-    adb wait-for-device
+    $ADB_CMD wait-for-device
     
     # Wait for boot to complete
-    while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
+    while [ "$($ADB_CMD shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
         sleep 2
         echo -n "."
     done
@@ -124,13 +134,13 @@ echo ""
 
 # Install on emulator
 echo -e "${BLUE}📲 Step 5: Installing on emulator...${NC}"
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+$ADB_CMD install -r app/build/outputs/apk/debug/app-debug.apk
 echo -e "${GREEN}✅ App installed${NC}"
 echo ""
 
 # Launch app
 echo -e "${BLUE}🚀 Step 6: Launching app...${NC}"
-adb shell am start -n com.l3v3l.matrimony/.MainActivity
+$ADB_CMD shell am start -n com.l3v3l.matrimony/.MainActivity
 echo -e "${GREEN}✅ App launched${NC}"
 echo ""
 
@@ -145,9 +155,9 @@ echo "💾 Size: ${APK_SIZE}"
 echo ""
 echo "🔍 Debug Tools:"
 echo "   • Chrome DevTools: chrome://inspect"
-echo "   • View logs: adb logcat | grep L3V3L"
-echo "   • Stop app: adb shell am force-stop com.l3v3l.matrimony"
-echo "   • Uninstall: adb uninstall com.l3v3l.matrimony"
+echo "   • View logs: $ADB_CMD logcat | grep L3V3L"
+echo "   • Stop app: $ADB_CMD shell am force-stop com.l3v3l.matrimony"
+echo "   • Uninstall: $ADB_CMD uninstall com.l3v3l.matrimony"
 echo ""
 echo "♻️  Rebuild & redeploy:"
 echo "   ./build_android.sh"
@@ -159,5 +169,5 @@ if [ "$SHOW_LOGS" = "y" ] || [ "$SHOW_LOGS" = "Y" ]; then
     echo ""
     echo "📋 Live Logs (Ctrl+C to stop):"
     echo "----------------------------------------------"
-    adb logcat | grep -i "matrimony\|chromium\|capacitor"
+    $ADB_CMD logcat | grep -i "matrimony\|chromium\|capacitor"
 fi

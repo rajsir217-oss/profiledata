@@ -11,6 +11,13 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Set up Android SDK paths
+if [ -z "$ANDROID_HOME" ]; then
+    export ANDROID_HOME=$HOME/Library/Android/sdk
+fi
+EMULATOR_CMD="$ANDROID_HOME/emulator/emulator"
+ADB_CMD="$ANDROID_HOME/platform-tools/adb"
+
 show_usage() {
     echo "Usage: ./android_emulator.sh [command]"
     echo ""
@@ -28,14 +35,14 @@ show_usage() {
 
 list_emulators() {
     echo -e "${BLUE}📱 Available Emulators:${NC}"
-    emulator -list-avds
+    $EMULATOR_CMD -list-avds
 }
 
 start_emulator() {
     echo -e "${BLUE}🚀 Starting emulator...${NC}"
     
     # Get first available emulator
-    EMULATOR_NAME=$(emulator -list-avds | head -n 1)
+    EMULATOR_NAME=$($EMULATOR_CMD -list-avds | head -n 1)
     
     if [ -z "$EMULATOR_NAME" ]; then
         echo -e "${RED}❌ No emulators found${NC}"
@@ -44,12 +51,12 @@ start_emulator() {
     fi
     
     echo "Starting: $EMULATOR_NAME"
-    emulator -avd "$EMULATOR_NAME" -no-snapshot-load &
+    $EMULATOR_CMD -avd "$EMULATOR_NAME" -no-snapshot-load &
     
     echo -e "${BLUE}⏳ Waiting for boot...${NC}"
-    adb wait-for-device
+    $ADB_CMD wait-for-device
     
-    while [ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
+    while [ "$($ADB_CMD shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; do
         sleep 2
         echo -n "."
     done
@@ -59,7 +66,7 @@ start_emulator() {
 
 stop_emulator() {
     echo -e "${BLUE}🛑 Stopping emulator...${NC}"
-    adb emu kill
+    $ADB_CMD emu kill
     echo -e "${GREEN}✅ Emulator stopped${NC}"
 }
 
@@ -75,16 +82,16 @@ show_status() {
     
     # Running devices
     echo "Running devices:"
-    adb devices
+    $ADB_CMD devices
     echo ""
     
     # App status
     echo "L3V3L Matrimony app:"
-    if adb shell pm list packages | grep -q "com.l3v3l.matrimony"; then
+    if $ADB_CMD shell pm list packages | grep -q "com.l3v3l.matrimony"; then
         echo -e "${GREEN}✅ Installed${NC}"
         
         # Check if running
-        if adb shell pidof com.l3v3l.matrimony > /dev/null 2>&1; then
+        if $ADB_CMD shell pidof com.l3v3l.matrimony > /dev/null 2>&1; then
             echo -e "${GREEN}✅ Running${NC}"
         else
             echo -e "${YELLOW}⏸  Not running${NC}"
@@ -97,7 +104,7 @@ show_status() {
 show_logs() {
     echo -e "${BLUE}📋 Live Logs (Ctrl+C to stop):${NC}"
     echo "----------------------------------------------"
-    adb logcat | grep -i "matrimony\|chromium\|capacitor\|console"
+    $ADB_CMD logcat | grep -i "matrimony\|chromium\|capacitor\|console"
 }
 
 install_apk() {
@@ -110,13 +117,13 @@ install_apk() {
     fi
     
     echo -e "${BLUE}📲 Installing APK...${NC}"
-    adb install -r "$APK_PATH"
+    $ADB_CMD install -r "$APK_PATH"
     echo -e "${GREEN}✅ Installed${NC}"
 }
 
 uninstall_app() {
     echo -e "${BLUE}🗑️  Uninstalling app...${NC}"
-    adb uninstall com.l3v3l.matrimony
+    $ADB_CMD uninstall com.l3v3l.matrimony
     echo -e "${GREEN}✅ Uninstalled${NC}"
 }
 
