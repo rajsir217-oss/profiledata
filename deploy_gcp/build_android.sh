@@ -44,6 +44,11 @@ fi
 export PATH=$PATH:$ANDROID_HOME/emulator
 export PATH=$PATH:$ANDROID_HOME/platform-tools
 
+# Set JAVA_HOME to Android Studio's bundled JDK
+if [ -z "$JAVA_HOME" ]; then
+    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"
+fi
+
 # Check if emulator is available
 echo -e "${BLUE}📋 Checking for Android emulators...${NC}"
 EMULATOR_CMD="$ANDROID_HOME/emulator/emulator"
