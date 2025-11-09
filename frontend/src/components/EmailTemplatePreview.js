@@ -90,15 +90,26 @@ const EmailTemplatePreview = () => {
       .replace(/{matches\.count}/g, '5')
       .replace(/{stats\.viewsIncrease}/g, '50%')
       .replace(/{stats\.period}/g, 'this week')
+      .replace(/{app\.logoUrl}/g, 'https://storage.googleapis.com/l3v3l-profile-images/logo_butterfly.png')
+      .replace(/{app\.trackingPixelUrl}/g, 'https://l3v3lmatches.com/api/email-tracking/pixel/preview')
       .replace(/{app\.profileUrl}/g, '#profile')
+      .replace(/{app\.profileUrl_tracked}/g, '#profile')
       .replace(/{app\.conversationUrl}/g, '#conversation')
+      .replace(/{app\.conversationUrl_tracked}/g, '#conversation')
       .replace(/{app\.favoriteBackUrl}/g, '#favorite')
+      .replace(/{app\.favoriteBackUrl_tracked}/g, '#favorite')
       .replace(/{app\.changePasswordUrl}/g, '#change-password')
+      .replace(/{app\.changePasswordUrl_tracked}/g, '#change-password')
       .replace(/{app\.securitySettingsUrl}/g, '#security')
+      .replace(/{app\.securitySettingsUrl_tracked}/g, '#security')
       .replace(/{app\.dashboardUrl}/g, '#dashboard')
+      .replace(/{app\.dashboardUrl_tracked}/g, '#dashboard')
       .replace(/{app\.actionUrl}/g, '#action')
+      .replace(/{app\.actionUrl_tracked}/g, '#action')
       .replace(/{app\.unsubscribeUrl}/g, '#unsubscribe')
-      .replace(/{app\.preferencesUrl}/g, '#preferences');
+      .replace(/{app\.unsubscribeUrl_tracked}/g, '#unsubscribe')
+      .replace(/{app\.preferencesUrl}/g, '#preferences')
+      .replace(/{app\.preferencesUrl_tracked}/g, '#preferences');
   };
 
   const getCategoryBadgeColor = (category) => {
