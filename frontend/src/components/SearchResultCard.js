@@ -80,6 +80,21 @@ const SearchResultCard = ({
 
   const piiStatus = getPIIStatusSummary();
 
+  // Get initials from first and last name, fallback to username
+  const getInitials = () => {
+    const firstName = user?.firstName || '';
+    const lastName = user?.lastName || '';
+    
+    if (firstName && lastName) {
+      return (firstName[0] + lastName[0]).toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    } else if (user?.username) {
+      return user.username[0].toUpperCase();
+    }
+    return '?';
+  };
+
   // Calculate age from date of birth
   const calculateAge = (dateOfBirth) => {
     if (!dateOfBirth) return 'N/A';
@@ -193,11 +208,47 @@ const SearchResultCard = ({
             loading="lazy"
           />
         ) : (
-          <div className="profile-thumbnail-placeholder">
-            <span className="no-image-icon">👤</span>
+          <div className="search-card-bio-section">
+            {/* Header with small initials + name */}
+            <div className="search-bio-header">
+              <div className="search-bio-initials" data-initials={getInitials()}></div>
+              <div className="search-bio-header-info">
+                <h4 className="search-bio-name">{getDisplayName(user)}</h4>
+                {displayAge && displayAge !== 'N/A' && (
+                  <span className="search-bio-age-bubble">{displayAge} years</span>
+                )}
+              </div>
+            </div>
+            
+            {/* Bio Text */}
+            <div className="search-bio-content">
+              {user?.bio || user?.aboutMe || user?.about || user?.description ? (
+                <p className="search-bio-text">
+                  "{user.bio || user.aboutMe || user.about || user.description}"
+                </p>
+              ) : (
+                <p className="search-bio-text search-bio-placeholder">
+                  "No bio available. Click to view full profile..."
+                </p>
+              )}
+            </div>
+            
+            {/* Minimal Footer */}
+            <div className="search-bio-footer">
+              {user.location && (
+                <span className="search-bio-location">
+                  <span className="icon">📍</span> {user.location}
+                </span>
+              )}
+              {user.occupation && (
+                <span className="search-bio-occupation">
+                  <span className="icon">💼</span> {user.occupation}
+                </span>
+              )}
+            </div>
           </div>
         )}
-        <div className="no-image-icon-overlay" style={{display: imageError || !currentImage ? 'flex' : 'none'}}>
+        <div className="no-image-icon-overlay" style={{display: imageError || !currentImage ? 'none' : 'none'}}>
           👤
         </div>
 
