@@ -43,6 +43,10 @@ fi
 echo "✅ Device connected"
 echo ""
 
+# Copy Android env file
+echo "⚙️  Setting Android environment..."
+cp .env.android .env.local 2>/dev/null || true
+
 # Build React
 echo "📦 Building React app..."
 npm run build > /dev/null 2>&1
