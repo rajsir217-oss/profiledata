@@ -91,7 +91,7 @@ const EmailTemplatePreview = () => {
       .replace(/{matches\.count}/g, '5')
       .replace(/{stats\.viewsIncrease}/g, '50%')
       .replace(/{stats\.period}/g, 'this week')
-      .replace(/{app\.logoUrl}/g, 'https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/static/logo.png')
+      .replace(/{app\.logoUrl}/g, 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==')
       .replace(/{app\.trackingPixelUrl}/g, `${getBackendUrl()}/api/email-tracking/pixel/preview`)
       .replace(/{app\.profileUrl}/g, '#profile')
       .replace(/{app\.profileUrl_tracked}/g, '#profile')

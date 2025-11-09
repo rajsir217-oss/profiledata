@@ -46,7 +46,7 @@ const TemplateManager = () => {
       message: 'You have a new match!'
     },
     app: {
-      logoUrl: 'https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/static/logo.png',
+      logoUrl: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==',
       trackingPixelUrl: 'http://localhost:8000/api/email-tracking/pixel/preview',
       profileUrl: `${getFrontendUrl()}/profile/mike_dev`,
       profileUrl_tracked: `${getFrontendUrl()}/profile/mike_dev`,
