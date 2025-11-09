@@ -91,7 +91,7 @@ const EmailTemplatePreview = () => {
       .replace(/{matches\.count}/g, '5')
       .replace(/{stats\.viewsIncrease}/g, '50%')
       .replace(/{stats\.period}/g, 'this week')
-      .replace(/{app\.logoUrl}/g, `${getBackendUrl()}/uploads/logo.png`)
+      .replace(/{app\.logoUrl}/g, 'https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/static/logo.png')
       .replace(/{app\.trackingPixelUrl}/g, `${getBackendUrl()}/api/email-tracking/pixel/preview`)
       .replace(/{app\.profileUrl}/g, '#profile')
       .replace(/{app\.profileUrl_tracked}/g, '#profile')

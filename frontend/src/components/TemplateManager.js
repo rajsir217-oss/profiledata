@@ -46,7 +46,7 @@ const TemplateManager = () => {
       message: 'You have a new match!'
     },
     app: {
-      logoUrl: 'http://localhost:8000/uploads/logo.png',
+      logoUrl: 'https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/static/logo.png',
       trackingPixelUrl: 'http://localhost:8000/api/email-tracking/pixel/preview',
       profileUrl: `${getFrontendUrl()}/profile/mike_dev`,
       profileUrl_tracked: `${getFrontendUrl()}/profile/mike_dev`,

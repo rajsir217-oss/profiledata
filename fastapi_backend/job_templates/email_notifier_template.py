@@ -222,7 +222,7 @@ class EmailNotifierTemplate(JobTemplate):
         
         # Add app URLs with tracking
         template_data["app"] = {
-            "logoUrl": f"{backend_url}/uploads/logo.png",
+            "logoUrl": "https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/static/logo.png",
             "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
             "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/profile&link_type=profile",
             "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/messages&link_type=chat",
