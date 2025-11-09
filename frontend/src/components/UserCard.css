@@ -157,6 +157,7 @@
 
 .bio-text {
   margin: 0;
+  /*Bio text font size was 14px, changed to 20px*/
   font-size: 20px;
   line-height: 1.6;
   color: var(--text-color, #374151);

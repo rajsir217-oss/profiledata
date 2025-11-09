@@ -431,6 +431,9 @@
   .btn-logout {
     padding: 0 12px;
     min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+    flex-shrink: 0;
   }
   
   /* Mobile: Compact 44px square with vertical stack */
@@ -509,7 +512,10 @@
     padding: 4px;
     min-width: 44px;
     min-height: 44px;
+    max-width: 44px;
+    width: 44px;
     justify-content: center;
+    flex-shrink: 0;
   }
 }
 
@@ -546,6 +552,9 @@
   .btn-logout {
     padding: 0 12px;
     min-width: 44px;
+    max-width: 44px;
+    width: 44px;
+    flex-shrink: 0;
   }
   
   /* Logo stays readable on tiny screens */
@@ -594,6 +603,9 @@
   .user-info {
     min-width: 44px;
     min-height: 44px;
+    max-width: 44px;
+    width: 44px;
+    flex-shrink: 0;
   }
   
   /* Profile icon stays visible and tappable */
