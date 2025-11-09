@@ -191,7 +191,7 @@ const SearchResultCard = ({
               </button>
             ) : (
               <div className="request-pending-bubble">
-                📨 Request Sent
+                📨 Request Pics Sent
               </div>
             )}
             
@@ -569,11 +569,11 @@ const SearchResultCard = ({
                         }}
                         title="Request access to view photos"
                       >
-                        Request
+                        Request Pics
                       </button>
                     ) : (
                       <div className="request-pending-btn-main">
-                        📨 Request Sent - Awaiting Approval
+                        Request Pics Sent
                       </div>
                     )}
                   </div>

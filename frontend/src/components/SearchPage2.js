@@ -464,7 +464,7 @@ const SearchPage2 = () => {
               disabled={isPiiRequestPending(user.username, 'images')}
             >
               {isPiiRequestPending(user.username, 'images') ? (
-                <span className="badge bg-warning text-dark">📨 Request Sent</span>
+                <span className="badge bg-warning text-dark">📨 Request Pics Sent</span>
               ) : 'Request Access'}
             </button>
           </div>
