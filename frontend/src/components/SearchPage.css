@@ -3443,7 +3443,7 @@ body.theme-rose .request-pics-bubble:active {
 .user-details-right:has(.bio-details-section) {
   display: flex;
   flex-direction: column;
-  min-height: 200px;
+  min-height: auto;
 }
 
 .bio-details-section {
@@ -3452,7 +3452,7 @@ body.theme-rose .request-pics-bubble:active {
   padding: 10px 12px;
   background: linear-gradient(135deg, var(--surface-color, #f8f9fa) 0%, var(--background-color, #ffffff) 100%);
   border-radius: 8px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   flex-shrink: 0;
 }
 
@@ -3463,8 +3463,8 @@ body.theme-rose .request-pics-bubble:active {
 
 .bio-quote-main {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: var(--text-color, #374151);
   font-style: italic;
   font-weight: 400;
@@ -3481,10 +3481,21 @@ body.theme-rose .request-pics-bubble:active {
   opacity: 0.8;
 }
 
+/* User details when showing with bio - more compact */
+.user-details-right:has(.bio-details-section) .user-details {
+  gap: 2px;
+}
+
+.user-details-right:has(.bio-details-section) .detail-line {
+  margin-bottom: 1px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
 .bio-action-section {
   display: flex;
   justify-content: flex-end;
-  padding-top: 12px;
+  padding-top: 10px;
   margin-top: auto;
 }
 
@@ -3564,6 +3575,11 @@ body.theme-rose .request-pics-btn-main:active {
 
 /* Mobile Responsive - Bio Right Panel */
 @media (max-width: 768px) {
+  /* Remove min-height constraint on mobile when showing bio */
+  .user-details-right:has(.bio-details-section) {
+    min-height: unset !important;
+  }
+  
   .bio-details-section {
     padding: 8px 10px;
     margin-bottom: 10px;
@@ -3572,14 +3588,47 @@ body.theme-rose .request-pics-btn-main:active {
   .bio-quote-main {
     font-size: 12px;
     line-height: 1.5;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+  
+  /* Tighter user details on mobile */
+  .user-details-right .user-details {
+    gap: 4px !important;
+  }
+  
+  .user-details-right .detail-line {
+    font-size: 12px !important;
+    margin-bottom: 2px !important;
+  }
+  
+  .user-details-right .user-badges-compact {
+    margin-top: 6px !important;
+    gap: 4px !important;
+  }
+  
+  .user-details-right .badge {
+    font-size: 10px !important;
+    padding: 2px 6px !important;
   }
   
   .request-pics-btn-main,
   .request-pending-btn-main {
     padding: 5px 12px;
     font-size: 11px;
+  }
+  
+  .bio-action-section {
+    padding-top: 8px !important;
+  }
+  
+  /* Compact card body on mobile when no image */
+  .result-card:has(.bio-details-section) .card-body {
+    padding: 10px !important;
+  }
+  
+  .result-card:has(.bio-details-section) .d-flex {
+    gap: 0 !important;
   }
 }
 
