@@ -173,6 +173,13 @@ body.theme-light-blue {
   font-weight: 600;
 }
 
+/* Exception: Card titles in gradient sections always use white */
+.theme-light-blue .result-card .card-title-section .card-title,
+.theme-light-blue .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 /* ========================================
    COZY DARK THEME
    ======================================== */
@@ -492,6 +499,13 @@ body.theme-light-pink {
   background: white;
 }
 
+/* Exception: Card titles in gradient sections always use white */
+.theme-light-pink .result-card .card-title-section .card-title,
+.theme-light-pink .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 /* ========================================
    LIGHT GRAY THEME
    ======================================== */
@@ -580,6 +594,13 @@ body.theme-light-gray {
 .theme-light-gray .stat-value {
   color: var(--primary-color);
   font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-light-gray .result-card .card-title-section .card-title,
+.theme-light-gray .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================
@@ -671,6 +692,13 @@ body.theme-ultra-light-gray {
 .theme-ultra-light-gray .stat-value {
   color: var(--primary-color);
   font-weight: 600;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-ultra-light-gray .result-card .card-title-section .card-title,
+.theme-ultra-light-gray .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================
@@ -1178,6 +1206,13 @@ body.theme-ultra-light-green {
 
 .theme-ultra-light-green .channel-toggle input:checked + .channel-icon.push {
   background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-ultra-light-green .result-card .card-title-section .card-title,
+.theme-ultra-light-green .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 /* ========================================
