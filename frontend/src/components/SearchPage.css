@@ -1036,7 +1036,7 @@
 .result-card .card-title-section {
   padding: 12px 15px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white !important;
+  color: var(--text-on-gradient, #ffffff);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1052,16 +1052,19 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-.result-card .card-title {
-  color: white !important;
+.result-card .card-title-section .card-title {
+  color: var(--text-on-gradient, #ffffff) !important;
   font-weight: 600;
   font-size: 16px;
   margin: 0;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .result-card .card-title-section h6 {
-  color: white !important;
+  color: var(--text-on-gradient, #ffffff) !important;
   margin: 0;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .result-card .card-title-badges {
@@ -1072,7 +1075,7 @@
 
 .result-card .l3v3l-match-badge {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white !important;
+  color: var(--text-on-gradient, #ffffff);
   padding: 5px 14px;
   border-radius: 25px;
   font-weight: 700;
@@ -1084,7 +1087,7 @@
   border: 2px solid rgba(255, 255, 255, 0.3);
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
 }
 
@@ -1096,12 +1099,13 @@
 }
 
 .result-card .age-badge {
-  background: rgba(255, 255, 255, 0.9);
-  color: #667eea !important;
+  background: rgba(255, 255, 255, 0.95);
+  color: var(--primary-color);
   padding: 4px 12px;
   border-radius: 20px;
   font-weight: 600;
   font-size: 13px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 /* Override Bootstrap d-flex in search results */
@@ -3678,7 +3682,7 @@ body.theme-rose .request-pics-btn-main:active {
 .card-title {
   font-size: 1.1rem;
   font-weight: 600;
-  color: #333;
+  color: var(--text-color);
   display: flex;
   align-items: center;
   gap: 8px;

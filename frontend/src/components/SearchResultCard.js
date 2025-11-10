@@ -41,11 +41,31 @@ const SearchResultCard = ({
   showRemoveButton = false,
   removeButtonLabel = 'Remove',
   removeButtonIcon = '🗑️',
-  viewMode = 'cards' // 'cards' or 'rows'
+  viewMode = 'cards', // 'cards' or 'rows'
+  // Search carousel props
+  searchResults = null, // Array of search results for carousel navigation
+  currentIndex = null   // Current index in search results
 }) => {
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+
+  // Navigate to profile with optional search context for carousel navigation
+  const navigateToProfile = () => {
+    if (searchResults && currentIndex !== null) {
+      // Pass search results and current index for carousel navigation
+      navigate(`/profile/${user.username}`, {
+        state: {
+          searchResults,
+          currentIndex,
+          fromSearch: true
+        }
+      });
+    } else {
+      // Standard navigation without carousel
+      navigate(`/profile/${user.username}`);
+    }
+  };
 
   // Calculate PII request status summary
   const getPIIStatusSummary = () => {
@@ -479,7 +499,7 @@ const SearchResultCard = ({
             
             <button
               className="btn btn-sm btn-outline-primary action-btn"
-              onClick={() => navigate(`/profile/${user.username}`)}
+              onClick={navigateToProfile}
               title="View Profile"
             >
               👁️
@@ -498,7 +518,7 @@ const SearchResultCard = ({
         {/* Card Title Section with Purple Gradient - Clickable */}
         <div 
           className="card-title-section"
-          onClick={() => navigate(`/profile/${user.username}`)}
+          onClick={navigateToProfile}
           style={{ cursor: 'pointer' }}
           title="View Full Profile"
         >

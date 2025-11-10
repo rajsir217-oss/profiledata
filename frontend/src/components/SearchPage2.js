@@ -2003,7 +2003,7 @@ const SearchPage2 = () => {
             className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
             style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
           >
-            {currentRecords.map((user) => {
+            {currentRecords.map((user, index) => {
               return (
                 <SearchResultCard
                   key={user.username}
@@ -2027,6 +2027,8 @@ const SearchPage2 = () => {
                   showShortlistButton={true}
                   showExcludeButton={true}
                   showMessageButton={true}
+                  searchResults={currentRecords}
+                  currentIndex={index}
                 />
               );
             })}

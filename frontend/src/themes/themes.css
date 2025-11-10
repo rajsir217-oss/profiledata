@@ -29,6 +29,7 @@
   --text-color: #1f2937;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - Softer */
   --border-color: #f3f4f6;
@@ -117,6 +118,7 @@ body.theme-light-blue {
   --text-color: #374151;
   --text-secondary: #6b7280;
   --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - Soft */
   --border-color: #f9fafb;
@@ -197,6 +199,7 @@ body.theme-dark {
   --text-color: #f3f4f6;
   --text-secondary: #d1d5db;
   --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - More visible */
   --border-color: #4b4563;
@@ -334,6 +337,13 @@ body.theme-dark {
   color: white !important;
 }
 
+/* Exception: Card titles in gradient sections always use white */
+.theme-dark .result-card .card-title-section .card-title,
+.theme-dark .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
 .theme-dark .row-details,
 .theme-dark .form-group label,
 .theme-dark .form-check-label {
@@ -381,6 +391,7 @@ body.theme-light-pink {
   --text-color: #4a5568;
   --text-secondary: #718096;
   --text-muted: #a0aec0;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - Soft pink */
   --border-color: #fed7e2;
@@ -504,6 +515,7 @@ body.theme-light-gray {
   --text-color: #1e293b;
   --text-secondary: #64748b;
   --text-muted: #94a3b8;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers */
   --border-color: #e2e8f0;
@@ -594,6 +606,7 @@ body.theme-ultra-light-gray {
   --text-color: #f3f4f6;
   --text-secondary: #d1d5db;
   --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - Very subtle */
   --border-color: #7a7a86;
@@ -1000,6 +1013,7 @@ body.theme-ultra-light-green {
   --text-color: #064e3b;
   --text-secondary: #047857;
   --text-muted: #6b7280;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Border Colors - Subtle green */
   --border-color: #d1fae5;
@@ -1192,6 +1206,7 @@ body.theme-ultra-black {
   --text-color: #e5e5e5;
   --text-secondary: #a3a3a3;
   --text-muted: #737373;
+  --text-on-gradient: #ffffff; /* Text color for gradient backgrounds */
   
   /* Borders & Dividers - Subtle */
   --border-color: #1f1f1f;
@@ -1333,6 +1348,13 @@ body.theme-ultra-black {
 .theme-ultra-black .row-name,
 .theme-ultra-black .result-card .card-title {
   color: var(--primary-color) !important;
+}
+
+/* Exception: Card titles in gradient sections always use white */
+.theme-ultra-black .result-card .card-title-section .card-title,
+.theme-ultra-black .result-card .card-title-section h6 {
+  color: var(--text-on-gradient, #ffffff) !important;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .theme-ultra-black .row-details,

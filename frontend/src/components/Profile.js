@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import api, { imageAccess } from "../api";
 import { getBackendUrl } from "../config/apiConfig";
@@ -24,6 +24,7 @@ const verificationApi = axios.create({
 const Profile = () => {
   const { username } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,6 +32,10 @@ const Profile = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  
+  // Search carousel navigation state
+  const [searchResults, setSearchResults] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(null);
   
   // KPI Stats
   const [kpiStats, setKpiStats] = useState({
@@ -58,6 +63,19 @@ const Profile = () => {
       setTimeout(() => setStatusMessage(""), 10000);
     }
   }, []);
+  
+  // Extract search carousel context from navigation state
+  useEffect(() => {
+    if (location.state?.searchResults && location.state?.currentIndex !== null) {
+      setSearchResults(location.state.searchResults);
+      setCurrentIndex(location.state.currentIndex);
+      console.log('🎯 Carousel context loaded:', {
+        totalResults: location.state.searchResults.length,
+        currentIndex: location.state.currentIndex,
+        currentProfile: username
+      });
+    }
+  }, [location.state, username]);
   
   // PII Access states
   const [piiAccess, setPiiAccess] = useState({
@@ -109,6 +127,10 @@ const Profile = () => {
       [sectionName]: !prev[sectionName]
     }));
   };
+  
+  // Touch swipe state for mobile navigation
+  const [touchStart, setTouchStart] = useState(null);
+  const [touchEnd, setTouchEnd] = useState(null);
   
   const currentUsername = localStorage.getItem('username');
   
@@ -569,6 +591,69 @@ const Profile = () => {
     }, 5000);
   };
 
+  // Carousel navigation handlers
+  const handlePreviousProfile = () => {
+    if (searchResults && currentIndex !== null && currentIndex > 0) {
+      const prevUser = searchResults[currentIndex - 1];
+      navigate(`/profile/${prevUser.username}`, {
+        state: {
+          searchResults,
+          currentIndex: currentIndex - 1,
+          fromSearch: true
+        }
+      });
+    }
+  };
+
+  const handleNextProfile = () => {
+    if (searchResults && currentIndex !== null && currentIndex < searchResults.length - 1) {
+      const nextUser = searchResults[currentIndex + 1];
+      navigate(`/profile/${nextUser.username}`, {
+        state: {
+          searchResults,
+          currentIndex: currentIndex + 1,
+          fromSearch: true
+        }
+      });
+    }
+  };
+
+  const handleBackToSearch = () => {
+    navigate('/search'); // Navigate directly back to search page
+  };
+
+  // Touch swipe gesture handlers
+  const minSwipeDistance = 50; // Minimum distance for a swipe (in pixels)
+
+  const onTouchStart = (e) => {
+    setTouchEnd(null); // Reset touch end
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    if (searchResults && currentIndex !== null) {
+      if (isLeftSwipe) {
+        // Swipe left = Next profile
+        console.log('👈 Swipe left detected - navigating to next profile');
+        handleNextProfile();
+      } else if (isRightSwipe) {
+        // Swipe right = Previous profile
+        console.log('👉 Swipe right detected - navigating to previous profile');
+        handlePreviousProfile();
+      }
+    }
+  };
+
   // Cancel editing
   const handleCancelEdit = () => {
     setEditingSection(null);
@@ -679,7 +764,12 @@ const Profile = () => {
   const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.date_of_birth);
 
   return (
-    <div className="container mt-4">
+    <div 
+      className="container mt-4"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
       {/* Toast Notification */}
       {toast.show && (
         <div className={`toast-notification toast-${toast.type}`} style={{
@@ -833,6 +923,44 @@ const Profile = () => {
           onResendEmail={handleResendEmail}
           username={username}
         />
+      )}
+
+      {/* Search Carousel Navigation - Show only when viewing from search */}
+      {searchResults && currentIndex !== null && (
+        <div className="profile-carousel-nav">
+          <button 
+            className="carousel-nav-btn carousel-prev"
+            onClick={handlePreviousProfile}
+            disabled={currentIndex === 0}
+            title="Previous Profile"
+          >
+            <span className="carousel-arrow">‹‹</span>
+            <span className="carousel-label">Previous</span>
+          </button>
+          
+          <div className="carousel-counter">
+            <button 
+              className="carousel-back-btn"
+              onClick={handleBackToSearch}
+              title="Back to Search Results"
+            >
+              ↩ Back to Search
+            </button>
+            <span className="carousel-position">
+              {currentIndex + 1} / {searchResults.length}
+            </span>
+          </div>
+          
+          <button 
+            className="carousel-nav-btn carousel-next"
+            onClick={handleNextProfile}
+            disabled={currentIndex === searchResults.length - 1}
+            title="Next Profile"
+          >
+            <span className="carousel-label">Next</span>
+            <span className="carousel-arrow">››</span>
+          </button>
+        </div>
       )}
 
       <div className="profile-header">

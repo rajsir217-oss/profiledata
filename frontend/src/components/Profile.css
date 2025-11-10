@@ -1263,3 +1263,176 @@
     padding: 3px 8px;
   }
 }
+
+/* ========================================
+   Profile Carousel Navigation
+   Supports: Button clicks + Touch swipe gestures
+   Swipe left = Next profile | Swipe right = Previous profile
+   ======================================== */
+
+.profile-carousel-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 24px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Swipe hint animation for mobile users */
+@keyframes swipeHint {
+  0%, 100% { transform: translateX(0); opacity: 0.3; }
+  50% { transform: translateX(10px); opacity: 0.6; }
+}
+
+.profile-carousel-nav::after {
+  content: '👈 Swipe';
+  position: absolute;
+  right: 10px;
+  bottom: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.5);
+  pointer-events: none;
+  animation: swipeHint 2s ease-in-out infinite;
+}
+
+@media (min-width: 769px) {
+  /* Hide swipe hint on desktop */
+  .profile-carousel-nav::after {
+    display: none;
+  }
+}
+
+.carousel-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: var(--primary-color);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-nav-btn:hover:not(:disabled) {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border-color: white;
+}
+
+.carousel-nav-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.carousel-arrow {
+  font-size: 20px;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.carousel-label {
+  font-size: 14px;
+}
+
+.carousel-counter {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.carousel-back-btn {
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 10px;
+  color: var(--primary-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.carousel-back-btn:hover {
+  background: white;
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  border-color: white;
+}
+
+.carousel-position {
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+/* Mobile responsive for carousel nav */
+@media (max-width: 768px) {
+  .profile-carousel-nav {
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .carousel-nav-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 16px;
+  }
+
+  .carousel-counter {
+    width: 100%;
+    order: -1; /* Move counter to top on mobile */
+  }
+
+  .carousel-back-btn {
+    width: 100%;
+  }
+
+  .carousel-label {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .carousel-arrow {
+    font-size: 18px;
+  }
+
+  .carousel-label {
+    display: none; /* Hide labels on very small screens, show only arrows */
+  }
+
+  .carousel-nav-btn {
+    padding: 10px 16px;
+    min-width: 48px; /* Ensure touch-friendly size */
+  }
+
+  .carousel-position {
+    font-size: 14px;
+  }
+
+  .carousel-back-btn {
+    font-size: 13px;
+    padding: 10px 14px;
+  }
+}
