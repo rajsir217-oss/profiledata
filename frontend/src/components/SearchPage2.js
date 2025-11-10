@@ -853,6 +853,11 @@ const SearchPage2 = () => {
 
       const response = await api.get('/search', { params });
       
+      console.log('🔍 Raw API response:', response);
+      console.log('🔍 response.data:', response.data);
+      console.log('🔍 response.data.users:', response.data.users);
+      console.log('🔍 response.data.users length:', response.data.users?.length);
+      
       // Filter out own profile, admin, and moderators
       let filteredUsers = (response.data.users || []).filter(user => {
         if (user.username === currentUser) return false;

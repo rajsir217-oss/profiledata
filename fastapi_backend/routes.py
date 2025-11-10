@@ -1459,22 +1459,42 @@ async def search_users(
 
     # Age filter - Use the age field (not encrypted dateOfBirth)
     # ⚠️ IMPORTANT: Can't search on encrypted dateOfBirth, use age field instead
+    # Include users who match OR don't have the field (lenient search)
     if ageMin > 0 or ageMax > 0:
         age_query = {}
         if ageMin > 0:
             age_query["$gte"] = ageMin
         if ageMax > 0:
             age_query["$lte"] = ageMax
-        query["age"] = age_query
+        # Lenient: include users who match OR age field doesn't exist
+        query["$or"] = query.get("$or", [])
+        query["$or"].extend([
+            {"age": age_query},
+            {"age": {"$exists": False}},
+            {"age": None}
+        ])
 
     # Height filter - now using heightInches (numeric field)
+    # Include users who match OR don't have the field (lenient search)
     if heightMin > 0 or heightMax > 0:
         height_query = {}
         if heightMin > 0:
             height_query["$gte"] = heightMin
         if heightMax > 0:
             height_query["$lte"] = heightMax
-        query["heightInches"] = height_query
+        # Lenient: include users who match OR heightInches field doesn't exist
+        if "$or" not in query:
+            query["$or"] = []
+        # Wrap existing $or conditions if they exist
+        existing_or = query.pop("$or", [])
+        query["$and"] = [
+            {"$or": existing_or} if existing_or else {},
+            {"$or": [
+                {"heightInches": height_query},
+                {"heightInches": {"$exists": False}},
+                {"heightInches": None}
+            ]}
+        ]
 
     # Other filters
     # ⚠️ IMPORTANT: Can't search on encrypted location, search on region instead

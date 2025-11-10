@@ -6,12 +6,19 @@ import { getApiUrl, getBackendUrl } from './config/apiConfig';
 const getAPIUrl = getApiUrl;
 
 const api = axios.create({
-  baseURL: getAPIUrl(),
+  // Don't set baseURL at creation time - set it dynamically in interceptor
+  // This ensures we read from window.RUNTIME_CONFIG which loads at runtime
 });
 
-// Add request interceptor to include auth token
+// Add request interceptor to include auth token and set dynamic baseURL
 api.interceptors.request.use(
   (config) => {
+    // Dynamically set baseURL from runtime config (loaded from /config.js)
+    // This ensures we use the correct URL even if config loads after React bundle
+    if (!config.baseURL && !config.url.startsWith('http')) {
+      config.baseURL = getAPIUrl();
+    }
+    
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

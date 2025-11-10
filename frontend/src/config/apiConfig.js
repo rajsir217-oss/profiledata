@@ -24,12 +24,17 @@ const POD_CONFIG = {
  * Production (.env.production): https://matrimonial-backend-7cxoxmouuq-uc.a.run.app
  */
 export const getBackendUrl = () => {
-  // Priority 1: POD config (set by deployment script)
+  // Priority 1: Runtime config (loaded from /config.js at runtime)
+  if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.SOCKET_URL) {
+    return window.RUNTIME_CONFIG.SOCKET_URL;
+  }
+  
+  // Priority 2: POD config (set by deployment script)
   if (POD_CONFIG.backend) {
     return POD_CONFIG.backend;
   }
   
-  // Priority 2: Environment variable (from .env files)
+  // Priority 3: Environment variable (from .env files)
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
@@ -50,11 +55,17 @@ export const getBackendUrl = () => {
  * @returns {string} Full API URL with /api/users prefix
  */
 export const getApiUrl = () => {
-  // Priority 1: POD config API URL (set by deployment script)
+  // Priority 1: Runtime config (loaded from /config.js at runtime)
+  if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.API_URL) {
+    return window.RUNTIME_CONFIG.API_URL;
+  }
+  
+  // Priority 2: POD config API URL (set by deployment script)
   if (POD_CONFIG.api) {
     return POD_CONFIG.api;
   }
-  // Priority 2: Construct from backend URL
+  
+  // Priority 3: Construct from backend URL
   return `${getBackendUrl()}/api/users`;
 };
 
