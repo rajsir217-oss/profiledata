@@ -99,7 +99,7 @@ if form_start and tab1_end and tab2_end and tab3_end:
             },
             {
               id: 'partner-preferences',
-              label: 'Partner Preferences',
+              label: 'Partner's Pref',
               icon: '💕',
               content: (
                 <div className="tab-section">

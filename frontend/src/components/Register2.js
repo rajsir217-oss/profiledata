@@ -2437,7 +2437,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             },
             {
               id: 'partner-preferences',
-              label: 'Partner Preferences',
+              label: "Partner's Pref",
               icon: '💕',
               content: (
                 <div className="tab-section">
