@@ -385,8 +385,8 @@ async def register_user(
     # Insert into database
     try:
         logger.info(f"💾 Inserting user '{username}' into database...")
-        logger.info(f"📸 Images being saved to database: {user_data.get('images', [])}")
-        result = await db.users.insert_one(user_data)
+        logger.info(f"📸 Images being saved to database: {user_doc.get('images', [])}")
+        result = await db.users.insert_one(user_doc)
         logger.info(f"✅ User '{username}' successfully registered with ID: {result.inserted_id}")
     except Exception as e:
         logger.error(f"❌ Database insert error for user '{username}': {e}", exc_info=True)
@@ -1349,8 +1349,24 @@ async def respond_to_request(
 
 @router.delete("/profile/{username}")
 async def delete_user_profile(username: str, db = Depends(get_database)):
-    """Delete user profile"""
-    logger.info(f"🗑️ Delete request for user '{username}'")
+    """
+    Delete user profile and ALL related data (CASCADE DELETE)
+    
+    This ensures complete data removal for privacy compliance (GDPR/CCPA).
+    Deletes:
+    - User profile
+    - User images (from GCS or filesystem)
+    - Favorites (both ways: user's favorites AND where user was favorited)
+    - Shortlists (both ways: user's shortlists AND where user was shortlisted)
+    - Exclusions (both ways: user's exclusions AND where user was excluded)
+    - Messages (both sent and received)
+    - Activity logs
+    - Notifications
+    - Audit logs
+    - Event logs
+    - Any other related data
+    """
+    logger.info(f"🗑️ CASCADE DELETE request for user '{username}'")
     
     # Find user
     logger.debug(f"Looking up user '{username}' for deletion...")
@@ -1362,40 +1378,171 @@ async def delete_user_profile(username: str, db = Depends(get_database)):
             detail="User not found"
         )
     
-    # Delete user images from filesystem
-    images = user.get("images", [])
-    if images:
-        logger.info(f"🗑️ Deleting {len(images)} image(s) for user '{username}'")
-        import os
-        from pathlib import Path
-        for img_path in images:
-            try:
-                # Remove leading slash and construct full path
-                file_path = Path(img_path.lstrip('/'))
-                if file_path.exists():
-                    file_path.unlink()
-                    logger.debug(f"Deleted image: {file_path}")
-            except Exception as e:
-                logger.warning(f"Failed to delete image {img_path}: {e}")
+    deletion_summary = {
+        "username": username,
+        "deleted_items": {}
+    }
     
-    # Delete user from database
     try:
-        logger.info(f"💾 Deleting user '{username}' from database...")
-        result = await db.users.delete_one({"username": username})
+        # 1. Delete user images from GCS or filesystem
+        images = user.get("images", [])
+        if images:
+            logger.info(f"🗑️ Deleting {len(images)} image(s) for user '{username}'")
+            from config import settings
+            
+            if settings.use_gcs:
+                # Delete from Google Cloud Storage
+                try:
+                    from services.gcs_storage import GCSStorage
+                    gcs = GCSStorage()
+                    for img_path in images:
+                        try:
+                            # Extract blob name from URL or path
+                            blob_name = img_path.split('/')[-1] if '/' in img_path else img_path
+                            await gcs.delete_file(blob_name)
+                            logger.debug(f"Deleted GCS image: {blob_name}")
+                        except Exception as e:
+                            logger.warning(f"Failed to delete GCS image {img_path}: {e}")
+                except Exception as e:
+                    logger.warning(f"GCS deletion error: {e}")
+            else:
+                # Delete from local filesystem
+                import os
+                from pathlib import Path
+                for img_path in images:
+                    try:
+                        file_path = Path(img_path.lstrip('/'))
+                        if file_path.exists():
+                            file_path.unlink()
+                            logger.debug(f"Deleted local image: {file_path}")
+                    except Exception as e:
+                        logger.warning(f"Failed to delete local image {img_path}: {e}")
+            
+            deletion_summary["deleted_items"]["images"] = len(images)
         
-        if result.deleted_count == 0:
+        # 2. Delete favorites (where user favorited others)
+        favorites_as_user = await db.favorites.delete_many({"userUsername": username})
+        deletion_summary["deleted_items"]["favorites_as_user"] = favorites_as_user.deleted_count
+        logger.info(f"🗑️ Deleted {favorites_as_user.deleted_count} favorites where '{username}' favorited others")
+        
+        # 3. Delete favorites (where user was favorited by others)
+        favorites_by_others = await db.favorites.delete_many({"favoriteUsername": username})
+        deletion_summary["deleted_items"]["favorited_by_others"] = favorites_by_others.deleted_count
+        logger.info(f"🗑️ Deleted {favorites_by_others.deleted_count} favorites where others favorited '{username}'")
+        
+        # 4. Delete shortlists (where user shortlisted others)
+        shortlists_as_user = await db.shortlists.delete_many({"userUsername": username})
+        deletion_summary["deleted_items"]["shortlists_as_user"] = shortlists_as_user.deleted_count
+        logger.info(f"🗑️ Deleted {shortlists_as_user.deleted_count} shortlists where '{username}' shortlisted others")
+        
+        # 5. Delete shortlists (where user was shortlisted by others)
+        shortlists_by_others = await db.shortlists.delete_many({"shortlistedUsername": username})
+        deletion_summary["deleted_items"]["shortlisted_by_others"] = shortlists_by_others.deleted_count
+        logger.info(f"🗑️ Deleted {shortlists_by_others.deleted_count} shortlists where others shortlisted '{username}'")
+        
+        # 6. Delete exclusions (where user excluded others)
+        exclusions_as_user = await db.exclusions.delete_many({"userUsername": username})
+        deletion_summary["deleted_items"]["exclusions_as_user"] = exclusions_as_user.deleted_count
+        logger.info(f"🗑️ Deleted {exclusions_as_user.deleted_count} exclusions where '{username}' excluded others")
+        
+        # 7. Delete exclusions (where user was excluded by others)
+        exclusions_by_others = await db.exclusions.delete_many({"excludedUsername": username})
+        deletion_summary["deleted_items"]["excluded_by_others"] = exclusions_by_others.deleted_count
+        logger.info(f"🗑️ Deleted {exclusions_by_others.deleted_count} exclusions where others excluded '{username}'")
+        
+        # 8. Delete messages (sent by user)
+        messages_sent = await db.messages.delete_many({"fromUsername": username})
+        deletion_summary["deleted_items"]["messages_sent"] = messages_sent.deleted_count
+        logger.info(f"🗑️ Deleted {messages_sent.deleted_count} messages sent by '{username}'")
+        
+        # 9. Delete messages (received by user)
+        messages_received = await db.messages.delete_many({"toUsername": username})
+        deletion_summary["deleted_items"]["messages_received"] = messages_received.deleted_count
+        logger.info(f"🗑️ Deleted {messages_received.deleted_count} messages received by '{username}'")
+        
+        # 10. Delete activity logs
+        activity_logs = await db.activity_logs.delete_many({"username": username})
+        deletion_summary["deleted_items"]["activity_logs"] = activity_logs.deleted_count
+        logger.info(f"🗑️ Deleted {activity_logs.deleted_count} activity logs for '{username}'")
+        
+        # 11. Delete notifications
+        notifications = await db.notification_queue.delete_many({"username": username})
+        deletion_summary["deleted_items"]["notifications"] = notifications.deleted_count
+        logger.info(f"🗑️ Deleted {notifications.deleted_count} notifications for '{username}'")
+        
+        # 12. Delete notification logs
+        notification_logs = await db.notification_log.delete_many({"username": username})
+        deletion_summary["deleted_items"]["notification_logs"] = notification_logs.deleted_count
+        logger.info(f"🗑️ Deleted {notification_logs.deleted_count} notification logs for '{username}'")
+        
+        # 13. Delete audit logs
+        audit_logs = await db.audit_logs.delete_many({"username": username})
+        deletion_summary["deleted_items"]["audit_logs"] = audit_logs.deleted_count
+        logger.info(f"🗑️ Deleted {audit_logs.deleted_count} audit logs for '{username}'")
+        
+        # 14. Delete event logs
+        event_logs = await db.event_logs.delete_many({
+            "$or": [
+                {"actor_username": username},
+                {"target_username": username}
+            ]
+        })
+        deletion_summary["deleted_items"]["event_logs"] = event_logs.deleted_count
+        logger.info(f"🗑️ Deleted {event_logs.deleted_count} event logs involving '{username}'")
+        
+        # 15. Delete profile views (where user viewed others)
+        profile_views_as_viewer = await db.profile_views.delete_many({"viewer_username": username})
+        deletion_summary["deleted_items"]["profile_views_as_viewer"] = profile_views_as_viewer.deleted_count
+        logger.info(f"🗑️ Deleted {profile_views_as_viewer.deleted_count} profile views by '{username}'")
+        
+        # 16. Delete profile views (where others viewed user)
+        profile_views_as_viewed = await db.profile_views.delete_many({"viewed_username": username})
+        deletion_summary["deleted_items"]["profile_views_as_viewed"] = profile_views_as_viewed.deleted_count
+        logger.info(f"🗑️ Deleted {profile_views_as_viewed.deleted_count} profile views of '{username}'")
+        
+        # 17. Delete content violations
+        violations = await db.content_violations.delete_many({"username": username})
+        deletion_summary["deleted_items"]["violations"] = violations.deleted_count
+        logger.info(f"🗑️ Deleted {violations.deleted_count} content violations for '{username}'")
+        
+        # 18. Delete verification tokens
+        verification_tokens = await db.verification_tokens.delete_many({"username": username})
+        deletion_summary["deleted_items"]["verification_tokens"] = verification_tokens.deleted_count
+        logger.info(f"🗑️ Deleted {verification_tokens.deleted_count} verification tokens for '{username}'")
+        
+        # 19. Finally, delete the user profile itself
+        logger.info(f"💾 Deleting user profile for '{username}' from database...")
+        user_result = await db.users.delete_one({"username": username})
+        
+        if user_result.deleted_count == 0:
             logger.error(f"❌ Failed to delete user '{username}' from database")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Failed to delete profile"
             )
         
-        logger.info(f"✅ User '{username}' successfully deleted")
+        deletion_summary["deleted_items"]["user_profile"] = 1
+        
+        # Calculate total items deleted
+        total_deleted = sum(deletion_summary["deleted_items"].values())
+        deletion_summary["total_items_deleted"] = total_deleted
+        
+        logger.info(f"✅ CASCADE DELETE completed for '{username}' - {total_deleted} total items deleted")
+        logger.info(f"📊 Deletion summary: {deletion_summary['deleted_items']}")
+        
         return {
-            "message": f"Profile for user '{username}' has been permanently deleted"
+            "message": f"Profile for user '{username}' and ALL related data has been permanently deleted",
+            "summary": deletion_summary
         }
+        
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"❌ Database delete error for user '{username}': {e}", exc_info=True)
+        logger.error(f"❌ CASCADE DELETE error for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete profile and related data: {str(e)}"
+        )
 # Search endpoint for advanced user search
 @router.get("/search")
 async def search_users(

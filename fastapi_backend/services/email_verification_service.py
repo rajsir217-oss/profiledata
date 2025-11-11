@@ -257,7 +257,10 @@ class EmailVerificationService:
             return True
             
         except Exception as e:
+            import traceback
             print(f"❌ Error sending email: {e}")
+            print(f"❌ Full traceback: {traceback.format_exc()}")
+            print(f"❌ SMTP Config: host={settings.smtp_host}, port={settings.smtp_port}, user={settings.smtp_user}")
             return False
     
     async def verify_token(self, username: str, token: str) -> Dict[str, Any]:

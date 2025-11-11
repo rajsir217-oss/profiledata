@@ -1232,6 +1232,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   useEffect(() => {
     const loadInvitationData = async () => {
       if (!isEditMode) {
+        // Check for email parameter in URL first (direct prefill)
+        const emailParam = searchParams.get('email');
+        if (emailParam) {
+          setFormData(prev => ({
+            ...prev,
+            contactEmail: decodeURIComponent(emailParam)
+          }));
+        }
+        
         const token = searchParams.get('invitation');
         if (token) {
           setInvitationToken(token);

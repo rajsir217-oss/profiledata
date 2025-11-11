@@ -664,6 +664,28 @@
 .status-modal-body {
   padding: 28px 24px;
   background: var(--card-bg);
+  max-height: calc(85vh - 100px); /* 85vh minus header height */
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for modal body */
+.status-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.status-modal-body::-webkit-scrollbar-track {
+  background: var(--surface-color);
+  border-radius: 4px;
+}
+
+.status-modal-body::-webkit-scrollbar-thumb {
+  background: var(--primary-color);
+  border-radius: 4px;
+}
+
+.status-modal-body::-webkit-scrollbar-thumb:hover {
+  background: var(--secondary-color);
 }
 
 .status-modal-body h3 {
@@ -907,4 +929,101 @@
 /* For dark backgrounds, ensure light text */
 .theme-dark .admin-table tbody td {
   color: var(--text-color) !important;
+}
+
+/* ===== DELETION SUMMARY MODAL ===== */
+.deletion-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 15px;
+  margin: 20px 0;
+}
+
+.deletion-stats-grid .stat-item {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.deletion-stats-grid .stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.deletion-stats-grid .stat-icon {
+  font-size: 24px;
+  margin-bottom: 5px;
+}
+
+.deletion-stats-grid .stat-label {
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-align: center;
+  font-weight: 500;
+}
+
+.deletion-stats-grid .stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+}
+
+.deletion-total {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  padding: 20px;
+  border-radius: var(--radius-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 20px 0;
+  box-shadow: var(--shadow-md);
+}
+
+.deletion-total strong {
+  font-size: 16px;
+}
+
+.deletion-total .total-count {
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.privacy-notice {
+  background: var(--success-light);
+  border: 1px solid var(--success-color);
+  border-radius: var(--radius-md);
+  padding: 15px;
+  margin: 20px 0;
+}
+
+.privacy-notice p {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .deletion-stats-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+
+  .deletion-stats-grid .stat-item {
+    padding: 12px;
+  }
+
+  .deletion-total {
+    flex-direction: column;
+    gap: 10px;
+    text-align: center;
+  }
 }

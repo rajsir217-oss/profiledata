@@ -929,37 +929,39 @@ const Profile = () => {
       {searchResults && currentIndex !== null && (
         <div className="profile-carousel-nav">
           <button 
-            className="carousel-nav-btn carousel-prev"
-            onClick={handlePreviousProfile}
-            disabled={currentIndex === 0}
-            title="Previous Profile"
+            className="carousel-back-btn"
+            onClick={handleBackToSearch}
+            title="Back to Search Results"
           >
-            <span className="carousel-arrow">‹‹</span>
-            <span className="carousel-label">Previous</span>
+            <span className="back-icon">↩</span>
+            <span className="back-text">Back to Search</span>
           </button>
           
-          <div className="carousel-counter">
+          <div className="carousel-controls">
             <button 
-              className="carousel-back-btn"
-              onClick={handleBackToSearch}
-              title="Back to Search Results"
+              className="carousel-nav-btn carousel-prev"
+              onClick={handlePreviousProfile}
+              disabled={currentIndex === 0}
+              title="Previous Profile"
             >
-              ↩ Back to Search
+              <span className="carousel-arrow">‹‹</span>
+              <span className="carousel-label">Previous</span>
             </button>
+            
             <span className="carousel-position">
               {currentIndex + 1} / {searchResults.length}
             </span>
+            
+            <button 
+              className="carousel-nav-btn carousel-next"
+              onClick={handleNextProfile}
+              disabled={currentIndex === searchResults.length - 1}
+              title="Next Profile"
+            >
+              <span className="carousel-label">Next</span>
+              <span className="carousel-arrow">››</span>
+            </button>
           </div>
-          
-          <button 
-            className="carousel-nav-btn carousel-next"
-            onClick={handleNextProfile}
-            disabled={currentIndex === searchResults.length - 1}
-            title="Next Profile"
-          >
-            <span className="carousel-label">Next</span>
-            <span className="carousel-arrow">››</span>
-          </button>
         </div>
       )}
 

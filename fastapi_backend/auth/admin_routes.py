@@ -367,8 +367,11 @@ async def update_user_status(
     Valid statuses: pending, active, inactive, suspended, banned
     """
     try:
-        # Validate status
-        valid_statuses = ['pending', 'active', 'inactive', 'suspended', 'banned']
+        # Validate status (accept both old and new status values)
+        valid_statuses = [
+            'pending', 'active', 'inactive', 'suspended', 'banned',  # Legacy values
+            'pending_email_verification', 'pending_admin_approval', 'deactivated'  # New accountStatus values
+        ]
         if request.status not in valid_statuses:
             raise HTTPException(
                 status_code=400, 
@@ -403,12 +406,28 @@ async def update_user_status(
             if violation_result.deleted_count > 0:
                 logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during status change to active")
         
-        # Update user status
+        # Map status values to accountStatus (for consistency with verification flow)
+        # If already using new accountStatus values, use them directly
+        if request.status in ['pending_email_verification', 'pending_admin_approval', 'deactivated']:
+            mapped_account_status = request.status
+        else:
+            # Map old status values to new accountStatus values
+            status_to_account_status_map = {
+                'pending': 'pending_admin_approval',
+                'active': 'active',
+                'inactive': 'deactivated',
+                'suspended': 'suspended',
+                'banned': 'suspended'  # Banned maps to suspended accountStatus
+            }
+            mapped_account_status = status_to_account_status_map.get(request.status, request.status)
+        
+        # Update both status fields for consistency
         result = await db.users.update_one(
             {"username": username},
             {
                 "$set": {
                     "status": status_update,
+                    "accountStatus": mapped_account_status,  # Also update accountStatus field
                     "updated_at": datetime.utcnow()
                 }
             }

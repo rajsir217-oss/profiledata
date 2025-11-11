@@ -1274,14 +1274,19 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  padding: 16px 24px;
+  gap: 10px;
+  padding: 10px 14px;
   margin-bottom: 20px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   border-radius: 16px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   position: relative;
-  overflow: hidden;
+}
+
+.carousel-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Swipe hint animation for mobile users */
@@ -1347,25 +1352,31 @@
   font-size: 14px;
 }
 
-.carousel-counter {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
-}
-
 .carousel-back-btn {
-  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 10px;
   color: var(--primary-color);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.back-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.back-text {
+  line-height: 1;
 }
 
 .carousel-back-btn:hover {
@@ -1388,51 +1399,101 @@
 /* Mobile responsive for carousel nav */
 @media (max-width: 768px) {
   .profile-carousel-nav {
-    flex-direction: column;
-    gap: 12px;
-    padding: 12px 16px;
+    gap: 6px;
+    padding: 8px 10px;
+    flex-wrap: nowrap; /* Ensure everything stays in one row */
+    justify-content: space-between;
+  }
+
+  .carousel-controls {
+    gap: 6px;
+    flex-shrink: 0; /* Prevent controls from shrinking */
   }
 
   .carousel-nav-btn {
-    width: 100%;
+    flex: 0 0 auto;
     justify-content: center;
-    padding: 12px 16px;
+    padding: 8px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px; /* Fixed width to prevent overflow */
   }
 
-  .carousel-counter {
-    width: 100%;
-    order: -1; /* Move counter to top on mobile */
+  .carousel-position {
+    flex: 0 0 auto;
+    text-align: center;
+    font-size: 13px;
+    padding: 4px 8px;
+    min-width: 50px; /* Ensure counter has enough space */
   }
 
   .carousel-back-btn {
-    width: 100%;
+    font-size: 12px;
+    padding: 8px;
+    min-width: 40px;
+    min-height: 40px;
+    max-width: 40px; /* Fixed width */
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  
+  .back-text {
+    display: none; /* Hide "Back to Search" text on mobile, show only icon */
+  }
+  
+  .back-icon {
+    font-size: 20px;
   }
 
   .carousel-label {
-    font-size: 13px;
+    display: none; /* Hide "Previous"/"Next" text labels on mobile to save space */
+  }
+  
+  .carousel-arrow {
+    font-size: 20px;
   }
 }
 
 @media (max-width: 480px) {
+  .profile-carousel-nav {
+    gap: 5px;
+    padding: 6px 8px;
+    flex-wrap: nowrap;
+  }
+  
+  .carousel-controls {
+    gap: 5px;
+  }
+  
+  .carousel-nav-btn {
+    padding: 6px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+  }
+  
+  .carousel-position {
+    font-size: 12px;
+    padding: 4px 6px;
+    min-width: 45px;
+  }
+  
+  .carousel-back-btn {
+    padding: 6px;
+    min-width: 36px;
+    min-height: 36px;
+    max-width: 36px;
+  }
+  
+  .back-icon {
+    font-size: 18px;
+  }
+
   .carousel-arrow {
     font-size: 18px;
   }
 
   .carousel-label {
     display: none; /* Hide labels on very small screens, show only arrows */
-  }
-
-  .carousel-nav-btn {
-    padding: 10px 16px;
-    min-width: 48px; /* Ensure touch-friendly size */
-  }
-
-  .carousel-position {
-    font-size: 14px;
-  }
-
-  .carousel-back-btn {
-    font-size: 13px;
-    padding: 10px 14px;
   }
 }

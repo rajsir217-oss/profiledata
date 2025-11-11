@@ -310,10 +310,12 @@ async def send_invitation_notifications(
     """Send invitation directly via SMTP (bypasses notification queue)"""
     from config import Settings
     from services.email_sender import send_invitation_email
+    from urllib.parse import quote
     settings = Settings()
     
     invitation_service = InvitationService(db)
-    invitation_link = f"{settings.app_url}/register?invitation={invitation.invitationToken}"
+    # Use register2 page and prefill email
+    invitation_link = f"{settings.app_url}/register2?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
     
     # Send email
     if channel in [InvitationChannel.EMAIL, InvitationChannel.BOTH]:

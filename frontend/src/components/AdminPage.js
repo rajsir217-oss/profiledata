@@ -41,6 +41,8 @@ const AdminPage = () => {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [statusChangeReason, setStatusChangeReason] = useState('');
   const [selectedUserForMeta, setSelectedUserForMeta] = useState(null);
+  const [showDeletionSummary, setShowDeletionSummary] = useState(false);
+  const [deletionSummary, setDeletionSummary] = useState(null);
 
   // Multi-layer security check
   useEffect(() => {
@@ -108,7 +110,8 @@ const AdminPage = () => {
 
   const handleEditStatus = (user) => {
     setSelectedUserForStatus(user);
-    const currentStatus = user.status?.status || user.status || 'pending';
+    // Use accountStatus first (new system), then fall back to old status field
+    const currentStatus = user.accountStatus || user.status?.status || user.status || 'pending_admin_approval';
     setSelectedStatus(currentStatus);
     setStatusChangeReason('');
     setShowStatusModal(true);
@@ -154,9 +157,11 @@ const AdminPage = () => {
       setError('');
       setSuccessMsg('');
 
-      await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
+      const response = await adminApi.delete(`/api/users/profile/${deleteConfirm.username}`);
       
-      setSuccessMsg(`✅ User "${deleteConfirm.username}" deleted successfully`);
+      // Show deletion summary modal
+      setDeletionSummary(response.data.summary);
+      setShowDeletionSummary(true);
       setDeleteConfirm(null);
       
       // Reload users list
@@ -540,23 +545,38 @@ const AdminPage = () => {
             <div className="status-modal-body">
               <h3>🔐 Change User Status</h3>
               <p className="current-status">
-                Select a new status for this user. Current status: <strong>{selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending'}</strong>
+                Select a new status for this user. Current status: <strong>{selectedUserForStatus.accountStatus || selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending_admin_approval'}</strong>
               </p>
               
               {/* Status Options */}
               <div className="status-radio-group">
-                <label className={`status-radio-option ${selectedStatus === 'pending' ? 'selected' : ''}`}>
+                <label className={`status-radio-option ${selectedStatus === 'pending_email_verification' ? 'selected' : ''}`}>
                   <input
                     type="radio"
                     name="status"
-                    value="pending"
-                    checked={selectedStatus === 'pending'}
+                    value="pending_email_verification"
+                    checked={selectedStatus === 'pending_email_verification'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">📧</div>
+                  <div className="status-info">
+                    <strong>Pending Email Verification</strong>
+                    <span>Awaiting email verification</span>
+                  </div>
+                </label>
+                
+                <label className={`status-radio-option ${selectedStatus === 'pending_admin_approval' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="pending_admin_approval"
+                    checked={selectedStatus === 'pending_admin_approval'}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   />
                   <div className="status-icon">⏳</div>
                   <div className="status-info">
-                    <strong>Pending Verification</strong>
-                    <span>Awaiting approval or verification</span>
+                    <strong>Pending Admin Approval</strong>
+                    <span>Email verified, awaiting admin approval</span>
                   </div>
                 </label>
                 
@@ -693,6 +713,160 @@ const AdminPage = () => {
             loadAllUsers(); // Refresh user list when modal closes
           }}
         />
+      )}
+
+      {/* Deletion Summary Modal */}
+      {showDeletionSummary && deletionSummary && (
+        <div className="modal-overlay" onClick={() => setShowDeletionSummary(false)}>
+          <div className="status-modal" onClick={(e) => e.stopPropagation()}>
+            {/* Header */}
+            <div className="status-modal-header">
+              <div className="user-info">
+                <div className="user-avatar" style={{background: 'var(--danger-color)'}}>
+                  🗑️
+                </div>
+                <div className="user-details">
+                  <h4>Profile Deleted Successfully</h4>
+                  <p>{deletionSummary.username}</p>
+                </div>
+              </div>
+              <button className="close-btn" onClick={() => setShowDeletionSummary(false)}>
+                ✕
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="status-modal-body">
+              <h3>🗑️ Deletion Summary</h3>
+              <p className="current-status">
+                All data for user <strong>{deletionSummary.username}</strong> has been permanently removed from the system.
+              </p>
+              
+              {/* Deletion Stats Grid */}
+              <div className="deletion-stats-grid">
+                {deletionSummary.deleted_items.images > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">🖼️</span>
+                    <span className="stat-label">Images</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.images}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.favorites_as_user > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">⭐</span>
+                    <span className="stat-label">Favorites Given</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.favorites_as_user}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.favorited_by_others > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">💫</span>
+                    <span className="stat-label">Favorited By Others</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.favorited_by_others}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.shortlists_as_user > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📝</span>
+                    <span className="stat-label">Shortlists Created</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.shortlists_as_user}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.shortlisted_by_others > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📋</span>
+                    <span className="stat-label">Shortlisted By Others</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.shortlisted_by_others}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.exclusions_as_user > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">🚫</span>
+                    <span className="stat-label">Exclusions Made</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.exclusions_as_user}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.excluded_by_others > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">⛔</span>
+                    <span className="stat-label">Excluded By Others</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.excluded_by_others}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.messages_sent > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📤</span>
+                    <span className="stat-label">Messages Sent</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.messages_sent}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.messages_received > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📥</span>
+                    <span className="stat-label">Messages Received</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.messages_received}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.activity_logs > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📊</span>
+                    <span className="stat-label">Activity Logs</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.activity_logs}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.notifications > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">🔔</span>
+                    <span className="stat-label">Notifications</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.notifications}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.profile_views_as_viewer > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">👀</span>
+                    <span className="stat-label">Profile Views</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.profile_views_as_viewer}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.profile_views_as_viewed > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">👁️</span>
+                    <span className="stat-label">Times Viewed</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.profile_views_as_viewed}</span>
+                  </div>
+                )}
+                {deletionSummary.deleted_items.event_logs > 0 && (
+                  <div className="stat-item">
+                    <span className="stat-icon">📅</span>
+                    <span className="stat-label">Event Logs</span>
+                    <span className="stat-value">{deletionSummary.deleted_items.event_logs}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Total Count */}
+              <div className="deletion-total">
+                <strong>Total Items Deleted:</strong>
+                <span className="total-count">{deletionSummary.total_items_deleted}</span>
+              </div>
+
+              {/* Privacy Notice */}
+              <div className="privacy-notice">
+                <p>
+                  ✅ <strong>Privacy Compliance:</strong> All data has been permanently removed in compliance with GDPR and CCPA regulations.
+                </p>
+              </div>
+              
+              {/* Close Button */}
+              <button 
+                className="btn btn-primary w-100 mt-3"
+                onClick={() => setShowDeletionSummary(false)}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
