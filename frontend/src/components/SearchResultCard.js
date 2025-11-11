@@ -115,25 +115,28 @@ const SearchResultCard = ({
     return '?';
   };
 
-  // Calculate age from date of birth
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return 'N/A';
+  // Calculate age from birth month and year
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return 'N/A';
     try {
-      const birthDate = new Date(dateOfBirth);
-      if (isNaN(birthDate.getTime())) return 'N/A';
       const today = new Date();
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      const currentMonth = today.getMonth() + 1; // JS months are 0-indexed
+      const currentYear = today.getFullYear();
+      
+      let age = currentYear - parseInt(birthYear);
+      
+      // If current month hasn't reached birth month yet, subtract 1
+      if (currentMonth < parseInt(birthMonth)) {
         age--;
       }
+      
       return age;
     } catch {
       return 'N/A';
     }
   };
   
-  // Get age - use provided age or calculate from dateOfBirth
+  // Get age - use provided age or calculate from birthMonth/birthYear
   const getAge = () => {
     // First try to use provided age (must be a valid number)
     if (typeof user.age === 'number' && user.age > 0) {
@@ -146,8 +149,8 @@ const SearchResultCard = ({
         return numAge;
       }
     }
-    // Calculate from dateOfBirth
-    const calculated = calculateAge(user.dateOfBirth);
+    // Calculate from birthMonth and birthYear
+    const calculated = calculateAge(user.birthMonth, user.birthYear);
     return calculated;
   };
   

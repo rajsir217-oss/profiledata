@@ -57,16 +57,20 @@ const ProfileConfirmationModal = ({
     onConfirm();
   };
 
-  // Calculate age from DOB
-  const calculateAge = (dob) => {
-    if (!dob) return 'Not provided';
-    const birthDate = new Date(dob);
+  // Calculate age from birth month and year
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return 'Not provided';
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    const currentMonth = today.getMonth() + 1; // JS months are 0-indexed
+    const currentYear = today.getFullYear();
+    
+    let age = currentYear - birthYear;
+    
+    // If current month hasn't reached birth month yet, subtract 1
+    if (currentMonth < parseInt(birthMonth)) {
       age--;
     }
+    
     return age;
   };
 
@@ -123,7 +127,7 @@ const ProfileConfirmationModal = ({
 
               <div className="field-item">
                 <label>Age:</label>
-                <div className="field-display">{calculateAge(localData.dateOfBirth)} years</div>
+                <div className="field-display">{calculateAge(localData.birthMonth, localData.birthYear)} years</div>
               </div>
 
               <div className="field-item">

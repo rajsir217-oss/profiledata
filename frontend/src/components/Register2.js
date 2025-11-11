@@ -15,16 +15,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   // Detect if we're in edit mode
   const isEditMode = mode === 'edit' || editUsername !== null;
   const pageSEO = getPageSEO('register');
-  // Helper function to calculate age from DOB
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
+  // Helper function to calculate age from birth month and year
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return null;
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    const currentMonth = today.getMonth() + 1; // JS months are 0-indexed
+    const currentYear = today.getFullYear();
+    
+    let age = currentYear - birthYear;
+    
+    // If current month hasn't reached birth month yet, subtract 1
+    if (currentMonth < birthMonth) {
       age--;
     }
+    
     return age;
   };
   
@@ -89,7 +93,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     contactNumber: "",
     contactEmail: "",
     smsOptIn: false,  // SMS notifications opt-in
-    dateOfBirth: "",  // Renamed from dob
+    birthMonth: "",  // Birth month (1-12)
+    birthYear: "",   // Birth year
     gender: "",  // Renamed from sex
     heightFeet: "",  // Feet: 4-7
     heightInches: "0",  // Inches: 0-11, default to 0
@@ -540,29 +545,36 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         }
         break;
 
-      case "dateOfBirth":  // Renamed from dob
+      case "birthMonth":
         if (!value) {
-          error = "Date of birth is required";
+          error = "Birth month is required";
         } else {
-          const birthDate = new Date(value);
-          const today = new Date();
+          const month = parseInt(value);
+          if (month < 1 || month > 12) {
+            error = "Invalid month";
+          }
+        }
+        break;
+      
+      case "birthYear":
+        if (!value) {
+          error = "Birth year is required";
+        } else {
+          const year = parseInt(value);
+          const currentYear = new Date().getFullYear();
           
-          // Check for future dates
-          if (birthDate > today) {
-            error = "Date of birth cannot be in the future";
+          // Check for future years
+          if (year > currentYear) {
+            error = "Birth year cannot be in the future";
           } else {
-            // Calculate age accurately
-            let age = today.getFullYear() - birthDate.getFullYear();
-            const monthDiff = today.getMonth() - birthDate.getMonth();
-            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-              age--;
-            }
+            // Calculate approximate age (will be refined with month)
+            const age = currentYear - year;
             
             // Minimum age requirement: 20 years
             if (age < 20) {
               error = "You must be at least 20 years old to register";
             } else if (age > 100) {
-              error = "Please enter a valid date of birth";
+              error = "Please enter a valid birth year";
             }
           }
         }
@@ -753,7 +765,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       if (tabPanel && !tabPanel.classList.contains('active')) {
         // Find which tab this field belongs to
         const tabSections = {
-          'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'dateOfBirth', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio'],
+          'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio'],
           'background': ['educationHistory', 'workExperience', 'linkedinUrl', 'familyBackground', 'familyType', 'familyValues', 'aboutMe', 'drinking', 'smoking', 'bodyType', 'hasChildren', 'wantsChildren', 'pets'],
           'partner-preferences': ['partnerPreference', 'ageRangeYounger', 'ageRangeOlder', 'heightRangeMin', 'heightRangeMax', 'educationLevel', 'profession', 'languages', 'partnerReligion', 'partnerCaste', 'partnerLocation', 'eatingPreference', 'partnerFamilyType', 'familyValues']
         };
@@ -1077,7 +1089,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     if (tabId === 'about-me') {
       const fields = [
         'username', 'password', 'passwordConfirm', 'firstName', 'lastName',
-        'contactNumber', 'contactEmail', 'dateOfBirth', 'gender',
+        'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender',
         'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence',
         'state', 'location', 'religion', 'languagesSpoken', 'bio',
         'relationshipStatus', 'lookingFor', 'interests'
@@ -1134,8 +1146,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     if (tabId === 'about-me') {
       // Different required fields for register vs edit mode
       const requiredFields = isEditMode 
-        ? ['firstName', 'lastName', 'contactNumber', 'contactEmail', 'dateOfBirth', 'gender', 'heightFeet', 'heightInches']
-        : ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'dateOfBirth', 'gender', 'heightFeet', 'heightInches'];
+        ? ['firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches']
+        : ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches'];
       
       requiredFields.forEach(field => {
         const error = validateField(field, formData[field]);
@@ -1333,7 +1345,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             contactNumber: isMaskedPhone ? '' : (userData.contactNumber || ''),
             contactEmail: isMaskedEmail ? '' : (userData.contactEmail || ''),
             smsOptIn: userData.smsOptIn || false,  // SMS opt-in preference
-            dateOfBirth: userData.dateOfBirth || '',
+            birthMonth: userData.birthMonth || '',
+            birthYear: userData.birthYear || '',
             gender: userData.gender || '',
             heightFeet,
             heightInches,
@@ -1589,23 +1602,61 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             )}
           </div>
         </div>
-        {/* Custom row for dateOfBirth, height, gender */}
+        {/* Custom row for birthMonth/Year, height, gender */}
         <div className="row mb-3">
           <div className="col-md-4">
-            <label className="form-label">Date of Birth <span className="text-danger">*</span></label>
-            <input 
-              type="date" 
-              className={`form-control ${getFieldClass('dateOfBirth', formData.dateOfBirth)} ${fieldErrors.dateOfBirth && touchedFields.dateOfBirth ? 'is-invalid' : ''}`}
-              name="dateOfBirth" 
-              value={formData.dateOfBirth} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              max={new Date().toISOString().split('T')[0]}
-              required 
-            />
-            {fieldErrors.dateOfBirth && touchedFields.dateOfBirth && (
-              <div className="invalid-feedback d-block">{fieldErrors.dateOfBirth}</div>
-            )}
+            <label className="form-label">Birth Month & Year <span className="text-danger">*</span></label>
+            <div className="row">
+              <div className="col-6">
+                <select
+                  className={`form-control ${fieldErrors.birthMonth && touchedFields.birthMonth ? 'is-invalid' : ''}`}
+                  name="birthMonth"
+                  value={formData.birthMonth}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  required
+                >
+                  <option value="">Month</option>
+                  <option value="1">January</option>
+                  <option value="2">February</option>
+                  <option value="3">March</option>
+                  <option value="4">April</option>
+                  <option value="5">May</option>
+                  <option value="6">June</option>
+                  <option value="7">July</option>
+                  <option value="8">August</option>
+                  <option value="9">September</option>
+                  <option value="10">October</option>
+                  <option value="11">November</option>
+                  <option value="12">December</option>
+                </select>
+                {fieldErrors.birthMonth && touchedFields.birthMonth && (
+                  <div className="invalid-feedback d-block">{fieldErrors.birthMonth}</div>
+                )}
+              </div>
+              <div className="col-6">
+                <select
+                  className={`form-control ${fieldErrors.birthYear && touchedFields.birthYear ? 'is-invalid' : ''}`}
+                  name="birthYear"
+                  value={formData.birthYear}
+                  onChange={handleChange}
+                  onBlur={handleBlur}
+                  required
+                >
+                  <option value="">Year</option>
+                  {Array.from({ length: 83 }, (_, i) => {
+                    const year = new Date().getFullYear() - 20 - i; // Start from 20 years ago (minimum age)
+                    return <option key={year} value={year}>{year}</option>;
+                  })}
+                </select>
+                {fieldErrors.birthYear && touchedFields.birthYear && (
+                  <div className="invalid-feedback d-block">{fieldErrors.birthYear}</div>
+                )}
+              </div>
+            </div>
+            <small className="text-muted">
+              ℹ️ Your age is calculated from month/year. Exact day not required for privacy.
+            </small>
           </div>
           <div className="col-md-4">
             <label className="form-label">Height <span className="text-danger">*</span></label>
@@ -2339,7 +2390,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           // Exclude fields that are rendered explicitly elsewhere
           const excludedFields = [
             "username", "password", "passwordConfirm", "firstName", "lastName", "contactNumber", "contactEmail", 
-            "dateOfBirth", "heightFeet", "heightInches", "gender", "citizenshipStatus", 
+            "birthMonth", "birthYear", "heightFeet", "heightInches", "gender", "citizenshipStatus", 
             "profileCreatedBy",  // Rendered explicitly above
             "creatorInfo",  // Creator information object (rendered explicitly in creator section)
             "religion", "languagesSpoken",  // NEW: rendered explicitly
@@ -2615,17 +2666,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               </select>
             </div>
           </div>
-          {formData.dateOfBirth && (
+          {formData.birthMonth && formData.birthYear && (
             <div className="alert alert-info info-preview-box mb-0" style={{ fontSize: '14px' }}>
               📊 <strong>Preview:</strong> Looking for ages{' '}
-              <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
-              <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
-              (based on your age: {calculateAge(formData.dateOfBirth)})
+              <strong>{calculateAge(formData.birthMonth, formData.birthYear) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
+              <strong>{calculateAge(formData.birthMonth, formData.birthYear) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
+              (based on your age: {calculateAge(formData.birthMonth, formData.birthYear)})
             </div>
           )}
-          {!formData.dateOfBirth && (
+          {(!formData.birthMonth || !formData.birthYear) && (
             <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
-              ⚠️ Please set your date of birth above to see age preview
+              ⚠️ Please set your birth month and year above to see age preview
             </div>
           )}
         </div>
@@ -3277,8 +3328,29 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                             formData.agreedToTerms &&
                             formData.agreedToPrivacy &&
                             formData.agreedToGuidelines &&
-                            formData.agreedToDataProcessing
+                            formData.agreedToDataProcessing &&
+                            formData.agreedToMarketing
                           }
+                          ref={(el) => {
+                            if (el) {
+                              // Set indeterminate state when some but not all are checked
+                              const allChecked = formData.agreedToAge &&
+                                formData.agreedToTerms &&
+                                formData.agreedToPrivacy &&
+                                formData.agreedToGuidelines &&
+                                formData.agreedToDataProcessing &&
+                                formData.agreedToMarketing;
+                              
+                              const someChecked = formData.agreedToAge ||
+                                formData.agreedToTerms ||
+                                formData.agreedToPrivacy ||
+                                formData.agreedToGuidelines ||
+                                formData.agreedToDataProcessing ||
+                                formData.agreedToMarketing;
+                              
+                              el.indeterminate = !allChecked && someChecked;
+                            }
+                          }}
                           onChange={(e) => {
                             const checked = e.target.checked;
                             setFormData({
@@ -3287,8 +3359,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                               agreedToTerms: checked,
                               agreedToPrivacy: checked,
                               agreedToGuidelines: checked,
-                              agreedToDataProcessing: checked
-                              // Note: agreedToMarketing not included (it's optional)
+                              agreedToDataProcessing: checked,
+                              agreedToMarketing: checked  // Now includes optional marketing
                             });
                           }}
                         />

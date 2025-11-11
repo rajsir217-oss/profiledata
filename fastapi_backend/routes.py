@@ -102,7 +102,9 @@ async def register_user(
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
-    dateOfBirth: Optional[str] = Form(None),  # Renamed from dob
+    birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
+    birthYear: Optional[int] = Form(None),   # Birth year
+    dateOfBirth: Optional[str] = Form(None),  # DEPRECATED: Use birthMonth/birthYear instead
     gender: Optional[str] = Form(None),  # Renamed from sex
     height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
     # Preferences & Cultural Information
@@ -290,7 +292,9 @@ async def register_user(
         "contactNumber": contactNumber,
         "contactEmail": contactEmail,
         "smsOptIn": smsOptIn,  # SMS notifications opt-in
-        "dateOfBirth": dateOfBirth,  # Renamed from dob
+        "birthMonth": birthMonth,
+        "birthYear": birthYear,
+        "dateOfBirth": dateOfBirth,  # DEPRECATED: kept for backward compatibility
         "gender": gender,  # Renamed from sex
         "height": height,
         "heightInches": parse_height_to_inches(height),  # Numeric for searching
@@ -656,7 +660,9 @@ async def update_user_profile(
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(None),  # SMS notifications opt-in
-    dateOfBirth: Optional[str] = Form(None),
+    birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
+    birthYear: Optional[int] = Form(None),   # Birth year
+    dateOfBirth: Optional[str] = Form(None),  # DEPRECATED: Use birthMonth/birthYear
     sex: Optional[str] = Form(None),
     gender: Optional[str] = Form(None),  # NEW: consistent naming
     height: Optional[str] = Form(None),
@@ -730,7 +736,12 @@ async def update_user_profile(
     if smsOptIn is not None:
         update_data["smsOptIn"] = smsOptIn
     
-    # Update date of birth
+    # Update birth month and year
+    if birthMonth is not None:
+        update_data["birthMonth"] = birthMonth
+    if birthYear is not None:
+        update_data["birthYear"] = birthYear
+    # DEPRECATED: Still accept dateOfBirth for backward compatibility
     if dateOfBirth is not None and dateOfBirth.strip():
         update_data["dateOfBirth"] = dateOfBirth.strip()
     
@@ -3605,7 +3616,11 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
                 "username": viewer["viewerUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dateOfBirth")),
+                "age": calculate_age(
+                    birthMonth=user_data.get("birthMonth"),
+                    birthYear=user_data.get("birthYear"),
+                    dateOfBirth=user_data.get("dateOfBirth")
+                ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -3664,7 +3679,11 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dateOfBirth")),
+                "age": calculate_age(
+                    birthMonth=user_data.get("birthMonth"),
+                    birthYear=user_data.get("birthYear"),
+                    dateOfBirth=user_data.get("dateOfBirth")
+                ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -3712,7 +3731,11 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
-                "age": calculate_age(user_data.get("dateOfBirth")),
+                "age": calculate_age(
+                    birthMonth=user_data.get("birthMonth"),
+                    birthYear=user_data.get("birthYear"),
+                    dateOfBirth=user_data.get("dateOfBirth")
+                ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": get_full_image_url(user_data.get("profileImage")),
@@ -5041,20 +5064,42 @@ async def get_unread_counts(username: str):
         return {"unread_counts": {}}
 
 # Helper function for age calculation
-def calculate_age(dateOfBirth):
-    """Calculate age from date of birth"""
-    if not dateOfBirth:
-        return None
-    if isinstance(dateOfBirth, str):
-        try:
-            dateOfBirth = datetime.strptime(dateOfBirth, "%Y-%m-%d").date()
-        except:
-            return None
-    elif isinstance(dateOfBirth, datetime):
-        dateOfBirth = dateOfBirth.date()
+def calculate_age(birthMonth=None, birthYear=None, dateOfBirth=None):
+    """
+    Calculate age from birth month and year (preferred) or dateOfBirth (legacy)
+    
+    Args:
+        birthMonth: Birth month (1-12)
+        birthYear: Birth year
+        dateOfBirth: DEPRECATED - Full date of birth (for backward compatibility)
+    
+    Returns:
+        Age in years or None if insufficient data
+    """
     today = date.today()
-    age = today.year - dateOfBirth.year - ((today.month, today.day) < (dateOfBirth.month, dateOfBirth.day))
-    return age
+    
+    # Prefer birthMonth and birthYear (privacy-focused)
+    if birthMonth and birthYear:
+        age = today.year - birthYear
+        # If current month hasn't reached birth month yet, subtract 1
+        if today.month < birthMonth:
+            age -= 1
+        return age
+    
+    # Fall back to dateOfBirth for backward compatibility
+    if dateOfBirth:
+        if isinstance(dateOfBirth, str):
+            try:
+                dateOfBirth = datetime.strptime(dateOfBirth, "%Y-%m-%d").date()
+            except:
+                return None
+        elif isinstance(dateOfBirth, datetime):
+            dateOfBirth = dateOfBirth.date()
+        
+        age = today.year - dateOfBirth.year - ((today.month, today.day) < (dateOfBirth.month, dateOfBirth.day))
+        return age
+    
+    return None
 
 
 # ===== L3V3L MATCHING ALGORITHM =====
