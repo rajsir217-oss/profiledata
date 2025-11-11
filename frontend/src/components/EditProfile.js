@@ -16,14 +16,13 @@ const EditProfile = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   
-  // Helper function to calculate age from date of birth
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return null;
-    const birthDate = new Date(dateOfBirth);
+  // Helper function to calculate age from birth month and year
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return null;
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    let age = today.getFullYear() - birthYear;
+    // If current month hasn't reached birth month yet, subtract 1
+    if (today.getMonth() + 1 < birthMonth) {
       age--;
     }
     return age;
@@ -79,7 +78,8 @@ const EditProfile = () => {
     lastName: '',
     contactNumber: '',
     contactEmail: '',
-    dateOfBirth: '',
+    birthMonth: '',
+    birthYear: '',
     sex: '',
     gender: '',
     height: '',
@@ -231,7 +231,8 @@ const EditProfile = () => {
           lastName: userData.lastName || '',
           contactNumber: userData.contactNumber || '',
           contactEmail: userData.contactEmail || '',
-          dateOfBirth: userData.dateOfBirth || '',
+          birthMonth: userData.birthMonth || '',
+          birthYear: userData.birthYear || '',
           sex: userData.sex || userData.gender || '',
           gender: userData.gender || userData.sex || '',
           height: userData.height || '',
@@ -313,30 +314,26 @@ const EditProfile = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Validate Date of Birth
-    if (name === 'dateOfBirth' && value) {
-      const birthDate = new Date(value);
-      const today = new Date();
+    // Validate Birth Year
+    if (name === 'birthYear' && value) {
+      const birthYear = parseInt(value);
+      const currentYear = new Date().getFullYear();
       
-      // Check for future dates
-      if (birthDate > today) {
-        setErrorMsg('Date of birth cannot be in the future');
+      // Check for future years
+      if (birthYear > currentYear) {
+        setErrorMsg('Birth year cannot be in the future');
         return;
       }
       
-      // Calculate age accurately
-      let age = today.getFullYear() - birthDate.getFullYear();
-      const monthDiff = today.getMonth() - birthDate.getMonth();
-      if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-        age--;
-      }
+      // Calculate approximate age
+      const age = currentYear - birthYear;
       
       // Minimum age requirement: 20 years
       if (age < 20) {
         setErrorMsg('You must be at least 20 years old');
         return;
       } else if (age > 100) {
-        setErrorMsg('Please enter a valid date of birth');
+        setErrorMsg('Please enter a valid birth year');
         return;
       }
     }
@@ -381,7 +378,7 @@ const EditProfile = () => {
       // Add simple string fields
       const simpleFields = [
         'firstName', 'lastName', 'contactNumber', 'contactEmail',
-        'dateOfBirth', 'sex', 'gender', 'height',
+        'birthMonth', 'birthYear', 'sex', 'gender', 'height',
         'religion', 'countryOfOrigin', 'countryOfResidence', 'state',
         'caste', 'motherTongue', 'familyType', 'familyValues',
         'castePreference', 'eatingPreference', 'location',
@@ -559,19 +556,53 @@ const EditProfile = () => {
             </div>
           </div>
 
-          {/* Section 2: Personal Details - dateOfBirth, height, gender */}
+          {/* Section 2: Personal Details - birthMonth/Year, height, gender */}
           <div className="row mb-3">
             <div className="col-md-4">
-              <label className="form-label">Date of Birth</label>
-              <input
-                type="date"
-                className="form-control"
-                name="dateOfBirth"
-                value={formData.dateOfBirth}
-                onChange={handleChange}
-                max={new Date().toISOString().split('T')[0]}
-                required
-              />
+              <label className="form-label">Birth Month & Year <span className="text-danger">*</span></label>
+              <div className="row">
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    name="birthMonth"
+                    value={formData.birthMonth}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Month</option>
+                    <option value="1">January</option>
+                    <option value="2">February</option>
+                    <option value="3">March</option>
+                    <option value="4">April</option>
+                    <option value="5">May</option>
+                    <option value="6">June</option>
+                    <option value="7">July</option>
+                    <option value="8">August</option>
+                    <option value="9">September</option>
+                    <option value="10">October</option>
+                    <option value="11">November</option>
+                    <option value="12">December</option>
+                  </select>
+                </div>
+                <div className="col-6">
+                  <select
+                    className="form-control"
+                    name="birthYear"
+                    value={formData.birthYear}
+                    onChange={handleChange}
+                    required
+                  >
+                    <option value="">Year</option>
+                    {Array.from({ length: 83 }, (_, i) => {
+                      const year = new Date().getFullYear() - 20 - i;
+                      return <option key={year} value={year}>{year}</option>;
+                    })}
+                  </select>
+                </div>
+              </div>
+              <small className="text-muted">
+                ℹ️ Age calculated from month/year for privacy
+              </small>
             </div>
             <div className="col-md-4">
               <HeightSelector
@@ -1370,17 +1401,17 @@ const EditProfile = () => {
                 </select>
               </div>
             </div>
-            {formData.dateOfBirth && (
+            {formData.birthMonth && formData.birthYear && (
               <div className="alert alert-info mb-0" style={{ fontSize: '14px' }}>
                 📊 <strong>Preview:</strong> Looking for ages{' '}
-                <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
-                <strong>{calculateAge(formData.dateOfBirth) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
-                (based on your age: {calculateAge(formData.dateOfBirth)})
+                <strong>{calculateAge(formData.birthMonth, formData.birthYear) + formData.partnerCriteria.ageRangeRelative.minOffset}</strong> to{' '}
+                <strong>{calculateAge(formData.birthMonth, formData.birthYear) + formData.partnerCriteria.ageRangeRelative.maxOffset}</strong>{' '}
+                (based on your age: {calculateAge(formData.birthMonth, formData.birthYear)})
               </div>
             )}
-            {!formData.dateOfBirth && (
+            {(!formData.birthMonth || !formData.birthYear) && (
               <div className="alert alert-warning mb-0" style={{ fontSize: '13px' }}>
-                ⚠️ Please set your date of birth above to see age preview
+                ⚠️ Please set your birth month and year above to see age preview
               </div>
             )}
           </div>
