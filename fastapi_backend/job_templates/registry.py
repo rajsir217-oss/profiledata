@@ -155,6 +155,7 @@ def initialize_templates():
     from .profile_completion_reminder import ProfileCompletionReminderTemplate
     from .conversation_monitor import ConversationMonitorTemplate
     from .analytics_notifier import AnalyticsNotifierTemplate
+    from .age_updater_template import AgeUpdaterTemplate
     
     registry = get_template_registry()
     
@@ -173,6 +174,7 @@ def initialize_templates():
     
     # Register maintenance job templates
     registry.register(MessageStatsSyncTemplate())
+    registry.register(AgeUpdaterTemplate())
     
     # Register notification job templates
     registry.register(EmailNotifierTemplate())

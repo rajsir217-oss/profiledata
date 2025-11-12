@@ -663,8 +663,7 @@ async def update_user_profile(
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
     dateOfBirth: Optional[str] = Form(None),  # DEPRECATED: Use birthMonth/birthYear
-    sex: Optional[str] = Form(None),
-    gender: Optional[str] = Form(None),  # NEW: consistent naming
+    gender: Optional[str] = Form(None),
     height: Optional[str] = Form(None),
     # Regional/Cultural fields
     religion: Optional[str] = Form(None),  # NEW
@@ -745,13 +744,9 @@ async def update_user_profile(
     if dateOfBirth is not None and dateOfBirth.strip():
         update_data["dateOfBirth"] = dateOfBirth.strip()
     
-    # Handle both old and new field names for gender
+    # Handle gender field
     if gender is not None and gender.strip():
         update_data["gender"] = gender.strip()
-        update_data["sex"] = gender.strip()  # Keep both for compatibility
-    elif sex is not None and sex.strip():
-        update_data["sex"] = sex.strip()
-        update_data["gender"] = sex.strip()  # Keep both for compatibility
     
     if height is not None and height.strip():
         update_data["height"] = height.strip()
@@ -1198,12 +1193,12 @@ async def get_all_users(
         # Build query filter
         query = {}
         
-        # Search filter (username, email, firstName, lastName)
+        # Search filter (username, contactEmail, firstName, lastName)
         if search:
             search_regex = {"$regex": search, "$options": "i"}  # Case-insensitive
             query["$or"] = [
                 {"username": search_regex},
-                {"email": search_regex},
+                {"contactEmail": search_regex},
                 {"firstName": search_regex},
                 {"lastName": search_regex}
             ]
@@ -1615,22 +1610,11 @@ async def search_users(
     if gender:
         query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
 
-    # Age filter - Use the age field (not encrypted dateOfBirth)
-    # ⚠️ IMPORTANT: Can't search on encrypted dateOfBirth, use age field instead
-    # Include users who match OR don't have the field (lenient search)
-    if ageMin > 0 or ageMax > 0:
-        age_query = {}
-        if ageMin > 0:
-            age_query["$gte"] = ageMin
-        if ageMax > 0:
-            age_query["$lte"] = ageMax
-        # Lenient: include users who match OR age field doesn't exist
-        query["$or"] = query.get("$or", [])
-        query["$or"].extend([
-            {"age": age_query},
-            {"age": {"$exists": False}},
-            {"age": None}
-        ])
+    # Age filter - Calculate dynamically from birthMonth and birthYear
+    # This ensures age is always accurate and never stale
+    # Store age filter for later use in aggregation pipeline
+    age_filter_min = ageMin if ageMin > 0 else None
+    age_filter_max = ageMax if ageMax > 0 else None
 
     # Height filter - now using heightInches (numeric field)
     # Include users who match OR don't have the field (lenient search)
@@ -1699,13 +1683,85 @@ async def search_users(
     skip = (page - 1) * limit
 
     try:
-        # Execute search
-        logger.info(f"🔍 Executing search with query: {query}")
-        users_cursor = db.users.find(query).sort(sort).skip(skip).limit(limit)
-        users = await users_cursor.to_list(length=limit)
-
-        # Get total count for pagination
-        total = await db.users.count_documents(query)
+        # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
+        # Otherwise use simple find for better performance
+        if age_filter_min is not None or age_filter_max is not None:
+            from datetime import datetime
+            current_year = datetime.now().year
+            current_month = datetime.now().month
+            
+            # Build aggregation pipeline
+            pipeline = [
+                # Stage 1: Match base query
+                {"$match": query},
+                
+                # Stage 2: Add calculated age field
+                {"$addFields": {
+                    "calculatedAge": {
+                        "$cond": {
+                            "if": {"$and": [
+                                {"$ne": ["$birthMonth", None]},
+                                {"$ne": ["$birthYear", None]}
+                            ]},
+                            "then": {
+                                "$subtract": [
+                                    current_year,
+                                    {
+                                        "$cond": {
+                                            "if": {"$lt": [current_month, "$birthMonth"]},
+                                            "then": {"$add": ["$birthYear", 1]},
+                                            "else": "$birthYear"
+                                        }
+                                    }
+                                ]
+                            },
+                            "else": None
+                        }
+                    }
+                }},
+                
+                # Stage 3: Filter by calculated age
+                {"$match": {
+                    "$and": [
+                        {"calculatedAge": {"$gte": age_filter_min}} if age_filter_min else {},
+                        {"calculatedAge": {"$lte": age_filter_max}} if age_filter_max else {}
+                    ]
+                }},
+                
+                # Stage 4: Sort
+                {"$sort": dict(sort)},
+                
+                # Stage 5: Facet for pagination and count
+                {"$facet": {
+                    "users": [
+                        {"$skip": skip},
+                        {"$limit": limit}
+                    ],
+                    "totalCount": [
+                        {"$count": "count"}
+                    ]
+                }}
+            ]
+            
+            # Execute aggregation
+            logger.info(f"🔍 Executing search with aggregation (dynamic age calculation)")
+            result = await db.users.aggregate(pipeline).to_list(1)
+            
+            if result and len(result) > 0:
+                users = result[0].get("users", [])
+                total_count = result[0].get("totalCount", [])
+                total = total_count[0]["count"] if total_count else 0
+            else:
+                users = []
+                total = 0
+        else:
+            # No age filtering - use simple find for better performance
+            logger.info(f"🔍 Executing search with query: {query}")
+            users_cursor = db.users.find(query).sort(sort).skip(skip).limit(limit)
+            users = await users_cursor.to_list(length=limit)
+            
+            # Get total count for pagination
+            total = await db.users.count_documents(query)
 
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):

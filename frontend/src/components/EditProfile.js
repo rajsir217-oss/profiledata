@@ -80,7 +80,6 @@ const EditProfile = () => {
     contactEmail: '',
     birthMonth: '',
     birthYear: '',
-    sex: '',
     gender: '',
     height: '',
     heightFeet: '',
@@ -233,8 +232,7 @@ const EditProfile = () => {
           contactEmail: userData.contactEmail || '',
           birthMonth: userData.birthMonth || '',
           birthYear: userData.birthYear || '',
-          sex: userData.sex || userData.gender || '',
-          gender: userData.gender || userData.sex || '',
+          gender: userData.gender || '',
           height: userData.height || '',
           heightFeet: heightFeet,
           heightInches: heightInches,
@@ -378,7 +376,7 @@ const EditProfile = () => {
       // Add simple string fields
       const simpleFields = [
         'firstName', 'lastName', 'contactNumber', 'contactEmail',
-        'birthMonth', 'birthYear', 'sex', 'gender', 'height',
+        'birthMonth', 'birthYear', 'gender', 'height',
         'religion', 'countryOfOrigin', 'countryOfResidence', 'state',
         'caste', 'motherTongue', 'familyType', 'familyValues',
         'castePreference', 'eatingPreference', 'location',
@@ -616,11 +614,11 @@ const EditProfile = () => {
             </div>
             <div className="col-md-4">
               <GenderSelector
-                value={formData.sex}
+                value={formData.gender}
                 onChange={handleChange}
                 required
                 label="Gender"
-                name="sex"
+                name="gender"
               />
             </div>
           </div>
@@ -783,20 +781,6 @@ const EditProfile = () => {
                 onChange={handleChange}
                 placeholder="e.g., 5'8&quot;"
               />
-            </div>
-            <div className="col-md-3">
-              <label className="form-label">Sex</label>
-              <select
-                className="form-control"
-                name="sex"
-                value={formData.sex}
-                onChange={handleChange}
-              >
-                <option value="">Select Sex</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
             </div>
           </div>
 

@@ -10,21 +10,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Import storage service
-try:
-    from services.storage_service import get_storage_service
-    USE_STORAGE_SERVICE = True
-except ImportError:
-    USE_STORAGE_SERVICE = False
-    logger.warning("⚠️ Storage service not available, using legacy local storage")
-
 async def save_upload_file(upload_file: UploadFile) -> str:
     """Save uploaded file and return the file path or URL"""
     try:
-        # Use new storage service if available
-        if USE_STORAGE_SERVICE:
+        # Try to use storage service if available
+        try:
+            from services.storage_service import get_storage_service
             storage = get_storage_service()
+            logger.debug(f"📦 Using StorageService (GCS: {storage.use_gcs})")
             return await storage.save_file(upload_file, folder="uploads")
+        except (ImportError, RuntimeError) as e:
+            logger.debug(f"⚠️ Storage service not available, using legacy storage: {e}")
         
         # Fallback to legacy local storage
         upload_dir = Path(settings.upload_dir)

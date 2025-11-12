@@ -143,11 +143,10 @@ class UserBase(BaseModel):
     firstName: Optional[str] = None
     lastName: Optional[str] = None
     
-    # Contact Information (with backward compatibility aliases)
+    # Contact Information
     contactNumber: Optional[str] = Field(None, description="Phone number")
-    phone: Optional[str] = Field(None, description="Alias for contactNumber")
+    phone: Optional[str] = Field(None, description="Alias for contactNumber (legacy)")
     contactEmail: Optional[EmailStr] = Field(None, description="Email address")
-    email: Optional[EmailStr] = Field(None, description="Alias for contactEmail")
     
     # Profile Creation Context
     profileCreatedBy: str = Field(
@@ -334,13 +333,6 @@ class UserBase(BaseModel):
         if v:
             values['contactNumber'] = v
         return v or values.get('contactNumber')
-    
-    @validator('email', always=True)
-    def sync_email_with_contact_email(cls, v, values):
-        """Sync email and contactEmail fields for backward compatibility"""
-        if v:
-            values['contactEmail'] = v
-        return v or values.get('contactEmail')
     
     @validator('username')
     def username_alphanumeric(cls, v):

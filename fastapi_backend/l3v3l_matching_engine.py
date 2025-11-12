@@ -20,7 +20,7 @@ import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.metrics.pairwise import cosine_similarity
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import re
 import logging
 
@@ -286,7 +286,7 @@ class L3V3LMatchingEngine:
         
         # Age range
         if 'ageRange' in criteria:
-            age = self._calculate_age(profile.get('dateOfBirth'))
+            age = self._calculate_age(profile)
             if age:
                 # Convert to int to handle string values from MongoDB
                 # Handle empty strings by using defaults
@@ -493,8 +493,8 @@ class L3V3LMatchingEngine:
                 factors += 1
         
         # 2. Age compatibility (-1 to +3 years)
-        age1 = self._calculate_age(user1.get('dateOfBirth'))
-        age2 = self._calculate_age(user2.get('dateOfBirth'))
+        age1 = self._calculate_age(user1)
+        age2 = self._calculate_age(user2)
         
         if age1 and age2:
             # _calculate_age returns int, already validated
@@ -578,17 +578,50 @@ class L3V3LMatchingEngine:
     
     # Helper methods
     
-    def _calculate_age(self, dob_str: Optional[str]) -> Optional[int]:
-        """Calculate age from date of birth string"""
-        if not dob_str:
+    def _calculate_age(self, user: Union[Dict, str, None]) -> Optional[int]:
+        """
+        Calculate age from birthMonth and birthYear (preferred) or dateOfBirth (legacy)
+        
+        Args:
+            user: Either a user dict with birthMonth/birthYear fields, or dateOfBirth string (legacy)
+        
+        Returns:
+            Age in years or None
+        """
+        if user is None:
             return None
-        try:
-            dob = datetime.strptime(dob_str, '%Y-%m-%d')
-            today = datetime.today()
-            age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
-            return age
-        except:
+        
+        # Handle user dict (preferred - new format with birthMonth/birthYear)
+        if isinstance(user, dict):
+            birth_month = user.get('birthMonth')
+            birth_year = user.get('birthYear')
+            
+            if birth_month and birth_year:
+                today = datetime.today()
+                age = today.year - birth_year
+                # If current month hasn't reached birth month yet, subtract 1
+                if today.month < birth_month:
+                    age -= 1
+                return age
+            
+            # Fallback to dateOfBirth if birthMonth/birthYear not available
+            dob_str = user.get('dateOfBirth')
+            if dob_str:
+                return self._calculate_age(dob_str)  # Recursive call with string
+            
             return None
+        
+        # Handle dateOfBirth string (legacy format)
+        if isinstance(user, str):
+            try:
+                dob = datetime.strptime(user, '%Y-%m-%d')
+                today = datetime.today()
+                age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+                return age
+            except:
+                return None
+        
+        return None
     
     def _height_to_inches(self, height_str: str) -> Optional[float]:
         """Convert height string to inches"""
