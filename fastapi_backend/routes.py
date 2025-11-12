@@ -104,7 +104,6 @@ async def register_user(
     smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
-    dateOfBirth: Optional[str] = Form(None),  # DEPRECATED: Use birthMonth/birthYear instead
     gender: Optional[str] = Form(None),  # Renamed from sex
     height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
     # Preferences & Cultural Information
@@ -294,7 +293,6 @@ async def register_user(
         "smsOptIn": smsOptIn,  # SMS notifications opt-in
         "birthMonth": birthMonth,
         "birthYear": birthYear,
-        "dateOfBirth": dateOfBirth,  # DEPRECATED: kept for backward compatibility
         "gender": gender,  # Renamed from sex
         "height": height,
         "heightInches": parse_height_to_inches(height),  # Numeric for searching
@@ -619,7 +617,7 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
-    # No field conversion needed - using dateOfBirth only
+    # No field conversion needed - using birthMonth + birthYear for age
     
     # Apply PII masking if requester is not the profile owner
     from pii_security import mask_user_pii, check_access_granted
@@ -662,7 +660,6 @@ async def update_user_profile(
     smsOptIn: Optional[bool] = Form(None),  # SMS notifications opt-in
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
-    dateOfBirth: Optional[str] = Form(None),  # DEPRECATED: Use birthMonth/birthYear
     gender: Optional[str] = Form(None),
     height: Optional[str] = Form(None),
     # Regional/Cultural fields
@@ -740,9 +737,6 @@ async def update_user_profile(
         update_data["birthMonth"] = birthMonth
     if birthYear is not None:
         update_data["birthYear"] = birthYear
-    # DEPRECATED: Still accept dateOfBirth for backward compatibility
-    if dateOfBirth is not None and dateOfBirth.strip():
-        update_data["dateOfBirth"] = dateOfBirth.strip()
     
     # Handle gender field
     if gender is not None and gender.strip():
@@ -1671,7 +1665,7 @@ async def search_users(
         "newest": [("createdAt", -1)],
         "oldest": [("createdAt", 1)],
         "name": [("firstName", 1)],
-        "age": [("dateOfBirth", -1)],
+        "age": [("birthYear", -1), ("birthMonth", -1)],
         "location": [("location", 1)]
     }
 
@@ -1704,13 +1698,15 @@ async def search_users(
                                 {"$ne": ["$birthYear", None]}
                             ]},
                             "then": {
+                                # Calculate: current_year - birthYear, then subtract 1 if birthday hasn't occurred yet this year
                                 "$subtract": [
-                                    current_year,
+                                    {"$subtract": [current_year, "$birthYear"]},
                                     {
                                         "$cond": {
+                                            # If current month is before birth month, subtract 1 from age
                                             "if": {"$lt": [current_month, "$birthMonth"]},
-                                            "then": {"$add": ["$birthYear", 1]},
-                                            "else": "$birthYear"
+                                            "then": 1,
+                                            "else": 0
                                         }
                                     }
                                 ]
@@ -1720,11 +1716,19 @@ async def search_users(
                     }
                 }},
                 
-                # Stage 3: Filter by calculated age
+                # Stage 3: Filter by calculated age (LENIENT - include users without age data)
                 {"$match": {
-                    "$and": [
-                        {"calculatedAge": {"$gte": age_filter_min}} if age_filter_min else {},
-                        {"calculatedAge": {"$lte": age_filter_max}} if age_filter_max else {}
+                    "$or": [
+                        # Match age range
+                        {
+                            "$and": [
+                                {"calculatedAge": {"$gte": age_filter_min}} if age_filter_min else {},
+                                {"calculatedAge": {"$lte": age_filter_max}} if age_filter_max else {},
+                                {"calculatedAge": {"$ne": None}}  # Has age data
+                            ]
+                        },
+                        # OR: No age data (lenient)
+                        {"calculatedAge": None}
                     ]
                 }},
                 
@@ -1779,7 +1783,20 @@ async def search_users(
             remove_consent_metadata(users[i])
             users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]
             
-            # No field conversion needed
+            # Calculate age dynamically from birthMonth and birthYear
+            from datetime import datetime
+            birth_month = users[i].get("birthMonth")
+            birth_year = users[i].get("birthYear")
+            if birth_month and birth_year:
+                current_year = datetime.now().year
+                current_month = datetime.now().month
+                age = current_year - birth_year
+                if current_month < birth_month:
+                    age -= 1
+                users[i]["age"] = age
+            elif users[i].get("calculatedAge") is not None:
+                # If age was calculated in aggregation, use it
+                users[i]["age"] = users[i]["calculatedAge"]
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
         return {
@@ -3674,8 +3691,7 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
                 "lastName": user_data.get("lastName"),
                 "age": calculate_age(
                     birthMonth=user_data.get("birthMonth"),
-                    birthYear=user_data.get("birthYear"),
-                    dateOfBirth=user_data.get("dateOfBirth")
+                    birthYear=user_data.get("birthYear")
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
@@ -3737,8 +3753,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "lastName": user_data.get("lastName"),
                 "age": calculate_age(
                     birthMonth=user_data.get("birthMonth"),
-                    birthYear=user_data.get("birthYear"),
-                    dateOfBirth=user_data.get("dateOfBirth")
+                    birthYear=user_data.get("birthYear")
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
@@ -3789,8 +3804,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "lastName": user_data.get("lastName"),
                 "age": calculate_age(
                     birthMonth=user_data.get("birthMonth"),
-                    birthYear=user_data.get("birthYear"),
-                    dateOfBirth=user_data.get("dateOfBirth")
+                    birthYear=user_data.get("birthYear")
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
@@ -5120,39 +5134,24 @@ async def get_unread_counts(username: str):
         return {"unread_counts": {}}
 
 # Helper function for age calculation
-def calculate_age(birthMonth=None, birthYear=None, dateOfBirth=None):
+def calculate_age(birthMonth=None, birthYear=None):
     """
-    Calculate age from birth month and year (preferred) or dateOfBirth (legacy)
+    Calculate age from birth month and year
     
     Args:
         birthMonth: Birth month (1-12)
         birthYear: Birth year
-        dateOfBirth: DEPRECATED - Full date of birth (for backward compatibility)
     
     Returns:
         Age in years or None if insufficient data
     """
+    from datetime import date
     today = date.today()
     
-    # Prefer birthMonth and birthYear (privacy-focused)
     if birthMonth and birthYear:
         age = today.year - birthYear
-        # If current month hasn't reached birth month yet, subtract 1
         if today.month < birthMonth:
             age -= 1
-        return age
-    
-    # Fall back to dateOfBirth for backward compatibility
-    if dateOfBirth:
-        if isinstance(dateOfBirth, str):
-            try:
-                dateOfBirth = datetime.strptime(dateOfBirth, "%Y-%m-%d").date()
-            except:
-                return None
-        elif isinstance(dateOfBirth, datetime):
-            dateOfBirth = dateOfBirth.date()
-        
-        age = today.year - dateOfBirth.year - ((today.month, today.day) < (dateOfBirth.month, dateOfBirth.day))
         return age
     
     return None
@@ -5253,8 +5252,10 @@ async def get_l3v3l_matches(
                     'profileId': candidate.get('profileId'),
                     'firstName': candidate.get('firstName'),
                     'lastName': candidate.get('lastName'),
-                    'age': calculate_age(candidate.get('dateOfBirth')),
-                    'dateOfBirth': candidate.get('dateOfBirth'),
+                    'age': calculate_age(
+                        birthMonth=candidate.get('birthMonth'),
+                        birthYear=candidate.get('birthYear')
+                    ),
                     'gender': candidate.get('gender'),
                     'height': candidate.get('height'),
                     'location': candidate.get('location'),

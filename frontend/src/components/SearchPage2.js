@@ -138,14 +138,12 @@ const SearchPage2 = () => {
         
         console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
         
-        // Calculate user's age from date of birth
+        // Calculate user's age from birthMonth and birthYear
         let userAge = null;
-        if (response.data.dateOfBirth) {
-          const birthDate = new Date(response.data.dateOfBirth);
+        if (response.data.birthMonth && response.data.birthYear) {
           const today = new Date();
-          userAge = today.getFullYear() - birthDate.getFullYear();
-          const monthDiff = today.getMonth() - birthDate.getMonth();
-          if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+          userAge = today.getFullYear() - response.data.birthYear;
+          if (today.getMonth() + 1 < response.data.birthMonth) {
             userAge--;
           }
         }
@@ -661,12 +659,10 @@ const SearchPage2 = () => {
 
       // Calculate user's age
       let userAge = null;
-      if (currentUserProfile.dateOfBirth) {
-        const birthDate = new Date(currentUserProfile.dateOfBirth);
+      if (currentUserProfile.birthMonth && currentUserProfile.birthYear) {
         const today = new Date();
-        userAge = today.getFullYear() - birthDate.getFullYear();
-        const monthDiff = today.getMonth() - birthDate.getMonth();
-        if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        userAge = today.getFullYear() - currentUserProfile.birthYear;
+        if (today.getMonth() + 1 < currentUserProfile.birthMonth) {
           userAge--;
         }
       }
@@ -1301,14 +1297,12 @@ const SearchPage2 = () => {
     return null;
   };
 
-  const calculateAge = (dob) => {
-    if (!dob) return null;
-    const birthDate = new Date(dob);
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return null;
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    let age = today.getFullYear() - birthYear;
+    
+    if (today.getMonth() + 1 < birthMonth) {
       age--;
     }
 
@@ -1573,7 +1567,7 @@ const SearchPage2 = () => {
     }
 
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
-      const age = calculateAge(user.dateOfBirth);
+      const age = user.age || calculateAge(user.birthMonth, user.birthYear);
       if (age === null) return false;
 
       if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) return false;
@@ -1612,8 +1606,8 @@ const SearchPage2 = () => {
         break;
       
       case 'age':
-        const ageA = calculateAge(a.dateOfBirth) || 999;
-        const ageB = calculateAge(b.dateOfBirth) || 999;
+        const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 999;
+        const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 999;
         compareValue = ageA - ageB;
         break;
       

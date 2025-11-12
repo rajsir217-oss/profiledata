@@ -161,7 +161,8 @@ const SearchResultCard = ({
   if (!displayAge || displayAge === 'N/A') {
     console.log('⚠️ Age missing for user:', user.username || user.firstName, {
       providedAge: user.age,
-      dateOfBirth: user.dateOfBirth
+      birthMonth: user.birthMonth,
+      birthYear: user.birthYear
     });
   }
 

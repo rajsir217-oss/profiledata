@@ -52,8 +52,11 @@ class L3V3LMLEnhancer:
         """
         features = []
         
-        # 1. Age
-        age = self._parse_age(user.get('dateOfBirth', ''))
+        # 1. Age (from birthMonth and birthYear)
+        age = self._calculate_age_from_birth_fields(
+            user.get('birthMonth'),
+            user.get('birthYear')
+        )
         features.append(age if age else 30)  # Default 30
         
         # 2. Height (in inches)
@@ -261,15 +264,17 @@ class L3V3LMLEnhancer:
     
     # Helper methods
     
-    def _parse_age(self, dateOfBirth: str) -> Optional[int]:
-        """Parse age from date of birth"""
-        if not dateOfBirth:
+    def _calculate_age_from_birth_fields(self, birth_month: Optional[int], birth_year: Optional[int]) -> Optional[int]:
+        """Calculate age from birthMonth and birthYear"""
+        if not birth_month or not birth_year:
             return None
         try:
             from datetime import datetime
-            birth_date = datetime.strptime(dateOfBirth, '%Y-%m-%d')
             today = datetime.today()
-            age = today.year - birth_date.year - ((today.month, today.day) < (birth_date.month, birth_date.day))
+            age = today.year - birth_year
+            # If current month hasn't reached birth month yet, subtract 1
+            if today.month < birth_month:
+                age -= 1
             return age
         except:
             return None

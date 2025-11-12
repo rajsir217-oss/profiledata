@@ -20,7 +20,6 @@ class PIIEncryption:
     - contactEmail
     - contactNumber
     - location
-    - dateOfBirth
     - linkedinUrl
     - images (optional - may be large)
     """
@@ -30,7 +29,6 @@ class PIIEncryption:
         'contactEmail',
         'contactNumber',
         'location',
-        'dateOfBirth',
         'linkedinUrl',
     }
     

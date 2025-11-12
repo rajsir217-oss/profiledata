@@ -3,13 +3,11 @@ import { getImageUrl } from '../utils/urlHelper';
 import './ProfilePreview.css';
 
 const ProfilePreview = ({ user, onClose }) => {
-  const calculateAge = (dateOfBirth) => {
-    if (!dateOfBirth) return 'N/A';
-    const birthDate = new Date(dateOfBirth);
+  const calculateAge = (birthMonth, birthYear) => {
+    if (!birthMonth || !birthYear) return 'N/A';
     const today = new Date();
-    let age = today.getFullYear() - birthDate.getFullYear();
-    const monthDiff = today.getMonth() - birthDate.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    let age = today.getFullYear() - birthYear;
+    if (today.getMonth() + 1 < birthMonth) {
       age--;
     }
     return age;
@@ -47,7 +45,7 @@ const ProfilePreview = ({ user, onClose }) => {
           <div className="onepager-details-grid">
             <div className="detail-item">
               <span className="detail-label">Age</span>
-              <span className="detail-value">{calculateAge(user.dateOfBirth)} years</span>
+              <span className="detail-value">{user.age || calculateAge(user.birthMonth, user.birthYear)} years</span>
             </div>
             <div className="detail-item">
               <span className="detail-label">Height</span>
