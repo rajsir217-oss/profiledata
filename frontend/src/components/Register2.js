@@ -208,6 +208,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [errorModalData, setErrorModalData] = useState({ title: '', message: '', errors: [] });
   const [activeTab, setActiveTab] = useState('about-me');
   const usernameCheckTimeout = useRef(null);
+  
+  // Auto-save state (only for edit mode)
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState({}); // { fieldName: 'success' | 'error' | 'saving' }
+  const [saveErrors, setSaveErrors] = useState({}); // { fieldName: 'error message' }
+  const autoSaveTimerRef = useRef(null);
 
   // Helper function to get field CSS class based on value state
   const getFieldClass = (fieldName, value) => {
@@ -681,10 +687,114 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     return error;
   };
 
+  // Auto-save function (only in edit mode)
+  const autoSaveField = async (fieldName, fieldValue, currentFormData) => {
+    if (!isEditMode) return; // Only auto-save in edit mode
+    
+    console.log(`🔄 Auto-saving field: ${fieldName} = "${fieldValue}"`);
+    setAutoSaving(true);
+    setSaveStatus(prev => ({ ...prev, [fieldName]: 'saving' }));
+    
+    try {
+      const username = localStorage.getItem('username');
+      const data = new FormData();
+      
+      // Special handling for height fields - combine them into single "height" field
+      if (fieldName === 'heightFeet' || fieldName === 'heightInches') {
+        const feet = fieldName === 'heightFeet' ? fieldValue : currentFormData.heightFeet;
+        const inches = fieldName === 'heightInches' ? fieldValue : currentFormData.heightInches;
+        
+        if (feet && inches !== '') {
+          const combinedHeight = `${feet}'${inches}"`;
+          console.log(`📏 Combined height: ${combinedHeight}`);
+          data.append('height', combinedHeight);
+        } else {
+          console.log(`⚠️ Skipping height save - feet: ${feet}, inches: ${inches}`);
+          setAutoSaving(false);
+          setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+          return; // Don't save incomplete height
+        }
+      } else {
+        // Normal field handling
+        if (fieldValue && typeof fieldValue === 'string' && fieldValue.trim()) {
+          data.append(fieldName, fieldValue);
+        } else if (fieldValue && typeof fieldValue !== 'object') {
+          data.append(fieldName, fieldValue);
+        } else if (Array.isArray(fieldValue)) {
+          data.append(fieldName, JSON.stringify(fieldValue));
+        }
+      }
+      
+      // Send update request
+      const response = await api.put(`/profile/${username}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      console.log(`✅ Auto-saved ${fieldName} successfully:`, response.data);
+      
+      // Mark as success (use 'height' for status if it's a height field)
+      const statusKey = (fieldName === 'heightFeet' || fieldName === 'heightInches') ? 'height' : fieldName;
+      setSaveStatus(prev => ({ ...prev, [statusKey]: 'success' }));
+      setSaveErrors(prev => ({ ...prev, [statusKey]: null }));
+      
+      // Clear success indicator after 3 seconds
+      setTimeout(() => {
+        setSaveStatus(prev => ({ ...prev, [statusKey]: null }));
+      }, 3000);
+      
+    } catch (error) {
+      console.error(`❌ Auto-save failed for ${fieldName}:`, error);
+      console.error('Error details:', error.response?.data);
+      setSaveStatus(prev => ({ ...prev, [fieldName]: 'error' }));
+      setSaveErrors(prev => ({ 
+        ...prev, 
+        [fieldName]: error.response?.data?.detail || 'Save failed' 
+      }));
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  // Render save status indicator
+  const renderSaveStatus = (fieldName) => {
+    if (!isEditMode) return null; // Only show in edit mode
+    
+    const status = saveStatus[fieldName];
+    const error = saveErrors[fieldName];
+    
+    if (!status) return null;
+    
+    return (
+      <span style={{ marginLeft: '8px', fontSize: '16px' }}>
+        {status === 'saving' && <span style={{ color: '#ffa500' }} title="Saving...">⏳</span>}
+        {status === 'success' && <span style={{ color: '#28a745' }} title="Saved">✓</span>}
+        {status === 'error' && (
+          <span style={{ color: '#dc3545' }} title={error || 'Save failed'}>✗</span>
+        )}
+      </span>
+    );
+  };
+
   // Handle text input changes with validation
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    setFormData((prev) => {
+      const updatedData = { ...prev, [name]: value };
+      
+      // Trigger auto-save in edit mode with 1 second debounce
+      if (isEditMode) {
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        
+        autoSaveTimerRef.current = setTimeout(() => {
+          autoSaveField(name, updatedData[name], updatedData); // Pass full form data for height handling
+        }, 1000);
+      }
+      
+      return updatedData;
+    });
     
     // Validate on change if field has been touched
     if (touchedFields[name]) {
@@ -1425,6 +1535,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     loadUserData();
   }, [isEditMode, editUsername]);
 
+  // Cleanup auto-save timer on unmount (edit mode only)
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   // Handle draft restore
   const handleRestoreDraft = () => {
     if (draftData) {
@@ -1549,14 +1668,29 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         </div>
         
         {/* Title */}
-        <h3 className="text-center mb-1">
-          {isEditMode ? '✏️ Edit Your Profile' : '📝 Create Your Profile'}
-        </h3>
-        <p className="text-center text-muted" style={{ marginBottom: '12px' }}>
-          {isEditMode ? 'Update your information across organized tabs' : 'Complete each section to find your perfect match'}
-        </p>
+        <div style={{ textAlign: 'center', marginBottom: '12px' }}>
+          <h3 className="mb-1">
+            {isEditMode ? '✏️ Edit Your Profile' : '📝 Create Your Profile'}
+          </h3>
+          {autoSaving && isEditMode && (
+            <small className="text-muted">
+              <span style={{ color: '#ffa500' }}>⏳</span> Auto-saving...
+            </small>
+          )}
+          <p className="text-muted" style={{ marginBottom: '8px', marginTop: '4px' }}>
+            {isEditMode ? 'Update your information across organized tabs' : 'Complete each section to find your perfect match'}
+          </p>
+        </div>
+      
       {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
+      
+      {isEditMode && (
+        <div className="alert alert-info" style={{ fontSize: '14px', marginBottom: '12px' }}>
+          💡 <strong>Auto-save enabled:</strong> Your changes are automatically saved as you edit. 
+          Look for the <span style={{ color: '#28a745' }}>✓</span> or <span style={{ color: '#dc3545' }}>✗</span> next to each field label.
+        </div>
+      )}
       <form onSubmit={handleSubmit} encType="multipart/form-data">
 
         {/* ========== TABBED NAVIGATION ========== */}
@@ -1572,7 +1706,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                   {/* Custom row for firstName and lastName */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">First Name</label>
+            <label className="form-label">
+              First Name
+              {renderSaveStatus('firstName')}
+            </label>
             <input 
               type="text" 
               className={`form-control ${getFieldClass('firstName', formData.firstName)} ${fieldErrors.firstName && touchedFields.firstName ? 'is-invalid' : ''}`}
@@ -1587,7 +1724,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">Last Name</label>
+            <label className="form-label">
+              Last Name
+              {renderSaveStatus('lastName')}
+            </label>
             <input 
               type="text" 
               className={`form-control ${getFieldClass('lastName', formData.lastName)} ${fieldErrors.lastName && touchedFields.lastName ? 'is-invalid' : ''}`}
@@ -1659,7 +1799,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </small>
           </div>
           <div className="col-md-4">
-            <label className="form-label">Height <span className="text-danger">*</span></label>
+            <label className="form-label">
+              Height <span className="text-danger">*</span>
+              {renderSaveStatus('height')}
+            </label>
             <div className="row">
               <div className="col-6">
                 <select

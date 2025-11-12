@@ -6,15 +6,19 @@ import ImageManager from './ImageManager';
 import { EducationHistory, WorkExperience, TextAreaWithSamples, HeightSelector, GenderSelector, Autocomplete } from './shared';
 import { US_STATES, US_CITIES_BY_STATE } from '../data/usLocations';
 import { COUNTRIES, getCountryCode, getCountryName } from '../data/countries';
-import './EditProfile.css';
+import './EditProfile.css.toberemoved';
 
 const EditProfile = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
+  const [saveStatus, setSaveStatus] = useState({}); // { fieldName: 'success' | 'error' | 'saving' }
+  const [saveErrors, setSaveErrors] = useState({}); // { fieldName: 'error message' }
+  const autoSaveTimerRef = React.useRef(null);
   
   // Helper function to calculate age from birth month and year
   const calculateAge = (birthMonth, birthYear) => {
@@ -309,6 +313,15 @@ const EditProfile = () => {
     loadProfile();
   }, [navigate]);
 
+  // Cleanup auto-save timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, []);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -336,7 +349,20 @@ const EditProfile = () => {
       }
     }
     
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const updatedData = { ...prev, [name]: value };
+      
+      // Trigger auto-save with 1 second debounce
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+      
+      autoSaveTimerRef.current = setTimeout(() => {
+        autoSaveField(name, updatedData[name]);
+      }, 1000);
+      
+      return updatedData;
+    });
     setErrorMsg('');
   };
 
@@ -467,6 +493,80 @@ const EditProfile = () => {
     }
   };
 
+  // Render save status indicator for a field
+  const renderSaveStatus = (fieldName) => {
+    const status = saveStatus[fieldName];
+    const error = saveErrors[fieldName];
+    
+    if (!status) return null;
+    
+    return (
+      <span style={{ marginLeft: '8px', fontSize: '16px' }}>
+        {status === 'saving' && <span style={{ color: '#ffa500' }} title="Saving...">⏳</span>}
+        {status === 'success' && <span style={{ color: '#28a745' }} title="Saved">✓</span>}
+        {status === 'error' && (
+          <span style={{ color: '#dc3545' }} title={error || 'Save failed'}>✗</span>
+        )}
+      </span>
+    );
+  };
+
+  // Auto-save function - saves single field changes
+  const autoSaveField = async (fieldName, fieldValue) => {
+    console.log(`🔄 Auto-saving field: ${fieldName} = "${fieldValue}"`);
+    setAutoSaving(true);
+    setSaveStatus(prev => ({ ...prev, [fieldName]: 'saving' }));
+    
+    try {
+      const username = localStorage.getItem('username');
+      const data = new FormData();
+      
+      // Handle special field transformations
+      let value = fieldValue;
+      
+      // Convert country names to codes
+      if ((fieldName === 'countryOfOrigin' || fieldName === 'countryOfResidence') && value) {
+        value = getCountryCode(value);
+      }
+      
+      // Add the field to FormData
+      if (value && typeof value === 'string' && value.trim()) {
+        data.append(fieldName, value);
+      } else if (value && typeof value !== 'object') {
+        data.append(fieldName, value);
+      } else if (Array.isArray(value)) {
+        data.append(fieldName, JSON.stringify(value));
+      }
+      
+      // Send update request
+      const response = await api.put(`/profile/${username}`, data, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      console.log(`✅ Auto-saved ${fieldName} successfully:`, response.data);
+      
+      // Mark as success
+      setSaveStatus(prev => ({ ...prev, [fieldName]: 'success' }));
+      setSaveErrors(prev => ({ ...prev, [fieldName]: null }));
+      
+      // Clear success indicator after 3 seconds
+      setTimeout(() => {
+        setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+      }, 3000);
+      
+    } catch (error) {
+      console.error(`❌ Auto-save failed for ${fieldName}:`, error);
+      console.error('Error details:', error.response?.data);
+      setSaveStatus(prev => ({ ...prev, [fieldName]: 'error' }));
+      setSaveErrors(prev => ({ 
+        ...prev, 
+        [fieldName]: error.response?.data?.detail || 'Save failed' 
+      }));
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
   const handleDeleteProfile = async () => {
     setDeleting(true);
     setErrorMsg('');
@@ -518,7 +618,14 @@ const EditProfile = () => {
     <div className="edit-profile-container">
       <div className="card p-4 shadow">
         <div className="d-flex justify-content-between align-items-center mb-4">
-          <h3>Edit Profile</h3>
+          <div>
+            <h3>Edit Profile</h3>
+            {autoSaving && (
+              <small className="text-muted">
+                <span style={{ color: '#ffa500' }}>⏳</span> Auto-saving...
+              </small>
+            )}
+          </div>
           <button className="btn btn-outline-secondary" onClick={handleCancel}>
             ← Back to Profile
           </button>
@@ -526,12 +633,20 @@ const EditProfile = () => {
 
         {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
+        
+        <div className="alert alert-info" style={{ fontSize: '14px' }}>
+          💡 <strong>Auto-save enabled:</strong> Your changes are automatically saved as you edit. 
+          Look for the <span style={{ color: '#28a745' }}>✓</span> or <span style={{ color: '#dc3545' }}>✗</span> next to each field label.
+        </div>
 
         <form onSubmit={handleUpdate}>
           {/* Section 1: Name Fields */}
           <div className="row mb-3">
             <div className="col-md-6">
-              <label className="form-label">First Name</label>
+              <label className="form-label">
+                First Name
+                {renderSaveStatus('firstName')}
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -542,7 +657,10 @@ const EditProfile = () => {
               />
             </div>
             <div className="col-md-6">
-              <label className="form-label">Last Name</label>
+              <label className="form-label">
+                Last Name
+                {renderSaveStatus('lastName')}
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -1699,14 +1817,14 @@ const EditProfile = () => {
 
           {/* Action Buttons */}
           <div className="d-flex justify-content-between align-items-center mt-4 gap-2">
-            <div className="d-flex gap-2">
+            <div className="d-flex gap-2 flex-wrap align-items-center">
               <button
                 type="submit"
-                className="btn btn-primary btn-icon-large"
+                className="btn btn-success"
                 disabled={saving}
-                title="Save Changes"
+                title="Final Save & Return to Profile"
               >
-                {saving ? <span style={{ fontSize: '14px' }}>⏳</span> : '💾'}
+                {saving ? '⏳ Saving...' : '✓ Done & Exit'}
               </button>
               
               <button
@@ -1718,6 +1836,10 @@ const EditProfile = () => {
               >
                 👁️
               </button>
+              
+              <small className="text-muted">
+                (Changes auto-save as you edit)
+              </small>
             </div>
 
             <button

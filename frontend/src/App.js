@@ -6,7 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import Register from './components/Register';
 import Register2 from './components/Register2';
 import EmailVerificationSent from './components/EmailVerificationSent';
-import EditProfile from './components/EditProfile';
+import EditProfile from './components/EditProfile.js.toberemoved'; // DEPRECATED: Use Register2 with mode="edit" instead
 import Login from './components/Login';
 import LandingPage from './components/LandingPage';
 import VerifyEmail from './components/VerifyEmail';
