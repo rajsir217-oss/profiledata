@@ -1,5 +1,5 @@
 // frontend/src/components/Login.js
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import api from "../api";
@@ -7,12 +7,15 @@ import socketService from "../services/socketService";
 import { getBackendUrl } from "../config/apiConfig";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
+import ReCAPTCHA from "react-google-recaptcha";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const recaptchaRef = useRef();
   const navigate = useNavigate();
   const pageSEO = getPageSEO('login');
 
@@ -56,11 +59,19 @@ const Login = () => {
     setLoading(true);
     setError("");
     
+    // Verify CAPTCHA
+    if (!captchaToken) {
+      setError("Please complete the CAPTCHA verification");
+      setLoading(false);
+      return;
+    }
+    
     try {
       // Trim whitespace from credentials
       const credentials = {
         username: form.username.trim(),
-        password: form.password.trim()
+        password: form.password.trim(),
+        captchaToken: captchaToken  // Include CAPTCHA token
       };
       const res = await api.post("/login", credentials);
       
@@ -94,6 +105,12 @@ const Login = () => {
     } catch (err) {
       console.error("Login error:", err);
       
+      // Reset CAPTCHA on error
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset();
+        setCaptchaToken(null);
+      }
+      
       // Check if MFA is required
       if (err.response?.status === 403 && err.response?.data?.detail === "MFA_REQUIRED") {
         setMfaRequired(true);
@@ -109,6 +126,12 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCaptchaChange = (token) => {
+    console.log("CAPTCHA verified:", token ? "✓" : "✗");
+    setCaptchaToken(token);
+    setError(""); // Clear error when CAPTCHA is completed
   };
 
   const sendMfaCode = async () => {
@@ -388,9 +411,41 @@ const Login = () => {
             </button>
           </div>
         </div>
+        
+        {/* Forgot Password Link */}
+        <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+          <Link 
+            to="/forgot-password" 
+            style={{
+              color: '#667eea',
+              fontSize: '14px',
+              textDecoration: 'none',
+              fontWeight: '500'
+            }}
+            onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
+            onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
+          >
+            Forgot Username or Password?
+          </Link>
+        </div>
+
+        {/* Google reCAPTCHA */}
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          marginBottom: '20px'
+        }}>
+          <ReCAPTCHA
+            ref={recaptchaRef}
+            sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"  // Test key - replace with your actual key
+            onChange={handleCaptchaChange}
+            theme="light"
+          />
+        </div>
+        
         <button 
           type="submit" 
-          disabled={loading}
+          disabled={loading || !captchaToken}
           style={{
             width: '100%',
             minHeight: '52px',

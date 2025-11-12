@@ -716,19 +716,58 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         }
       } else {
         // Normal field handling
-        if (fieldValue && typeof fieldValue === 'string' && fieldValue.trim()) {
-          data.append(fieldName, fieldValue);
-        } else if (fieldValue && typeof fieldValue !== 'object') {
-          data.append(fieldName, fieldValue);
+        if (fieldValue === null || fieldValue === undefined) {
+          console.log(`⚠️ Skipping save - ${fieldName} is null/undefined`);
+          setAutoSaving(false);
+          setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+          return;
+        }
+        
+        if (typeof fieldValue === 'string') {
+          // Don't save empty strings for optional fields
+          if (fieldValue.trim() === '') {
+            console.log(`⚠️ Skipping save - ${fieldName} is empty`);
+            setAutoSaving(false);
+            setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+            return;
+          }
+          data.append(fieldName, fieldValue.trim());
         } else if (Array.isArray(fieldValue)) {
+          if (fieldValue.length === 0) {
+            console.log(`⚠️ Skipping save - ${fieldName} array is empty`);
+            setAutoSaving(false);
+            setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+            return;
+          }
           data.append(fieldName, JSON.stringify(fieldValue));
+        } else if (typeof fieldValue === 'number' || typeof fieldValue === 'boolean') {
+          data.append(fieldName, fieldValue.toString());
+        } else {
+          console.log(`⚠️ Skipping save - ${fieldName} has unsupported type:`, typeof fieldValue);
+          setAutoSaving(false);
+          setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+          return;
         }
       }
       
+      // Check if FormData actually has any entries
+      let hasData = false;
+      for (let pair of data.entries()) {
+        hasData = true;
+        console.log(`📤 Sending: ${pair[0]} = ${pair[1].substring(0, 100)}...`);
+        break;
+      }
+      
+      if (!hasData) {
+        console.log(`⚠️ No data to save for ${fieldName}`);
+        setAutoSaving(false);
+        setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
+        return;
+      }
+      
       // Send update request
-      const response = await api.put(`/profile/${username}`, data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      // NOTE: Don't set Content-Type manually - let browser set it with boundary
+      const response = await api.put(`/profile/${username}`, data);
       
       console.log(`✅ Auto-saved ${fieldName} successfully:`, response.data);
       
