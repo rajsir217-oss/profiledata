@@ -438,7 +438,11 @@ const Login = () => {
         }}>
           <Turnstile
             ref={turnstileRef}
-            sitekey="1x00000000000000000000AA"  // Using test key globally - always passes (TEMPORARY FIX)
+            sitekey={
+              window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
+                : "0x4AAAAACAeADZnXAaS1tep"    // Production key for l3v3lmatches.com
+            }
             onVerify={handleCaptchaChange}
             theme="light"
           />
