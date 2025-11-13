@@ -441,7 +441,7 @@ const Login = () => {
             sitekey={
               window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
                 ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
-                : "0x4AAAAACAeADZnXAaS1tep"    // Production key for l3v3lmatches.com
+                : "0x4AAAAAACAeADZnXAaS1tep"   // Production key (6 A's - matches rotated secret key)
             }
             onVerify={handleCaptchaChange}
             theme="light"
