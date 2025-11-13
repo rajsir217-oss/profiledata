@@ -8,6 +8,7 @@ import Register2 from './components/Register2';
 import EmailVerificationSent from './components/EmailVerificationSent';
 import EditProfile from './components/EditProfile.js.toberemoved'; // DEPRECATED: Use Register2 with mode="edit" instead
 import Login from './components/Login';
+import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
@@ -239,6 +240,7 @@ function AppContent() {
               <Route path="/register" element={<Register />} />
               <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/verify-email-sent" element={<EmailVerificationSent />} />
               

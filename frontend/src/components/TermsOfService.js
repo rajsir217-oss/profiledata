@@ -183,7 +183,32 @@ const TermsOfService = () => {
         </section>
 
         <section>
-          <h2>16. Entire Agreement</h2>
+          <h2>16. Agreement to Receive Text Messages</h2>
+          <p>
+            By providing your mobile number, you agree that <strong>L3V3LMATCHES by Nimble Data Solutions LLC</strong> may send you periodic SMS or MMS messages containing but not limited to important information, updates, deals, and specials.
+          </p>
+          <ul>
+            <li>You will receive up to 4 messages per month.</li>
+            <li>You may unsubscribe at any time by texting the word STOP to <strong>833-861-1131</strong>. You may receive a subsequent message confirming your unsubscribe request.</li>
+            <li>For help, send the word HELP to <strong>833-861-1131</strong></li>
+            <li>Message and data rates may apply.</li>
+            <li>United States Participating Carriers Include AT&T, T-Mobile, Verizon Wireless, Sprint, Boost, U.S. Cellular, MetroPCS, InterOp, Cellcom, C Spire Wireless, Cricket, Virgin Mobile and others.</li>
+            <li>T-Mobile is not liable for delayed or undelivered messages.</li>
+            <li>You agree to notify us of any changes to your mobile number and update your account with us to reflect this change.</li>
+            <li>By submitting your information in connection with this SMS service may include your cell phone number, your carrier's name, and the date, time and content of your messages, as well as other information that you provide. We may use this information to contact you and to provide the services you request from us.</li>
+            <li>By downloading or otherwise using the service, you acknowledge and agree that you have the right to change and/or terminate the service at any time, with or without cause and/or advance notice.</li>
+          </ul>
+          <p>
+            <strong>Questions?</strong> Contact <strong>L3V3LMATCHES by Nimble Data Solutions LLC</strong> at [Your phone number].
+          </p>
+          <p>
+            <strong>Will I be charged for the text messages I receive?</strong><br />
+            Though <strong>L3V3LMATCHES by Nimble Data Solutions LLC</strong> will never charge you for the text messages you receive, depending on your phone plan, you may see some charges from your mobile provider. Please reach out to your wireless provider if you have questions about your text or data plan.
+          </p>
+        </section>
+
+        <section>
+          <h2>17. Entire Agreement</h2>
           <p>
             These Terms, together with the Privacy Policy and Community Guidelines, constitute the entire agreement between you and us regarding the use of the Service.
           </p>

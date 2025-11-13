@@ -370,6 +370,27 @@ const NotificationPreferences = () => {
             </label>
           </div>
         </div>
+
+        {/* SMS Compliance Footer */}
+        <div style={{
+          marginTop: '20px',
+          padding: '15px',
+          backgroundColor: '#f8f9fa',
+          borderRadius: '8px',
+          border: '1px solid #dee2e6'
+        }}>
+          <p style={{
+            fontSize: '11px',
+            lineHeight: '1.5',
+            color: '#6c757d',
+            margin: 0
+          }}>
+            📱 <strong>SMS Terms:</strong> I agree to receive promotional messages sent via an autodialer, and this agreement isn't a condition of any purchase. I also agree to the{' '}
+            <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer" style={{color: '#667eea'}}>Terms of Service</a> and{' '}
+            <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer" style={{color: '#667eea'}}>Privacy Policy</a>. 
+            4 Msgs/Month. Msg & Data Rates may apply. Text STOP to opt out anytime. Text HELP for more information.
+          </p>
+        </div>
       </div>
 
       {/* Toast Notification */}

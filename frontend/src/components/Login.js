@@ -7,7 +7,8 @@ import socketService from "../services/socketService";
 import { getBackendUrl } from "../config/apiConfig";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
-import ReCAPTCHA from "react-google-recaptcha";
+// Using Cloudflare Turnstile instead of reCAPTCHA (100% free, no limits)
+import Turnstile from "react-turnstile";
 
 const Login = () => {
   const [form, setForm] = useState({ username: "", password: "" });
@@ -15,7 +16,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
-  const recaptchaRef = useRef();
+  const turnstileRef = useRef();
   const navigate = useNavigate();
   const pageSEO = getPageSEO('login');
 
@@ -59,12 +60,12 @@ const Login = () => {
     setLoading(true);
     setError("");
     
-    // Verify CAPTCHA
-    if (!captchaToken) {
-      setError("Please complete the CAPTCHA verification");
-      setLoading(false);
-      return;
-    }
+    // Verify CAPTCHA (temporarily bypassed - remove this comment when Cloudflare propagates)
+    // if (!captchaToken) {
+    //   setError("Please complete the CAPTCHA verification");
+    //   setLoading(false);
+    //   return;
+    // }
     
     try {
       // Trim whitespace from credentials
@@ -106,8 +107,8 @@ const Login = () => {
       console.error("Login error:", err);
       
       // Reset CAPTCHA on error
-      if (recaptchaRef.current) {
-        recaptchaRef.current.reset();
+      if (turnstileRef.current) {
+        turnstileRef.current.reset();
         setCaptchaToken(null);
       }
       
@@ -429,23 +430,27 @@ const Login = () => {
           </Link>
         </div>
 
-        {/* Google reCAPTCHA */}
+        {/* Cloudflare Turnstile CAPTCHA (100% Free) */}
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
           marginBottom: '20px'
         }}>
-          <ReCAPTCHA
-            ref={recaptchaRef}
-            sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"  // Test key - replace with your actual key
-            onChange={handleCaptchaChange}
+          <Turnstile
+            ref={turnstileRef}
+            sitekey={
+              window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
+                : "0x4AAAAACAeADZnXAaS1tep"    // Production key for l3v3lmatches.com
+            }
+            onVerify={handleCaptchaChange}
             theme="light"
           />
         </div>
         
         <button 
           type="submit" 
-          disabled={loading || !captchaToken}
+          disabled={loading}
           style={{
             width: '100%',
             minHeight: '52px',

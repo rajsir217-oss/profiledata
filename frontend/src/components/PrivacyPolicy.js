@@ -246,7 +246,97 @@ const PrivacyPolicy = () => {
         </section>
 
         <section>
-          <h2>16. Consent</h2>
+          <h2>16. Additional Privacy Disclosures</h2>
+          
+          <h3>Data</h3>
+          <p>
+            We collect personal and activity data, which may be linked.
+          </p>
+          <p>
+            We use technologies like cookies (small files stored on your browser), web beacons, or unique device identifiers to identify your computer or device so we can deliver a better experience. Our systems also log information like your browser, operating system and IP address.
+          </p>
+          <p>
+            We also may collect personally identifiable information that you provide to us, such as your name, address, phone number or email address. With your permission, we may also access other personal information on your device, such as your phone book, calendar or messages, in order to provide services to you. If authorized by you, we may also access profile and other information from services like Facebook.
+          </p>
+          <p>
+            Our systems may associate this personal information with your activities in the course of providing service to you (such as pages you view or things you click on or search for).
+          </p>
+          <p>
+            We do not knowingly contact or collect personal information from children under 13. If you believe we have inadvertently collected such information, please contact us so we can promptly obtain parental consent or remove the information.
+          </p>
+          
+          <h3>Location</h3>
+          <p>
+            We may collect and share anonymous location data. To customize our service for you, we and our partners may collect, use, and share precise location data, including the real-time geographic location of your computer or device. This location data is collected anonymously in a form that does not personally identify you and is used only to provide and improve our service. We may obtain your consent on your first use of the service.
+          </p>
+          
+          <h3>Access</h3>
+          <p>
+            You can request to see or delete your personal data. You can sign into your account to see or delete any personally identifiable information we have stored, such as your name, address, email or phone number. You can also contact us by email to request to see or delete this information.
+          </p>
+          
+          <h3>Deletion</h3>
+          <p>
+            We may keep data indefinitely.
+          </p>
+          
+          <h3>Sharing</h3>
+          <p>
+            We may share personal data with companies we trust.
+          </p>
+          <p>
+            We may share personally identifiable information (such as name, address, email or phone) with trusted partners in order to provide you with relevant advertising, offers or services.
+          </p>
+          <p>
+            California residents are legally entitled (at no charge and no more than once annually) to request information about how we may have shared your information with others for direct marketing purposes. Contact us for this information: privacy@matrimonialapp.com.
+          </p>
+          <p>
+            No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.
+          </p>
+          
+          <h3>Ad Tracking</h3>
+          <p>
+            Ad companies collect anonymous data. You can opt out.
+          </p>
+          <p>
+            Ad companies may use and collect anonymous data about your interests to customize content and advertising here and in other sites and applications. Interest and location data may be linked to your device, but is not linked to your identity.
+          </p>
+          
+          <h3>Contact</h3>
+          <p>
+            You can ask privacy questions.
+          </p>
+          <p>
+            If you have any questions or concerns about our privacy policies, please contact us: privacy@matrimonialapp.com.
+          </p>
+          
+          <h3>Vendors</h3>
+          <p>
+            Service providers access data on our behalf.
+          </p>
+          <p>
+            In order to serve you, we may share your personal and anonymous information with other companies, including vendors and contractors. Their use of information is limited to these purposes, and subject to agreements that require them to keep the information confidential. Our vendors provide assurance that they take reasonable steps to safeguard the data they hold on our behalf, although data security cannot be guaranteed.
+          </p>
+          <p>
+            Analytics companies may access anonymous data (such as your IP address or device ID) to help us understand how our services are used. They use this data solely on our behalf. They do not share it except in aggregate form; no data is shared as to any individual user. Click to see company privacy policies that govern their use of data.
+          </p>
+          
+          <h3>Special</h3>
+          <p>
+            Special situations may require disclosure of your data.
+          </p>
+          <p>
+            To operate the service, we also may make identifiable and anonymous information available to third parties in these limited circumstances: (1) with your express consent, (2) when we have a good faith belief it is required by law, (3) when we have a good faith belief it is necessary to protect our rights or property, or (4) to any successor or purchaser in a merger, acquisition, liquidation, dissolution or sale of assets. Your consent will not be required for disclosure in these cases, but we will attempt to notify you, to the extent permitted by law to do so.
+          </p>
+          
+          <h3>More</h3>
+          <p>
+            Our privacy policy may change from time to time.
+          </p>
+        </section>
+
+        <section>
+          <h2>17. Consent</h2>
           <div className="acceptance-notice">
             <p>
               <strong>BY USING OUR SERVICE, YOU CONSENT TO THE COLLECTION, USE, AND SHARING OF YOUR INFORMATION AS DESCRIBED IN THIS PRIVACY POLICY.</strong>

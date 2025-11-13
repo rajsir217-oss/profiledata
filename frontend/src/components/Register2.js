@@ -2051,12 +2051,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 checked={formData.smsOptIn}
                 onChange={(e) => setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }))}
               />
-              <label className="form-check-label" htmlFor="smsOptIn">
+              <label className="form-check-label" htmlFor="smsOptIn" style={{fontSize: '13px', lineHeight: '1.6'}}>
                 📱 I want to receive SMS notifications and updates
+                <br/><br/>
+                I agree to receive promotional messages sent via an autodialer, and this agreement isn't a condition of any purchase. I also agree to the{' '}
+                <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and{' '}
+                <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. 
+                Msg & Data Rates may apply. Text STOP to opt out anytime. Text HELP for more information.
               </label>
-              <small className="d-block text-muted mt-1">
-                Standard messaging rates may apply. You can opt-out anytime.
-              </small>
             </div>
           </div>
           <div className="col-md-6">

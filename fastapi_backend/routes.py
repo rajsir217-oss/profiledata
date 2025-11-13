@@ -2154,6 +2154,202 @@ async def remove_from_favorites(target_username: str, username: str = Query(...)
     
     return {"message": "Removed from favorites successfully"}
 
+@router.post("/auth/request-password-reset")
+async def request_password_reset(
+    identifier: str = Body(..., embed=True),
+    db = Depends(get_database)
+):
+    """Send password reset code to user's email/phone"""
+    logger.info(f"🔐 Password reset requested for: {identifier}")
+    
+    # Try finding by username first
+    user = await db.users.find_one({"username": identifier})
+    
+    # If not found by username, search by email (handle encryption)
+    if not user:
+        logger.info(f"🔍 Username not found, searching by email: {identifier}")
+        # Get all users and check decrypted email
+        try:
+            encryptor = get_encryptor()
+            users_cursor = db.users.find({}, {"username": 1, "contactEmail": 1})
+            users = await users_cursor.to_list(1000)
+            logger.info(f"📊 Checking {len(users)} users for email match")
+            
+            for u in users:
+                encrypted_email = u.get("contactEmail")
+                if encrypted_email:
+                    try:
+                        decrypted_email = encryptor.decrypt(encrypted_email)
+                        if decrypted_email and decrypted_email.lower() == identifier.lower():
+                            logger.info(f"✅ Found user by email: {u['username']}")
+                            user = await db.users.find_one({"username": u["username"]})
+                            break
+                    except Exception as decrypt_err:
+                        logger.debug(f"⚠️ Could not decrypt email for user {u.get('username')}: {decrypt_err}")
+        except Exception as e:
+            logger.error(f"❌ Error searching by email: {e}")
+    
+    if not user:
+        # Don't reveal if user exists (security best practice)
+        logger.warning(f"⚠️ Password reset requested for non-existent user: {identifier}")
+        return {"message": "If account exists, reset code was sent"}
+    
+    # Generate 6-digit code
+    import random
+    code = f"{random.randint(100000, 999999)}"
+    
+    # Store code in database (expires in 15 minutes)
+    await db.password_reset_codes.insert_one({
+        "username": user["username"],
+        "code": code,
+        "expires_at": datetime.utcnow() + timedelta(minutes=15),
+        "used": False,
+        "created_at": datetime.utcnow()
+    })
+    
+    # Send email with reset code
+    try:
+        from services.email_sender import send_password_reset_email
+        
+        # Decrypt email to send to
+        user_email = user.get("contactEmail")
+        if user_email and encryptor.is_encrypted(user_email):
+            user_email = encryptor.decrypt(user_email)
+        
+        user_name = user.get("firstName", user["username"])
+        
+        await send_password_reset_email(
+            to_email=user_email,
+            to_name=user_name,
+            reset_code=code
+        )
+        logger.info(f"✅ Password reset email sent to {user_email}")
+    except Exception as email_err:
+        logger.error(f"❌ Failed to send password reset email: {email_err}")
+        # Still return success (don't reveal if email failed)
+    
+    # Also log it for debugging
+    logger.info(f"🔑 Password reset code for {user['username']}: {code}")
+    
+    return {"message": "Reset code sent successfully"}
+
+
+@router.post("/auth/verify-reset-code")
+async def verify_reset_code(
+    identifier: str = Body(...),
+    code: str = Body(...),
+    db = Depends(get_database)
+):
+    """Verify the reset code"""
+    logger.info(f"🔍 Verifying reset code for: {identifier}")
+    
+    # Try finding by username first
+    user = await db.users.find_one({"username": identifier})
+    
+    # If not found by username, search by email (handle encryption)
+    if not user:
+        encryptor = get_encryptor()
+        users_cursor = db.users.find({}, {"username": 1, "contactEmail": 1})
+        users = await users_cursor.to_list(1000)
+        
+        for u in users:
+            encrypted_email = u.get("contactEmail")
+            if encrypted_email:
+                try:
+                    decrypted_email = encryptor.decrypt(encrypted_email)
+                    if decrypted_email and decrypted_email.lower() == identifier.lower():
+                        user = await db.users.find_one({"username": u["username"]})
+                        break
+                except:
+                    pass
+    
+    if not user:
+        # Don't reveal if user exists - return generic error
+        logger.warning(f"⚠️ Verify code attempted for non-existent user: {identifier}")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    # Find valid code
+    reset_code = await db.password_reset_codes.find_one({
+        "username": user["username"],
+        "code": code,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+    
+    if not reset_code:
+        logger.warning(f"❌ Invalid or expired reset code for: {identifier}")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    logger.info(f"✅ Reset code verified for: {user['username']}")
+    return {"message": "Code verified"}
+
+
+@router.post("/auth/reset-password")
+async def reset_password(
+    identifier: str = Body(...),
+    code: str = Body(...),
+    new_password: str = Body(..., min_length=8),
+    db = Depends(get_database)
+):
+    """Reset user's password"""
+    logger.info(f"🔄 Resetting password for: {identifier}")
+    
+    # Try finding by username first
+    user = await db.users.find_one({"username": identifier})
+    
+    # If not found by username, search by email (handle encryption)
+    if not user:
+        encryptor = get_encryptor()
+        users_cursor = db.users.find({}, {"username": 1, "contactEmail": 1})
+        users = await users_cursor.to_list(1000)
+        
+        for u in users:
+            encrypted_email = u.get("contactEmail")
+            if encrypted_email:
+                try:
+                    decrypted_email = encryptor.decrypt(encrypted_email)
+                    if decrypted_email and decrypted_email.lower() == identifier.lower():
+                        user = await db.users.find_one({"username": u["username"]})
+                        break
+                except:
+                    pass
+    
+    if not user:
+        # Don't reveal if user exists - return generic error
+        logger.warning(f"⚠️ Password reset attempted for non-existent user: {identifier}")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    # Verify code again
+    reset_code = await db.password_reset_codes.find_one({
+        "username": user["username"],
+        "code": code,
+        "used": False,
+        "expires_at": {"$gt": datetime.utcnow()}
+    })
+    
+    if not reset_code:
+        logger.warning(f"❌ Invalid or expired reset code for: {identifier}")
+        raise HTTPException(status_code=400, detail="Invalid or expired code")
+    
+    # Hash new password
+    hashed_password = PasswordManager.hash_password(new_password)
+    
+    # Update password
+    await db.users.update_one(
+        {"username": user["username"]},
+        {"$set": {"password": hashed_password}}
+    )
+    
+    # Mark code as used
+    await db.password_reset_codes.update_one(
+        {"_id": reset_code["_id"]},
+        {"$set": {"used": True}}
+    )
+    
+    logger.info(f"✅ Password reset successfully for user: {user['username']}")
+    
+    return {"message": "Password reset successfully"}
+
 @router.get("/favorites/{username}")
 async def get_favorites(username: str, db = Depends(get_database)):
     """Get user's favorites list"""

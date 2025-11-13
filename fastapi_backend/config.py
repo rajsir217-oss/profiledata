@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     
+    # Cloudflare Turnstile (CAPTCHA - 100% Free)
+    turnstile_secret_key: str = ""
+    
     # PII Encryption (Fernet symmetric encryption for data at rest)
     encryption_key: Optional[str] = None  # Generate with: python crypto_utils.py
     
