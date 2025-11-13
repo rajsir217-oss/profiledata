@@ -8,6 +8,11 @@ venv/
 ENV/
 .venv
 .env
+.env.*
+.env.local
+.env.production
+.env.staging
+.env.cloud
 uploads/
 *.log
 .DS_Store
