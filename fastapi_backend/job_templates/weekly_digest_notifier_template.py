@@ -92,6 +92,26 @@ class WeeklyDigestNotifierTemplate(JobTemplate):
             })
             users = await users_cursor.to_list(length=None)
             
+            # 🔓 Decrypt PII fields for all users
+            from crypto_utils import get_encryptor
+            try:
+                encryptor = get_encryptor()
+                for user in users:
+                    try:
+                        # Decrypt all PII fields (contactEmail, contactNumber, location, linkedinUrl)
+                        if user.get("contactEmail"):
+                            user["contactEmail"] = encryptor.decrypt(user["contactEmail"]) if user["contactEmail"].startswith('gAAAAA') else user["contactEmail"]
+                        if user.get("contactNumber"):
+                            user["contactNumber"] = encryptor.decrypt(user["contactNumber"]) if user["contactNumber"].startswith('gAAAAA') else user["contactNumber"]
+                        if user.get("location"):
+                            user["location"] = encryptor.decrypt(user["location"]) if user["location"].startswith('gAAAAA') else user["location"]
+                        if user.get("linkedinUrl"):
+                            user["linkedinUrl"] = encryptor.decrypt(user["linkedinUrl"]) if user["linkedinUrl"].startswith('gAAAAA') else user["linkedinUrl"]
+                    except Exception as decrypt_err:
+                        context.log("WARNING", f"   Failed to decrypt PII for {user.get('username')}: {decrypt_err}")
+            except Exception as e:
+                context.log("WARNING", f"   PII decryption initialization failed: {e}")
+            
             context.log("INFO", f"   Found {len(users)} active users")
             
             # Limit recipients if specified

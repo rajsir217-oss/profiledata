@@ -32,11 +32,18 @@ class SMSNotifierTemplate(JobTemplate):
     SMS_COST_PER_MESSAGE = 0.0075  # $0.0075 per SMS
     
     def __init__(self):
-        # SMS provider configuration
-        self.sms_provider = os.getenv("SMS_PROVIDER", "twilio")
-        self.account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        self.auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-        self.from_phone = os.getenv("TWILIO_FROM_PHONE")
+        # SMS provider configuration (use centralized service)
+        from config import settings
+        self.sms_provider = settings.sms_provider
+        
+        # Import SMS service for sending
+        from services.simpletexting_service import SimpleTextingService
+        try:
+            self.sms_service = SimpleTextingService()
+            self.sms_available = self.sms_service.enabled
+        except Exception as e:
+            self.sms_service = None
+            self.sms_available = False
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
@@ -175,10 +182,22 @@ class SMSNotifierTemplate(JobTemplate):
                         context.log("info", f"DB Fields - phone: {phone_field or 'NOT SET'}, contactNumber: {contactNumber_field or 'NOT SET'}")
                         
                         phone = phone_field or contactNumber_field
-                        context.log("info", f"✅ Using phone: {phone}")
                         
                         if not phone:
                             raise Exception(f"User '{notification.username}' has no phone number (checked 'phone' and 'contactNumber' fields)")
+                        
+                        # 🔓 Decrypt phone if encrypted
+                        from crypto_utils import get_encryptor
+                        if phone and phone.startswith('gAAAAA'):
+                            try:
+                                encryptor = get_encryptor()
+                                decrypted_phone = encryptor.decrypt(phone)
+                                context.log("info", f"🔓 Decrypted phone: {decrypted_phone[:3]}***{decrypted_phone[-2:]}")
+                                phone = decrypted_phone
+                            except Exception as decrypt_err:
+                                raise Exception(f"Failed to decrypt phone number: {decrypt_err}")
+                        
+                        context.log("info", f"✅ Using phone: {phone[:3]}***{phone[-2:] if len(phone) > 5 else '***'}")
                     
                     # Render SMS
                     message = await self._render_sms(service, notification, context.db)
@@ -287,25 +306,16 @@ class SMSNotifierTemplate(JobTemplate):
         return message
     
     async def _send_sms(self, to_phone: str, message: str) -> None:
-        """Send SMS via Twilio"""
-        if not self.account_sid or not self.auth_token:
+        """Send SMS via configured provider (SimpleTexting or Twilio)"""
+        if not self.sms_available or not self.sms_service:
             raise Exception("SMS provider credentials not configured")
         
-        url = f"https://api.twilio.com/2010-04-01/Accounts/{self.account_sid}/Messages.json"
+        # Phone should already be decrypted by caller
+        # Send via SimpleTexting service
+        result = await self.sms_service.send_notification(to_phone, message)
         
-        data = {
-            "From": self.from_phone,
-            "To": to_phone,
-            "Body": message
-        }
-        
-        auth = aiohttp.BasicAuth(self.account_sid, self.auth_token)
-        
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url, data=data, auth=auth) as response:
-                if response.status != 201:
-                    error_data = await response.text()
-                    raise Exception(f"Twilio API error: {error_data}")
+        if not result.get("success"):
+            raise Exception(result.get("error", "Failed to send SMS"))
     
     async def _get_daily_cost(self, service) -> float:
         """Get today's SMS cost"""

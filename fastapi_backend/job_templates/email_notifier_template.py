@@ -138,10 +138,22 @@ class EmailNotifierTemplate(JobTemplate):
                         context.log("info", f"DB Fields - email: {email_field or 'NOT SET'}, contactEmail: {contactEmail_field or 'NOT SET'}")
                         
                         recipient_email = email_field or contactEmail_field
-                        context.log("info", f"✅ Using email: {recipient_email}")
                         
                         if not recipient_email:
                             raise Exception(f"User '{notification.username}' has no email address (checked 'email' and 'contactEmail' fields)")
+                        
+                        # 🔓 Decrypt email if encrypted
+                        from crypto_utils import get_encryptor
+                        if recipient_email and recipient_email.startswith('gAAAAA'):
+                            try:
+                                encryptor = get_encryptor()
+                                decrypted_email = encryptor.decrypt(recipient_email)
+                                context.log("info", f"🔓 Decrypted email: {decrypted_email[:3]}***@{decrypted_email.split('@')[1] if '@' in decrypted_email else '***'}")
+                                recipient_email = decrypted_email
+                            except Exception as decrypt_err:
+                                raise Exception(f"Failed to decrypt email address: {decrypt_err}")
+                        
+                        context.log("info", f"✅ Using email: {recipient_email[:3]}***@{recipient_email.split('@')[1] if '@' in recipient_email else '***'}")
                     
                     # Render email
                     subject, body = await self._render_email(service, notification, context.db)
@@ -219,12 +231,29 @@ class EmailNotifierTemplate(JobTemplate):
         template_data = notification.templateData.copy() if notification.templateData else {}
         tracking_id = str(notification.id)
         backend_url = settings.backend_url or "http://localhost:8000"
+        frontend_url = settings.frontend_url or "http://localhost:3000"
+        
+        # Build profile URL for the actor user on the frontend
+        actor_username = None
+        actor_data = template_data.get("actor") if isinstance(template_data, dict) else None
+        if isinstance(actor_data, dict):
+            actor_username = actor_data.get("username")
+        
+        if actor_username:
+            from urllib.parse import quote
+            profile_url = f"{frontend_url}/profile/{actor_username}"
+            encoded_profile_url = quote(profile_url, safe="")
+        else:
+            # Fallback to app home if actor username is missing
+            from urllib.parse import quote
+            profile_url = frontend_url
+            encoded_profile_url = quote(profile_url, safe="")
         
         # Add app URLs with tracking
         template_data["app"] = {
             "logoUrl": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==",
             "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
-            "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/profile&link_type=profile",
+            "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile",
             "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/messages&link_type=chat",
             "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/unsubscribe&link_type=unsubscribe",
             "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/preferences&link_type=preferences",

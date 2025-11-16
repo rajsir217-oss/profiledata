@@ -105,20 +105,32 @@ const JobExecutionHistory = ({ job, onClose }) => {
   };
 
   const handleBulkDelete = async () => {
-    if (selectedIds.length === 0) return;
+    console.log('🗑️ Bulk delete called with', selectedIds.length, 'items');
+    console.log('Selected IDs:', selectedIds);
+    
+    if (selectedIds.length === 0) {
+      console.warn('⚠️ No items selected');
+      return;
+    }
 
     try {
       const token = localStorage.getItem('token');
+      console.log('🔑 Token exists:', !!token);
+      
+      console.log('📤 Sending delete requests...');
       const responses = await Promise.all(
-        selectedIds.map(id =>
-          fetch(getBackendApiUrl(`/api/admin/scheduler/executions/${id}`), {
+        selectedIds.map(id => {
+          console.log('  Deleting:', id);
+          return fetch(getBackendApiUrl(`/api/admin/scheduler/executions/${id}`), {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`
             }
-          })
-        )
+          });
+        })
       );
+      
+      console.log('📥 Responses received:', responses.length);
       
       // Check if all deletes succeeded
       const failed = responses.filter(r => !r.ok);
@@ -229,13 +241,21 @@ const JobExecutionHistory = ({ job, onClose }) => {
             🔄 Refresh
           </button>
           {selectedIds.length > 0 && (
-            <DeleteButton
-              onDelete={handleBulkDelete}
-              itemName={`${selectedIds.length} execution${selectedIds.length > 1 ? 's' : ''}`}
-              size="medium"
-              confirmText="Delete All?"
-              className="btn-bulk-delete-action"
-            />
+            <div style={{ display: 'inline-block', marginLeft: '10px' }}>
+              <DeleteButton
+                onDelete={handleBulkDelete}
+                itemName={`${selectedIds.length} execution${selectedIds.length > 1 ? 's' : ''}`}
+                size="medium"
+                confirmText="Delete All?"
+                className="btn-bulk-delete-action"
+              />
+            </div>
+          )}
+          {/* Debug info */}
+          {selectedIds.length > 0 && (
+            <span style={{ marginLeft: '10px', color: '#666', fontSize: '12px' }}>
+              ({selectedIds.length} selected)
+            </span>
           )}
         </div>
 

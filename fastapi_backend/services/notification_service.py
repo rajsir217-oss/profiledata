@@ -188,7 +188,8 @@ class NotificationService:
         }
         
         if channel:
-            query["channels"] = channel
+            # Check if channel exists in the channels array
+            query["channels"] = {"$in": [channel]}
         
         cursor = self.queue_collection.find(query).limit(limit)
         notifications = []
@@ -291,19 +292,29 @@ class NotificationService:
         template: str,
         variables: Dict[str, Any]
     ) -> str:
-        """Render template with variables"""
+        """Render template with variables (supports both {{var}} and {var} syntax)"""
         result = template
         
-        # Replace {variable} with values
+        # Replace {{variable}} and {variable} with values
         for key, value in variables.items():
-            # Support nested keys like {match.firstName}
+            # Support nested keys like {{match.firstName}} or {match.firstName}
             if isinstance(value, dict):
                 for nested_key, nested_value in value.items():
-                    placeholder = f"{{{key}.{nested_key}}}"
-                    result = result.replace(placeholder, str(nested_value))
+                    # Handle both double and single brace syntax
+                    double_brace = f"{{{{{key}.{nested_key}}}}}"  # {{key.nested}}
+                    single_brace = f"{{{key}.{nested_key}}}"       # {key.nested}
+                    
+                    str_value = str(nested_value) if nested_value is not None else ""
+                    result = result.replace(double_brace, str_value)
+                    result = result.replace(single_brace, str_value)
             else:
-                placeholder = f"{{{key}}}"
-                result = result.replace(placeholder, str(value))
+                # Handle both double and single brace syntax
+                double_brace = f"{{{{{key}}}}}"  # {{key}}
+                single_brace = f"{{{key}}}"       # {key}
+                
+                str_value = str(value) if value is not None else ""
+                result = result.replace(double_brace, str_value)
+                result = result.replace(single_brace, str_value)
         
         # Handle conditional blocks {% if condition %}...{% endif %}
         result = self._process_conditionals(result, variables)

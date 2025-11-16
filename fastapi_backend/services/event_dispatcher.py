@@ -16,6 +16,22 @@ from services.notification_service import NotificationService
 logger = logging.getLogger(__name__)
 
 
+# Helper function for age calculation
+def calculate_age(birthMonth=None, birthYear=None):
+    """Calculate age from birth month and year"""
+    if not birthMonth or not birthYear:
+        return None
+    try:
+        from datetime import date
+        today = date.today()
+        age = today.year - birthYear
+        if today.month < birthMonth:
+            age -= 1
+        return age
+    except:
+        return None
+
+
 class UserEventType(str, Enum):
     """All possible user interaction events"""
     # Favorites
@@ -251,40 +267,60 @@ class EventDispatcher:
     async def _handle_favorite_added(self, event_data: Dict):
         """Handle favorite_added event"""
         try:
-            target = event_data.get("target")
-            actor = event_data.get("actor")
+            target_username = event_data.get("target")
+            actor_username = event_data.get("actor")
             
-            if not target or not actor:
+            if not target_username or not actor_username:
                 return
             
-            # Check if it's mutual
-            is_mutual = await self._is_mutual_favorite(actor, target)
+            logger.info(f"📊 Favorite added: {actor_username} → {target_username}")
             
-            if is_mutual:
-                # Trigger mutual favorite event
-                await self.dispatch(
-                    UserEventType.MUTUAL_FAVORITE,
-                    actor_username=actor,
-                    target_username=target,
-                    priority="high"
-                )
-            else:
-                # Queue notification
-                result = await self.notification_service.queue_notification(
-                    username=target,
-                    trigger="favorited",
-                    channels=["email", "push"],
-                    template_data={
-                        "match": {
-                            "firstName": actor,
-                            "username": actor
-                        }
+            # Fetch BOTH user's full data
+            actor = await self.db.users.find_one({"username": actor_username})
+            target = await self.db.users.find_one({"username": target_username})
+            
+            if not actor:
+                logger.warning(f"Actor user {actor_username} not found")
+                return
+            
+            if not target:
+                logger.warning(f"Target user {target_username} not found")
+                return
+            
+            # Decrypt PII fields for BOTH users
+            from crypto_utils import get_encryptor
+            try:
+                encryptor = get_encryptor()
+                actor = encryptor.decrypt_user_pii(actor)
+                target = encryptor.decrypt_user_pii(target)
+            except Exception as e:
+                logger.warning(f"Failed to decrypt PII: {e}")
+            
+            # Queue notification for target user
+            result = await self.notification_service.queue_notification(
+                username=target_username,
+                trigger="favorited",
+                channels=["email", "push"],
+                template_data={
+                    "actor": {
+                        "firstName": actor.get("firstName", actor_username),
+                        "lastName": actor.get("lastName", ""),
+                        "username": actor_username,
+                        "location": actor.get("location", ""),
+                        "occupation": actor.get("occupation", ""),
+                        "age": calculate_age(actor.get("birthMonth"), actor.get("birthYear"))
+                    },
+                    "user": {
+                        "firstName": target.get("firstName", target_username),
+                        "lastName": target.get("lastName", ""),
+                        "username": target_username
                     }
-                )
-                if result:
-                    logger.info(f"📧 Queued 'favorited' notification for {target}")
-                else:
-                    logger.warning(f"⚠️ Could not queue 'favorited' notification for {target} (check user preferences)")
+                }
+            )
+            if result:
+                logger.info(f"📧 Queued 'favorited' notification for {target_username}")
+            else:
+                logger.warning(f"⚠️ Could not queue 'favorited' notification for {target_username} (check user preferences)")
                 
         except Exception as e:
             logger.error(f"❌ Error handling favorite_added: {e}", exc_info=True)
@@ -318,25 +354,44 @@ class EventDispatcher:
     async def _handle_mutual_favorite(self, event_data: Dict):
         """Handle mutual_favorite event"""
         try:
-            actor = event_data.get("actor")
-            target = event_data.get("target")
+            actor_username = event_data.get("actor")
+            target_username = event_data.get("target")
+            
+            # Fetch both users' data
+            actor = await self.db.users.find_one({"username": actor_username})
+            target = await self.db.users.find_one({"username": target_username})
+            
+            if not actor or not target:
+                logger.warning(f"User not found: actor={actor_username}, target={target_username}")
+                return
+            
+            # Decrypt PII fields
+            from crypto_utils import get_encryptor
+            encryptor = get_encryptor()
+            try:
+                actor = encryptor.decrypt_user_pii(actor)
+                target = encryptor.decrypt_user_pii(target)
+            except Exception as e:
+                logger.warning(f"Failed to decrypt PII: {e}")
             
             # Send notification to BOTH users
-            for user in [actor, target]:
-                other_user = target if user == actor else actor
+            for user_username, other_user_data in [(actor_username, target), (target_username, actor)]:
                 await self.notification_service.queue_notification(
-                    username=user,
+                    username=user_username,
                     trigger="mutual_favorite",
                     channels=["email", "sms", "push"],
                     template_data={
                         "match": {
-                            "firstName": other_user,
-                            "username": other_user
+                            "firstName": other_user_data.get("firstName", other_user_data.get("username")),
+                            "lastName": other_user_data.get("lastName", ""),
+                            "username": other_user_data.get("username"),
+                            "location": other_user_data.get("location", ""),
+                            "occupation": other_user_data.get("occupation", "")
                         }
                     },
                     priority="high"
                 )
-            logger.info(f"💕 Queued mutual_favorite notifications for {actor} and {target}")
+            logger.info(f"💕 Queued mutual_favorite notifications for {actor_username} and {target_username}")
             
         except Exception as e:
             logger.error(f"❌ Error handling mutual_favorite: {e}", exc_info=True)
@@ -344,21 +399,52 @@ class EventDispatcher:
     async def _handle_shortlist_added(self, event_data: Dict):
         """Handle shortlist_added event"""
         try:
-            target = event_data.get("target")
-            actor = event_data.get("actor")
+            target_username = event_data.get("target")
+            actor_username = event_data.get("actor")
+            
+            # Fetch BOTH user's full data
+            actor = await self.db.users.find_one({"username": actor_username})
+            target = await self.db.users.find_one({"username": target_username})
+            
+            if not actor:
+                logger.warning(f"Actor user {actor_username} not found")
+                return
+            
+            if not target:
+                logger.warning(f"Target user {target_username} not found")
+                return
+            
+            # Decrypt PII fields for BOTH users
+            from crypto_utils import get_encryptor
+            try:
+                encryptor = get_encryptor()
+                actor = encryptor.decrypt_user_pii(actor)
+                target = encryptor.decrypt_user_pii(target)
+            except Exception as e:
+                logger.warning(f"Failed to decrypt PII: {e}")
             
             await self.notification_service.queue_notification(
-                username=target,
+                username=target_username,
                 trigger="shortlist_added",
                 channels=["email"],
                 template_data={
-                    "match": {
-                        "firstName": actor,
-                        "username": actor
+                    "actor": {
+                        "firstName": actor.get("firstName", actor_username),
+                        "lastName": actor.get("lastName", ""),
+                        "username": actor_username,
+                        "location": actor.get("location", ""),
+                        "occupation": actor.get("occupation", ""),
+                        "education": actor.get("education", ""),
+                        "age": calculate_age(actor.get("birthMonth"), actor.get("birthYear"))
+                    },
+                    "user": {
+                        "firstName": target.get("firstName", target_username),
+                        "lastName": target.get("lastName", ""),
+                        "username": target_username
                     }
                 }
             )
-            logger.info(f"📧 Queued 'shortlist_added' notification for {target}")
+            logger.info(f"📧 Queued 'shortlist_added' notification for {target_username}")
             
         except Exception as e:
             logger.error(f"❌ Error handling shortlist_added: {e}", exc_info=True)

@@ -2096,7 +2096,7 @@ async def add_to_favorites(username: str, target_username: str, db = Depends(get
     favorite = {
         "userUsername": username,
         "favoriteUsername": target_username,
-        "createdAt": datetime.utcnow().isoformat()
+        "createdAt": datetime.utcnow()  # Store as datetime, not ISO string
     }
 
     try:
@@ -2463,7 +2463,7 @@ async def add_to_shortlist(
         "userUsername": username,
         "shortlistedUsername": target_username,
         "notes": notes,
-        "createdAt": datetime.utcnow().isoformat()
+        "createdAt": datetime.utcnow()  # Store as datetime, not ISO string
     }
 
     try:
@@ -2622,7 +2622,7 @@ async def add_to_exclusions(
         "userUsername": username,
         "excludedUsername": target_username,
         "reason": reason,
-        "createdAt": datetime.utcnow().isoformat()
+        "createdAt": datetime.utcnow()  # Store as datetime, not ISO string
     }
 
     try:
