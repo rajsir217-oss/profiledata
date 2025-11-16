@@ -502,6 +502,59 @@ const Dashboard = () => {
     }
   };
 
+  // Add handlers for kebab menu (adding to lists)
+  const handleAddToFavorites = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to favorites`);
+    } catch (err) {
+      logger.error(`Failed to add to favorites: ${err.message}`);
+      toast.error(`Failed to add to favorites`);
+    }
+  };
+
+  const handleAddToShortlist = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to shortlist`);
+    } catch (err) {
+      logger.error(`Failed to add to shortlist: ${err.message}`);
+      toast.error(`Failed to add to shortlist`);
+    }
+  };
+
+  const handleAddToExclusions = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to not interested`);
+    } catch (err) {
+      logger.error(`Failed to add to exclusions: ${err.message}`);
+      toast.error(`Failed to add to exclusions`);
+    }
+  };
+
+  const handleRequestPII = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      // Open PII request modal or make API call
+      // For now, just show a toast
+      toast.info(`PII request functionality - to be implemented`);
+      logger.info(`Request PII for ${targetUsername}`);
+    } catch (err) {
+      logger.error(`Failed to request PII: ${err.message}`);
+      toast.error(`Failed to request PII`);
+    }
+  };
+
   // Drag and drop handlers
   const handleDragStart = (e, index, section) => {
     setDraggedIndex(index);
