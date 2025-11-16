@@ -56,6 +56,7 @@ class NotificationTrigger(str, Enum):
     # Engagement
     UNREAD_MESSAGES = "unread_messages"
     NEW_USERS_MATCHING = "new_users_matching"
+    SAVED_SEARCH_MATCHES = "saved_search_matches"
     PROFILE_INCOMPLETE = "profile_incomplete"
     UPLOAD_PHOTOS = "upload_photos"
     

@@ -22,6 +22,14 @@ import asyncio
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .base import JobTemplate, JobExecutionContext, JobResult
+from services.notification_service import NotificationService
+from crypto_utils import PIIEncryption
+from models.notification_models import (
+    NotificationTrigger, 
+    NotificationChannel, 
+    NotificationPriority,
+    NotificationQueueCreate
+)
 
 logger = logging.getLogger(__name__)
 
@@ -135,55 +143,52 @@ EMAIL_TEMPLATE = """
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             transform: translateY(-2px);
         }}
-        .match-header {{
-            display: flex;
-            align-items: center;
-            margin-bottom: 15px;
-        }}
         .match-name {{
-            font-size: 20px;
-            font-weight: 600;
-            color: #2d3748;
-            margin: 0;
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a202c;
+            margin: 0 0 12px 0;
         }}
         .match-badge {{
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            margin-left: 10px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 12px;
         }}
         .match-details {{
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 12px;
         }}
         .match-detail {{
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             font-size: 14px;
             color: #4a5568;
+            line-height: 1.4;
         }}
         .match-detail-icon {{
-            margin-right: 8px;
-            font-size: 16px;
+            margin-right: 6px;
+            font-size: 14px;
+            flex-shrink: 0;
         }}
         .view-profile-btn {{
             display: inline-block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 12px 24px;
+            color: #667eea;
             text-decoration: none;
-            border-radius: 6px;
             font-weight: 500;
-            text-align: center;
-            transition: all 0.3s ease;
+            font-size: 14px;
+            margin-top: 8px;
+            transition: color 0.2s ease;
         }}
         .view-profile-btn:hover {{
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            color: #764ba2;
+            text-decoration: underline;
         }}
         .footer {{
             text-align: center;
@@ -235,13 +240,11 @@ EMAIL_TEMPLATE = """
 
 MATCH_CARD_TEMPLATE = """
 <div class="match-card">
-    <div class="match-header">
-        <h3 class="match-name">{name}</h3>
-        {l3v3l_badge}
-    </div>
+    <h3 class="match-name">{name}</h3>
+    {l3v3l_badge}
     <div class="match-details">
         <div class="match-detail">
-            <span class="match-detail-icon">📅</span>
+            <span class="match-detail-icon">🎂</span>
             <span>{age} years old</span>
         </div>
         <div class="match-detail">
@@ -294,6 +297,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         batch_size = params.get('batchSize', 50)
         lookback_hours = params.get('lookbackHours', 24)  # Check for profiles created in last 24h
         app_url = params.get('appUrl', 'http://localhost:3000')
+        force_run = params.get('forceRun', False)  # For testing - bypass schedule check
         
         # Get all saved searches
         saved_searches_cursor = db.saved_searches.find({})
@@ -342,7 +346,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         stats['searches_with_schedule'] += 1
                         
                         # Check if it's time to send based on schedule
-                        if not is_notification_due(search, db, username, search_id):
+                        if not is_notification_due(search, db, username, search_id, force_run):
                             stats['skipped_not_due'] += 1
                             logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
                             continue
@@ -550,59 +554,67 @@ async def send_matches_email(
     """Send email with matching profiles"""
     
     try:
+        # Initialize PII encryption for decryption
+        pii_encryptor = PIIEncryption()
+        
         # Build match cards HTML
         matches_html_parts = []
         
         for match in matches:
-            # Calculate age
-            age = calculate_age(match.get('dateOfBirth'))
+            # Decrypt PII fields
+            decrypted_match = pii_encryptor.decrypt_user_pii(match)
+            
+            # Get age - either from age field or calculate from dateOfBirth
+            age = decrypted_match.get('age')
+            if not age and decrypted_match.get('dateOfBirth'):
+                age = calculate_age(decrypted_match.get('dateOfBirth'))
             
             # Format height
-            height = match.get('height', 'Not specified')
+            height = decrypted_match.get('height', 'Not specified')
             
-            # Location
-            location = match.get('location', match.get('state', 'Location not specified'))
+            # Location - use decrypted values
+            location = decrypted_match.get('location') or decrypted_match.get('state') or 'Location not specified'
             
             # Education
             education = 'Not specified'
-            if match.get('education'):
-                if isinstance(match['education'], list) and len(match['education']) > 0:
-                    education = match['education'][0].get('degree', 'Not specified')
-                elif isinstance(match['education'], str):
-                    education = match['education']
+            if decrypted_match.get('education'):
+                if isinstance(decrypted_match['education'], list) and len(decrypted_match['education']) > 0:
+                    education = decrypted_match['education'][0].get('degree', 'Not specified')
+                elif isinstance(decrypted_match['education'], str):
+                    education = decrypted_match['education']
             
             # Religion (optional)
             religion_detail = ''
-            if match.get('religion'):
+            if decrypted_match.get('religion'):
                 religion_detail = f'''
                 <div class="match-detail">
                     <span class="match-detail-icon">🕉️</span>
-                    <span>{match['religion']}</span>
+                    <span>{decrypted_match['religion']}</span>
                 </div>
                 '''
             
             # Occupation (optional)
             occupation_detail = ''
-            if match.get('occupation'):
+            if decrypted_match.get('occupation'):
                 occupation_detail = f'''
                 <div class="match-detail">
                     <span class="match-detail-icon">💼</span>
-                    <span>{match['occupation']}</span>
+                    <span>{decrypted_match['occupation']}</span>
                 </div>
                 '''
             
             # L3V3L badge (if score exists)
             l3v3l_badge = ''
-            if match.get('matchScore'):
-                l3v3l_badge = f'<span class="match-badge">🦋 {match["matchScore"]}% Match</span>'
+            if decrypted_match.get('matchScore'):
+                l3v3l_badge = f'<span class="match-badge">🦋 {decrypted_match["matchScore"]}% Match</span>'
             
             # Build profile URL
-            profile_url = f"{app_url}/profile/{match['username']}"
+            profile_url = f"{app_url}/profile/{decrypted_match['username']}"
             
             # Get display name
-            name = match.get('firstName', match['username'])
-            if match.get('lastName'):
-                name += f" {match['lastName'][0]}."
+            name = decrypted_match.get('firstName', decrypted_match['username'])
+            if decrypted_match.get('lastName'):
+                name += f" {decrypted_match['lastName'][0]}."
             
             match_html = MATCH_CARD_TEMPLATE.format(
                 name=name,
@@ -619,7 +631,7 @@ async def send_matches_email(
             matches_html_parts.append(match_html)
         
         # Build complete email HTML
-        plural = 's' if len(matches) != 1 else ''
+        plural = 'es' if len(matches) != 1 else ''
         matches_container = f'''
         <div class="stats-banner">
             <p style="margin: 0;">Found <strong>{len(matches)}</strong> new match{plural} for you!</p>
@@ -638,13 +650,38 @@ async def send_matches_email(
             app_url=app_url
         )
         
-        # TODO: Send email using your email service
-        # For now, just log that we would send it
-        logger.info(f"📧 Would send email to {to_email} with {len(matches)} matches")
+        # Queue notification via NotificationService
+        notification_service = NotificationService(db)
         
-        # In production, integrate with your email service:
-        # await send_email(to_email, f"New Matches for '{search_name}'", email_html)
+        # Get user info for template
+        user = await db.users.find_one({'username': username})
+        user_first_name = user.get('firstName', username) if user else username
         
+        # Build template data
+        template_data = {
+            'user': {
+                'firstName': user_first_name,
+                'username': username
+            },
+            'matchCount': len(matches),
+            'plural': plural,  # 'es' or ''
+            'searchName': search_name,
+            'searchDescription': search_description,  # Keep original, not empty string
+            'matchesHtml': matches_container,
+            'matchesText': f"Found {len(matches)} new match{plural}"  # For text version
+        }
+        
+        # Queue the notification
+        queue_item = NotificationQueueCreate(
+            username=username,
+            trigger=NotificationTrigger.SAVED_SEARCH_MATCHES,
+            channels=[NotificationChannel.EMAIL],
+            priority=NotificationPriority.MEDIUM,
+            templateData=template_data
+        )
+        await notification_service.enqueue_notification(queue_item)
+        
+        logger.info(f"✅ Queued notification for {username}: {len(matches)} matches for '{search_name}'")
         return True
         
     except Exception as e:
@@ -652,7 +689,7 @@ async def send_matches_email(
         return False
 
 
-def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str) -> bool:
+def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str, force_run: bool = False) -> bool:
     """
     Check if it's time to send notification based on the search's schedule
     
@@ -661,10 +698,15 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
         db: Database instance (for async call later)
         username: Username
         search_id: Search ID
+        force_run: If True, bypass schedule check (for testing)
         
     Returns:
         True if notification should be sent now, False otherwise
     """
+    # For testing, allow bypassing schedule check
+    if force_run:
+        return True
+    
     notifications = search.get('notifications', {})
     if not notifications.get('enabled'):
         return False

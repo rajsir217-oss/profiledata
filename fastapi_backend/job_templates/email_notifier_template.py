@@ -250,19 +250,27 @@ class EmailNotifierTemplate(JobTemplate):
             encoded_profile_url = quote(profile_url, safe="")
         
         # Add app URLs with tracking
+        from urllib.parse import quote
+        
+        # Encode frontend URLs for tracking
+        search_url_encoded = quote(f"{frontend_url}/search", safe="")
+        dashboard_url_encoded = quote(f"{frontend_url}/dashboard", safe="")
+        preferences_url_encoded = quote(f"{frontend_url}/settings/notifications", safe="")
+        unsubscribe_url_encoded = quote(f"{frontend_url}/settings/notifications", safe="")
+        
         template_data["app"] = {
             "logoUrl": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==",
             "trackingPixelUrl": f"{backend_url}/api/email-tracking/pixel/{tracking_id}",
             "profileUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile",
-            "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/messages&link_type=chat",
-            "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/unsubscribe&link_type=unsubscribe",
-            "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/preferences&link_type=preferences",
-            "approveUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/pii/approve&link_type=approve",
-            "denyUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={backend_url}/pii/deny&link_type=deny",
-            "dashboardUrl": f"{backend_url}/dashboard",
-            "contactUrl": f"{backend_url}/contact",
-            "searchUrl": f"{backend_url}/search",
-            "securityUrl": f"{backend_url}/security"
+            "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
+            "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={unsubscribe_url_encoded}&link_type=unsubscribe",
+            "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={preferences_url_encoded}&link_type=preferences",
+            "approveUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii/approve', safe='')}&link_type=approve",
+            "denyUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii/deny', safe='')}&link_type=deny",
+            "dashboardUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={dashboard_url_encoded}&link_type=dashboard",
+            "contactUrl": f"{frontend_url}/contact",
+            "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={search_url_encoded}&link_type=search",
+            "securityUrl": f"{frontend_url}/settings/security"
         }
         
         if not template:

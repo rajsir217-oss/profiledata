@@ -323,10 +323,28 @@ class NotificationService:
     
     def _process_conditionals(self, template: str, variables: Dict[str, Any]) -> str:
         """Process {% if %} conditional blocks"""
-        # Simple regex for {% if variable %}...{% endif %}
-        pattern = r'\{%\s*if\s+(\w+(?:\.\w+)*)\s*([><=!]+)\s*(\w+)\s*%\}(.*?)\{%\s*endif\s*%\}'
         
-        def evaluate_condition(match):
+        # First, handle simple truthiness checks: {% if variable %}
+        simple_pattern = r'\{%\s*if\s+(\w+(?:\.\w+)*)\s*%\}(.*?)\{%\s*endif\s*%\}'
+        
+        def evaluate_simple(match):
+            var_path = match.group(1)
+            content = match.group(2)
+            
+            # Get variable value
+            var_value = self._get_nested_value(variables, var_path)
+            
+            # Check truthiness (not None, not empty string, not False)
+            if var_value and var_value != '':
+                return content
+            return ''
+        
+        template = re.sub(simple_pattern, evaluate_simple, template, flags=re.DOTALL)
+        
+        # Then handle comparison conditionals: {% if variable >= value %}
+        comparison_pattern = r'\{%\s*if\s+(\w+(?:\.\w+)*)\s*([><=!]+)\s*(\w+)\s*%\}(.*?)\{%\s*endif\s*%\}'
+        
+        def evaluate_comparison(match):
             var_path = match.group(1)
             operator = match.group(2)
             value = match.group(3)
@@ -351,7 +369,9 @@ class NotificationService:
             
             return ''
         
-        return re.sub(pattern, evaluate_condition, template, flags=re.DOTALL)
+        template = re.sub(comparison_pattern, evaluate_comparison, template, flags=re.DOTALL)
+        
+        return template
     
     def _get_nested_value(self, data: Dict[str, Any], path: str) -> Any:
         """Get nested dictionary value from path like 'match.firstName'"""
