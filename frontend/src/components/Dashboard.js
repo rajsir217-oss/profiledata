@@ -407,10 +407,10 @@ const Dashboard = () => {
       return dashboardData.myMessages.length + 
              dashboardData.myFavorites.length + 
              dashboardData.myShortlists.length + 
+             dashboardData.myRequests.length +
              dashboardData.myExclusions.length;
     } else if (group === 'othersActivities') {
       return dashboardData.myViews.length + 
-             dashboardData.myRequests.length + 
              dashboardData.theirFavorites.length + 
              dashboardData.theirShortlists.length;
     }
@@ -998,6 +998,7 @@ const Dashboard = () => {
               {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage)}
               {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites)}
               {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist)}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest)}
               {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions)}
             </div>
           )}
@@ -1019,7 +1020,6 @@ const Dashboard = () => {
           {expandedGroups.othersActivities && (
             <div className="column-sections">
               {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory)}
-              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest)}
           
           {/* Image Access Requests Section */}
           <CategorySection
