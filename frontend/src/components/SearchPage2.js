@@ -348,32 +348,33 @@ const SearchPage2 = () => {
         
         if (defaultSearch && defaultSearch.criteria) {
           console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Loading criteria:', defaultSearch.criteria);
+          console.log('📋 Loading criteria (NOT auto-executing):', defaultSearch.criteria);
           
-          // Load the saved search criteria
+          // Load the saved search criteria but DON'T execute
           setSearchCriteria(defaultSearch.criteria);
           setSelectedSearch(defaultSearch);
           
-          // Execute the search after a short delay to ensure state is updated
-          setTimeout(() => {
-            console.log('🔍 Auto-executing default saved search');
-            handleSearch(1);
-          }, 500);
+          // ❌ DISABLED: Auto-execution removed per user request
+          // User must manually click "Search" button
+          // setTimeout(() => {
+          //   console.log('🔍 Auto-executing default saved search');
+          //   handleSearch(1);
+          // }, 500);
         } else {
-          // No default saved search - perform normal initial search with default criteria
-          console.log('🔍 No default search - auto-triggering search with gender:', searchCriteria.gender || 'all');
+          // No default saved search - just show empty search page
+          console.log('🔍 No default search - waiting for user to initiate search');
           console.log('📋 Current search criteria:', searchCriteria);
-          setTimeout(() => {
-            console.log('⏰ Timeout fired - calling handleSearch');
-            handleSearch(1);
-          }, 800);
+          
+          // ❌ DISABLED: Auto-search removed per user request
+          // setTimeout(() => {
+          //   console.log('⏰ Timeout fired - calling handleSearch');
+          //   handleSearch(1);
+          // }, 800);
         }
       } catch (err) {
         console.error('Error loading default saved search:', err);
-        // Fall back to normal search
-        setTimeout(() => {
-          handleSearch(1);
-        }, 800);
+        // ❌ DISABLED: No fallback auto-search
+        // User must manually initiate search
       }
     };
 
@@ -381,14 +382,15 @@ const SearchPage2 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserProfile]);
   
-  // Additional trigger when searchCriteria.gender changes
-  useEffect(() => {
-    if (currentUserProfile && searchCriteria.gender && users.length === 0) {
-      console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
-      handleSearch(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchCriteria.gender]);
+  // ❌ DISABLED: No auto-search on gender change
+  // User must manually click "Search" button
+  // useEffect(() => {
+  //   if (currentUserProfile && searchCriteria.gender && users.length === 0) {
+  //     console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
+  //     handleSearch(1);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [searchCriteria.gender]);
 
   const loadPiiRequests = async () => {
     const currentUser = localStorage.getItem('username');
