@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api, { setDefaultSavedSearch, getDefaultSavedSearch } from '../api';
@@ -95,6 +95,9 @@ const SearchPage2 = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   const [currentPIIAccess, setCurrentPIIAccess] = useState({});
+
+  // Ref to track if default search has been auto-executed
+  const hasAutoExecutedRef = useRef(false);
 
   // Load more state (for incremental loading instead of pagination)
   const [displayedCount, setDisplayedCount] = useState(20);
@@ -342,46 +345,52 @@ const SearchPage2 = () => {
         return;
       }
 
+      // Prevent multiple auto-executions
+      if (hasAutoExecutedRef.current) {
+        console.log('⏭️ Already auto-executed default search, skipping');
+        return;
+      }
+
       try {
         // Check if there's a default saved search
         const defaultSearch = await getDefaultSavedSearch();
         
         if (defaultSearch && defaultSearch.criteria) {
           console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Loading criteria (NOT auto-executing, NOT showing banner):', defaultSearch.criteria);
           
-          // Load the saved search criteria silently (no banner, no execution)
-          setSearchCriteria(defaultSearch.criteria);
-          // ❌ DON'T set selectedSearch - prevents banner from showing
-          // setSelectedSearch(defaultSearch);
-          
-          // ❌ DISABLED: Auto-execution removed per user request
-          // User must manually click "Search" button
-          // setTimeout(() => {
-          //   console.log('🔍 Auto-executing default saved search');
-          //   handleSearch(1);
-          // }, 500);
+          // Check if we have saved searches (which will open Saved tab)
+          if (savedSearches.length > 0) {
+            console.log('✅ Saved searches exist - auto-executing default search');
+            
+            // Load criteria and show banner (user will see what's being searched)
+            setSearchCriteria(defaultSearch.criteria);
+            setSelectedSearch(defaultSearch);
+            
+            // Mark as executed
+            hasAutoExecutedRef.current = true;
+            
+            // Execute the search after a short delay
+            setTimeout(() => {
+              console.log('🔍 Auto-executing default saved search from Saved tab');
+              handleSearch(1);
+            }, 500);
+          } else {
+            // No saved searches yet, load criteria silently (no execution, no banner)
+            console.log('📋 Loading criteria silently (no saved searches list yet)');
+            setSearchCriteria(defaultSearch.criteria);
+          }
         } else {
           // No default saved search - just show empty search page
           console.log('🔍 No default search - waiting for user to initiate search');
-          console.log('📋 Current search criteria:', searchCriteria);
-          
-          // ❌ DISABLED: Auto-search removed per user request
-          // setTimeout(() => {
-          //   console.log('⏰ Timeout fired - calling handleSearch');
-          //   handleSearch(1);
-          // }, 800);
         }
       } catch (err) {
         console.error('Error loading default saved search:', err);
-        // ❌ DISABLED: No fallback auto-search
-        // User must manually initiate search
       }
     };
 
     loadAndExecuteDefaultSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserProfile]);
+  }, [currentUserProfile, savedSearches.length]);
   
   // ❌ DISABLED: No auto-search on gender change
   // User must manually click "Search" button
