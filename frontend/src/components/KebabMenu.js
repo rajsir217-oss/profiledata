@@ -44,6 +44,7 @@ const KebabMenu = ({
   onReport
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ maxHeight: '400px', openUpward: false });
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
@@ -85,6 +86,33 @@ const KebabMenu = ({
     };
   }, [isOpen]);
 
+  // Calculate menu position to avoid viewport clipping
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - buttonRect.bottom;
+      const spaceAbove = buttonRect.top;
+      const menuMinHeight = 200; // Minimum reasonable menu height
+      
+      // Decide if menu should open upward
+      const shouldOpenUpward = spaceBelow < menuMinHeight && spaceAbove > spaceBelow;
+      
+      // Calculate max-height based on available space (leave 20px padding)
+      let maxHeight;
+      if (shouldOpenUpward) {
+        maxHeight = Math.min(400, spaceAbove - 20);
+      } else {
+        maxHeight = Math.min(400, spaceBelow - 20);
+      }
+      
+      setMenuPosition({
+        maxHeight: `${maxHeight}px`,
+        openUpward: shouldOpenUpward
+      });
+    }
+  }, [isOpen]);
+
   const handleToggle = (e) => {
     e.stopPropagation();
     setIsOpen(!isOpen);
@@ -122,7 +150,11 @@ const KebabMenu = ({
       </button>
 
       {isOpen && (
-        <div ref={menuRef} className="kebab-menu-dropdown">
+        <div 
+          ref={menuRef} 
+          className={`kebab-menu-dropdown ${menuPosition.openUpward ? 'open-upward' : ''}`}
+          style={{ maxHeight: menuPosition.maxHeight }}
+        >
           {/* Profile Section */}
           <div className="menu-section">
             <div className="menu-section-title">Profile</div>

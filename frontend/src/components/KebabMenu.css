@@ -62,7 +62,6 @@
   z-index: 1000;
   min-width: 220px;
   max-width: 260px;
-  max-height: 400px;
   background: var(--card-background);
   border: 1px solid var(--border-color);
   border-radius: 4px;
@@ -74,6 +73,13 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--text-muted) transparent;
+  /* max-height set dynamically via JS based on viewport space */
+}
+
+/* Open Upward - When menu opens above button */
+.kebab-menu-dropdown.open-upward {
+  top: auto;
+  bottom: calc(100% + var(--spacing-xs));
 }
 
 /* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */
