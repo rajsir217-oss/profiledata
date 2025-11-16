@@ -4904,3 +4904,50 @@ body.theme-rose .request-pics-btn-main:active {
     font-size: 18px;
   }
 }
+
+/* ========================================
+   KEBAB MENU & BOTTOM ACTIONS (SearchResultCard)
+   ======================================== */
+
+/* Kebab Menu Positioning in Search Cards */
+.search-card-header-actions {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 10;
+}
+
+/* Bottom Actions Section for Search Cards */
+.search-card-bottom-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--card-background);
+  border-top: 1px solid var(--divider-color);
+}
+
+/* Button styles already defined in UserCard.css will be inherited */
+/* These styles ensure consistency between UserCard and SearchResultCard */
+
+/* Mobile Responsive for Search Cards */
+@media (max-width: 768px) {
+  .search-card-header-actions {
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+  }
+
+  .search-card-bottom-actions {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .search-card-bottom-actions {
+    flex-direction: column;
+  }
+
+  .search-card-bottom-actions .bottom-action-btn {
+    width: 100%;
+  }
+}
