@@ -1016,15 +1016,15 @@ body.theme-ultra-black .user-action-btn {
 }
 
 .bottom-action-btn {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
-  min-height: 48px;
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  border-radius: 50%;
+  padding: 0 !important;
+  border-radius: 50% !important;
   border: 2px solid transparent;
   background: var(--surface-color);
   color: var(--text-color);
@@ -1135,8 +1135,8 @@ body.theme-ultra-black .user-action-btn {
   }
 
   .bottom-action-btn {
-    width: 48px;
-    height: 48px;
+    width: 48px !important;
+    height: 48px !important;
   }
 
   .bottom-action-btn .btn-icon {
@@ -1150,10 +1150,10 @@ body.theme-ultra-black .user-action-btn {
   }
 
   .bottom-action-btn {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
   }
 
   .bottom-action-btn .btn-icon {
