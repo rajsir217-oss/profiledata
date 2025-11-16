@@ -49,6 +49,34 @@ def _decrypt_contact_info(value: str) -> str:
 def get_password_hash(password: str) -> str:
     return PasswordManager.hash_password(password)
 
+# MongoDB projection for dashboard card display (only fetch needed fields)
+DASHBOARD_USER_PROJECTION = {
+    "_id": 0,
+    "password": 0,
+    # Include only fields needed for dashboard cards
+    "username": 1,
+    "firstName": 1,
+    "lastName": 1,
+    "age": 1,
+    "birthMonth": 1,
+    "birthYear": 1,
+    "location": 1,
+    "occupation": 1,
+    "education": 1,
+    "bio": 1,
+    "aboutMe": 1,
+    "about": 1,
+    "description": 1,
+    "aboutYou": 1,
+    "profileImage": 1,
+    "images": 1,
+    "contactEmail": 1,
+    "contactNumber": 1,
+    "lastActive": 1,
+    "onlineStatus": 1,
+    # Exclude all other fields (preferences, verification, etc.)
+}
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return PasswordManager.verify_password(plain_password, hashed_password)
 
@@ -2432,21 +2460,21 @@ async def reset_password(
 
 @router.get("/favorites/{username}")
 async def get_favorites(username: str, db = Depends(get_database)):
-    """Get user's favorites list"""
+    """Get user's favorites list - OPTIMIZED with field projection"""
     logger.info(f"📋 Getting favorites for {username}")
 
     try:
         favorites_cursor = db.favorites.find({"userUsername": username}).sort("displayOrder", 1)
         favorites = await favorites_cursor.to_list(100)
 
-        # Get full user details for each favorite
+        # Get ONLY needed user fields (not all 162+ fields!)
         favorite_users = []
         for fav in favorites:
-            user = await db.users.find_one({"username": fav["favoriteUsername"]})
+            user = await db.users.find_one(
+                {"username": fav["favoriteUsername"]},
+                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
+            )
             if user:
-                user.pop("password", None)
-                user.pop("_id", None)
-                
                 # 🔓 DECRYPT PII fields
                 try:
                     encryptor = get_encryptor()
@@ -2459,7 +2487,7 @@ async def get_favorites(username: str, db = Depends(get_database)):
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
 
-        logger.info(f"✅ Found {len(favorite_users)} favorites for {username}")
+        logger.info(f"✅ Found {len(favorite_users)} favorites for {username} (optimized query)")
         return {"favorites": favorite_users}
     except Exception as e:
         logger.error(f"❌ Error fetching favorites: {e}", exc_info=True)
@@ -2575,21 +2603,21 @@ async def add_to_shortlist(
 
 @router.get("/shortlist/{username}")
 async def get_shortlist(username: str, db = Depends(get_database)):
-    """Get user's shortlist"""
+    """Get user's shortlist - OPTIMIZED with field projection"""
     logger.info(f"📋 Getting shortlist for {username}")
 
     try:
         shortlist_cursor = db.shortlists.find({"userUsername": username}).sort("displayOrder", 1)
         shortlist = await shortlist_cursor.to_list(100)
 
-        # Get full user details for each shortlisted user
+        # Get ONLY needed user fields (not all 162+ fields!)
         shortlisted_users = []
         for item in shortlist:
-            user = await db.users.find_one({"username": item["shortlistedUsername"]})
+            user = await db.users.find_one(
+                {"username": item["shortlistedUsername"]},
+                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
+            )
             if user:
-                user.pop("password", None)
-                user.pop("_id", None)
-                
                 # 🔓 DECRYPT PII fields
                 try:
                     encryptor = get_encryptor()
@@ -2603,7 +2631,7 @@ async def get_shortlist(username: str, db = Depends(get_database)):
                 user["addedToShortlistAt"] = item["createdAt"]
                 shortlisted_users.append(user)
 
-        logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username}")
+        logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username} (optimized query)")
         return {"shortlist": shortlisted_users}
     except Exception as e:
         logger.error(f"❌ Error fetching shortlist: {e}", exc_info=True)
@@ -2708,21 +2736,21 @@ async def add_to_exclusions(
 
 @router.get("/exclusions/{username}")
 async def get_exclusions(username: str, db = Depends(get_database)):
-    """Get user's exclusions list"""
+    """Get user's exclusions list - OPTIMIZED with field projection"""
     logger.info(f"📋 Getting exclusions for {username}")
 
     try:
         exclusions_cursor = db.exclusions.find({"userUsername": username}).sort("displayOrder", 1)
         exclusions = await exclusions_cursor.to_list(100)
 
-        # Get full user details for each excluded user
+        # Get ONLY needed user fields (not all 162+ fields!)
         excluded_users = []
         for exc in exclusions:
-            user = await db.users.find_one({"username": exc["excludedUsername"]})
+            user = await db.users.find_one(
+                {"username": exc["excludedUsername"]},
+                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
+            )
             if user:
-                user.pop("password", None)
-                user.pop("_id", None)
-                
                 # 🔓 DECRYPT PII fields
                 try:
                     encryptor = get_encryptor()
@@ -2735,7 +2763,7 @@ async def get_exclusions(username: str, db = Depends(get_database)):
                 user["excludedAt"] = exc.get("createdAt")
                 excluded_users.append(user)
 
-        logger.info(f"✅ Found {len(excluded_users)} exclusions for {username}")
+        logger.info(f"✅ Found {len(excluded_users)} exclusions for {username} (optimized query)")
         return {"exclusions": excluded_users}
     except Exception as e:
         logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
@@ -4003,10 +4031,11 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
             "createdAt": {"$gte": cutoff_date}
         }).sort("createdAt", -1).to_list(100)
         
-        # Get user details
+        # Get user details - OPTIMIZED with field projection
         user_usernames = [f["userUsername"] for f in favorites]
         users = await db.users.find(
-            {"username": {"$in": user_usernames}}
+            {"username": {"$in": user_usernames}},
+            DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
         
         # 🔓 DECRYPT PII fields for all users
@@ -4054,10 +4083,11 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
             {"shortlistedUsername": username}
         ).sort("createdAt", -1).to_list(100)
         
-        # Get user details
+        # Get user details - OPTIMIZED with field projection
         user_usernames = [s["userUsername"] for s in shortlists]
         users = await db.users.find(
-            {"username": {"$in": user_usernames}}
+            {"username": {"$in": user_usernames}},
+            DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
         
         # 🔓 DECRYPT PII fields for all users
