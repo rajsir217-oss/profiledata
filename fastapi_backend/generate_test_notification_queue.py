@@ -39,7 +39,7 @@ async def generate_test_queue():
 
     if not templates:
         print("❌ No active notification templates found.")
-        await client.close()
+        client.close()
         return
 
     print(f"✅ Found {len(templates)} active templates")
@@ -60,17 +60,50 @@ async def generate_test_queue():
 
         print(f"   • Template {tpl_id} | trigger={trigger} | channel={channel} | subject={subject}")
 
-        # Build a minimal test notification queue document
+        # Base template data for all test notifications
+        template_data = {
+            "_test": True,
+            "templateId": tpl_id,
+            "note": "Auto-generated for queue testing"
+        }
+
+        # Provide realistic data for specific triggers so placeholders render
+        if trigger == "shortlist_added":
+            template_data.update(
+                actor={
+                    "firstName": "Siddharth",
+                    "lastName": "Das",
+                    "username": "siddharthdas007",
+                    "location": "Los Angeles, CA",
+                    "occupation": "Content Writer",
+                    "education": "MBA",
+                    "age": 22,
+                },
+                user={
+                    "firstName": "Admin",
+                    "lastName": "AdminUser",
+                    "username": TEST_USERNAME,
+                },
+            )
+        elif trigger == "invitation_sent":
+            # Simple defaults for invitation templates
+            template_data.update(
+                recipient={
+                    "firstName": "Friend",
+                    "email": "friend@example.com",
+                },
+                app={
+                    "name": "L3V3LMATCH",
+                },
+            )
+
+        # Build the queue document
         queue_doc = {
             "username": TEST_USERNAME,
             "trigger": trigger,
             "channels": [channel],
             "priority": "medium",
-            "templateData": {
-                "_test": True,
-                "templateId": tpl_id,
-                "note": "Auto-generated for queue testing"
-            },
+            "templateData": template_data,
             "status": "pending",
             "scheduledFor": None,
             "attempts": 0,
@@ -88,7 +121,7 @@ async def generate_test_queue():
     print(f"   Test user: {TEST_USERNAME}")
     print(f"   New queue items created: {created}")
 
-    await client.close()
+    client.close()
 
 
 if __name__ == "__main__":
