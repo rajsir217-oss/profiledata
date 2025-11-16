@@ -4913,7 +4913,7 @@ body.theme-rose .request-pics-btn-main:active {
 /* Kebab Menu Positioning in Search Cards */
 .search-card-header-actions {
   position: absolute;
-  top: var(--spacing-sm);
+  top: 12px;
   right: var(--spacing-sm);
   z-index: 10;
 }
