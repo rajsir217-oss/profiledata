@@ -50,9 +50,9 @@ def get_password_hash(password: str) -> str:
     return PasswordManager.hash_password(password)
 
 # MongoDB projection for dashboard card display (only fetch needed fields)
+# Note: MongoDB requires ONLY inclusions OR ONLY exclusions (_id is exception)
 DASHBOARD_USER_PROJECTION = {
-    "_id": 0,
-    "password": 0,
+    "_id": 0,  # Special case: _id can be excluded with inclusions
     # Include only fields needed for dashboard cards
     "username": 1,
     "firstName": 1,
@@ -74,7 +74,7 @@ DASHBOARD_USER_PROJECTION = {
     "contactNumber": 1,
     "lastActive": 1,
     "onlineStatus": 1,
-    # Exclude all other fields (preferences, verification, etc.)
+    # All other fields automatically excluded (MongoDB inclusion projection)
 }
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
