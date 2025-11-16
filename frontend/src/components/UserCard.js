@@ -4,6 +4,7 @@ import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import MessageBadge from './MessageBadge';
 import { getDisplayName } from '../utils/userDisplay';
+import KebabMenu from './KebabMenu';
 import './UserCard.css';
 
 /**
@@ -15,7 +16,8 @@ import './UserCard.css';
  * - Multiple variants (default, dashboard, compact, search)
  * - View modes (cards, rows)
  * - Online status & message badges
- * - Customizable actions
+ * - Context-aware bottom actions
+ * - Kebab menu for secondary actions
  * - Responsive design
  * 
  * Usage:
@@ -23,21 +25,41 @@ import './UserCard.css';
  *   user={user}
  *   variant="dashboard"
  *   viewMode="cards"
- *   actions={[
- *     { icon: '💬', label: 'Message', onClick: handleMessage },
- *     { icon: '❌', label: 'Remove', onClick: handleRemove }
- *   ]}
+ *   context="my-favorites"
+ *   isFavorited={true}
+ *   isShortlisted={false}
+ *   onToggleFavorite={handleToggleFavorite}
+ *   onToggleShortlist={handleToggleShortlist}
+ *   onMessage={handleMessage}
+ *   onViewProfile={handleViewProfile}
+ *   onRemove={handleRemoveFromFavorites}
  * />
  */
 const UserCard = ({
   user,
   variant = 'default', // 'default', 'dashboard', 'compact', 'search'
   viewMode = 'cards', // 'cards' or 'rows'
-  actions = [],
+  context = 'default', // Page context for bottom actions
+  actions = [], // Legacy support - deprecated in favor of context-based actions
   onClick,
   additionalInfo,
   showOnlineStatus = true,
-  showMessageBadge = true
+  showMessageBadge = true,
+  // Kebab menu handlers
+  isFavorited = false,
+  isShortlisted = false,
+  isBlocked = false,
+  piiAccess = {},
+  onViewProfile,
+  onToggleFavorite,
+  onToggleShortlist,
+  onMessage,
+  onBlock,
+  onRequestPII,
+  onReport,
+  onRemove, // Context-specific remove action
+  onApprove, // For PII request approvals
+  onDeny // For PII request denials
 }) => {
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
@@ -87,6 +109,59 @@ const UserCard = ({
       action.onClick(user);
     }
   };
+
+  // Context-based bottom action configuration
+  const getBottomActions = () => {
+    const bottomActions = [];
+
+    switch (context) {
+      case 'my-messages':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Open Chat', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '🗑️', label: 'Delete', handler: onRemove, className: 'btn-danger' });
+        break;
+
+      case 'my-favorites':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '💔', label: 'Unfavorite', handler: onRemove, className: 'btn-warning' });
+        break;
+
+      case 'my-shortlists':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '📤', label: 'Remove', handler: onRemove, className: 'btn-info' });
+        break;
+
+      case 'not-interested':
+      case 'my-exclusions':
+        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile, className: 'btn-secondary' });
+        if (onRemove) bottomActions.push({ icon: '✅', label: 'Unblock', handler: onRemove, className: 'btn-success' });
+        break;
+
+      case 'pii-requests':
+      case 'photo-requests':
+        if (onApprove) bottomActions.push({ icon: '✅', label: 'Approve', handler: onApprove, className: 'btn-success' });
+        if (onDeny) bottomActions.push({ icon: '❌', label: 'Deny', handler: onDeny, className: 'btn-danger' });
+        break;
+
+      case 'search-results':
+      case 'l3v3l-matches':
+      case 'profile-views':
+      case 'their-favorites':
+      case 'their-shortlists':
+      default:
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile, className: 'btn-secondary' });
+        break;
+    }
+
+    return bottomActions;
+  };
+
+  const bottomActions = getBottomActions();
+  const hasBottomActions = bottomActions.length > 0;
+  const hasKebabMenu = onToggleFavorite || onToggleShortlist || onBlock || onRequestPII || onReport;
+  
+  // Use context-based actions if available, fallback to legacy actions prop
+  const displayActions = hasBottomActions ? bottomActions : actions;
 
   return (
     <div 
@@ -210,20 +285,52 @@ const UserCard = ({
         </div>
       )}
 
-      {/* Actions Section */}
-      {actions && actions.length > 0 && (
-        <div className="user-card-actions">
-          {actions.map((action, index) => (
-            <button
-              key={index}
-              className={`user-action-btn ${action.className || ''}`}
-              onClick={(e) => handleActionClick(e, action)}
-              title={action.label || action.tooltip}
-              disabled={action.disabled}
-            >
-              {action.icon}
-            </button>
-          ))}
+      {/* Header Actions - Kebab Menu */}
+      {hasKebabMenu && (
+        <div className="user-card-header-actions">
+          <KebabMenu
+            user={user}
+            context={context}
+            isFavorited={isFavorited}
+            isShortlisted={isShortlisted}
+            isBlocked={isBlocked}
+            piiAccess={piiAccess}
+            onViewProfile={onViewProfile}
+            onToggleFavorite={onToggleFavorite}
+            onToggleShortlist={onToggleShortlist}
+            onMessage={onMessage}
+            onBlock={onBlock}
+            onRequestPII={onRequestPII}
+            onReport={onReport}
+          />
+        </div>
+      )}
+
+      {/* Bottom Actions Section - Context-aware */}
+      {displayActions && displayActions.length > 0 && (
+        <div className="user-card-bottom-actions">
+          {displayActions.map((action, index) => {
+            const isLegacyAction = !action.handler;
+            return (
+              <button
+                key={index}
+                className={`bottom-action-btn ${action.className || ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (action.handler) {
+                    action.handler(user);
+                  } else if (action.onClick) {
+                    action.onClick(user);
+                  }
+                }}
+                title={action.label}
+                disabled={action.disabled}
+              >
+                <span className="btn-icon">{action.icon}</span>
+                <span className="btn-label">{action.label}</span>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

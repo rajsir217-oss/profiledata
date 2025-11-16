@@ -992,3 +992,170 @@ body.theme-ultra-black .user-action-btn {
     gap: 3px;
   }
 }
+
+/* ========================================
+   KEBAB MENU & BOTTOM ACTIONS (NEW)
+   ======================================== */
+
+/* Kebab Menu Positioning */
+.user-card-header-actions {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  z-index: 10;
+}
+
+/* Bottom Actions Section */
+.user-card-bottom-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background: var(--card-background);
+  border-top: 1px solid var(--divider-color);
+}
+
+.bottom-action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  min-height: 44px;
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  border: 2px solid transparent;
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.bottom-action-btn .btn-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.bottom-action-btn .btn-label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+}
+
+.bottom-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.bottom-action-btn:active {
+  transform: translateY(0);
+}
+
+.bottom-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button Variants */
+.bottom-action-btn.btn-primary {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.bottom-action-btn.btn-primary:hover {
+  box-shadow: 0 4px 12px var(--primary-shadow);
+}
+
+.bottom-action-btn.btn-secondary {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border-color: var(--border-color);
+}
+
+.bottom-action-btn.btn-secondary:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.bottom-action-btn.btn-success {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.bottom-action-btn.btn-success:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+}
+
+.bottom-action-btn.btn-danger {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+}
+
+.bottom-action-btn.btn-danger:hover {
+  box-shadow: 0 4px 12px var(--danger-shadow);
+}
+
+.bottom-action-btn.btn-warning {
+  background: var(--warning-color);
+  color: white;
+  border-color: var(--warning-color);
+}
+
+.bottom-action-btn.btn-warning:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
+
+.bottom-action-btn.btn-info {
+  background: var(--info-color);
+  color: white;
+  border-color: var(--info-color);
+}
+
+.bottom-action-btn.btn-info:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .user-card-header-actions {
+    top: var(--spacing-xs);
+    right: var(--spacing-xs);
+  }
+
+  .user-card-bottom-actions {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+
+  .bottom-action-btn {
+    min-height: 48px;
+    font-size: var(--font-size-sm);
+  }
+
+  .bottom-action-btn .btn-label {
+    font-size: var(--font-size-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .user-card-bottom-actions {
+    flex-direction: column;
+  }
+
+  .bottom-action-btn {
+    width: 100%;
+  }
+
+  .bottom-action-btn .btn-label {
+    display: inline;
+  }
+}
