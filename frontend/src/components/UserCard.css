@@ -11,7 +11,7 @@
   flex-direction: column;
   gap: 0;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   container-type: inline-size;
   container-name: usercard;

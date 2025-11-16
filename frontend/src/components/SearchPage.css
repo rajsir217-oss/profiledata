@@ -1006,13 +1006,14 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   transition: all 0.3s ease;
   height: 100%;
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
   min-width: 0; /* Allow card to shrink */
   background: var(--card-background, white) !important; /* Force theme-aware background */
   background-clip: padding-box !important; /* Clip background to padding box */
   margin: 0 !important; /* No margin */
   padding: 0 !important; /* No padding on card itself */
+  position: relative; /* Context for absolutely positioned kebab menu */
 }
 
 /* Override Bootstrap card default borders */
