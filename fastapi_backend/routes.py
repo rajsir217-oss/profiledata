@@ -28,6 +28,23 @@ from config import settings
 from utils import get_full_image_url, save_multiple_files
 from crypto_utils import get_encryptor
 
+# Helper function to decrypt PII contact info
+def _decrypt_contact_info(value: str) -> str:
+    """Decrypt contact info (email/phone) if encrypted"""
+    if not value:
+        return value
+    
+    # Check if it looks encrypted (Fernet encrypted values start with gAAAAA)
+    if value.startswith("gAAAAA"):
+        try:
+            encryptor = get_encryptor()
+            return encryptor.decrypt(value)
+        except Exception as e:
+            logger.warning(f"Failed to decrypt contact info: {str(e)}")
+            return value
+    
+    return value
+
 # Compatibility aliases for old code
 def get_password_hash(password: str) -> str:
     return PasswordManager.hash_password(password)
@@ -490,9 +507,13 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
             # Get masked contact info
             if mfa_channel == "sms":
                 phone = user.get("contactNumber", "")
-                contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
+                # DECRYPT phone if encrypted (production PII encryption)
+                phone = _decrypt_contact_info(phone)
+                contact_masked = f"{phone[:3]}***{phone[-2:]}" if phone and len(phone) > 5 else "***"
             else:  # email
                 email = user.get("contactEmail") or user.get("email", "")
+                # DECRYPT email if encrypted (production PII encryption)
+                email = _decrypt_contact_info(email)
                 contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
             
             logger.info(f"🔒 MFA required for user '{login_data.username}' - returning MFA_REQUIRED")
@@ -4219,6 +4240,41 @@ async def get_profile_views(
                 remove_consent_metadata(viewer)
                 viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
                 
+                # Decrypt ALL PII fields (contactEmail, contactNumber, location, linkedinUrl)
+                pii_fields = {
+                    'contactEmail': viewer.get("contactEmail"),
+                    'contactNumber': viewer.get("contactNumber"),
+                    'location': viewer.get("location"),
+                    'linkedinUrl': viewer.get("linkedinUrl")
+                }
+                
+                for field_name, field_value in pii_fields.items():
+                    if field_value:
+                        decrypted = _decrypt_contact_info(field_value)
+                        
+                        if field_name == "contactEmail" and decrypted:
+                            # Mask email for privacy (show first 3 chars + domain)
+                            if "@" in decrypted:
+                                parts = decrypted.split("@")
+                                viewer["contactEmail"] = f"{parts[0][:3]}***@{parts[1]}"
+                            else:
+                                viewer.pop("contactEmail", None)
+                        
+                        elif field_name == "contactNumber" and decrypted:
+                            # Mask phone for privacy (show first 3 and last 2)
+                            if len(decrypted) > 5:
+                                viewer["contactNumber"] = f"{decrypted[:3]}***{decrypted[-2:]}"
+                            else:
+                                viewer.pop("contactNumber", None)
+                        
+                        elif field_name == "location" and decrypted:
+                            # Keep location as-is (no masking needed for city/state)
+                            viewer["location"] = decrypted
+                        
+                        elif field_name == "linkedinUrl" and decrypted:
+                            # Keep LinkedIn URL as-is
+                            viewer["linkedinUrl"] = decrypted
+                
                 view_count = view["viewCount"]
                 total_view_count += view_count
                 
@@ -4399,6 +4455,15 @@ async def get_incoming_pii_requests(
             if requester:
                 requester.pop("password", None)
                 requester["_id"] = str(requester["_id"])
+                
+                # 🔓 Decrypt PII fields
+                from crypto_utils import get_encryptor
+                try:
+                    encryptor = get_encryptor()
+                    requester = encryptor.decrypt_user_pii(requester)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {req['requesterUsername']}: {decrypt_err}")
+                
                 requester["images"] = [get_full_image_url(img) for img in requester.get("images", [])]
                 
                 request_data = {
@@ -4442,6 +4507,15 @@ async def get_outgoing_pii_requests(
             if profile_owner:
                 profile_owner.pop("password", None)
                 profile_owner["_id"] = str(profile_owner["_id"])
+                
+                # 🔓 Decrypt PII fields
+                from crypto_utils import get_encryptor
+                try:
+                    encryptor = get_encryptor()
+                    profile_owner = encryptor.decrypt_user_pii(profile_owner)
+                except Exception as decrypt_err:
+                    logger.warning(f"⚠️ Decryption skipped for {req['profileUsername']}: {decrypt_err}")
+                
                 profile_owner["images"] = [get_full_image_url(img) for img in profile_owner.get("images", [])]
                 
                 request_data = {

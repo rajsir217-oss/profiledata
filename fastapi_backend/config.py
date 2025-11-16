@@ -51,8 +51,14 @@ class Settings(BaseSettings):
     from_email: Optional[str] = None
     from_name: Optional[str] = "L3V3L Dating"
     
-    # SMS Configuration (Twilio)
-    sms_provider: Optional[str] = "twilio"
+    # SMS Configuration
+    sms_provider: Optional[str] = "twilio"  # Options: "simpletexting", "twilio", "auto"
+    
+    # SimpleTexting API
+    simpletexting_api_token: Optional[str] = None
+    simpletexting_account_phone: Optional[str] = None
+    
+    # Twilio API
     twilio_account_sid: Optional[str] = None
     twilio_auth_token: Optional[str] = None
     twilio_from_phone: Optional[str] = None

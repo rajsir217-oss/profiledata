@@ -15,6 +15,7 @@ import logging
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_database
+from crypto_utils import get_encryptor
 from .security_models import (
     RegisterRequest, LoginRequest, LoginResponse,
     PasswordChangeRequest, PasswordResetRequest, PasswordResetConfirm,
@@ -28,6 +29,36 @@ from .authorization import PermissionChecker
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
+
+
+def _decrypt_contact_info(value: str) -> str:
+    """
+    Decrypt contact info (email/phone) if encrypted
+    
+    Args:
+        value: Potentially encrypted contact info
+        
+    Returns:
+        Decrypted contact info
+    """
+    if not value:
+        return value
+    
+    # Check if value looks encrypted (Fernet tokens start with 'gAAAAA')
+    if isinstance(value, str) and value.startswith('gAAAAA'):
+        try:
+            encryptor = get_encryptor()
+            decrypted = encryptor.decrypt(value)
+            logger.debug(f"🔓 Decrypted contact info for login MFA")
+            return decrypted
+        except Exception as e:
+            logger.error(f"❌ Failed to decrypt contact info: {e}")
+            # Return original value if decryption fails
+            return value
+    
+    # Not encrypted, return as-is
+    return value
+
 
 # ===== REGISTRATION =====
 
@@ -257,12 +288,14 @@ async def login(
                 # MFA required but not provided - return special status with details
                 mfa_channel = mfa.get("mfa_type", "email")
                 
-                # Get masked contact info
+                # Get contact info and DECRYPT if encrypted
                 if mfa_channel == "sms":
                     phone = user.get("contactNumber", "")
+                    phone = _decrypt_contact_info(phone)
                     contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
                 else:  # email
                     email = user.get("contactEmail") or user.get("email", "")
+                    email = _decrypt_contact_info(email)
                     contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
                 
                 # Return 403 with structured error response

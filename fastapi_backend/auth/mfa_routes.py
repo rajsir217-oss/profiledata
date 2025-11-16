@@ -15,11 +15,41 @@ from .otp_models import (
 from .jwt_auth import get_current_user_dependency
 from .password_utils import PasswordManager
 from services.sms_service import OTPManager
+from crypto_utils import get_encryptor
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/auth/mfa", tags=["Multi-Factor Authentication"])
 
 get_current_user = get_current_user_dependency
+
+
+def _decrypt_contact_info(value: str) -> str:
+    """
+    Decrypt contact info (email/phone) if encrypted
+    
+    Args:
+        value: Potentially encrypted contact info
+        
+    Returns:
+        Decrypted contact info
+    """
+    if not value:
+        return value
+    
+    # Check if value looks encrypted (Fernet tokens start with 'gAAAAA')
+    if isinstance(value, str) and value.startswith('gAAAAA'):
+        try:
+            encryptor = get_encryptor()
+            decrypted = encryptor.decrypt(value)
+            logger.debug(f"🔓 Decrypted contact info for MFA")
+            return decrypted
+        except Exception as e:
+            logger.error(f"❌ Failed to decrypt contact info: {e}")
+            # Return original value if decryption fails
+            return value
+    
+    # Not encrypted, return as-is
+    return value
 
 
 def generate_backup_codes(count: int = 10) -> list[str]:
@@ -51,6 +81,12 @@ async def get_mfa_status(
         phone = user.get("contactNumber")
         email = user.get("contactEmail") or user.get("email")
         mfa_channel = mfa_info.get("mfa_type", "email")  # Default to email
+        
+        # DECRYPT contact info if encrypted
+        if phone:
+            phone = _decrypt_contact_info(phone)
+        if email:
+            email = _decrypt_contact_info(email)
         
         # Mask contact info
         phone_masked = f"{phone[:3]}***{phone[-2:]}" if phone and len(phone) > 5 else None
@@ -280,6 +316,12 @@ async def send_mfa_code(
         phone = user.get("contactNumber")
         email = user.get("contactEmail") or user.get("email")
         
+        # DECRYPT contact info if encrypted (production PII encryption)
+        if phone:
+            phone = _decrypt_contact_info(phone)
+        if email:
+            email = _decrypt_contact_info(email)
+        
         # Validate contact info exists
         if mfa_channel == "sms" and not phone:
             raise HTTPException(
@@ -291,6 +333,16 @@ async def send_mfa_code(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No email on file for Email MFA"
             )
+        
+        # Check SMS opt-in status before sending
+        if mfa_channel == "sms":
+            sms_opt_in = user.get("smsOptIn", True)  # Default True for backward compatibility
+            if not sms_opt_in:
+                logger.warning(f"⚠️  SMS MFA blocked for {request.username} - user has opted out")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="SMS notifications are disabled for this account. Please use email MFA or contact support."
+                )
         
         # Create and send MFA code
         otp_manager = OTPManager(db)

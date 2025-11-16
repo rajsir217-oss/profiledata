@@ -15,11 +15,41 @@ from auth.otp_models import (
     OTPPreferenceResponse
 )
 from services.sms_service import OTPManager
+from crypto_utils import get_encryptor
 import logging
 from datetime import datetime
 
 router = APIRouter(prefix="/api/auth/otp", tags=["otp"])
 logger = logging.getLogger(__name__)
+
+
+def _decrypt_contact_info(value: str) -> str:
+    """
+    Decrypt contact info (email/phone) if encrypted
+    
+    Args:
+        value: Potentially encrypted contact info
+        
+    Returns:
+        Decrypted contact info
+    """
+    if not value:
+        return value
+    
+    # Check if value looks encrypted (Fernet tokens start with 'gAAAAA')
+    if isinstance(value, str) and value.startswith('gAAAAA'):
+        try:
+            encryptor = get_encryptor()
+            decrypted = encryptor.decrypt(value)
+            logger.debug(f"🔓 Decrypted contact info for OTP")
+            return decrypted
+        except Exception as e:
+            logger.error(f"❌ Failed to decrypt contact info: {e}")
+            # Return original value if decryption fails
+            return value
+    
+    # Not encrypted, return as-is
+    return value
 
 
 @router.post("/send", response_model=OTPResponse)
@@ -39,10 +69,23 @@ async def send_otp_code(
         username = current_user["username"]
         # Prioritize contactEmail over legacy email field
         user_email = current_user.get("contactEmail") or current_user.get("email")
+        user_phone = current_user.get("contactNumber")
+        
+        # DECRYPT contact info if encrypted (production PII encryption)
+        if user_email:
+            user_email = _decrypt_contact_info(user_email)
+        if user_phone:
+            user_phone = _decrypt_contact_info(user_phone)
         
         # Determine contact info
         email = request.email or user_email
-        phone = request.phone or current_user.get("contactNumber")
+        phone = request.phone or user_phone
+        
+        # Also decrypt provided email/phone if any
+        if email:
+            email = _decrypt_contact_info(email)
+        if phone:
+            phone = _decrypt_contact_info(phone)
         
         if request.channel == "email" and not email:
             raise HTTPException(
@@ -55,6 +98,16 @@ async def send_otp_code(
                 status_code=400,
                 detail="Phone number not found. Please provide a phone or update your profile."
             )
+        
+        # Check SMS opt-in status before sending
+        if request.channel == "sms":
+            sms_opt_in = current_user.get("smsOptIn", True)  # Default True for backward compatibility
+            if not sms_opt_in:
+                logger.warning(f"⚠️  SMS OTP blocked for {username} - user has opted out")
+                raise HTTPException(
+                    status_code=400,
+                    detail="SMS notifications are disabled for this account. Please use email verification or update your SMS preferences."
+                )
         
         # Create and send OTP
         otp_manager = OTPManager(db)
@@ -200,12 +253,21 @@ async def get_verification_status(
     """
     status_data = current_user.get("status", {})
     
+    # Get and decrypt contact info
+    email = current_user.get("contactEmail") or current_user.get("email")
+    phone = current_user.get("contactNumber")
+    
+    if email:
+        email = _decrypt_contact_info(email)
+    if phone:
+        phone = _decrypt_contact_info(phone)
+    
     return {
         "email_verified": status_data.get("email_verified", False),
         "phone_verified": status_data.get("phone_verified", False),
         "verified_at": status_data.get("verified_at"),
-        "email": current_user.get("contactEmail") or current_user.get("email"),
-        "phone": current_user.get("contactNumber")
+        "email": email,
+        "phone": phone
     }
 
 
@@ -226,6 +288,8 @@ async def update_otp_preference(
         # Validate user has the required contact info
         if request.channel == "email":
             email = current_user.get("contactEmail") or current_user.get("email")
+            # Decrypt to check if actually exists
+            email = _decrypt_contact_info(email) if email else None
             if not email:
                 raise HTTPException(
                     status_code=400,
@@ -233,6 +297,8 @@ async def update_otp_preference(
                 )
         elif request.channel == "sms":
             phone = current_user.get("contactNumber")
+            # Decrypt to check if actually exists
+            phone = _decrypt_contact_info(phone) if phone else None
             if not phone:
                 raise HTTPException(
                     status_code=400,
@@ -275,16 +341,25 @@ async def get_otp_preference(
     prefs = current_user.get("notification_preferences", {})
     channel = prefs.get("otp_channel", "email")  # Default to email
     
+    # Get and decrypt contact info
+    email = current_user.get("contactEmail") or current_user.get("email")
+    phone = current_user.get("contactNumber")
+    
+    if email:
+        email = _decrypt_contact_info(email)
+    if phone:
+        phone = _decrypt_contact_info(phone)
+    
     # Determine available channels
     available_channels = []
-    if current_user.get("contactEmail") or current_user.get("email"):
+    if email:
         available_channels.append("email")
-    if current_user.get("contactNumber"):
+    if phone:
         available_channels.append("sms")
     
     return {
         "preferred_channel": channel,
         "available_channels": available_channels,
-        "email": current_user.get("contactEmail") or current_user.get("email"),
-        "phone": current_user.get("contactNumber")
+        "email": email,
+        "phone": phone
     }

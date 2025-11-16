@@ -4,9 +4,9 @@ Clean, business-focused SMS API for US & Canada
 """
 
 import logging
-import os
 from typing import Dict
 import httpx
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ class SimpleTextingService:
     
     def __init__(self):
         """Initialize SimpleTexting service"""
-        self.api_token = os.getenv("SIMPLETEXTING_API_TOKEN")
-        self.account_phone = os.getenv("SIMPLETEXTING_ACCOUNT_PHONE")  # Your SimpleTexting number
+        self.api_token = settings.simpletexting_api_token
+        self.account_phone = settings.simpletexting_account_phone
         self.base_url = "https://api-app2.simpletexting.com/v2"
         self.enabled = bool(self.api_token and self.account_phone)
         
@@ -30,7 +30,8 @@ class SimpleTextingService:
         self,
         phone: str,
         otp: str,
-        purpose: str = "verification"
+        purpose: str = "verification",
+        username: str = None
     ) -> Dict[str, any]:
         """
         Send OTP code via SimpleTexting SMS
@@ -39,6 +40,7 @@ class SimpleTextingService:
             phone: Phone number in any format
             otp: OTP code to send
             purpose: Purpose of OTP (verification, mfa, password_reset)
+            username: Username/profile identifier (included in message for clarity)
         
         Returns:
             Dict with success status and message details
@@ -57,27 +59,30 @@ class SimpleTextingService:
             if formatted_phone.startswith("1") and len(formatted_phone) == 11:
                 formatted_phone = formatted_phone[1:]  # Remove leading 1 for US numbers
             
+            # Include username in message for multi-profile clarity
+            profile_prefix = f"[{username}] " if username else ""
+            
             # Create message based on purpose
             if purpose == "verification":
                 message_text = (
-                    f"Your verification code is: {otp}\n\n"
+                    f"{profile_prefix}Your verification code is: {otp}\n\n"
                     f"This code will expire in 10 minutes.\n"
                     f"Do not share this code with anyone."
                 )
             elif purpose == "mfa":
                 message_text = (
-                    f"Your login code is: {otp}\n\n"
-                    f"This code will expire in 5 minutes.\n"
-                    f"If you didn't request this, ignore this message."
+                    f"{profile_prefix}Login code: {otp}\n\n"
+                    f"Expires in 5 minutes.\n"
+                    f"Didn't request this? Ignore this message."
                 )
             elif purpose == "password_reset":
                 message_text = (
-                    f"Your password reset code is: {otp}\n\n"
-                    f"This code will expire in 15 minutes.\n"
-                    f"If you didn't request this, please secure your account."
+                    f"{profile_prefix}Password reset code: {otp}\n\n"
+                    f"Expires in 15 minutes.\n"
+                    f"Didn't request this? Secure your account."
                 )
             else:
-                message_text = f"Your code is: {otp}"
+                message_text = f"{profile_prefix}Your code is: {otp}"
             
             # Prepare API request
             headers = {
@@ -105,12 +110,15 @@ class SimpleTextingService:
                     result = response.json()
                     message_id = result.get("data", {}).get("id", "unknown")
                     
+                    # Log full response for debugging
                     logger.info(f"✅ SimpleTexting SMS sent to {formatted_phone[:3]}***{formatted_phone[-2:]}")
+                    logger.debug(f"SimpleTexting API Response: {result}")
                     
                     return {
                         "success": True,
                         "message_id": message_id,
-                        "provider": "simpletexting"
+                        "provider": "simpletexting",
+                        "api_response": result  # Include full response for debugging
                     }
                 else:
                     error_msg = response.text

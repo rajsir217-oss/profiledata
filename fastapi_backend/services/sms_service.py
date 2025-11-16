@@ -11,6 +11,7 @@ from typing import Optional, Dict
 from twilio.rest import Client
 from twilio.base.exceptions import TwilioRestException
 import logging
+from config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -69,7 +70,8 @@ class SMSService:
         self, 
         phone: str, 
         otp: str,
-        purpose: str = "verification"
+        purpose: str = "verification",
+        username: str = None
     ) -> Dict[str, any]:
         """
         Send OTP code via SMS
@@ -78,6 +80,7 @@ class SMSService:
             phone: Phone number in any format
             otp: OTP code to send
             purpose: Purpose of OTP (verification, mfa, password_reset)
+            username: Username/profile identifier (included in message for clarity)
         
         Returns:
             Dict with success status and message_sid or error
@@ -93,27 +96,30 @@ class SMSService:
         try:
             formatted_phone = self.format_phone_number(phone)
             
+            # Include username in message for multi-profile clarity
+            profile_prefix = f"[{username}] " if username else ""
+            
             # Create message based on purpose
             if purpose == "verification":
                 message_body = (
-                    f"Your verification code is: {otp}\n\n"
+                    f"{profile_prefix}Your verification code is: {otp}\n\n"
                     f"This code will expire in 10 minutes.\n"
                     f"Do not share this code with anyone."
                 )
             elif purpose == "mfa":
                 message_body = (
-                    f"Your login code is: {otp}\n\n"
-                    f"This code will expire in 5 minutes.\n"
-                    f"If you didn't request this, ignore this message."
+                    f"{profile_prefix}Login code: {otp}\n\n"
+                    f"Expires in 5 minutes.\n"
+                    f"Didn't request this? Ignore this message."
                 )
             elif purpose == "password_reset":
                 message_body = (
-                    f"Your password reset code is: {otp}\n\n"
-                    f"This code will expire in 15 minutes.\n"
-                    f"If you didn't request this, please secure your account."
+                    f"{profile_prefix}Password reset code: {otp}\n\n"
+                    f"Expires in 15 minutes.\n"
+                    f"Didn't request this? Secure your account."
                 )
             else:
-                message_body = f"Your code is: {otp}"
+                message_body = f"{profile_prefix}Your code is: {otp}"
             
             # Send SMS
             message = self.client.messages.create(
@@ -197,7 +203,7 @@ class OTPManager:
         
         # Initialize SMS providers (priority: SimpleTexting > Twilio > AWS SNS)
         self.sms_provider = None
-        sms_provider_pref = os.getenv("SMS_PROVIDER", "auto").lower()
+        sms_provider_pref = (settings.sms_provider or "auto").lower()
         
         # SimpleTexting
         if SIMPLETEXTING_AVAILABLE:
@@ -274,7 +280,7 @@ class OTPManager:
         result = await self.collection.insert_one(otp_doc)
         
         # Send SMS
-        sms_result = await self.sms_service.send_otp(phone, otp_code, purpose)
+        sms_result = await self.sms_service.send_otp(phone, otp_code, purpose, username=identifier)
         
         if sms_result["success"]:
             logger.info(f"✅ OTP created and sent for {identifier} ({purpose})")
@@ -334,7 +340,13 @@ class OTPManager:
             }
         
         # Check if channel is available
-        if channel == "sms" and not self.sms_service.enabled:
+        sms_available = False
+        if self.sms_provider == "simpletexting":
+            sms_available = self.simpletexting_service and self.simpletexting_service.enabled
+        elif self.sms_provider == "twilio":
+            sms_available = self.sms_service and self.sms_service.enabled
+        
+        if channel == "sms" and not sms_available:
             # Fallback to email if available
             if self.email_service and self.email_service.enabled:
                 logger.warning(f"SMS not available, falling back to email for {identifier}")
@@ -347,7 +359,7 @@ class OTPManager:
         
         if channel == "email" and (not self.email_service or not self.email_service.enabled):
             # Fallback to SMS if available
-            if self.sms_service.enabled:
+            if sms_available:
                 logger.warning(f"Email not available, falling back to SMS for {identifier}")
                 channel = "sms"
             else:
@@ -398,9 +410,9 @@ class OTPManager:
         if channel == "sms":
             # Use the configured SMS provider
             if self.sms_provider == "simpletexting":
-                send_result = await self.simpletexting_service.send_otp(phone, otp_code, purpose)
+                send_result = await self.simpletexting_service.send_otp(phone, otp_code, purpose, username=username)
             elif self.sms_provider == "twilio":
-                send_result = await self.sms_service.send_otp(phone, otp_code, purpose)
+                send_result = await self.sms_service.send_otp(phone, otp_code, purpose, username=username)
             else:
                 return {
                     "success": False,
@@ -431,6 +443,12 @@ class OTPManager:
         else:
             # Sending failed, but OTP is created
             logger.warning(f"⚠️  OTP created but {channel.upper()} send failed for {identifier}")
+            
+            # Handle opt-out: sync to database if user opted out at carrier level
+            error_msg = send_result.get("error", "")
+            if channel == "sms" and ("OPT_OUT" in error_msg or "OPT-OUT" in error_msg or "unsubscribe" in error_msg.lower()):
+                await self._handle_sms_opt_out(phone, identifier)
+            
             response = {
                 "success": False,
                 "channel": channel,
@@ -559,6 +577,38 @@ class OTPManager:
         
         # Create new OTP
         return await self.create_otp(identifier, phone, purpose)
+    
+    async def _handle_sms_opt_out(self, phone: str, identifier: str):
+        """
+        Handle SMS opt-out by syncing to user database
+        
+        When a user opts out at the carrier level (via SimpleTexting/Twilio),
+        we need to update our database to reflect this.
+        
+        Args:
+            phone: Phone number that opted out
+            identifier: User identifier (username)
+        """
+        try:
+            # Update user's smsOptIn to False
+            result = await self.db.users.update_one(
+                {"contactNumber": phone},
+                {"$set": {"smsOptIn": False}}
+            )
+            
+            if result.modified_count > 0:
+                logger.warning(f"⚠️  Synced opt-out status for {phone[:3]}***{phone[-4:]} - updated smsOptIn to False")
+            else:
+                # Try by username if phone number didn't match
+                result = await self.db.users.update_one(
+                    {"username": identifier},
+                    {"$set": {"smsOptIn": False}}
+                )
+                if result.modified_count > 0:
+                    logger.warning(f"⚠️  Synced opt-out status for {identifier} - updated smsOptIn to False")
+        
+        except Exception as e:
+            logger.error(f"❌ Failed to sync opt-out status: {str(e)}")
     
     async def cleanup_expired_otps(self):
         """Cleanup expired OTPs (run periodically)"""

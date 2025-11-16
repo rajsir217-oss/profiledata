@@ -91,26 +91,26 @@ class EmailOTPService:
         try:
             # Determine message based on purpose
             purpose_messages = {
-                "verification": "You requested to verify your email address. Please use the code below to complete verification.",
-                "mfa": "Someone is trying to log in to your account. Please use the code below to complete authentication.",
-                "password_reset": "You requested to reset your password. Please use the code below to proceed.",
+                "verification": f"You requested to verify your email address for profile '{username}'. Please use the code below to complete verification.",
+                "mfa": f"Someone is trying to log in to profile '{username}'. Please use the code below to complete authentication.",
+                "password_reset": f"You requested to reset your password for profile '{username}'. Please use the code below to proceed.",
             }
             
             message_text = purpose_messages.get(
                 purpose,
-                "Please use the verification code below to proceed."
+                f"Please use the verification code below to proceed for profile '{username}'."
             )
             
-            # Subject based on purpose
+            # Subject based on purpose (include username for clarity)
             subject_map = {
-                "verification": f"🔐 Your Verification Code - {self.app_name}",
-                "mfa": f"🔒 Your Login Code - {self.app_name}",
-                "password_reset": f"🔑 Password Reset Code - {self.app_name}",
+                "verification": f"🔐 Verification Code for {username} - {self.app_name}",
+                "mfa": f"🔒 Login Code for {username} - {self.app_name}",
+                "password_reset": f"🔑 Password Reset for {username} - {self.app_name}",
             }
             
             subject = subject_map.get(
                 purpose,
-                f"Your Verification Code - {self.app_name}"
+                f"Verification Code for {username} - {self.app_name}"
             )
             
             # Template context
