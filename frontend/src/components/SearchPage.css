@@ -2417,14 +2417,15 @@
     min-width: 32px;
   }
   
-  /* Results controls at bottom - mobile responsive */
+  /* Results controls at bottom - mobile responsive - VERY COMPACT */
   .results-controls-bottom {
     flex-direction: column !important;
-    gap: 15px !important;
-    padding: 15px 10px !important;
-    position: relative !important;
-    z-index: 1 !important;
-    align-items: stretch !important;
+    gap: 6px !important;
+    padding: 6px 8px !important;
+    background: var(--surface-color) !important;
+    border-radius: var(--radius-sm) !important;
+    margin-bottom: 8px !important;
+    font-size: 11px !important;
   }
   
   /* Each section stacks vertically */
@@ -2433,53 +2434,76 @@
     justify-content: center !important;
   }
   
-  /* Results badge section */
+  /* Results badge section - TINY */
   .results-controls-bottom .results-info {
     justify-content: center !important;
     flex-wrap: wrap;
+    gap: 4px !important;
+  }
+  
+  .results-controls-bottom .results-label {
+    font-size: 10px !important;
+    font-weight: 500 !important;
   }
   
   .results-controls-bottom .badge {
-    font-size: 11px !important;
-    padding: 5px 10px !important;
+    font-size: 9px !important;
+    padding: 2px 6px !important;
+    line-height: 1.2 !important;
   }
   
-  /* Center section (Cards + Show) */
+  /* Center section (Cards + Show) - TINY */
   .results-controls-bottom > div:nth-child(2) {
-    flex-direction: column !important;
-    gap: 12px !important;
+    flex-direction: row !important;
+    gap: 8px !important;
+  }
+  
+  .results-controls-bottom .selector-label {
+    font-size: 10px !important;
+    font-weight: 500 !important;
+  }
+  
+  /* Card number buttons - TINY */
+  .results-controls-bottom .cards-per-row-selector button,
+  .results-controls-bottom .page-btn {
+    padding: 3px 8px !important;
+    font-size: 11px !important;
+    min-width: 28px !important;
+    height: 24px !important;
+    line-height: 1 !important;
   }
   
   .results-controls-bottom select,
   .results-controls-bottom .per-page-select {
     position: relative !important;
     z-index: 10 !important;
-    width: 100% !important;
-    max-width: 200px !important;
-    margin: 0 auto !important;
+    width: auto !important;
+    max-width: 120px !important;
+    font-size: 10px !important;
+    padding: 3px 6px !important;
+    border: 1px solid var(--border-color) !important;
+    background: var(--input-background) !important;
+    color: var(--text-color) !important;
+    border-radius: var(--radius-sm) !important;
+    cursor: pointer !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
   }
   
-  .cards-per-row-selector {
-    justify-content: center !important;
-    width: 100% !important;
-  }
-  
-  .cards-per-row-selector .btn {
-    padding: 8px 14px !important;
-    font-size: 13px !important;
-    min-width: 40px !important;
-  }
-  
-  /* View toggle buttons */
+  /* View toggle buttons - TINY */
   .results-controls-bottom .view-toggle-group {
     justify-content: center !important;
     width: 100% !important;
+    gap: 4px !important;
   }
   
   .results-controls-bottom .view-toggle-group .btn {
-    padding: 8px 16px !important;
-    font-size: 16px !important;
-    min-width: 45px !important;
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+    min-width: 36px !important;
+    height: 28px !important;
+    line-height: 1 !important;
   }
   
   .search-button-section .btn {
@@ -2925,10 +2949,39 @@
     min-width: 28px;
   }
   
-  /* Results controls bottom - extra small */
+  /* Results controls bottom - extra small - ULTRA COMPACT */
   .results-controls-bottom {
-    padding: 12px 8px !important;
-    gap: 12px !important;
+    padding: 4px 6px !important;
+    gap: 4px !important;
+    font-size: 10px !important;
+  }
+  
+  .results-controls-bottom .results-label {
+    font-size: 9px !important;
+  }
+  
+  .results-controls-bottom .badge {
+    font-size: 8px !important;
+    padding: 1px 4px !important;
+  }
+  
+  .results-controls-bottom .selector-label {
+    font-size: 9px !important;
+  }
+  
+  .results-controls-bottom .cards-per-row-selector button,
+  .results-controls-bottom .page-btn {
+    padding: 2px 6px !important;
+    font-size: 10px !important;
+    min-width: 24px !important;
+    height: 20px !important;
+  }
+  
+  .results-controls-bottom .view-toggle-group .btn {
+    padding: 3px 8px !important;
+    font-size: 12px !important;
+    min-width: 32px !important;
+    height: 24px !important;
   }
   
   .cards-per-row-selector .selector-label {
