@@ -72,6 +72,28 @@
   overflow-y: auto;
   animation: menuFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+/* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */
+.kebab-menu-dropdown::-webkit-scrollbar {
+  width: 8px;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
 }
 
 @keyframes menuFadeIn {
@@ -215,6 +237,18 @@
     -webkit-overflow-scrolling: touch;
     animation: menuSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     padding-bottom: env(safe-area-inset-bottom);
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted) transparent;
+  }
+
+  /* Scrollbar styling for mobile */
+  .kebab-menu-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .kebab-menu-dropdown::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
   }
 
   .menu-section {
