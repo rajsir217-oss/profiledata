@@ -361,6 +361,7 @@ const SearchPage2 = () => {
           // Check if we have saved searches (which will open Saved tab)
           if (savedSearches.length > 0) {
             console.log('✅ Saved searches exist - auto-executing default search');
+            console.log('📋 Default search criteria:', defaultSearch.criteria);
             
             // Load criteria and show banner (user will see what's being searched)
             setSearchCriteria(defaultSearch.criteria);
@@ -369,10 +370,10 @@ const SearchPage2 = () => {
             // Mark as executed
             hasAutoExecutedRef.current = true;
             
-            // Execute the search after a short delay
+            // Execute the search with explicit criteria (don't rely on state update)
             setTimeout(() => {
-              console.log('🔍 Auto-executing default saved search from Saved tab');
-              handleSearch(1);
+              console.log('🔍 Auto-executing default saved search with criteria:', defaultSearch.criteria);
+              handleSearch(1, null, defaultSearch.criteria);  // Pass criteria directly!
             }, 500);
           } else {
             // No saved searches yet, load criteria silently (no execution, no banner)
