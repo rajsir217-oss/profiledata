@@ -163,7 +163,7 @@ const KebabMenu = ({
               onClick={handleMenuItemClick(onViewProfile)}
             >
               <span className="menu-icon">👁️</span>
-              <span className="menu-label">View Full Profile</span>
+              <span className="menu-label">View Profile</span>
             </button>
           </div>
 
@@ -178,7 +178,7 @@ const KebabMenu = ({
             >
               <span className="menu-icon">{isFavorited ? '❌' : '⭐'}</span>
               <span className="menu-label">
-                {isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+                {isFavorited ? 'Unfavorite' : 'Favorite'}
               </span>
             </button>
             <button
@@ -187,7 +187,7 @@ const KebabMenu = ({
             >
               <span className="menu-icon">{isShortlisted ? '📤' : '📋'}</span>
               <span className="menu-label">
-                {isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+                {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
               </span>
             </button>
           </div>
@@ -205,7 +205,7 @@ const KebabMenu = ({
                     onClick={handleMenuItemClick(() => onRequestPII && onRequestPII(user, 'contact'))}
                   >
                     <span className="menu-icon">🔒</span>
-                    <span className="menu-label">Request Contact Info</span>
+                    <span className="menu-label">Contact Info</span>
                   </button>
                 )}
                 
@@ -225,7 +225,7 @@ const KebabMenu = ({
                     onClick={handleMenuItemClick(() => onRequestPII && onRequestPII(user, 'phone'))}
                   >
                     <span className="menu-icon">📱</span>
-                    <span className="menu-label">Request Phone Number</span>
+                    <span className="menu-label">Phone Number</span>
                   </button>
                 )}
                 
@@ -235,7 +235,7 @@ const KebabMenu = ({
                     onClick={handleMenuItemClick(() => onRequestPII && onRequestPII(user, 'photos'))}
                   >
                     <span className="menu-icon">📷</span>
-                    <span className="menu-label">Request Photo Access</span>
+                    <span className="menu-label">Photo Access</span>
                   </button>
                 )}
               </div>
@@ -254,7 +254,7 @@ const KebabMenu = ({
                 onClick={handleMenuItemClick(onMessage)}
               >
                 <span className="menu-icon">💬</span>
-                <span className="menu-label">Send Message</span>
+                <span className="menu-label">Message</span>
               </button>
             )}
             
@@ -264,7 +264,7 @@ const KebabMenu = ({
                 onClick={handleMenuItemClick(onBlock)}
               >
                 <span className="menu-icon">🚫</span>
-                <span className="menu-label">Block User</span>
+                <span className="menu-label">Block</span>
               </button>
             )}
             
@@ -274,7 +274,7 @@ const KebabMenu = ({
                 onClick={handleMenuItemClick(onReport)}
               >
                 <span className="menu-icon">🚩</span>
-                <span className="menu-label">Report User</span>
+                <span className="menu-label">Report</span>
               </button>
             )}
           </div>
