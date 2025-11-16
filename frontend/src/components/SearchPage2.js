@@ -1835,7 +1835,7 @@ const SearchPage2 = () => {
                   {/* Search Tabs */}
                   <UniversalTabContainer
                     variant="underlined"
-                    defaultTab="search"
+                    defaultTab={savedSearches.length > 0 ? "saved" : "search"}
                     tabs={[
                 {
                   id: 'search',
