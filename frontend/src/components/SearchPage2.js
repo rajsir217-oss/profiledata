@@ -348,11 +348,12 @@ const SearchPage2 = () => {
         
         if (defaultSearch && defaultSearch.criteria) {
           console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Loading criteria (NOT auto-executing):', defaultSearch.criteria);
+          console.log('📋 Loading criteria (NOT auto-executing, NOT showing banner):', defaultSearch.criteria);
           
-          // Load the saved search criteria but DON'T execute
+          // Load the saved search criteria silently (no banner, no execution)
           setSearchCriteria(defaultSearch.criteria);
-          setSelectedSearch(defaultSearch);
+          // ❌ DON'T set selectedSearch - prevents banner from showing
+          // setSelectedSearch(defaultSearch);
           
           // ❌ DISABLED: Auto-execution removed per user request
           // User must manually click "Search" button
