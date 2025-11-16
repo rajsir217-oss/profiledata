@@ -255,8 +255,8 @@ class EmailNotifierTemplate(JobTemplate):
         # Encode frontend URLs for tracking
         search_url_encoded = quote(f"{frontend_url}/search", safe="")
         dashboard_url_encoded = quote(f"{frontend_url}/dashboard", safe="")
-        preferences_url_encoded = quote(f"{frontend_url}/settings/notifications", safe="")
-        unsubscribe_url_encoded = quote(f"{frontend_url}/settings/notifications", safe="")
+        preferences_url_encoded = quote(f"{frontend_url}/preferences", safe="")
+        unsubscribe_url_encoded = quote(f"{frontend_url}/preferences", safe="")
         
         template_data["app"] = {
             "logoUrl": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjYwIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciPjx0ZXh0IHg9IjEwIiB5PSI0MCIgZm9udC1zaXplPSIzMiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZpbGw9IiM2NjdlZWEiPvCfposkIEwzVjNMPC90ZXh0Pjwvc3ZnPg==",
@@ -270,7 +270,7 @@ class EmailNotifierTemplate(JobTemplate):
             "dashboardUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={dashboard_url_encoded}&link_type=dashboard",
             "contactUrl": f"{frontend_url}/contact",
             "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={search_url_encoded}&link_type=search",
-            "securityUrl": f"{frontend_url}/settings/security"
+            "securityUrl": f"{frontend_url}/preferences"
         }
         
         if not template:

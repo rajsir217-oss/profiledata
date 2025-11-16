@@ -1970,6 +1970,65 @@ async def delete_saved_search(username: str, search_id: str, db = Depends(get_da
         logger.error(f"❌ Error deleting saved search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.put("/{username}/saved-searches/{search_id}/set-default")
+async def set_default_saved_search(username: str, search_id: str, db = Depends(get_database)):
+    """Set a saved search as default (unsets any other default)"""
+    logger.info(f"⭐ Setting saved search {search_id} as default for user '{username}'")
+    
+    try:
+        from bson import ObjectId
+        
+        # First, unset all other defaults for this user
+        await db.saved_searches.update_many(
+            {"username": username},
+            {"$set": {"isDefault": False}}
+        )
+        
+        # Now set this search as default
+        result = await db.saved_searches.update_one(
+            {
+                "_id": ObjectId(search_id),
+                "username": username
+            },
+            {"$set": {"isDefault": True}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Saved search not found")
+        
+        logger.info(f"✅ Set saved search {search_id} as default for user '{username}'")
+        return {
+            "message": "Default saved search set successfully",
+            "searchId": search_id
+        }
+    except Exception as e:
+        logger.error(f"❌ Error setting default saved search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/{username}/saved-searches/default")
+async def get_default_saved_search(username: str, db = Depends(get_database)):
+    """Get the default saved search for a user"""
+    logger.info(f"🔍 Getting default saved search for user '{username}'")
+    
+    try:
+        # Find the default saved search
+        default_search = await db.saved_searches.find_one({
+            "username": username,
+            "isDefault": True
+        })
+        
+        if not default_search:
+            return None
+        
+        # Convert ObjectId to string
+        default_search['_id'] = str(default_search['_id'])
+        
+        logger.info(f"✅ Found default saved search for user '{username}': {default_search.get('name')}")
+        return default_search
+    except Exception as e:
+        logger.error(f"❌ Error getting default saved search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 # ===== PII REQUEST SYSTEM =====
 
 @router.post("/pii-request")

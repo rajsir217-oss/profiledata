@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
-import api from '../api';
+import api, { setDefaultSavedSearch, getDefaultSavedSearch } from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
@@ -334,19 +334,50 @@ const SearchPage2 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Trigger initial search after user profile is loaded
+  // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
-    if (currentUserProfile) {
-      // Perform initial search with default criteria (opposite gender if available)
-      console.log('🔍 Auto-triggering search with gender:', searchCriteria.gender || 'all');
-      console.log('📋 Current search criteria:', searchCriteria);
-      setTimeout(() => {
-        console.log('⏰ Timeout fired - calling handleSearch');
-        handleSearch(1);
-      }, 800); // Slightly longer delay to ensure all state is updated
-    } else {
-      console.log('⚠️ currentUserProfile is null/undefined, waiting...');
-    }
+    const loadAndExecuteDefaultSearch = async () => {
+      if (!currentUserProfile) {
+        console.log('⚠️ currentUserProfile is null/undefined, waiting...');
+        return;
+      }
+
+      try {
+        // Check if there's a default saved search
+        const defaultSearch = await getDefaultSavedSearch();
+        
+        if (defaultSearch && defaultSearch.criteria) {
+          console.log('⭐ Found default saved search:', defaultSearch.name);
+          console.log('📋 Loading criteria:', defaultSearch.criteria);
+          
+          // Load the saved search criteria
+          setSearchCriteria(defaultSearch.criteria);
+          setSelectedSearch(defaultSearch);
+          
+          // Execute the search after a short delay to ensure state is updated
+          setTimeout(() => {
+            console.log('🔍 Auto-executing default saved search');
+            handleSearch(1);
+          }, 500);
+        } else {
+          // No default saved search - perform normal initial search with default criteria
+          console.log('🔍 No default search - auto-triggering search with gender:', searchCriteria.gender || 'all');
+          console.log('📋 Current search criteria:', searchCriteria);
+          setTimeout(() => {
+            console.log('⏰ Timeout fired - calling handleSearch');
+            handleSearch(1);
+          }, 800);
+        }
+      } catch (err) {
+        console.error('Error loading default saved search:', err);
+        // Fall back to normal search
+        setTimeout(() => {
+          handleSearch(1);
+        }, 800);
+      }
+    };
+
+    loadAndExecuteDefaultSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserProfile]);
   
@@ -1165,6 +1196,28 @@ const SearchPage2 = () => {
     }
   };
 
+  const handleSetDefaultSearch = async (searchId, searchName) => {
+    console.log('⭐ Setting default search:', searchId, searchName);
+    
+    if (!searchId) {
+      console.error('❌ No search ID provided');
+      setError('Cannot set default: Invalid search ID');
+      setTimeout(() => setError(''), 3000);
+      return;
+    }
+    
+    try {
+      await setDefaultSavedSearch(searchId);
+      setStatusMessage(`⭐ "${searchName}" set as default search`);
+      setTimeout(() => setStatusMessage(''), 3000);
+      loadSavedSearches(); // Reload to update UI
+    } catch (err) {
+      console.error('❌ Error setting default search:', err);
+      setError('Failed to set default search. Please try again.');
+      setTimeout(() => setError(''), 3000);
+    }
+  };
+
   const handleClearSelectedSearch = async () => {
     setSelectedSearch(null);
     setDisplayedCount(20); // Reset to initial display count
@@ -1827,20 +1880,33 @@ const SearchPage2 = () => {
                       ) : (
                         <div className="saved-searches-grid">
                           {savedSearches.map(search => (
-                            <div key={search.id} className="saved-search-card">
+                            <div key={search.id} className={`saved-search-card ${search.isDefault ? 'is-default' : ''}`}>
                               <div className="saved-search-header">
-                                <h5 className="saved-search-name">{search.name}</h5>
+                                <h5 className="saved-search-name">
+                                  {search.isDefault && <span className="default-badge" title="Default Search">⭐ </span>}
+                                  {search.name}
+                                </h5>
                                 <div className="saved-search-actions">
                                   <button
+                                    type="button"
                                     className="btn-schedule-saved"
-                                    onClick={() => handleEditSchedule(search)}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleEditSchedule(search);
+                                    }}
                                     title="Edit notification schedule"
                                   >
                                     ⏰
                                   </button>
                                   <button
+                                    type="button"
                                     className="btn-delete-saved"
-                                    onClick={() => handleDeleteSavedSearch(search.id)}
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleDeleteSavedSearch(search.id);
+                                    }}
                                     title="Delete this saved search"
                                   >
                                     🗑️
@@ -1854,11 +1920,35 @@ const SearchPage2 = () => {
 
                               <div className="saved-search-footer">
                                 <button
+                                  type="button"
                                   className="btn-load-saved"
-                                  onClick={() => handleLoadSavedSearch(search)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    handleLoadSavedSearch(search);
+                                  }}
                                 >
                                   📂 Load Search
                                 </button>
+                                {!search.isDefault && (
+                                  <button
+                                    type="button"
+                                    className="btn-set-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleSetDefaultSearch(search.id, search.name);
+                                    }}
+                                    title="Set as default search"
+                                  >
+                                    ⭐ Default
+                                  </button>
+                                )}
+                                {search.isDefault && (
+                                  <span className="default-indicator" title="This search runs automatically on page load">
+                                    ⭐ Default
+                                  </span>
+                                )}
                                 <span className="saved-date">
                                   {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
                                 </span>

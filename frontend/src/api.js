@@ -127,6 +127,26 @@ export const getSavedSearches = async () => {
   }
 };
 
+export const setDefaultSavedSearch = async (searchId) => {
+  try {
+    const username = localStorage.getItem('username');
+    const response = await api.put(`/${username}/saved-searches/${searchId}/set-default`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
+export const getDefaultSavedSearch = async () => {
+  try {
+    const username = localStorage.getItem('username');
+    const response = await api.get(`/${username}/saved-searches/default`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const addToFavorites = async (userId) => {
   try {
     const response = await api.post(`/favorites/${userId}`);

@@ -57,11 +57,15 @@ class JobExecutor:
             if not template:
                 raise ValueError(f"Template type '{template_type}' not found")
             
+            # Add triggered_by to parameters so jobs can detect manual runs
+            parameters_with_trigger = parameters.copy()
+            parameters_with_trigger['triggered_by'] = triggered_by
+            
             # Create execution context
             context = JobExecutionContext(
                 job_id=job_id,
                 job_name=job_name,
-                parameters=parameters,
+                parameters=parameters_with_trigger,
                 db=self.db,
                 triggered_by=triggered_by,
                 execution_id=execution_id

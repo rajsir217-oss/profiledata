@@ -24,6 +24,7 @@ const SaveSearchModal = ({
   const [notificationFrequency, setNotificationFrequency] = useState('daily'); // 'daily' or 'weekly'
   const [notificationTime, setNotificationTime] = useState('09:00'); // 24-hour format
   const [notificationDay, setNotificationDay] = useState('monday'); // for weekly
+  const [setAsDefault, setSetAsDefault] = useState(false); // Set as default search
 
   // When editingScheduleFor is set, pre-populate notification fields
   useEffect(() => {
@@ -80,6 +81,7 @@ const SaveSearchModal = ({
       setNotificationFrequency(notifications.frequency || 'daily');
       setNotificationTime(notifications.time || '09:00');
       setNotificationDay(notifications.dayOfWeek || 'monday');
+      setSetAsDefault(editingScheduleFor.isDefault || false);
       
       // Switch to save tab to show schedule options
       setActiveTab('save');
@@ -89,6 +91,7 @@ const SaveSearchModal = ({
       setNotificationFrequency('daily');
       setNotificationTime('09:00');
       setNotificationDay('monday');
+      setSetAsDefault(false);
     }
   }, [editingScheduleFor, show]);
 
@@ -187,6 +190,7 @@ const SaveSearchModal = ({
       try {
         const username = localStorage.getItem('username');
         const api = require('../api').default;
+        const { setDefaultSavedSearch } = require('../api');
         
         // Update the existing saved search with new notification settings
         await api.put(`/${username}/saved-searches/${editingScheduleFor.id}`, {
@@ -194,6 +198,17 @@ const SaveSearchModal = ({
           name: searchName,
           notifications: saveData.notifications
         });
+        
+        // Set as default if requested
+        if (setAsDefault) {
+          try {
+            await setDefaultSavedSearch(editingScheduleFor.id);
+            toast.success(`⭐ "${searchName}" set as default search`);
+          } catch (err) {
+            console.error('Error setting default:', err);
+            toast.error('Failed to set as default');
+          }
+        }
         
         toast.success(`✅ Notification schedule updated for "${searchName}"`);
         
@@ -218,6 +233,7 @@ const SaveSearchModal = ({
     setNotificationFrequency('daily');
     setNotificationTime('09:00');
     setNotificationDay('monday');
+    setSetAsDefault(false);
     onClose();
   };
 
@@ -380,6 +396,24 @@ const SaveSearchModal = ({
                     </div>
                   </>
                 )}
+                
+                {/* Set as Default checkbox */}
+                <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={setAsDefault}
+                      onChange={(e) => setSetAsDefault(e.target.checked)}
+                      style={{marginRight: '8px'}}
+                    />
+                    <span style={{fontSize: '16px'}}>
+                      ⭐ Set as default search
+                    </span>
+                  </label>
+                  <small className="text-muted" style={{display: 'block', marginTop: '8px', marginLeft: '28px'}}>
+                    This search will automatically run when you visit the search page
+                  </small>
+                </div>
               </div>
 
               <div className="modal-actions">

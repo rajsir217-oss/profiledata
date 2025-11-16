@@ -1333,6 +1333,52 @@
   color: var(--text-secondary);
 }
 
+/* Default search styling */
+.saved-search-card.is-default {
+  border: 2px solid var(--primary-color, #6366f1);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+}
+
+.default-badge {
+  color: var(--primary-color, #6366f1);
+  font-size: 18px;
+  margin-right: 4px;
+}
+
+.btn-set-default {
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--primary-color, #6366f1);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.btn-set-default:hover {
+  background: var(--primary-color, #6366f1);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.default-indicator {
+  color: var(--primary-color, #6366f1);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
 /* Mobile tabs - REMOVED (using UniversalTabContainer) */
 @media (max-width: 768px) {
   .saved-searches-tab {

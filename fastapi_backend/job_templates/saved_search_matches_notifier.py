@@ -293,11 +293,26 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
     }
     
     try:
+        # Detect manual run from UI (triggered_by starts with 'manual:' or manualRun flag)
+        triggered_by = params.get('triggered_by', '')
+        is_manual_run = triggered_by.startswith('manual') or params.get('manualRun', False)
+        
         # Get configuration
         batch_size = params.get('batchSize', 50)
         lookback_hours = params.get('lookbackHours', 24)  # Check for profiles created in last 24h
         app_url = params.get('appUrl', 'http://localhost:3000')
-        force_run = params.get('forceRun', False)  # For testing - bypass schedule check
+        
+        # Apply overrides for manual runs
+        if is_manual_run:
+            force_run = True  # Bypass schedule check
+            lookback_hours = 0  # Check all profiles
+            clear_tracking = params.get('clearTracking', True)  # Clear tracking for manual runs by default
+            logger.info("🎯 Manual run detected - bypassing schedule and lookback filters")
+            if clear_tracking:
+                logger.info("🗑️ Will clear notification tracking to resend all matches")
+        else:
+            force_run = params.get('forceRun', False)  # For testing - bypass schedule check
+            clear_tracking = params.get('clearTracking', False)
         
         # Get all saved searches
         saved_searches_cursor = db.saved_searches.find({})
@@ -360,6 +375,14 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         if not matches:
                             logger.info(f"  No new matches for search '{search_name}'")
                             continue
+                        
+                        # Clear tracking if requested (for manual testing)
+                        if clear_tracking:
+                            await db.saved_search_notifications.delete_one({
+                                'username': username,
+                                'search_id': search_id
+                            })
+                            logger.debug(f"  🗑️ Cleared tracking for '{search_name}' to allow resending")
                         
                         # Filter out previously notified matches
                         new_matches = await filter_new_matches(db, username, search_id, matches)
@@ -453,8 +476,45 @@ async def find_matches_for_search(
     
     # Apply age range
     if criteria.get('ageMin') or criteria.get('ageMax'):
-        # This would need proper date calculation
-        pass  # Simplified for now
+        age_query = {}
+        if criteria.get('ageMin'):
+            try:
+                age_query['$gte'] = int(criteria['ageMin'])
+            except (ValueError, TypeError):
+                pass
+        if criteria.get('ageMax'):
+            try:
+                age_query['$lte'] = int(criteria['ageMax'])
+            except (ValueError, TypeError):
+                pass
+        if age_query:
+            query['age'] = age_query
+    
+    # Apply height range
+    if criteria.get('heightMinFeet') or criteria.get('heightMaxFeet'):
+        height_patterns = []
+        
+        # Build height min pattern (e.g., 5'6" or taller)
+        if criteria.get('heightMinFeet'):
+            try:
+                min_feet = int(criteria['heightMinFeet'])
+                min_inches = int(criteria.get('heightMinInches', 0))
+                # Match heights >= min (e.g., 5'6", 5'7"... 6'0", 6'1"...)
+                # This is simplified - just match heights starting from min_feet
+                for feet in range(min_feet, 8):  # Up to 7 feet
+                    if feet == min_feet:
+                        # For the minimum feet, only inches >= min_inches
+                        for inches in range(min_inches, 12):
+                            height_patterns.append(f"{feet}'{inches}\"")
+                    else:
+                        # For taller feet, all inches
+                        for inches in range(0, 12):
+                            height_patterns.append(f"{feet}'{inches}\"")
+            except (ValueError, TypeError):
+                pass
+        
+        if height_patterns:
+            query['height'] = {'$in': height_patterns}
     
     # Apply location filter
     if criteria.get('location'):
