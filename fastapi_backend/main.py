@@ -40,11 +40,14 @@ from unified_scheduler import initialize_unified_scheduler, shutdown_unified_sch
 from services.storage_service import initialize_storage_service
 
 # Configure logging
+# Use LOG_LEVEL from config (INFO, DEBUG, WARNING, ERROR, CRITICAL)
+log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
 logging.basicConfig(
-    level=logging.INFO,
+    level=log_level,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+logger.info(f"Logger initialized in {settings.log_level.upper()} mode")
 
 async def lifespan(app: FastAPI):
     # Startup

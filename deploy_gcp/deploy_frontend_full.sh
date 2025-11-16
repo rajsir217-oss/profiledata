@@ -35,6 +35,7 @@ RUNTIME_ENVIRONMENT="${RUNTIME_ENVIRONMENT:-pod}"
 ENABLE_WEBSOCKETS="${ENABLE_WEBSOCKETS:-true}"
 ENABLE_NOTIFICATIONS="${ENABLE_NOTIFICATIONS:-true}"
 DEBUG_RUNTIME="${DEBUG_RUNTIME:-false}"
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
 
 # -----------------------------------------------------------------------------
 # Pre-flight checks
@@ -136,9 +137,10 @@ window.RUNTIME_CONFIG = {
   WS_URL: 'wss://${BACKEND_URL#https://}',
   ENABLE_WEBSOCKETS: ${ENABLE_WEBSOCKETS},
   ENABLE_NOTIFICATIONS: ${ENABLE_NOTIFICATIONS},
-  DEBUG: ${DEBUG_RUNTIME}
+  DEBUG: ${DEBUG_RUNTIME},
+  LOG_LEVEL: '${LOG_LEVEL}'
 };
-console.log('✅ Runtime config loaded for', window.RUNTIME_CONFIG.ENVIRONMENT);
+console.log('✅ Runtime config loaded for', window.RUNTIME_CONFIG.ENVIRONMENT, '| Log Level:', window.RUNTIME_CONFIG.LOG_LEVEL);
 EOF
 
 echo "📝 Updating frontend src/config/apiConfig.js pod configuration"
