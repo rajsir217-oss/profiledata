@@ -4920,10 +4920,11 @@ body.theme-rose .request-pics-btn-main:active {
 /* Bottom Actions Section for Search Cards */
 .search-card-bottom-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--card-background);
   border-top: 1px solid var(--divider-color);
+  justify-content: center;
 }
 
 /* Button styles already defined in UserCard.css will be inherited */
@@ -4938,16 +4939,17 @@ body.theme-rose .request-pics-btn-main:active {
 
   .search-card-bottom-actions {
     padding: var(--spacing-sm);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
   }
 }
 
 @media (max-width: 480px) {
   .search-card-bottom-actions {
-    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .search-card-bottom-actions .bottom-action-btn {
-    width: 100%;
+    width: 44px;
+    height: 44px;
   }
 }

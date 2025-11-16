@@ -1008,42 +1008,40 @@ body.theme-ultra-black .user-action-btn {
 /* Bottom Actions Section */
 .user-card-bottom-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  gap: var(--spacing-md);
   padding: var(--spacing-md);
   background: var(--card-background);
   border-top: 1px solid var(--divider-color);
+  justify-content: center;
 }
 
 .bottom-action-btn {
-  flex: 1;
+  width: 48px;
+  height: 48px;
+  min-width: 48px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
-  min-height: 44px;
-  padding: var(--spacing-sm) var(--spacing-md);
-  border-radius: var(--radius-md);
+  padding: 0;
+  border-radius: 50%;
   border: 2px solid transparent;
   background: var(--surface-color);
   color: var(--text-color);
-  font-size: var(--font-size-base);
-  font-weight: 500;
+  font-size: 20px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  position: relative;
 }
 
 .bottom-action-btn .btn-icon {
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   flex-shrink: 0;
 }
 
 .bottom-action-btn .btn-label {
-  font-size: var(--font-size-base);
-  font-weight: 500;
+  display: none;
 }
 
 .bottom-action-btn:hover {
@@ -1133,29 +1131,32 @@ body.theme-ultra-black .user-action-btn {
 
   .user-card-bottom-actions {
     padding: var(--spacing-sm);
-    gap: var(--spacing-xs);
+    gap: var(--spacing-sm);
   }
 
   .bottom-action-btn {
-    min-height: 48px;
-    font-size: var(--font-size-sm);
+    width: 48px;
+    height: 48px;
   }
 
-  .bottom-action-btn .btn-label {
-    font-size: var(--font-size-sm);
+  .bottom-action-btn .btn-icon {
+    font-size: 20px;
   }
 }
 
 @media (max-width: 480px) {
   .user-card-bottom-actions {
-    flex-direction: column;
+    gap: var(--spacing-sm);
   }
 
   .bottom-action-btn {
-    width: 100%;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
-  .bottom-action-btn .btn-label {
-    display: inline;
+  .bottom-action-btn .btn-icon {
+    font-size: 18px;
   }
 }
