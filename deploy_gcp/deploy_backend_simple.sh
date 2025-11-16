@@ -12,10 +12,14 @@ PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 PROJECT_ID="matrimonial-staging"
 SERVICE_NAME="matrimonial-backend"
 REGION="us-central1"
-GCS_BUCKET="matrimonial-images-prod"
+GCS_BUCKET="matrimonial-uploads-matrimonial-staging"
 
-# Load production environment variables
-source "$PROJECT_ROOT/fastapi_backend/.env.production" 2>/dev/null || true
+# Production environment variables (from .env.production)
+# These are hardcoded here to avoid parsing issues with complex values
+MONGODB_URL="mongodb+srv://rajl3v3l_db_user:3F01eZUHTY9tx07u@mongocluster0.rebdf0h.mongodb.net/matrimonialDB?retryWrites=true&w=majority&appName=MongoCluster0"
+REDIS_URL="redis://default:2svzScwOza6YUFifjx32WIWqWHytrq12@redis-11872.c263.us-east-1-2.ec2.redns.redis-cloud.com:11872"
+
+echo "✅ Production environment variables configured"
 
 echo "======================================"
 echo "🚀 Simple Backend Deployment"
@@ -51,7 +55,7 @@ gcloud run deploy $SERVICE_NAME \
   --set-env-vars "\
 ENV=production,\
 MONGODB_URL=$MONGODB_URL,\
-DATABASE_NAME=$DATABASE_NAME,\
+DATABASE_NAME=matrimonialDB,\
 REDIS_URL=$REDIS_URL,\
 USE_GCS=true,\
 GCS_BUCKET_NAME=$GCS_BUCKET,\
@@ -62,13 +66,20 @@ SMTP_HOST=smtp.gmail.com,\
 SMTP_PORT=587,\
 FROM_EMAIL=rajl3v3l@gmail.com,\
 FROM_NAME=L3V3L Dating,\
-SECRET_KEY=$SECRET_KEY,\
+TURNSTILE_SECRET_KEY=0x4AAAAAACAeADFuazfxSYYRyiJwVY6pHBI,\
+SECRET_KEY=,\
 ENABLE_NOTIFICATIONS=true,\
 ENABLE_SCHEDULER=true,\
 ENABLE_WEBSOCKETS=true,\
 DEBUG_MODE=false,\
-LOG_LEVEL=INFO" \
-  --set-secrets "ENCRYPTION_KEY=ENCRYPTION_KEY:latest,SMTP_USER=SMTP_USER:latest,SMTP_PASSWORD=SMTP_PASSWORD:latest"
+LOG_LEVEL=INFO,\
+SMS_PROVIDER=simpletexting" \
+  --set-secrets "\
+ENCRYPTION_KEY=ENCRYPTION_KEY:latest,\
+SMTP_USER=SMTP_USER:latest,\
+SMTP_PASSWORD=SMTP_PASSWORD:latest,\
+SIMPLETEXTING_API_TOKEN=SIMPLETEXTING_API_TOKEN:latest,\
+SIMPLETEXTING_ACCOUNT_PHONE=SIMPLETEXTING_ACCOUNT_PHONE:latest"
 
 echo ""
 echo "✅ Deployment complete!"
@@ -97,6 +108,47 @@ gcloud run services update $SERVICE_NAME \
 echo "✅ Backend configured:"
 echo "   BACKEND_URL: $BACKEND_URL"
 echo "   FRONTEND_URL: $FRONTEND_URL"
+echo ""
+
+# Validate critical environment variables
+echo "🔍 Validating critical environment variables..."
+VALIDATION_FAILED=false
+
+# Get all env vars in a format we can parse
+ENV_VARS=$(gcloud run services describe $SERVICE_NAME --region $REGION --format="value(spec.template.spec.containers[0].env)")
+
+# Check GCS bucket
+if echo "$ENV_VARS" | grep -q "GCS_BUCKET_NAME.*matrimonial-uploads-matrimonial-staging"; then
+    echo "   ✅ GCS_BUCKET_NAME: matrimonial-uploads-matrimonial-staging"
+else
+    echo "   ❌ GCS_BUCKET_NAME not configured correctly"
+    VALIDATION_FAILED=true
+fi
+
+# Check SMS provider
+if echo "$ENV_VARS" | grep -q "SMS_PROVIDER.*simpletexting"; then
+    echo "   ✅ SMS_PROVIDER: simpletexting"
+else
+    echo "   ❌ SMS_PROVIDER not configured"
+    VALIDATION_FAILED=true
+fi
+
+# Check if SMS secrets are configured
+if echo "$ENV_VARS" | grep -q "SIMPLETEXTING_API_TOKEN" && echo "$ENV_VARS" | grep -q "SIMPLETEXTING_ACCOUNT_PHONE"; then
+    echo "   ✅ SMS secrets configured"
+else
+    echo "   ❌ SMS secrets not configured"
+    VALIDATION_FAILED=true
+fi
+
+if [[ "$VALIDATION_FAILED" == "true" ]]; then
+    echo ""
+    echo "⚠️  Validation warnings detected!"
+    echo "   Review configuration and re-deploy if needed"
+else
+    echo ""
+    echo "✅ All critical configurations validated successfully!"
+fi
 echo ""
 
 # Restore local environment

@@ -3,6 +3,16 @@
 # Production Deployment Script
 # Deploys frontend and backend services to matrimonial-staging project
 # Domain l3v3lmatches.com is managed via Cloud DNS in this project
+#
+# This script automatically configures:
+# - ✅ GCS bucket (matrimonial-uploads-matrimonial-staging)
+# - ✅ SMS provider (SimpleTexting)
+# - ✅ Database connections (MongoDB, Redis)
+# - ✅ Email SMTP settings
+# - ✅ All secrets from Secret Manager
+# - ✅ Post-deployment validation
+#
+# Environment variables loaded from: fastapi_backend/.env.production
 
 set -e
 
