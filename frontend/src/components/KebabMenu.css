@@ -10,15 +10,15 @@
 
 /* Kebab Button (⋮) */
 .kebab-button {
-  width: 40px;
-  height: 40px;
-  min-width: 44px;  /* iOS minimum touch target */
-  min-height: 44px;
-  border-radius: var(--radius-md);
-  background: var(--card-background);
-  border: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  padding: var(--spacing-xs);
+  width: 32px;
+  height: 28px;
+  min-width: 32px;
+  min-height: 28px;
+  border-radius: 14px;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -29,11 +29,9 @@
 }
 
 .kebab-button:hover {
-  background: var(--hover-background);
-  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.15);
   color: var(--primary-color);
-  box-shadow: var(--shadow-sm);
-  transform: scale(1.05);
+  transform: scale(1.1);
 }
 
 .kebab-button:active {
@@ -41,17 +39,15 @@
 }
 
 .kebab-button.active {
-  background: var(--selected-background);
-  border-color: var(--primary-color);
+  background: rgba(255, 255, 255, 0.2);
   color: var(--primary-color);
-  box-shadow: 0 0 0 3px var(--primary-color-light);
 }
 
 .kebab-icon {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
   font-weight: bold;
-  letter-spacing: 0;
+  letter-spacing: -1px;
 }
 
 /* Dropdown Menu */
