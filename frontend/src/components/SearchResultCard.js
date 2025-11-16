@@ -595,27 +595,6 @@ const SearchResultCard = ({
   return (
     <div className="result-card">
       <div className="card">
-        {/* Kebab Menu - Top Right */}
-        {hasKebabMenu && (
-          <div className="search-card-header-actions">
-            <KebabMenu
-              user={user}
-              context={context}
-              isFavorited={isFavorited}
-              isShortlisted={isShortlisted}
-              isBlocked={isBlocked}
-              piiAccess={piiAccess}
-              onViewProfile={kebabHandlers.onViewProfile}
-              onToggleFavorite={kebabHandlers.onToggleFavorite}
-              onToggleShortlist={kebabHandlers.onToggleShortlist}
-              onMessage={kebabHandlers.onMessage}
-              onBlock={kebabHandlers.onBlock}
-              onRequestPII={kebabHandlers.onRequestPII}
-              onReport={kebabHandlers.onReport}
-            />
-          </div>
-        )}
-
         {/* Card Title Section with Purple Gradient - Clickable */}
         <div 
           className="card-title-section"
@@ -632,7 +611,26 @@ const SearchResultCard = ({
                 🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
               </span>
             )}
-            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge} years</span>}
+            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
+            
+            {/* Kebab Menu - Inside flex container for perfect alignment */}
+            {hasKebabMenu && (
+              <KebabMenu
+                user={user}
+                context={context}
+                isFavorited={isFavorited}
+                isShortlisted={isShortlisted}
+                isBlocked={isBlocked}
+                piiAccess={piiAccess}
+                onViewProfile={kebabHandlers.onViewProfile}
+                onToggleFavorite={kebabHandlers.onToggleFavorite}
+                onToggleShortlist={kebabHandlers.onToggleShortlist}
+                onMessage={kebabHandlers.onMessage}
+                onBlock={kebabHandlers.onBlock}
+                onRequestPII={kebabHandlers.onRequestPII}
+                onReport={kebabHandlers.onReport}
+              />
+            )}
           </div>
         </div>
 

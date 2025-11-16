@@ -196,7 +196,7 @@ const UserCard = ({
             <div className="bio-header-info">
               <h4 className="bio-name">{displayName}</h4>
               {profileData?.age && (
-                <span className="bio-age-bubble">{profileData.age} years</span>
+                <span className="bio-age-bubble">{profileData.age}yrs</span>
               )}
             </div>
           </div>
@@ -241,7 +241,7 @@ const UserCard = ({
           <h4 className="user-name">{displayName}</h4>
           
           {profileData?.age && (
-            <p className="user-age">{profileData.age} years</p>
+            <p className="user-age">{profileData.age}yrs</p>
           )}
           
           {profileData?.location && (

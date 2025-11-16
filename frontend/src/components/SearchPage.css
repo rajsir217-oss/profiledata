@@ -4910,13 +4910,7 @@ body.theme-rose .request-pics-btn-main:active {
    KEBAB MENU & BOTTOM ACTIONS (SearchResultCard)
    ======================================== */
 
-/* Kebab Menu Positioning in Search Cards */
-.search-card-header-actions {
-  position: absolute;
-  top: 12px;
-  right: var(--spacing-sm);
-  z-index: 10;
-}
+/* Kebab Menu now inside .card-title-badges flex container - no absolute positioning needed */
 
 /* Bottom Actions Section for Search Cards */
 .search-card-bottom-actions {
@@ -4933,11 +4927,6 @@ body.theme-rose .request-pics-btn-main:active {
 
 /* Mobile Responsive for Search Cards */
 @media (max-width: 768px) {
-  .search-card-header-actions {
-    top: var(--spacing-xs);
-    right: var(--spacing-xs);
-  }
-
   .search-card-bottom-actions {
     padding: var(--spacing-sm);
     gap: var(--spacing-sm);
