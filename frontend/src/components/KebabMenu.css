@@ -10,11 +10,11 @@
 
 /* Kebab Button (⋮) */
 .kebab-button {
-  width: 32px;
-  height: 28px;
-  min-width: 32px;
-  min-height: 28px;
-  border-radius: 14px;
+  width: 28px;
+  height: 24px;
+  min-width: 28px;
+  min-height: 24px;
+  border-radius: 12px;
   background: transparent;
   border: none;
   color: var(--text-color);
@@ -44,7 +44,7 @@
 }
 
 .kebab-icon {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1;
   font-weight: bold;
   letter-spacing: -1px;
