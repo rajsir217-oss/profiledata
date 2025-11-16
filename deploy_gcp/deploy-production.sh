@@ -3,6 +3,16 @@
 # Production Deployment Script
 # Deploys frontend and backend services to matrimonial-staging project
 # Domain l3v3lmatches.com is managed via Cloud DNS in this project
+#
+# Usage:
+#   ./deploy-production.sh [--show-logs=true|false]
+#
+# Options:
+#   --show-logs=true   (default) Display all logs (LOG_LEVEL=INFO)
+#   --show-logs=false  Show only critical errors (LOG_LEVEL=ERROR)
+#
+# Environment variable:
+#   SHOW_LOGS=true|false
 
 set -e
 
@@ -14,13 +24,42 @@ PROJECT="matrimonial-staging"
 DOMAIN="l3v3lmatches.com"
 REGION="us-central1"
 
+# Parse command-line arguments
+SHOW_LOGS="${SHOW_LOGS:-true}"  # Default to true
+
+for arg in "$@"; do
+  case $arg in
+    --show-logs=*)
+      SHOW_LOGS="${arg#*=}"
+      shift
+      ;;
+    --no-logs)
+      SHOW_LOGS="false"
+      shift
+      ;;
+    *)
+      # Unknown option
+      ;;
+  esac
+done
+
+# Determine log level based on SHOW_LOGS
+if [[ "$SHOW_LOGS" == "false" ]]; then
+  LOG_LEVEL="ERROR"
+  LOG_MODE="PRODUCTION (errors only)"
+else
+  LOG_LEVEL="INFO"
+  LOG_MODE="VERBOSE (all logs)"
+fi
+
 echo "============================================="
 echo "🚀 Production Deployment"
 echo "============================================="
 echo ""
-echo "Project: $PROJECT"
-echo "Domain:  $DOMAIN"
-echo "Region:  $REGION"
+echo "Project:     $PROJECT"
+echo "Domain:      $DOMAIN"
+echo "Region:      $REGION"
+echo "Log Level:   $LOG_LEVEL ($LOG_MODE)"
 echo ""
 echo "============================================="
 echo ""
@@ -116,8 +155,9 @@ case $choice in
     1)
         echo ""
         echo "📦 Deploying Backend..."
+        echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
-        ./deploy_gcp/deploy_backend_simple.sh
+        LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
         echo ""
         echo "🗄️  Running Database Migrations..."
@@ -127,14 +167,16 @@ case $choice in
     2)
         echo ""
         echo "📦 Deploying Frontend..."
+        echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
-        ./deploy_gcp/deploy_frontend_full.sh
+        LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
         ;;
     3)
         echo ""
         echo "📦 Deploying Backend..."
+        echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
-        ./deploy_gcp/deploy_backend_simple.sh
+        LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
         echo ""
         echo "🗄️  Running Database Migrations..."
@@ -143,8 +185,9 @@ case $choice in
         
         echo ""
         echo "📦 Deploying Frontend..."
+        echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
-        ./deploy_gcp/deploy_frontend_full.sh
+        LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
         ;;
     *)
         echo "Invalid choice. Exiting."

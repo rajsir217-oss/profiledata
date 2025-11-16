@@ -17,13 +17,17 @@ GCS_BUCKET="matrimonial-images-prod"
 # Load production environment variables
 source "$PROJECT_ROOT/fastapi_backend/.env.production" 2>/dev/null || true
 
+# Use LOG_LEVEL from environment or default to INFO
+LOG_LEVEL="${LOG_LEVEL:-INFO}"
+
 echo "======================================"
 echo "🚀 Simple Backend Deployment"
 echo "======================================"
 echo ""
-echo "Project: $PROJECT_ID"
-echo "Service: $SERVICE_NAME"
-echo "Region: $REGION"
+echo "Project:   $PROJECT_ID"
+echo "Service:   $SERVICE_NAME"
+echo "Region:    $REGION"
+echo "Log Level: $LOG_LEVEL"
 echo ""
 
 # Set project
@@ -67,7 +71,7 @@ ENABLE_NOTIFICATIONS=true,\
 ENABLE_SCHEDULER=true,\
 ENABLE_WEBSOCKETS=true,\
 DEBUG_MODE=false,\
-LOG_LEVEL=INFO" \
+LOG_LEVEL=$LOG_LEVEL" \
   --set-secrets "ENCRYPTION_KEY=ENCRYPTION_KEY:latest,SMTP_USER=SMTP_USER:latest,SMTP_PASSWORD=SMTP_PASSWORD:latest"
 
 echo ""
