@@ -1738,6 +1738,9 @@ async def search_users(
                 # Stage 1: Match base query
                 {"$match": query},
                 
+                # Stage 1.5: Project only needed fields (performance optimization)
+                {"$project": DASHBOARD_USER_PROJECTION},
+                
                 # Stage 2: Add calculated age field
                 {"$addFields": {
                     "calculatedAge": {
@@ -1810,7 +1813,7 @@ async def search_users(
         else:
             # No age filtering - use simple find for better performance
             logger.info(f"🔍 Executing search with query: {query}")
-            users_cursor = db.users.find(query).sort(sort).skip(skip).limit(limit)
+            users_cursor = db.users.find(query, DASHBOARD_USER_PROJECTION).sort(sort).skip(skip).limit(limit)
             users = await users_cursor.to_list(length=limit)
             
             # Get total count for pagination
