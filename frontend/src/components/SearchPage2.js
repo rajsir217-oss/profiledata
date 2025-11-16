@@ -2098,20 +2098,37 @@ const SearchPage2 = () => {
                   key={user.username}
                   user={user}
                   currentUsername={localStorage.getItem('username')}
+                  // Context for kebab menu
+                  context="search-results"
+                  // Kebab menu handlers
+                  onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                  onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                  onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                  onMessage={handleMessage}
+                  onRequestPII={(u) => openPIIRequestModal(u.username)}
+                  // Legacy handlers (for backward compatibility)
                   onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
                   onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
                   onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
-                  onMessage={handleMessage}
                   onPIIRequest={(u) => openPIIRequestModal(u.username)}
+                  // State
                   isFavorited={favoritedUsers.has(user.username)}
                   isShortlisted={shortlistedUsers.has(user.username)}
                   isExcluded={excludedUsers.has(user.username)}
+                  isBlocked={excludedUsers.has(user.username)}
                   hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
                   hasImageAccess={hasPiiAccess(user.username, 'images')}
                   isPiiRequestPending={isPiiRequestPending(user.username, 'contact_info')}
                   isImageRequestPending={isPiiRequestPending(user.username, 'images')}
                   piiRequestStatus={getPIIRequestStatus(user.username)}
+                  piiAccess={{
+                    contact: hasPiiAccess(user.username, 'contact_info'),
+                    email: hasPiiAccess(user.username, 'email'),
+                    phone: hasPiiAccess(user.username, 'phone'),
+                    photos: hasPiiAccess(user.username, 'images')
+                  }}
                   viewMode={viewMode}
+                  // Legacy display flags
                   showFavoriteButton={true}
                   showShortlistButton={true}
                   showExcludeButton={true}
