@@ -53,14 +53,16 @@ def get_password_hash(password: str) -> str:
 # Note: MongoDB requires ONLY inclusions OR ONLY exclusions (_id is exception)
 DASHBOARD_USER_PROJECTION = {
     "_id": 0,  # Special case: _id can be excluded with inclusions
-    # Include only fields needed for dashboard cards
+    # Include only fields needed for dashboard/search cards
     "username": 1,
     "firstName": 1,
     "lastName": 1,
     "age": 1,
     "birthMonth": 1,
     "birthYear": 1,
+    "gender": 1,
     "location": 1,
+    "region": 1,
     "occupation": 1,
     "education": 1,
     "bio": 1,
@@ -74,6 +76,14 @@ DASHBOARD_USER_PROJECTION = {
     "contactNumber": 1,
     "lastActive": 1,
     "onlineStatus": 1,
+    # Additional fields for search results
+    "height": 1,
+    "heightInches": 1,
+    "religion": 1,
+    "eatingPreference": 1,
+    "bodyType": 1,
+    "matchScore": 1,
+    "compatibilityLevel": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
 }
 
