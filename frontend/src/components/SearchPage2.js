@@ -363,17 +363,24 @@ const SearchPage2 = () => {
             console.log('✅ Saved searches exist - auto-executing default search');
             console.log('📋 Default search criteria:', defaultSearch.criteria);
             
+            // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
+            const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
+            console.log('🎯 Min match score:', loadedMinScore);
+            
             // Load criteria and show banner (user will see what's being searched)
             setSearchCriteria(defaultSearch.criteria);
+            setMinMatchScore(loadedMinScore);
             setSelectedSearch(defaultSearch);
             
             // Mark as executed
             hasAutoExecutedRef.current = true;
             
-            // Execute the search with explicit criteria (don't rely on state update)
+            // Execute the search with explicit criteria AND minMatchScore
             setTimeout(() => {
-              console.log('🔍 Auto-executing default saved search with criteria:', defaultSearch.criteria);
-              handleSearch(1, null, defaultSearch.criteria);  // Pass criteria directly!
+              console.log('🔍 Auto-executing default saved search');
+              console.log('   - Criteria:', defaultSearch.criteria);
+              console.log('   - Min match score:', loadedMinScore);
+              handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass BOTH!
             }, 500);
           } else {
             // No saved searches yet, load criteria silently (no execution, no banner)
