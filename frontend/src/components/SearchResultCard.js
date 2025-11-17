@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import { getDisplayName } from '../utils/userDisplay';
+import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage.css';
 
 /**
@@ -13,27 +14,42 @@ import './SearchPage.css';
  * - Profile image carousel with navigation
  * - Online status badge
  * - User details (location, education, occupation, height)
- * - PII request button with status
- * - Customizable action buttons
+ * - Context-aware bottom actions
+ * - Kebab menu for secondary actions
  * - Responsive design
  */
 const SearchResultCard = ({
   user,
   currentUsername,
+  // Context-based props (NEW)
+  context = 'default',
+  onViewProfile,
+  onToggleFavorite,
+  onToggleShortlist,
+  onBlock,
+  onReport,
+  onApprove,
+  onDeny,
+  // Legacy action props (kept for backward compatibility)
   onFavorite,
   onShortlist,
   onExclude,
   onMessage,
   onRemove,
   onPIIRequest,
+  onRequestPII, // Support both naming conventions
+  // State props
   isFavorited = false,
   isShortlisted = false,
   isExcluded = false,
+  isBlocked = false,
   hasPiiAccess = false, // For contact_info
   hasImageAccess = false, // For images
   isPiiRequestPending = false,
   isImageRequestPending = false,
   piiRequestStatus = {}, // Object with status for each PII type
+  piiAccess = {}, // Kebab menu PII access state
+  // Legacy display flags (deprecated)
   showFavoriteButton = true,
   showShortlistButton = true,
   showExcludeButton = true,
@@ -99,6 +115,67 @@ const SearchResultCard = ({
   };
 
   const piiStatus = getPIIStatusSummary();
+
+  // Context-based bottom action configuration (matching UserCard)
+  const getBottomActions = () => {
+    const bottomActions = [];
+
+    switch (context) {
+      case 'my-messages':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Open Chat', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '🗑️', label: 'Delete', handler: onRemove, className: 'btn-danger' });
+        break;
+
+      case 'my-favorites':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '💔', label: 'Unfavorite', handler: onRemove, className: 'btn-warning' });
+        break;
+
+      case 'my-shortlists':
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: '📤', label: 'Remove', handler: onRemove, className: 'btn-info' });
+        break;
+
+      case 'not-interested':
+      case 'my-exclusions':
+        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile, className: 'btn-secondary' });
+        if (onRemove) bottomActions.push({ icon: '✅', label: 'Unblock', handler: onRemove, className: 'btn-success' });
+        break;
+
+      case 'pii-requests':
+      case 'photo-requests':
+        if (onApprove) bottomActions.push({ icon: '✅', label: 'Approve', handler: onApprove, className: 'btn-success' });
+        if (onDeny) bottomActions.push({ icon: '❌', label: 'Deny', handler: onDeny, className: 'btn-danger' });
+        break;
+
+      case 'search-results':
+      case 'l3v3l-matches':
+      case 'profile-views':
+      case 'their-favorites':
+      case 'their-shortlists':
+      default:
+        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile || navigateToProfile, className: 'btn-secondary' });
+        break;
+    }
+
+    return bottomActions;
+  };
+
+  const bottomActions = getBottomActions();
+  const hasBottomActions = bottomActions.length > 0;
+  const hasKebabMenu = onToggleFavorite || onToggleShortlist || onBlock || onRequestPII || onPIIRequest || onReport;
+  
+  // Merge legacy handlers with new handlers for kebab menu
+  const kebabHandlers = {
+    onViewProfile: onViewProfile || navigateToProfile,
+    onToggleFavorite: onToggleFavorite || onFavorite,
+    onToggleShortlist: onToggleShortlist || onShortlist,
+    onMessage: onMessage,
+    onBlock: onBlock || onExclude,
+    onRequestPII: onRequestPII || onPIIRequest,
+    onReport: onReport
+  };
 
   // Get initials from first and last name, fallback to username
   const getInitials = () => {
@@ -535,7 +612,23 @@ const SearchResultCard = ({
                 🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
               </span>
             )}
-            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge} years</span>}
+            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
+            
+            {/* Simple Kebab Menu */}
+            {hasKebabMenu && (
+              <SimpleKebabMenu
+                user={user}
+                isFavorited={isFavorited}
+                isShortlisted={isShortlisted}
+                onViewProfile={kebabHandlers.onViewProfile}
+                onToggleFavorite={kebabHandlers.onToggleFavorite}
+                onToggleShortlist={kebabHandlers.onToggleShortlist}
+                onMessage={kebabHandlers.onMessage}
+                onBlock={kebabHandlers.onBlock}
+                onRequestPII={kebabHandlers.onRequestPII}
+                onReport={kebabHandlers.onReport}
+              />
+            )}
           </div>
         </div>
 
@@ -625,76 +718,27 @@ const SearchResultCard = ({
             </div>
           </div>
 
-          {/* Action Buttons - All Icons for Consistency */}
-          <div className="card-actions-clean">
-            {/* All actions as icon buttons */}
-            <div className="actions-all-icons">
-              {showMessageButton && onMessage && (
+          {/* Bottom Actions Section - Context-aware */}
+          {hasBottomActions && (
+            <div className="search-card-bottom-actions">
+              {bottomActions.map((action, index) => (
                 <button
-                  className="btn-icon btn-icon-primary"
+                  key={index}
+                  className={`bottom-action-btn ${action.className || ''}`}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onMessage(user);
+                    if (action.handler) {
+                      action.handler(user);
+                    }
                   }}
-                  title="Send Message"
+                  title={action.label}
                 >
-                  💬
+                  <span className="btn-icon">{action.icon}</span>
+                  <span className="btn-label">{action.label}</span>
                 </button>
-              )}
-              {showFavoriteButton && onFavorite && (
-                <button
-                  className={`btn-icon ${isFavorited ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onFavorite(user);
-                  }}
-                  title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-                >
-                  {isFavorited ? '⭐' : '☆'}
-                </button>
-              )}
-              
-              {showShortlistButton && onShortlist && (
-                <button
-                  className={`btn-icon ${isShortlisted ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onShortlist(user);
-                  }}
-                  title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
-                >
-                  {isShortlisted ? '✓' : '📋'}
-                </button>
-              )}
-              
-              {/* PII Request Button */}
-              {onPIIRequest && (
-                <button
-                  className={`btn-icon ${hasPiiAccess ? 'btn-icon-success active' : ''} ${piiStatus.className}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onPIIRequest(user);
-                  }}
-                  title={hasPiiAccess ? 'Contact Info Granted' : `Request Access - ${piiStatus.text}`}
-                >
-                  {hasPiiAccess ? '🔓' : '🔒'}
-                </button>
-              )}
-              
-              {showExcludeButton && onExclude && (
-                <button
-                  className={`btn-icon btn-icon-danger ${isExcluded ? 'active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onExclude(user);
-                  }}
-                  title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
-                >
-                  ❌
-                </button>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

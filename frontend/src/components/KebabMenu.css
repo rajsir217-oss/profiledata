@@ -1,0 +1,447 @@
+/* ========================================
+   KEBAB MENU - Theme-Aware & Mobile-Responsive
+   ======================================== */
+
+/* Container */
+.kebab-menu-container {
+  position: relative;
+  display: inline-block;
+  z-index: 100;
+  isolation: isolate;
+}
+
+/* Kebab Button (⋮) */
+.kebab-button {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: var(--text-color);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: visible;
+  z-index: 200 !important;
+  pointer-events: auto !important;
+}
+
+.kebab-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--primary-color);
+  transform: scale(1.1);
+}
+
+.kebab-button:active {
+  transform: scale(0.95);
+}
+
+.kebab-button.active {
+  background: rgba(255, 255, 255, 0.2);
+  color: var(--primary-color);
+}
+
+.kebab-icon {
+  font-size: 20px;
+  line-height: 1;
+  font-weight: bold;
+  letter-spacing: -1px;
+  display: block;
+}
+
+/* Dropdown Menu - FIXED POSITIONING for overlay */
+.kebab-menu-dropdown {
+  position: fixed !important;
+  /* top and left are set dynamically via inline styles */
+  z-index: 999999 !important;
+  min-width: 140px;
+  width: 160px;
+  max-width: 160px;
+  background: var(--card-background) !important;
+  border: 2px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
+  backdrop-filter: blur(10px);
+  overflow-x: hidden;
+  overflow-y: auto;
+  animation: menuFadeIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  /* max-height, top, left set dynamically via JS based on viewport space */
+}
+
+/* Open Upward class kept for backward compatibility - positioning handled by JS */
+
+/* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */
+.kebab-menu-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+.kebab-menu-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Menu Sections */
+.menu-section {
+  padding: 2px 0;
+}
+
+.menu-section:first-child {
+  padding-top: 6px;
+}
+
+.menu-section:last-child {
+  padding-bottom: 6px;
+}
+
+.menu-section-title {
+  color: var(--text-muted);
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px 2px 10px;
+  font-weight: 600;
+  user-select: none;
+}
+
+/* Menu Items */
+.menu-item {
+  width: 100%;
+  padding: 6px 10px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  color: var(--text-color);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: left;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 2px;
+  background: var(--primary-color);
+  transform: translateX(-2px);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.menu-item:hover {
+  background: var(--hover-background);
+  color: var(--primary-color);
+}
+
+.menu-item:hover::before {
+  transform: translateX(0);
+}
+
+.menu-item:active {
+  background: var(--active-background);
+  transform: scale(0.98);
+}
+
+.menu-icon {
+  font-size: 14px;
+  line-height: 1;
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.menu-label {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Danger Item (Report) */
+.menu-item.danger {
+  color: var(--danger-color);
+}
+
+.menu-item.danger::before {
+  background: var(--danger-color);
+}
+
+.menu-item.danger:hover {
+  background: var(--danger-light);
+  color: var(--danger-color);
+}
+
+/* Menu Dividers */
+.menu-divider {
+  height: 1px;
+  background: var(--divider-color);
+  margin: 3px 10px;
+}
+
+/* ========================================
+   MOBILE RESPONSIVE
+   ======================================== */
+
+/* Mobile - Bottom Sheet Style */
+@media (max-width: 768px) {
+  .kebab-button {
+    min-width: 48px;  /* Android minimum touch target */
+    min-height: 48px;
+  }
+
+  .kebab-menu-dropdown {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 100%;
+    border-radius: 8px 8px 0 0;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
+    max-height: 70vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    animation: menuSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-bottom: env(safe-area-inset-bottom);
+    scrollbar-width: thin;
+    scrollbar-color: var(--text-muted) transparent;
+  }
+
+  /* Scrollbar styling for mobile */
+  .kebab-menu-dropdown::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .kebab-menu-dropdown::-webkit-scrollbar-thumb {
+    background: var(--text-muted);
+    border-radius: 3px;
+  }
+
+  .menu-section {
+    padding: 4px 0;
+  }
+
+  .menu-section:first-child {
+    padding-top: 12px;
+  }
+
+  .menu-section:last-child {
+    padding-bottom: 12px;
+  }
+
+  .menu-section-title {
+    padding: 8px 20px 4px 20px;
+    font-size: 11px;
+  }
+
+  @keyframes menuSlideUp {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .menu-item {
+    min-height: 52px;  /* Larger touch targets on mobile */
+    padding: 14px 18px;
+    gap: 10px;
+  }
+
+  .menu-icon {
+    font-size: 18px;
+    width: 24px;
+    flex-shrink: 0;
+  }
+
+  .menu-label {
+    font-size: 14px;
+    white-space: normal;
+    word-wrap: break-word;
+  }
+
+  .menu-divider {
+    margin: 6px 18px;
+  }
+}
+
+/* Very Small Screens */
+@media (max-width: 480px) {
+  .kebab-menu-dropdown {
+    max-height: 80vh;
+  }
+
+  .menu-section-title {
+    padding: 8px 20px 4px 20px;
+  }
+
+  .menu-item {
+    padding: 14px 20px;
+  }
+}
+
+/* ========================================
+   THEME-SPECIFIC ADJUSTMENTS
+   ======================================== */
+
+/* Dark Theme */
+body.theme-dark .kebab-menu-dropdown {
+  background: color-mix(in srgb, var(--card-background) 95%, white 5%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+body.theme-dark .menu-item:hover {
+  background: color-mix(in srgb, var(--card-background) 90%, white 10%);
+}
+
+body.theme-dark .kebab-button:hover {
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+/* Rose Theme */
+body.theme-rose .menu-item:hover::before {
+  background: var(--primary-color);
+}
+
+body.theme-rose .menu-item.danger:hover {
+  background: var(--danger-light);
+}
+
+/* Ultra Light Gray Theme */
+body.theme-ultra-light-gray .kebab-menu-dropdown {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+body.theme-ultra-light-gray .menu-item:hover {
+  background: var(--hover-background);
+}
+
+/* ========================================
+   ACCESSIBILITY
+   ======================================== */
+
+/* Focus Styles */
+.kebab-button:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
+.menu-item:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: -2px;
+  background: var(--selected-background);
+}
+
+/* Keyboard Navigation */
+.menu-item:focus {
+  background: var(--hover-background);
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+  .kebab-button {
+    border-width: 2px;
+  }
+
+  .menu-item {
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .menu-divider {
+    height: 2px;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .kebab-button,
+  .menu-item,
+  .kebab-menu-dropdown {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ========================================
+   LOADING STATE (Optional)
+   ======================================== */
+
+.menu-item.loading {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
+.menu-item.loading::after {
+  content: '';
+  position: absolute;
+  right: var(--spacing-lg);
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========================================
+   DISABLED STATE
+   ======================================== */
+
+.menu-item:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.menu-item:disabled:hover {
+  background: transparent;
+  color: var(--text-color);
+}

@@ -37,11 +37,12 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
       // Disable body scroll when modal is open
       document.body.style.overflow = 'hidden';
       
-      // ✅ Request parent to refresh PII status when modal opens
-      if (onRefresh) {
-        console.log('🔄 PIIRequestModal opened - triggering status refresh...');
-        onRefresh(); // This should trigger checkPIIAccess in parent
-      }
+      // ❌ REMOVED: Auto-refresh on open causes infinite loop
+      // Parent should already have fresh data before opening modal
+      // if (onRefresh) {
+      //   console.log('🔄 PIIRequestModal opened - triggering status refresh...');
+      //   onRefresh();
+      // }
       
       console.log('🔍 PIIRequestModal opened for:', profileUsername);
       console.log('📊 Current request status:', requestStatus);

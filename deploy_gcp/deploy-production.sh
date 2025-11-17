@@ -171,10 +171,11 @@ case $choice in
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
-        echo ""
-        echo "🗄️  Running Database Migrations..."
-        cd "$PROJECT_ROOT/fastapi_backend"
-        python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
+        # Database migrations commented out (manually run if needed)
+        # echo ""
+        # echo "🗄️  Running Database Migrations..."
+        # cd "$PROJECT_ROOT/fastapi_backend"
+        # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         ;;
     2)
         echo ""
@@ -190,10 +191,11 @@ case $choice in
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
-        echo ""
-        echo "🗄️  Running Database Migrations..."
-        cd "$PROJECT_ROOT/fastapi_backend"
-        python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
+        # Database migrations commented out (manually run if needed)
+        # echo ""
+        # echo "🗄️  Running Database Migrations..."
+        # cd "$PROJECT_ROOT/fastapi_backend"
+        # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         
         echo ""
         echo "📦 Deploying Frontend..."

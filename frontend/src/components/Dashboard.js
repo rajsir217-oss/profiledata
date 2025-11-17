@@ -407,10 +407,10 @@ const Dashboard = () => {
       return dashboardData.myMessages.length + 
              dashboardData.myFavorites.length + 
              dashboardData.myShortlists.length + 
+             dashboardData.myRequests.length +
              dashboardData.myExclusions.length;
     } else if (group === 'othersActivities') {
       return dashboardData.myViews.length + 
-             dashboardData.myRequests.length + 
              dashboardData.theirFavorites.length + 
              dashboardData.theirShortlists.length;
     }
@@ -499,6 +499,59 @@ const Dashboard = () => {
       }));
     } catch (err) {
       logger.error(`Failed to cancel request: ${err.message}`);
+    }
+  };
+
+  // Add handlers for kebab menu (adding to lists)
+  const handleAddToFavorites = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to favorites`);
+    } catch (err) {
+      logger.error(`Failed to add to favorites: ${err.message}`);
+      toast.error(`Failed to add to favorites`);
+    }
+  };
+
+  const handleAddToShortlist = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to shortlist`);
+    } catch (err) {
+      logger.error(`Failed to add to shortlist: ${err.message}`);
+      toast.error(`Failed to add to shortlist`);
+    }
+  };
+
+  const handleAddToExclusions = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Reload dashboard to get fresh data
+      await loadDashboardData(currentUser);
+      toast.success(`Added to not interested`);
+    } catch (err) {
+      logger.error(`Failed to add to exclusions: ${err.message}`);
+      toast.error(`Failed to add to exclusions`);
+    }
+  };
+
+  const handleRequestPII = async (user) => {
+    try {
+      const targetUsername = user.username || user;
+      // Open PII request modal or make API call
+      // For now, just show a toast
+      toast.info(`PII request functionality - to be implemented`);
+      logger.info(`Request PII for ${targetUsername}`);
+    } catch (err) {
+      logger.error(`Failed to request PII: ${err.message}`);
+      toast.error(`Failed to request PII`);
     }
   };
 
@@ -647,8 +700,8 @@ const Dashboard = () => {
     }
   };
 
-  // Render user card using new UserCard component
-  const renderUserCard = (user, removeHandler = null, removeIcon = '❌') => {
+  // Render user card using new UserCard component with context-aware actions
+  const renderUserCard = (user, context = 'default', removeHandler = null) => {
     if (!user) return null;
 
     // Handle different data structures (regular users vs PII requests)
@@ -660,34 +713,57 @@ const Dashboard = () => {
       requestedAt: user.requested_at      // Add timestamp
     } : user;
 
-    // Build actions array
-    const actions = [
-      { icon: '💬', label: 'Message', onClick: () => handleMessageUser(username, displayUser) },
-      { icon: '👁️', label: 'View', onClick: () => handleProfileClick(username) }
-    ];
-
-    if (removeHandler) {
-      actions.push({ 
-        icon: removeIcon, 
-        label: 'Remove', 
-        onClick: () => removeHandler(username) 
-      });
-    }
+    // Determine user state for kebab menu
+    const isFavorited = dashboardData.myFavorites.some(fav => 
+      (fav.username || fav.viewerProfile?.username || fav.userProfile?.username) === username
+    );
+    const isShortlisted = dashboardData.myShortlists.some(short => 
+      (short.username || short.viewerProfile?.username || short.userProfile?.username) === username
+    );
+    const isBlocked = dashboardData.myExclusions.some(exc => 
+      (exc.username || exc.viewerProfile?.username || exc.userProfile?.username) === username
+    );
 
     return (
       <UserCard
         user={displayUser}
         variant="dashboard"
         viewMode={viewMode}
-        actions={actions}
+        context={context}
         onClick={() => handleProfileClick(username)}
+        // Kebab menu handlers
+        isFavorited={isFavorited}
+        isShortlisted={isShortlisted}
+        isBlocked={isBlocked}
+        onViewProfile={() => handleProfileClick(username)}
+        onToggleFavorite={() => isFavorited ? handleRemoveFromFavorites(username) : handleAddToFavorites(displayUser)}
+        onToggleShortlist={() => isShortlisted ? handleRemoveFromShortlist(username) : handleAddToShortlist(displayUser)}
+        onMessage={() => handleMessageUser(username, displayUser)}
+        onBlock={() => isBlocked ? handleRemoveFromExclusions(username) : handleAddToExclusions(displayUser)}
+        onRequestPII={() => handleRequestPII(displayUser)}
+        // Context-specific remove action
+        onRemove={removeHandler ? () => removeHandler(username) : null}
       />
     );
   };
 
-  // Render section using new CategorySection component
-  const renderSection = (title, data, sectionKey, icon, color, removeHandler = null, removeIcon = '❌') => {
+  // Render section using new CategorySection component with context mapping
+  const renderSection = (title, data, sectionKey, icon, color, removeHandler = null) => {
     const isDraggable = ['myFavorites', 'myShortlists', 'myExclusions'].includes(sectionKey);
+    
+    // Map section keys to contexts
+    const contextMap = {
+      'myMessages': 'my-messages',
+      'myFavorites': 'my-favorites',
+      'myShortlists': 'my-shortlists',
+      'myExclusions': 'my-exclusions',
+      'myViews': 'profile-views',
+      'myRequests': 'pii-requests',
+      'theirFavorites': 'their-favorites',
+      'theirShortlists': 'their-shortlists'
+    };
+    
+    const context = contextMap[sectionKey] || 'default';
     
     return (
       <CategorySection
@@ -698,7 +774,7 @@ const Dashboard = () => {
         sectionKey={sectionKey}
         isExpanded={activeSections[sectionKey]}
         onToggle={toggleSection}
-        onRender={(user) => renderUserCard(user, removeHandler, removeIcon)}
+        onRender={(user) => renderUserCard(user, context, removeHandler)}
         isDraggable={isDraggable}
         viewMode={viewMode}
         emptyMessage={`No ${title.toLowerCase()} yet`}
@@ -919,10 +995,11 @@ const Dashboard = () => {
           
           {expandedGroups.myActivities && (
             <div className="column-sections">
-              {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage, '🗑️')}
-              {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites, '💔')}
-              {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist, '📤')}
-              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions, '✅')}
+              {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage)}
+              {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites)}
+              {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist)}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest)}
+              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions)}
             </div>
           )}
         </div>
@@ -942,8 +1019,7 @@ const Dashboard = () => {
           
           {expandedGroups.othersActivities && (
             <div className="column-sections">
-              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory, '🗑️')}
-              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest, '❌')}
+              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory)}
           
           {/* Image Access Requests Section */}
           <CategorySection

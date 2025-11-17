@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api, { setDefaultSavedSearch, getDefaultSavedSearch } from '../api';
@@ -95,6 +95,9 @@ const SearchPage2 = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   const [currentPIIAccess, setCurrentPIIAccess] = useState({});
+
+  // Ref to track if default search has been auto-executed
+  const hasAutoExecutedRef = useRef(false);
 
   // Load more state (for incremental loading instead of pagination)
   const [displayedCount, setDisplayedCount] = useState(20);
@@ -342,53 +345,70 @@ const SearchPage2 = () => {
         return;
       }
 
+      // Prevent multiple auto-executions
+      if (hasAutoExecutedRef.current) {
+        console.log('⏭️ Already auto-executed default search, skipping');
+        return;
+      }
+
       try {
         // Check if there's a default saved search
         const defaultSearch = await getDefaultSavedSearch();
         
         if (defaultSearch && defaultSearch.criteria) {
           console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Loading criteria:', defaultSearch.criteria);
           
-          // Load the saved search criteria
-          setSearchCriteria(defaultSearch.criteria);
-          setSelectedSearch(defaultSearch);
-          
-          // Execute the search after a short delay to ensure state is updated
-          setTimeout(() => {
-            console.log('🔍 Auto-executing default saved search');
-            handleSearch(1);
-          }, 500);
+          // Check if we have saved searches (which will open Saved tab)
+          if (savedSearches.length > 0) {
+            console.log('✅ Saved searches exist - auto-executing default search');
+            console.log('📋 Default search criteria:', defaultSearch.criteria);
+            
+            // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
+            const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
+            console.log('🎯 Min match score:', loadedMinScore);
+            
+            // Load criteria and show banner (user will see what's being searched)
+            setSearchCriteria(defaultSearch.criteria);
+            setMinMatchScore(loadedMinScore);
+            setSelectedSearch(defaultSearch);
+            
+            // Mark as executed
+            hasAutoExecutedRef.current = true;
+            
+            // Execute the search with explicit criteria AND minMatchScore
+            setTimeout(() => {
+              console.log('🔍 Auto-executing default saved search');
+              console.log('   - Criteria:', defaultSearch.criteria);
+              console.log('   - Min match score:', loadedMinScore);
+              handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass BOTH!
+            }, 500);
+          } else {
+            // No saved searches yet, load criteria silently (no execution, no banner)
+            console.log('📋 Loading criteria silently (no saved searches list yet)');
+            setSearchCriteria(defaultSearch.criteria);
+          }
         } else {
-          // No default saved search - perform normal initial search with default criteria
-          console.log('🔍 No default search - auto-triggering search with gender:', searchCriteria.gender || 'all');
-          console.log('📋 Current search criteria:', searchCriteria);
-          setTimeout(() => {
-            console.log('⏰ Timeout fired - calling handleSearch');
-            handleSearch(1);
-          }, 800);
+          // No default saved search - just show empty search page
+          console.log('🔍 No default search - waiting for user to initiate search');
         }
       } catch (err) {
         console.error('Error loading default saved search:', err);
-        // Fall back to normal search
-        setTimeout(() => {
-          handleSearch(1);
-        }, 800);
       }
     };
 
     loadAndExecuteDefaultSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserProfile]);
+  }, [currentUserProfile, savedSearches.length]);
   
-  // Additional trigger when searchCriteria.gender changes
-  useEffect(() => {
-    if (currentUserProfile && searchCriteria.gender && users.length === 0) {
-      console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
-      handleSearch(1);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchCriteria.gender]);
+  // ❌ DISABLED: No auto-search on gender change
+  // User must manually click "Search" button
+  // useEffect(() => {
+  //   if (currentUserProfile && searchCriteria.gender && users.length === 0) {
+  //     console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
+  //     handleSearch(1);
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [searchCriteria.gender]);
 
   const loadPiiRequests = async () => {
     const currentUser = localStorage.getItem('username');
@@ -1832,8 +1852,9 @@ const SearchPage2 = () => {
 
                   {/* Search Tabs */}
                   <UniversalTabContainer
+                    key={`search-tabs-${savedSearches.length}`}
                     variant="underlined"
-                    defaultTab="search"
+                    defaultTab={savedSearches.length > 0 ? "saved" : "search"}
                     tabs={[
                 {
                   id: 'search',
@@ -2098,20 +2119,37 @@ const SearchPage2 = () => {
                   key={user.username}
                   user={user}
                   currentUsername={localStorage.getItem('username')}
+                  // Context for kebab menu
+                  context="search-results"
+                  // Kebab menu handlers
+                  onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                  onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                  onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                  onMessage={handleMessage}
+                  onRequestPII={(u) => openPIIRequestModal(u.username)}
+                  // Legacy handlers (for backward compatibility)
                   onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
                   onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
                   onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
-                  onMessage={handleMessage}
                   onPIIRequest={(u) => openPIIRequestModal(u.username)}
+                  // State
                   isFavorited={favoritedUsers.has(user.username)}
                   isShortlisted={shortlistedUsers.has(user.username)}
                   isExcluded={excludedUsers.has(user.username)}
+                  isBlocked={excludedUsers.has(user.username)}
                   hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
                   hasImageAccess={hasPiiAccess(user.username, 'images')}
                   isPiiRequestPending={isPiiRequestPending(user.username, 'contact_info')}
                   isImageRequestPending={isPiiRequestPending(user.username, 'images')}
                   piiRequestStatus={getPIIRequestStatus(user.username)}
+                  piiAccess={{
+                    contact: hasPiiAccess(user.username, 'contact_info'),
+                    email: hasPiiAccess(user.username, 'email'),
+                    phone: hasPiiAccess(user.username, 'phone'),
+                    photos: hasPiiAccess(user.username, 'images')
+                  }}
                   viewMode={viewMode}
+                  // Legacy display flags
                   showFavoriteButton={true}
                   showShortlistButton={true}
                   showExcludeButton={true}
