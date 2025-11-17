@@ -48,8 +48,14 @@ const SimpleKebabMenu = ({
     }
   }, [isOpen]);
 
-  const handleItemClick = (handler) => {
-    if (handler) handler(user);
+  const handleItemClick = (handler, actionName = 'action') => {
+    console.log(`🔵 Menu item clicked: ${actionName}`, { handler: !!handler, user });
+    if (handler) {
+      handler(user);
+      console.log(`✅ Handler executed for ${actionName}`);
+    } else {
+      console.warn(`⚠️ No handler for ${actionName}`);
+    }
     setIsOpen(false);
   };
 
@@ -77,7 +83,7 @@ const SimpleKebabMenu = ({
           <button onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleItemClick(onViewProfile);
+            handleItemClick(onViewProfile, 'View Profile');
           }}>
             👁️ View Profile
           </button>
@@ -85,7 +91,7 @@ const SimpleKebabMenu = ({
           <button onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleItemClick(onToggleFavorite);
+            handleItemClick(onToggleFavorite, 'Toggle Favorite');
           }}>
             {isFavorited ? '💔' : '⭐'} {isFavorited ? 'Unfavorite' : 'Favorite'}
           </button>
@@ -93,7 +99,7 @@ const SimpleKebabMenu = ({
           <button onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            handleItemClick(onToggleShortlist);
+            handleItemClick(onToggleShortlist, 'Toggle Shortlist');
           }}>
             {isShortlisted ? '📤' : '📋'} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
           </button>
@@ -102,7 +108,7 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onMessage);
+              handleItemClick(onMessage, 'Message');
             }}>
               💬 Message
             </button>
@@ -114,7 +120,7 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onRequestPII);
+              handleItemClick(onRequestPII, 'Request Contact');
             }}>
               🔒 Request Contact
             </button>
@@ -124,7 +130,7 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onBlock);
+              handleItemClick(onBlock, 'Block');
             }}>
               🚫 Block
             </button>
@@ -134,7 +140,7 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onReport);
+              handleItemClick(onReport, 'Report');
             }}>
               🚩 Report
             </button>

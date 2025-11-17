@@ -5,6 +5,7 @@ import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import './Dashboard.css';
 import MessageModal from './MessageModal';
+import PIIRequestModal from './PIIRequestModal';
 import AccessRequestManager from './AccessRequestManager';
 import logger from '../utils/logger';
 import PageHeader from './PageHeader';
@@ -55,6 +56,10 @@ const Dashboard = () => {
   // Message modal state
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [selectedUserForMessage, setSelectedUserForMessage] = useState(null);
+  
+  // PII Request modal state
+  const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
+  const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   
   // Online users state
   // eslint-disable-next-line no-unused-vars
@@ -544,14 +549,12 @@ const Dashboard = () => {
 
   const handleRequestPII = async (user) => {
     try {
-      const targetUsername = user.username || user;
-      // Open PII request modal or make API call
-      // For now, just show a toast
-      toast.info(`PII request functionality - to be implemented`);
-      logger.info(`Request PII for ${targetUsername}`);
+      logger.info(`Opening PII request modal for user:`, user);
+      setSelectedUserForPII(user);
+      setShowPIIRequestModal(true);
     } catch (err) {
-      logger.error(`Failed to request PII: ${err.message}`);
-      toast.error(`Failed to request PII`);
+      logger.error(`Failed to open PII request modal: ${err.message}`);
+      toast.error(`Failed to open PII request modal`);
     }
   };
 
@@ -1061,6 +1064,20 @@ const Dashboard = () => {
         onClose={() => {
           setShowMessageModal(false);
           setSelectedUserForMessage(null);
+        }}
+      />
+
+      {/* PII Request Modal */}
+      <PIIRequestModal
+        isOpen={showPIIRequestModal}
+        profile={selectedUserForPII}
+        onClose={() => {
+          setShowPIIRequestModal(false);
+          setSelectedUserForPII(null);
+        }}
+        onRequestSubmitted={() => {
+          loadDashboardData(currentUser);
+          toast.success('PII request submitted');
         }}
       />
 
