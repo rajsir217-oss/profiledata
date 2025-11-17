@@ -70,24 +70,15 @@ SMTP_HOST=smtp.gmail.com,\
 SMTP_PORT=587,\
 FROM_EMAIL=rajl3v3l@gmail.com,\
 FROM_NAME=L3V3L Dating,\
-<<<<<<< HEAD
 TURNSTILE_SECRET_KEY=0x4AAAAAACAeADFuazfxSYYRyiJwVY6pHBI,\
-SECRET_KEY=,\
-=======
-SECRET_KEY=$SECRET_KEY,\
 SMS_PROVIDER=simpletexting,\
->>>>>>> dev
 ENABLE_NOTIFICATIONS=true,\
 ENABLE_SCHEDULER=true,\
 ENABLE_WEBSOCKETS=true,\
 DEBUG_MODE=false,\
-<<<<<<< HEAD
-LOG_LEVEL=INFO,\
-SMS_PROVIDER=simpletexting" \
-=======
 LOG_LEVEL=$LOG_LEVEL" \
->>>>>>> dev
   --set-secrets "\
+SECRET_KEY=SECRET_KEY:latest,\
 ENCRYPTION_KEY=ENCRYPTION_KEY:latest,\
 SMTP_USER=SMTP_USER:latest,\
 SMTP_PASSWORD=SMTP_PASSWORD:latest,\
