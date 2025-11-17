@@ -6,26 +6,30 @@
 .kebab-menu-container {
   position: relative;
   display: inline-block;
+  z-index: 100;
+  isolation: isolate;
 }
 
 /* Kebab Button (⋮) */
 .kebab-button {
-  width: 28px;
-  height: 24px;
-  min-width: 28px;
-  min-height: 24px;
-  border-radius: 12px;
-  background: transparent;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.2);
   border: none;
   color: var(--text-color);
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
+  cursor: pointer !important;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  z-index: 200 !important;
+  pointer-events: auto !important;
 }
 
 .kebab-button:hover {
@@ -44,24 +48,25 @@
 }
 
 .kebab-icon {
-  font-size: 14px;
+  font-size: 20px;
   line-height: 1;
   font-weight: bold;
   letter-spacing: -1px;
+  display: block;
 }
 
-/* Dropdown Menu */
+/* Dropdown Menu - FIXED POSITIONING for overlay */
 .kebab-menu-dropdown {
-  position: absolute;
-  top: calc(100% + var(--spacing-xs));
-  right: 0;
-  z-index: 1000;
+  position: fixed !important;
+  /* top and left are set dynamically via inline styles */
+  z-index: 999999 !important;
   min-width: 140px;
+  width: 160px;
   max-width: 160px;
-  background: var(--card-background);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  box-shadow: var(--shadow-md);
+  background: var(--card-background) !important;
+  border: 2px solid var(--primary-color) !important;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2) !important;
   backdrop-filter: blur(10px);
   overflow-x: hidden;
   overflow-y: auto;
@@ -69,14 +74,13 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--text-muted) transparent;
-  /* max-height set dynamically via JS based on viewport space */
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  /* max-height, top, left set dynamically via JS based on viewport space */
 }
 
-/* Open Upward - When menu opens above button */
-.kebab-menu-dropdown.open-upward {
-  top: auto;
-  bottom: calc(100% + var(--spacing-xs));
-}
+/* Open Upward class kept for backward compatibility - positioning handled by JS */
 
 /* Custom Scrollbar for Webkit (Chrome, Safari, Edge) */
 .kebab-menu-dropdown::-webkit-scrollbar {

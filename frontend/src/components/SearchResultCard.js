@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import { getDisplayName } from '../utils/userDisplay';
-import KebabMenu from './KebabMenu';
+import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage.css';
 
 /**
@@ -37,6 +37,7 @@ const SearchResultCard = ({
   onMessage,
   onRemove,
   onPIIRequest,
+  onRequestPII, // Support both naming conventions
   // State props
   isFavorited = false,
   isShortlisted = false,
@@ -163,7 +164,7 @@ const SearchResultCard = ({
 
   const bottomActions = getBottomActions();
   const hasBottomActions = bottomActions.length > 0;
-  const hasKebabMenu = onToggleFavorite || onToggleShortlist || onBlock || onPIIRequest || onReport;
+  const hasKebabMenu = onToggleFavorite || onToggleShortlist || onBlock || onRequestPII || onPIIRequest || onReport;
   
   // Merge legacy handlers with new handlers for kebab menu
   const kebabHandlers = {
@@ -172,7 +173,7 @@ const SearchResultCard = ({
     onToggleShortlist: onToggleShortlist || onShortlist,
     onMessage: onMessage,
     onBlock: onBlock || onExclude,
-    onRequestPII: onPIIRequest,
+    onRequestPII: onRequestPII || onPIIRequest,
     onReport: onReport
   };
 
@@ -613,15 +614,12 @@ const SearchResultCard = ({
             )}
             {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
             
-            {/* Kebab Menu - Inside flex container for perfect alignment */}
+            {/* Simple Kebab Menu */}
             {hasKebabMenu && (
-              <KebabMenu
+              <SimpleKebabMenu
                 user={user}
-                context={context}
                 isFavorited={isFavorited}
                 isShortlisted={isShortlisted}
-                isBlocked={isBlocked}
-                piiAccess={piiAccess}
                 onViewProfile={kebabHandlers.onViewProfile}
                 onToggleFavorite={kebabHandlers.onToggleFavorite}
                 onToggleShortlist={kebabHandlers.onToggleShortlist}

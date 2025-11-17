@@ -44,12 +44,14 @@ const KebabMenu = ({
   onReport
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ maxHeight: '400px', openUpward: false });
+  const [menuPosition, setMenuPosition] = useState({ maxHeight: '400px', openUpward: false, top: 0, left: 0 });
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
   // Close menu when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
+
     const handleClickOutside = (event) => {
       if (
         menuRef.current &&
@@ -57,16 +59,19 @@ const KebabMenu = ({
         buttonRef.current &&
         !buttonRef.current.contains(event.target)
       ) {
+        console.log('👋 Clicking outside - closing menu');
         setIsOpen(false);
       }
     };
 
-    if (isOpen) {
+    // Delay adding the listener to prevent immediate closure
+    const timeoutId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
       document.addEventListener('touchstart', handleClickOutside);
-    }
+    }, 100); // 100ms delay
 
     return () => {
+      clearTimeout(timeoutId);
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('touchstart', handleClickOutside);
     };
@@ -86,19 +91,25 @@ const KebabMenu = ({
     };
   }, [isOpen]);
 
-  // Calculate menu position to avoid viewport clipping
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
+  const handleToggle = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.nativeEvent.stopImmediatePropagation();
+    console.log('🔵 Kebab menu clicked! isOpen:', isOpen);
+    
+    // Calculate position immediately when opening
+    if (!isOpen && buttonRef.current) {
+      console.log('📍 Calculating position...');
       const buttonRect = buttonRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
+      const viewportWidth = window.innerWidth;
       const spaceBelow = viewportHeight - buttonRect.bottom;
       const spaceAbove = buttonRect.top;
-      const menuMinHeight = 200; // Minimum reasonable menu height
+      const menuMinHeight = 200;
+      const menuWidth = 160;
       
-      // Decide if menu should open upward
       const shouldOpenUpward = spaceBelow < menuMinHeight && spaceAbove > spaceBelow;
       
-      // Calculate max-height based on available space (leave 20px padding)
       let maxHeight;
       if (shouldOpenUpward) {
         maxHeight = Math.min(400, spaceAbove - 20);
@@ -106,15 +117,30 @@ const KebabMenu = ({
         maxHeight = Math.min(400, spaceBelow - 20);
       }
       
-      setMenuPosition({
+      let top, left;
+      if (shouldOpenUpward) {
+        top = buttonRect.top - maxHeight - 8;
+      } else {
+        top = buttonRect.bottom + 8;
+      }
+      
+      left = buttonRect.right - menuWidth;
+      if (left < 10) left = 10;
+      if (left + menuWidth > viewportWidth - 10) {
+        left = viewportWidth - menuWidth - 10;
+      }
+      
+      const newPosition = {
         maxHeight: `${maxHeight}px`,
-        openUpward: shouldOpenUpward
-      });
+        openUpward: shouldOpenUpward,
+        top: `${top}px`,
+        left: `${left}px`
+      };
+      console.log('📐 Menu position:', newPosition);
+      setMenuPosition(newPosition);
     }
-  }, [isOpen]);
-
-  const handleToggle = (e) => {
-    e.stopPropagation();
+    
+    console.log('🔄 Setting isOpen to:', !isOpen);
     setIsOpen(!isOpen);
   };
 
@@ -136,8 +162,16 @@ const KebabMenu = ({
   const showMessageInMenu = context === 'my-messages' ? false : true;
   const showBlockInMenu = isBlocked ? false : true;
 
+  console.log('🔴 KebabMenu rendering. isOpen:', isOpen, 'menuPosition:', menuPosition);
+
   return (
-    <div className="kebab-menu-container">
+    <div 
+      className="kebab-menu-container"
+      onClick={(e) => {
+        e.stopPropagation();
+        console.log('🟡 Container clicked - preventing propagation');
+      }}
+    >
       <button
         ref={buttonRef}
         className={`kebab-button ${isOpen ? 'active' : ''}`}
@@ -153,7 +187,13 @@ const KebabMenu = ({
         <div 
           ref={menuRef} 
           className={`kebab-menu-dropdown ${menuPosition.openUpward ? 'open-upward' : ''}`}
-          style={{ maxHeight: menuPosition.maxHeight }}
+          style={{ 
+            maxHeight: menuPosition.maxHeight,
+            top: menuPosition.top,
+            left: menuPosition.left,
+            display: 'block'
+          }}
+          onClick={() => console.log('🟢 Menu clicked!')}
         >
           {/* Profile Section */}
           <div className="menu-section">

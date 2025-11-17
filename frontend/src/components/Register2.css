@@ -191,51 +191,80 @@
   }
 }
 
-/* SMS Opt-in Checkbox - Theme-aware styling */
+/* SMS Opt-in Checkbox - Theme-aware styling with high contrast */
 .sms-optin-checkbox {
-  padding: 10px 12px;
-  background: var(--surface-color, #f8f9fa);
+  padding: 12px 16px;
+  /* Use card background for better contrast across all themes */
+  background: var(--card-background, #ffffff);
   border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--border-color, #e0e0e0);
+  border: 2px solid var(--border-color, #e0e0e0);
   transition: all 0.2s ease;
+  /* Ensure proper z-index */
+  position: relative;
+  z-index: 1;
 }
 
 .sms-optin-checkbox:hover {
-  background: var(--hover-background, #f0f0f0);
+  background: var(--card-background, #ffffff);
   border-color: var(--primary-color, #667eea);
+  /* Add subtle shadow on hover for better visibility */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
 .sms-optin-checkbox .form-check-input {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   margin-top: 2px;
   cursor: pointer;
-  border: 2px solid var(--border-color, #d0d0d0);
+  /* Stronger border for better visibility */
+  border: 2px solid var(--text-secondary, #666);
+  background-color: var(--input-bg, #ffffff);
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
 .sms-optin-checkbox .form-check-input:checked {
   background-color: var(--primary-color, #667eea);
   border-color: var(--primary-color, #667eea);
+  /* Ensure checkmark is visible */
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
 }
 
 .sms-optin-checkbox .form-check-input:focus {
   border-color: var(--primary-color, #667eea);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+  outline: none;
 }
 
 .sms-optin-checkbox .form-check-label {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
-  color: var(--text-color, #333);
+  /* Use primary text color for high contrast */
+  color: var(--text-color, #1a1a1a);
   cursor: pointer;
-  margin-left: 8px;
+  margin-left: 10px;
+  line-height: 1.6;
+  /* Prevent label from becoming too faint */
+  opacity: 1 !important;
+}
+
+.sms-optin-checkbox .form-check-label a {
+  color: var(--primary-color, #667eea);
+  text-decoration: underline;
+  font-weight: 600;
+}
+
+.sms-optin-checkbox .form-check-label a:hover {
+  color: var(--secondary-color, #764ba2);
+  text-decoration: none;
 }
 
 .sms-optin-checkbox small {
   font-size: 12px;
-  color: var(--text-muted, #999);
-  margin-left: 26px;
+  color: var(--text-secondary, #666);
+  margin-left: 30px;
+  display: block;
+  margin-top: 4px;
 }
 
 /* ========================================

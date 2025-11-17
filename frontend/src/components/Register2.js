@@ -2048,15 +2048,29 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 className="form-check-input" 
                 id="smsOptIn"
                 name="smsOptIn"
-                checked={formData.smsOptIn}
-                onChange={(e) => setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }))}
+                checked={!!formData.smsOptIn}
+                onChange={(e) => {
+                  console.log('SMS Opt-in checkbox clicked:', e.target.checked);
+                  setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }));
+                }}
+                style={{cursor: 'pointer', position: 'relative', zIndex: 1}}
               />
-              <label className="form-check-label" htmlFor="smsOptIn" style={{fontSize: '13px', lineHeight: '1.6'}}>
+              <label 
+                className="form-check-label" 
+                htmlFor="smsOptIn" 
+                style={{fontSize: '13px', lineHeight: '1.6', cursor: 'pointer', userSelect: 'none'}}
+                onClick={(e) => {
+                  // Ensure label click toggles checkbox
+                  if (e.target.tagName === 'A') return; // Don't toggle if clicking links
+                  console.log('SMS Opt-in label clicked');
+                  setFormData(prev => ({ ...prev, smsOptIn: !prev.smsOptIn }));
+                }}
+              >
                 📱 I want to receive SMS notifications and updates
                 <br/><br/>
                 I agree to receive promotional messages sent via an autodialer, and this agreement isn't a condition of any purchase. I also agree to the{' '}
-                <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and{' '}
-                <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>. 
+                <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Terms of Service</a> and{' '}
+                <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>. 
                 Msg & Data Rates may apply. Text STOP to opt out anytime. Text HELP for more information.
               </label>
             </div>

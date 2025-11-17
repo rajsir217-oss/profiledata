@@ -4,7 +4,7 @@ import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import MessageBadge from './MessageBadge';
 import { getDisplayName } from '../utils/userDisplay';
-import KebabMenu from './KebabMenu';
+import SimpleKebabMenu from './SimpleKebabMenu';
 import './UserCard.css';
 
 /**
@@ -285,16 +285,13 @@ const UserCard = ({
         </div>
       )}
 
-      {/* Header Actions - Kebab Menu */}
+      {/* Header Actions - Simple Kebab Menu */}
       {hasKebabMenu && (
         <div className="user-card-header-actions">
-          <KebabMenu
+          <SimpleKebabMenu
             user={user}
-            context={context}
             isFavorited={isFavorited}
             isShortlisted={isShortlisted}
-            isBlocked={isBlocked}
-            piiAccess={piiAccess}
             onViewProfile={onViewProfile}
             onToggleFavorite={onToggleFavorite}
             onToggleShortlist={onToggleShortlist}
