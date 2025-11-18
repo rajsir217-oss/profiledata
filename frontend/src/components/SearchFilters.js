@@ -164,7 +164,7 @@ const SearchFilters = ({
                   }}
                   min="19"
                   max="100"
-                  placeholder="19"
+                  placeholder="Min"
                   style={{ flex: 1 }}
                   title="Minimum age: 19 | Maximum age: 100"
                 />
@@ -186,7 +186,7 @@ const SearchFilters = ({
                   }}
                   min="19"
                   max="100"
-                  placeholder="23"
+                  placeholder="Max"
                   style={{ flex: 1 }}
                   title="Minimum age: 19 | Maximum age: 100"
                 />

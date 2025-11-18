@@ -826,11 +826,11 @@
 .cards-per-row-selector {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: var(--surface-color, #f8f9fa);
-  border: 1px solid var(--border-color, #ddd);
-  border-radius: 20px;
+  gap: 6px !important;
+  padding: 4px 12px !important;
+  background: var(--surface-color, #f8f9fa) !important;
+  border: 1px solid var(--border-color, #ddd) !important;
+  border-radius: 20px !important;
 }
 
 .cards-per-row-selector .selector-label {
@@ -841,15 +841,73 @@
   user-select: none;
 }
 
-.cards-per-row-selector .btn {
+.cards-btn {
   min-width: 28px;
+  height: 28px;
   padding: 3px 8px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #666);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
+.cards-btn:hover {
+  background: var(--hover-background, rgba(102, 126, 234, 0.1));
+  color: var(--primary-color);
+}
 
+.cards-btn.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* View Toggle Selector - Match Cards Per Row Style */
+.view-toggle-selector {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 4px 12px !important;
+  background: var(--surface-color, #f8f9fa) !important;
+  border: 1px solid var(--border-color, #ddd) !important;
+  border-radius: 20px !important;
+}
+
+.view-toggle-btn {
+  min-width: 28px;
+  height: 28px;
+  padding: 3px 8px;
+  font-size: 16px;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary, #666);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.view-toggle-btn:hover {
+  background: var(--hover-background, rgba(102, 126, 234, 0.1));
+  color: var(--primary-color);
+}
+
+.view-toggle-btn.active {
+  background: var(--primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
 
 .results-grid {
   display: grid !important;
@@ -2160,7 +2218,7 @@
 
 .results-controls-bottom {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
   gap: 20px;
   padding: 16px 20px;
@@ -2188,11 +2246,11 @@
   padding: 6px 12px;
 }
 
-/* Center Section: Cards + Show Per Page */
+/* Center Section: Cards + View Toggle */
 .results-controls-bottom .center-controls {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .results-controls-bottom .cards-per-row-selector {
@@ -2218,11 +2276,7 @@
   min-width: 130px;
 }
 
-/* Right Section: View Toggle Buttons */
-.results-controls-bottom .view-toggle-group {
-  display: flex;
-  gap: 8px;
-}
+/* Right Section: View Toggle Buttons - Using .view-toggle-selector now */
 
 .pagination-dots {
   padding: 0 10px;
@@ -2419,43 +2473,18 @@
   
   /* Results controls at bottom - mobile responsive - VERY COMPACT */
   .results-controls-bottom {
-    flex-direction: column !important;
-    gap: 6px !important;
-    padding: 6px 8px !important;
-    background: var(--surface-color) !important;
-    border-radius: var(--radius-sm) !important;
-    margin-bottom: 8px !important;
-    font-size: 11px !important;
-  }
-  
-  /* Each section stacks vertically */
-  .results-controls-bottom > div {
-    width: 100% !important;
-    justify-content: center !important;
-  }
-  
-  /* Results badge section - TINY */
-  .results-controls-bottom .results-info {
-    justify-content: center !important;
-    flex-wrap: wrap;
-    gap: 4px !important;
-  }
-  
-  .results-controls-bottom .results-label {
-    font-size: 10px !important;
-    font-weight: 500 !important;
-  }
-  
-  .results-controls-bottom .badge {
-    font-size: 9px !important;
-    padding: 2px 6px !important;
-    line-height: 1.2 !important;
-  }
-  
-  /* Center section (Cards + Show) - TINY */
-  .results-controls-bottom > div:nth-child(2) {
-    flex-direction: row !important;
     gap: 8px !important;
+    padding: 8px 10px !important;
+    margin-top: 12px !important;
+    border-radius: 12px !important;
+    background-color: var(--surface-color) !important;
+  }
+  
+  /* Center controls with cards selector and view toggle */
+  .results-controls-bottom .center-controls {
+    flex-direction: row !important;
+    gap: 10px !important;
+    justify-content: center !important;
   }
   
   .results-controls-bottom .selector-label {
@@ -2491,20 +2520,7 @@
     margin-right: 0 !important;
   }
   
-  /* View toggle buttons - TINY */
-  .results-controls-bottom .view-toggle-group {
-    justify-content: center !important;
-    width: 100% !important;
-    gap: 4px !important;
-  }
-  
-  .results-controls-bottom .view-toggle-group .btn {
-    padding: 4px 10px !important;
-    font-size: 13px !important;
-    min-width: 36px !important;
-    height: 28px !important;
-    line-height: 1 !important;
-  }
+  /* View toggle buttons styles moved to .view-toggle-selector above */
   
   .search-button-section .btn {
     padding: 8px;
@@ -2558,9 +2574,9 @@
     width: 100%;
     min-width: unset;
     max-width: unset;
-    min-height: 150px !important;
-    max-height: 150px !important;
-    height: 150px !important;
+    min-height: 120px !important;
+    max-height: 120px !important;
+    height: 120px !important;
     border-right: none;
     border-bottom: 1px solid var(--border-color, #e0e0e0);
     padding: 0 !important;
@@ -2572,8 +2588,8 @@
   /* Profile image container - limit height on mobile */
   .profile-image-container {
     width: 100% !important;
-    height: 150px !important;
-    max-height: 150px !important;
+    height: 120px !important;
+    max-height: 120px !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2582,13 +2598,38 @@
   /* Compact images on mobile to save space */
   .profile-image-left img,
   .profile-image-left .profile-thumbnail-placeholder {
-    width: 150px !important;
-    height: 150px !important;
-    min-height: 150px;
-    max-height: 150px;
+    width: 120px !important;
+    height: 120px !important;
+    min-height: 120px !important;
+    max-height: 120px !important;
     margin: 0 auto;
     border-radius: 8px;
     object-fit: cover;
+  }
+  
+  /* Smaller buttons on mobile */
+  .cards-per-row-selector {
+    padding: 3px 8px !important;
+    gap: 4px !important;
+  }
+  
+  .cards-btn {
+    min-width: 24px;
+    height: 24px;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  
+  .view-toggle-selector {
+    padding: 3px 8px !important;
+    gap: 4px !important;
+  }
+  
+  .view-toggle-btn {
+    min-width: 24px;
+    height: 24px;
+    padding: 2px 6px;
+    font-size: 14px;
   }
 
   .user-details-right {
@@ -2708,9 +2749,9 @@
   /* Fix locked image placeholder height on mobile - match profile image size */
   .profile-thumbnail-locked {
     width: 100% !important;
-    height: 150px !important;
-    min-height: 150px !important;
-    max-height: 150px !important;
+    height: 120px !important;
+    min-height: 120px !important;
+    max-height: 120px !important;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2951,47 +2992,30 @@
   
   /* Results controls bottom - extra small - ULTRA COMPACT */
   .results-controls-bottom {
-    padding: 4px 6px !important;
-    gap: 4px !important;
-    font-size: 10px !important;
-  }
-  
-  .results-controls-bottom .results-label {
-    font-size: 9px !important;
-  }
-  
-  .results-controls-bottom .badge {
-    font-size: 8px !important;
-    padding: 1px 4px !important;
+    padding: 6px 8px !important;
+    gap: 6px !important;
   }
   
   .results-controls-bottom .selector-label {
     font-size: 9px !important;
   }
   
-  .results-controls-bottom .cards-per-row-selector button,
-  .results-controls-bottom .page-btn {
-    padding: 2px 6px !important;
-    font-size: 10px !important;
-    min-width: 24px !important;
-    height: 20px !important;
+  .cards-btn {
+    padding: 2px 6px;
+    font-size: 10px;
+    min-width: 20px;
+    height: 24px;
   }
   
-  .results-controls-bottom .view-toggle-group .btn {
-    padding: 3px 8px !important;
-    font-size: 12px !important;
-    min-width: 32px !important;
-    height: 24px !important;
+  .view-toggle-btn {
+    padding: 2px 6px;
+    font-size: 12px;
+    min-width: 20px;
+    height: 24px;
   }
   
   .cards-per-row-selector .selector-label {
-    font-size: 12px;
-  }
-  
-  .cards-per-row-selector .btn {
-    padding: 5px 10px;
-    font-size: 11px;
-    min-width: 30px;
+    font-size: 9px;
   }
   
   /* Limit container heights on tiny screens */
@@ -4375,25 +4399,12 @@ body.theme-rose .request-pics-btn-main:active {
   
   /* Bottom navigation bar - tablet responsive */
   .results-controls-bottom {
-    flex-wrap: wrap;
-    gap: 15px;
-    padding: 14px 16px;
+    gap: 12px;
+    padding: 12px 16px;
   }
   
-  /* Results badge takes full width on tablet */
-  .results-controls-bottom .results-info {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  /* Center section and view toggles share space */
-  .results-controls-bottom > div:nth-child(2) {
-    flex: 1;
-    min-width: 200px;
-  }
-  
-  .results-controls-bottom .view-toggle-group {
-    flex-shrink: 0;
+  .results-controls-bottom .center-controls {
+    gap: 12px;
   }
 }
 
