@@ -1624,9 +1624,14 @@ const SearchPage2 = () => {
     setShowMessageModal(true);
   };
 
+  console.log(`🔍 Starting client-side filter with ${users.length} users from backend`);
+  console.log(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
+  console.log(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
+  
   const filteredUsers = users.filter(user => {
     // Exclude users who have been excluded by current user
     if (excludedUsers.has(user.username)) {
+      console.log(`🚫 Filtered out ${user.username} - excluded`);
       return false;
     }
 
@@ -1635,24 +1640,49 @@ const SearchPage2 = () => {
       // If user has no match score (0 or undefined), hide them when filter is active
       const userScore = user.matchScore || 0;
       if (userScore < minMatchScore) {
+        console.log(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
         return false;
       }
     }
 
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
       const age = user.age || calculateAge(user.birthMonth, user.birthYear);
-      if (age === null) return false;
-
-      if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) return false;
-      if (searchCriteria.ageMax && age > parseInt(searchCriteria.ageMax)) return false;
+      console.log(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
+      
+      // Only apply age filter if user has valid age data
+      // Users without age data will be included in results
+      if (age !== null) {
+        if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) {
+          console.log(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
+          return false;
+        }
+        if (searchCriteria.ageMax && age > parseInt(searchCriteria.ageMax)) {
+          console.log(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
+          return false;
+        }
+      } else {
+        console.log(`⚠️ ${user.username} has no age data - including in results`);
+      }
     }
 
     if (searchCriteria.heightMin || searchCriteria.heightMax) {
       const heightInches = parseHeight(user.height);
-      if (heightInches === null) return false;
-
-      if (searchCriteria.heightMin && heightInches < parseInt(searchCriteria.heightMin)) return false;
-      if (searchCriteria.heightMax && heightInches > parseInt(searchCriteria.heightMax)) return false;
+      console.log(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
+      
+      // Only apply height filter if user has valid height data
+      // Users without height data will be included in results
+      if (heightInches !== null) {
+        if (searchCriteria.heightMin && heightInches < parseInt(searchCriteria.heightMin)) {
+          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
+          return false;
+        }
+        if (searchCriteria.heightMax && heightInches > parseInt(searchCriteria.heightMax)) {
+          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
+          return false;
+        }
+      } else {
+        console.log(`⚠️ ${user.username} has no height data - including in results`);
+      }
     }
 
     if (searchCriteria.keyword) {
@@ -1666,8 +1696,11 @@ const SearchPage2 = () => {
       if (!searchableText.includes(keyword)) return false;
     }
 
+    console.log(`✅ ${user.username} passed all filters`);
     return true;
   });
+  
+  console.log(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
 
   // Apply sorting to filtered users
   const sortedUsers = [...filteredUsers].sort((a, b) => {
@@ -2103,8 +2136,52 @@ const SearchPage2 = () => {
                   <span>{sortOrder === 'desc' ? 'High to Low' : 'Low to High'}</span>
                 </button>
               </div>
-              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {sortedUsers.length} profile{sortedUsers.length !== 1 ? 's' : ''}
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontWeight: 600 }}>Profiles:</span>
+                <span 
+                  style={{ 
+                    background: 'var(--primary-color)', 
+                    color: 'white', 
+                    padding: '2px 8px', 
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'help'
+                  }}
+                  title="Total matches found by search"
+                >
+                  {users.length}
+                </span>
+                <span>|</span>
+                <span 
+                  style={{ 
+                    background: 'var(--success-color)', 
+                    color: 'white', 
+                    padding: '2px 8px', 
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'help'
+                  }}
+                  title="Profiles currently displayed (after filtering)"
+                >
+                  {sortedUsers.length}
+                </span>
+                <span>|</span>
+                <span 
+                  style={{ 
+                    background: 'var(--danger-color)', 
+                    color: 'white', 
+                    padding: '2px 8px', 
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '12px',
+                    cursor: 'help'
+                  }}
+                  title="Profiles hidden (users you've excluded/blocked)"
+                >
+                  {users.length - filteredUsers.length}
+                </span>
               </div>
             </div>
           )}
@@ -2177,22 +2254,7 @@ const SearchPage2 = () => {
           {/* Consolidated Bottom Navigation Bar */}
           {sortedUsers.length > 0 && (
             <div className="results-controls-bottom">
-              {/* Left: Results Badge */}
-              <div className="results-info">
-                <span className="results-label">Results:</span>
-                {users.length > 0 ? (
-                  <span 
-                    className="badge bg-primary" 
-                    title={`Total: ${totalResults} | Shown: ${sortedUsers.length} | Hidden: ${users.length - sortedUsers.length}`}
-                  >
-                    Profiles: {totalResults} | {sortedUsers.length} | {users.length - sortedUsers.length}
-                  </span>
-                ) : (
-                  <span className="badge bg-secondary">No search performed yet</span>
-                )}
-              </div>
-
-              {/* Center: Cards Per Row + Show Per Page */}
+              {/* Cards Per Row + View Toggle */}
               <div className="center-controls">
                 {/* Cards Per Row (only show in card view) */}
                 {viewMode === 'cards' && (
@@ -2201,7 +2263,7 @@ const SearchPage2 = () => {
                     {[2, 3, 4, 5].map(num => (
                       <button
                         key={num}
-                        className={`btn btn-sm ${cardsPerRow === num ? 'btn-primary' : 'btn-outline-secondary'}`}
+                        className={`cards-btn ${cardsPerRow === num ? 'active' : ''}`}
                         onClick={() => {
                           setCardsPerRow(num);
                           localStorage.setItem('searchCardsPerRow', num.toString());
@@ -2216,28 +2278,20 @@ const SearchPage2 = () => {
               </div>
 
               {/* Right: View Toggle Buttons */}
-              <div className="view-toggle-group">
+              <div className="view-toggle-selector">
                 <button
-                  className={`btn btn-sm ${viewMode === 'cards' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
                   onClick={() => setViewMode('cards')}
                   title="Card view"
                 >
                   ▦
                 </button>
                 <button
-                  className={`btn btn-sm ${viewMode === 'rows' ? 'btn-primary' : 'btn-outline-primary'}`}
+                  className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
                   onClick={() => setViewMode('rows')}
                   title="Row view"
                 >
                   ☰
-                </button>
-                <button 
-                  className="btn btn-sm btn-warning"
-                  onClick={() => handleSearch(1)}
-                  disabled={loading}
-                  title="Refresh results"
-                >
-                  🔄
                 </button>
               </div>
             </div>
