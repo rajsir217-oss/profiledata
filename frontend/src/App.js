@@ -46,6 +46,7 @@ import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
 import HelpPage from './components/HelpPage';
+import ProfileCompletionChecker from './components/ProfileCompletionChecker';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -88,10 +89,40 @@ const applyTheme = (themeId) => {
 // App Content Component (inside Router to use useLocation)
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
   const location = useLocation();
   
   // Routes where sidebar and topbar should be hidden
   const hideNavigation = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent'].includes(location.pathname);
+
+  // Fetch current user profile for profile completion check
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      const username = localStorage.getItem('username');
+      const token = localStorage.getItem('token');
+      
+      if (username && token) {
+        try {
+          const response = await fetch(`${getApiUrl()}/api/users/profile/${username}`, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            setCurrentUser(userData);
+          }
+        } catch (error) {
+          logger.error('Failed to fetch current user profile:', error);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    };
+    
+    fetchCurrentUser();
+  }, [location.pathname]); // Re-fetch when route changes
 
   // Initialize theme on app load
   useEffect(() => {
@@ -232,6 +263,7 @@ function AppContent() {
         {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
         )}
+        {!hideNavigation && <ProfileCompletionChecker user={currentUser} />}
         <div className={hideNavigation ? "main-content-full" : "main-content"}>
           <div className={hideNavigation ? "" : "container"}>
             <Routes>
