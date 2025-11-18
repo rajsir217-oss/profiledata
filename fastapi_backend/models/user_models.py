@@ -513,6 +513,7 @@ class LoginRequest(BaseModel):
     password: str
     mfa_code: Optional[str] = None
     remember_me: Optional[bool] = False
+    captchaToken: Optional[str] = None  # Cloudflare Turnstile CAPTCHA token
 
 class PiiRequest(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")

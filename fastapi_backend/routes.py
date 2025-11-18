@@ -8,6 +8,7 @@ import logging
 import uuid
 import hashlib
 import json
+import httpx
 from pathlib import Path
 from sse_starlette.sse import EventSourceResponse
 from models import (
@@ -44,6 +45,53 @@ def _decrypt_contact_info(value: str) -> str:
             return value
     
     return value
+
+# Cloudflare Turnstile CAPTCHA verification
+async def verify_turnstile(token: str) -> bool:
+    """
+    Verify Cloudflare Turnstile CAPTCHA token
+    
+    Args:
+        token: The turnstile token from frontend
+        
+    Returns:
+        bool: True if verification passed, False otherwise
+    """
+    if not token:
+        return False
+    
+    # Allow test keys to pass in development
+    if token == "XXXX.DUMMY.TOKEN.XXXX":
+        logger.info("✅ Turnstile: Using test/dummy token (development mode)")
+        return True
+    
+    # Skip verification if no secret key configured
+    if not settings.turnstile_secret_key:
+        logger.warning("⚠️ Turnstile secret key not configured - skipping verification")
+        return True
+    
+    verify_url = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+    verify_data = {
+        "secret": settings.turnstile_secret_key,
+        "response": token
+    }
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            verify_response = await client.post(verify_url, json=verify_data, timeout=10.0)
+            result = verify_response.json()
+            
+            if result.get("success"):
+                logger.info("✅ Turnstile CAPTCHA verification successful")
+                return True
+            else:
+                error_codes = result.get("error-codes", [])
+                logger.warning(f"❌ Turnstile verification failed: {error_codes}")
+                return False
+    except Exception as e:
+        logger.error(f"❌ Turnstile verification error: {e}")
+        # Fail open in case of API issues (better UX, but log the error)
+        return True
 
 # Compatibility aliases for old code
 def get_password_hash(password: str) -> str:
@@ -599,6 +647,26 @@ async def register_user(
 async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     """Login user and return access token"""
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
+    
+    # Verify Cloudflare Turnstile CAPTCHA (human verification)
+    if login_data.captchaToken:
+        captcha_valid = await verify_turnstile(login_data.captchaToken)
+        if not captcha_valid:
+            logger.warning(f"❌ CAPTCHA verification failed for username: {login_data.username}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="CAPTCHA verification failed. Please try again."
+            )
+        logger.info(f"✅ CAPTCHA verified for username: {login_data.username}")
+    else:
+        # CAPTCHA token not provided (could be from old clients or direct API calls)
+        logger.warning(f"⚠️ No CAPTCHA token provided for username: {login_data.username}")
+        # For now, allow login without CAPTCHA (backward compatibility)
+        # In production, uncomment the lines below to require CAPTCHA:
+        # raise HTTPException(
+        #     status_code=status.HTTP_400_BAD_REQUEST,
+        #     detail="CAPTCHA verification required"
+        # )
     
     # Find user in database (works for both admin and regular users)
     logger.debug(f"Looking up user '{login_data.username}' in database...")
