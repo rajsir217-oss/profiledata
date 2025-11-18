@@ -147,6 +147,45 @@ def parse_height_to_inches(height_str):
         return feet * 12 + inches
     return None
 
+def parse_date_of_birth(dob_str):
+    """
+    Parse dateOfBirth string to extract (birthMonth, birthYear)
+    
+    Handles various formats:
+    - ISO: "1990-05-15" or "1990-05-15T00:00:00"
+    - Slash: "05/15/1990" or "5/15/1990"
+    
+    Returns:
+        tuple: (birthMonth, birthYear) or (None, None)
+    """
+    if not dob_str:
+        return None, None
+    
+    try:
+        import re
+        dob_str = str(dob_str).strip()
+        
+        # ISO format: "1990-05-15" or "1990-05-15T00:00:00"
+        if '-' in dob_str:
+            parts = dob_str.split('T')[0].split('-')
+            if len(parts) >= 2:
+                year = int(parts[0])
+                month = int(parts[1])
+                return month, year
+        
+        # Slash format: "05/15/1990" (MM/DD/YYYY)
+        if '/' in dob_str:
+            parts = dob_str.split('/')
+            if len(parts) == 3:
+                month = int(parts[0])
+                year = int(parts[2])
+                return month, year
+        
+    except (ValueError, IndexError, AttributeError):
+        pass
+    
+    return None, None
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     # Basic Information
@@ -159,6 +198,7 @@ async def register_user(
     smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
+    dateOfBirth: Optional[str] = Form(None),  # Alternative format (backward compatibility)
     gender: Optional[str] = Form(None),  # Renamed from sex
     height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
     # Preferences & Cultural Information
@@ -272,6 +312,51 @@ async def register_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Password must be at least 6 characters long"
         )
+    
+    # Validate birth month and year (REQUIRED for age calculation)
+    # Support both new format (birthMonth/birthYear) and legacy format (dateOfBirth)
+    if not birthMonth or not birthYear:
+        # Try parsing dateOfBirth if provided (backward compatibility)
+        if dateOfBirth:
+            logger.debug(f"Parsing dateOfBirth for user '{username}': {dateOfBirth}")
+            parsed_month, parsed_year = parse_date_of_birth(dateOfBirth)
+            if parsed_month and parsed_year:
+                birthMonth = parsed_month
+                birthYear = parsed_year
+                logger.info(f"✅ Parsed dateOfBirth for user '{username}': {birthMonth}/{birthYear}")
+            else:
+                logger.warning(f"⚠️ Registration failed: Could not parse dateOfBirth for user '{username}': {dateOfBirth}")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Invalid dateOfBirth format. Use YYYY-MM-DD or MM/DD/YYYY"
+                )
+        else:
+            logger.warning(f"⚠️ Registration failed: User '{username}' missing birth date")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Birth month and year (or dateOfBirth) are required to create a profile"
+            )
+    
+    # Validate birth month range
+    if birthMonth < 1 or birthMonth > 12:
+        logger.warning(f"⚠️ Registration failed: Invalid birth month {birthMonth} for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Birth month must be between 1 and 12"
+        )
+    
+    # Validate birth year (reasonable range: 1924-2007 for ages 18-100)
+    current_year = datetime.now().year
+    min_year = current_year - 100
+    max_year = current_year - 18
+    if birthYear < min_year or birthYear > max_year:
+        logger.warning(f"⚠️ Registration failed: Invalid birth year {birthYear} for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Birth year must be between {min_year} and {max_year} (ages 18-100)"
+        )
+    
+    logger.info(f"✅ Birth date validated for user '{username}': {birthMonth}/{birthYear}")
     
     # Check if username already exists
     logger.debug(f"Checking if username '{username}' exists...")
@@ -774,6 +859,42 @@ async def update_user_profile(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+    
+    # Validate birth date if provided (REQUIRED for complete profiles)
+    if birthMonth is not None or birthYear is not None:
+        # If updating one, both must be provided
+        if birthMonth is None or birthYear is None:
+            # Check if user already has the missing field
+            if not user.get('birthMonth') or not user.get('birthYear'):
+                logger.warning(f"⚠️ Update failed: User '{username}' missing complete birth date")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Both birth month and year are required"
+                )
+        
+        # Validate birth month range if provided
+        check_month = birthMonth if birthMonth is not None else user.get('birthMonth')
+        if check_month and (check_month < 1 or check_month > 12):
+            logger.warning(f"⚠️ Update failed: Invalid birth month {check_month} for user '{username}'")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Birth month must be between 1 and 12"
+            )
+        
+        # Validate birth year if provided
+        check_year = birthYear if birthYear is not None else user.get('birthYear')
+        if check_year:
+            current_year = datetime.now().year
+            min_year = current_year - 100
+            max_year = current_year - 18
+            if check_year < min_year or check_year > max_year:
+                logger.warning(f"⚠️ Update failed: Invalid birth year {check_year} for user '{username}'")
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Birth year must be between {min_year} and {max_year} (ages 18-100)"
+                )
+        
+        logger.info(f"✅ Birth date validated for user '{username}' update")
     
     # Prepare update data - only update fields that are provided and not empty
     import json

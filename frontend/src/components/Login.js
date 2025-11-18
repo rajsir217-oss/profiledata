@@ -252,7 +252,7 @@ const Login = () => {
         maxWidth: '440px',
         background: 'rgba(255, 255, 255, 0.98)',
         borderRadius: '24px',
-        padding: '48px 40px',
+        padding: '32px 40px',
         boxShadow: '0 24px 48px rgba(0, 0, 0, 0.4), 0 8px 16px rgba(0, 0, 0, 0.3)',
         backdropFilter: 'blur(10px)',
         position: 'relative',
@@ -262,8 +262,8 @@ const Login = () => {
           display: 'flex', 
           flexDirection: 'column',
           alignItems: 'center', 
-          gap: '8px',
-          marginBottom: '16px' 
+          gap: '6px',
+          marginBottom: '12px' 
         }}>
           <div style={{ fontSize: '48px', lineHeight: '1' }}>🦋</div>
           <div style={{ 
@@ -282,21 +282,21 @@ const Login = () => {
         <h2 className="text-center" style={{ 
           color: '#1a1a1a',
           fontWeight: '700',
-          fontSize: '28px',
-          marginBottom: '8px',
+          fontSize: '26px',
+          marginBottom: '6px',
           letterSpacing: '-0.5px'
         }}>{mfaRequired ? 'Verification Required' : 'Welcome Back!'}</h2>
         <p className="text-center" style={{
           color: '#6b7280',
-          fontSize: '15px',
-          marginBottom: '32px'
+          fontSize: '14px',
+          marginBottom: '24px'
         }}>{mfaRequired ? `Enter the code sent to your ${mfaChannel}` : 'Sign in to continue to your account'}</p>
       {error && <div className="alert alert-danger">{error}</div>}
       
       {!mfaRequired ? (
         /* Regular Login Form */
         <form onSubmit={handleSubmit}>
-        <div className="mb-4">
+        <div className="mb-3">
           <label className="form-label" style={{
             fontWeight: '500',
             fontSize: '14px',
@@ -340,7 +340,7 @@ const Login = () => {
             />
           </div>
         </div>
-        <div className="mb-4">
+        <div className="mb-3">
           <label className="form-label" style={{
             fontWeight: '500',
             fontSize: '14px',
@@ -414,7 +414,7 @@ const Login = () => {
         </div>
         
         {/* Forgot Password Link */}
-        <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+        <div style={{ textAlign: 'right', marginBottom: '12px' }}>
           <Link 
             to="/forgot-password" 
             style={{
@@ -434,7 +434,7 @@ const Login = () => {
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
-          marginBottom: '20px'
+          marginBottom: '16px'
         }}>
           <Turnstile
             ref={turnstileRef}
@@ -463,7 +463,7 @@ const Login = () => {
             borderRadius: '12px',
             cursor: loading ? 'not-allowed' : 'pointer',
             boxShadow: loading ? 'none' : '0 4px 12px rgba(102, 126, 234, 0.4)',
-            marginTop: '8px'
+            marginTop: '4px'
           }}
           onMouseEnter={(e) => !loading && (e.target.style.transform = 'translateY(-1px)', e.target.style.boxShadow = '0 6px 16px rgba(102, 126, 234, 0.5)')}
           onMouseLeave={(e) => !loading && (e.target.style.transform = 'translateY(0)', e.target.style.boxShadow = '0 4px 12px rgba(102, 126, 234, 0.4)')}
@@ -486,7 +486,7 @@ const Login = () => {
             </p>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-3">
             <label className="form-label" style={{
               fontWeight: '500',
               fontSize: '14px',
