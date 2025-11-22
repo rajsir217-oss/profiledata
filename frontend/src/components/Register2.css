@@ -26,6 +26,69 @@
   opacity: 1 !important;
 }
 
+/* ========================================
+   THEME-AWARE ALERT STYLES
+   ======================================== */
+
+/* Success Alert - Green banner */
+.register-container .alert-success {
+  background-color: var(--success-light, #d1fae5) !important;
+  border-color: var(--success-color, #10b981) !important;
+  color: var(--text-color, #1f2937) !important;
+  border-left: 4px solid var(--success-color, #10b981) !important;
+}
+
+/* Info Alert - Blue banner */
+.register-container .alert-info {
+  background-color: var(--info-background, #e7f3ff) !important;
+  border-color: var(--info-border, #b3d9ff) !important;
+  color: var(--text-color, #1f2937) !important;
+  border-left: 4px solid var(--info-color, #6366f1) !important;
+}
+
+/* Danger/Error Alert - Red banner */
+.register-container .alert-danger {
+  background-color: var(--danger-light, #ffebee) !important;
+  border-color: var(--danger-color, #ef4444) !important;
+  color: var(--text-color, #1f2937) !important;
+  border-left: 4px solid var(--danger-color, #ef4444) !important;
+}
+
+/* Warning Alert - Yellow banner */
+.register-container .alert-warning {
+  background-color: var(--warning-background, #fffbeb) !important;
+  border-color: var(--warning-color, #f59e0b) !important;
+  color: var(--text-color, #1f2937) !important;
+  border-left: 4px solid var(--warning-color, #f59e0b) !important;
+}
+
+/* Make checkmarks and crosses use theme colors */
+.register-container .alert span[style*="color"] {
+  color: inherit !important;
+}
+
+.register-container .alert-success strong,
+.register-container .alert-info strong {
+  color: var(--text-color, #1f2937) !important;
+}
+
+/* Bootstrap text color utilities - theme-aware */
+.register-container .text-success {
+  color: var(--success-color, #10b981) !important;
+}
+
+.register-container .text-danger {
+  color: var(--danger-color, #ef4444) !important;
+}
+
+.register-container .text-warning {
+  color: var(--warning-color, #f59e0b) !important;
+}
+
+.register-container .text-info {
+  color: var(--info-color, #6366f1) !important;
+}
+
 /* Override Bootstrap modal fade */
 .register-container .modal.fade .modal-dialog {
   transition: none !important;
