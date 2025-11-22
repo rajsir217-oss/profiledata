@@ -1727,7 +1727,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       {isEditMode && (
         <div className="alert alert-info" style={{ fontSize: '14px', marginBottom: '12px' }}>
           💡 <strong>Auto-save enabled:</strong> Your changes are automatically saved as you edit. 
-          Look for the <span style={{ color: '#28a745' }}>✓</span> or <span style={{ color: '#dc3545' }}>✗</span> next to each field label.
+          Look for the <span className="text-success">✓</span> or <span className="text-danger">✗</span> next to each field label.
         </div>
       )}
       <form onSubmit={handleSubmit} encType="multipart/form-data">
