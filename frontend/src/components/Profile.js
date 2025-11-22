@@ -1318,7 +1318,6 @@ const Profile = () => {
                   <option value="Parsi">Parsi</option>
                   <option value="No Religion">No Religion</option>
                   <option value="Other">Other</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
                 </select>
               </div>
             </div>

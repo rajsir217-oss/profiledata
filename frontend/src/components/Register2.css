@@ -868,3 +868,70 @@
   justify-content: center;
   font-size: 14px;
 }
+
+/* ========================================
+   Background & Lifestyle Grid Section
+   ======================================== */
+.background-lifestyle-grid {
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+  background: var(--card-background);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.background-lifestyle-grid .row {
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 20px;
+  margin-bottom: 20px;
+}
+
+.background-lifestyle-grid .row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin-bottom: 0;
+}
+
+.background-lifestyle-grid .col-md-6,
+.background-lifestyle-grid .col-md-12 {
+  padding-left: 15px;
+  padding-right: 15px;
+}
+
+/* Add vertical divider between columns in same row */
+.background-lifestyle-grid .row .col-md-6:not(:last-child) {
+  border-right: 1px solid var(--border-color);
+}
+
+/* ========================================
+   Mobile Responsive Fixes
+   ======================================== */
+@media (max-width: 768px) {
+  /* Remove vertical borders on mobile */
+  .background-lifestyle-grid .row .col-md-6:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+  }
+  
+  /* Make ALL button groups wrap on mobile - applies to entire register container */
+  .register-container .button-group-container .button-group,
+  .register-container .button-group,
+  .background-lifestyle-grid .button-group {
+    flex-wrap: wrap !important;
+    height: auto !important;
+    min-height: 38px !important;
+  }
+  
+  .register-container .button-group-container .button-group .btn-option,
+  .register-container .button-group .btn-option,
+  .background-lifestyle-grid .button-group .btn-option {
+    flex: 0 0 auto !important;
+    min-width: fit-content !important;
+    white-space: nowrap !important;
+    margin-bottom: 4px !important;
+    padding: 6px 10px !important;
+  }
+}
