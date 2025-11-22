@@ -383,6 +383,11 @@ async def send_deletion_confirmation_email(user: dict, scheduled_date: datetime,
     
     first_name = user.get("firstName", user.get("username"))
     
+    # Build data export section separately to avoid f-string backslash issues
+    data_export_section = ""
+    if data_export_url:
+        data_export_section = f"DOWNLOAD YOUR DATA:\n{data_export_url}\n\n"
+    
     message = f"""
     Hi {first_name},
     
@@ -400,8 +405,7 @@ async def send_deletion_confirmation_email(user: dict, scheduled_date: datetime,
     REACTIVATE YOUR ACCOUNT:
     Simply log back in at https://l3v3lmatches.com/login
     
-    {"DOWNLOAD YOUR DATA:\n" + data_export_url + "\n" if data_export_url else ""}
-    Need help? Contact us: support@l3v3lmatches.com
+    {data_export_section}Need help? Contact us: support@l3v3lmatches.com
     
     Best regards,
     The L3V3L Team
