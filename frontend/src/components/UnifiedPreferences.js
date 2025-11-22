@@ -131,6 +131,13 @@ const UnifiedPreferences = () => {
       icon: '🪔',
       description: 'Vibrant marigold and gold celebrating Indian weddings',
       preview: { primary: '#ff6b35', secondary: '#f7931e', background: '#fffaf0', text: '#7c2d12' }
+    },
+    {
+      id: 'newspaper',
+      name: 'The Daily News',
+      icon: '📰',
+      description: 'Classic black and white newspaper style',
+      preview: { primary: '#1a1a1a', secondary: '#4a4a4a', background: '#f4f1ea', text: '#1a1a1a' }
     }
   ];
 
