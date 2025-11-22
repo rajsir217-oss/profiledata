@@ -33,6 +33,7 @@ from routers.pause_analytics import router as pause_analytics_router
 from routers.admin_notifications import router as admin_notifications_router
 from routers.email_templates import router as email_templates_router
 from routers.email_tracking import router as email_tracking_router
+from routers.account_deletion import router as account_deletion_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -237,6 +238,7 @@ app.include_router(pause_analytics_router)  # Pause analytics routes (already ha
 app.include_router(email_templates_router, prefix="/api/users/email-templates", tags=["email-templates"])  # Email template management
 app.include_router(system_health_router, prefix="/api/users/system", tags=["system"])  # System health routes
 app.include_router(email_tracking_router)  # Email tracking routes (already has /api/email-tracking prefix)
+app.include_router(account_deletion_router)  # Account deletion routes (already has /api/users/account prefix)
 
 # Health check endpoint
 @app.get("/health")
