@@ -10,9 +10,15 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .security_config import security_settings
 import secrets
+import re
 
 # HTTP Bearer token scheme
 security_scheme = HTTPBearer()
+
+# Helper function for case-insensitive username lookup
+def get_username_query(username: str):
+    """Create a case-insensitive MongoDB query for username"""
+    return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
 class JWTManager:
     """JWT token management"""
@@ -147,9 +153,9 @@ class AuthenticationService:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        # Get user from database (if db provided)
+        # Get user from database (if db provided) - case-insensitive
         if db is not None:
-            user = await db.users.find_one({"username": username})
+            user = await db.users.find_one(get_username_query(username))
             if user is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

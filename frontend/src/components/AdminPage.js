@@ -34,8 +34,8 @@ const AdminPage = () => {
   const [statusFilter, setStatusFilter] = useState('pending_admin_approval'); // Default to Pending Admin Approval
   const [sortField, setSortField] = useState('username');
   const [sortOrder, setSortOrder] = useState('asc');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [recordsPerPage] = useState(20);
+  const [displayCount, setDisplayCount] = useState(20);
+  const recordsPerPage = 20;
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [selectedUserForStatus, setSelectedUserForStatus] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -251,51 +251,20 @@ const AdminPage = () => {
 
   const filteredUsers = getFilteredAndSortedUsers();
 
-  // Pagination calculations
-  const indexOfLastRecord = currentPage * recordsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
-  const currentRecords = filteredUsers.slice(indexOfFirstRecord, indexOfLastRecord);
-  const totalPages = Math.ceil(filteredUsers.length / recordsPerPage);
+  // Load more pattern calculations
+  const currentRecords = filteredUsers.slice(0, displayCount);
+  const hasMore = displayCount < filteredUsers.length;
+  const allLoaded = displayCount >= filteredUsers.length;
 
-  // Reset to page 1 when search/filter changes
+  // Reset display count when search/filter changes
   useEffect(() => {
-    setCurrentPage(1);
+    setDisplayCount(recordsPerPage);
   }, [searchTerm, genderFilter, statusFilter, sortField, sortOrder]);
 
-  const handlePageChange = (pageNumber) => {
-    setCurrentPage(pageNumber);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleLoadMore = () => {
+    setDisplayCount(prev => Math.min(prev + recordsPerPage, filteredUsers.length));
   };
 
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    
-    if (totalPages <= maxPagesToShow) {
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      if (currentPage <= 3) {
-        for (let i = 1; i <= 4; i++) pages.push(i);
-        pages.push('...');
-        pages.push(totalPages);
-      } else if (currentPage >= totalPages - 2) {
-        pages.push(1);
-        pages.push('...');
-        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
-      } else {
-        pages.push(1);
-        pages.push('...');
-        pages.push(currentPage - 1);
-        pages.push(currentPage);
-        pages.push(currentPage + 1);
-        pages.push('...');
-        pages.push(totalPages);
-      }
-    }
-    return pages;
-  };
 
   if (loading) {
     return (
@@ -322,7 +291,7 @@ const AdminPage = () => {
             <div className="admin-stats">
               <span className="badge bg-primary">Users: {users.length}</span>
               <span className="badge bg-success ms-2">Filtered: {filteredUsers.length}</span>
-              <span className="badge bg-info ms-2">Page: {currentPage}/{totalPages}</span>
+              <span className="badge bg-info ms-2">Showing: {currentRecords.length}</span>
             </div>
           </div>
         </div>
@@ -479,47 +448,31 @@ const AdminPage = () => {
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="pagination-container">
-          <div className="pagination-info">
-            Showing {indexOfFirstRecord + 1} - {Math.min(indexOfLastRecord, filteredUsers.length)} of {filteredUsers.length} records
+      {/* Load More Controls */}
+      <div className="load-more-container" style={{ textAlign: 'center', marginTop: '30px', marginBottom: '30px' }}>
+        {hasMore && (
+          <button 
+            className="btn btn-primary btn-lg"
+            onClick={handleLoadMore}
+            style={{ minWidth: '250px' }}
+          >
+            Load {Math.min(recordsPerPage, filteredUsers.length - displayCount)} more [{displayCount}/{filteredUsers.length}]
+          </button>
+        )}
+        
+        {allLoaded && filteredUsers.length > recordsPerPage && (
+          <div 
+            className="alert alert-success" 
+            style={{ 
+              display: 'inline-block', 
+              padding: '12px 24px',
+              margin: '0 auto'
+            }}
+          >
+            ✓ All {filteredUsers.length} records loaded
           </div>
-          <div className="pagination-controls">
-            <button
-              className="btn btn-sm btn-outline-primary"
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              ← Previous
-            </button>
-            
-            <div className="page-numbers">
-              {getPageNumbers().map((page, index) => (
-                page === '...' ? (
-                  <span key={`ellipsis-${index}`} className="page-ellipsis">...</span>
-                ) : (
-                  <button
-                    key={page}
-                    className={`btn btn-sm ${currentPage === page ? 'btn-primary' : 'btn-outline-primary'}`}
-                    onClick={() => handlePageChange(page)}
-                  >
-                    {page}
-                  </button>
-                )
-              ))}
-            </div>
-            
-            <button
-              className="btn btn-sm btn-outline-primary"
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              Next →
-            </button>
-          </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Status Edit Modal */}
       {showStatusModal && selectedUserForStatus && (

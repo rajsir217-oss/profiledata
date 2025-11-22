@@ -293,6 +293,14 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
     }
 
+    // Add Contact Us before logout
+    items.push({ 
+      icon: '📧', 
+      label: 'Contact Us', 
+      subLabel: 'Get in touch with support',
+      action: () => navigate('/contact')
+    });
+
     // Add logout at the end
     items.push({ 
       icon: '🚪', 

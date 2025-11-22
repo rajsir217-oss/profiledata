@@ -9,6 +9,7 @@ import uuid
 import hashlib
 import json
 import httpx
+import re
 from pathlib import Path
 from sse_starlette.sse import EventSourceResponse
 from models import (
@@ -31,6 +32,11 @@ from crypto_utils import get_encryptor
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
+
+# Helper function for case-insensitive username lookup
+def get_username_query(username: str):
+    """Create a case-insensitive MongoDB query for username"""
+    return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
 # Helper function for safe JSON loading
 def safe_json_loads(value: Any) -> Any:
@@ -421,9 +427,9 @@ async def register_user(
     
     logger.info(f"✅ Birth date validated for user '{username}': {birthMonth}/{birthYear}")
     
-    # Check if username already exists
+    # Check if username already exists (case-insensitive)
     logger.debug(f"Checking if username '{username}' exists...")
-    existing_user = await db.users.find_one({"username": username})
+    existing_user = await db.users.find_one(get_username_query(username))
     if existing_user:
         logger.warning(f"⚠️ Registration failed: Username '{username}' already exists")
         raise HTTPException(
@@ -682,9 +688,9 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
         #     detail="CAPTCHA verification required"
         # )
     
-    # Find user in database (works for both admin and regular users)
+    # Find user in database (works for both admin and regular users) - case-insensitive
     logger.debug(f"Looking up user '{login_data.username}' in database...")
-    user = await db.users.find_one({"username": login_data.username})
+    user = await db.users.find_one(get_username_query(login_data.username))
     if not user:
         logger.warning(f"⚠️ Login failed: Username '{login_data.username}' not found")
         raise HTTPException(
@@ -811,9 +817,9 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     """Get user profile by username with PII masking"""
     logger.info(f"👤 Profile request for username: {username} (requester: {requester})")
     
-    # Find user
+    # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
-    user = await db.users.find_one({"username": username})
+    user = await db.users.find_one(get_username_query(username))
     if not user:
         logger.warning(f"⚠️ Profile not found for username: {username}")
         raise HTTPException(
@@ -932,9 +938,9 @@ async def update_user_profile(
     """Update user profile"""
     logger.info(f"📝 Update request for user '{username}'")
     
-    # Find user
+    # Find user (case-insensitive)
     logger.debug(f"Looking up user '{username}' for update...")
-    user = await db.users.find_one({"username": username})
+    user = await db.users.find_one(get_username_query(username))
     if not user:
         logger.warning(f"⚠️ Update failed: User '{username}' not found")
         raise HTTPException(
@@ -1355,7 +1361,7 @@ async def get_user_preferences(
     logger.info(f"⚙️ Getting preferences for user '{username}'")
     
     try:
-        user = await db.users.find_one({"username": username})
+        user = await db.users.find_one(get_username_query(username))
         if not user:
             logger.warning(f"⚠️ User '{username}' not found")
             raise HTTPException(
@@ -1655,7 +1661,7 @@ async def delete_user_profile(
     # Allow delete if:
     # 1. User is deleting their own profile
     # 2. User is an admin
-    is_admin = current_user.get("role") == "admin"
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
     is_owner = current_user.get("username") == username
     
     if not (is_owner or is_admin):
@@ -1665,9 +1671,9 @@ async def delete_user_profile(
             detail="You do not have permission to delete this profile"
         )
     
-    # Find user
+    # Find user (case-insensitive)
     logger.debug(f"Looking up user '{username}' for deletion...")
-    user = await db.users.find_one({"username": username})
+    user = await db.users.find_one(get_username_query(username))
     if not user:
         logger.warning(f"⚠️ Delete failed: User '{username}' not found")
         raise HTTPException(
@@ -2531,8 +2537,8 @@ async def request_password_reset(
     """Send password reset code to user's email/phone"""
     logger.info(f"🔐 Password reset requested for: {identifier}")
     
-    # Try finding by username first
-    user = await db.users.find_one({"username": identifier})
+    # Try finding by username first (case-insensitive)
+    user = await db.users.find_one(get_username_query(identifier))
     
     # If not found by username, search by email (handle encryption)
     if not user:
@@ -2551,7 +2557,7 @@ async def request_password_reset(
                         decrypted_email = encryptor.decrypt(encrypted_email)
                         if decrypted_email and decrypted_email.lower() == identifier.lower():
                             logger.info(f"✅ Found user by email: {u['username']}")
-                            user = await db.users.find_one({"username": u["username"]})
+                            user = await db.users.find_one(get_username_query(u["username"]))
                             break
                     except Exception as decrypt_err:
                         logger.debug(f"⚠️ Could not decrypt email for user {u.get('username')}: {decrypt_err}")
@@ -2612,8 +2618,8 @@ async def verify_reset_code(
     """Verify the reset code"""
     logger.info(f"🔍 Verifying reset code for: {identifier}")
     
-    # Try finding by username first
-    user = await db.users.find_one({"username": identifier})
+    # Try finding by username first (case-insensitive)
+    user = await db.users.find_one(get_username_query(identifier))
     
     # If not found by username, search by email (handle encryption)
     if not user:
