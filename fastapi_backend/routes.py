@@ -29,6 +29,17 @@ from config import settings
 from utils import get_full_image_url, save_multiple_files
 from crypto_utils import get_encryptor
 
+# Helper function for safe JSON loading
+def safe_json_loads(value: Optional[str]) -> Any:
+    """Safely load JSON string, return None or default if invalid or None"""
+    if not value or not value.strip():
+        return None
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        logger.warning(f"⚠️ Invalid JSON received: {value}")
+        return None
+
 # Helper function to decrypt PII contact info
 def _decrypt_contact_info(value: str) -> str:
     """Decrypt contact info (email/phone) if encrypted"""
@@ -250,10 +261,10 @@ async def register_user(
     gender: Optional[str] = Form(None),  # Renamed from sex
     height: Optional[str] = Form(None),  # Format: "5'8\"" or "5 ft 8 in"
     # Preferences & Cultural Information
-    religion: Optional[str] = Form(None),  # For both India and USA
-    languagesSpoken: Optional[str] = Form(None),  # JSON string array of languages
-    castePreference: Optional[str] = Form("None"),  # Default "None"
-    eatingPreference: Optional[str] = Form("None"),  # Default "None"
+    religion: Optional[str] = Form(None),
+    languagesSpoken: Optional[str] = Form(None),  # JSON string array
+    castePreference: Optional[str] = Form("None"),
+    eatingPreference: Optional[str] = Form("None"),
     # Residential Information (Mandatory)
     countryOfOrigin: str = Form("US"),  # Mandatory, default US
     countryOfResidence: str = Form("US"),  # Mandatory, default US
@@ -486,7 +497,7 @@ async def register_user(
         "heightInches": parse_height_to_inches(height),  # Numeric for searching
         # Preferences & Cultural Information
         "religion": religion,
-        "languagesSpoken": json.loads(languagesSpoken) if languagesSpoken else [],
+        "languagesSpoken": safe_json_loads(languagesSpoken),
         "castePreference": castePreference,
         "eatingPreference": eatingPreference,
         # Residential Information
@@ -502,16 +513,16 @@ async def register_user(
         "familyType": familyType,
         "familyValues": familyValues,
         # Educational Information
-        "educationHistory": json.loads(educationHistory) if educationHistory else [],
+        "educationHistory": safe_json_loads(educationHistory),
         # Professional & Work Related Information
-        "workExperience": json.loads(workExperience) if workExperience else [],
+        "workExperience": safe_json_loads(workExperience),
         "workingStatus": workingStatus,  # Auto-set to "No" initially
         "linkedinUrl": linkedinUrl,
         # About Me and Partner Information
         "familyBackground": familyBackground,
         "aboutMe": aboutMe,  # Renamed from aboutYou
         "partnerPreference": partnerPreference,
-        "partnerCriteria": json.loads(partnerCriteria) if partnerCriteria else None,
+        "partnerCriteria": safe_json_loads(partnerCriteria),
         # New dating-app fields
         "relationshipStatus": relationshipStatus,
         "lookingFor": lookingFor,
@@ -1426,10 +1437,19 @@ async def get_all_users(
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
     role: Optional[str] = None,
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Get all users with pagination and filtering - Admin only endpoint"""
     logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status_filter={status_filter}, role={role})")
+    
+    # 🛑 CRITICAL SECURITY CHECK
+    if current_user.get("role") != "admin":
+        logger.warning(f"⚠️ Unauthorized admin access attempt by user '{current_user.get('username')}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required"
+        )
     
     try:
         # Build query filter
@@ -1498,20 +1518,19 @@ async def get_all_users(
 @router.post("/admin/change-password")
 async def change_admin_password(
     current_password: str = Form(...),
-    new_password: str = Form(...)
+    new_password: str = Form(...),
+    current_user: dict = Depends(get_current_user)
 ):
     """Change admin password"""
+    # 🛑 Security Check
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+
     logger.info("🔐 Admin password change request")
     
     # Verify current password
-    ADMIN_PASSWORD = "admin"  # Current hardcoded password
-    
-    if current_password != ADMIN_PASSWORD:
-        logger.warning("⚠️ Admin password change failed: Invalid current password")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Current password is incorrect"
-        )
+    # TODO: Use a secure storage mechanism (DB/Vault) instead of hardcoding
+    # This is a placeholder for the actual implementation
     
     # Validate new password
     if len(new_password) < 6:
@@ -1537,12 +1556,13 @@ async def change_admin_password(
 
 @router.post("/access-request")
 async def create_pii_access_request(
-    requester: str = Form(...),
     requested_user: str = Form(...),
     message: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Create PII access request"""
+    requester = current_user["username"]
     logger.info(f"🔐 Access request: {requester} → {requested_user}")
     
     from pii_security import create_access_request
@@ -1555,8 +1575,16 @@ async def create_pii_access_request(
     return result
 
 @router.get("/access-requests/{username}")
-async def get_access_requests(username: str, type: str = "received"):
+async def get_access_requests(
+    username: str, 
+    type: str = "received",
+    current_user: dict = Depends(get_current_user)
+):
     """Get access requests for user (received or sent)"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"📋 Fetching {type} access requests for {username}")
     
     try:
@@ -1580,10 +1608,11 @@ async def get_access_requests(username: str, type: str = "received"):
 async def respond_to_request(
     request_id: str,
     response: str = Form(...),
-    responder: str = Form(...),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Respond to access request (approve/deny)"""
+    responder = current_user["username"]
     logger.info(f"📝 Response to request {request_id}: {response} by {responder}")
     
     from pii_security import respond_to_access_request
@@ -1596,7 +1625,11 @@ async def respond_to_request(
     return result
 
 @router.delete("/profile/{username}")
-async def delete_user_profile(username: str, db = Depends(get_database)):
+async def delete_user_profile(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """
     Delete user profile and ALL related data (CASCADE DELETE)
     
@@ -1615,6 +1648,20 @@ async def delete_user_profile(username: str, db = Depends(get_database)):
     - Any other related data
     """
     logger.info(f"🗑️ CASCADE DELETE request for user '{username}'")
+    
+    # 🛑 CRITICAL SECURITY CHECK
+    # Allow delete if:
+    # 1. User is deleting their own profile
+    # 2. User is an admin
+    is_admin = current_user.get("role") == "admin"
+    is_owner = current_user.get("username") == username
+    
+    if not (is_owner or is_admin):
+        logger.warning(f"⚠️ Unauthorized delete attempt: User '{current_user.get('username')}' tried to delete '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this profile"
+        )
     
     # Find user
     logger.debug(f"Looking up user '{username}' for deletion...")
@@ -2359,8 +2406,13 @@ async def respond_to_pii_request(
 # ===== FAVORITES MANAGEMENT =====
 
 @router.post("/favorites/{target_username}")
-async def add_to_favorites(username: str, target_username: str, db = Depends(get_database)):
+async def add_to_favorites(
+    target_username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Add user to favorites"""
+    username = current_user["username"]
     logger.info(f"⭐ Adding {target_username} to {username}'s favorites")
 
     # Check if already in favorites
@@ -2436,8 +2488,13 @@ async def add_to_favorites(username: str, target_username: str, db = Depends(get
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.delete("/favorites/{target_username}")
-async def remove_from_favorites(target_username: str, username: str = Query(...), db = Depends(get_database)):
+async def remove_from_favorites(
+    target_username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Remove user from favorites"""
+    username = current_user["username"]
     logger.info(f"⭐ Removing {target_username} from {username}'s favorites")
 
     result = await db.favorites.delete_one({
@@ -2661,8 +2718,16 @@ async def reset_password(
     return {"message": "Password reset successfully"}
 
 @router.get("/favorites/{username}")
-async def get_favorites(username: str, db = Depends(get_database)):
+async def get_favorites(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get user's favorites list - OPTIMIZED with field projection"""
+    # 🛑 Security Check: Only owner or admin can view favorites
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to view these favorites")
+        
     logger.info(f"📋 Getting favorites for {username}")
 
     try:
@@ -2696,8 +2761,17 @@ async def get_favorites(username: str, db = Depends(get_database)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/favorites/{username}/reorder")
-async def reorder_favorites(username: str, order: List[str], db = Depends(get_database)):
+async def reorder_favorites(
+    username: str, 
+    order: List[str], 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Update the display order of favorites"""
+    # 🛑 Security Check
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not authorized")
+        
     logger.info(f"🔄 Reordering favorites for {username}")
     
     try:
@@ -2721,12 +2795,13 @@ async def reorder_favorites(username: str, order: List[str], db = Depends(get_da
 
 @router.post("/shortlist/{target_username}")
 async def add_to_shortlist(
-    username: str,
     target_username: str,
     notes: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Add user to shortlist"""
+    username = current_user["username"]
     logger.info(f"📝 Adding {target_username} to {username}'s shortlist")
 
     # Check if already in shortlist
@@ -2804,8 +2879,16 @@ async def add_to_shortlist(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/shortlist/{username}")
-async def get_shortlist(username: str, db = Depends(get_database)):
+async def get_shortlist(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get user's shortlist - OPTIMIZED with field projection"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"📋 Getting shortlist for {username}")
 
     try:
@@ -2840,8 +2923,17 @@ async def get_shortlist(username: str, db = Depends(get_database)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/shortlist/{username}/reorder")
-async def reorder_shortlist(username: str, order: List[str], db = Depends(get_database)):
+async def reorder_shortlist(
+    username: str, 
+    order: List[str], 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Update the display order of shortlist"""
+    # 🛑 Security Check
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"🔄 Reordering shortlist for {username}")
     
     try:
@@ -2865,12 +2957,13 @@ async def reorder_shortlist(username: str, order: List[str], db = Depends(get_da
 
 @router.post("/exclusions/{target_username}")
 async def add_to_exclusions(
-    username: str,
     target_username: str,
     reason: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Add user to exclusions"""
+    username = current_user["username"]
     logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
 
     # Check if already excluded
@@ -2937,8 +3030,16 @@ async def add_to_exclusions(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/exclusions/{username}")
-async def get_exclusions(username: str, db = Depends(get_database)):
+async def get_exclusions(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get user's exclusions list - OPTIMIZED with field projection"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"📋 Getting exclusions for {username}")
 
     try:
@@ -2972,8 +3073,17 @@ async def get_exclusions(username: str, db = Depends(get_database)):
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.put("/exclusions/{username}/reorder")
-async def reorder_exclusions(username: str, order: List[str], db = Depends(get_database)):
+async def reorder_exclusions(
+    username: str, 
+    order: List[str], 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Update the display order of exclusions"""
+    # 🛑 Security Check
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"🔄 Reordering exclusions for {username}")
     
     try:
@@ -2996,10 +3106,11 @@ async def reorder_exclusions(username: str, order: List[str], db = Depends(get_d
 @router.delete("/exclusions/{target_username}")
 async def remove_from_exclusions(
     target_username: str,
-    username: str = Query(...),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Remove user from exclusions"""
+    username = current_user["username"]
     logger.info(f"🗑️ Removing {target_username} from exclusions for {username}")
 
     # Check if target user exists
@@ -3065,15 +3176,15 @@ async def remove_from_exclusions(
 
 @router.get("/messages/conversations")
 async def get_conversations_enhanced(
-    username: str = Query(...),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Get list of all conversations with privacy checks"""
+    username = current_user["username"]
     logger.info(f"💬 ========== GET /messages/conversations called for username={username} ==========")
     
     # Check if current user is admin
-    current_user = await db.users.find_one({"username": username})
-    is_admin = current_user and current_user.get("username") == "admin"
+    is_admin = current_user.get("role") == "admin"
     
     try:
         # Get unique conversations
@@ -3189,11 +3300,16 @@ async def poll_messages(
     username: str,
     since: str = Query(None, description="ISO timestamp of last received message"),
     limit: int = Query(50, ge=1, le=100, description="Maximum number of messages to return"),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Poll for new messages since a timestamp with validation and error handling"""
     from redis_manager import get_redis_manager
     
+    # 🛑 Security Check
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not authorized to poll messages for this user")
+        
     try:
         # Validation
         if not username or len(username) < 3:
@@ -3256,9 +3372,14 @@ async def send_message(
     from_username: str = Form(...),
     to_username: str = Form(...),
     content: str = Form(...),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Send a message to another user"""
+    # 🛑 Security Check
+    if current_user["username"] != from_username:
+        raise HTTPException(status_code=403, detail="You can only send messages as yourself")
+
     logger.info(f"💬 Message from {from_username} to {to_username}")
 
     if len(content.strip()) == 0:
@@ -3364,8 +3485,17 @@ async def send_message(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/messages/{username}")
-async def get_messages(username: str, request: Request, db = Depends(get_database)):
+async def get_messages(
+    username: str, 
+    request: Request, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get messages for user"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to view messages for this user")
+
     logger.info(f"📬 Getting messages for {username}")
 
     try:
@@ -3422,8 +3552,16 @@ async def get_messages(username: str, request: Request, db = Depends(get_databas
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/conversations/{username}")
-async def get_conversations(username: str, db = Depends(get_database)):
+async def get_conversations(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get list of conversations for user"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized to view conversations for this user")
+
     logger.info(f"💭 Getting conversations for {username}")
 
     try:
@@ -3498,9 +3636,14 @@ async def get_conversations(username: str, db = Depends(get_database)):
 async def get_recent_conversations(
     username: str, 
     limit: int = Query(10, ge=1, le=50, description="Maximum conversations to return"),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Get recent conversations with unread counts and online status"""
+    # 🛑 Security Check
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     from redis_manager import get_redis_manager
     logger.info(f"💬 Getting recent conversations for {username}")
 
@@ -3584,8 +3727,16 @@ async def get_recent_conversations(
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/messages/unread-count/{username}")
-async def get_unread_count(username: str, db = Depends(get_database)):
+async def get_unread_count(
+    username: str, 
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get total unread message count for user"""
+    # 🛑 Security Check
+    if current_user["username"] != username:
+        raise HTTPException(status_code=403, detail="Not authorized")
+
     logger.info(f"📊 Getting unread count for {username}")
 
     try:
@@ -3633,10 +3784,11 @@ async def check_message_visibility(username1: str, username2: str, db) -> bool:
 @router.post("/messages/send")
 async def send_message_enhanced(
     message_data: MessageCreate,
-    username: str = Query(...),
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Send a message with privacy checks and profanity filtering"""
+    username = current_user["username"]
     logger.info(f"💬 Enhanced message from {username} to {message_data.toUsername}")
     
     # Check for profanity FIRST
