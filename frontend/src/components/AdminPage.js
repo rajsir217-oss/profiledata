@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './AdminPage.css';
+import './LoadMore.css'; // Import LoadMore styles
 import MetaFieldsModal from './MetaFieldsModal';
 
 // Create admin API client without baseURL prefix
@@ -331,6 +332,7 @@ const AdminPage = () => {
             <option value="pending_email_verification">Pending Email Verification</option>
             <option value="pending_admin_approval">Pending Admin Approval</option>
             <option value="active">Active</option>
+            <option value="paused">Paused</option>
             <option value="inactive">Inactive</option>
             <option value="suspended">Suspended</option>
             <option value="deactivated">Deactivated</option>
@@ -449,29 +451,23 @@ const AdminPage = () => {
       </div>
 
       {/* Load More Controls */}
-      <div className="load-more-container" style={{ textAlign: 'center', marginTop: '30px', marginBottom: '30px' }}>
-        {hasMore && (
-          <button 
-            className="btn btn-primary btn-lg"
-            onClick={handleLoadMore}
-            style={{ minWidth: '250px' }}
-          >
-            Load {Math.min(recordsPerPage, filteredUsers.length - displayCount)} more [{displayCount}/{filteredUsers.length}]
-          </button>
-        )}
-        
-        {allLoaded && filteredUsers.length > recordsPerPage && (
-          <div 
-            className="alert alert-success" 
-            style={{ 
-              display: 'inline-block', 
-              padding: '12px 24px',
-              margin: '0 auto'
-            }}
-          >
-            ✓ All {filteredUsers.length} records loaded
-          </div>
-        )}
+      <div className="load-more-container">
+        <div className="load-more-content">
+          {hasMore && (
+            <button 
+              className="load-more-button"
+              onClick={handleLoadMore}
+            >
+              Load {Math.min(recordsPerPage, filteredUsers.length - displayCount)} more [{displayCount}/{filteredUsers.length}]
+            </button>
+          )}
+          
+          {allLoaded && filteredUsers.length > recordsPerPage && (
+            <div className="load-more-complete">
+              ✓ All {filteredUsers.length} records loaded
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Status Edit Modal */}
@@ -563,6 +559,21 @@ const AdminPage = () => {
                   </div>
                 </label>
                 
+                <label className={`status-radio-option ${selectedStatus === 'paused' ? 'selected' : ''}`}>
+                  <input
+                    type="radio"
+                    name="status"
+                    value="paused"
+                    checked={selectedStatus === 'paused'}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  />
+                  <div className="status-icon">⏸️</div>
+                  <div className="status-info">
+                    <strong>Paused</strong>
+                    <span>User-initiated temporary pause</span>
+                  </div>
+                </label>
+                
                 <label className={`status-radio-option ${selectedStatus === 'suspended' ? 'selected' : ''}`}>
                   <input
                     type="radio"
@@ -571,10 +582,10 @@ const AdminPage = () => {
                     checked={selectedStatus === 'suspended'}
                     onChange={(e) => setSelectedStatus(e.target.value)}
                   />
-                  <div className="status-icon">⏸️</div>
+                  <div className="status-icon">🔒</div>
                   <div className="status-info">
                     <strong>Suspended</strong>
-                    <span>Temporarily restricted access</span>
+                    <span>Admin-restricted access</span>
                   </div>
                 </label>
                 

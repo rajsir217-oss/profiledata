@@ -474,6 +474,29 @@ export const notifications = {
   }
 };
 
+// Account Deletion & Email Preferences
+export const requestAccountDeletion = (reason, downloadData) => {
+  return api.post('/account/request-deletion', { reason, downloadData });
+};
+
+export const cancelAccountDeletion = () => {
+  return api.post('/account/cancel-deletion');
+};
+
+export const exportAccountData = () => {
+  return api.get('/account/export-data', {
+    responseType: 'blob'
+  });
+};
+
+export const getEmailPreferences = () => {
+  return api.get('/account/email-preferences');
+};
+
+export const updateEmailPreferences = (preferences) => {
+  return api.put('/account/email-preferences', preferences);
+};
+
 export default api;
 
 

@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import PageHeader from './PageHeader';
 import SystemStatus from './SystemStatus';
 import UniversalTabContainer from './UniversalTabContainer';
 import PauseSettings from './PauseSettings';
 import './UnifiedPreferences.css';
-import { getUserPreferences, updateUserPreferences, changePassword, notifications } from '../api';
+import { 
+  getUserPreferences, 
+  updateUserPreferences, 
+  changePassword, 
+  notifications,
+  requestAccountDeletion,
+  cancelAccountDeletion,
+  exportAccountData
+} from '../api';
 import api from '../api';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
@@ -58,6 +66,12 @@ const UnifiedPreferences = () => {
   // Pause Settings State
   const [pauseStatus, setPauseStatus] = useState(null);
   const [showPauseModal, setShowPauseModal] = useState(false);
+
+  // Account Deletion State
+  const navigate = useNavigate();
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deletionReason, setDeletionReason] = useState('');
+  const [downloadData, setDownloadData] = useState(false);
 
   // MFA Settings State
   const [mfaStatus, setMfaStatus] = useState({
@@ -589,6 +603,46 @@ const UnifiedPreferences = () => {
     showToast('Backup codes downloaded', 'success');
   };
 
+  // Account Deletion Handlers
+  const handleRequestDeletion = async () => {
+    try {
+      const response = await requestAccountDeletion(deletionReason, downloadData);
+      
+      const scheduledDate = new Date(response.data.scheduledDate).toLocaleDateString();
+      showToast(
+        `Account deletion scheduled for ${scheduledDate}. You have 30 days to change your mind. Simply log back in to reactivate.`,
+        'info'
+      );
+      
+      setShowDeleteModal(false);
+      
+      // Redirect to login after short delay
+      setTimeout(() => {
+        localStorage.clear();
+        navigate('/login');
+      }, 3000);
+      
+    } catch (error) {
+      showToast('Error requesting deletion: ' + (error.response?.data?.detail || error.message), 'error');
+    }
+  };
+
+  const handleDownloadData = async () => {
+    try {
+      const response = await exportAccountData();
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `account-data-${new Date().toISOString().split('T')[0]}.json`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      showToast('Data exported successfully', 'success');
+    } catch (error) {
+      showToast('Error downloading data: ' + error.message, 'error');
+    }
+  };
+
   if (isLoading || loadingNotifications) {
     return (
       <div className="unified-preferences-container">
@@ -785,6 +839,47 @@ const UnifiedPreferences = () => {
                 </button>
               </div>
             )}
+          </section>
+
+          {/* Data Export Section */}
+          <section className="settings-section">
+            <h2>� Data Export</h2>
+            <p className="section-description">Download a copy of your personal data</p>
+            
+            <div className="data-export-section">
+              <p className="data-export-description">
+                Download all your profile data, messages, matches, and activity history in JSON format. 
+                This includes everything we have stored about your account.
+              </p>
+              <button 
+                className="btn-secondary download-data-btn"
+                onClick={handleDownloadData}
+              >
+                📦 Download My Data (GDPR)
+              </button>
+            </div>
+          </section>
+
+          {/* DANGER ZONE - Account Deletion */}
+          <section className="settings-section danger-zone-section">
+            <h2 className="danger-zone-title">🗑️ Delete Account</h2>
+            <div className="danger-zone-warning">
+              <strong>⚠️ Warning: This starts a 30-day deletion process</strong>
+              <p>Deleting your account will:</p>
+              <ul>
+                <li>Hide your profile from all searches immediately</li>
+                <li>Delete all your messages and matches after 30 days</li>
+                <li>Remove your photos and personal information</li>
+                <li>You can reactivate anytime within 30 days by logging back in</li>
+              </ul>
+            </div>
+            
+            <button 
+              className="btn btn-danger btn-lg delete-account-btn"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              Delete My Account
+            </button>
           </section>
         </div>
             )
@@ -1444,6 +1539,70 @@ const UnifiedPreferences = () => {
         onPause={handlePauseSuccess}
         currentStatus={pauseStatus}
       />
+
+      {/* Account Deletion Confirmation Modal */}
+      {showDeleteModal && (
+        <div 
+          className="deletion-modal-overlay" 
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div 
+            className="deletion-modal-content" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="deletion-modal-title">
+              Are you absolutely sure?
+            </h3>
+            <p className="deletion-modal-description">
+              This will start a 30-day deletion process. You can cancel anytime during this period by logging back in.
+            </p>
+            
+            <div className="deletion-modal-options">
+              <label className="deletion-modal-checkbox-label">
+                <input 
+                  type="checkbox" 
+                  checked={downloadData}
+                  onChange={(e) => setDownloadData(e.target.checked)}
+                  className="deletion-modal-checkbox"
+                />
+                <span>Download my data before deletion</span>
+              </label>
+            </div>
+            
+            <div className="deletion-modal-form-group">
+              <label className="deletion-modal-label">
+                Why are you leaving? (Optional)
+              </label>
+              <textarea 
+                className="deletion-modal-textarea"
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder="Tell us why you're leaving..."
+                rows={3}
+              />
+            </div>
+            
+            <div className="deletion-modal-actions">
+              <button 
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeletionReason('');
+                  setDownloadData(false);
+                }}
+              >
+                Cancel
+              </button>
+              <button 
+                className="btn btn-danger"
+                onClick={handleRequestDeletion}
+              >
+                Yes, Delete My Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
