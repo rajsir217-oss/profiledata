@@ -400,8 +400,7 @@ async def send_deletion_confirmation_email(user: dict, scheduled_date: datetime,
     REACTIVATE YOUR ACCOUNT:
     Simply log back in at https://l3v3lmatches.com/login
     
-    {f"DOWNLOAD YOUR DATA:\\n{data_export_url}\\n" if data_export_url else ""}
-    
+    {"DOWNLOAD YOUR DATA:\n" + data_export_url + "\n" if data_export_url else ""}
     Need help? Contact us: support@l3v3lmatches.com
     
     Best regards,
