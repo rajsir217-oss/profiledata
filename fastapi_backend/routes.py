@@ -29,14 +29,21 @@ from config import settings
 from utils import get_full_image_url, save_multiple_files
 from crypto_utils import get_encryptor
 
+router = APIRouter(prefix="/api/users", tags=["users"])
+logger = logging.getLogger(__name__)
+
 # Helper function for safe JSON loading
-def safe_json_loads(value: Optional[str]) -> Any:
+def safe_json_loads(value: Any) -> Any:
     """Safely load JSON string, return None or default if invalid or None"""
-    if not value or not value.strip():
+    if not value:
+        return None
+    if not isinstance(value, str):
+        return value
+    if not value.strip():
         return None
     try:
         return json.loads(value)
-    except json.JSONDecodeError:
+    except (json.JSONDecodeError, TypeError):
         logger.warning(f"⚠️ Invalid JSON received: {value}")
         return None
 
@@ -165,9 +172,6 @@ async def generate_unique_profile_id(db) -> str:
 
 def create_access_token(data: dict, expires_delta=None) -> str:
     return JWTManager.create_access_token(data, expires_delta)
-
-router = APIRouter(prefix="/api/users", tags=["users"])
-logger = logging.getLogger(__name__)
 
 # Helper function to safely serialize datetime
 def safe_datetime_serialize(dt):
