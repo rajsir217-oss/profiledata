@@ -64,16 +64,24 @@
     width: 100%;
     padding: 3px;
     gap: 3px;
+    flex-wrap: wrap !important; /* Allow buttons to wrap on mobile */
+    height: auto !important; /* Allow container to grow */
   }
 
   .button-group .btn-option {
     min-width: 60px;
     padding: 10px 12px;
     font-size: 13px;
+    flex: 0 0 auto; /* Don't stretch, use natural width */
   }
 }
 
 @media (max-width: 480px) {
+  .button-group {
+    gap: 2px;
+    padding: 2px;
+  }
+  
   .button-group .btn-option {
     min-width: 50px;
     padding: 8px 10px;

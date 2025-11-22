@@ -476,7 +476,6 @@ async def register_user(
     logger.debug(f"Generated profileId: {profile_id} for user '{username}'")
     
     # Create user document
-    from datetime import datetime
     now = datetime.utcnow().isoformat()
     
     # Auto-calculate workingStatus from workExperience (if it gets passed later)
@@ -1257,7 +1256,6 @@ async def update_user_profile(
         )
     
     # Update timestamp
-    from datetime import datetime
     update_data["updatedAt"] = datetime.utcnow().isoformat()
     
     # Log what's being updated

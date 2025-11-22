@@ -223,6 +223,7 @@ class EmailVerificationService:
     async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
         """
         Internal method to send email via SMTP
+        Runs in a thread pool to avoid blocking the async event loop
         
         Args:
             to_email: Recipient email address
@@ -233,35 +234,40 @@ class EmailVerificationService:
         Returns:
             True if sent successfully, False otherwise
         """
-        try:
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['From'] = f"{settings.from_name} <{settings.from_email}>"
-            msg['To'] = to_email
-            msg['Subject'] = subject
-            
-            # Attach both plain text and HTML
-            part1 = MIMEText(text_content, 'plain')
-            part2 = MIMEText(html_content, 'html')
-            msg.attach(part1)
-            msg.attach(part2)
-            
-            # Connect to SMTP server and send
-            with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-                if settings.smtp_port == 587:  # TLS
-                    server.starttls()
-                server.login(settings.smtp_user, settings.smtp_password)
-                server.send_message(msg)
-            
-            print(f"✅ Verification email sent to: {to_email}")
-            return True
-            
-        except Exception as e:
-            import traceback
-            print(f"❌ Error sending email: {e}")
-            print(f"❌ Full traceback: {traceback.format_exc()}")
-            print(f"❌ SMTP Config: host={settings.smtp_host}, port={settings.smtp_port}, user={settings.smtp_user}")
-            return False
+        from starlette.concurrency import run_in_threadpool
+        
+        def send_sync():
+            try:
+                # Create message
+                msg = MIMEMultipart('alternative')
+                msg['From'] = f"{settings.from_name} <{settings.from_email}>"
+                msg['To'] = to_email
+                msg['Subject'] = subject
+                
+                # Attach both plain text and HTML
+                part1 = MIMEText(text_content, 'plain')
+                part2 = MIMEText(html_content, 'html')
+                msg.attach(part1)
+                msg.attach(part2)
+                
+                # Connect to SMTP server and send
+                with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+                    if settings.smtp_port == 587:  # TLS
+                        server.starttls()
+                    server.login(settings.smtp_user, settings.smtp_password)
+                    server.send_message(msg)
+                
+                print(f"✅ Verification email sent to: {to_email}")
+                return True
+                
+            except Exception as e:
+                import traceback
+                print(f"❌ Error sending email: {e}")
+                print(f"❌ Full traceback: {traceback.format_exc()}")
+                print(f"❌ SMTP Config: host={settings.smtp_host}, port={settings.smtp_port}, user={settings.smtp_user}")
+                return False
+
+        return await run_in_threadpool(send_sync)
     
     async def verify_token(self, username: str, token: str) -> Dict[str, Any]:
         """

@@ -51,7 +51,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     religion: "No Religion",
     languagesSpoken: ["English"],
     castePreference: "No Preference",
-    eatingPreference: "No Preference",
+    eatingPreference: "Others",
     countryOfOrigin: "US",
     countryOfResidence: "US",
     state: "California",
@@ -109,7 +109,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     religion: "No Religion",  // Default value
     languagesSpoken: ["English"],  // Array of languages, default English
     castePreference: "No Preference",  // Default "No Preference"
-    eatingPreference: "No Preference",  // Default "No Preference"
+    eatingPreference: "Others",  // Default "Others"
     // Residential Information (Mandatory)
     countryOfOrigin: "US",  // Mandatory, default US
     countryOfResidence: "US",  // Mandatory, default US
@@ -1508,7 +1508,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             religion: userData.religion || 'No Religion',
             languagesSpoken: userData.languagesSpoken || ['English'],
             castePreference: userData.castePreference || 'No Preference',
-            eatingPreference: userData.eatingPreference || 'No Preference',
+            eatingPreference: userData.eatingPreference || 'Others',
             countryOfOrigin: userData.countryOfOrigin || 'US',
             countryOfResidence: userData.countryOfResidence || 'US',
             state: userData.state || (userData.countryOfResidence === 'US' ? 'California' : userData.countryOfResidence === 'India' ? 'Telangana' : ''),
@@ -3282,9 +3282,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
         
-        {/* ROW 3: Relationship Status | Looking For | Religion | Pets */}
+        {/* Background & Lifestyle Section with Grid Lines */}
+        <div className="background-lifestyle-grid">
+        
+        {/* ROW 3a: Relationship Status */}
         <div className="row mb-3">
-          <div className="col-md-3">
+          <div className="col-md-12">
             <label className="form-label">Relationship Status</label>
             <ButtonGroup
               options={[
@@ -3300,7 +3303,32 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               touched={touchedFields.relationshipStatus}
             />
           </div>
-          <div className="col-md-3">
+        </div>
+
+        {/* ROW 3b: Pets */}
+        <div className="row mb-3">
+          <div className="col-md-12">
+            <label className="form-label">Pets</label>
+            <ButtonGroup
+              options={[
+                { value: 'Dog', label: '🐕 Dog' },
+                { value: 'Cat', label: '🐈 Cat' },
+                { value: 'Both', label: '🐕🐈 Both' },
+                { value: 'None', label: 'None' },
+                { value: 'Other', label: 'Other' }
+              ]}
+              value={formData.pets}
+              onChange={handleChange}
+              name="pets"
+              error={fieldErrors.pets}
+              touched={touchedFields.pets}
+            />
+          </div>
+        </div>
+
+        {/* ROW 3b: Looking For */}
+        <div className="row mb-3">
+          <div className="col-md-12">
             <label className="form-label">Looking For</label>
             <ButtonGroup
               options={[
@@ -3314,42 +3342,26 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               name="lookingFor"
               error={fieldErrors.lookingFor}
               touched={touchedFields.lookingFor}
-              vertical={true}
             />
           </div>
-          <div className="col-md-3">
+        </div>
+
+        {/* ROW 3c: Religion */}
+        <div className="row mb-3">
+          <div className="col-md-12">
             <label className="form-label">Religion</label>
             <ButtonGroup
               options={[
                 { value: 'Hindu', label: '🕉️ Hindu' },
                 { value: 'Christian', label: '✝️ Christian' },
                 { value: 'Muslim', label: '☪️ Muslim' },
-                { value: 'Other', label: 'Other' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' }
+                { value: 'Other', label: 'Other' }
               ]}
               value={formData.religion}
               onChange={handleChange}
               name="religion"
               error={fieldErrors.religion}
               touched={touchedFields.religion}
-              vertical={true}
-            />
-          </div>
-          <div className="col-md-3">
-            <label className="form-label">Pets</label>
-            <ButtonGroup
-              options={[
-                { value: 'Dog', label: '🐕 Dog' },
-                { value: 'Cat', label: '🐈 Cat' },
-                { value: 'Both', label: '🐕🐈 Both' },
-                { value: 'Other', label: 'Other' },
-                { value: 'None', label: 'None' }
-              ]}
-              value={formData.pets}
-              onChange={handleChange}
-              name="pets"
-              error={fieldErrors.pets}
-              touched={touchedFields.pets}
             />
           </div>
         </div>
@@ -3377,14 +3389,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
         {/* ROW 4b: Drinking | Smoking */}
         <div className="row mb-3">
-          <div className="col-md-5">
+          <div className="col-md-6">
             <label className="form-label">Drinking</label>
             <ButtonGroup
               options={[
                 { value: 'Never', label: 'Never' },
                 { value: 'Socially', label: 'Socially' },
-                { value: 'Regularly', label: 'Regularly' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' }
+                { value: 'Regularly', label: 'Regularly' }
               ]}
               value={formData.drinking}
               onChange={handleChange}
@@ -3393,14 +3404,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               touched={touchedFields.drinking}
             />
           </div>
-          <div className="col-md-5">
+          <div className="col-md-6">
             <label className="form-label">Smoking</label>
             <ButtonGroup
               options={[
                 { value: 'Never', label: 'Never' },
                 { value: 'Socially', label: 'Socially' },
-                { value: 'Regularly', label: 'Regularly' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' }
+                { value: 'Regularly', label: 'Regularly' }
               ]}
               value={formData.smoking}
               onChange={handleChange}
@@ -3409,13 +3419,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               touched={touchedFields.smoking}
             />
           </div>
-          <div className="col-md-3">
+        </div>
+
+        {/* ROW 4c: Has Children | Wants Children */}
+        <div className="row mb-3">
+          <div className="col-md-6">
             <label className="form-label">Has Children</label>
             <ButtonGroup
               options={[
                 { value: 'Yes', label: 'Yes' },
-                { value: 'No', label: 'No' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' }
+                { value: 'No', label: 'No' }
               ]}
               value={formData.hasChildren}
               onChange={handleChange}
@@ -3424,14 +3437,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               touched={touchedFields.hasChildren}
             />
           </div>
-          <div className="col-md-4">
+          <div className="col-md-6">
             <label className="form-label">Wants Children</label>
             <ButtonGroup
               options={[
                 { value: 'Yes', label: 'Yes' },
                 { value: 'No', label: 'No' },
-                { value: 'Maybe', label: 'Maybe' },
-                { value: 'Prefer not to say', label: 'Prefer not to say' }
+                { value: 'Maybe', label: 'Maybe' }
               ]}
               value={formData.wantsChildren}
               onChange={handleChange}
@@ -3477,6 +3489,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             )}
           </div>
         </div>
+        
+        </div>
+        {/* End Background & Lifestyle Grid Section */}
 
         {/* Navigation Buttons */}
         <div className="tab-navigation-buttons mt-4">
