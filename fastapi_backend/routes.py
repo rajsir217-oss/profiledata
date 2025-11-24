@@ -1508,30 +1508,41 @@ async def reorder_photos(
     from urllib.parse import urlparse
     
     def extract_path(url_or_path):
-        """Extract relative path from URL or return path as-is"""
+        """Normalize all image path formats to /uploads/filename.ext"""
+        if not url_or_path:
+            return ''
+            
+        # Handle full URLs: http://localhost:8000/uploads/file.jpg
         if url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
-            # Remove leading slash and domain
-            path = parsed.path.lstrip('/')
-            # Remove 'uploads/' prefix if present
-            if path.startswith('uploads/'):
-                return path
-            return path
+            # Returns: /uploads/file.jpg
+            return parsed.path
+        
+        # Handle paths without leading slash: uploads/file.jpg
+        if url_or_path.startswith('uploads/'):
+            return '/' + url_or_path
+        
+        # Already has leading slash: /uploads/file.jpg
         return url_or_path
     
+    # Normalize both for comparison
     normalized_new = sorted([extract_path(img) for img in new_order])
     normalized_existing = sorted([extract_path(img) for img in existing_images])
     
+    logger.info(f"🔍 Raw new order from frontend: {new_order}")
+    logger.info(f"🔍 Raw existing from DB: {existing_images}")
     logger.info(f"🔍 Normalized new order: {normalized_new}")
     logger.info(f"🔍 Normalized existing: {normalized_existing}")
+    logger.info(f"🔍 Match? {normalized_new == normalized_existing}")
     
     if normalized_new != normalized_existing:
         logger.warning(f"⚠️ Reorder failed: imageOrder doesn't match existing images")
-        logger.warning(f"   Provided: {normalized_new}")
-        logger.warning(f"   Expected: {normalized_existing}")
+        logger.warning(f"   Provided sorted: {normalized_new}")
+        logger.warning(f"   Expected sorted: {normalized_existing}")
+        logger.warning(f"   Difference: {set(normalized_new) - set(normalized_existing)} | {set(normalized_existing) - set(normalized_new)}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="imageOrder must contain the same images as current profile (URLs don't match)"
+            detail=f"imageOrder doesn't match current images. Provided: {len(normalized_new)} images, Expected: {len(normalized_existing)} images"
         )
     
     # Normalize new_order to relative paths (strip domain/protocol)
@@ -1620,13 +1631,21 @@ async def delete_photo(
     from urllib.parse import urlparse
     
     def extract_path(url_or_path):
-        """Extract relative path from URL or return path as-is"""
+        """Normalize all image path formats to /uploads/filename.ext"""
+        if not url_or_path:
+            return ''
+            
+        # Handle full URLs: http://localhost:8000/uploads/file.jpg
         if url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
-            path = parsed.path.lstrip('/')
-            if path.startswith('uploads/'):
-                return path
-            return path
+            # Returns: /uploads/file.jpg
+            return parsed.path
+        
+        # Handle paths without leading slash: uploads/file.jpg
+        if url_or_path.startswith('uploads/'):
+            return '/' + url_or_path
+        
+        # Already has leading slash: /uploads/file.jpg
         return url_or_path
     
     # Validate that image exists in user's images
