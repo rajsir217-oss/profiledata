@@ -1,15 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { getImageUrl } from '../utils/urlHelper';
+import api from '../api';
 import './ImageManager.css';
 
-const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setImagesToDelete, newImages, setNewImages, onError }) => {
+const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setImagesToDelete, newImages, setNewImages, onError, username, isEditMode }) => {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [allImages, setAllImages] = useState([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLightbox, setShowLightbox] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null); // Track which image is in delete-confirm state
   
   // Merge existing and new images for unified display
   useEffect(() => {
@@ -82,16 +86,60 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
     setHasUnsavedChanges(true); // Mark as unsaved
   };
 
-  // Handle remove image
-  const handleRemove = (image) => {
+  // Handle remove image with 2-click delete pattern
+  const handleRemove = async (image, index) => {
     if (image.type === 'existing') {
-      setImagesToDelete(prev => [...prev, image.url]);
-      setExistingImages(prev => prev.filter(img => img !== image.url));
-      setHasUnsavedChanges(true); // Mark as unsaved
+      // Auto-delete if in edit mode with 2-click pattern
+      if (isEditMode && username) {
+        // First click: Set to confirm state
+        if (deleteConfirmIndex !== index) {
+          setDeleteConfirmIndex(index);
+          // Auto-reset after 3 seconds
+          setTimeout(() => {
+            setDeleteConfirmIndex(null);
+          }, 3000);
+          return;
+        }
+        
+        // Second click: Actually delete
+        setDeleteConfirmIndex(null);
+        setSaving(true);
+        
+        try {
+          // Remove from local array first for immediate UI feedback
+          const remainingImages = existingImages.filter(img => img !== image.url);
+          
+          // Call API to delete
+          await api.put(`/profile/${username}/delete-photo`, {
+            imageToDelete: image.url,
+            remainingImages: remainingImages
+          });
+          
+          // Update state after successful deletion
+          setExistingImages(remainingImages);
+          setHasUnsavedChanges(false);
+          
+          if (onError) {
+            onError('✅ Photo deleted successfully!');
+          }
+          console.log('✅ Photo auto-deleted from server');
+        } catch (error) {
+          console.error('❌ Failed to delete photo:', error);
+          if (onError) {
+            onError('❌ Failed to delete photo. Please try again.');
+          }
+        } finally {
+          setSaving(false);
+        }
+      } else {
+        // Not in edit mode, just mark for deletion
+        setImagesToDelete(prev => [...prev, image.url]);
+        setExistingImages(prev => prev.filter(img => img !== image.url));
+        setHasUnsavedChanges(true);
+      }
     } else {
-      // Remove from new images
+      // Remove from new images (not yet saved)
       setNewImages(prev => prev.filter(file => file !== image.file));
-      // Don't mark as unsaved if removing a new (not yet saved) image
     }
   };
 
@@ -113,8 +161,8 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
     setHasUnsavedChanges(true); // Mark as unsaved
   };
 
-  // Set as profile picture (move to first position)
-  const setAsProfilePic = (index) => {
+  // Set as profile picture (move to first position) with auto-save
+  const setAsProfilePic = async (index) => {
     console.log('🌟 setAsProfilePic called with index:', index);
     
     if (index === 0) {
@@ -139,17 +187,44 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
     console.log('📊 After split - Existing:', existing.length, 'New:', newFiles.length);
     console.log('🎯 New profile picture:', existing[0]);
     
-    setExistingImages(existing);
-    setNewImages(newFiles);
-    setHasUnsavedChanges(true); // Mark as unsaved
-    
-    if (onError) {
-      onError('✅ Profile picture changed! Click "💾 Save Changes" button below to save permanently.');
+    // Auto-save if in edit mode
+    if (isEditMode && username && existing.length > 0) {
+      setSaving(true);
+      try {
+        await api.put(`/profile/${username}/reorder-photos`, {
+          imageOrder: existing
+        });
+        
+        setExistingImages(existing);
+        setNewImages(newFiles);
+        setHasUnsavedChanges(false);
+        
+        if (onError) {
+          onError('✅ Profile picture updated successfully!');
+        }
+        console.log('✅ Profile picture auto-saved to server');
+      } catch (error) {
+        console.error('❌ Failed to save profile picture:', error);
+        if (onError) {
+          onError('❌ Failed to save profile picture. Please try again.');
+        }
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // Not in edit mode, just reorder locally
+      setExistingImages(existing);
+      setNewImages(newFiles);
+      setHasUnsavedChanges(true);
+      
+      if (onError) {
+        onError('✅ Profile picture changed! Click "💾 Save Changes" button below to save.');
+      }
     }
   };
   
-  // Handle new image upload
-  const handleFileSelect = (e) => {
+  // Handle new image upload with auto-save
+  const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
     const totalImages = allImages.length + files.length;
     
@@ -158,8 +233,57 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
       return;
     }
     
-    setNewImages(prev => [...prev, ...files]);
-    setHasUnsavedChanges(true); // Mark as unsaved
+    // Validate file sizes (5MB each)
+    for (let file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        if (onError) onError(`❌ File "${file.name}" is too large. Maximum 5MB per photo.`);
+        e.target.value = '';
+        return;
+      }
+    }
+    
+    // Auto-upload if in edit mode
+    if (isEditMode && username) {
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        files.forEach(file => formData.append('images', file));
+        
+        // Include existing images to maintain order
+        formData.append('existingImages', JSON.stringify(existingImages));
+        
+        console.log('📤 Auto-uploading', files.length, 'photos...');
+        const response = await api.post(`/profile/${username}/upload-photos`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        // Update with new image URLs from server
+        setExistingImages(response.data.images);
+        setNewImages([]); // Clear new images since they're now saved
+        setHasUnsavedChanges(false);
+        
+        if (onError) {
+          onError(`✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded successfully!`);
+        }
+        console.log('✅ Photos auto-uploaded:', response.data.images.length);
+      } catch (error) {
+        console.error('❌ Auto-upload failed:', error);
+        if (onError) {
+          onError('❌ Upload failed: ' + (error.response?.data?.detail || error.message));
+        }
+      } finally {
+        setUploading(false);
+      }
+    } else {
+      // Not in edit mode, add to newImages for later upload
+      setNewImages(prev => [...prev, ...files]);
+      setHasUnsavedChanges(true);
+      
+      if (onError) {
+        onError(`📸 ${files.length} photo${files.length > 1 ? 's' : ''} selected. Click "Save Changes" to upload.`);
+      }
+    }
+    
     e.target.value = ''; // Reset input
   };
 
@@ -174,10 +298,20 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
         </p>
       </div>
       
-      {/* Unsaved Changes Banner */}
-      {hasUnsavedChanges && (
+      {/* Upload/Save Status Banner */}
+      {uploading && (
+        <div className="upload-status-banner uploading">
+          <span className="spinner"></span> Uploading photos...
+        </div>
+      )}
+      {saving && (
+        <div className="upload-status-banner saving">
+          <span className="spinner"></span> Saving changes...
+        </div>
+      )}
+      {hasUnsavedChanges && !uploading && !saving && !isEditMode && (
         <div className="unsaved-changes-banner">
-          ⚠️ You have unsaved changes! Click "Save Changes" button below to update your profile picture.
+          ⚠️ You have unsaved changes! Click "Save Changes" button below to update your photos.
         </div>
       )}
 
@@ -195,7 +329,7 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
           multiple
           onChange={handleFileSelect}
           style={{ display: 'none' }}
-          disabled={allImages.length >= 5}
+          disabled={allImages.length >= 5 || uploading}
         />
       </div>
 

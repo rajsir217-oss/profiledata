@@ -2538,6 +2538,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             newImages={newImages}
             setNewImages={setNewImages}
             onError={(msg) => setErrorMsg(msg)}
+            username={editUsername || formData.username}
+            isEditMode={isEditMode}
           />
         </div>
 
