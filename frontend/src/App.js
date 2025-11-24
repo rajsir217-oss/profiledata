@@ -42,6 +42,7 @@ import EmailAnalytics from './components/EmailAnalytics';
 import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
 import InvitationManager from './components/InvitationManager';
+import InviteFriends from './components/InviteFriends';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -333,6 +334,7 @@ function AppContent() {
               <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
               <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
+              <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />

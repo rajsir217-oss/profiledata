@@ -27,7 +27,7 @@ const SearchPage2 = () => {
   // Main application state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [totalResults, setTotalResults] = useState(0);
+  // const [totalResults, setTotalResults] = useState(0); // Unused - kept for future pagination
   // currentPage removed - using LoadMore incremental loading instead
 
   // L3V3L specific state
@@ -822,7 +822,7 @@ const SearchPage2 = () => {
       sortOrder: 'asc'
     });
     setUsers([]);
-    setTotalResults(0);
+    // setTotalResults(0);
     setSaveSearchName('');
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
@@ -971,7 +971,7 @@ const SearchPage2 = () => {
         setUsers(prev => [...prev, ...filteredUsers]);
       }
 
-      setTotalResults(filteredUsers.length);
+      // setTotalResults(filteredUsers.length);
 
     } catch (err) {
       console.error('Error searching users:', err);
@@ -1275,7 +1275,7 @@ const SearchPage2 = () => {
     setSearchCriteria(clearedCriteria);
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setUsers([]);
-    setTotalResults(0);
+    // setTotalResults(0);
     setStatusMessage('✅ Returning to default search criteria');
     setTimeout(() => setStatusMessage(''), 3000);
     
@@ -1336,7 +1336,7 @@ const SearchPage2 = () => {
       const fetchedUsers = response.data.users || [];
       
       setUsers(fetchedUsers);
-      setTotalResults(fetchedUsers.length);
+      // setTotalResults(fetchedUsers.length);
       setFiltersCollapsed(true); // Auto-collapse filters after search
       
       console.log(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);

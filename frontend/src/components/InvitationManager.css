@@ -181,35 +181,50 @@
   text-decoration: underline;
 }
 
+/* Invited By Badge */
+.invited-by-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--surface-color, #f8f9fa);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  white-space: nowrap;
+}
+
 /* Status Badge Colors (use btn-action as base class for alignment) */
 .status-pending {
-  background: #ffeaa7;
-  color: #d63031;
+  background: var(--warning-light, #ffeaa7);
+  color: var(--warning-dark, #d63031);
 }
 
 .status-sent {
-  background: #74b9ff;
-  color: #0984e3;
+  background: var(--info-light, #74b9ff);
+  color: var(--info-color, #0984e3);
 }
 
 .status-delivered {
-  background: #55efc4;
-  color: #00b894;
+  background: var(--success-light, #55efc4);
+  color: var(--success-color, #00b894);
 }
 
 .status-failed {
-  background: #fab1a0;
-  color: #d63031;
+  background: var(--danger-light, #fab1a0);
+  color: var(--danger-color, #d63031);
 }
 
 .status-accepted {
-  background: #00b894;
+  background: var(--success-color, #00b894);
   color: white;
 }
 
 .status-expired {
-  background: #dfe6e9;
-  color: #636e72;
+  background: var(--surface-color, #dfe6e9);
+  color: var(--text-muted, #636e72);
 }
 
 /* Action Buttons */
@@ -240,18 +255,18 @@
 }
 
 .btn-email:hover:not(:disabled) {
-  background: var(--primary-color-dark, #0056b3);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background: var(--primary-color-dark, var(--primary-color, #0056b3));
+  box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .btn-sms {
-  background: #00b894;
+  background: var(--success-color, #00b894);
   color: white;
 }
 
 .btn-sms:hover:not(:disabled) {
-  background: #00966d;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  background: var(--success-color-dark, var(--success-color, #00966d));
+  box-shadow: var(--shadow-md, 0 4px 8px rgba(0, 0, 0, 0.2));
 }
 
 .action-buttons {
@@ -300,26 +315,26 @@
 }
 
 .btn-primary:hover {
-  background: var(--primary-color-dark, #0056b3);
+  background: var(--primary-color-dark, var(--primary-color, #0056b3));
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
 }
 
 /* Secondary Button */
 .btn-secondary {
-  background: var(--bg-secondary, #e9ecef);
+  background: var(--surface-color, var(--bg-secondary, #e9ecef));
   color: var(--text-color);
   border: 1px solid var(--border-color);
   padding: 12px 24px;
   border-radius: var(--radius-md);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .btn-secondary:hover {
-  background: var(--hover-bg, #d0d5dd);
+  background: var(--hover-background, var(--hover-bg, #d0d5dd));
 }
 
 /* Modal */
@@ -432,12 +447,12 @@ form {
 
 /* Error Message */
 .error-message {
-  background: #f8d7da;
-  color: #721c24;
+  background: var(--danger-light, #f8d7da);
+  color: var(--danger-color, #721c24);
   padding: 12px 16px;
   border-radius: var(--radius-md);
   margin-bottom: 16px;
-  border: 1px solid #f5c6cb;
+  border: 1px solid var(--danger-border, var(--danger-light, #f5c6cb));
   font-size: 14px;
 }
 

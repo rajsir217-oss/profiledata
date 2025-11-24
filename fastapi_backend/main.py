@@ -28,6 +28,7 @@ from routers.verification import router as verification_router
 from routers.push_subscriptions import router as push_subscriptions_router
 from routers.system_health import router as system_health_router
 from routers.invitations import router as invitations_router
+from routers.user_invitations import router as user_invitations_router
 from routers.account_status import router as account_status_router
 from routers.pause_analytics import router as pause_analytics_router
 from routers.admin_notifications import router as admin_notifications_router
@@ -233,6 +234,7 @@ app.include_router(activity_logs_router)  # Activity logs routes (already has /a
 app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)
 app.include_router(push_subscriptions_router)  # Push notification subscriptions (already has /api/push-subscriptions prefix)
 app.include_router(invitations_router)  # Invitation routes (already has /api/invitations prefix)
+app.include_router(user_invitations_router)  # User invitation routes (already has /api/user-invitations prefix)
 app.include_router(account_status_router)  # Account status/pause routes (already has /api/account prefix)
 app.include_router(pause_analytics_router)  # Pause analytics routes (already has /api/pause-analytics prefix)
 app.include_router(email_templates_router, prefix="/api/users/email-templates", tags=["email-templates"])  # Email template management
