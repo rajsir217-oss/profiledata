@@ -1349,6 +1349,342 @@ async def update_user_profile(
             detail=f"Failed to update profile: {str(e)}"
         )
 
+# ===== PHOTO AUTO-SAVE ENDPOINTS =====
+
+@router.post("/profile/{username}/upload-photos")
+async def upload_photos(
+    username: str,
+    images: List[UploadFile] = File(...),
+    existingImages: Optional[str] = Form(None),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Auto-upload photos for a user in edit mode
+    Returns updated images array
+    """
+    logger.info(f"📤 Auto-upload request for user '{username}' with {len(images)} photo(s)")
+    
+    # Security: Verify user is authenticated and matches username (or is admin)
+    current_username = current_user.get("username")
+    user_role = current_user.get("role", "user")
+    
+    if current_username != username and user_role != "admin":
+        logger.warning(f"⚠️ Unauthorized upload attempt by '{current_username}' for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only upload photos to your own profile"
+        )
+    
+    # Find user
+    user = await db.users.find_one(get_username_query(username))
+    if not user:
+        logger.warning(f"⚠️ Upload failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Parse existing images
+    existing_images_list = []
+    if existingImages:
+        try:
+            existing_images_list = json.loads(existingImages)
+            logger.info(f"📸 Existing images: {len(existing_images_list)}")
+        except json.JSONDecodeError:
+            logger.warning(f"⚠️ Invalid JSON for existingImages")
+    
+    # Validate total count (max 5 photos)
+    total_images = len(existing_images_list) + len(images)
+    if total_images > 5:
+        logger.warning(f"⚠️ Upload rejected: Would exceed 5 photo limit ({total_images} total)")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Maximum 5 photos allowed. You have {len(existing_images_list)} and are trying to add {len(images)}."
+        )
+    
+    # Validate file sizes (5MB each)
+    for image in images:
+        # Read file to check size
+        content = await image.read()
+        if len(content) > 5 * 1024 * 1024:  # 5MB
+            logger.warning(f"⚠️ Upload rejected: File '{image.filename}' exceeds 5MB")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"File '{image.filename}' exceeds 5MB limit"
+            )
+        # Reset file pointer for save_multiple_files
+        await image.seek(0)
+    
+    # Upload new images
+    try:
+        logger.info(f"💾 Saving {len(images)} new photo(s)...")
+        new_image_paths = await save_multiple_files(images)
+        logger.info(f"✅ Saved new photos: {new_image_paths}")
+        
+        # Combine with existing images
+        all_images = existing_images_list + new_image_paths
+        logger.info(f"📸 Total images after upload: {len(all_images)}")
+        
+        # Update user's images in database
+        result = await db.users.update_one(
+            {"username": username},
+            {"$set": {
+                "images": all_images,
+                "updatedAt": datetime.utcnow().isoformat()
+            }}
+        )
+        
+        if result.modified_count == 0:
+            logger.warning(f"⚠️ No changes made to user '{username}' images")
+        
+        logger.info(f"✅ Photos auto-uploaded successfully for user '{username}'")
+        
+        # Return full URLs
+        full_urls = [get_full_image_url(img) for img in all_images]
+        
+        return {
+            "images": full_urls,
+            "message": f"{len(new_image_paths)} photo(s) uploaded successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error uploading photos for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to upload photos: {str(e)}"
+        )
+
+@router.put("/profile/{username}/reorder-photos")
+async def reorder_photos(
+    username: str,
+    imageOrder: Dict[str, List[str]] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Change profile picture by reordering photos
+    First image in array becomes profile picture
+    """
+    logger.info(f"🔄 Reorder photos request for user '{username}'")
+    
+    # Security: Verify user is authenticated and matches username (or is admin)
+    current_username = current_user.get("username")
+    user_role = current_user.get("role", "user")
+    
+    if current_username != username and user_role != "admin":
+        logger.warning(f"⚠️ Unauthorized reorder attempt by '{current_username}' for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only reorder photos on your own profile"
+        )
+    
+    # Find user
+    user = await db.users.find_one(get_username_query(username))
+    if not user:
+        logger.warning(f"⚠️ Reorder failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Get new image order
+    new_order = imageOrder.get("imageOrder", [])
+    if not new_order:
+        logger.warning(f"⚠️ Reorder failed: No imageOrder provided")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="imageOrder array is required"
+        )
+    
+    logger.info(f"🔄 New order ({len(new_order)} images): {new_order}")
+    
+    # Validate: new order must match existing images
+    existing_images = user.get("images", [])
+    logger.info(f"📸 Current images ({len(existing_images)}): {existing_images}")
+    
+    # Normalize URLs to paths for comparison
+    from pathlib import Path
+    from urllib.parse import urlparse
+    
+    def extract_path(url_or_path):
+        """Extract relative path from URL or return path as-is"""
+        if url_or_path.startswith('http'):
+            parsed = urlparse(url_or_path)
+            # Remove leading slash and domain
+            path = parsed.path.lstrip('/')
+            # Remove 'uploads/' prefix if present
+            if path.startswith('uploads/'):
+                return path
+            return path
+        return url_or_path
+    
+    normalized_new = sorted([extract_path(img) for img in new_order])
+    normalized_existing = sorted([extract_path(img) for img in existing_images])
+    
+    logger.info(f"🔍 Normalized new order: {normalized_new}")
+    logger.info(f"🔍 Normalized existing: {normalized_existing}")
+    
+    if normalized_new != normalized_existing:
+        logger.warning(f"⚠️ Reorder failed: imageOrder doesn't match existing images")
+        logger.warning(f"   Provided: {normalized_new}")
+        logger.warning(f"   Expected: {normalized_existing}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="imageOrder must contain the same images as current profile (URLs don't match)"
+        )
+    
+    # Normalize new_order to relative paths (strip domain/protocol)
+    normalized_order = [extract_path(img) for img in new_order]
+    
+    # Update user's images in database
+    try:
+        result = await db.users.update_one(
+            {"username": username},
+            {"$set": {
+                "images": normalized_order,
+                "updatedAt": datetime.utcnow().isoformat()
+            }}
+        )
+        
+        if result.modified_count == 0:
+            logger.warning(f"⚠️ No changes made to user '{username}' photo order")
+        
+        logger.info(f"✅ Photos reordered successfully for user '{username}'")
+        logger.info(f"📸 New profile picture: {normalized_order[0] if normalized_order else 'none'}")
+        
+        # Return full URLs
+        full_urls = [get_full_image_url(img) for img in normalized_order]
+        
+        return {
+            "images": full_urls,
+            "message": "Profile picture updated successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error reordering photos for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to reorder photos: {str(e)}"
+        )
+
+@router.put("/profile/{username}/delete-photo")
+async def delete_photo(
+    username: str,
+    data: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Delete a single photo from user's profile
+    Auto-saves deletion immediately
+    """
+    logger.info(f"🗑️ Delete photo request for user '{username}'")
+    
+    # Security: Verify user is authenticated and matches username (or is admin)
+    current_username = current_user.get("username")
+    user_role = current_user.get("role", "user")
+    
+    if current_username != username and user_role != "admin":
+        logger.warning(f"⚠️ Unauthorized delete attempt by '{current_username}' for user '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only delete photos from your own profile"
+        )
+    
+    # Find user
+    user = await db.users.find_one(get_username_query(username))
+    if not user:
+        logger.warning(f"⚠️ Delete failed: User '{username}' not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Get photo to delete
+    image_to_delete = data.get("imageToDelete")
+    remaining_images = data.get("remainingImages", [])
+    
+    if not image_to_delete:
+        logger.warning(f"⚠️ Delete failed: No imageToDelete provided")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="imageToDelete is required"
+        )
+    
+    logger.info(f"🗑️ Deleting photo: {image_to_delete}")
+    logger.info(f"📸 Remaining photos: {len(remaining_images)}")
+    
+    # Normalize path for comparison
+    from pathlib import Path
+    from urllib.parse import urlparse
+    
+    def extract_path(url_or_path):
+        """Extract relative path from URL or return path as-is"""
+        if url_or_path.startswith('http'):
+            parsed = urlparse(url_or_path)
+            path = parsed.path.lstrip('/')
+            if path.startswith('uploads/'):
+                return path
+            return path
+        return url_or_path
+    
+    # Validate that image exists in user's images
+    existing_images = user.get("images", [])
+    normalized_to_delete = extract_path(image_to_delete)
+    normalized_existing = [extract_path(img) for img in existing_images]
+    
+    if normalized_to_delete not in normalized_existing:
+        logger.warning(f"⚠️ Delete failed: Image not found in user's profile")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Image not found in your profile"
+        )
+    
+    # Delete physical file (optional - keep for safety, can delete later)
+    try:
+        file_path = Path("uploads") / normalized_to_delete
+        if file_path.exists():
+            logger.info(f"📁 Physical file would be at: {file_path}")
+            # Optionally delete file: file_path.unlink()
+            # For safety, keeping files for now
+    except Exception as file_err:
+        logger.warning(f"⚠️ Could not delete physical file: {file_err}")
+    
+    # Normalize remaining images
+    normalized_remaining = [extract_path(img) for img in remaining_images]
+    
+    # Update user's images in database
+    try:
+        result = await db.users.update_one(
+            {"username": username},
+            {"$set": {
+                "images": normalized_remaining,
+                "updatedAt": datetime.utcnow().isoformat()
+            }}
+        )
+        
+        if result.modified_count == 0:
+            logger.warning(f"⚠️ No changes made to user '{username}' images")
+        
+        logger.info(f"✅ Photo deleted successfully for user '{username}'")
+        logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
+        
+        # Return full URLs
+        full_urls = [get_full_image_url(img) for img in normalized_remaining]
+        
+        return {
+            "images": full_urls,
+            "message": "Photo deleted successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error deleting photo for user '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to delete photo: {str(e)}"
+        )
+
 # ===== USER PREFERENCES ENDPOINTS =====
 
 @router.get("/preferences")
