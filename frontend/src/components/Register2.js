@@ -3527,10 +3527,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                   {/* Only show legal agreements in register mode */}
                   {!isEditMode ? (
                     <>
-                      <p className="small mb-3" style={{ color: 'var(--text-secondary)' }}>
-                        Please review and accept all agreements below before completing your registration.
-                        These are mandatory to create your profile.
-                      </p>
+                      <div className="legal-agreements-section">
+                        <p className="small mb-3" style={{ color: 'var(--text-secondary)' }}>
+                          Please review and accept all agreements below before completing your registration.
+                          These are mandatory to create your profile.
+                        </p>
 
                       {/* Select All Checkbox */}
                       <div className="form-check select-all-agreements mb-4">
@@ -3684,10 +3685,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                         </label>
                       </div>
 
-                      <div className="alert alert-info info-tip-box mt-4">
-                        <small>
-                          By clicking "Review & Register", you'll see a summary of your profile before final submission.
-                        </small>
+                        <div className="alert alert-info info-tip-box mt-4">
+                          <small>
+                            By clicking "Review & Register", you'll see a summary of your profile before final submission.
+                          </small>
+                        </div>
                       </div>
 
                       {/* Navigation Buttons */}
