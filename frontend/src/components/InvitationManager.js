@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
+import LoadMore from './LoadMore';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -12,6 +13,12 @@ const InvitationManager = () => {
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [includeArchived, setIncludeArchived] = useState(false);
+  const [filterBySender, setFilterBySender] = useState('all');
+  const [sendersList, setSendersList] = useState([]);
+  
+  // Pagination state
+  const [displayedCount, setDisplayedCount] = useState(20);
+  const [loadingMore, setLoadingMore] = useState(false);
   
   // Form state for new invitation
   const [formData, setFormData] = useState({
@@ -37,6 +44,19 @@ const InvitationManager = () => {
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeArchived]);
+
+  // Extract unique senders when invitations load
+  useEffect(() => {
+    if (invitations.length > 0) {
+      const uniqueSenders = [...new Set(invitations.map(inv => inv.invitedBy))];
+      setSendersList(uniqueSenders.sort());
+    }
+  }, [invitations]);
+
+  // Reset displayed count when filter changes
+  useEffect(() => {
+    setDisplayedCount(20);
+  }, [filterBySender, includeArchived]);
 
   const loadInvitations = async () => {
     try {
@@ -230,6 +250,20 @@ const InvitationManager = () => {
     );
   };
 
+  const handleLoadMore = () => {
+    setLoadingMore(true);
+    setTimeout(() => {
+      setDisplayedCount(prev => prev + 20);
+      setLoadingMore(false);
+    }, 300);
+  };
+
+  // Filter and slice invitations for pagination
+  const filteredInvitations = invitations.filter(
+    inv => filterBySender === 'all' || inv.invitedBy === filterBySender
+  );
+  const displayedInvitations = filteredInvitations.slice(0, displayedCount);
+
   if (loading) {
     return <div className="invitation-manager"><p>Loading invitations...</p></div>;
   }
@@ -268,14 +302,47 @@ const InvitationManager = () => {
         <button className="btn-primary" onClick={() => setShowAddModal(true)}>
           ➕ New Invitation
         </button>
-        <label className="checkbox-label">
-          <input
-            type="checkbox"
-            checked={includeArchived}
-            onChange={(e) => setIncludeArchived(e.target.checked)}
-          />
-          Show Archived
-        </label>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <label className="checkbox-label">
+            <input
+              type="checkbox"
+              checked={includeArchived}
+              onChange={(e) => setIncludeArchived(e.target.checked)}
+            />
+            Show Archived
+          </label>
+          
+          {sendersList.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <label style={{ fontSize: '14px', color: 'var(--text-color)', fontWeight: '600' }}>
+                Filter by sender:
+              </label>
+              <select
+                value={filterBySender}
+                onChange={(e) => setFilterBySender(e.target.value)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  border: '2px solid var(--border-color)',
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-color)',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="all">All ({invitations.length})</option>
+                {sendersList.map(sender => {
+                  const count = invitations.filter(inv => inv.invitedBy === sender).length;
+                  return (
+                    <option key={sender} value={sender}>
+                      {sender === 'admin' ? '👤 Admin' : `👥 ${sender}`} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       {error && <div className="error-message">{error}</div>}
@@ -287,6 +354,7 @@ const InvitationManager = () => {
             <tr>
               <th>Name</th>
               <th>Email</th>
+              <th>Invited By</th>
               <th>Email Status</th>
               <th>Action</th>
               <th>SMS</th>
@@ -297,18 +365,23 @@ const InvitationManager = () => {
             </tr>
           </thead>
           <tbody>
-            {invitations.length === 0 ? (
+            {filteredInvitations.length === 0 ? (
               <tr>
-                <td colSpan="9" style={{ textAlign: 'center', padding: '40px' }}>
+                <td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>
                   No invitations found. Create your first invitation!
                 </td>
               </tr>
             ) : (
-              invitations.map((invitation) => (
+              displayedInvitations.map((invitation) => (
                 <tr key={invitation.id} className={invitation.archived ? 'archived-row' : ''}>
                   <td>{invitation.name}</td>
                   <td>
                     <a href={`mailto:${invitation.email}`}>{invitation.email}</a>
+                  </td>
+                  <td>
+                    <span className="invited-by-badge" title={`Invited by ${invitation.invitedBy}`}>
+                      {invitation.invitedBy === 'admin' ? '👤 Admin' : `👥 ${invitation.invitedBy}`}
+                    </span>
                   </td>
                   <td>{getStatusBadge(invitation.emailStatus)}</td>
                   <td>
@@ -365,6 +438,18 @@ const InvitationManager = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Load More Component */}
+      {filteredInvitations.length > 0 && (
+        <LoadMore
+          currentCount={Math.min(displayedCount, filteredInvitations.length)}
+          totalCount={filteredInvitations.length}
+          onLoadMore={handleLoadMore}
+          loading={loadingMore}
+          itemsPerLoad={20}
+          itemLabel="invitations"
+        />
+      )}
 
       {/* Add Invitation Modal */}
       {showAddModal && (

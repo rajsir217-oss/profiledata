@@ -159,6 +159,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/pii-management'),
         disabled: !isActive
       },
+      { 
+        icon: '👥', 
+        label: 'Invite Friends', 
+        subLabel: 'Share with friends & family',
+        action: () => navigate('/invite-friends'),
+        disabled: !isActive
+      },
     ];
 
     // Add Admin section for admin user

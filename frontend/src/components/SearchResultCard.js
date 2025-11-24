@@ -177,21 +177,6 @@ const SearchResultCard = ({
     onReport: onReport
   };
 
-  // Get initials from first and last name, fallback to username
-  const getInitials = () => {
-    const firstName = user?.firstName || '';
-    const lastName = user?.lastName || '';
-    
-    if (firstName && lastName) {
-      return (firstName[0] + lastName[0]).toUpperCase();
-    } else if (firstName) {
-      return firstName[0].toUpperCase();
-    } else if (user?.username) {
-      return user.username[0].toUpperCase();
-    }
-    return '?';
-  };
-
   // Calculate age from birth month and year
   const calculateAge = (birthMonth, birthYear) => {
     if (!birthMonth || !birthYear) return 'N/A';

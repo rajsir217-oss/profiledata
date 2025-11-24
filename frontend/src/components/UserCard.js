@@ -103,13 +103,6 @@ const UserCard = ({
     }
   };
 
-  const handleActionClick = (e, action) => {
-    e.stopPropagation();
-    if (action.onClick) {
-      action.onClick(user);
-    }
-  };
-
   // Context-based bottom action configuration
   const getBottomActions = () => {
     const bottomActions = [];
@@ -306,9 +299,7 @@ const UserCard = ({
       {/* Bottom Actions Section - Context-aware */}
       {displayActions && displayActions.length > 0 && (
         <div className="user-card-bottom-actions">
-          {displayActions.map((action, index) => {
-            const isLegacyAction = !action.handler;
-            return (
+          {displayActions.map((action, index) => (
               <button
                 key={index}
                 className={`bottom-action-btn ${action.className || ''}`}
@@ -326,8 +317,7 @@ const UserCard = ({
                 <span className="btn-icon">{action.icon}</span>
                 <span className="btn-label">{action.label}</span>
               </button>
-            );
-          })}
+          ))}
         </div>
       )}
     </div>

@@ -11,7 +11,6 @@ import {
   changePassword, 
   notifications,
   requestAccountDeletion,
-  cancelAccountDeletion,
   exportAccountData
 } from '../api';
 import api from '../api';
