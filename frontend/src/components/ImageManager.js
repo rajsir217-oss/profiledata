@@ -14,6 +14,15 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null); // Track which image is in delete-confirm state
+  const [localStatus, setLocalStatus] = useState(null); // { type: 'success'|'error'|'info', message: 'text' }
+  
+  // Show local status with auto-dismiss
+  const showStatus = (type, message, duration = 4000) => {
+    setLocalStatus({ type, message });
+    setTimeout(() => {
+      setLocalStatus(null);
+    }, duration);
+  };
   
   // Merge existing and new images for unified display
   useEffect(() => {
@@ -119,12 +128,14 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
           setExistingImages(remainingImages);
           setHasUnsavedChanges(false);
           
+          showStatus('success', '✅ Photo deleted successfully!');
           if (onError) {
             onError('✅ Photo deleted successfully!');
           }
           console.log('✅ Photo auto-deleted from server');
         } catch (error) {
           console.error('❌ Failed to delete photo:', error);
+          showStatus('error', '❌ Failed to delete photo. Please try again.');
           if (onError) {
             onError('❌ Failed to delete photo. Please try again.');
           }
@@ -199,12 +210,14 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
         setNewImages(newFiles);
         setHasUnsavedChanges(false);
         
+        showStatus('success', '✅ Profile picture updated successfully!');
         if (onError) {
           onError('✅ Profile picture updated successfully!');
         }
         console.log('✅ Profile picture auto-saved to server');
       } catch (error) {
         console.error('❌ Failed to save profile picture:', error);
+        showStatus('error', '❌ Failed to save profile picture. Please try again.');
         if (onError) {
           onError('❌ Failed to save profile picture. Please try again.');
         }
@@ -262,12 +275,14 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
         setNewImages([]); // Clear new images since they're now saved
         setHasUnsavedChanges(false);
         
+        showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded successfully!`);
         if (onError) {
           onError(`✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded successfully!`);
         }
         console.log('✅ Photos auto-uploaded:', response.data.images.length);
       } catch (error) {
         console.error('❌ Auto-upload failed:', error);
+        showStatus('error', '❌ Upload failed: ' + (error.response?.data?.detail || error.message));
         if (onError) {
           onError('❌ Upload failed: ' + (error.response?.data?.detail || error.message));
         }
@@ -312,6 +327,13 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
       {hasUnsavedChanges && !uploading && !saving && !isEditMode && (
         <div className="unsaved-changes-banner">
           ⚠️ You have unsaved changes! Click "Save Changes" button below to update your photos.
+        </div>
+      )}
+      
+      {/* Local Status Banner - Shows right in photo section */}
+      {localStatus && (
+        <div className={`local-status-banner ${localStatus.type}`}>
+          {localStatus.message}
         </div>
       )}
 
@@ -445,14 +467,14 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
                     </button>
                   )}
                   
-                  {/* Delete Button */}
+                  {/* Delete Button - 2-click pattern */}
                   <button
                     type="button"
-                    className="btn-control btn-delete"
-                    onClick={() => handleRemove(img)}
-                    title="Delete photo"
+                    className={`btn-control btn-delete ${deleteConfirmIndex === index ? 'confirm-delete' : ''}`}
+                    onClick={() => handleRemove(img, index)}
+                    title={deleteConfirmIndex === index ? "Click again to confirm delete" : "Delete photo"}
                   >
-                    🗑️
+                    {deleteConfirmIndex === index ? '⚠️ Delete?' : '🗑️'}
                   </button>
                 </div>
 
