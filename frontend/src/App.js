@@ -105,7 +105,7 @@ function AppContent() {
       
       if (username && token) {
         try {
-          const response = await fetch(`${getApiUrl()}/api/users/profile/${username}`, {
+          const response = await fetch(`${getApiUrl()}/profile/${username}`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }

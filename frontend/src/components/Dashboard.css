@@ -15,6 +15,8 @@
   max-width: 1400px;
   margin: 0 auto;
   background: var(--background-color);
+  min-height: 100vh;
+  box-sizing: border-box;
 }
 
 /* Responsive container widths */
@@ -1182,7 +1184,8 @@
   line-height: 1;
 }
 
-.butterfly-icon {
+/* Butterfly icon specific to dashboard search button */
+.btn-search-l3v3l .butterfly-icon {
   font-size: 16px;
   line-height: 1;
   /* filter: drop-shadow(0 0 4px rgba(147, 51, 234, 0.8)); */
@@ -1667,55 +1670,49 @@
    ======================================== */
 
 .dashboard-bottom-actions {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  gap: 12px;
-  z-index: 100;
-  background: rgba(44, 47, 66, 0.95);
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  margin: var(--spacing-xl, 24px) auto var(--spacing-lg, 16px);
+  max-width: fit-content;
+  background: var(--card-background, rgba(255, 255, 255, 0.95));
   backdrop-filter: blur(10px);
-  padding: 12px 20px;
-  border-radius: 50px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(102, 126, 234, 0.3);
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-  .dashboard-bottom-actions {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: rgba(102, 126, 234, 0.3);
-  }
+  padding: 6px 10px;
+  border-radius: 30px;
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.1));
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  transition: all 0.3s ease;
 }
 
 /* Bottom action buttons styling */
 .dashboard-bottom-actions button {
-  padding: 12px;
+  padding: 6px;
   border-radius: 12px;
-  font-size: 20px;
-  min-width: 48px;
-  min-height: 48px;
+  font-size: 16px;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
-  border: 1px solid rgba(102, 126, 234, 0.3);
-  background: rgba(102, 126, 234, 0.15);
-  color: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-color, rgba(0, 0, 0, 0.1));
+  background: var(--surface-color, rgba(0, 0, 0, 0.03));
+  color: var(--text-color, #1f2937);
 }
 
 .dashboard-bottom-actions button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
   border-color: var(--primary-color, #667eea);
+  background: var(--hover-background, rgba(102, 126, 234, 0.1));
 }
 
 .dashboard-bottom-actions button:active {
   transform: translateY(0);
   box-shadow: none;
+  background: var(--active-background, rgba(102, 126, 234, 0.15));
 }
 
 /* Specific button states */
@@ -1730,32 +1727,53 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
   .dashboard-bottom-actions {
-    bottom: 15px;
-    gap: 10px;
-    padding: 10px 16px;
-    border-radius: 40px;
+    margin: var(--spacing-lg, 20px) auto var(--spacing-md, 12px);
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 28px;
   }
 
   .dashboard-bottom-actions button {
-    padding: 10px;
-    font-size: 18px;
-    min-width: 44px;
-    min-height: 44px;
+    padding: 6px;
+    font-size: 16px;
+    min-width: 36px;
+    min-height: 36px;
+    border-radius: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .dashboard-bottom-actions {
-    bottom: 10px;
-    gap: 8px;
-    padding: 8px 12px;
-    border-radius: 30px;
+    margin: var(--spacing-md, 16px) auto var(--spacing-sm, 10px);
+    gap: 5px;
+    padding: 5px 8px;
+    border-radius: 24px;
+    max-width: calc(100% - 20px);
   }
 
   .dashboard-bottom-actions button {
-    padding: 8px;
-    font-size: 16px;
-    min-width: 40px;
-    min-height: 40px;
+    padding: 5px;
+    font-size: 15px;
+    min-width: 34px;
+    min-height: 34px;
+    border-radius: 10px;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 360px) {
+  .dashboard-bottom-actions {
+    gap: 4px;
+    padding: 4px 6px;
+    margin: var(--spacing-sm, 12px) auto;
+    border-radius: 20px;
+  }
+
+  .dashboard-bottom-actions button {
+    padding: 4px;
+    font-size: 14px;
+    min-width: 32px;
+    min-height: 32px;
+    border-radius: 10px;
   }
 }
