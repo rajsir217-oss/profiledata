@@ -49,7 +49,7 @@
 
 /* Disabled menu items */
 .menu-item.disabled {
-  opacity: 0.4;
+  opacity: 0.7;
   cursor: not-allowed !important;
   pointer-events: none;
 }
@@ -57,6 +57,10 @@
 .menu-item.disabled .menu-label,
 .menu-item.disabled .menu-sublabel {
   color: #999 !important;
+}
+
+.menu-item.disabled .menu-icon {
+  opacity: 0.8;
 }
 
 .disabled-badge {

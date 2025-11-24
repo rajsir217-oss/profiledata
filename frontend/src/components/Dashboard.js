@@ -812,7 +812,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container">
       <PageHeader
-        icon="📊"
+        icon="💑"
         title="My Dashboard"
         subtitle={`Welcome back, ${userProfile ? getDisplayName(userProfile) : currentUser}!`}
         variant="gradient"

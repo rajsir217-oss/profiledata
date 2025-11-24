@@ -54,10 +54,9 @@
   min-width: 70px;
   height: 44px;
   border-radius: 12px;
-  background: rgba(0, 0, 0, 0.15); /* Dark background for better butterfly visibility */
-  border: 2px solid rgba(255, 255, 255, 0.4); /* Slightly stronger border */
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.3);
   padding: 8px 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); /* Subtle depth */
   flex-shrink: 0;
 }
 
@@ -65,18 +64,25 @@
   font-size: 18px;
   font-weight: 800;
   letter-spacing: 0.5px;
-  color: white; /* White text for visibility on transparent background */
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* Subtle shadow for legibility */
+  color: white;
   font-family: 'Arial Black', 'Arial Bold', sans-serif;
   display: flex;
   align-items: center;
+  gap: 4px;
+}
+
+/* L3V3L text - ensure bright white */
+.logo-text-full {
+  color: #ffffff !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 .app-logo:hover {
-  transform: translateY(-1px);
-  background: rgba(0, 0, 0, 0.25); /* Darker on hover for better visibility */
+  /* transform: translateY(-1px); */
+  /* background: rgba(0, 0, 0, 0.25); Darker on hover for better visibility */
   border: 2px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); Enhanced shadow on hover */
 }
 
 /* Mobile: Slightly smaller text */
@@ -199,6 +205,14 @@
   transition: all 0.3s ease;
   line-height: 1;
   padding: 0;
+  
+  /* Crystal clear rendering for emoji */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  will-change: transform;
 }
 
 .sidebar-toggle-btn:hover {
@@ -766,28 +780,12 @@
   }
 }
 
-/* Apply to butterfly icon only */
-.butterfly-icon {
-  display: inline-block;
-  animation: butterflyFloat 3s ease-in-out infinite;
-  transform-origin: center;
-  font-size: 26px; /* Even larger for maximum clarity */
-  line-height: 1;
-  margin-right: 6px; /* More spacing from text */
-  position: relative;
-  z-index: 10; /* Above the semi-transparent background */
-  
-  /* Crystal clear visibility with vivid colors */
-  /* filter: contrast(1.4) saturate(1.5) brightness(1.1) */
-          /* drop-shadow(0 0 3px rgba(0, 0, 0, 0.6))     Strong black outline */
-          /* drop-shadow(0 0 6px rgba(255, 255, 255, 0.8)) Bright white glow */
-          /* drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));   Depth shadow */
-  
-  /* Multi-layer text shadow for razor-sharp edges */
-  /* text-shadow: 
-    -1.5px -1.5px 0 rgba(0, 0, 0, 0.5),
-     1.5px -1.5px 0 rgba(0, 0, 0, 0.5),
-    -1.5px  1.5px 0 rgba(0, 0, 0, 0.5),
-     1.5px  1.5px 0 rgba(0, 0, 0, 0.5),
-    0 0 8px rgba(255, 255, 255, 0.6); White glow for pop */
+/* Butterfly icon in TopBar logo - prevent overrides */
+.logo-text .butterfly-icon {
+  display: inline-block !important;
+  font-size: 24px !important;
+  line-height: 1 !important;
+  filter: none !important;
+  color: initial !important;
+  -webkit-text-fill-color: initial !important;
 }
