@@ -96,10 +96,12 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
   };
 
   // Handle remove image with 2-click delete pattern
-  const handleRemove = async (image, index) => {
+  const handleRemoveImage = async (index) => {
+    const image = allImages[index];
+    
     if (image.type === 'existing') {
       // Auto-delete if in edit mode with 2-click pattern
-      if (isEditMode && username) {
+      if (isEditMode) {
         // First click: Set to confirm state
         if (deleteConfirmIndex !== index) {
           setDeleteConfirmIndex(index);
@@ -118,11 +120,34 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
           // Remove from local array first for immediate UI feedback
           const remainingImages = existingImages.filter(img => img !== image.url);
           
-          // Call API to delete
-          await api.put(`/profile/${username}/delete-photo`, {
+          // Get authenticated username from localStorage
+          const authenticatedUsername = localStorage.getItem('username');
+          
+          const token = localStorage.getItem('token');
+          console.log('🔍 Delete photo debug:', {
+            authenticatedUsername,
+            propUsername: username,
+            imageToDelete: image.url,
+            token: token ? `${token.substring(0, 30)}...` : 'missing',
+            tokenLength: token ? token.length : 0
+          });
+          
+          if (!authenticatedUsername) {
+            throw new Error('Not authenticated. Please log in again.');
+          }
+          
+          if (!token) {
+            throw new Error('No authentication token found. Please log in again.');
+          }
+          
+          // Call API to delete - use authenticated username to match token
+          console.log(`📤 DELETE Request: /profile/${authenticatedUsername}/delete-photo`);
+          const response = await api.put(`/profile/${authenticatedUsername}/delete-photo`, {
             imageToDelete: image.url,
             remainingImages: remainingImages
           });
+          
+          console.log('✅ Delete response:', response.data);
           
           // Update state after successful deletion
           setExistingImages(remainingImages);
@@ -471,7 +496,7 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
                   <button
                     type="button"
                     className={`btn-control btn-delete ${deleteConfirmIndex === index ? 'confirm-delete' : ''}`}
-                    onClick={() => handleRemove(img, index)}
+                    onClick={() => handleRemoveImage(index)}
                     title={deleteConfirmIndex === index ? "Click again to confirm delete" : "Delete photo"}
                   >
                     {deleteConfirmIndex === index ? '⚠️ Delete?' : '🗑️'}
