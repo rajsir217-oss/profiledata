@@ -2213,6 +2213,54 @@
 }
 
 /* ========================================
+   Search Status Section (Viewing & All Loaded)
+   ======================================== */
+
+.search-status-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.viewing-status {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color, #374151);
+  padding: 8px 16px;
+  background: var(--surface-color, rgba(0, 0, 0, 0.02));
+  border-radius: var(--radius-md, 8px);
+}
+
+.all-loaded-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: white;
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  padding: 8px 20px;
+  border-radius: var(--radius-full, 20px);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+  animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================
    Consolidated Bottom Navigation Bar
    ======================================== */
 
@@ -2222,7 +2270,7 @@
   align-items: center;
   gap: 20px;
   padding: 16px 20px;
-  margin-top: 20px;
+  margin-top: 12px;
   border-top: 1px solid var(--border-color);
   background-color: var(--bg-secondary);
   border-radius: var(--radius-md);
@@ -2990,6 +3038,23 @@
     min-width: 28px;
   }
   
+  /* Search status section mobile */
+  .search-status-section {
+    margin-top: 12px;
+    margin-bottom: 8px;
+    gap: 8px;
+  }
+
+  .viewing-status {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  .all-loaded-badge {
+    font-size: 11px;
+    padding: 6px 14px;
+  }
+
   /* Results controls bottom - extra small - ULTRA COMPACT */
   .results-controls-bottom {
     padding: 6px 8px !important;
