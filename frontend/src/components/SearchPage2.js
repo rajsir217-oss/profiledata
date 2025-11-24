@@ -2251,6 +2251,20 @@ const SearchPage2 = () => {
             />
           )}
 
+          {/* Viewing Status and Load Complete Message */}
+          {sortedUsers.length > 0 && (
+            <div className="search-status-section">
+              <div className="viewing-status">
+                Viewing {Math.min(displayedCount, sortedUsers.length)} of {sortedUsers.length} profiles
+              </div>
+              {displayedCount >= sortedUsers.length && (
+                <div className="all-loaded-badge">
+                  ✓ All {sortedUsers.length} profiles loaded
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Consolidated Bottom Navigation Bar */}
           {sortedUsers.length > 0 && (
             <div className="results-controls-bottom">
