@@ -818,7 +818,7 @@ const Dashboard = () => {
         variant="gradient"
         actions={
           <>
-            {/* Quick Action Buttons */}
+            {/* Search Button Only */}
             <button 
               className="btn-quick-action btn-search btn-search-l3v3l"
               onClick={() => navigate('/search')}
@@ -826,36 +826,6 @@ const Dashboard = () => {
             >
               🔍
             </button>
-            
-            {/* View Controls Group - Right Aligned */}
-            <div className="view-controls-group">
-              {/* View Mode Toggle - Single Button */}
-              <button
-                className={`btn-view-toggle ${viewMode}`}
-                onClick={() => setViewMode(viewMode === 'cards' ? 'rows' : 'cards')}
-                title={viewMode === 'cards' ? 'Switch to Row View' : 'Switch to Card View'}
-              >
-                {viewMode === 'cards' ? '⊞' : '☰'}
-              </button>
-              
-              {/* Refresh Icon Button */}
-              <button 
-                className="btn-refresh-icon"
-                onClick={() => loadDashboardData(currentUser)}
-                title="Refresh Dashboard"
-              >
-                🔄
-              </button>
-              
-              {/* Toggle Expand/Collapse Button */}
-              <button 
-                className={`btn-toggle-sections ${isAllExpanded ? 'expanded' : 'collapsed'}`}
-                onClick={toggleAllSections}
-                title={isAllExpanded ? 'Collapse All Sections' : 'Expand All Sections'}
-              >
-                {isAllExpanded ? '⇱' : '⇲'}
-              </button>
-            </div>
           </>
         }
       />
@@ -1117,6 +1087,36 @@ const Dashboard = () => {
         onPause={handlePauseSuccess}
         currentStatus={pauseStatus}
       />
+
+      {/* Bottom Fixed Action Buttons */}
+      <div className="dashboard-bottom-actions">
+        {/* View Mode Toggle */}
+        <button
+          className={`btn-view-toggle ${viewMode}`}
+          onClick={() => setViewMode(viewMode === 'cards' ? 'rows' : 'cards')}
+          title={viewMode === 'cards' ? 'Switch to Row View' : 'Switch to Card View'}
+        >
+          {viewMode === 'cards' ? '⊞' : '☰'}
+        </button>
+        
+        {/* Refresh Button */}
+        <button 
+          className="btn-refresh-icon"
+          onClick={() => loadDashboardData(currentUser)}
+          title="Refresh Dashboard"
+        >
+          🔄
+        </button>
+        
+        {/* Toggle Expand/Collapse Button */}
+        <button 
+          className={`btn-toggle-sections ${isAllExpanded ? 'expanded' : 'collapsed'}`}
+          onClick={toggleAllSections}
+          title={isAllExpanded ? 'Collapse All Sections' : 'Expand All Sections'}
+        >
+          {isAllExpanded ? '⇱' : '⇲'}
+        </button>
+      </div>
     </div>
   );
 };

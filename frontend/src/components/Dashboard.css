@@ -1661,3 +1661,102 @@
 .dashboard-column:has(.column-header.collapsed) {
   margin-bottom: 16px;
 }
+
+/* ========================================
+   BOTTOM FIXED ACTION BUTTONS
+   ======================================== */
+
+.dashboard-bottom-actions {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  gap: 12px;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  padding: 12px;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  border: 2px solid rgba(102, 126, 234, 0.2);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .dashboard-bottom-actions {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(102, 126, 234, 0.3);
+  }
+}
+
+/* Bottom action buttons styling */
+.dashboard-bottom-actions button {
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 22px;
+  min-width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid var(--border-color, #e5e7eb);
+  background: var(--card-background, white);
+  color: var(--text-color, #1f2937);
+}
+
+.dashboard-bottom-actions button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  border-color: var(--primary-color, #667eea);
+}
+
+.dashboard-bottom-actions button:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* Specific button states */
+.dashboard-bottom-actions .btn-refresh-icon:hover {
+  transform: translateY(-2px) rotate(180deg);
+}
+
+.dashboard-bottom-actions .btn-refresh-icon:active {
+  transform: translateY(0) rotate(360deg);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .dashboard-bottom-actions {
+    bottom: 15px;
+    right: 15px;
+    gap: 8px;
+    padding: 10px;
+    border-radius: 14px;
+  }
+
+  .dashboard-bottom-actions button {
+    padding: 10px;
+    font-size: 20px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-bottom-actions {
+    bottom: 10px;
+    right: 10px;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 12px;
+  }
+
+  .dashboard-bottom-actions button {
+    padding: 8px;
+    font-size: 18px;
+    min-width: 40px;
+    min-height: 40px;
+  }
+}
