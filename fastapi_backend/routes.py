@@ -1590,23 +1590,44 @@ async def delete_photo(
     Delete a single photo from user's profile
     Auto-saves deletion immediately
     """
-    logger.info(f"🗑️ Delete photo request for user '{username}'")
+    logger.info(f"🗑️ Delete photo request - URL username: '{username}'")
     
-    # Security: Verify user is authenticated and matches username (or is admin)
-    current_username = current_user.get("username")
-    user_role = current_user.get("role", "user")
+    # Get JWT username - current_user is a dict from the database with 'username' field
+    # Extract username from the user dict (not from 'sub' field)
+    if isinstance(current_user, dict):
+        current_username = current_user.get("username") or current_user.get("_id")
+        logger.info(f"🔐 JWT user dict keys: {list(current_user.keys())}")
+    else:
+        current_username = str(current_user)
     
-    if current_username != username and user_role != "admin":
-        logger.warning(f"⚠️ Unauthorized delete attempt by '{current_username}' for user '{username}'")
+    logger.info(f"🔐 JWT username: '{current_username}'")
+    logger.info(f"🔐 URL username: '{username}'")
+    
+    # Case-insensitive username comparison
+    if not current_username:
+        logger.error(f"❌ Could not extract username from JWT token")
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="You can only delete photos from your own profile"
+            detail="Authentication error: Could not identify user"
         )
+    
+    # Allow admin or owner
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+    logger.info(f"🔐 User role: '{user_role}'")
+    
+    if current_username.lower() != username.lower() and user_role != "admin":
+        logger.warning(f"⚠️ User '{current_username}' attempted to delete photos for '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"You can only delete photos from your own profile"
+        )
+    
+    logger.info(f"✅ Authorization passed")
     
     # Find user
     user = await db.users.find_one(get_username_query(username))
     if not user:
-        logger.warning(f"⚠️ Delete failed: User '{username}' not found")
+        logger.warning(f"⚠️ Delete failed: User '{username}' not found in database")
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
