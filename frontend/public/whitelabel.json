@@ -3,12 +3,12 @@
   
   "branding": {
     "appName": "USVEDIKA",
-    "tagline": "For US Citizens & GC Holders",
+    "tagline": "for US Citizens & GC Holders",
     "logoPath": "/indo-american-logo.png",
     "logoText": "",
     "showLogo": true,
     "showTagline": true,
-    "bannerHeight": "70px"
+    "bannerHeight": "50px"
   },
   
   "colors": {
