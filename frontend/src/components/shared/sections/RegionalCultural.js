@@ -33,8 +33,8 @@ const RegionalCultural = ({
           onChange={handleChange}
           onBlur={handleBlur}
           options={[
-            { value: 'US', label: 'USA' },
-            { value: 'IN', label: 'India' }
+            { value: 'IN', label: '🇮🇳 INDIA' },
+            { value: 'US', label: '🇺🇸 UNITED STATES' }
           ]}
           className="col-md-4"
         />
@@ -45,8 +45,8 @@ const RegionalCultural = ({
           onChange={handleChange}
           onBlur={handleBlur}
           options={[
-            { value: 'US', label: 'USA' },
-            { value: 'IN', label: 'India' }
+            { value: 'IN', label: '🇮🇳 INDIA' },
+            { value: 'US', label: '🇺🇸 UNITED STATES' }
           ]}
           className="col-md-4"
         />

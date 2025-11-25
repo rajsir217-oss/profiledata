@@ -1509,7 +1509,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             languagesSpoken: userData.languagesSpoken || ['English'],
             castePreference: userData.castePreference || 'No Preference',
             eatingPreference: userData.eatingPreference || 'Others',
-            countryOfOrigin: userData.countryOfOrigin || 'US',
+            countryOfOrigin: userData.countryOfOrigin || 'IN',
             countryOfResidence: userData.countryOfResidence || 'US',
             state: userData.state || (userData.countryOfResidence === 'US' ? 'California' : userData.countryOfResidence === 'India' ? 'Telangana' : ''),
             location: userData.location || (userData.countryOfResidence === 'US' ? 'San Francisco' : userData.countryOfResidence === 'India' ? 'Hyderabad' : ''),
@@ -2307,8 +2307,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               required
             >
               <option value="">Select Country</option>
-              <option value="IN">🇮🇳 India</option>
-              <option value="US">🇺🇸 United States</option>
+              <option value="IN">🇮🇳 INDIA</option>
+              <option value="US">🇺🇸 UNITED STATES</option>
             </select>
             <small className="text-muted">Where you're from</small>
           </div>
@@ -2325,8 +2325,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               required
             >
               <option value="">Select Country</option>
-              <option value="IN">🇮🇳 India</option>
-              <option value="US">🇺🇸 United States</option>
+              <option value="IN">🇮🇳 INDIA</option>
+              <option value="US">🇺🇸 UNITED STATES</option>
             </select>
             <small className="text-muted">Where you currently live</small>
           </div>
