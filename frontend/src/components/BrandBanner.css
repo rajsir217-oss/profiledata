@@ -64,36 +64,36 @@
   letter-spacing: 2px;
 }
 
-/* Text Container - Horizontal with Separator */
+/* Text Container - Horizontal Left-Aligned */
 .brand-text {
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 6px;
   flex: 1;
 }
 
-/* App Name - BIG FONT */
+/* App Name - BOLD, same size as tagline */
 .brand-app-name {
-  font-size: 20px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 1px;
+  letter-spacing: 0.5px;
   white-space: nowrap;
   line-height: 1.2;
 }
 
-/* Tagline - ULTRA SMALL FONT (with pipe separator) */
+/* Tagline - REGULAR, same size as app name */
 .brand-tagline {
-  font-size: 9px;
+  font-size: 14px;
   opacity: 1;
   font-weight: 400;
-  letter-spacing: 0.2px;
+  letter-spacing: 0.3px;
   white-space: nowrap;
   line-height: 1.2;
-  color: rgba(255, 255, 255, 0.9);
-  padding-left: 12px;
-  border-left: 1px solid rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.95);
+  padding-left: 0;
+  border-left: none;
 }
 
 /* Environment Badge */
@@ -125,12 +125,15 @@
   }
 
   .brand-app-name {
-    font-size: 18px;
+    font-size: 13px;
     font-weight: 700;
   }
 
   .brand-tagline {
-    font-size: 8px;
+    font-size: 13px;
+    font-weight: 400;
+    padding-left: 0;
+    border-left: none;
   }
 }
 
@@ -142,7 +145,7 @@
   }
   
   .brand-text {
-    gap: 8px; /* Reduce gap on mobile */
+    gap: 5px; /* Tight gap - same size text */
   }
 
   .brand-banner-content {
@@ -158,15 +161,16 @@
   }
 
   .brand-app-name {
-    font-size: 13px;
+    font-size: 11px;
     font-weight: 700;
   }
 
-  /* Show tagline on mobile - ultra small */
+  /* Show tagline on mobile - same size as app name */
   .brand-tagline {
-    font-size: 7px;
-    padding-left: 6px;
-    border-left: 0.5px solid rgba(255, 255, 255, 0.4);
+    font-size: 11px;
+    font-weight: 400;
+    padding-left: 0;
+    border-left: none;
   }
 
   .environment-badge {
@@ -182,7 +186,7 @@
   }
   
   .brand-text {
-    gap: 6px; /* Even smaller gap on tiny screens */
+    gap: 4px; /* Tight gap - same size text */
   }
 
   .brand-logo {
@@ -194,17 +198,18 @@
   }
 
   .brand-app-name {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
   }
   
-  /* Show tagline on small mobile - extra tiny */
+  /* Show tagline on small mobile - same size as app name */
   .brand-tagline {
-    font-size: 6px;
-    padding-left: 5px;
-    border-left: 0.5px solid rgba(255, 255, 255, 0.4);
-    letter-spacing: 0px;
+    font-size: 10px;
+    font-weight: 400;
+    padding-left: 0;
+    border-left: none;
+    letter-spacing: 0.2px;
   }
 }
 
