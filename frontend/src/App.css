@@ -14,7 +14,7 @@
   left: 0; /* Start with no offset (sidebar closed by default) */
   right: 0;
   bottom: 0;
-  padding-top: 140px; /* BrandBanner (70px) + TopBar (60px) + spacing (10px) */
+  padding-top: 120px; /* BrandBanner (50px) + TopBar (60px) + spacing (10px) */
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
@@ -34,7 +34,7 @@
 /* Main Content */
 .main-content {
   padding-top: 0;
-  min-height: calc(100vh - 130px); /* BrandBanner (70px) + TopBar (60px) */
+  min-height: calc(100vh - 110px); /* BrandBanner (50px) + TopBar (60px) */
   width: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }

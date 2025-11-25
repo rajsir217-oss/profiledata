@@ -62,13 +62,13 @@
   letter-spacing: 2px;
 }
 
-/* Text Container - Vertical Stack */
+/* Text Container - Horizontal with Separator */
 .brand-text {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 0px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
   flex: 1;
 }
 
@@ -81,16 +81,17 @@
   line-height: 1.2;
 }
 
-/* Tagline - ULTRA SMALL FONT (below app name) */
+/* Tagline - ULTRA SMALL FONT (with pipe separator) */
 .brand-tagline {
   font-size: 9px;
   opacity: 1;
   font-weight: 400;
   letter-spacing: 0.2px;
   white-space: nowrap;
-  margin-top: 1px;
   line-height: 1.2;
   color: rgba(255, 255, 255, 0.9);
+  padding-left: 12px;
+  border-left: 1px solid rgba(255, 255, 255, 0.4);
 }
 
 /* Environment Badge */
@@ -134,42 +135,16 @@
 /* Mobile Styles */
 @media (max-width: 768px) {
   .brand-banner {
-    padding: 0 16px;
+    padding: 0 12px;
     height: 40px !important; /* Override inline style on mobile */
+  }
+  
+  .brand-text {
+    gap: 8px; /* Reduce gap on mobile */
   }
 
   .brand-banner-content {
     gap: 10px;
-  }
-
-  .brand-logo {
-    height: 26px;
-  }
-  
-  .brand-logo-text {
-    font-size: 26px;
-  }
-
-  .brand-app-name {
-    font-size: 16px;
-    font-weight: 700;
-  }
-
-  /* Hide tagline on mobile to save space */
-  .brand-tagline {
-    display: none;
-  }
-
-  .environment-badge {
-    padding: 3px 8px;
-    font-size: 10px;
-  }
-}
-
-/* Small Mobile */
-@media (max-width: 480px) {
-  .brand-banner {
-    padding: 0 12px;
   }
 
   .brand-logo {
@@ -181,8 +156,53 @@
   }
 
   .brand-app-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
+  }
+
+  /* Show tagline on mobile - ultra small */
+  .brand-tagline {
+    font-size: 7px;
+    padding-left: 6px;
+    border-left: 0.5px solid rgba(255, 255, 255, 0.4);
+  }
+
+  .environment-badge {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .brand-banner {
+    padding: 0 10px;
+  }
+  
+  .brand-text {
+    gap: 6px; /* Even smaller gap on tiny screens */
+  }
+
+  .brand-logo {
+    height: 22px;
+  }
+  
+  .brand-logo-text {
+    font-size: 22px;
+  }
+
+  .brand-app-name {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  
+  /* Show tagline on small mobile - extra tiny */
+  .brand-tagline {
+    font-size: 6px;
+    padding-left: 5px;
+    border-left: 0.5px solid rgba(255, 255, 255, 0.4);
+    letter-spacing: 0px;
   }
 }
 
