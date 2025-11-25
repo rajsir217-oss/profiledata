@@ -1417,16 +1417,16 @@
    EXPAND/COLLAPSE FUNCTIONALITY
    ======================================== */
 
-/* View Mode Toggle Button - Transparent Border Style */
+/* View Mode Toggle Button - Theme-Aware */
 .btn-view-toggle {
   padding: 12px !important;
   border-radius: 12px !important;
   font-size: 22px !important;
   font-weight: 600 !important;
-  border: 2px solid rgba(255, 255, 255, 0.3) !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+  border: 2px solid var(--border-color) !important;
+  background: var(--card-background) !important;
   backdrop-filter: blur(10px) !important;
-  color: white !important;
+  color: var(--text-color) !important;
   cursor: pointer !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: flex !important;
@@ -1439,33 +1439,33 @@
   max-width: 48px !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
-  box-shadow: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 .btn-view-toggle:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: var(--hover-background) !important;
+  border-color: var(--primary-color) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .btn-view-toggle:active {
   transform: translateY(0) !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  box-shadow: none !important;
+  background: var(--active-background) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 
-/* Toggle Expand/Collapse Button - Transparent Border Style */
+/* Toggle Expand/Collapse Button - Theme-Aware */
 .btn-toggle-sections {
   padding: 12px !important;
   border-radius: 12px !important;
   font-size: 22px !important;
   font-weight: 600 !important;
-  border: 2px solid rgba(255, 255, 255, 0.3) !important;
-  background: rgba(255, 255, 255, 0.15) !important;
+  border: 2px solid var(--border-color) !important;
+  background: var(--card-background) !important;
   backdrop-filter: blur(10px) !important;
-  color: white !important;
+  color: var(--text-color) !important;
   cursor: pointer !important;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
   display: flex !important;
@@ -1478,20 +1478,20 @@
   max-width: 48px !important;
   flex-shrink: 0 !important;
   line-height: 1 !important;
-  box-shadow: none !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
 .btn-toggle-sections:hover {
-  background: rgba(255, 255, 255, 0.25) !important;
-  border-color: rgba(255, 255, 255, 0.5) !important;
+  background: var(--hover-background) !important;
+  border-color: var(--primary-color) !important;
   transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 .btn-toggle-sections:active {
   transform: translateY(0) !important;
-  background: rgba(255, 255, 255, 0.2) !important;
-  box-shadow: none !important;
+  background: var(--active-background) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Icon rotation on collapsed state */
