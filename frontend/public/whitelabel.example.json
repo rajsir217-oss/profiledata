@@ -1,0 +1,72 @@
+{
+  "_comment": "This is an example whitelabel configuration file. Copy to whitelabel.json to use.",
+  "_examples": {
+    "simple": "See Example 1 below - minimal configuration",
+    "full": "See Example 2 below - complete customization",
+    "staging": "See Example 3 below - with environment badge"
+  },
+  
+  "branding": {
+    "appName": "ProfileData",
+    "tagline": "Find Your Perfect Match",
+    "logoPath": "/logo192.png",
+    "showLogo": true,
+    "showTagline": false,
+    "bannerHeight": "45px"
+  },
+  
+  "colors": {
+    "useThemeColors": true,
+    "customBannerBg": "",
+    "customTextColor": ""
+  },
+  
+  "behavior": {
+    "clickableHome": true,
+    "homeRoute": "/dashboard",
+    "sticky": true
+  },
+  
+  "environment": {
+    "showBadge": false,
+    "badgeText": "DEMO",
+    "badgeColor": "#ff9800"
+  },
+  
+  "_example1_simple": {
+    "branding": {
+      "appName": "Elite Matches",
+      "logoPath": "/elite-logo.png",
+      "showLogo": true,
+      "showTagline": false
+    }
+  },
+  
+  "_example2_full": {
+    "branding": {
+      "appName": "PerfectMatch Pro",
+      "tagline": "AI-Powered Matchmaking",
+      "logoPath": "/perfectmatch-logo.svg",
+      "showLogo": true,
+      "showTagline": true,
+      "bannerHeight": "50px"
+    },
+    "colors": {
+      "useThemeColors": false,
+      "customBannerBg": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+      "customTextColor": "#ffffff"
+    }
+  },
+  
+  "_example3_staging": {
+    "branding": {
+      "appName": "MatchMaker",
+      "logoPath": "/logo.png"
+    },
+    "environment": {
+      "showBadge": true,
+      "badgeText": "STAGING",
+      "badgeColor": "#ff9800"
+    }
+  }
+}
