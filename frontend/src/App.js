@@ -48,6 +48,7 @@ import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotificat
 import L3V3LInfo from './components/L3V3LInfo';
 import HelpPage from './components/HelpPage';
 import ProfileCompletionChecker from './components/ProfileCompletionChecker';
+import BrandBanner from './components/BrandBanner';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -262,6 +263,7 @@ function AppContent() {
         />
       )}
       <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
+        {!hideNavigation && <BrandBanner />}
         {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
         )}

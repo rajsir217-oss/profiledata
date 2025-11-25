@@ -79,8 +79,10 @@ class StorageService:
             
             logger.info(f"✅ File uploaded to GCS: {blob_path} ({file_size_mb:.2f}MB)")
             
-            # Return public URL
-            return blob.public_url
+            # Return properly formatted public URL
+            public_url = f"https://storage.googleapis.com/{self.bucket_name}/{blob_path}"
+            logger.info(f"📸 GCS public URL: {public_url}")
+            return public_url
             
         except Exception as e:
             logger.error(f"❌ GCS upload failed: {e}", exc_info=True)

@@ -81,13 +81,29 @@ async def save_multiple_files(files: List[UploadFile]) -> List[str]:
     return file_paths
 
 def get_full_image_url(image_path: str) -> str:
-    """Convert relative image path to full URL"""
+    """Convert relative image path to full URL (local or GCS)"""
     if not image_path:
         return settings.backend_url
-    # If already a full URL (GCS), return as-is
+    
+    # If already a full URL (GCS or other), return as-is
     if image_path.startswith('http'):
+        logger.debug(f"✅ Already full URL: {image_path}")
         return image_path
+    
+    # If using GCS and path is relative, convert to GCS URL
+    if settings.use_gcs and settings.gcs_bucket_name:
+        # Extract filename from path (remove /uploads/ prefix)
+        filename = image_path.split('/')[-1]
+        folder = "uploads"
+        
+        # Return GCS public URL
+        gcs_url = f"https://storage.googleapis.com/{settings.gcs_bucket_name}/{folder}/{filename}"
+        logger.debug(f"🔄 GCS mode: {image_path} -> {gcs_url}")
+        return gcs_url
+    
     # For local paths, prepend backend URL
     if not image_path.startswith('/'):
         image_path = f"/{image_path}"
-    return f"{settings.backend_url}{image_path}"
+    local_url = f"{settings.backend_url}{image_path}"
+    logger.debug(f"🏠 Local mode: {image_path} -> {local_url}")
+    return local_url

@@ -1,0 +1,33 @@
+{
+  "_comment": "Whitelabel Configuration - Edit values below to customize your app branding",
+  
+  "branding": {
+    "appName": "USVEDIKA",
+    "tagline": "For US Citizens & GC Holders",
+    "logoPath": "/indo-american-logo.png",
+    "logoText": "",
+    "showLogo": true,
+    "showTagline": true,
+    "bannerHeight": "70px"
+  },
+  
+  "colors": {
+    "_comment": "Set useThemeColors=false to use custom colors below",
+    "useThemeColors": true,
+    "customBannerBg": "",
+    "customTextColor": ""
+  },
+  
+  "behavior": {
+    "clickableHome": true,
+    "homeRoute": "/dashboard",
+    "sticky": true
+  },
+  
+  "environment": {
+    "_comment": "Show environment badge for staging/demo deployments",
+    "showBadge": false,
+    "badgeText": "DEMO",
+    "badgeColor": "#ff9800"
+  }
+}

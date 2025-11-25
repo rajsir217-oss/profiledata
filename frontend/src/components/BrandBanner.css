@@ -1,0 +1,213 @@
+/**
+ * Brand Banner Styles
+ * Minimal, professional branding banner above TopBar
+ */
+
+.brand-banner {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  box-shadow: none; /* No shadow - merges with TopBar */
+  z-index: 1001; /* Above TopBar */
+  transition: all 0.3s ease;
+  position: fixed; /* Fixed at top */
+  top: 0;
+  left: 0;
+  right: 0;
+}
+
+.brand-banner.sticky {
+  position: fixed; /* Keep fixed when sticky is enabled */
+  top: 0;
+}
+
+.brand-banner[role="button"] {
+  cursor: pointer;
+}
+
+.brand-banner[role="button"]:hover {
+  filter: brightness(1.05);
+}
+
+.brand-banner[role="button"]:active {
+  filter: brightness(0.95);
+}
+
+/* Content Container */
+.brand-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 1400px;
+  width: 100%;
+}
+
+/* Logo - Image */
+.brand-logo {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Logo - Text/Emoji */
+.brand-logo-text {
+  font-size: 32px;
+  line-height: 1;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  letter-spacing: 2px;
+}
+
+/* Text Container - Vertical Stack */
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0px;
+  flex: 1;
+}
+
+/* App Name - BIG FONT */
+.brand-app-name {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+/* Tagline - ULTRA SMALL FONT (below app name) */
+.brand-tagline {
+  font-size: 9px;
+  opacity: 1;
+  font-weight: 400;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  margin-top: 1px;
+  line-height: 1.2;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+/* Environment Badge */
+.environment-badge {
+  margin-left: auto;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  flex-shrink: 0;
+}
+
+/* Tablet Styles */
+@media (max-width: 1024px) {
+  .brand-banner {
+    padding: 0 20px;
+  }
+
+  .brand-logo {
+    height: 28px;
+  }
+  
+  .brand-logo-text {
+    font-size: 28px;
+  }
+
+  .brand-app-name {
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .brand-tagline {
+    font-size: 8px;
+  }
+}
+
+/* Mobile Styles */
+@media (max-width: 768px) {
+  .brand-banner {
+    padding: 0 16px;
+    height: 40px !important; /* Override inline style on mobile */
+  }
+
+  .brand-banner-content {
+    gap: 10px;
+  }
+
+  .brand-logo {
+    height: 26px;
+  }
+  
+  .brand-logo-text {
+    font-size: 26px;
+  }
+
+  .brand-app-name {
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  /* Hide tagline on mobile to save space */
+  .brand-tagline {
+    display: none;
+  }
+
+  .environment-badge {
+    padding: 3px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Small Mobile */
+@media (max-width: 480px) {
+  .brand-banner {
+    padding: 0 12px;
+  }
+
+  .brand-logo {
+    height: 24px;
+  }
+  
+  .brand-logo-text {
+    font-size: 24px;
+  }
+
+  .brand-app-name {
+    font-size: 14px;
+    font-weight: 700;
+  }
+}
+
+/* Dark Theme Adjustments */
+.theme-dark .brand-banner {
+  box-shadow: none; /* No shadow - merges seamlessly with TopBar */
+}
+
+/* Accessibility */
+.brand-banner:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.8);
+  outline-offset: -2px;
+}
+
+/* Loading State */
+.brand-banner.loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Print Styles */
+@media print {
+  .brand-banner {
+    position: static !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+}

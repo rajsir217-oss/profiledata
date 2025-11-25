@@ -1,0 +1,27 @@
+# Whitelabel Configuration File
+# Edit this file to customize branding for your deployment
+
+[branding]
+appName = ProfileData
+tagline = Find Your Perfect Match
+logoPath = /logo192.png
+showLogo = true
+showTagline = false
+bannerHeight = 45px
+
+[colors]
+# Set useThemeColors = true to use theme colors, or false to use custom colors
+useThemeColors = true
+customBannerBg = 
+customTextColor = 
+
+[behavior]
+clickableHome = true
+homeRoute = /dashboard
+sticky = true
+
+[environment]
+# Show environment badge (STAGING, DEMO, etc.)
+showBadge = false
+badgeText = DEMO
+badgeColor = #ff9800

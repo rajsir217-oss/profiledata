@@ -14,7 +14,7 @@
   left: 0; /* Start with no offset (sidebar closed by default) */
   right: 0;
   bottom: 0;
-  padding-top: 70px;
+  padding-top: 140px; /* BrandBanner (70px) + TopBar (60px) + spacing (10px) */
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
@@ -34,7 +34,7 @@
 /* Main Content */
 .main-content {
   padding-top: 0;
-  min-height: calc(100vh - 60px);
+  min-height: calc(100vh - 130px); /* BrandBanner (70px) + TopBar (60px) */
   width: 100%;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -88,6 +88,7 @@
   /* Mobile/Tablet - sidebar hidden by default, content takes full width */
   .app-layout {
     left: 0; /* Full width when sidebar is hidden */
+    padding-top: 106px; /* BrandBanner (40px) + TopBar (56px) + spacing (10px) */
   }
   
   .app-layout.sidebar-open {
@@ -100,7 +101,7 @@
   }
   
   .main-content {
-    min-height: calc(100vh - 50px);
+    min-height: calc(100vh - 96px); /* BrandBanner (40px) + TopBar (56px) */
   }
 }
 
