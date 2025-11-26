@@ -292,7 +292,9 @@ class SMSNotifierTemplate(JobTemplate):
         })
         
         if not template:
-            message = f"New {notification.trigger}: Check your L3V3L Dating app!"
+            from utils.branding import get_app_name_short
+            app_name = get_app_name_short()
+            message = f"New {notification.trigger}: Check your {app_name} app!"
         else:
             message = service.render_template(
                 template.get("bodyTemplate", ""),

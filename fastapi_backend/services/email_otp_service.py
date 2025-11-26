@@ -26,7 +26,10 @@ class EmailOTPService:
         self.smtp_password = settings.smtp_password
         self.from_email = settings.from_email
         self.from_name = settings.from_name
-        self.app_name = getattr(settings, 'app_name', 'L3V3L Dating')
+        
+        # Load app name from whitelabel.json
+        from utils.branding import get_app_name
+        self.app_name = getattr(settings, 'app_name', None) or get_app_name()
         
         # Check if SMTP is configured
         self.enabled = all([

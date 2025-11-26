@@ -61,6 +61,9 @@ ENV=production,\
 MONGODB_URL=$MONGODB_URL,\
 DATABASE_NAME=matrimonialDB,\
 REDIS_URL=$REDIS_URL,\
+FRONTEND_URL=https://l3v3lmatches.com,\
+BACKEND_URL=https://matrimonial-backend-7cxoxmouuq-uc.a.run.app,\
+APP_URL=https://l3v3lmatches.com,\
 USE_GCS=true,\
 GCS_BUCKET_NAME=$GCS_BUCKET,\
 GCS_PROJECT_ID=$PROJECT_ID,\
@@ -97,21 +100,12 @@ BACKEND_URL=$(gcloud run services describe $SERVICE_NAME \
 echo "Service URL: $BACKEND_URL"
 echo ""
 
-# Update BACKEND_URL and FRONTEND_URL environment variables
-echo "🔧 Updating BACKEND_URL and FRONTEND_URL environment variables..."
-
-# Use actual domain for FRONTEND_URL, not Cloud Run URL
-# This is critical for CORS to work correctly!
-FRONTEND_URL="https://l3v3lmatches.com"
-APP_URL="https://l3v3lmatches.com"
-
-gcloud run services update $SERVICE_NAME \
-  --region $REGION \
-  --update-env-vars "BACKEND_URL=$BACKEND_URL,FRONTEND_URL=$FRONTEND_URL,APP_URL=$APP_URL"
-
+# URLs are now set in initial deployment (lines 64-66)
+# No need for separate update
 echo "✅ Backend configured:"
-echo "   BACKEND_URL: $BACKEND_URL"
-echo "   FRONTEND_URL: $FRONTEND_URL"
+echo "   BACKEND_URL: https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
+echo "   FRONTEND_URL: https://l3v3lmatches.com"
+echo "   APP_URL: https://l3v3lmatches.com"
 echo ""
 
 # Validate critical environment variables
@@ -142,6 +136,22 @@ if echo "$ENV_VARS" | grep -q "SIMPLETEXTING_API_TOKEN" && echo "$ENV_VARS" | gr
     echo "   ✅ SMS secrets configured"
 else
     echo "   ❌ SMS secrets not configured"
+    VALIDATION_FAILED=true
+fi
+
+# Check FRONTEND_URL for CORS
+if echo "$ENV_VARS" | grep -q "FRONTEND_URL.*l3v3lmatches.com"; then
+    echo "   ✅ FRONTEND_URL: https://l3v3lmatches.com (CORS enabled)"
+else
+    echo "   ❌ FRONTEND_URL not configured correctly - CORS will fail!"
+    VALIDATION_FAILED=true
+fi
+
+# Check ENV is production
+if echo "$ENV_VARS" | grep -q "ENV.*production"; then
+    echo "   ✅ ENV: production (using production CORS origins)"
+else
+    echo "   ❌ ENV not set to production - CORS may use dev settings!"
     VALIDATION_FAILED=true
 fi
 

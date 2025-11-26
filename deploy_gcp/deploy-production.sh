@@ -10,7 +10,23 @@
 # - ✅ Database connections (MongoDB, Redis)
 # - ✅ Email SMTP settings
 # - ✅ All secrets from Secret Manager
+# - ✅ CORS configuration (ENV=production, FRONTEND_URL)
+# - ✅ Notification template updates
 # - ✅ Post-deployment validation
+#
+# FIXES APPLIED (Nov 25, 2025):
+# 1. CORS Configuration:
+#    - ENV=production and FRONTEND_URL set in INITIAL deployment
+#    - No regex in production (explicit origins only)
+#    - Prevents CORS errors by configuring backend correctly from startup
+# 2. Utils Module:
+#    - Merged utils.py into utils/__init__.py package
+#    - Fixed ImportError for get_full_image_url and branding utilities
+# 3. Notification Templates:
+#    - Auto-updates pii_granted template after backend deployment
+#    - Fixes template variable evaluation ({match.firstName})
+#
+# See: deploy_gcp/CORS_FIX.md and DEPLOYMENT_CHECKLIST.md for details
 #
 # Environment variables loaded from: fastapi_backend/.env.production
 #
@@ -166,6 +182,8 @@ case $choice in
         echo ""
         echo "📦 Deploying Backend..."
         echo "   Log Level: $LOG_LEVEL"
+        echo "   ✅ CORS: ENV=production, FRONTEND_URL=https://l3v3lmatches.com"
+        echo ""
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
@@ -174,6 +192,11 @@ case $choice in
         # echo "🗄️  Running Database Migrations..."
         # cd "$PROJECT_ROOT/fastapi_backend"
         # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
+        
+        echo ""
+        echo "📧 Updating Notification Templates..."
+        cd "$PROJECT_ROOT/fastapi_backend"
+        python3 update_pii_granted_template.py || echo "⚠️  Template update warnings (non-fatal)"
         ;;
     2)
         echo ""
@@ -186,6 +209,8 @@ case $choice in
         echo ""
         echo "📦 Deploying Backend..."
         echo "   Log Level: $LOG_LEVEL"
+        echo "   ✅ CORS: ENV=production, FRONTEND_URL=https://l3v3lmatches.com"
+        echo ""
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
@@ -196,7 +221,12 @@ case $choice in
         # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         
         echo ""
-        echo "📦 Deploying Frontend..."
+        echo "� Updating Notification Templates..."
+        cd "$PROJECT_ROOT/fastapi_backend"
+        python3 update_pii_granted_template.py || echo "⚠️  Template update warnings (non-fatal)"
+        
+        echo ""
+        echo "�� Deploying Frontend..."
         echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
@@ -252,9 +282,15 @@ else
 fi
 
 echo ""
+echo "✅ CORS Configuration:"
+echo "   ENV=production, FRONTEND_URL=https://l3v3lmatches.com"
+echo "   Backend should allow requests from production domain"
+echo "   See deploy_gcp/CORS_FIX.md for details"
+echo ""
 echo "If you encounter issues:"
 echo "  1. Check DNS: dig $DOMAIN +short"
 echo "  2. Flush cache: sudo dscacheutil -flushcache"
 echo "  3. Fix DNS: ./deploy_gcp/fix-domain-dns.sh"
-echo "  4. See docs: DEPLOYMENT_ARCHITECTURE.md"
+echo "  4. CORS errors: See deploy_gcp/CORS_FIX.md"
+echo "  5. See docs: DEPLOYMENT_ARCHITECTURE.md"
 echo ""
