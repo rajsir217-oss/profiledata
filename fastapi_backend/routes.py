@@ -592,6 +592,15 @@ async def register_user(
         "pendingReplies": 0
     }
     
+    # 🔒 ENCRYPT PII fields before saving
+    try:
+        encryptor = get_encryptor()
+        user_doc = encryptor.encrypt_user_pii(user_doc)
+        logger.debug(f"🔒 PII fields encrypted for new user '{username}'")
+    except Exception as encrypt_err:
+        logger.warning(f"⚠️ Encryption skipped during registration (encryption may not be enabled): {encrypt_err}")
+        # Continue without encryption if not configured
+    
     # Insert into database
     try:
         logger.info(f"💾 Inserting user '{username}' into database...")
@@ -608,14 +617,14 @@ async def register_user(
     # Get the created user
     created_user = await db.users.find_one({"_id": result.inserted_id})
     
-    # Send verification email
+    # Send verification email (using plain text email from form, before encryption)
     if contactEmail:
         try:
             from services.email_verification_service import EmailVerificationService
             email_service = EmailVerificationService(db)
             email_sent = await email_service.send_verification_email(
                 username=username,
-                email=contactEmail,
+                email=contactEmail,  # Use form parameter (plain text)
                 first_name=firstName or username
             )
             if email_sent:
@@ -651,6 +660,14 @@ async def register_user(
     # Remove password from response
     created_user.pop("password", None)
     created_user.pop("_id", None)
+    
+    # 🔓 DECRYPT PII fields for response
+    try:
+        encryptor = get_encryptor()
+        created_user = encryptor.decrypt_user_pii(created_user)
+        logger.debug(f"🔓 PII fields decrypted for registration response")
+    except Exception as decrypt_err:
+        logger.warning(f"⚠️ Decryption skipped in registration response: {decrypt_err}")
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(created_user)

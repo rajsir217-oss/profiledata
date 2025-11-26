@@ -162,6 +162,7 @@ if env == "production":
         "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",
         "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
     ]
+    cors_regex = None  # No regex needed for production - explicit origins only
     print(f"🔒 Production CORS enabled for: {cors_origins}")
     logger.info(f"🔒 Production CORS enabled for: {cors_origins}")
 else:
@@ -174,18 +175,32 @@ else:
         "http://127.0.0.1:3001",
         "http://192.168.1.246:3000",  # Mac local IP
     ]
+    # Regex for dev to catch any localhost variations
+    cors_regex = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
     print(f"🔓 Development CORS enabled for: {cors_origins}")
     logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=cors_origins,
-    allow_origin_regex="https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?",
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
-    expose_headers=["*"],
-)
+# Add CORS middleware with conditional regex
+if cors_regex:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_origin_regex=cors_regex,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
+else:
+    # Production - no regex, just explicit origins
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["*"],
+    )
 
 # Request logging middleware
 @app.middleware("http")
@@ -193,8 +208,14 @@ async def log_requests(request: Request, call_next):
     start_time = time.time()
     duration = 0  # Initialize duration
     
-    # Log incoming request
-    logger.info(f"📨 Incoming {request.method} request to {request.url.path}")
+    # Log incoming request with origin
+    origin = request.headers.get("origin", "no-origin")
+    logger.info(f"📨 Incoming {request.method} request to {request.url.path} from origin: {origin}")
+    
+    # Log CORS preflight requests specifically
+    if request.method == "OPTIONS":
+        logger.info(f"🔀 CORS preflight request from {origin}")
+    
     logger.debug(f"Request headers: {dict(request.headers)}")
     
     try:

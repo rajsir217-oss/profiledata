@@ -28,13 +28,15 @@ class EmailNotificationTemplate(JobTemplate):
     risk_level = "medium"
     
     def __init__(self):
+        from utils.branding import get_app_name
+        
         # Email configuration from settings (reads from .env)
         self.smtp_host = settings.smtp_host or "smtp.gmail.com"
         self.smtp_port = settings.smtp_port or 587
         self.smtp_user = settings.smtp_user
         self.smtp_password = settings.smtp_password
         self.from_email = settings.from_email or "noreply@datingapp.com"
-        self.from_name = settings.from_name or "L3V3L Dating"
+        self.from_name = settings.from_name or get_app_name()
     
     def get_schema(self) -> Dict[str, Any]:
         """Return JSON schema for parameters"""

@@ -146,7 +146,7 @@ ALL_TEMPLATES = [
         "✅ {match.firstName} granted you contact access!",
         "#10b981", "high",
         "Great news! {match.firstName} approved your contact request. Their details are now available.",
-        "View Contact Info", "contact"
+        "View Contact Info", "profile"
     ),
     create_template(
         "suspicious_login", "security",

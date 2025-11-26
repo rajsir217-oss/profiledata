@@ -30,13 +30,17 @@ class EmailNotifierTemplate(JobTemplate):
     risk_level = "low"
     
     def __init__(self):
-        # Email configuration from settings (reads from .env)
-        self.smtp_host = settings.smtp_host or "smtp.gmail.com"
-        self.smtp_port = settings.smtp_port or 587
+        from config import settings
+        from utils.branding import get_app_name
+        
+        self.smtp_host = settings.smtp_host
+        self.smtp_port = settings.smtp_port
         self.smtp_user = settings.smtp_user
         self.smtp_password = settings.smtp_password
         self.from_email = settings.from_email or "noreply@datingapp.com"
-        self.from_name = settings.from_name or "L3V3L Dating"
+        
+        # Load brand name from whitelabel.json
+        self.from_name = settings.from_name or get_app_name()
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""

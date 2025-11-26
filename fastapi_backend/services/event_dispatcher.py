@@ -302,7 +302,7 @@ class EventDispatcher:
                 trigger="favorited",
                 channels=["email", "push"],
                 template_data={
-                    "actor": {
+                    "match": {  # Use 'match' key for consistency with templates
                         "firstName": actor.get("firstName", actor_username),
                         "lastName": actor.get("lastName", ""),
                         "username": actor_username,
@@ -310,7 +310,7 @@ class EventDispatcher:
                         "occupation": actor.get("occupation", ""),
                         "age": calculate_age(actor.get("birthMonth"), actor.get("birthYear"))
                     },
-                    "user": {
+                    "recipient": {
                         "firstName": target.get("firstName", target_username),
                         "lastName": target.get("lastName", ""),
                         "username": target_username
@@ -428,7 +428,7 @@ class EventDispatcher:
                 trigger="shortlist_added",
                 channels=["email"],
                 template_data={
-                    "actor": {
+                    "match": {  # Use 'match' key for consistency with templates
                         "firstName": actor.get("firstName", actor_username),
                         "lastName": actor.get("lastName", ""),
                         "username": actor_username,
@@ -437,7 +437,7 @@ class EventDispatcher:
                         "education": actor.get("education", ""),
                         "age": calculate_age(actor.get("birthMonth"), actor.get("birthYear"))
                     },
-                    "user": {
+                    "recipient": {
                         "firstName": target.get("firstName", target_username),
                         "lastName": target.get("lastName", ""),
                         "username": target_username
@@ -484,13 +484,17 @@ class EventDispatcher:
             target = event_data.get("target")
             actor = event_data.get("actor")
             
+            # Fetch viewer's profile
+            viewer = await self.db.users.find_one({"username": actor})
+            
             # Only notify if user has profile view notifications enabled
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="profile_view",
                 channels=["push"],  # Low priority - push only
                 template_data={
-                    "viewer": {
+                    "match": {
+                        "firstName": viewer.get("firstName", actor) if viewer else actor,
                         "username": actor
                     }
                 }
@@ -507,12 +511,16 @@ class EventDispatcher:
             actor = event_data.get("actor")
             metadata = event_data.get("metadata", {})
             
+            # Fetch sender's profile
+            sender = await self.db.users.find_one({"username": actor})
+            
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="new_message",
                 channels=["sms", "push"],  # Real-time channels
                 template_data={
-                    "sender": {
+                    "match": {
+                        "firstName": sender.get("firstName", actor) if sender else actor,
                         "username": actor
                     },
                     "message_preview": metadata.get("preview", "")
@@ -582,12 +590,16 @@ class EventDispatcher:
             actor = event_data.get("actor")
             metadata = event_data.get("metadata", {})
             
+            # Fetch requester's profile
+            requester = await self.db.users.find_one({"username": actor})
+            
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="pii_request",
                 channels=["email", "sms"],
                 template_data={
-                    "requester": {
+                    "match": {
+                        "firstName": requester.get("firstName", actor) if requester else actor,
                         "username": actor
                     },
                     "request_type": metadata.get("type", "contact_info")
@@ -605,15 +617,24 @@ class EventDispatcher:
             target = event_data.get("target")  # The requester
             actor = event_data.get("actor")  # The granter
             
+            # Fetch granter's profile to get firstName and other details
+            granter_profile = await self.db.users.find_one({"username": actor})
+            
+            # Build template data with granter info (use 'match' key for consistency)
+            template_data = {
+                "match": {
+                    "username": actor,
+                    "firstName": granter_profile.get("firstName", actor) if granter_profile else actor,
+                    "age": granter_profile.get("age", "N/A") if granter_profile else "N/A",
+                    "location": granter_profile.get("location", "") if granter_profile else ""
+                }
+            }
+            
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="pii_granted",
                 channels=["email", "push"],
-                template_data={
-                    "granter": {
-                        "username": actor
-                    }
-                },
+                template_data=template_data,
                 priority="high"
             )
             logger.info(f"📧 Queued 'pii_granted' notification for {target}")
