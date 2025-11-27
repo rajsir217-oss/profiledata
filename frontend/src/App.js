@@ -49,6 +49,8 @@ import L3V3LInfo from './components/L3V3LInfo';
 import HelpPage from './components/HelpPage';
 import ProfileCompletionChecker from './components/ProfileCompletionChecker';
 import BrandBanner from './components/BrandBanner';
+import AnnouncementBanner from './components/AnnouncementBanner';
+import AnnouncementManagement from './components/AnnouncementManagement';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -264,6 +266,7 @@ function AppContent() {
       )}
       <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
         {!hideNavigation && <BrandBanner />}
+        <AnnouncementBanner />
         {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
         )}
@@ -331,6 +334,7 @@ function AppContent() {
               <Route path="/dynamic-scheduler" element={<ProtectedRoute><DynamicScheduler currentUser={localStorage.getItem('username')} /></ProtectedRoute>} />
               <Route path="/notification-tester" element={<ProtectedRoute><NotificationTester /></ProtectedRoute>} />
               <Route path="/notification-management" element={<ProtectedRoute><NotificationManagement /></ProtectedRoute>} />
+              <Route path="/announcement-management" element={<ProtectedRoute><AnnouncementManagement /></ProtectedRoute>} />
               <Route path="/email-templates" element={<ProtectedRoute><EmailTemplatePreview /></ProtectedRoute>} />
               <Route path="/email-analytics" element={<ProtectedRoute><EmailAnalytics /></ProtectedRoute>} />
               <Route path="/activity-logs" element={<ProtectedRoute><ActivityLogs /></ProtectedRoute>} />
