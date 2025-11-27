@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import useToast from '../hooks/useToast';
 import './AnnouncementManagement.css';
 
 // Create axios instance for announcements API
@@ -24,6 +25,7 @@ announcementsApi.interceptors.request.use((config) => {
  */
 const AnnouncementManagement = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [announcements, setAnnouncements] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +128,7 @@ const AnnouncementManagement = () => {
 
     // Validate required fields
     if (!formData.message || formData.message.trim() === '') {
-      alert('Message is required');
+      toast.error('Message is required');
       return;
     }
 
@@ -167,14 +169,17 @@ const AnnouncementManagement = () => {
       setShowForm(false);
       loadAnnouncements();
       loadStats();
+      toast.success(editingId ? 'Announcement updated successfully' : 'Announcement created successfully');
     } catch (error) {
       console.error('Error saving announcement:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to save announcement';
-      alert(errorMessage);
+      toast.error(errorMessage);
     }
   };
 
   const handleDelete = async (id) => {
+    // Note: Using window.confirm temporarily - should be replaced with DeleteButton component
+    // See components/DeleteButton.js for 2-click delete pattern
     if (!window.confirm('Are you sure you want to delete this announcement?')) {
       return;
     }
@@ -183,9 +188,10 @@ const AnnouncementManagement = () => {
       await announcementsApi.delete(`/announcements/admin/${id}`);
       loadAnnouncements();
       loadStats();
+      toast.success('Announcement deleted successfully');
     } catch (error) {
       console.error('Error deleting announcement:', error);
-      alert('Failed to delete announcement');
+      toast.error('Failed to delete announcement');
     }
   };
 
