@@ -225,9 +225,10 @@ const UnifiedPreferences = () => {
 
     const checkAdminStatus = () => {
       const username = localStorage.getItem('username');
-      console.log('🔍 Checking admin status - Username:', username);
-      console.log('🔍 Is Admin?', username === 'admin');
-      setIsAdmin(username === 'admin');
+      const userRole = localStorage.getItem('userRole');
+      console.log('🔍 Checking admin status - Username:', username, 'Role:', userRole);
+      console.log('🔍 Is Admin?', userRole === 'admin');
+      setIsAdmin(userRole === 'admin');
     };
 
     fetchNotificationPreferences();

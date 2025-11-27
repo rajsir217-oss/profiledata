@@ -18,7 +18,8 @@ const RoleManagement = () => {
 
   // Check if user has permission to view this page
   const currentUsername = localStorage.getItem('username');
-  const isAdmin = currentUsername === 'admin';
+  const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
 
   useEffect(() => {
     loadRoleConfig();

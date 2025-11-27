@@ -54,7 +54,7 @@ const ContactUs = () => {
           setFormData(prev => ({
             ...prev,
             name: `${profile.firstName || ''} ${profile.lastName || ''}`.trim() || username,
-            email: profile.email || ''
+            email: profile.contactEmail || ''
           }));
         })
         .catch(err => console.error('Error loading profile:', err));
