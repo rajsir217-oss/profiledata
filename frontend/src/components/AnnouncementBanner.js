@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 import './AnnouncementBanner.css';
+
+// Create axios instance for announcements API
+const announcementsApi = axios.create({
+  baseURL: `${getBackendUrl()}/api`
+});
+
+// Add auth token interceptor (optional for public announcements)
+announcementsApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 /**
  * AnnouncementBanner Component
@@ -28,7 +43,7 @@ const AnnouncementBanner = () => {
 
   const loadAnnouncements = async () => {
     try {
-      const response = await api.get('/announcements/active');
+      const response = await announcementsApi.get('/announcements/active');
       setAnnouncements(response.data);
     } catch (error) {
       console.error('Error loading announcements:', error);
@@ -40,7 +55,7 @@ const AnnouncementBanner = () => {
 
   const handleDismiss = async (announcementId) => {
     try {
-      await api.post(`/announcements/dismiss/${announcementId}`);
+      await announcementsApi.post(`/announcements/dismiss/${announcementId}`);
       // Remove from local state
       setAnnouncements(prev => prev.filter(a => a.id !== announcementId));
       // Adjust current index if needed
