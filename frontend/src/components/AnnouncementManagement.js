@@ -124,12 +124,37 @@ const AnnouncementManagement = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Validate required fields
+    if (!formData.message || formData.message.trim() === '') {
+      alert('Message is required');
+      return;
+    }
+
     try {
-      const payload = {
-        ...formData,
-        startDate: formData.startDate || null,
-        endDate: formData.endDate || null
+      // Convert date strings to ISO datetime format
+      const convertToISO = (dateString) => {
+        if (!dateString) return null;
+        // Date input gives "YYYY-MM-DD", convert to "YYYY-MM-DDTHH:MM:SS"
+        return `${dateString}T00:00:00`;
       };
+
+      // Clean up payload - remove empty strings for optional fields
+      const payload = {
+        message: formData.message,
+        type: formData.type,
+        priority: formData.priority,
+        targetAudience: formData.targetAudience,
+        dismissible: formData.dismissible,
+        startDate: convertToISO(formData.startDate),
+        endDate: convertToISO(formData.endDate)
+      };
+
+      // Only include optional fields if they have values
+      if (formData.link) payload.link = formData.link;
+      if (formData.linkText) payload.linkText = formData.linkText;
+      if (formData.icon) payload.icon = formData.icon;
+
+      console.log('📤 Sending announcement payload:', payload);
 
       if (editingId) {
         // Update
@@ -144,7 +169,8 @@ const AnnouncementManagement = () => {
       loadStats();
     } catch (error) {
       console.error('Error saving announcement:', error);
-      alert('Failed to save announcement');
+      const errorMessage = error.response?.data?.detail || 'Failed to save announcement';
+      alert(errorMessage);
     }
   };
 
