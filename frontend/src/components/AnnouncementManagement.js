@@ -39,6 +39,18 @@ const AnnouncementManagement = () => {
     loadStats();
   }, [navigate]);
 
+  // ESC key to close modal
+  useEffect(() => {
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape' && showForm) {
+        setShowForm(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [showForm]);
+
   const loadAnnouncements = async () => {
     try {
       setLoading(true);
