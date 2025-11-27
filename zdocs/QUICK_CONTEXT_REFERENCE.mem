@@ -804,6 +804,7 @@ logger.debug('Loading profile:', username);
 2. `test_utils.py` - 4 occurrences
 3. `apiConfig.js` - 3 occurrences (defaults)
 
+wire "ESC" key to close modal screens (check if any code needs be adjusted)
 ---
 
 **END OF QUICK REFERENCE**  
