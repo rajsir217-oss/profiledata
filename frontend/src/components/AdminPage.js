@@ -59,7 +59,8 @@ const AdminPage = () => {
       }
 
       // Security Layer 2: Check if user is admin
-      if (username !== 'admin') {
+      const userRole = localStorage.getItem('userRole');
+      if (userRole !== 'admin') {
         console.warn(`⚠️ Unauthorized access attempt by user: ${username}`);
         navigate('/');
         return false;

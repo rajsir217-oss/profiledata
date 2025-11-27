@@ -38,7 +38,8 @@ const ActivityLogs = () => {
   // Admin-only protection
   useEffect(() => {
     const username = localStorage.getItem('username');
-    if (username !== 'admin') {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to Activity Logs');
       navigate('/dashboard');
     }
