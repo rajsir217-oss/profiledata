@@ -536,9 +536,11 @@
   transform: translateY(-1px);
 }
 
-/* DeleteButton will handle its own styling */
-.item-actions .btn-delete {
+/* DeleteButton styling override */
+.item-actions .delete-button {
   width: 120px;
+  min-width: 120px;
+  max-width: 120px;
 }
 
 /* Responsive */
@@ -658,8 +660,10 @@
     font-size: 0.8125rem;
   }
 
-  .item-actions .btn-delete {
+  .item-actions .delete-button {
     width: 110px;
+    min-width: 110px;
+    max-width: 110px;
   }
 }
 

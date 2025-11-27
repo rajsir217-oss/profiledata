@@ -477,7 +477,6 @@ const AnnouncementManagement = () => {
                   onDelete={() => handleDelete(announcement.id)}
                   itemName="announcement"
                   size="medium"
-                  className="btn-delete"
                 />
               </div>
             </div>
