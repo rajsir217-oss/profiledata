@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
+import DeleteButton from './DeleteButton';
 import './AnnouncementManagement.css';
 
 // Create axios instance for announcements API
@@ -178,12 +179,6 @@ const AnnouncementManagement = () => {
   };
 
   const handleDelete = async (id) => {
-    // Note: Using window.confirm temporarily - should be replaced with DeleteButton component
-    // See components/DeleteButton.js for 2-click delete pattern
-    if (!window.confirm('Are you sure you want to delete this announcement?')) {
-      return;
-    }
-
     try {
       await announcementsApi.delete(`/announcements/admin/${id}`);
       loadAnnouncements();
@@ -477,9 +472,12 @@ const AnnouncementManagement = () => {
                 <button onClick={() => handleEdit(announcement)} className="btn-edit">
                   ✏️ Edit
                 </button>
-                <button onClick={() => handleDelete(announcement.id)} className="btn-delete">
-                  🗑️ Delete
-                </button>
+                <DeleteButton
+                  onDelete={() => handleDelete(announcement.id)}
+                  itemName="announcement"
+                  size="medium"
+                  className="btn-delete"
+                />
               </div>
             </div>
           ))
