@@ -12,7 +12,8 @@ const EmailAnalytics = () => {
 
   useEffect(() => {
     const username = localStorage.getItem('username');
-    if (username !== 'admin') {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to Email Analytics');
       navigate('/dashboard');
     } else {

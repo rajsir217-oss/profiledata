@@ -33,7 +33,8 @@ const InvitationManager = () => {
   // Check admin access
   useEffect(() => {
     const username = localStorage.getItem('username');
-    if (username !== 'admin') {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
       navigate('/dashboard');
     }
   }, [navigate]);

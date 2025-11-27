@@ -21,9 +21,10 @@ const PauseAnalyticsDashboard = () => {
 
   useEffect(() => {
     const username = localStorage.getItem('username');
+    const userRole = localStorage.getItem('userRole');
 
     // Check admin access
-    if (username !== 'admin') {
+    if (userRole !== 'admin') {
       toast.error('Admin access required');
       navigate('/dashboard');
       return;

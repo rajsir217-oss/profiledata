@@ -301,7 +301,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     }
 
     // Show Settings for non-admin users (admins have it in their sections)
-    if (isLoggedIn && currentUser !== 'admin' && localStorage.getItem('userRole') !== 'moderator') {
+    if (isLoggedIn && userRole !== 'admin' && userRole !== 'moderator') {
       items.push({ 
         icon: '⚙️', 
         label: 'Settings', 
