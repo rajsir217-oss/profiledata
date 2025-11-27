@@ -4,6 +4,7 @@ import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
+import logger from '../utils/logger';
 import './AnnouncementManagement.css';
 
 // Create axios instance for announcements API
@@ -75,7 +76,7 @@ const AnnouncementManagement = () => {
       const response = await announcementsApi.get('/announcements/admin/all');
       setAnnouncements(response.data);
     } catch (error) {
-      console.error('Error loading announcements:', error);
+      logger.error('Error loading announcements:', error);
     } finally {
       setLoading(false);
     }
@@ -86,7 +87,7 @@ const AnnouncementManagement = () => {
       const response = await announcementsApi.get('/announcements/admin/stats');
       setStats(response.data);
     } catch (error) {
-      console.error('Error loading stats:', error);
+      logger.error('Error loading stats:', error);
     }
   };
 
@@ -157,7 +158,7 @@ const AnnouncementManagement = () => {
       if (formData.linkText) payload.linkText = formData.linkText;
       if (formData.icon) payload.icon = formData.icon;
 
-      console.log('📤 Sending announcement payload:', payload);
+      logger.debug('📤 Sending announcement payload:', payload);
 
       if (editingId) {
         // Update
@@ -172,7 +173,7 @@ const AnnouncementManagement = () => {
       loadStats();
       toast.success(editingId ? 'Announcement updated successfully' : 'Announcement created successfully');
     } catch (error) {
-      console.error('Error saving announcement:', error);
+      logger.error('Error saving announcement:', error);
       const errorMessage = error.response?.data?.detail || 'Failed to save announcement';
       toast.error(errorMessage);
     }
@@ -185,7 +186,7 @@ const AnnouncementManagement = () => {
       loadStats();
       toast.success('Announcement deleted successfully');
     } catch (error) {
-      console.error('Error deleting announcement:', error);
+      logger.error('Error deleting announcement:', error);
       toast.error('Failed to delete announcement');
     }
   };
@@ -198,7 +199,7 @@ const AnnouncementManagement = () => {
       loadAnnouncements();
       loadStats();
     } catch (error) {
-      console.error('Error toggling active status:', error);
+      logger.error('Error toggling active status:', error);
     }
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import logger from '../utils/logger';
 import './AnnouncementBanner.css';
 
 // Create axios instance for announcements API
@@ -46,7 +47,7 @@ const AnnouncementBanner = () => {
       const response = await announcementsApi.get('/announcements/active');
       setAnnouncements(response.data);
     } catch (error) {
-      console.error('Error loading announcements:', error);
+      logger.error('Error loading announcements:', error);
       // Fail silently - don't show error to user
     } finally {
       setLoading(false);
@@ -63,7 +64,7 @@ const AnnouncementBanner = () => {
         setCurrentIndex(0);
       }
     } catch (error) {
-      console.error('Error dismissing announcement:', error);
+      logger.error('Error dismissing announcement:', error);
     }
   };
 
