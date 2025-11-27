@@ -91,15 +91,25 @@
   color: inherit;
   font-size: 1.2rem;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 0;
   margin-left: var(--spacing-sm);
   opacity: 0.7;
-  transition: opacity 0.2s ease;
+  transition: all 0.2s ease;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  max-width: 32px;
+  height: 32px;
+  border-radius: 4px;
 }
 
 .banner-dismiss:hover {
   opacity: 1;
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.1);
 }
 
 /* Type-specific styles */
