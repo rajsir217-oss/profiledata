@@ -1,7 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 import './AnnouncementManagement.css';
+
+// Create axios instance for announcements API
+const announcementsApi = axios.create({
+  baseURL: `${getBackendUrl()}/api`
+});
+
+// Add auth token interceptor
+announcementsApi.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 /**
  * AnnouncementManagement Component
@@ -54,7 +69,7 @@ const AnnouncementManagement = () => {
   const loadAnnouncements = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/announcements/admin/all');
+      const response = await announcementsApi.get('/announcements/admin/all');
       setAnnouncements(response.data);
     } catch (error) {
       console.error('Error loading announcements:', error);
@@ -65,7 +80,7 @@ const AnnouncementManagement = () => {
 
   const loadStats = async () => {
     try {
-      const response = await api.get('/announcements/admin/stats');
+      const response = await announcementsApi.get('/announcements/admin/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Error loading stats:', error);
@@ -118,10 +133,10 @@ const AnnouncementManagement = () => {
 
       if (editingId) {
         // Update
-        await api.put(`/announcements/admin/${editingId}`, payload);
+        await announcementsApi.put(`/announcements/admin/${editingId}`, payload);
       } else {
         // Create
-        await api.post('/announcements/admin/create', payload);
+        await announcementsApi.post('/announcements/admin/create', payload);
       }
 
       setShowForm(false);
@@ -139,7 +154,7 @@ const AnnouncementManagement = () => {
     }
 
     try {
-      await api.delete(`/announcements/admin/${id}`);
+      await announcementsApi.delete(`/announcements/admin/${id}`);
       loadAnnouncements();
       loadStats();
     } catch (error) {
@@ -150,7 +165,7 @@ const AnnouncementManagement = () => {
 
   const handleToggleActive = async (id, currentActive) => {
     try {
-      await api.put(`/announcements/admin/${id}`, {
+      await announcementsApi.put(`/announcements/admin/${id}`, {
         active: !currentActive
       });
       loadAnnouncements();
