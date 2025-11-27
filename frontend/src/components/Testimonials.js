@@ -14,7 +14,8 @@ const Testimonials = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const currentUsername = localStorage.getItem('username');
-  const isAdmin = currentUsername === 'admin';
+  const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
   const toast = useToast();
 
   const loadTestimonials = useCallback(async () => {

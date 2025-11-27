@@ -10,6 +10,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [userRole, setUserRole] = useState(null); // User's role
   const [userStatus, setUserStatus] = useState('active'); // Default to active
   const navigate = useNavigate();
 
@@ -29,13 +30,21 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         try {
           const response = await api.get(`/profile/${username}?requester=${username}`);
           setUserProfile(response.data);
+          // Extract role from profile (check both role_name and role fields)
+          const role = response.data.role_name || response.data.role || 'free_user';
+          setUserRole(role);
+          localStorage.setItem('userRole', role); // Cache for quick access
         } catch (error) {
           console.error('Error loading user profile:', error);
+          // Fallback to cached role if profile load fails
+          const cachedRole = localStorage.getItem('userRole') || 'free_user';
+          setUserRole(cachedRole);
         }
       } else {
         setIsLoggedIn(false);
         setCurrentUser(null);
         setUserProfile(null);
+        setUserRole(null);
         setUserStatus('pending');
       }
     };
@@ -79,6 +88,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     setIsLoggedIn(false);
     setCurrentUser(null);
     setUserProfile(null);
+    setUserRole(null);
     setUserStatus('pending');
     // Dispatch event to notify other components (TopBar, etc.)
     window.dispatchEvent(new Event('loginStatusChanged'));
@@ -100,8 +110,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
-    // Check if user is activated (admin is always active)
-    const isActive = currentUser === 'admin' || userStatus === 'active';
+    // Check if user is activated (admin role is always active)
+    const isActive = userRole === 'admin' || userStatus === 'active';
     // Debug logging removed - uncomment if needed for debugging
     // console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus, isActive });
     
@@ -168,8 +178,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       },
     ];
 
-    // Add Admin section for admin user
-    if (currentUser === 'admin') {
+    // Add Admin section for admin user (check role, not username)
+    const isAdmin = userRole === 'admin';
+    if (isAdmin) {
       // === CORE ADMIN SECTION ===
       items.push({ isHeader: true, label: 'ADMIN SECTION' });
       

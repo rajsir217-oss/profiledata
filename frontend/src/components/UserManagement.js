@@ -713,7 +713,7 @@ const UserManagement = () => {
                   <strong>{user.username}</strong>
                 </td>
                 <td>{user.firstName} {user.lastName}</td>
-                <td>{user.email}</td>
+                <td>{user.contactEmail}</td>
                 <td>
                   <span className={`role-badge ${getRoleBadgeClass(user.role_name)}`}>
                     {user.role_name || 'free_user'}
@@ -860,7 +860,7 @@ const RoleModal = ({ user, onClose, onAssign }) => {
             </div>
             <div className="action-modal-user-details">
               <h3>{user.username}</h3>
-              <p>{user.email || user.contactEmail || 'No email'}</p>
+              <p>{user.contactEmail || 'No email'}</p>
             </div>
           </div>
           <button className="action-modal-close" onClick={onClose}>
@@ -971,7 +971,7 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
             </div>
             <div className="action-modal-user-details">
               <h3>{user.username}</h3>
-              <p>{user.email || user.contactEmail || 'No email'}</p>
+              <p>{user.contactEmail || 'No email'}</p>
             </div>
           </div>
           <button className="action-modal-close" onClick={onClose}>

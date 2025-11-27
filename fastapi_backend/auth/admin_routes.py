@@ -62,7 +62,7 @@ async def get_all_users(
         if search:
             query["$or"] = [
                 {"username": {"$regex": search, "$options": "i"}},
-                {"email": {"$regex": search, "$options": "i"}},
+                {"contactEmail": {"$regex": search, "$options": "i"}},  # Primary email field
                 {"firstName": {"$regex": search, "$options": "i"}},
                 {"lastName": {"$regex": search, "$options": "i"}}
             ]
@@ -85,8 +85,9 @@ async def get_all_users(
             try:
                 encryptor = get_encryptor()
                 users[i] = encryptor.decrypt_user_pii(user)
+                logger.debug(f"✅ Decrypted PII for user: {user.get('username', 'unknown')}")
             except Exception as decrypt_err:
-                logger.warning(f"⚠️ Decryption skipped for {user.get('username', 'unknown')}: {decrypt_err}")
+                logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
             
             if "security" in users[i]:
                 users[i]["security"].pop("password_hash", None)
@@ -126,8 +127,9 @@ async def get_user_details(
         try:
             encryptor = get_encryptor()
             user = encryptor.decrypt_user_pii(user)
+            logger.debug(f"✅ Decrypted PII for user: {username}")
         except Exception as decrypt_err:
-            logger.warning(f"⚠️ Decryption skipped for {username}: {decrypt_err}")
+            logger.error(f"❌ Decryption failed for {username}: {decrypt_err}")
         
         # Remove sensitive data
         if "security" in user:
