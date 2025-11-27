@@ -251,6 +251,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📢',
+        label: 'Announcement Management',
+        subLabel: 'Site-wide announcements',
+        action: () => navigate('/announcement-management')
+      });
+      
+      items.push({
         icon: '📧',
         label: 'Email Templates',
         subLabel: 'Preview & manage templates',
