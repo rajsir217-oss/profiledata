@@ -1,8 +1,8 @@
 /* frontend/src/components/ActivityLogs.css */
 
 .activity-logs {
-  padding: 2rem;
-  width: 80%;
+  padding: 40px;
+  max-width: 1400px;
   margin: 0 auto;
   background: var(--background-color);
   min-height: 100vh;
@@ -467,6 +467,79 @@
   text-align: center;
 }
 
+/* View More Pagination */
+.pagination-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 40px;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 16px);
+  margin-top: var(--spacing-lg, 20px);
+  gap: var(--spacing-lg, 24px);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  text-align: center;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.pagination-info {
+  font-size: 18px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  text-align: center;
+  width: 100%;
+  margin: 0;
+}
+
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  text-align: center;
+}
+
+.view-more-btn {
+  padding: 18px 48px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  font-size: 17px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin: 0 auto;
+  display: block;
+  min-width: 350px;
+}
+
+.view-more-btn:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.12);
+  background: var(--hover-background);
+}
+
+.view-more-btn:active {
+  transform: scale(0.98);
+}
+
+.view-more-text {
+  color: var(--text-color);
+  font-weight: 600;
+  margin-right: 6px;
+}
+
+.view-more-count {
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
 /* Responsive Design */
 @media (max-width: 1200px) {
   .logs-table {
@@ -481,8 +554,7 @@
 
 @media (max-width: 768px) {
   .activity-logs {
-    width: 95%;
-    padding: 1rem;
+    padding: 15px 10px;
   }
   
   .logs-header h1 {
@@ -523,6 +595,36 @@
   .pagination {
     flex-direction: column;
   }
+  
+  .pagination-container {
+    padding: 24px 20px;
+    gap: 20px;
+    max-width: calc(100% - 20px);
+    border-radius: 12px;
+  }
+  
+  .pagination-info {
+    font-size: 15px;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+  }
+  
+  .view-more-btn {
+    padding: 16px 32px;
+    font-size: 15px;
+    margin: 0 auto;
+    min-width: 280px;
+  }
+  
+  .view-more-text {
+    font-size: 15px;
+  }
+  
+  .view-more-count {
+    font-size: 14px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -535,5 +637,20 @@
   .action-badge {
     font-size: 0.75rem;
     padding: 0.25rem 0.5rem;
+  }
+  
+  .pagination-container {
+    padding: 20px 16px;
+    gap: 16px;
+  }
+  
+  .pagination-info {
+    font-size: 14px;
+  }
+  
+  .view-more-btn {
+    padding: 14px 24px;
+    font-size: 14px;
+    min-width: 240px;
   }
 }

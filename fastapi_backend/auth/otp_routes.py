@@ -67,9 +67,15 @@ async def send_otp_code(
     """
     try:
         username = current_user["username"]
+        
+        # Get full user data from database (JWT doesn't have all fields)
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
         # Prioritize contactEmail over legacy email field
-        user_email = current_user.get("contactEmail") or current_user.get("email")
-        user_phone = current_user.get("contactNumber")
+        user_email = user.get("contactEmail") or user.get("email")
+        user_phone = user.get("contactNumber")
         
         # DECRYPT contact info if encrypted (production PII encryption)
         if user_email:
@@ -101,7 +107,7 @@ async def send_otp_code(
         
         # Check SMS opt-in status before sending
         if request.channel == "sms":
-            sms_opt_in = current_user.get("smsOptIn", True)  # Default True for backward compatibility
+            sms_opt_in = user.get("smsOptIn", True)  # Default True for backward compatibility
             if not sms_opt_in:
                 logger.warning(f"⚠️  SMS OTP blocked for {username} - user has opted out")
                 raise HTTPException(
@@ -246,16 +252,22 @@ async def resend_otp_code(
 
 @router.get("/status")
 async def get_verification_status(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
     """
     Get current verification status
     """
-    status_data = current_user.get("status", {})
+    # Get full user data from database (JWT doesn't have all fields)
+    user = await db.users.find_one({"username": current_user["username"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    status_data = user.get("status", {})
     
     # Get and decrypt contact info
-    email = current_user.get("contactEmail") or current_user.get("email")
-    phone = current_user.get("contactNumber")
+    email = user.get("contactEmail") or user.get("email")
+    phone = user.get("contactNumber")
     
     if email:
         email = _decrypt_contact_info(email)
@@ -285,9 +297,14 @@ async def update_otp_preference(
     try:
         username = current_user["username"]
         
+        # Get full user data from database (JWT doesn't have all fields)
+        user = await db.users.find_one({"username": username})
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
         # Validate user has the required contact info
         if request.channel == "email":
-            email = current_user.get("contactEmail") or current_user.get("email")
+            email = user.get("contactEmail") or user.get("email")
             # Decrypt to check if actually exists
             email = _decrypt_contact_info(email) if email else None
             if not email:
@@ -296,7 +313,7 @@ async def update_otp_preference(
                     detail="Cannot set email as preferred channel - no email address on file"
                 )
         elif request.channel == "sms":
-            phone = current_user.get("contactNumber")
+            phone = user.get("contactNumber")
             # Decrypt to check if actually exists
             phone = _decrypt_contact_info(phone) if phone else None
             if not phone:
@@ -333,17 +350,23 @@ async def update_otp_preference(
 
 @router.get("/preferences")
 async def get_otp_preference(
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db=Depends(get_database)
 ):
     """
     Get current OTP channel preference
     """
-    prefs = current_user.get("notification_preferences", {})
+    # Get full user data from database (JWT doesn't have all fields)
+    user = await db.users.find_one({"username": current_user["username"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    prefs = user.get("notification_preferences", {})
     channel = prefs.get("otp_channel", "email")  # Default to email
     
     # Get and decrypt contact info
-    email = current_user.get("contactEmail") or current_user.get("email")
-    phone = current_user.get("contactNumber")
+    email = user.get("contactEmail") or user.get("email")
+    phone = user.get("contactNumber")
     
     if email:
         email = _decrypt_contact_info(email)

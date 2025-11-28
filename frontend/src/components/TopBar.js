@@ -7,7 +7,7 @@ import { getImageUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import Logo from './Logo';
-import { getDisplayName } from '../utils/userDisplay';
+import { getFirstName } from '../utils/userDisplay';
 import logger from '../utils/logger';
 import './TopBar.css';
 
@@ -310,7 +310,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
                 </div>
               )}
             </div>
-            <span className="user-name">{userProfile ? getDisplayName(userProfile) : currentUser}</span>
+            <span className="user-name">{userProfile ? getFirstName(userProfile) : currentUser}</span>
           </div>
           <button className="btn-logout" onClick={handleLogout} title="Logout">
             🚪 <span className="logout-text">Logout</span>

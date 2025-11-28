@@ -266,7 +266,7 @@ function AppContent() {
       )}
       <div className={`app-layout ${!isSidebarCollapsed && !hideNavigation ? 'sidebar-open' : ''} ${hideNavigation ? 'no-navigation' : ''}`}>
         {!hideNavigation && <BrandBanner />}
-        <AnnouncementBanner />
+        {!hideNavigation && <AnnouncementBanner />}
         {!hideNavigation && (
           <TopBar onSidebarToggle={handleSidebarToggle} isOpen={!isSidebarCollapsed} />
         )}

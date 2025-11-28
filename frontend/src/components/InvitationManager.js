@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
-import LoadMore from './LoadMore';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -32,7 +31,6 @@ const InvitationManager = () => {
 
   // Check admin access
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       navigate('/dashboard');
@@ -440,16 +438,26 @@ const InvitationManager = () => {
         </table>
       </div>
 
-      {/* Load More Component */}
+      {/* View More Pagination */}
       {filteredInvitations.length > 0 && (
-        <LoadMore
-          currentCount={Math.min(displayedCount, filteredInvitations.length)}
-          totalCount={filteredInvitations.length}
-          onLoadMore={handleLoadMore}
-          loading={loadingMore}
-          itemsPerLoad={20}
-          itemLabel="invitations"
-        />
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Viewing {Math.min(displayedCount, filteredInvitations.length)} of {filteredInvitations.length} invitations
+          </div>
+          
+          {displayedCount < filteredInvitations.length && (
+            <div className="pagination-controls">
+              <button
+                className="view-more-btn"
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+              >
+                <span className="view-more-text">View more</span>
+                <span className="view-more-count">({Math.min(20, filteredInvitations.length - displayedCount)} more)</span>
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
       {/* Add Invitation Modal */}

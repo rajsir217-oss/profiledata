@@ -206,6 +206,7 @@ class LoginResponse(BaseModel):
     user: dict
     password_expires_in_days: Optional[int] = None
     force_password_change: bool = False
+    mfa_warning: Optional[dict] = None  # Warning if MFA requirements not met
 
 class PasswordChangeRequest(BaseModel):
     """Password change request"""

@@ -6,7 +6,6 @@ import PageHeader from './PageHeader';
 import './ActivityLogs.css';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
-import Pagination from './Pagination';
 
 const ActivityLogs = () => {
   const navigate = useNavigate();
@@ -21,10 +20,12 @@ const ActivityLogs = () => {
     action_type: 'all',
     target_username: '',
     start_date: '',
-    end_date: '',
-    page: 1,
-    limit: 50
+    end_date: ''
   });
+  
+  // Load more pagination
+  const [displayedCount, setDisplayedCount] = useState(50);
+  const recordsPerPage = 50;
   
   const [total, setTotal] = useState(0);
   const [actionTypes, setActionTypes] = useState([]);
@@ -37,7 +38,6 @@ const ActivityLogs = () => {
   
   // Admin-only protection
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to Activity Logs');
@@ -75,6 +75,7 @@ const ActivityLogs = () => {
       const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams();
       
+      // Add all logs (no pagination on backend, we handle it on frontend)
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== 'all') {
           queryParams.append(key, value);
@@ -96,6 +97,7 @@ const ActivityLogs = () => {
       const data = await response.json();
       setLogs(data.logs || []);
       setTotal(data.total || 0);
+      setDisplayedCount(50); // Reset to initial display count
       setSelectedLogs([]);
       setSelectAll(false);
     } catch (error) {
@@ -296,7 +298,6 @@ const ActivityLogs = () => {
     return badge;
   };
   
-  const totalPages = Math.ceil(total / filters.limit);
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleString();
   };
@@ -458,7 +459,7 @@ const ActivityLogs = () => {
               </tr>
             </thead>
             <tbody>
-              {logs.map((log) => {
+              {logs.slice(0, displayedCount).map((log) => {
                 const badge = getActionBadge(log.action_type);
                 const isExpanded = expandedRow === log._id;
                 
@@ -527,15 +528,24 @@ const ActivityLogs = () => {
         )}
       </div>
       
-      {/* Pagination */}
-      <Pagination
-        currentPage={filters.page}
-        totalPages={totalPages || 1}
-        totalItems={total}
-        itemsPerPage={filters.limit}
-        onPageChange={(newPage) => setFilters({ ...filters, page: newPage })}
-        itemLabel="total"
-      />
+      {/* View More Pagination */}
+      <div className="pagination-container">
+        <div className="pagination-info">
+          Viewing {Math.min(displayedCount, logs.length)} of {logs.length} logs
+        </div>
+        
+        {displayedCount < logs.length && (
+          <div className="pagination-controls">
+            <button
+              className="view-more-btn"
+              onClick={() => setDisplayedCount(prev => Math.min(prev + recordsPerPage, logs.length))}
+            >
+              <span className="view-more-text">View more</span>
+              <span className="view-more-count">({Math.min(recordsPerPage, logs.length - displayedCount)} more)</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

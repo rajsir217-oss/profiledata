@@ -283,70 +283,116 @@ async def login(
         
         # Check MFA if enabled
         mfa = user.get("mfa", {})
+        mfa_warning = None  # To store warning message if MFA requirements not met
+        
         if mfa.get("mfa_enabled"):
-            if not request.mfa_code:
-                # MFA required but not provided - return special status with details
-                mfa_channel = mfa.get("mfa_type", "email")
-                
-                # Get contact info and DECRYPT if encrypted
-                if mfa_channel == "sms":
-                    phone = user.get("contactNumber", "")
+            mfa_channel = mfa.get("mfa_type", "email")
+            
+            # Validate MFA requirements based on channel
+            mfa_requirements_met = True
+            mfa_missing_items = []
+            
+            if mfa_channel == "sms":
+                # Check if user has phone number
+                phone = user.get("contactNumber")
+                logger.info(f"🔍 Login MFA check - Raw phone: {phone}")
+                if phone:
                     phone = _decrypt_contact_info(phone)
-                    contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
-                else:  # email
-                    email = user.get("contactEmail") or user.get("email", "")
+                    logger.info(f"🔓 Login MFA check - Decrypted phone: {phone}")
+                if not phone or (isinstance(phone, str) and not phone.strip()):
+                    mfa_requirements_met = False
+                    mfa_missing_items.append("phone number")
+                    logger.warning(f"⚠️ Login MFA check: No valid phone number for {request.username}")
+                
+                # Check if SMS opt-in is enabled
+                sms_opt_in = user.get("smsOptIn", True)
+                if not sms_opt_in:
+                    mfa_requirements_met = False
+                    mfa_missing_items.append("SMS notifications enabled")
+                    logger.warning(f"⚠️ Login MFA check: SMS opt-in disabled for {request.username}")
+            
+            elif mfa_channel == "email":
+                # Check if user has email
+                email = user.get("contactEmail") or user.get("email", "")
+                if email:
                     email = _decrypt_contact_info(email)
-                    contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
-                
-                # Return 403 with structured error response
-                from fastapi.responses import JSONResponse
-                return JSONResponse(
-                    status_code=403,
-                    content={
-                        "detail": "MFA_REQUIRED",
-                        "mfa_channel": mfa_channel,
-                        "contact_masked": contact_masked
-                    }
-                )
+                if not email or not email.strip():
+                    mfa_requirements_met = False
+                    mfa_missing_items.append("email address")
             
-            # Verify MFA code based on type
-            mfa_type = mfa.get("mfa_type", "totp")
-            
-            if mfa_type in ["sms", "email"]:
-                # SMS/Email-based MFA - verify OTP from database
-                from services.sms_service import OTPManager
-                otp_manager = OTPManager(db)
-                verify_result = await otp_manager.verify_otp(
-                    identifier=request.username,
-                    code=request.mfa_code,
-                    purpose="mfa",
-                    mark_as_used=True
-                )
-                
-                if not verify_result["success"]:
-                    # Check if it's a backup code
-                    backup_codes = mfa.get("mfa_backup_codes", [])
-                    backup_code_valid = False
-                    
-                    if "-" in request.mfa_code and len(request.mfa_code) == 9:
-                        for idx, hashed_code in enumerate(backup_codes):
-                            if PasswordManager.verify_password(request.mfa_code, hashed_code):
-                                # Remove used backup code
-                                backup_codes.pop(idx)
-                                await db.users.update_one(
-                                    {"username": request.username},
-                                    {"$set": {"mfa.mfa_backup_codes": backup_codes}}
-                                )
-                                backup_code_valid = True
-                                logger.info(f"✅ Backup code used for login: {request.username}")
-                                break
-                    
-                    if not backup_code_valid:
-                        raise HTTPException(status_code=401, detail="Invalid MFA code")
+            # If MFA requirements are not met, skip MFA entirely and add warning
+            if not mfa_requirements_met:
+                logger.warning(f"⚠️ MFA enabled for {request.username} but requirements not met: {', '.join(mfa_missing_items)}")
+                mfa_warning = {
+                    "mfa_channel": mfa_channel,
+                    "missing_items": mfa_missing_items,
+                    "message": f"MFA is enabled but you need to add: {', '.join(mfa_missing_items)}. Please update your profile to enable MFA protection."
+                }
+                # Skip MFA verification entirely - proceed to login below
             else:
-                # TOTP-based MFA (legacy)
-                if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), request.mfa_code):
-                    raise HTTPException(status_code=401, detail="Invalid MFA code")
+                # MFA requirements ARE met - proceed with normal MFA flow
+                if not request.mfa_code:
+                    # MFA required and requirements met - return special status with details
+                    # Get contact info and DECRYPT if encrypted
+                    if mfa_channel == "sms":
+                        phone = user.get("contactNumber", "")
+                        phone = _decrypt_contact_info(phone)
+                        contact_masked = f"{phone[:3]}***{phone[-2:]}" if len(phone) > 5 else "***"
+                    else:  # email
+                        email = user.get("contactEmail") or user.get("email", "")
+                        email = _decrypt_contact_info(email)
+                        contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
+                    
+                    # Return 403 with structured error response
+                    from fastapi.responses import JSONResponse
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "detail": "MFA_REQUIRED",
+                            "mfa_channel": mfa_channel,
+                            "contact_masked": contact_masked
+                        }
+                    )
+                else:
+                    # MFA code provided - verify it
+                    # Verify MFA code based on type
+                    mfa_type = mfa.get("mfa_type", "totp")
+                    
+                    if mfa_type in ["sms", "email"]:
+                        # SMS/Email-based MFA - verify OTP from database
+                        from services.sms_service import OTPManager
+                        otp_manager = OTPManager(db)
+                        verify_result = await otp_manager.verify_otp(
+                            identifier=request.username,
+                            code=request.mfa_code,
+                            purpose="mfa",
+                            mark_as_used=True
+                        )
+                        
+                        if not verify_result["success"]:
+                            # Check if it's a backup code
+                            backup_codes = mfa.get("mfa_backup_codes", [])
+                            backup_code_valid = False
+                            
+                            if "-" in request.mfa_code and len(request.mfa_code) == 9:
+                                for idx, hashed_code in enumerate(backup_codes):
+                                    if PasswordManager.verify_password(request.mfa_code, hashed_code):
+                                        # Remove used backup code
+                                        backup_codes.pop(idx)
+                                        await db.users.update_one(
+                                            {"username": request.username},
+                                            {"$set": {"mfa.mfa_backup_codes": backup_codes}}
+                                        )
+                                        backup_code_valid = True
+                                        logger.info(f"✅ Backup code used for login: {request.username}")
+                                        break
+                            
+                            if not backup_code_valid:
+                                raise HTTPException(status_code=401, detail="Invalid MFA code")
+                    else:
+                        # TOTP-based MFA (legacy)
+                        if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), request.mfa_code):
+                            raise HTTPException(status_code=401, detail="Invalid MFA code")
         
         # Check password expiry
         password_expires_at = security.get("password_expires_at")
@@ -433,7 +479,8 @@ async def login(
             expires_in=tokens["expires_in"],
             user=user_data,
             password_expires_in_days=days_until_expiry if not password_expired else 0,
-            force_password_change=security.get("force_password_change", False) or password_expired
+            force_password_change=security.get("force_password_change", False) or password_expired,
+            mfa_warning=mfa_warning
         )
     
     except HTTPException:

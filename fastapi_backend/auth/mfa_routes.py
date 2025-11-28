@@ -31,7 +31,7 @@ def _decrypt_contact_info(value: str) -> str:
         value: Potentially encrypted contact info
         
     Returns:
-        Decrypted contact info
+        Decrypted contact info or None if decryption fails
     """
     if not value:
         return value
@@ -45,8 +45,8 @@ def _decrypt_contact_info(value: str) -> str:
             return decrypted
         except Exception as e:
             logger.error(f"❌ Failed to decrypt contact info: {e}")
-            # Return original value if decryption fails
-            return value
+            # Return None if decryption fails (don't use encrypted value)
+            return None
     
     # Not encrypted, return as-is
     return value
@@ -299,6 +299,7 @@ async def send_mfa_code(
         
         if not user:
             # Don't reveal if user exists
+            logger.warning(f"⚠️ MFA send-code: User not found - {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid request"
@@ -306,6 +307,7 @@ async def send_mfa_code(
         
         mfa_info = user.get("mfa", {})
         if not mfa_info.get("mfa_enabled"):
+            logger.warning(f"⚠️ MFA send-code: MFA not enabled for {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="MFA not enabled for this account"
@@ -316,19 +318,35 @@ async def send_mfa_code(
         phone = user.get("contactNumber")
         email = user.get("contactEmail") or user.get("email")
         
+        logger.info(f"🔍 MFA send-code: User {request.username} - Channel: {mfa_channel}")
+        logger.info(f"🔍 Raw phone: {phone[:20] if phone else None}...")
+        logger.info(f"🔍 Raw email: {email[:20] if email else None}...")
+        
         # DECRYPT contact info if encrypted (production PII encryption)
         if phone:
-            phone = _decrypt_contact_info(phone)
+            try:
+                phone = _decrypt_contact_info(phone)
+                logger.info(f"🔓 Decrypted phone: {phone}")
+            except Exception as e:
+                logger.error(f"❌ Failed to decrypt phone: {e}")
+                phone = None
         if email:
-            email = _decrypt_contact_info(email)
+            try:
+                email = _decrypt_contact_info(email)
+                logger.info(f"🔓 Decrypted email: {email}")
+            except Exception as e:
+                logger.error(f"❌ Failed to decrypt email: {e}")
+                email = None
         
         # Validate contact info exists
         if mfa_channel == "sms" and not phone:
+            logger.warning(f"⚠️ MFA send-code: No phone number for {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No phone number on file for SMS MFA"
             )
         elif mfa_channel == "email" and not email:
+            logger.warning(f"⚠️ MFA send-code: No email for {request.username}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="No email on file for Email MFA"

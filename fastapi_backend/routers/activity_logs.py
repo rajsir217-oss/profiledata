@@ -17,7 +17,8 @@ router = APIRouter(prefix="/api/activity-logs", tags=["activity-logs"])
 
 def check_admin(current_user: dict):
     """Check if user is admin"""
-    if current_user["username"] != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
 
 @router.get("/", response_model=ActivityLogResponse)

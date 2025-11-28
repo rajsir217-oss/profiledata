@@ -28,7 +28,13 @@ const AnnouncementBanner = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
-    loadAnnouncements();
+    // Only load announcements if user is authenticated
+    const token = localStorage.getItem('token');
+    if (token) {
+      loadAnnouncements();
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   // Rotate through announcements every 8 seconds

@@ -726,75 +726,120 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     
     # Check MFA if enabled
     mfa = user.get("mfa", {})
+    mfa_warning = None  # To store warning message if MFA requirements not met
+    
     if mfa.get("mfa_enabled"):
         logger.debug(f"MFA is enabled for user '{login_data.username}'")
-        if not login_data.mfa_code:
-            # MFA required but not provided - return special status with details
-            mfa_channel = mfa.get("mfa_type", "email")
-            
-            # Get masked contact info
-            if mfa_channel == "sms":
-                phone = user.get("contactNumber", "")
-                # DECRYPT phone if encrypted (production PII encryption)
+        mfa_channel = mfa.get("mfa_type", "email")
+        
+        # Validate MFA requirements based on channel
+        mfa_requirements_met = True
+        mfa_missing_items = []
+        
+        if mfa_channel == "sms":
+            # Check if user has phone number
+            phone = user.get("contactNumber")
+            logger.info(f"🔍 Login MFA check - Raw phone: {phone}")
+            if phone:
                 phone = _decrypt_contact_info(phone)
-                contact_masked = f"{phone[:3]}***{phone[-2:]}" if phone and len(phone) > 5 else "***"
-            else:  # email
-                email = user.get("contactEmail") or user.get("email", "")
-                # DECRYPT email if encrypted (production PII encryption)
+                logger.info(f"🔓 Login MFA check - Decrypted phone: {phone}")
+            if not phone or (isinstance(phone, str) and not phone.strip()):
+                mfa_requirements_met = False
+                mfa_missing_items.append("phone number")
+                logger.warning(f"⚠️ Login MFA check: No valid phone number for {login_data.username}")
+            
+            # Check if SMS opt-in is enabled
+            sms_opt_in = user.get("smsOptIn", True)
+            if not sms_opt_in:
+                mfa_requirements_met = False
+                mfa_missing_items.append("SMS notifications enabled")
+                logger.warning(f"⚠️ Login MFA check: SMS opt-in disabled for {login_data.username}")
+        
+        elif mfa_channel == "email":
+            # Check if user has email
+            email = user.get("contactEmail") or user.get("email", "")
+            if email:
                 email = _decrypt_contact_info(email)
-                contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
-            
-            logger.info(f"🔒 MFA required for user '{login_data.username}' - returning MFA_REQUIRED")
-            return JSONResponse(
-                status_code=403,
-                content={
-                    "detail": "MFA_REQUIRED",
-                    "mfa_channel": mfa_channel,
-                    "contact_masked": contact_masked
-                }
-            )
+            if not email or not email.strip():
+                mfa_requirements_met = False
+                mfa_missing_items.append("email address")
         
-        # Verify MFA code based on type
-        mfa_type = mfa.get("mfa_type", "email")
-        logger.debug(f"Verifying MFA code for user '{login_data.username}' (type: {mfa_type})")
-        
-        if mfa_type in ["sms", "email"]:
-            # SMS/Email-based MFA - verify OTP from database
-            from services.sms_service import OTPManager
-            otp_manager = OTPManager(db)
-            verify_result = await otp_manager.verify_otp(
-                identifier=login_data.username,
-                code=login_data.mfa_code,
-                purpose="mfa",
-                mark_as_used=True
-            )
-            
-            if not verify_result["success"]:
-                # Check if it's a backup code
-                backup_codes = mfa.get("mfa_backup_codes", [])
-                backup_code_valid = False
+        # If MFA requirements are not met, skip MFA entirely and add warning
+        if not mfa_requirements_met:
+            logger.warning(f"⚠️ MFA enabled for {login_data.username} but requirements not met: {', '.join(mfa_missing_items)}")
+            mfa_warning = {
+                "mfa_channel": mfa_channel,
+                "missing_items": mfa_missing_items,
+                "message": f"MFA is enabled but you need to add: {', '.join(mfa_missing_items)}. Please update your profile to enable MFA protection."
+            }
+            # Skip MFA verification entirely - proceed to login below
+        else:
+            # MFA requirements ARE met - proceed with normal MFA flow
+            if not login_data.mfa_code:
+                # MFA required but not provided - return special status with details
+                # Get masked contact info
+                if mfa_channel == "sms":
+                    phone = user.get("contactNumber", "")
+                    # DECRYPT phone if encrypted (production PII encryption)
+                    phone = _decrypt_contact_info(phone)
+                    contact_masked = f"{phone[:3]}***{phone[-2:]}" if phone and len(phone) > 5 else "***"
+                else:  # email
+                    email = user.get("contactEmail") or user.get("email", "")
+                    # DECRYPT email if encrypted (production PII encryption)
+                    email = _decrypt_contact_info(email)
+                    contact_masked = f"{email[0]}***@{email.split('@')[1]}" if email and '@' in email else "***"
                 
-                if "-" in login_data.mfa_code and len(login_data.mfa_code) == 9:
-                    for idx, hashed_code in enumerate(backup_codes):
-                        if PasswordManager.verify_password(login_data.mfa_code, hashed_code):
-                            # Remove used backup code
-                            backup_codes.pop(idx)
-                            await db.users.update_one(
-                                {"username": login_data.username},
-                                {"$set": {"mfa.mfa_backup_codes": backup_codes}}
-                            )
-                            backup_code_valid = True
-                            logger.info(f"✅ Backup code used for login: {login_data.username}")
-                            break
+                logger.info(f"🔒 MFA required for user '{login_data.username}' - returning MFA_REQUIRED")
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "MFA_REQUIRED",
+                        "mfa_channel": mfa_channel,
+                        "contact_masked": contact_masked
+                    }
+                )
+            
+            # Verify MFA code based on type (only runs if mfa_code was provided)
+            mfa_type = mfa.get("mfa_type", "email")
+            logger.debug(f"Verifying MFA code for user '{login_data.username}' (type: {mfa_type})")
+            
+            if mfa_type in ["sms", "email"]:
+                # SMS/Email-based MFA - verify OTP from database
+                from services.sms_service import OTPManager
+                otp_manager = OTPManager(db)
+                verify_result = await otp_manager.verify_otp(
+                    identifier=login_data.username,
+                    code=login_data.mfa_code,
+                    purpose="mfa",
+                    mark_as_used=True
+                )
                 
-                if not backup_code_valid:
-                    logger.warning(f"⚠️ Invalid MFA code for user '{login_data.username}'")
-                    raise HTTPException(
-                        status_code=status.HTTP_401_UNAUTHORIZED,
-                        detail="Invalid MFA code"
-                    )
-        
-        logger.info(f"✅ MFA verification successful for user '{login_data.username}'")
+                if not verify_result["success"]:
+                    # Check if it's a backup code
+                    backup_codes = mfa.get("mfa_backup_codes", [])
+                    backup_code_valid = False
+                    
+                    if "-" in login_data.mfa_code and len(login_data.mfa_code) == 9:
+                        for idx, hashed_code in enumerate(backup_codes):
+                            if PasswordManager.verify_password(login_data.mfa_code, hashed_code):
+                                # Remove used backup code
+                                backup_codes.pop(idx)
+                                await db.users.update_one(
+                                    {"username": login_data.username},
+                                    {"$set": {"mfa.mfa_backup_codes": backup_codes}}
+                                )
+                                backup_code_valid = True
+                                logger.info(f"✅ Backup code used for login: {login_data.username}")
+                                break
+                    
+                    if not backup_code_valid:
+                        logger.warning(f"⚠️ Invalid MFA code for user '{login_data.username}'")
+                        raise HTTPException(
+                            status_code=status.HTTP_401_UNAUTHORIZED,
+                            detail="Invalid MFA code"
+                        )
+            
+            logger.info(f"✅ MFA verification successful for user '{login_data.username}'")
     
     # Create access token with role
     logger.debug(f"Creating access token for user '{login_data.username}'")
@@ -822,12 +867,18 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
     logger.info(f"✅ Login successful for user '{login_data.username}'")
-    return {
+    response = {
         "message": "Login successful",
         "user": user,
         "access_token": access_token,
         "token_type": "bearer"
     }
+    
+    # Add MFA warning if present
+    if mfa_warning:
+        response["mfa_warning"] = mfa_warning
+    
+    return response
 
 @router.get("/profile/{username}")
 async def get_user_profile(username: str, requester: str = None, db = Depends(get_database)):
