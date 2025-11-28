@@ -15,11 +15,19 @@ async def send_invitation_email(
     to_email: str,
     to_name: str,
     invitation_link: str,
-    custom_message: str = None
+    custom_message: str = None,
+    email_subject: str = None
 ):
     """
     Send invitation email directly via SMTP
     Bypasses notification queue since invitees aren't users yet
+    
+    Args:
+        to_email: Recipient email address
+        to_name: Recipient name
+        invitation_link: Registration link with invitation token
+        custom_message: Optional custom message to include
+        email_subject: Optional custom subject (defaults to standard invitation subject)
     """
     
     # Email template
@@ -232,7 +240,7 @@ The L3V3LMATCH Team
     
     # Create email
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = f"You're Invited to Join L3V3LMATCH! 💝"
+    msg['Subject'] = email_subject or "You're Invited to Join L3V3LMATCH! 💝"
     msg['From'] = f"{settings.from_name} <{settings.from_email}>"
     msg['To'] = to_email
     

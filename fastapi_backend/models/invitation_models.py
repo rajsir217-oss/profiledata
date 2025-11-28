@@ -38,6 +38,7 @@ class InvitationBase(BaseModel):
 
 class InvitationCreate(InvitationBase):
     """Model for creating new invitation"""
+    emailSubject: Optional[str] = Field(None, max_length=200, description="Custom email subject line")
     sendImmediately: bool = Field(default=True, description="Send invitation immediately after creation")
 
 
@@ -54,6 +55,10 @@ class InvitationDB(InvitationBase):
     """Database model for invitation"""
     id: str = Field(alias="_id")
     invitedBy: str = Field(..., description="Username of admin who sent invitation")
+    
+    # Optional fields for bulk import support
+    emailSubject: Optional[str] = Field(None, description="Custom email subject line")
+    comments: Optional[str] = Field(None, description="Additional comments (e.g., gender, notes)")
     
     # Email tracking
     emailStatus: InvitationStatus = Field(default=InvitationStatus.PENDING)
@@ -107,6 +112,11 @@ class InvitationResponse(BaseModel):
     createdAt: datetime
     updatedAt: datetime
     archived: bool
+    
+    # Optional fields for bulk import support
+    emailSubject: Optional[str] = Field(None, description="Custom email subject line")
+    comments: Optional[str] = Field(None, description="Additional comments (e.g., gender, notes)")
+    customMessage: Optional[str] = Field(None, description="Custom message in invitation")
     
     # Computed fields
     timeLapse: Optional[str] = Field(None, description="Time since invitation created")

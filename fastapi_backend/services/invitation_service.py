@@ -82,6 +82,7 @@ class InvitationService:
             "phone": invitation_data.phone,
             "channel": invitation_data.channel,
             "customMessage": invitation_data.customMessage,
+            "emailSubject": invitation_data.emailSubject or "You're Invited to Join USVedika for US Citizens & GC Holders",
             "invitedBy": invited_by,
             
             # Email tracking
