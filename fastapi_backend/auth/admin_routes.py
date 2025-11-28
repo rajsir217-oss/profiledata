@@ -49,12 +49,8 @@ async def get_all_users(
         query = {}
         
         if status:
-            # Check new accountStatus field for onboarding statuses
-            if status in ["pending_email_verification", "pending_admin_approval", "active"]:
-                query["accountStatus"] = status
-            else:
-                # Fallback to old status.status field for other statuses
-                query["status.status"] = status
+            # Use accountStatus (unified field) - no fallback to legacy status.status
+            query["accountStatus"] = status
         
         if role:
             query["role_name"] = role
@@ -195,7 +191,7 @@ async def manage_user(
         action = request.action
         
         if action == "activate":
-            update_data["status.status"] = USER_STATUS["ACTIVE"]
+            update_data["accountStatus"] = "active"  # Use accountStatus (unified field)
             event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
             
             # Clear all content violations when reactivating user
@@ -207,15 +203,15 @@ async def manage_user(
                 logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during activation")
         
         elif action == "deactivate":
-            update_data["status.status"] = USER_STATUS["INACTIVE"]
+            update_data["accountStatus"] = "deactivated"  # Use accountStatus (unified field)
             event = "account_deactivated"
         
         elif action == "suspend":
-            update_data["status.status"] = USER_STATUS["SUSPENDED"]
+            update_data["accountStatus"] = "suspended"  # Use accountStatus (unified field)
             event = "account_suspended"
         
         elif action == "ban":
-            update_data["status.status"] = USER_STATUS["BANNED"]
+            update_data["accountStatus"] = "suspended"  # Use accountStatus (banned → suspended)
             # Revoke all sessions
             await db.sessions.update_many(
                 {"username": username},
@@ -392,15 +388,24 @@ async def update_user_status(
         else:
             old_status_value = old_status or 'pending'
         
-        # Prepare status update
-        status_update = {
-            "status": request.status,
-            "last_updated": datetime.utcnow().isoformat(),
-            "updated_by": current_user.get("username")
+        # Map legacy status values to accountStatus if needed
+        # Accept both old names (pending, banned) and new names (pending_admin_approval)
+        status_to_account_status_map = {
+            'pending': 'pending_admin_approval',
+            'active': 'active',
+            'inactive': 'deactivated',
+            'suspended': 'suspended',
+            'banned': 'suspended',
+            'paused': 'paused',
+            # New values (pass through)
+            'pending_email_verification': 'pending_email_verification',
+            'pending_admin_approval': 'pending_admin_approval',
+            'deactivated': 'deactivated',
         }
+        new_account_status = status_to_account_status_map.get(request.status, request.status)
         
         # If changing to active from suspended/banned, clear violations
-        if request.status == 'active' and old_status_value in ['suspended', 'banned']:
+        if new_account_status == 'active' and old_status_value in ['suspended', 'banned']:
             violation_result = await db.content_violations.delete_many({
                 "username": username,
                 "type": "message_profanity"
@@ -408,28 +413,14 @@ async def update_user_status(
             if violation_result.deleted_count > 0:
                 logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during status change to active")
         
-        # Map status values to accountStatus (for consistency with verification flow)
-        # If already using new accountStatus values, use them directly
-        if request.status in ['pending_email_verification', 'pending_admin_approval', 'deactivated']:
-            mapped_account_status = request.status
-        else:
-            # Map old status values to new accountStatus values
-            status_to_account_status_map = {
-                'pending': 'pending_admin_approval',
-                'active': 'active',
-                'inactive': 'deactivated',
-                'suspended': 'suspended',
-                'banned': 'suspended'  # Banned maps to suspended accountStatus
-            }
-            mapped_account_status = status_to_account_status_map.get(request.status, request.status)
-        
-        # Update both status fields for consistency
+        # Update accountStatus (unified field)
         result = await db.users.update_one(
             {"username": username},
             {
                 "$set": {
-                    "status": status_update,
-                    "accountStatus": mapped_account_status,  # Also update accountStatus field
+                    "accountStatus": new_account_status,
+                    "status.updated_by": current_user.get("username"),  # Track who made change
+                    "status.updated_at": datetime.utcnow(),
                     "updated_at": datetime.utcnow()
                 }
             }

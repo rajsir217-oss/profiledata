@@ -561,15 +561,12 @@ async def register_user(
         "consentUserAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
         "updatedAt": now,
-        # User account status (pending activation by admin)
-        "status": {
-            "status": "pending",  # pending, active, suspended, banned
-            "reason": None,
-            "updatedAt": now,
-            "updatedBy": None
-        },
-        # Account Activation & Onboarding (NEW)
+        # Account status - UNIFIED FIELD (replaces old status.status)
         "accountStatus": "pending_email_verification",
+        # Activity tracking (keep for last seen)
+        "status": {
+            "last_seen": None  # Track user activity
+        },
         "emailVerificationToken": None,  # Will be set when email is sent
         "emailVerificationTokenExpiry": None,
         "emailVerificationSentAt": None,
@@ -1918,9 +1915,9 @@ async def get_all_users(
             ]
             logger.debug(f"🔍 Search filter applied: {search}")
         
-        # Status filter (status is nested: status.status)
+        # Status filter - use accountStatus (unified field)
         if status_filter:
-            query["status.status"] = status_filter
+            query["accountStatus"] = status_filter
             logger.debug(f"📊 Status filter applied: {status_filter}")
         
         # Role filter
@@ -2322,15 +2319,12 @@ async def search_users(
     # Build query
     query = {}
     
-    # PAUSE FEATURE: Exclude paused users from search
-    query["accountStatus"] = {"$ne": "paused"}
-    
-    # Status filter - only show active users by default
+    # Status filter - use accountStatus (unified field)
     if status_filter:
-        query["status.status"] = {"$regex": f"^{status_filter}$", "$options": "i"}
+        query["accountStatus"] = {"$regex": f"^{status_filter}$", "$options": "i"}
     else:
-        # Default to active users only if no status_filter specified
-        query["status.status"] = {"$regex": "^active$", "$options": "i"}
+        # Default to active users only (exclude paused, suspended, deactivated, pending)
+        query["accountStatus"] = "active"
 
     # Text search
     # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region)
@@ -6363,13 +6357,8 @@ async def get_l3v3l_matches(
             "username": {"$ne": username},  # Exclude self
             "gender": opposite_gender,  # Only opposite gender
             # PAUSE FEATURE: Exclude paused users from matching
-            "accountStatus": {"$ne": "paused"},
-            # Include users with active status OR no status field (default to active)
-            "$or": [
-                {"status.status": {"$regex": "^active$", "$options": "i"}},
-                {"status.status": {"$exists": False}},
-                {"status": {"$exists": False}}
-            ]
+            # Only match active users (exclude paused, suspended, pending, etc.)
+            "accountStatus": "active"
         }
         
         # Get potential matches
