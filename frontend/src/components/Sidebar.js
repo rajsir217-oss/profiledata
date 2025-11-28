@@ -231,7 +231,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       
       items.push({
         icon: '📧',
-        label: 'Invitations',
+        label: 'Invitations Manager',
         subLabel: 'Manage user invitations',
         action: () => navigate('/invitations')
       });
