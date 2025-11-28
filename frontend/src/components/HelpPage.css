@@ -4,6 +4,7 @@
   background: var(--background-color);
   padding-bottom: 40px;
   color: var(--text-color);
+    width: 100%;
 }
 
 .help-header {
