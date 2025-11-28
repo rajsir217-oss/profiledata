@@ -18,8 +18,9 @@ logger = logging.getLogger(__name__)
 
 def require_admin(current_user: dict = Depends(get_current_user)):
     """Dependency to ensure user is admin"""
-    # Check username directly since user doc from DB may not have role field
-    if current_user.get("username") != "admin":
+    # Check role_name field for admin role
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 

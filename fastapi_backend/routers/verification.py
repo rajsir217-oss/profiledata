@@ -177,7 +177,8 @@ async def admin_approve_user(
     from datetime import datetime
     
     # Check if current user is admin
-    if current_user.get("username") != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -278,7 +279,8 @@ async def admin_reject_user(
     from datetime import datetime
     
     # Check if current user is admin
-    if current_user.get("username") != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:

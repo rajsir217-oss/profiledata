@@ -1,8 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UserManagement.css';
-import Pagination from './Pagination';
 
 // Create admin API client without baseURL prefix
 import { getBackendUrl } from '../config/apiConfig';
@@ -45,9 +44,12 @@ const UserManagement = () => {
   const [selectedUserForCleanup, setSelectedUserForCleanup] = useState(null); // User for cleanup settings
   const [cleanupDays, setCleanupDays] = useState(90); // Cleanup days
   const [openDropdown, setOpenDropdown] = useState(null); // Track which dropdown is open
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Track dropdown position
+  const dropdownRefs = useRef({}); // Refs for dropdown buttons
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
+  const userRole = localStorage.getItem('userRole'); // Get user role
 
   const loadImageValidationStatus = useCallback(async (userList) => {
     const statusMap = {};
@@ -110,14 +112,14 @@ const UserManagement = () => {
 
   // Check if user is admin
   useEffect(() => {
-    if (currentUser !== 'admin') {
+    if (userRole !== 'admin') {
       navigate('/dashboard');
       return;
     }
     loadUsers();
-  }, [currentUser, navigate, loadUsers, page, statusFilter, roleFilter, searchTerm]);
+  }, [userRole, navigate, loadUsers, page, statusFilter, roleFilter, searchTerm]);
 
-  // Close dropdown when clicking outside
+  // Close dropdown when clicking outside or scrolling
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (openDropdown && !event.target.closest('.action-dropdown-container')) {
@@ -125,9 +127,36 @@ const UserManagement = () => {
       }
     };
     
+    const handleScroll = () => {
+      if (openDropdown) {
+        setOpenDropdown(null);
+      }
+    };
+    
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScroll, true); // true for capture phase to catch all scrolls
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScroll, true);
+    };
   }, [openDropdown]);
+
+  // ESC key handler for cleanup modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        if (showCleanupModal) {
+          setShowCleanupModal(false);
+        }
+      }
+    };
+
+    if (showCleanupModal) {
+      document.addEventListener('keydown', handleEscKey);
+      return () => document.removeEventListener('keydown', handleEscKey);
+    }
+  }, [showCleanupModal]);
 
   const handleValidateImages = async (username) => {
     try {
@@ -598,14 +627,32 @@ const UserManagement = () => {
                 <td>
                   <div className="action-dropdown-container">
                     <button
+                      ref={(el) => (dropdownRefs.current[user.username] = el)}
                       className="btn-actions-menu"
-                      onClick={() => setOpenDropdown(openDropdown === user.username ? null : user.username)}
+                      onClick={(e) => {
+                        if (openDropdown === user.username) {
+                          setOpenDropdown(null);
+                        } else {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setDropdownPosition({
+                            top: rect.bottom + window.scrollY,
+                            left: rect.left + window.scrollX
+                          });
+                          setOpenDropdown(user.username);
+                        }
+                      }}
                     >
                       ⋮ Actions
                     </button>
                     
                     {openDropdown === user.username && (
-                      <div className="actions-dropdown-menu">
+                      <div 
+                        className="actions-dropdown-menu"
+                        style={{
+                          top: `${dropdownPosition.top}px`,
+                          left: `${dropdownPosition.left}px`
+                        }}
+                      >
                         <button
                           className="dropdown-item"
                           onClick={() => {
@@ -731,15 +778,24 @@ const UserManagement = () => {
         </table>
       </div>
 
-      {/* Pagination */}
-      <Pagination
-        currentPage={page}
-        totalPages={totalPages}
-        totalItems={totalUsers}
-        itemsPerPage={20}
-        onPageChange={setPage}
-        itemLabel="records"
-      />
+      {/* View More Pagination */}
+      <div className="pagination-container">
+        <div className="pagination-info">
+          Viewing {users.length} of {totalUsers} profiles
+        </div>
+        
+        {page < totalPages && (
+          <div className="pagination-controls">
+            <button
+              className="view-more-btn"
+              onClick={() => setPage(page + 1)}
+            >
+              <span className="view-more-text">View more</span>
+              <span className="view-more-count">({Math.min(20, totalUsers - users.length)} more)</span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Role Assignment Modal */}
       {showRoleModal && selectedUser && (
@@ -841,6 +897,18 @@ const UserManagement = () => {
 const RoleModal = ({ user, onClose, onAssign }) => {
   const [selectedRole, setSelectedRole] = useState(user.role_name || 'free_user');
   const [reason, setReason] = useState('');
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [onClose]);
 
   const roles = [
     { value: 'admin', label: 'Admin', icon: '👑', description: 'Full system access', color: '#3b82f6' },
@@ -1033,6 +1101,18 @@ const ActionModal = ({ user, action, onClose, onConfirm }) => {
 const BulkRoleModal = ({ userCount, onClose, onAssign }) => {
   const [selectedRole, setSelectedRole] = useState('free_user');
   const [reason, setReason] = useState('');
+
+  // ESC key handler
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [onClose]);
 
   const roles = [
     { value: 'admin', label: 'Admin', icon: '👑', description: 'Full system access', color: '#3b82f6' },

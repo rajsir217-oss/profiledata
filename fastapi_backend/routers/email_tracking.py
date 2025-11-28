@@ -3,7 +3,7 @@ Email Tracking Router
 Tracks email opens, clicks, and engagement metrics
 """
 
-from fastapi import APIRouter, Request, Response, Query
+from fastapi import APIRouter, Request, Response, Query, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from datetime import datetime
 from typing import Optional
@@ -11,6 +11,7 @@ import io
 import logging
 
 from database import get_database
+from auth.jwt_auth import get_current_user_dependency as get_current_user
 
 router = APIRouter(prefix="/api/email-tracking", tags=["email-tracking"])
 logger = logging.getLogger(__name__)
@@ -181,22 +182,25 @@ async def track_email_click(
 @router.get("/analytics/{tracking_id}")
 async def get_email_analytics(
     tracking_id: str,
-    db = None
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """
-    Get analytics for a specific email
+    Get analytics for a specific email (Admin only)
     
     Args:
         tracking_id: Unique identifier for this email
+        current_user: Current authenticated user (must be admin)
     
     Returns:
         Dict with analytics data (opens, clicks, engagement)
     """
+    # Check if user is admin
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
-        # Get database if not injected
-        if db is None:
-            from database import get_database_sync
-            db = get_database_sync()
         
         # Get all analytics events for this email
         email_analytics = db.email_analytics
@@ -247,22 +251,25 @@ async def get_email_analytics(
 @router.get("/stats/summary")
 async def get_analytics_summary(
     days: int = Query(30, description="Number of days to analyze"),
-    db = None
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
 ):
     """
-    Get overall email analytics summary
+    Get overall email analytics summary (Admin only)
     
     Args:
         days: Number of days to analyze (default: 30)
+        current_user: Current authenticated user (must be admin)
     
     Returns:
         Dict with summary statistics
     """
+    # Check if user is admin
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
     try:
-        # Get database if not injected
-        if db is None:
-            from database import get_database_sync
-            db = get_database_sync()
         
         from datetime import timedelta
         cutoff_date = datetime.utcnow() - timedelta(days=days)

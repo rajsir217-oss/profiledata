@@ -78,7 +78,8 @@ class ComprehensiveReportResponse(BaseModel):
 # Helper function to check admin access
 def check_admin_access(current_user: dict):
     """Verify user is admin"""
-    if current_user.get("username") != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required"

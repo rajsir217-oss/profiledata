@@ -27,6 +27,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const currentUser = localStorage.getItem('username');
   const toast = useToast();
+  const [mfaWarning, setMfaWarning] = useState(null);
   
   // Modal states
   const [showProfileViewsModal, setShowProfileViewsModal] = useState(false);
@@ -133,6 +134,18 @@ const Dashboard = () => {
     checkMfaStatus(currentUser);
     loadPauseStatus(currentUser);
     
+    // Check for MFA warning from login
+    const mfaWarningData = sessionStorage.getItem('mfa_warning');
+    if (mfaWarningData) {
+      try {
+        setMfaWarning(JSON.parse(mfaWarningData));
+        // Clear the warning from sessionStorage after reading
+        sessionStorage.removeItem('mfa_warning');
+      } catch (e) {
+        console.error('Failed to parse MFA warning:', e);
+      }
+    }
+    
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
       loadDashboardData(currentUser);
@@ -237,12 +250,14 @@ const Dashboard = () => {
   };
 
   const checkMfaStatus = async (username) => {
-    // Check if user has dismissed the MFA notification
-    const dismissed = localStorage.getItem('mfaNotificationDismissed');
+    // Check if user has dismissed the MFA notification THIS SESSION ONLY
+    const dismissed = sessionStorage.getItem('mfaNotificationDismissed');
+    console.log('🔍 MFA Banner Check - Dismissed flag (this session):', dismissed);
     if (dismissed === 'true') {
+      console.log('⏭️ MFA Banner - Dismissed this session, not showing');
       return;
     }
-    
+
     try {
       // Import axios and getBackendUrl to avoid double-prefixing
       const axios = (await import('axios')).default;
@@ -258,20 +273,26 @@ const Dashboard = () => {
       );
       
       const mfaStatus = response.data.mfa_enabled;
+      console.log('🔐 MFA Banner Check - MFA enabled:', mfaStatus);
       
       // Show notification only if MFA is not enabled
       if (!mfaStatus) {
+        console.log('✅ MFA Banner - Showing banner (MFA not enabled)');
         setShowMfaNotification(true);
+      } else {
+        console.log('⏭️ MFA Banner - Not showing (MFA already enabled)');
       }
     } catch (err) {
       logger.error('Error checking MFA status:', err);
+      console.error('❌ MFA Banner - Error checking status, not showing');
       // Don't show notification if there's an error
     }
   };
 
   const handleDismissMfaNotification = () => {
     setShowMfaNotification(false);
-    localStorage.setItem('mfaNotificationDismissed', 'true');
+    // Only dismiss for this session - will show again on next login
+    sessionStorage.setItem('mfaNotificationDismissed', 'true');
   };
 
   const handleEnableMfa = () => {
@@ -829,6 +850,67 @@ const Dashboard = () => {
           </>
         }
       />
+
+      {/* MFA Warning Banner */}
+      {mfaWarning && (
+        <div className="mfa-warning-banner" style={{
+          marginTop: '16px',
+          marginBottom: '16px',
+          padding: '16px 20px',
+          background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)',
+          border: '2px solid #ffc107',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(255, 193, 7, 0.2)'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
+            <span style={{ fontSize: '24px' }}>⚠️</span>
+            <div style={{ flex: 1 }}>
+              <h4 style={{ margin: '0 0 8px 0', color: '#856404', fontSize: '18px', fontWeight: 'bold' }}>
+                MFA Configuration Incomplete
+              </h4>
+              <p style={{ margin: '0 0 12px 0', color: '#856404', fontSize: '15px', lineHeight: '1.5' }}>
+                {mfaWarning.message}
+              </p>
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => {
+                    navigate('/edit-profile');
+                    setMfaWarning(null);
+                  }}
+                  style={{
+                    padding: '10px 20px',
+                    background: '#ffc107',
+                    border: 'none',
+                    borderRadius: '8px',
+                    color: '#856404',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  📝 Update Profile
+                </button>
+                <button
+                  onClick={() => setMfaWarning(null)}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'transparent',
+                    border: '2px solid #ffc107',
+                    borderRadius: '8px',
+                    color: '#856404',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  Dismiss
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Last Login Info */}
       {lastLoginAt && (

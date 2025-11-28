@@ -79,6 +79,8 @@ const UnifiedPreferences = () => {
     contact_masked: null,
     backup_codes_count: 0
   });
+  const [smsOptIn, setSmsOptIn] = useState(true); // Track SMS opt-in status
+  const [hasPhoneNumber, setHasPhoneNumber] = useState(false); // Track if user has phone number
   const [selectedMfaMethod, setSelectedMfaMethod] = useState('none');
   const [mfaStep, setMfaStep] = useState('select'); // 'select', 'verify', 'backup_codes'
   const [mfaVerificationCode, setMfaVerificationCode] = useState('');
@@ -222,6 +224,27 @@ const UnifiedPreferences = () => {
         setLoadingNotifications(false);
       }
     };
+    
+    const fetchSmsOptInStatus = async () => {
+      try {
+        const username = localStorage.getItem('username');
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${getBackendUrl()}/api/users/profile/${username}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data) {
+          if (response.data.smsOptIn !== undefined) {
+            setSmsOptIn(response.data.smsOptIn);
+          }
+          // Check if user has a phone number (not null, not empty, not masked)
+          const phoneNumber = response.data.contactNumber;
+          const hasPhone = phoneNumber && phoneNumber.trim() !== '' && !phoneNumber.includes('***');
+          setHasPhoneNumber(hasPhone);
+        }
+      } catch (error) {
+        console.error('Error loading SMS opt-in status:', error);
+      }
+    };
 
     const checkAdminStatus = () => {
       const username = localStorage.getItem('username');
@@ -232,6 +255,7 @@ const UnifiedPreferences = () => {
     };
 
     fetchNotificationPreferences();
+    fetchSmsOptInStatus();
     checkAdminStatus();
     loadPauseStatus();
   }, []);
@@ -499,7 +523,9 @@ const UnifiedPreferences = () => {
       }
     } catch (error) {
       console.error('Error sending MFA code:', error);
-      setMfaMessage({ type: 'error', text: error.response?.data?.detail || 'Failed to send code' });
+      console.error('Error details:', error.response?.data);
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || 'Failed to send code';
+      setMfaMessage({ type: 'error', text: errorMessage });
     } finally {
       setLoadingMfa(false);
     }
@@ -971,7 +997,7 @@ const UnifiedPreferences = () => {
                           name="mfa-method"
                           value="sms"
                           checked={selectedMfaMethod === 'sms'}
-                          onChange={() => handleMfaMethodChange('sms')}
+                          onChange={() => setSelectedMfaMethod('sms')}
                         />
                         <div className="option-content">
                           <span className="option-icon">📱</span>
@@ -981,6 +1007,42 @@ const UnifiedPreferences = () => {
                           </div>
                         </div>
                       </label>
+                      
+                      {selectedMfaMethod === 'sms' && (!smsOptIn || !hasPhoneNumber) && (
+                        <div className="mfa-warning" style={{
+                          marginTop: '12px',
+                          padding: '12px 16px',
+                          background: '#fff3cd',
+                          border: '1px solid #ffc107',
+                          borderRadius: '8px',
+                          color: '#856404'
+                        }}>
+                          <strong>⚠️ {!hasPhoneNumber ? 'Phone Number Required' : 'SMS Notifications Disabled'}</strong>
+                          <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+                            {!hasPhoneNumber 
+                              ? 'You need to add a phone number to your profile before enabling SMS MFA. Please add your phone number in Profile Edit.'
+                              : 'You have SMS notifications disabled in your profile. To use SMS MFA, please enable SMS notifications in the profile first.'
+                            }
+                          </p>
+                          <button
+                            onClick={() => {
+                              navigate('/edit-profile');
+                            }}
+                            style={{
+                              marginTop: '8px',
+                              padding: '6px 12px',
+                              background: '#ffc107',
+                              border: 'none',
+                              borderRadius: '4px',
+                              color: '#856404',
+                              fontWeight: 'bold',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Go to Profile Edit
+                          </button>
+                        </div>
+                      )}
                     </div>
 
                     {selectedMfaMethod !== 'none' && (
@@ -992,7 +1054,7 @@ const UnifiedPreferences = () => {
                     <button
                       className="btn-primary"
                       onClick={handleSendMfaCode}
-                      disabled={loadingMfa || selectedMfaMethod === 'none'}
+                      disabled={loadingMfa || selectedMfaMethod === 'none' || (selectedMfaMethod === 'sms' && (!smsOptIn || !hasPhoneNumber))}
                     >
                       {loadingMfa ? 'Sending Code...' : 'Enable MFA'}
                     </button>

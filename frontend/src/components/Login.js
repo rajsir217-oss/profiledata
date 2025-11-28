@@ -103,6 +103,12 @@ const Login = () => {
       // Dispatch theme reload event
       window.dispatchEvent(new Event('userLoggedIn'));
       
+      // Check for MFA warning
+      if (res.data.mfa_warning) {
+        // Store warning to display on dashboard
+        sessionStorage.setItem('mfa_warning', JSON.stringify(res.data.mfa_warning));
+      }
+      
       navigate('/dashboard', { state: { user: res.data.user } });
     } catch (err) {
       console.error("Login error:", err);
@@ -121,7 +127,12 @@ const Login = () => {
         setError("");
         
         // Send MFA code automatically
-        await sendMfaCode();
+        try {
+          await sendMfaCode();
+        } catch (mfaErr) {
+          console.error("Failed to send MFA code:", mfaErr);
+          // Error message is already set by sendMfaCode function
+        }
       } else {
         setError(err.response?.data?.detail || err.response?.data?.error || "Invalid credentials");
       }
@@ -150,7 +161,9 @@ const Login = () => {
       }
     } catch (err) {
       console.error("Error sending MFA code:", err);
-      setError("Failed to send verification code");
+      // Show the actual backend error message
+      const errorMessage = err.response?.data?.detail || err.response?.data?.message || "Failed to send verification code";
+      setError(errorMessage);
     } finally {
       setResendingCode(false);
     }

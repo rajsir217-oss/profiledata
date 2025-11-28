@@ -26,7 +26,8 @@ async def get_template_categories(
     Admin only
     """
     # Security: Only admin can view templates
-    if current_user["username"] != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Get distinct categories
@@ -57,7 +58,8 @@ async def get_all_templates(
     Admin only
     """
     # Security: Only admin can view templates
-    if current_user["username"] != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Build query
@@ -88,7 +90,8 @@ async def get_template_by_trigger(
     Admin only
     """
     # Security: Only admin can view templates
-    if current_user["username"] != "admin":
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     
     template = await db.notification_templates.find_one({"trigger": trigger})
