@@ -301,6 +301,82 @@ async def delete_invitation(
     return {"message": "Invitation deleted successfully"}
 
 
+@router.post("/bulk-send")
+async def bulk_send_invitations(
+    data: dict,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Send multiple invitations in bulk (Admin only)
+    
+    Request body:
+    {
+        "invitationIds": ["id1", "id2", ...],
+        "channel": "email",  # or "sms" or "both"
+        "emailSubject": "Optional custom subject"
+    }
+    """
+    check_admin(current_user)
+    
+    invitation_ids = data.get("invitationIds", [])
+    channel = data.get("channel", "email")
+    email_subject = data.get("emailSubject")
+    
+    if not invitation_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No invitation IDs provided"
+        )
+    
+    service = InvitationService(db)
+    from bson import ObjectId
+    
+    results = {
+        "total": len(invitation_ids),
+        "sent": 0,
+        "failed": 0,
+        "errors": []
+    }
+    
+    # Process each invitation
+    for inv_id in invitation_ids:
+        try:
+            # Get invitation
+            invitation = await service.get_invitation(inv_id)
+            
+            if not invitation:
+                results["failed"] += 1
+                results["errors"].append(f"Invitation {inv_id} not found")
+                continue
+            
+            # Update email subject if provided
+            if email_subject:
+                await db.invitations.update_one(
+                    {"_id": ObjectId(inv_id)},
+                    {"$set": {"emailSubject": email_subject, "updatedAt": datetime.utcnow()}}
+                )
+                invitation.emailSubject = email_subject
+            
+            # Send invitation
+            await send_invitation_notifications(
+                invitation=invitation,
+                channel=InvitationChannel(channel),
+                db=db
+            )
+            
+            results["sent"] += 1
+            
+        except Exception as e:
+            results["failed"] += 1
+            results["errors"].append(f"Invitation {inv_id}: {str(e)}")
+    
+    return {
+        "message": f"Bulk send completed: {results['sent']} sent, {results['failed']} failed",
+        "results": results
+    }
+
+
 # Helper function to send invitation notifications
 async def send_invitation_notifications(
     invitation,
@@ -326,7 +402,8 @@ async def send_invitation_notifications(
                 to_email=invitation.email,
                 to_name=invitation.name,
                 invitation_link=invitation_link,
-                custom_message=custom_message or invitation.customMessage
+                custom_message=custom_message or invitation.customMessage,
+                email_subject=getattr(invitation, 'emailSubject', None)
             )
             
             # Update status

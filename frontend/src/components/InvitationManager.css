@@ -523,6 +523,17 @@ form {
   cursor: not-allowed;
 }
 
+.all-loaded-message {
+  padding: 16px 40px;
+  background: var(--success-color);
+  color: white;
+  border-radius: var(--radius-lg, 12px);
+  font-size: 16px;
+  font-weight: 600;
+  display: inline-block;
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.2);
+}
+
 .view-more-text {
   color: var(--text-color);
   font-weight: 600;

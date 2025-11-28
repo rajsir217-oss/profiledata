@@ -15,6 +15,12 @@ const InvitationManager = () => {
   const [filterBySender, setFilterBySender] = useState('all');
   const [sendersList, setSendersList] = useState([]);
   
+  // Bulk selection state
+  const [selectedInvitations, setSelectedInvitations] = useState([]);
+  const [showBulkSendModal, setShowBulkSendModal] = useState(false);
+  const [bulkEmailSubject, setBulkEmailSubject] = useState("You're Invited to Join USVedika for US Citizens & GC Holders");
+  const [bulkSending, setBulkSending] = useState(false);
+  
   // Pagination state
   const [displayedCount, setDisplayedCount] = useState(20);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -26,6 +32,7 @@ const InvitationManager = () => {
     phone: '',
     channel: 'email',
     customMessage: '',
+    emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
     sendImmediately: true
   });
 
@@ -52,16 +59,17 @@ const InvitationManager = () => {
     }
   }, [invitations]);
 
-  // Reset displayed count when filter changes
+  // Reset displayed count and selection when filter changes
   useEffect(() => {
     setDisplayedCount(20);
+    setSelectedInvitations([]);
   }, [filterBySender, includeArchived]);
 
   const loadInvitations = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${getBackendUrl()}/api/invitations?include_archived=${includeArchived}`,
+        `${getBackendUrl()}/api/invitations?include_archived=${includeArchived}&status=pending`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -123,6 +131,7 @@ const InvitationManager = () => {
           phone: '',
           channel: 'email',
           customMessage: '',
+          emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
           sendImmediately: true
         });
         loadInvitations();
@@ -257,6 +266,72 @@ const InvitationManager = () => {
     }, 300);
   };
 
+  // Bulk selection handlers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // Select all pending invitations only
+      const pendingInvitations = displayedInvitations
+        .filter(inv => inv.emailStatus === 'pending' && !inv.archived)
+        .map(inv => inv.id);
+      setSelectedInvitations(pendingInvitations);
+    } else {
+      setSelectedInvitations([]);
+    }
+  };
+
+  const handleToggleSelection = (invitationId) => {
+    setSelectedInvitations(prev => {
+      if (prev.includes(invitationId)) {
+        return prev.filter(id => id !== invitationId);
+      } else {
+        return [...prev, invitationId];
+      }
+    });
+  };
+
+  const handleBulkSend = async () => {
+    if (selectedInvitations.length === 0) {
+      toastService.error('No invitations selected');
+      return;
+    }
+
+    setBulkSending(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${getBackendUrl()}/api/invitations/bulk-send`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            invitationIds: selectedInvitations,
+            channel: 'email',
+            emailSubject: bulkEmailSubject
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        toastService.success(data.message);
+        setShowBulkSendModal(false);
+        setSelectedInvitations([]);
+        loadInvitations();
+        loadStats();
+      } else {
+        const data = await response.json();
+        toastService.error(data.detail || 'Failed to send invitations');
+      }
+    } catch (err) {
+      toastService.error('Error sending bulk invitations: ' + err.message);
+    } finally {
+      setBulkSending(false);
+    }
+  };
+
   // Filter and slice invitations for pagination
   const filteredInvitations = invitations.filter(
     inv => filterBySender === 'all' || inv.invitedBy === filterBySender
@@ -298,9 +373,20 @@ const InvitationManager = () => {
 
       {/* Action Bar */}
       <div className="action-bar">
-        <button className="btn-primary" onClick={() => setShowAddModal(true)}>
-          ➕ New Invitation
-        </button>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button className="btn-primary" onClick={() => setShowAddModal(true)}>
+            ➕ New Invitation
+          </button>
+          {selectedInvitations.length > 0 && (
+            <button 
+              className="btn-primary" 
+              onClick={() => setShowBulkSendModal(true)}
+              style={{ background: 'var(--success-color)' }}
+            >
+              📧 Send Selected ({selectedInvitations.length})
+            </button>
+          )}
+        </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <label className="checkbox-label">
             <input
@@ -351,8 +437,18 @@ const InvitationManager = () => {
         <table className="invitation-table">
           <thead>
             <tr>
+              <th style={{ width: '40px', textAlign: 'center' }}>
+                <input
+                  type="checkbox"
+                  onChange={handleSelectAll}
+                  checked={selectedInvitations.length > 0 && selectedInvitations.length === displayedInvitations.filter(inv => inv.emailStatus === 'pending' && !inv.archived).length}
+                  title="Select all pending invitations"
+                />
+              </th>
               <th>Name</th>
               <th>Email</th>
+              <th>Comments</th>
+              <th>Email Subject</th>
               <th>Invited By</th>
               <th>Email Status</th>
               <th>Action</th>
@@ -366,16 +462,33 @@ const InvitationManager = () => {
           <tbody>
             {filteredInvitations.length === 0 ? (
               <tr>
-                <td colSpan="10" style={{ textAlign: 'center', padding: '40px' }}>
+                <td colSpan="13" style={{ textAlign: 'center', padding: '40px' }}>
                   No invitations found. Create your first invitation!
                 </td>
               </tr>
             ) : (
               displayedInvitations.map((invitation) => (
                 <tr key={invitation.id} className={invitation.archived ? 'archived-row' : ''}>
+                  <td style={{ textAlign: 'center' }}>
+                    {invitation.emailStatus === 'pending' && !invitation.archived && (
+                      <input
+                        type="checkbox"
+                        checked={selectedInvitations.includes(invitation.id)}
+                        onChange={() => handleToggleSelection(invitation.id)}
+                      />
+                    )}
+                  </td>
                   <td>{invitation.name}</td>
                   <td>
                     <a href={`mailto:${invitation.email}`}>{invitation.email}</a>
+                  </td>
+                  <td>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      {invitation.comments || '-'}
+                    </span>
+                  </td>
+                  <td style={{ maxWidth: '200px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {invitation.emailSubject || 'Default subject'}
                   </td>
                   <td>
                     <span className="invited-by-badge" title={`Invited by ${invitation.invitedBy}`}>
@@ -441,20 +554,21 @@ const InvitationManager = () => {
       {/* View More Pagination */}
       {filteredInvitations.length > 0 && (
         <div className="pagination-container">
-          <div className="pagination-info">
-            Viewing {Math.min(displayedCount, filteredInvitations.length)} of {filteredInvitations.length} invitations
-          </div>
-          
-          {displayedCount < filteredInvitations.length && (
+          {displayedCount < filteredInvitations.length ? (
             <div className="pagination-controls">
               <button
                 className="view-more-btn"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
               >
-                <span className="view-more-text">View more</span>
-                <span className="view-more-count">({Math.min(20, filteredInvitations.length - displayedCount)} more)</span>
+                View more ({Math.min(20, filteredInvitations.length - displayedCount)} more) of {displayedCount}/{filteredInvitations.length}
               </button>
+            </div>
+          ) : (
+            <div className="pagination-controls">
+              <div className="all-loaded-message">
+                ✓ All {filteredInvitations.length} invitations loaded
+              </div>
             </div>
           )}
         </div>
@@ -513,6 +627,17 @@ const InvitationManager = () => {
               </div>
 
               <div className="form-group">
+                <label>Email Subject *</label>
+                <input
+                  type="text"
+                  value={formData.emailSubject}
+                  onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
+                  required
+                  placeholder="Email subject line"
+                />
+              </div>
+
+              <div className="form-group">
                 <label>Custom Message (Optional)</label>
                 <textarea
                   value={formData.customMessage}
@@ -544,6 +669,86 @@ const InvitationManager = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Send Modal */}
+      {showBulkSendModal && (
+        <div className="modal-overlay" onClick={() => !bulkSending && setShowBulkSendModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-header">
+              <h2>📧 Send Bulk Invitations</h2>
+              <button className="btn-close" onClick={() => setShowBulkSendModal(false)} disabled={bulkSending}>✕</button>
+            </div>
+            
+            <div style={{ padding: '20px' }}>
+              <div style={{ 
+                background: 'var(--info-bg)', 
+                padding: '15px', 
+                borderRadius: 'var(--radius-md)', 
+                marginBottom: '20px',
+                border: '1px solid var(--info-color)'
+              }}>
+                <p style={{ margin: 0, color: 'var(--text-color)', fontSize: '14px' }}>
+                  📊 <strong>{selectedInvitations.length} invitations</strong> selected and ready to send
+                </p>
+              </div>
+
+              <div className="form-group">
+                <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>
+                  Email Subject Line:
+                </label>
+                <input
+                  type="text"
+                  value={bulkEmailSubject}
+                  onChange={(e) => setBulkEmailSubject(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: 'var(--radius-md)',
+                    border: '2px solid var(--border-color)',
+                    fontSize: '14px'
+                  }}
+                  disabled={bulkSending}
+                />
+                <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
+                  This subject line will be used for all selected invitations
+                </p>
+              </div>
+
+              <div style={{ 
+                background: 'var(--warning-bg)', 
+                padding: '12px', 
+                borderRadius: 'var(--radius-md)', 
+                marginTop: '20px',
+                border: '1px solid var(--warning-color)'
+              }}>
+                <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-color)' }}>
+                  ⚠️ <strong>Note:</strong> Emails will be sent immediately. This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              <button 
+                type="button" 
+                className="btn-secondary" 
+                onClick={() => setShowBulkSendModal(false)}
+                disabled={bulkSending}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className="btn-primary" 
+                onClick={handleBulkSend}
+                disabled={bulkSending}
+                style={{ background: 'var(--success-color)' }}
+              >
+                {bulkSending ? '⏳ Sending...' : `📧 Send ${selectedInvitations.length} Invitation${selectedInvitations.length > 1 ? 's' : ''}`}
+              </button>
+            </div>
           </div>
         </div>
       )}

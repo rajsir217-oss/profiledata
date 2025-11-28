@@ -24,6 +24,7 @@ sse-starlette==1.6.5
 numpy==2.3.3
 scikit-learn==1.7.2
 Pillow==11.0.0  # Image processing and validation
+openpyxl==3.1.5  # Excel file processing for data imports
 
 # Google Cloud Storage (for production file uploads)
 google-cloud-storage==2.10.0

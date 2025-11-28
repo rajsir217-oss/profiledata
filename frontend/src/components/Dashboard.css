@@ -1,7 +1,7 @@
 /* Dashboard Container - Centered with max-width */
 .dashboard-container {
   padding: 20px;
-  width: 80%;
+  width: 100%;
   max-width: 1400px;
   margin: 0 auto;
   background: var(--background-color);
