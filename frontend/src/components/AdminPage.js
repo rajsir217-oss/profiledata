@@ -112,8 +112,8 @@ const AdminPage = () => {
 
   const handleEditStatus = (user) => {
     setSelectedUserForStatus(user);
-    // Use accountStatus first (new system), then fall back to old status field
-    const currentStatus = user.accountStatus || user.status?.status || user.status || 'pending_admin_approval';
+    // Use accountStatus (unified field)
+    const currentStatus = user.accountStatus || 'pending_admin_approval';
     setSelectedStatus(currentStatus);
     setStatusChangeReason('');
     setShowStatusModal(true);
@@ -223,8 +223,8 @@ const AdminPage = () => {
         user.contactEmail?.toLowerCase().includes(searchLower)
       );
       
-      // Apply status filter - check new accountStatus field first, then fall back to old status.status
-      const userStatus = user.accountStatus || user.status?.status || user.status || 'active';
+      // Apply status filter - use accountStatus (unified field)
+      const userStatus = user.accountStatus || 'active';
       const matchesStatus = !statusFilter || userStatus === statusFilter;
       
       // Apply gender filter (case-insensitive, check multiple field names)
@@ -495,7 +495,7 @@ const AdminPage = () => {
             <div className="status-modal-body">
               <h3>🔐 Change User Status</h3>
               <p className="current-status">
-                Select a new status for this user. Current status: <strong>{selectedUserForStatus.accountStatus || selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending_admin_approval'}</strong>
+                Select a new status for this user. Current status: <strong>{selectedUserForStatus.accountStatus || 'pending_admin_approval'}</strong>
               </p>
               
               {/* Status Options */}
@@ -625,7 +625,7 @@ const AdminPage = () => {
                 <button 
                   className="btn-confirm" 
                   onClick={handleStatusChange}
-                  disabled={selectedStatus === (selectedUserForStatus.status?.status || selectedUserForStatus.status || 'pending')}
+                  disabled={selectedStatus === (selectedUserForStatus.accountStatus || 'pending_admin_approval')}
                 >
                   🔐 Update Status
                 </button>

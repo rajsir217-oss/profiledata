@@ -710,7 +710,7 @@ const UserManagement = () => {
                             openActionModal(user, 'activate');
                             setOpenDropdown(null);
                           }}
-                          disabled={user.status?.status === 'active' || user.username === currentUser}
+                          disabled={user.accountStatus === 'active' || user.username === currentUser}
                         >
                           <span className="dropdown-icon">✅</span>
                           Activate
@@ -767,8 +767,8 @@ const UserManagement = () => {
                   </span>
                 </td>
                 <td>
-                  <span className={`status-badge ${getStatusBadgeClass(user.status?.status || user.accountStatus)}`}>
-                    {formatStatusDisplay(user.status?.status || user.accountStatus)}
+                  <span className={`status-badge ${getStatusBadgeClass(user.accountStatus)}`}>
+                    {formatStatusDisplay(user.accountStatus)}
                   </span>
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>

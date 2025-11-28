@@ -463,11 +463,7 @@ async def find_matches_for_search(
     # Build MongoDB query from criteria
     query = {
         'username': {'$ne': username},  # Exclude self
-        '$or': [
-            {'status.status': {'$regex': '^active$', '$options': 'i'}},
-            {'status.status': {'$exists': False}},
-            {'status': {'$exists': False}}
-        ]
+        'accountStatus': 'active'  # Only match active users (unified field)
     }
     
     # Apply gender filter
