@@ -50,7 +50,7 @@
 .main-content .container {
   padding-top: 20px;
   padding-bottom: 40px;
-  max-width: 100%;
+  /* max-width removed - let individual page components control their own width */
 }
 
 /* Global Page Container - Consistent Width Across All Pages */
