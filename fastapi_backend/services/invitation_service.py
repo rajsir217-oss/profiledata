@@ -152,7 +152,7 @@ class InvitationService:
     async def list_invitations(
         self,
         skip: int = 0,
-        limit: int = 100,
+        limit: int = 10000,
         include_archived: bool = False,
         status_filter: Optional[InvitationStatus] = None
     ) -> List[InvitationResponse]:
