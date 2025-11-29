@@ -460,15 +460,18 @@ async def send_invitation_notifications(
                     logger.error("🔴 No SMS service configured or available")
                     raise Exception("No SMS service configured or available")
                 
-                # Create SMS message
-                sms_message = (
-                    f"Hi {invitation.name}! You're invited to join USVedika.\n\n"
-                    f"Register here: {invitation_link}\n\n"
-                    f"This invitation expires soon. Join now!"
-                )
+                # Create SMS message with full invitation details
+                # Use production URL instead of localhost for better carrier delivery
+                production_link = invitation_link.replace('http://localhost:3000', settings.app_url) if 'localhost' in invitation_link else invitation_link
                 
                 if custom_message:
-                    sms_message = f"{custom_message}\n\n{invitation_link}"
+                    sms_message = f"{custom_message}\n\nRegister: {production_link}"
+                else:
+                    sms_message = (
+                        f"Hi {invitation.name}! You're invited to join USVedika.\n\n"
+                        f"Register here: {production_link}\n\n"
+                        f"This invitation expires soon. Join now!"
+                    )
                 
                 logger.info(f"🔵 Sending SMS to {invitation.phone}: {sms_message[:50]}...")
                 
