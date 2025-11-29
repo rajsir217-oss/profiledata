@@ -48,6 +48,8 @@ class InvitationUpdate(BaseModel):
     email: Optional[EmailStr] = None
     phone: Optional[str] = None
     customMessage: Optional[str] = Field(None, max_length=500)
+    emailSubject: Optional[str] = Field(None, max_length=200)
+    comments: Optional[str] = Field(None, max_length=500)
     archived: Optional[bool] = None
 
 
