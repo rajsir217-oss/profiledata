@@ -182,13 +182,14 @@ async def get_invitation(
 
 
 @router.patch("/{invitation_id}", response_model=InvitationResponse)
+@router.put("/{invitation_id}", response_model=InvitationResponse)
 async def update_invitation(
     invitation_id: str,
     update_data: InvitationUpdate,
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Update invitation (Admin only)"""
+    """Update invitation (Admin only) - supports both PATCH and PUT"""
     check_admin(current_user)
     
     service = InvitationService(db)
@@ -420,17 +421,80 @@ async def send_invitation_notifications(
                 failed_reason=str(e)
             )
     
-    # Send SMS (TODO: Implement direct SMS sender)
+    # Send SMS
     if channel in [InvitationChannel.SMS, InvitationChannel.BOTH]:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔵 SMS channel requested for invitation {invitation.id}, phone: {invitation.phone}")
+        
         if invitation.phone:
             try:
-                # For now, mark as pending - SMS implementation needed
-                await invitation_service.update_invitation_status(
-                    invitation.id,
-                    InvitationChannel.SMS,
-                    InvitationStatus.PENDING
+                # Import SMS service based on configured provider
+                sms_provider = settings.sms_provider or "auto"
+                logger.info(f"🔵 SMS provider: {sms_provider}")
+                sms_service = None
+                
+                # Try SimpleTexting first (preferred)
+                if sms_provider.lower() in ["simpletexting", "auto"]:
+                    try:
+                        from services.simpletexting_service import SimpleTextingService
+                        simpletexting = SimpleTextingService()
+                        logger.info(f"🔵 SimpleTexting enabled: {simpletexting.enabled}")
+                        if simpletexting.enabled:
+                            sms_service = simpletexting
+                    except ImportError as e:
+                        logger.error(f"🔴 Failed to import SimpleTexting: {e}")
+                        pass
+                
+                # Fallback to Twilio
+                if not sms_service and sms_provider.lower() in ["twilio", "auto"]:
+                    try:
+                        from services.sms_service import SMSService
+                        twilio = SMSService()
+                        if twilio.enabled:
+                            sms_service = twilio
+                    except ImportError:
+                        pass
+                
+                if not sms_service:
+                    logger.error("🔴 No SMS service configured or available")
+                    raise Exception("No SMS service configured or available")
+                
+                # Create SMS message
+                sms_message = (
+                    f"Hi {invitation.name}! You're invited to join USVedika.\n\n"
+                    f"Register here: {invitation_link}\n\n"
+                    f"This invitation expires soon. Join now!"
                 )
-                # TODO: Implement direct SMS sending via Twilio
+                
+                if custom_message:
+                    sms_message = f"{custom_message}\n\n{invitation_link}"
+                
+                logger.info(f"🔵 Sending SMS to {invitation.phone}: {sms_message[:50]}...")
+                
+                # Send SMS
+                result = await sms_service.send_notification(
+                    phone=invitation.phone,
+                    message=sms_message
+                )
+                
+                logger.info(f"🔵 SMS send result: {result}")
+                
+                if result["success"]:
+                    # Update status to SENT
+                    await invitation_service.update_invitation_status(
+                        invitation.id,
+                        InvitationChannel.SMS,
+                        InvitationStatus.SENT
+                    )
+                else:
+                    # Mark as failed
+                    await invitation_service.update_invitation_status(
+                        invitation.id,
+                        InvitationChannel.SMS,
+                        InvitationStatus.FAILED,
+                        failed_reason=result.get("error", "SMS service unavailable")
+                    )
             except Exception as e:
                 await invitation_service.update_invitation_status(
                     invitation.id,

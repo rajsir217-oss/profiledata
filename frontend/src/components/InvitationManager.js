@@ -11,9 +11,25 @@ const InvitationManager = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingInvitation, setEditingInvitation] = useState(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [filterBySender, setFilterBySender] = useState('all');
   const [sendersList, setSendersList] = useState([]);
+  
+  // Search filters state
+  const [searchFilters, setSearchFilters] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    comments: '',
+    emailSubject: '',
+    invitedBy: '',
+    emailStatus: 'all',
+    smsStatus: 'all',
+    dateFrom: '',
+    dateTo: ''
+  });
   
   // Bulk selection state
   const [selectedInvitations, setSelectedInvitations] = useState([]);
@@ -34,6 +50,15 @@ const InvitationManager = () => {
     customMessage: '',
     emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
     sendImmediately: true
+  });
+  
+  // Form state for editing invitation
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    comments: '',
+    emailSubject: ''
   });
 
   // Check admin access
@@ -63,13 +88,13 @@ const InvitationManager = () => {
   useEffect(() => {
     setDisplayedCount(20);
     setSelectedInvitations([]);
-  }, [filterBySender, includeArchived]);
+  }, [filterBySender, includeArchived, searchFilters]);
 
   const loadInvitations = async () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${getBackendUrl()}/api/invitations?include_archived=${includeArchived}&status=pending`,
+        `${getBackendUrl()}/api/invitations?include_archived=${includeArchived}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -150,10 +175,15 @@ const InvitationManager = () => {
   };
 
   const handleResend = async (invitationId, channel) => {
+    console.log('🔵 handleResend called:', { invitationId, channel });
+    
     try {
       const token = localStorage.getItem('token');
+      const url = `${getBackendUrl()}/api/invitations/${invitationId}/resend`;
+      console.log('🔵 Sending request to:', url);
+      
       const response = await fetch(
-        `${getBackendUrl()}/api/invitations/${invitationId}/resend`,
+        url,
         {
           method: 'POST',
           headers: {
@@ -164,17 +194,21 @@ const InvitationManager = () => {
         }
       );
 
+      console.log('🔵 Response status:', response.status);
+      
       if (response.ok) {
         loadInvitations();
         toastService.success('Invitation resent successfully!');
       } else {
         const data = await response.json();
+        console.log('🔴 Error response:', data);
         const errorMsg = typeof data.detail === 'string' 
           ? data.detail 
           : data.detail?.[0]?.msg || 'Failed to resend invitation';
         toastService.error(errorMsg);
       }
     } catch (err) {
+      console.error('🔴 Error in handleResend:', err);
       toastService.error('Error resending invitation: ' + err.message);
     }
   };
@@ -238,6 +272,60 @@ const InvitationManager = () => {
       }
     } catch (err) {
       toastService.error('Error deleting invitation: ' + err.message);
+    }
+  };
+
+  const handleEdit = (invitation) => {
+    setEditingInvitation(invitation);
+    setEditFormData({
+      name: invitation.name,
+      email: invitation.email,
+      phone: invitation.phone || '',
+      comments: invitation.comments || '',
+      emailSubject: invitation.emailSubject || ''
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(
+        `${getBackendUrl()}/api/invitations/${editingInvitation.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(editFormData)
+        }
+      );
+
+      if (response.ok) {
+        toastService.success('Invitation updated successfully');
+        setShowEditModal(false);
+        setEditingInvitation(null);
+        setEditFormData({
+          name: '',
+          email: '',
+          phone: '',
+          comments: '',
+          emailSubject: ''
+        });
+        loadInvitations();
+        loadStats();
+      } else {
+        const data = await response.json();
+        const errorMsg = typeof data.detail === 'string' 
+          ? data.detail 
+          : data.detail?.[0]?.msg || 'Failed to update invitation';
+        toastService.error(errorMsg);
+      }
+    } catch (err) {
+      toastService.error('Error updating invitation: ' + err.message);
     }
   };
 
@@ -333,10 +421,65 @@ const InvitationManager = () => {
   };
 
   // Filter and slice invitations for pagination
-  const filteredInvitations = invitations.filter(
-    inv => filterBySender === 'all' || inv.invitedBy === filterBySender
-  );
+  const filteredInvitations = invitations.filter(inv => {
+    // Filter by sender (case insensitive)
+    if (filterBySender !== 'all' && inv.invitedBy.toLowerCase() !== filterBySender.toLowerCase()) return false;
+    
+    // Search filters (all case insensitive)
+    if (searchFilters.name && !inv.name.toLowerCase().includes(searchFilters.name.toLowerCase())) return false;
+    if (searchFilters.email && !inv.email.toLowerCase().includes(searchFilters.email.toLowerCase())) return false;
+    if (searchFilters.phone && inv.phone && !inv.phone.toLowerCase().includes(searchFilters.phone.toLowerCase())) return false;
+    if (searchFilters.comments && inv.comments && !inv.comments.toLowerCase().includes(searchFilters.comments.toLowerCase())) return false;
+    if (searchFilters.emailSubject && inv.emailSubject && !inv.emailSubject.toLowerCase().includes(searchFilters.emailSubject.toLowerCase())) return false;
+    if (searchFilters.invitedBy && !inv.invitedBy.toLowerCase().includes(searchFilters.invitedBy.toLowerCase())) return false;
+    if (searchFilters.emailStatus !== 'all' && inv.emailStatus && inv.emailStatus.toLowerCase() !== searchFilters.emailStatus.toLowerCase()) return false;
+    if (searchFilters.smsStatus !== 'all' && inv.smsStatus && inv.smsStatus.toLowerCase() !== searchFilters.smsStatus.toLowerCase()) return false;
+    
+    // Date range filter
+    if (searchFilters.dateFrom || searchFilters.dateTo) {
+      const invDate = new Date(inv.createdAt);
+      if (searchFilters.dateFrom && invDate < new Date(searchFilters.dateFrom)) return false;
+      if (searchFilters.dateTo) {
+        const endDate = new Date(searchFilters.dateTo);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        if (invDate > endDate) return false;
+      }
+    }
+    
+    return true;
+  });
   const displayedInvitations = filteredInvitations.slice(0, displayedCount);
+  
+  // Clear all search filters
+  const handleClearFilters = () => {
+    setSearchFilters({
+      name: '',
+      email: '',
+      phone: '',
+      comments: '',
+      emailSubject: '',
+      invitedBy: '',
+      emailStatus: 'all',
+      smsStatus: 'all',
+      dateFrom: '',
+      dateTo: ''
+    });
+    setFilterBySender('all');
+  };
+  
+  // Check if any filters are active
+  const hasActiveFilters = 
+    searchFilters.name !== '' ||
+    searchFilters.email !== '' ||
+    searchFilters.phone !== '' ||
+    searchFilters.comments !== '' ||
+    searchFilters.emailSubject !== '' ||
+    searchFilters.invitedBy !== '' ||
+    searchFilters.emailStatus !== 'all' ||
+    searchFilters.smsStatus !== 'all' ||
+    searchFilters.dateFrom !== '' ||
+    searchFilters.dateTo !== '' ||
+    filterBySender !== 'all';
 
   if (loading) {
     return <div className="invitation-manager"><p>Loading invitations...</p></div>;
@@ -434,6 +577,124 @@ const InvitationManager = () => {
 
       {/* Invitations Table */}
       <div className="table-container">
+        {/* Search Filters Row */}
+        <div className="search-filters-container">
+          <div className="search-filters-header">
+            <h3>🔍 Search Filters</h3>
+            {hasActiveFilters && (
+              <button className="btn-clear-filters" onClick={handleClearFilters}>
+                ✕ Clear All Filters
+              </button>
+            )}
+          </div>
+          <div className="search-filters-grid">
+            <div className="filter-item">
+              <label>Name</label>
+              <input
+                type="text"
+                placeholder="Search name..."
+                value={searchFilters.name}
+                onChange={(e) => setSearchFilters({...searchFilters, name: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Email</label>
+              <input
+                type="text"
+                placeholder="Search email..."
+                value={searchFilters.email}
+                onChange={(e) => setSearchFilters({...searchFilters, email: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Phone</label>
+              <input
+                type="text"
+                placeholder="Search phone..."
+                value={searchFilters.phone}
+                onChange={(e) => setSearchFilters({...searchFilters, phone: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Comments</label>
+              <input
+                type="text"
+                placeholder="Search comments..."
+                value={searchFilters.comments}
+                onChange={(e) => setSearchFilters({...searchFilters, comments: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Email Subject</label>
+              <input
+                type="text"
+                placeholder="Search subject..."
+                value={searchFilters.emailSubject}
+                onChange={(e) => setSearchFilters({...searchFilters, emailSubject: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Invited By</label>
+              <input
+                type="text"
+                placeholder="Search inviter..."
+                value={searchFilters.invitedBy}
+                onChange={(e) => setSearchFilters({...searchFilters, invitedBy: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Email Status</label>
+              <select
+                value={searchFilters.emailStatus}
+                onChange={(e) => setSearchFilters({...searchFilters, emailStatus: e.target.value})}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="sent">Sent</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+                <option value="accepted">Accepted</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+            <div className="filter-item">
+              <label>SMS Status</label>
+              <select
+                value={searchFilters.smsStatus}
+                onChange={(e) => setSearchFilters({...searchFilters, smsStatus: e.target.value})}
+              >
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending</option>
+                <option value="sent">Sent</option>
+                <option value="delivered">Delivered</option>
+                <option value="failed">Failed</option>
+                <option value="accepted">Accepted</option>
+                <option value="expired">Expired</option>
+              </select>
+            </div>
+            <div className="filter-item">
+              <label>Date From</label>
+              <input
+                type="date"
+                value={searchFilters.dateFrom}
+                onChange={(e) => setSearchFilters({...searchFilters, dateFrom: e.target.value})}
+              />
+            </div>
+            <div className="filter-item">
+              <label>Date To</label>
+              <input
+                type="date"
+                value={searchFilters.dateTo}
+                onChange={(e) => setSearchFilters({...searchFilters, dateTo: e.target.value})}
+              />
+            </div>
+          </div>
+          <div className="search-results-summary">
+            Showing {displayedInvitations.length} of {filteredInvitations.length} invitation{filteredInvitations.length !== 1 ? 's' : ''}
+            {hasActiveFilters && ` (filtered from ${invitations.length} total)`}
+          </div>
+        </div>
+
         <table className="invitation-table">
           <thead>
             <tr>
@@ -525,6 +786,13 @@ const InvitationManager = () => {
                   <td>{invitation.timeLapse}</td>
                   <td>
                     <div className="action-buttons">
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleEdit(invitation)}
+                        title="Edit"
+                      >
+                        ✏️
+                      </button>
                       {!invitation.archived ? (
                         <button
                           className="btn-icon"
@@ -749,6 +1017,81 @@ const InvitationManager = () => {
                 {bulkSending ? '⏳ Sending...' : `📧 Send ${selectedInvitations.length} Invitation${selectedInvitations.length > 1 ? 's' : ''}`}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Invitation Modal */}
+      {showEditModal && editingInvitation && (
+        <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>✏️ Edit Invitation</h2>
+              <button className="btn-close" onClick={() => setShowEditModal(false)}>✕</button>
+            </div>
+            
+            <form onSubmit={handleUpdate}>
+              <div className="form-group">
+                <label>Name *</label>
+                <input
+                  type="text"
+                  value={editFormData.name}
+                  onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email *</label>
+                <input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Phone (Optional)</label>
+                <input
+                  type="tel"
+                  value={editFormData.phone}
+                  onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                  placeholder="+1 234 567 8900"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email Subject</label>
+                <input
+                  type="text"
+                  value={editFormData.emailSubject}
+                  onChange={(e) => setEditFormData({ ...editFormData, emailSubject: e.target.value })}
+                  placeholder="Invitation subject line"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Comments (Optional)</label>
+                <textarea
+                  value={editFormData.comments}
+                  onChange={(e) => setEditFormData({ ...editFormData, comments: e.target.value })}
+                  rows="3"
+                  placeholder="Add notes or comments about this invitation..."
+                />
+              </div>
+
+              {error && <div className="error-message">{error}</div>}
+
+              <div className="modal-actions">
+                <button type="button" className="btn-secondary" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Update Invitation
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
