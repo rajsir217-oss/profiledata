@@ -460,16 +460,25 @@ async def send_invitation_notifications(
                     logger.error("🔴 No SMS service configured or available")
                     raise Exception("No SMS service configured or available")
                 
-                # Create SMS message with full invitation details
-                # Use production URL instead of localhost for better carrier delivery
+                # Create shortened URL for better SMS delivery
+                from services.url_shortener import URLShortener
+                
+                # Use production URL instead of localhost
                 production_link = invitation_link.replace('http://localhost:3000', settings.app_url) if 'localhost' in invitation_link else invitation_link
                 
+                # Create short URL
+                shortener = URLShortener(db)
+                short_url = await shortener.create_short_url(production_link)
+                
+                logger.info(f"🔵 Created short URL: {short_url} for {production_link}")
+                
+                # Create SMS message with shortened URL
                 if custom_message:
-                    sms_message = f"{custom_message}\n\nRegister: {production_link}"
+                    sms_message = f"{custom_message}\n\nRegister: {short_url}"
                 else:
                     sms_message = (
                         f"Hi {invitation.name}! You're invited to join USVedika.\n\n"
-                        f"Register here: {production_link}\n\n"
+                        f"Register here: {short_url}\n\n"
                         f"This invitation expires soon. Join now!"
                     )
                 
