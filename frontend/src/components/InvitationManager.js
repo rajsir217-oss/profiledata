@@ -41,6 +41,10 @@ const InvitationManager = () => {
   const [displayedCount, setDisplayedCount] = useState(20);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // Sorting state
+  const [sortColumn, setSortColumn] = useState(null);
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
+  
   // Form state for new invitation
   const [formData, setFormData] = useState({
     name: '',
@@ -89,6 +93,18 @@ const InvitationManager = () => {
     setDisplayedCount(20);
     setSelectedInvitations([]);
   }, [filterBySender, includeArchived, searchFilters]);
+
+  // Handle column sorting
+  const handleSort = (column) => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to ascending
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+  };
 
   const loadInvitations = async () => {
     try {
@@ -448,7 +464,29 @@ const InvitationManager = () => {
     
     return true;
   });
-  const displayedInvitations = filteredInvitations.slice(0, displayedCount);
+  
+  // Sort invitations if sortColumn is set
+  const sortedInvitations = sortColumn 
+    ? [...filteredInvitations].sort((a, b) => {
+        let aValue = a[sortColumn];
+        let bValue = b[sortColumn];
+        
+        // Handle null/undefined values
+        if (aValue == null) aValue = '';
+        if (bValue == null) bValue = '';
+        
+        // Convert to lowercase for string comparison
+        if (typeof aValue === 'string') aValue = aValue.toLowerCase();
+        if (typeof bValue === 'string') bValue = bValue.toLowerCase();
+        
+        // Compare values
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      })
+    : filteredInvitations;
+  
+  const displayedInvitations = sortedInvitations.slice(0, displayedCount);
   
   // Clear all search filters
   const handleClearFilters = () => {
@@ -690,7 +728,7 @@ const InvitationManager = () => {
             </div>
           </div>
           <div className="search-results-summary">
-            Showing {displayedInvitations.length} of {filteredInvitations.length} invitation{filteredInvitations.length !== 1 ? 's' : ''}
+            Showing {displayedInvitations.length} of {sortedInvitations.length} invitation{sortedInvitations.length !== 1 ? 's' : ''}
             {hasActiveFilters && ` (filtered from ${invitations.length} total)`}
           </div>
         </div>
@@ -706,17 +744,35 @@ const InvitationManager = () => {
                   title="Select all pending invitations"
                 />
               </th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Comments</th>
-              <th>Email Subject</th>
-              <th>Invited By</th>
-              <th>Email Status</th>
+              <th className="sortable" onClick={() => handleSort('name')}>
+                Name {sortColumn === 'name' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('email')}>
+                Email {sortColumn === 'email' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('comments')}>
+                Comments {sortColumn === 'comments' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('emailSubject')}>
+                Email Subject {sortColumn === 'emailSubject' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('invitedBy')}>
+                Invited By {sortColumn === 'invitedBy' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('emailStatus')}>
+                Email Status {sortColumn === 'emailStatus' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
               <th>Action</th>
-              <th>SMS</th>
-              <th>SMS Status</th>
+              <th className="sortable" onClick={() => handleSort('phone')}>
+                SMS {sortColumn === 'phone' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
+              <th className="sortable" onClick={() => handleSort('smsStatus')}>
+                SMS Status {sortColumn === 'smsStatus' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
               <th>Action</th>
-              <th>Time Lapse</th>
+              <th className="sortable" onClick={() => handleSort('createdAt')}>
+                Time Lapse {sortColumn === 'createdAt' && (sortDirection === 'asc' ? '▲' : '▼')}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -820,22 +876,22 @@ const InvitationManager = () => {
       </div>
 
       {/* View More Pagination */}
-      {filteredInvitations.length > 0 && (
+      {sortedInvitations.length > 0 && (
         <div className="pagination-container">
-          {displayedCount < filteredInvitations.length ? (
+          {displayedCount < sortedInvitations.length ? (
             <div className="pagination-controls">
               <button
                 className="view-more-btn"
                 onClick={handleLoadMore}
                 disabled={loadingMore}
               >
-                View more ({Math.min(20, filteredInvitations.length - displayedCount)} more) of {displayedCount}/{filteredInvitations.length}
+                View more ({Math.min(20, sortedInvitations.length - displayedCount)} more) of {displayedCount}/{sortedInvitations.length}
               </button>
             </div>
           ) : (
             <div className="pagination-controls">
               <div className="all-loaded-message">
-                ✓ All {filteredInvitations.length} invitations loaded
+                ✓ All {sortedInvitations.length} invitations loaded
               </div>
             </div>
           )}
