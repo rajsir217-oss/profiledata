@@ -94,7 +94,7 @@ async def create_invitation(
 @router.get("", response_model=InvitationListResponse)
 async def list_invitations(
     skip: int = 0,
-    limit: int = 100,
+    limit: int = 10000,
     include_archived: bool = False,
     status: Optional[InvitationStatus] = None,
     current_user: dict = Depends(get_current_user),
@@ -104,7 +104,7 @@ async def list_invitations(
     List all invitations with pagination and filters (Admin only)
     
     - **skip**: Number of items to skip
-    - **limit**: Maximum number of items to return
+    - **limit**: Maximum number of items to return (default: 10000)
     - **include_archived**: Include archived invitations
     - **status**: Filter by status (PENDING, SENT, ACCEPTED, etc.)
     """
