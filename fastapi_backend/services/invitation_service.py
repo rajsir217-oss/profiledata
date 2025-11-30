@@ -172,23 +172,31 @@ class InvitationService:
         invitations = []
         
         async for doc in cursor:
-            doc["_id"] = str(doc["_id"])
-            invitation = InvitationDB(**doc)
-            
-            # Calculate time lapse
-            time_lapse = self._calculate_time_lapse(invitation.createdAt)
-            
-            # Check if expired
-            is_expired = False
-            if invitation.tokenExpiresAt:
-                is_expired = datetime.utcnow() > invitation.tokenExpiresAt
-            
-            response = InvitationResponse(
-                **invitation.dict(),
-                timeLapse=time_lapse,
-                isExpired=is_expired
-            )
-            invitations.append(response)
+            try:
+                doc["_id"] = str(doc["_id"])
+                invitation = InvitationDB(**doc)
+                
+                # Calculate time lapse
+                time_lapse = self._calculate_time_lapse(invitation.createdAt)
+                
+                # Check if expired
+                is_expired = False
+                if invitation.tokenExpiresAt:
+                    is_expired = datetime.utcnow() > invitation.tokenExpiresAt
+                
+                response = InvitationResponse(
+                    **invitation.dict(),
+                    timeLapse=time_lapse,
+                    isExpired=is_expired
+                )
+                invitations.append(response)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"❌ Failed to parse invitation (skipping): {e}")
+                logger.error(f"Document causing error: {doc}")
+                # Skip invalid invitations instead of failing the entire request
+                continue
         
         return invitations
     

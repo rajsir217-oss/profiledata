@@ -73,7 +73,7 @@ const UserManagement = () => {
         limit: '20'
       });
       
-      if (statusFilter) params.append('status', statusFilter);
+      if (statusFilter) params.append('status_filter', statusFilter);
       if (roleFilter) params.append('role', roleFilter);
       if (searchTerm) params.append('search', searchTerm);
 
