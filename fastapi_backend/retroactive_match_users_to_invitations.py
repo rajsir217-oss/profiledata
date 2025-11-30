@@ -11,12 +11,23 @@ Usage:
 
 import asyncio
 import sys
+import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 from config import Settings
 from crypto_utils import PIIEncryption
 
-settings = Settings()
+# Allow environment variable override for production
+if os.getenv("MONGODB_URL"):
+    # Use environment variables directly (for production script)
+    class ProductionSettings:
+        mongodb_url = os.getenv("MONGODB_URL")
+        database_name = os.getenv("DATABASE_NAME", "matrimonialDB")
+        encryption_key = os.getenv("ENCRYPTION_KEY")
+    settings = ProductionSettings()
+else:
+    # Use config file (for local development)
+    settings = Settings()
 
 
 async def retroactive_match_users(dry_run=True):
