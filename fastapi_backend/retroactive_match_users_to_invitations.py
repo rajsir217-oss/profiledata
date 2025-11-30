@@ -31,13 +31,34 @@ if USE_PRODUCTION:
             raise ValueError("MONGODB_URL and ENCRYPTION_KEY must be set in environment")
     
     settings = ProductionSettings()
+    
+    # Import PIIEncryption and initialize with our settings
+    from cryptography.fernet import Fernet
+    
+    class PIIEncryption:
+        def __init__(self, encryption_key: str):
+            try:
+                if isinstance(encryption_key, str):
+                    encryption_key = encryption_key.encode()
+                self.cipher = Fernet(encryption_key)
+            except Exception as e:
+                raise ValueError(f"Invalid encryption key: {e}") from e
+        
+        def decrypt(self, encrypted_value: str) -> str:
+            """Decrypt a value"""
+            try:
+                if not encrypted_value:
+                    return ""
+                decrypted_bytes = self.cipher.decrypt(encrypted_value.encode())
+                return decrypted_bytes.decode()
+            except Exception as e:
+                raise ValueError(f"Failed to decrypt: {e}") from e
+    
 else:
-    # Local development: Use config file
+    # Local development: Use config file and crypto_utils
     from config import Settings
+    from crypto_utils import PIIEncryption
     settings = Settings()
-
-# Import PIIEncryption after settings are configured
-from crypto_utils import PIIEncryption
 
 
 async def retroactive_match_users(dry_run=True):

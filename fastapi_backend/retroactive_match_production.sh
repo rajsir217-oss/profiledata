@@ -38,9 +38,7 @@ if [ -z "$ENCRYPTION_KEY" ] || [ "$ENCRYPTION_KEY" = "\${ENCRYPTION_KEY}" ]; the
   exit 1
 fi
 
-echo "✅ Using ENCRYPTION_KEY from .env (production and local use same key)"
-
-echo "✅ Using configuration from .env.production"
+echo "✅ MongoDB from .env.production, ENCRYPTION_KEY from .env (same key for all envs)"
 echo ""
 
 # Extract database name
@@ -50,6 +48,7 @@ if [ -z "$DB_NAME" ]; then
 fi
 
 echo "📊 Database: $DB_NAME"
+echo "🔗 MongoDB Host: $(echo "$MONGO_URL" | sed -n 's|.*@\([^/]*\).*|\1|p' | cut -d'?' -f1)"
 echo ""
 
 # Check if live mode
