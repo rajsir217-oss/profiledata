@@ -7,13 +7,20 @@ echo "🔍 MATCH INVITATIONS TO USERS - PRODUCTION"
 echo "================================================================================"
 echo ""
 
-# Get MongoDB URL
-read -p "Enter MongoDB URL: " MONGO_URL
-
-if [ -z "$MONGO_URL" ]; then
-  echo "❌ MongoDB URL is required!"
+# Read MongoDB URL from .env.production
+if [ ! -f ".env.production" ]; then
+  echo "❌ .env.production file not found!"
   exit 1
 fi
+
+MONGO_URL=$(grep "^MONGODB_URL=" .env.production | cut -d'"' -f2)
+
+if [ -z "$MONGO_URL" ]; then
+  echo "❌ MONGODB_URL not found in .env.production!"
+  exit 1
+fi
+
+echo "✅ Using MongoDB URL from .env.production"
 
 # Extract database name
 DB_NAME=$(echo "$MONGO_URL" | sed -n 's|.*/\([^?]*\).*|\1|p')
