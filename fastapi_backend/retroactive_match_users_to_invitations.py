@@ -69,7 +69,12 @@ async def retroactive_match_users(dry_run=True):
         dry_run: If True, only show what would be updated without making changes
     """
     # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.mongodb_url)
+    # For production MongoDB Atlas, we need to handle SSL certificates properly
+    import certifi
+    client = AsyncIOMotorClient(
+        settings.mongodb_url,
+        tlsCAFile=certifi.where() if "mongodb+srv" in settings.mongodb_url else None
+    )
     db = client[settings.database_name]
     
     # Initialize encryption
