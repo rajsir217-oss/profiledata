@@ -249,6 +249,34 @@ async def resend_invitation(
             detail="Invitation not found"
         )
     
+    # CRITICAL: Generate token if missing (for bulk-imported invitations)
+    if not invitation.invitationToken:
+        import secrets
+        import string
+        from datetime import timedelta
+        from bson import ObjectId
+        
+        # Generate secure token
+        alphabet = string.ascii_letters + string.digits
+        token = ''.join(secrets.choice(alphabet) for _ in range(32))
+        token_expiry = datetime.utcnow() + timedelta(days=30)
+        
+        # Update invitation with token
+        await db.invitations.update_one(
+            {"_id": ObjectId(invitation_id)},
+            {
+                "$set": {
+                    "invitationToken": token,
+                    "tokenExpiresAt": token_expiry,
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        # Update the in-memory invitation object
+        invitation.invitationToken = token
+        invitation.tokenExpiresAt = token_expiry
+    
     # Send invitation
     await send_invitation_notifications(
         invitation=invitation,
@@ -350,6 +378,33 @@ async def bulk_send_invitations(
                 results["failed"] += 1
                 results["errors"].append(f"Invitation {inv_id} not found")
                 continue
+            
+            # CRITICAL: Generate token if missing (for bulk-imported invitations)
+            if not invitation.invitationToken:
+                import secrets
+                import string
+                from datetime import timedelta
+                
+                # Generate secure token
+                alphabet = string.ascii_letters + string.digits
+                token = ''.join(secrets.choice(alphabet) for _ in range(32))
+                token_expiry = datetime.utcnow() + timedelta(days=30)
+                
+                # Update invitation with token
+                await db.invitations.update_one(
+                    {"_id": ObjectId(inv_id)},
+                    {
+                        "$set": {
+                            "invitationToken": token,
+                            "tokenExpiresAt": token_expiry,
+                            "updatedAt": datetime.utcnow()
+                        }
+                    }
+                )
+                
+                # Update the in-memory invitation object
+                invitation.invitationToken = token
+                invitation.tokenExpiresAt = token_expiry
             
             # Update email subject if provided
             if email_subject:

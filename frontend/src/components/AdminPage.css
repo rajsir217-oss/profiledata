@@ -353,21 +353,38 @@
     font-size: 14px;
   }
 
-  /* Stats badges - wrap and full width */
+  /* Stats badges - single line with pipes on mobile */
   .admin-stats {
+    display: flex !important;
     flex-direction: row !important;
-    flex-wrap: wrap;
-    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    gap: 0 !important;
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
+    align-items: center;
+    font-size: 11px;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
   }
 
   .admin-stats .badge {
-    flex: 1;
-    min-width: calc(50% - 4px);
-    padding: 8px 10px;
-    font-size: 11px;
-    text-align: center;
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    font-size: 11px !important;
+    font-weight: 600 !important;
+    flex: none !important;
+    min-width: auto !important;
+  }
+
+  /* Add pipe separators between badges */
+  .admin-stats .badge:not(:last-child)::after {
+    content: " | ";
+    color: rgba(255, 255, 255, 0.7);
+    margin: 0 4px;
+    font-weight: 400;
   }
 
   /* Search and filter bar - stack vertically */
@@ -431,9 +448,13 @@
     font-size: 18px;
   }
 
-  .admin-stats .badge {
+  .admin-stats {
     font-size: 10px;
     padding: 6px 8px;
+  }
+
+  .admin-stats .badge {
+    font-size: 10px !important;
   }
 
   .admin-table thead th,

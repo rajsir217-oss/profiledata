@@ -291,9 +291,9 @@ const AdminPage = () => {
           </div>
           <div className="d-flex align-items-center gap-2">
             <div className="admin-stats">
-              <span className="badge bg-primary">Users: {users.length}</span>
-              <span className="badge bg-success ms-2">Filtered: {filteredUsers.length}</span>
-              <span className="badge bg-info ms-2">Showing: {currentRecords.length}</span>
+              <span className="badge bg-primary">USERS: {users.length}</span>
+              <span className="badge bg-success">FILTERED: {filteredUsers.length}</span>
+              <span className="badge bg-info">SHOWING: {currentRecords.length}</span>
             </div>
           </div>
         </div>
