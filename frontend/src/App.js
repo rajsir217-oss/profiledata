@@ -1,6 +1,6 @@
 // frontend/src/App.js
 import React, { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages (both versions available)
 import Register from './components/Register';
@@ -276,7 +276,8 @@ function AppContent() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/register" element={<Register />} />
+              {/* Redirect old /register to /register2 */}
+              <Route path="/register" element={<Navigate to="/register2" replace />} />
               <Route path="/register2" element={<Register2 />} />
               <Route path="/login" element={<Login />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />

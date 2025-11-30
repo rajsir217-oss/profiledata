@@ -282,7 +282,7 @@ async def send_final_deletion_email(user: dict, db):
         This action is irreversible.
         
         We're sorry to see you go. If you ever want to rejoin:
-        https://l3v3lmatches.com/register
+        https://l3v3lmatches.com/register2
         
         Thank you for being part of L3V3L.
         
