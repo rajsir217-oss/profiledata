@@ -1423,8 +1423,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           setLoadingInvitation(true);
           
           try {
-            const response = await api.get(`/api/invitations/validate/${token}`);
-            const invitation = response.data;
+            // Use getBackendUrl directly since invitation endpoint is /api/invitations (not /api/users)
+            const backendUrl = getBackendUrl();
+            const response = await fetch(`${backendUrl}/api/invitations/validate/${token}`);
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              throw new Error(errorData.detail || 'Failed to validate invitation');
+            }
+            
+            const invitation = await response.json();
             
             setInvitationData(invitation);
             
@@ -1440,7 +1448,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             setSuccessMsg(`✨ Welcome! You're registering with an invitation from ${invitation.invitedBy}`);
           } catch (err) {
             console.error('Failed to load invitation:', err);
-            const errorMsg = err.response?.data?.detail || 'Invalid or expired invitation link';
+            const errorMsg = err.message || 'Invalid or expired invitation link';
             setErrorMsg(`⚠️ ${errorMsg}`);
           } finally {
             setLoadingInvitation(false);
