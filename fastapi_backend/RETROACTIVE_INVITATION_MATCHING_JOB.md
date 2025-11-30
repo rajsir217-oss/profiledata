@@ -39,21 +39,28 @@ Instead of running a manual script, we've created a **scheduled job** that runs 
 
 ---
 
-### **Option 2: Run Manually (One-Time)**
+### **Option 2: Run Manually on Production**
 
 ```bash
 cd fastapi_backend
 
 # Dry run (see what will be matched):
-python3 retroactive_match_users_to_invitations.py
+./retroactive_match_production.sh
 
 # Live run (actually update):
-python3 retroactive_match_users_to_invitations.py --live
+./retroactive_match_production.sh --live
 ```
+
+**What it does:**
+- ✅ Reads MongoDB URL from `.env.production`
+- ✅ Reads encryption key from `.env.production`
+- ✅ Connects to production database
+- ✅ Matches users to invitations
+- ✅ Requires `YES` confirmation for live mode
 
 ---
 
-### **Option 3: Run via Script**
+### **Option 3: Run Locally (Development)**
 
 ```bash
 cd fastapi_backend
@@ -256,9 +263,10 @@ Check job status in Dynamic Scheduler UI:
 ## 📝 Files Created
 
 1. **`job_templates/retroactive_invitation_matcher.py`** - Scheduled job template
-2. **`retroactive_match_users_to_invitations.py`** - Standalone script
-3. **`retroactive_match.sh`** - Shell wrapper
-4. **`RETROACTIVE_INVITATION_MATCHING_JOB.md`** - This documentation
+2. **`retroactive_match_users_to_invitations.py`** - Standalone Python script
+3. **`retroactive_match.sh`** - Shell wrapper (local)
+4. **`retroactive_match_production.sh`** - Shell wrapper (production)
+5. **`RETROACTIVE_INVITATION_MATCHING_JOB.md`** - This documentation
 
 ---
 
