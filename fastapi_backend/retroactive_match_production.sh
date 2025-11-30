@@ -24,9 +24,9 @@ fi
 # ENCRYPTION_KEY in .env.production is a placeholder (${ENCRYPTION_KEY})
 # We need to get it from .env or .env.local which has the actual key
 if [ -f ".env" ]; then
-  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env | cut -d'=' -f2)
+  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env | sed 's/^ENCRYPTION_KEY=//')
 elif [ -f ".env.local" ]; then
-  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env.local | cut -d'=' -f2)
+  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env.local | sed 's/^ENCRYPTION_KEY=//')
 else
   echo "❌ Cannot find ENCRYPTION_KEY in .env or .env.local!"
   exit 1
