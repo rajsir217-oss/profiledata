@@ -914,7 +914,10 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     # Convert image paths to full URLs
     user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
     
-    # No field conversion needed - using birthMonth + birthYear for age
+    # Calculate age from birthMonth and birthYear if not already set
+    if not user.get("age") and user.get("birthMonth") and user.get("birthYear"):
+        user["age"] = calculate_age(user.get("birthMonth"), user.get("birthYear"))
+        logger.debug(f"🎂 Calculated age for {username}: {user.get('age')}")
     
     # Apply PII masking if requester is not the profile owner
     from pii_security import mask_user_pii, check_access_granted
@@ -1901,29 +1904,44 @@ async def get_all_users(
         )
     
     try:
-        # Build query filter
-        query = {}
+        # Build query filter using $and to combine multiple conditions
+        query_conditions = []
         
         # Search filter (username, contactEmail, firstName, lastName)
         if search:
             search_regex = {"$regex": search, "$options": "i"}  # Case-insensitive
-            query["$or"] = [
-                {"username": search_regex},
-                {"contactEmail": search_regex},
-                {"firstName": search_regex},
-                {"lastName": search_regex}
-            ]
+            query_conditions.append({
+                "$or": [
+                    {"username": search_regex},
+                    {"contactEmail": search_regex},
+                    {"firstName": search_regex},
+                    {"lastName": search_regex}
+                ]
+            })
             logger.debug(f"🔍 Search filter applied: {search}")
         
         # Status filter - use accountStatus (unified field)
         if status_filter:
-            query["accountStatus"] = status_filter
+            query_conditions.append({"accountStatus": status_filter})
             logger.debug(f"📊 Status filter applied: {status_filter}")
         
         # Role filter
         if role:
-            query["role_name"] = role
+            if role == "free_user":
+                # Free users either have role_name='free_user' OR don't have role_name field
+                query_conditions.append({
+                    "$or": [
+                        {"role_name": "free_user"},
+                        {"role_name": {"$exists": False}},
+                        {"role_name": None}
+                    ]
+                })
+            else:
+                query_conditions.append({"role_name": role})
             logger.debug(f"👤 Role filter applied: {role}")
+        
+        # Combine all conditions with $and
+        query = {"$and": query_conditions} if query_conditions else {}
         
         # Get total count for pagination
         total_count = await db.users.count_documents(query)
@@ -1945,6 +1963,10 @@ async def get_all_users(
                 users[i] = encryptor.decrypt_user_pii(user)  # ✅ Assign back to list!
             except Exception as decrypt_err:
                 logger.warning(f"⚠️ Decryption skipped for {user.get('username', 'unknown')}: {decrypt_err}")
+            
+            # Set default role_name to 'free_user' if not set
+            if not users[i].get("role_name"):
+                users[i]["role_name"] = "free_user"
             
             # Convert image paths to full URLs
             users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]

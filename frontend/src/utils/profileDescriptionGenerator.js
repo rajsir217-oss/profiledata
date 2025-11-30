@@ -16,11 +16,19 @@ export const generateAboutMe = (user) => {
   let para1 = '';
   
   // Identity and basic info
-  const age = user.age || calculateAge(user.dateOfBirth);
+  // Try multiple sources for age: direct age field, calculated from birthMonth/Year, or from dateOfBirth
+  const age = user.age || 
+              calculateAgeFromMonthYear(user.birthMonth, user.birthYear) || 
+              calculateAge(user.dateOfBirth);
   const location = user.location || user.state || user.city || '';
   const country = user.countryOfResidence || user.countryOfOrigin || '';
   
-  para1 = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
+  // Start with basic intro (skip age if not available)
+  if (age && !isNaN(age)) {
+    para1 = `I'm a <span class="highlight"><strong>${age}-year-old</strong></span>`;
+  } else {
+    para1 = `I'm a`; // Skip age if invalid or missing
+  }
   
   // Add relationship status
   if (user.relationshipStatus && user.relationshipStatus.toLowerCase() !== 'single') {
@@ -477,15 +485,53 @@ export const formatPreferencesList = (prefs, user) => {
 };
 
 // Helper functions
+const calculateAgeFromMonthYear = (birthMonth, birthYear) => {
+  if (!birthMonth || !birthYear) return null;
+  
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1; // JavaScript months are 0-indexed
+  
+  let age = currentYear - birthYear;
+  
+  // If birthday hasn't occurred this year yet, subtract 1
+  if (currentMonth < birthMonth) {
+    age--;
+  }
+  
+  // Validate age is reasonable
+  if (age < 0 || age > 150) {
+    console.warn('Calculated age is out of range:', age);
+    return null;
+  }
+  
+  return age;
+};
+
 const calculateAge = (dateOfBirth) => {
   if (!dateOfBirth) return null;
+  
   const today = new Date();
   const birthDate = new Date(dateOfBirth);
+  
+  // Check if the date is invalid
+  if (isNaN(birthDate.getTime())) {
+    console.warn('Invalid date format for dateOfBirth:', dateOfBirth);
+    return null;
+  }
+  
   let age = today.getFullYear() - birthDate.getFullYear();
   const monthDiff = today.getMonth() - birthDate.getMonth();
   if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
     age--;
   }
+  
+  // Validate age is reasonable
+  if (age < 0 || age > 150) {
+    console.warn('Calculated age is out of range:', age);
+    return null;
+  }
+  
   return age;
 };
 
