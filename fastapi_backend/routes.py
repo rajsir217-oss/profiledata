@@ -561,6 +561,8 @@ async def register_user(
         "consentUserAgent": request.headers.get("user-agent") if request else None,
         "createdAt": now,
         "updatedAt": now,
+        # Role & Permissions
+        "role_name": "free_user",  # Default role for new users
         # Account status - UNIFIED FIELD (replaces old status.status)
         "accountStatus": "pending_email_verification",
         # Activity tracking (keep for last seen)
