@@ -32,10 +32,9 @@ async def execute(db: AsyncIOMotorDatabase) -> dict:
     logger.info("🔄 Starting retroactive invitation matching...")
     
     try:
-        # Initialize encryption
-        from config import Settings
-        settings = Settings()
-        encryption = PIIEncryption(settings.encryption_key)
+        # Initialize encryption (use config from running app)
+        from config import settings as app_settings
+        encryption = PIIEncryption(app_settings.encryption_key)
         
     except Exception as e:
         error_msg = f"Failed to initialize encryption: {e}"

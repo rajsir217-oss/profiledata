@@ -14,20 +14,30 @@ import sys
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
-from config import Settings
-from crypto_utils import PIIEncryption
 
-# Allow environment variable override for production
-if os.getenv("MONGODB_URL"):
-    # Use environment variables directly (for production script)
+# Check if running in production mode (via environment variables)
+USE_PRODUCTION = os.getenv("USE_PRODUCTION") == "true"
+
+if USE_PRODUCTION:
+    # Production mode: Use environment variables directly (don't load config files)
+    print("🔧 Using PRODUCTION environment variables (not loading .env files)")
+    
     class ProductionSettings:
         mongodb_url = os.getenv("MONGODB_URL")
         database_name = os.getenv("DATABASE_NAME", "matrimonialDB")
         encryption_key = os.getenv("ENCRYPTION_KEY")
+        
+        if not mongodb_url or not encryption_key:
+            raise ValueError("MONGODB_URL and ENCRYPTION_KEY must be set in environment")
+    
     settings = ProductionSettings()
 else:
-    # Use config file (for local development)
+    # Local development: Use config file
+    from config import Settings
     settings = Settings()
+
+# Import PIIEncryption after settings are configured
+from crypto_utils import PIIEncryption
 
 
 async def retroactive_match_users(dry_run=True):

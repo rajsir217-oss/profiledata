@@ -13,19 +13,32 @@ if [ ! -f ".env.production" ]; then
   exit 1
 fi
 
-# Read configuration from .env.production
+# Read MongoDB URL from .env.production
 MONGO_URL=$(grep "^MONGODB_URL=" .env.production | cut -d'"' -f2)
-ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env.production | cut -d'"' -f2)
 
 if [ -z "$MONGO_URL" ]; then
   echo "❌ MONGODB_URL not found in .env.production!"
   exit 1
 fi
 
-if [ -z "$ENCRYPTION_KEY" ]; then
-  echo "❌ ENCRYPTION_KEY not found in .env.production!"
+# ENCRYPTION_KEY in .env.production is a placeholder (${ENCRYPTION_KEY})
+# We need to get it from .env or .env.local which has the actual key
+if [ -f ".env" ]; then
+  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env | cut -d'=' -f2)
+elif [ -f ".env.local" ]; then
+  ENCRYPTION_KEY=$(grep "^ENCRYPTION_KEY=" .env.local | cut -d'=' -f2)
+else
+  echo "❌ Cannot find ENCRYPTION_KEY in .env or .env.local!"
   exit 1
 fi
+
+if [ -z "$ENCRYPTION_KEY" ] || [ "$ENCRYPTION_KEY" = "\${ENCRYPTION_KEY}" ]; then
+  echo "❌ ENCRYPTION_KEY not found or is a placeholder!"
+  echo "   Make sure .env or .env.local has the actual encryption key."
+  exit 1
+fi
+
+echo "✅ Using ENCRYPTION_KEY from .env (production and local use same key)"
 
 echo "✅ Using configuration from .env.production"
 echo ""
@@ -58,11 +71,10 @@ else
 fi
 
 # Set environment variables and run script
+export USE_PRODUCTION="true"  # Critical flag to skip .env loading
 export MONGODB_URL="$MONGO_URL"
 export DATABASE_NAME="$DB_NAME"
 export ENCRYPTION_KEY="$ENCRYPTION_KEY"
-export ENV="production"
-export SKIP_ENV_FILES="true"  # Skip loading .env files
 
 if [ "$MODE" == "LIVE" ]; then
   python3 retroactive_match_users_to_invitations.py --live
