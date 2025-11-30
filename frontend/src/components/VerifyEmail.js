@@ -191,7 +191,7 @@ const VerifyEmail = () => {
                 </button>
                 <button 
                   className="btn btn-outline-secondary" 
-                  onClick={() => navigate('/register')}
+                  onClick={() => navigate('/register2')}
                 >
                   Back to Registration
                 </button>

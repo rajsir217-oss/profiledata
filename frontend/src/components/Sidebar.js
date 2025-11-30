@@ -125,7 +125,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         { 
           icon: '📝', 
           label: 'Register', 
-          action: () => navigate('/register')
+          action: () => navigate('/register2')
         },
       ];
     }

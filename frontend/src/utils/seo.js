@@ -149,7 +149,7 @@ export const getPageSEO = (pageName) => {
       title: 'Create Your Free Profile',
       description: 'Join L3V3L Matrimony for free. Create your profile in minutes and start connecting with verified matches today.',
       keywords: 'register, sign up, create profile, join matrimony, free registration',
-      url: `${BASE_URL}/register`,
+      url: `${BASE_URL}/register2`,
       type: 'website'
     },
     'l3v3l-info': {
