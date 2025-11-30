@@ -360,6 +360,8 @@ class InvitationService:
         """
         data = await self.collection.find_one({"invitationToken": token})
         if data:
+            # Convert ObjectId to string for Pydantic model
+            data["_id"] = str(data["_id"])
             return InvitationDB(**data)
         return None
     
