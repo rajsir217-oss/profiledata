@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
+import { getBackendUrl } from "../config/apiConfig";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
 import ProfileConfirmationModal from "./ProfileConfirmationModal";
@@ -1177,10 +1178,24 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         // Step 2.5: Update invitation status if user registered via invitation
         if (invitationToken) {
           try {
-            await api.post(`/api/invitations/accept/${invitationToken}`, {
-              registeredUsername: formData.username
+            // Use getBackendUrl directly since invitation endpoint is /api/invitations (not /api/users)
+            const backendUrl = getBackendUrl();
+            const response = await fetch(`${backendUrl}/api/invitations/accept/${invitationToken}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                registeredUsername: formData.username
+              })
             });
-            console.log('✅ Invitation accepted successfully');
+            
+            if (response.ok) {
+              console.log('✅ Invitation accepted successfully');
+            } else {
+              const errorData = await response.json();
+              console.error('Failed to update invitation status:', errorData);
+            }
           } catch (invErr) {
             console.error('Failed to update invitation status:', invErr);
             // Don't block registration if invitation update fails

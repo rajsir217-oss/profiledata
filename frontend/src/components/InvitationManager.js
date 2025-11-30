@@ -94,6 +94,27 @@ const InvitationManager = () => {
     setSelectedInvitations([]);
   }, [filterBySender, includeArchived, searchFilters]);
 
+  // Handle ESC key to close modals
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        if (showAddModal && !bulkSending) {
+          setShowAddModal(false);
+        } else if (showBulkSendModal && !bulkSending) {
+          setShowBulkSendModal(false);
+        }
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleEscKey);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [showAddModal, showBulkSendModal, bulkSending]);
+
   // Handle column sorting
   const handleSort = (column) => {
     if (sortColumn === column) {

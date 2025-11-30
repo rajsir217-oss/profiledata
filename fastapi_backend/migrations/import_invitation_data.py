@@ -12,8 +12,10 @@ import asyncio
 import sys
 import os
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from openpyxl import load_workbook
+import secrets
+import string
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,6 +24,12 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from config import Settings
 
 settings = Settings()
+
+
+def generate_token(length: int = 32) -> str:
+    """Generate secure random token for invitation"""
+    alphabet = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(alphabet) for _ in range(length))
 
 
 async def import_invitations(dry_run=True):
@@ -110,6 +118,10 @@ async def import_invitations(dry_run=True):
             # Normalize gender for comments
             gender_comment = "Female" if gender and "girl" in str(gender).lower() else "Male"
             
+            # Generate invitation token (CRITICAL: needed for registration tracking)
+            token = generate_token()
+            token_expiry = datetime.utcnow() + timedelta(days=30)  # 30-day expiry
+            
             # Create invitation record
             invitation = {
                 "name": str(name).strip() if name else "Unknown",
@@ -124,7 +136,10 @@ async def import_invitations(dry_run=True):
                 "comments": gender_comment,  # Store gender in comments
                 "createdAt": datetime.utcnow(),
                 "updatedAt": datetime.utcnow(),
-                "archived": False
+                "archived": False,
+                # Invitation token (CRITICAL for tracking registrations)
+                "invitationToken": token,
+                "tokenExpiresAt": token_expiry
             }
             
             all_invitations.append(invitation)
@@ -158,6 +173,7 @@ async def import_invitations(dry_run=True):
             for inv in all_invitations[:5]:
                 print(f"   - {inv['name']} ({inv['comments']}) <{inv['email']}>")
                 print(f"     Subject: {inv['emailSubject']}")
+                print(f"     Token: {inv['invitationToken'][:16]}... (expires: {inv['tokenExpiresAt'].strftime('%Y-%m-%d')})")
             print()
     else:
         if all_invitations:
