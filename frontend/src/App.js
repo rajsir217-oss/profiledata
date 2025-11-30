@@ -54,7 +54,6 @@ import AnnouncementManagement from './components/AnnouncementManagement';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import ProtectedRoute from './components/ProtectedRoute';
-import { Navigate } from 'react-router-dom';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CommunityGuidelines from './components/CommunityGuidelines';
