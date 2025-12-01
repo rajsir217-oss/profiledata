@@ -278,13 +278,15 @@ const SearchPage2 = () => {
 
     // Load system configuration
     const loadSystemConfig = async () => {
+      console.log('🔧 Loading system config...');
       try {
         const response = await api.get('/system-settings');
+        console.log('🔧 System config API response:', response.data);
         setSystemConfig(response.data);
-        console.log('🔧 System config loaded:', response.data);
+        console.log('🔧 System config state updated:', response.data);
       } catch (error) {
-        console.error('Error loading system config:', error);
-        // Keep default values if loading fails
+        console.error('❌ Error loading system config:', error);
+        console.error('❌ Using default config: enable_l3v3l_for_all=true');
       }
     };
     
@@ -915,7 +917,9 @@ const SearchPage2 = () => {
 
       // STEP 2: Fetch and attach L3V3L match scores (if enabled)
       // Always fetch scores so they're available for client-side filtering
+      console.log(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
       const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
+      console.log(`🔍 canUseL3V3L=${canUseL3V3L}`);
       if (canUseL3V3L) {
         console.log(`🦋 L3V3L enabled: Fetching compatibility scores`);
         
