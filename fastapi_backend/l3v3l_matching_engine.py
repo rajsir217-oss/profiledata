@@ -270,48 +270,97 @@ class L3V3LMatchingEngine:
     def _score_partner_preferences(self, user1: Dict, user2: Dict) -> float:
         """Score how well each user matches the other's partner criteria"""
         # This is bi-directional scoring
-        score1 = self._check_matches_criteria(user2, user1.get('partnerCriteria', {}))
-        score2 = self._check_matches_criteria(user1, user2.get('partnerCriteria', {}))
+        # Pass criteria owner to resolve relative ranges
+        score1 = self._check_matches_criteria(user2, user1.get('partnerCriteria', {}), user1)
+        score2 = self._check_matches_criteria(user1, user2.get('partnerCriteria', {}), user2)
         
         # Average both directions
         return (score1 + score2) / 2.0
     
-    def _check_matches_criteria(self, profile: Dict, criteria: Dict) -> float:
-        """Check if profile matches the given criteria"""
+    def _check_matches_criteria(self, profile: Dict, criteria: Dict, criteria_owner: Dict = None) -> float:
+        """Check if profile matches the given criteria
+        
+        Args:
+            profile: The profile being evaluated
+            criteria: Partner criteria to check against
+            criteria_owner: Owner of the criteria (needed for relative ranges)
+        """
         if not criteria:
             return 0.8  # No criteria = assume general compatibility
         
         score = 0.0
         checks = 0
         
-        # Age range
-        if 'ageRange' in criteria:
+        # Age range (support both absolute and relative)
+        if 'ageRange' in criteria or 'ageRangeRelative' in criteria:
             age = self._calculate_age(profile)
             if age:
-                # Convert to int to handle string values from MongoDB
-                # Handle empty strings by using defaults
-                min_age_val = criteria['ageRange'].get('min', 18)
-                max_age_val = criteria['ageRange'].get('max', 100)
-                min_age = int(min_age_val) if min_age_val not in ['', None] else 18
-                max_age = int(max_age_val) if max_age_val not in ['', None] else 100
+                # Try absolute range first
+                min_age_val = criteria.get('ageRange', {}).get('min', '')
+                max_age_val = criteria.get('ageRange', {}).get('max', '')
+                
+                # If absolute range is empty, calculate from relative range
+                if not min_age_val or not max_age_val:
+                    if criteria_owner and 'ageRangeRelative' in criteria:
+                        owner_age = self._calculate_age(criteria_owner)
+                        if owner_age:
+                            relative = criteria['ageRangeRelative']
+                            min_age = owner_age + relative.get('minOffset', -5)
+                            max_age = owner_age + relative.get('maxOffset', 5)
+                        else:
+                            min_age, max_age = 18, 100  # Fallback
+                    else:
+                        min_age, max_age = 18, 100  # Fallback
+                else:
+                    # Use absolute range
+                    min_age = int(min_age_val) if min_age_val not in ['', None] else 18
+                    max_age = int(max_age_val) if max_age_val not in ['', None] else 100
+                
+                # Score based on range
                 if min_age <= age <= max_age:
                     score += 1.0
                 elif min_age - 2 <= age <= max_age + 2:
                     score += 0.7  # Close to range
                 checks += 1
         
-        # Height range
-        if 'heightRange' in criteria:
+        # Height range (support both absolute and relative)
+        if 'heightRange' in criteria or 'heightRangeRelative' in criteria:
             height_inches = self._height_to_inches(profile.get('height', ''))
             if height_inches:
-                min_height = self._height_to_inches(criteria['heightRange'].get('min', ''))
-                max_height = self._height_to_inches(criteria['heightRange'].get('max', ''))
-                if min_height and max_height:
-                    if min_height <= height_inches <= max_height:
-                        score += 1.0
-                    elif min_height - 2 <= height_inches <= max_height + 2:
-                        score += 0.7
-                    checks += 1
+                # Try absolute range first
+                height_range = criteria.get('heightRange', {})
+                min_feet = height_range.get('minFeet', '')
+                min_inches_part = height_range.get('minInches', '')
+                max_feet = height_range.get('maxFeet', '')
+                max_inches_part = height_range.get('maxInches', '')
+                
+                # Check if absolute range is empty
+                if not min_feet or not max_feet:
+                    # Use relative range if available
+                    if criteria_owner and 'heightRangeRelative' in criteria:
+                        owner_height_inches = self._height_to_inches(criteria_owner.get('height', ''))
+                        if owner_height_inches:
+                            relative = criteria['heightRangeRelative']
+                            min_height = owner_height_inches + relative.get('minInches', -6)
+                            max_height = owner_height_inches + relative.get('maxInches', 6)
+                        else:
+                            min_height, max_height = 48, 84  # 4'0" to 7'0" fallback
+                    else:
+                        min_height, max_height = 48, 84  # Fallback
+                else:
+                    # Convert absolute range to inches
+                    try:
+                        min_height = int(min_feet) * 12 + int(min_inches_part or 0)
+                        max_height = int(max_feet) * 12 + int(max_inches_part or 0)
+                    except (ValueError, TypeError):
+                        min_height, max_height = 48, 84  # Fallback on error
+                
+                # Score based on range
+                if min_height <= height_inches <= max_height:
+                    score += 1.0
+                elif min_height - 2 <= height_inches <= max_height + 2:
+                    score += 0.7  # Close to range
+                checks += 1
         
         # Education level
         if 'educationLevel' in criteria:
