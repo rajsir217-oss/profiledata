@@ -25,10 +25,19 @@ const DynamicScheduler = ({ currentUser }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [userRole, setUserRole] = useState(null);
   const toast = useToast();
 
-  // Get user role from localStorage
-  const userRole = localStorage.getItem('userRole');
+  // Check admin access - redirect if not admin or role missing
+  useEffect(() => {
+    const role = localStorage.getItem('userRole');
+    setUserRole(role);
+    if (role !== 'admin') {
+      console.warn('⚠️ Unauthorized access attempt to Dynamic Scheduler');
+      navigate('/dashboard');
+    }
+  }, [navigate]);
+
   const isAdmin = userRole === 'admin';
 
   // Define functions BEFORE hooks to avoid TDZ errors
@@ -125,13 +134,15 @@ const DynamicScheduler = ({ currentUser }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templates, isAdmin]);
 
-  // Check if user is admin (must be after all hooks)
+  // Show access denied message if not admin (but don't early return - breaks hooks)
   if (!isAdmin) {
     return (
       <div className="dynamic-scheduler">
+        <PageHeader title="Dynamic Scheduler" />
         <div className="access-denied">
           <h2>⛔ Access Denied</h2>
           <p>You need administrator privileges to access the Dynamic Scheduler.</p>
+          <p>Redirecting to dashboard...</p>
         </div>
       </div>
     );
