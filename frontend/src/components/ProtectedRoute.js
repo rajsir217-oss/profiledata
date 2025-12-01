@@ -24,9 +24,11 @@ const ProtectedRoute = ({ children }) => {
         // Fetch user profile to get status (pass requester to avoid PII masking)
         const response = await api.get(`/profile/${username}?requester=${username}`);
         console.log('🔍 Full profile response:', response.data);
-        console.log('🔍 Status object:', response.data.status);
-        const status = response.data.status?.status || 'pending';
-        console.log('🔍 Status value:', status);
+        
+        // CRITICAL FIX: Use accountStatus (unified field), not legacy status.status
+        const status = response.data.accountStatus || 'pending';
+        console.log('🔍 accountStatus value:', status);
+        
         // Normalize status to lowercase for comparison
         const normalizedStatus = status.toLowerCase();
         console.log('🔍 Normalized status:', normalizedStatus);
