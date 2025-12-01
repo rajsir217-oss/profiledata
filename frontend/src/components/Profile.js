@@ -1622,12 +1622,12 @@ const Profile = () => {
                 <strong>Preferred Age Range:</strong>{' '}
                 {(() => {
                   const userAge = (() => {
-                    if (!user.dateOfBirth) return null;
-                    const birthDate = new Date(user.dateOfBirth);
+                    // FIXED: Use birthMonth and birthYear instead of dateOfBirth
+                    if (!user.birthMonth || !user.birthYear) return null;
                     const today = new Date();
-                    let age = today.getFullYear() - birthDate.getFullYear();
-                    const monthDiff = today.getMonth() - birthDate.getMonth();
-                    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    let age = today.getFullYear() - user.birthYear;
+                    // If current month hasn't reached birth month yet, subtract 1
+                    if (today.getMonth() + 1 < user.birthMonth) {
                       age--;
                     }
                     return age;
