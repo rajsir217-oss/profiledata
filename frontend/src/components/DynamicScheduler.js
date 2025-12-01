@@ -27,57 +27,11 @@ const DynamicScheduler = ({ currentUser }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const toast = useToast();
 
-  // Load templates on mount
-  useEffect(() => {
-    loadTemplates();
-    loadSchedulerStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // Get user role from localStorage
+  const userRole = localStorage.getItem('userRole');
+  const isAdmin = userRole === 'admin';
 
-  // Load jobs when filters change
-  useEffect(() => {
-    loadJobs();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTemplate, filterEnabled, currentPage, refreshTrigger]);
-
-  // Check for pre-selected template from Template Manager
-  useEffect(() => {
-    const selectedTemplateId = localStorage.getItem('selectedJobTemplate');
-    if (selectedTemplateId && templates.length > 0) {
-      // Find the template - match by _id, type, or template_type
-      const template = templates.find(t => 
-        t._id === selectedTemplateId || 
-        t.type === selectedTemplateId ||
-        (t.type && t.type.toLowerCase() === selectedTemplateId.toLowerCase())
-      );
-      
-      if (template) {
-        console.log('🎯 Found preselected template:', template);
-        // Open modal with pre-selected template
-        setShowCreateModal(true);
-        // Store template type for modal to use (use 'type' field from API)
-        localStorage.setItem('preselectedTemplateType', template.type);
-      } else {
-        console.warn('⚠️ Template not found:', selectedTemplateId, 'Available:', templates.map(t => ({id: t._id, type: t.type})));
-      }
-      // Clear the flag
-      localStorage.removeItem('selectedJobTemplate');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates]);
-
-  // Check if user is admin (must be after all hooks)
-  if (currentUser !== 'admin') {
-    return (
-      <div className="dynamic-scheduler">
-        <div className="access-denied">
-          <h2>⛔ Access Denied</h2>
-          <p>You need administrator privileges to access the Dynamic Scheduler.</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Define functions BEFORE hooks to avoid TDZ errors
   const loadTemplates = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -125,6 +79,63 @@ const DynamicScheduler = ({ currentUser }) => {
       console.error('Error loading status:', err);
     }
   };
+
+  // Load templates on mount
+  useEffect(() => {
+    if (isAdmin) {
+      loadTemplates();
+      loadSchedulerStatus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
+
+  // Load jobs when filters change
+  useEffect(() => {
+    if (isAdmin) {
+      loadJobs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterTemplate, filterEnabled, currentPage, refreshTrigger, isAdmin]);
+
+  // Check for pre-selected template from Template Manager
+  useEffect(() => {
+    if (!isAdmin) return;
+    
+    const selectedTemplateId = localStorage.getItem('selectedJobTemplate');
+    if (selectedTemplateId && templates.length > 0) {
+      // Find the template - match by _id, type, or template_type
+      const template = templates.find(t => 
+        t._id === selectedTemplateId || 
+        t.type === selectedTemplateId ||
+        (t.type && t.type.toLowerCase() === selectedTemplateId.toLowerCase())
+      );
+      
+      if (template) {
+        console.log('🎯 Found preselected template:', template);
+        // Open modal with pre-selected template
+        setShowCreateModal(true);
+        // Store template type for modal to use (use 'type' field from API)
+        localStorage.setItem('preselectedTemplateType', template.type);
+      } else {
+        console.warn('⚠️ Template not found:', selectedTemplateId, 'Available:', templates.map(t => ({id: t._id, type: t.type})));
+      }
+      // Clear the flag
+      localStorage.removeItem('selectedJobTemplate');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [templates, isAdmin]);
+
+  // Check if user is admin (must be after all hooks)
+  if (!isAdmin) {
+    return (
+      <div className="dynamic-scheduler">
+        <div className="access-denied">
+          <h2>⛔ Access Denied</h2>
+          <p>You need administrator privileges to access the Dynamic Scheduler.</p>
+        </div>
+      </div>
+    );
+  }
 
   const loadJobs = async () => {
     setLoading(true);
