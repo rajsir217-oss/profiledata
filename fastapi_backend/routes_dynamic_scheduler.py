@@ -85,8 +85,8 @@ async def list_templates(
     - Parameter schema
     - Resource requirements
     """
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     registry = get_template_registry()
@@ -109,8 +109,8 @@ async def get_template(
     current_user: Dict = Depends(get_current_user)
 ):
     """Get detailed information about a specific template"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     registry = get_template_registry()
@@ -131,10 +131,11 @@ async def create_job(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Create a new dynamic job"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
+    username = current_user.get("username")
     try:
         service = JobRegistryService(db)
         job = await service.create_job(job_definition.dict(), created_by=username)
@@ -162,10 +163,11 @@ async def list_jobs(
     limit: int = Query(20, ge=1, le=100, description="Items per page")
 ):
     """List all dynamic jobs with filtering and pagination"""
+    user_role = current_user.get("role_name")
     username = current_user.get("username")
-    logger.info(f"📋 List jobs request from user: {username} (current_user: {current_user})")
+    logger.info(f"📋 List jobs request from user: {username} with role: {user_role}")
     
-    if username != "admin":
+    if user_role != "admin":
         logger.warning(f"⚠️ Non-admin user '{username}' attempted to access scheduler jobs")
         raise HTTPException(status_code=403, detail="Admin access required")
     
@@ -198,8 +200,8 @@ async def get_job(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get a specific job by ID"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -226,8 +228,8 @@ async def update_job(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Update a job"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -266,8 +268,8 @@ async def delete_job(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Delete a job"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -298,10 +300,11 @@ async def run_job_manually(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Manually trigger a job execution"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
+    username = current_user.get("username")
     try:
         executor = JobExecutor(db)
         execution = await executor.execute_job_by_id(job_id, triggered_by=f"manual:{username}")
@@ -331,8 +334,8 @@ async def get_job_executions(
     limit: int = Query(50, ge=1, le=200, description="Maximum number of results")
 ):
     """Get execution history for a job"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -357,8 +360,8 @@ async def get_execution(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get details of a specific execution"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -387,8 +390,8 @@ async def list_executions(
     skip: int = Query(0, ge=0)
 ):
     """List all job executions"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -420,8 +423,8 @@ async def delete_execution(
 ):
     """Delete an execution record"""
     logger.info(f"🗑️ Delete execution request for ID: {execution_id} by user: {current_user.get('username')}")
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
@@ -453,8 +456,8 @@ async def get_scheduler_status(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get overall scheduler status and statistics"""
-    username = current_user.get("username")
-    if username != "admin":
+    user_role = current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
