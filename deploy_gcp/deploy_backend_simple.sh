@@ -100,38 +100,26 @@ BACKEND_URL=$(gcloud run services describe $SERVICE_NAME \
 echo "Service URL: $BACKEND_URL"
 
 # ============================================================================
-# CRITICAL: Trigger frontend redeployment to clear Cloud Run CDN cache
+# IMPORTANT: Recommend frontend redeployment
 # ============================================================================
 echo ""
-echo "🔄 Triggering frontend redeployment to clear CDN cache..."
-echo "   (This prevents CORS errors by ensuring frontend uses new backend config)"
+echo "⚠️  IMPORTANT: You may need to redeploy frontend to clear caches"
+echo ""
+echo "To deploy frontend (clears CDN cache and rebuilds React app):"
+echo "  cd $PROJECT_ROOT/deploy_gcp"
+echo "  ./deploy-production.sh"
+echo "  Choose: 2 (Frontend only)"
+echo ""
+read -p "Deploy frontend now? (y/N): " -n 1 -r
+echo ""
 
-FRONTEND_SERVICE="matrimonial-frontend"
-
-# Check if frontend service exists
-if gcloud run services describe $FRONTEND_SERVICE --region $REGION --project $PROJECT_ID &>/dev/null; then
-  echo "   ✅ Found frontend service: $FRONTEND_SERVICE"
-  
-  # Trigger a new revision by updating a no-op environment variable
-  TIMESTAMP=$(date +%s)
-  
-  gcloud run services update $FRONTEND_SERVICE \
-    --region $REGION \
-    --project $PROJECT_ID \
-    --update-env-vars "CACHE_BUST=$TIMESTAMP" \
-    --quiet
-  
-  if [ $? -eq 0 ]; then
-    echo "   ✅ Frontend redeployed successfully (cache cleared)"
-    FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE \
-      --region $REGION \
-      --format "value(status.url)")
-    echo "   Frontend URL: $FRONTEND_URL"
-  else
-    echo "   ⚠️  Frontend redeploy failed (non-fatal, continuing...)"
-  fi
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo "🚀 Deploying frontend..."
+  cd "$PROJECT_ROOT"
+  LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
 else
-  echo "   ℹ️  Frontend service not found (skipping cache clear)"
+  echo "⏭️  Skipping frontend deployment"
+  echo "   You can deploy it later with: ./deploy_gcp/deploy-production.sh"
 fi
 
 echo ""
