@@ -1011,6 +1011,11 @@ async def update_user_profile(
     aboutYou: Optional[str] = Form(None),
     aboutMe: Optional[str] = Form(None),  # NEW: consistent naming
     bio: Optional[str] = Form(None),  # NEW: Short tagline/bio
+    # Profile Creator Metadata (for profiles created by others)
+    profileCreatedBy: Optional[str] = Form(None),  # Self, Parent, Sibling, Friend, etc.
+    creatorFullName: Optional[str] = Form(None),  # Creator's full name
+    creatorRelationship: Optional[str] = Form(None),  # Relationship to profile owner
+    creatorNotes: Optional[str] = Form(None),  # Why profile was created by someone else
     partnerPreference: Optional[str] = Form(None),
     partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
     images: List[UploadFile] = File(default=[]),
@@ -1164,6 +1169,20 @@ async def update_user_profile(
     # Bio / Tagline
     if bio is not None and bio.strip():
         update_data["bio"] = bio.strip()
+    
+    # Profile Creator Metadata
+    if profileCreatedBy is not None:
+        update_data["profileCreatedBy"] = profileCreatedBy
+        # Only store creatorInfo if profile is NOT created by self
+        if profileCreatedBy and profileCreatedBy != "me":
+            update_data["creatorInfo"] = {
+                "fullName": creatorFullName if creatorFullName else None,
+                "relationship": creatorRelationship if creatorRelationship else None,
+                "notes": creatorNotes if creatorNotes else None
+            }
+        else:
+            # If changed to "me", clear creatorInfo
+            update_data["creatorInfo"] = None
     
     if partnerPreference is not None and partnerPreference.strip():
         update_data["partnerPreference"] = partnerPreference.strip()
