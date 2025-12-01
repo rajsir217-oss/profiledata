@@ -1704,15 +1704,24 @@ const Profile = () => {
             {user.partnerCriteria.languages && user.partnerCriteria.languages.length > 0 && (
               <p><strong>Preferred Languages:</strong> {user.partnerCriteria.languages.join(', ')}</p>
             )}
-            {user.partnerCriteria.religion && <p><strong>Preferred Religion:</strong> {user.partnerCriteria.religion}</p>}
-            {user.partnerCriteria.caste && <p><strong>Preferred Caste:</strong> {user.partnerCriteria.caste}</p>}
-            {user.partnerCriteria.eatingPreference && user.partnerCriteria.eatingPreference.length > 0 && (
+            {user.partnerCriteria.religion && user.partnerCriteria.religion.length > 0 && 
+             !user.partnerCriteria.religion.includes('Any') && 
+             !user.partnerCriteria.religion.includes('Any Religion') && (
+              <p><strong>Preferred Religion:</strong> {user.partnerCriteria.religion.join(', ')}</p>
+            )}
+            {user.partnerCriteria.caste && user.partnerCriteria.caste !== 'No Preference' && (
+              <p><strong>Preferred Caste:</strong> {user.partnerCriteria.caste}</p>
+            )}
+            {user.partnerCriteria.eatingPreference && user.partnerCriteria.eatingPreference.length > 0 && 
+             !user.partnerCriteria.eatingPreference.includes('Any') && (
               <p><strong>Preferred Eating:</strong> {user.partnerCriteria.eatingPreference.join(', ')}</p>
             )}
-            {user.partnerCriteria.familyType && user.partnerCriteria.familyType.length > 0 && (
+            {user.partnerCriteria.familyType && user.partnerCriteria.familyType.length > 0 && 
+             !user.partnerCriteria.familyType.includes('Any') && (
               <p><strong>Preferred Family Type:</strong> {user.partnerCriteria.familyType.join(', ')}</p>
             )}
-            {user.partnerCriteria.familyValues && user.partnerCriteria.familyValues.length > 0 && (
+            {user.partnerCriteria.familyValues && user.partnerCriteria.familyValues.length > 0 && 
+             !user.partnerCriteria.familyValues.includes('Any') && (
               <p><strong>Preferred Family Values:</strong> {user.partnerCriteria.familyValues.join(', ')}</p>
             )}
           </div>
