@@ -82,7 +82,8 @@ const Login = () => {
       localStorage.setItem('token', res.data.access_token);
       
       // Save user status for menu access control
-      const userStatus = res.data.user.status?.status || res.data.user.status || 'active';
+      // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
+      const userStatus = res.data.user.accountStatus || 'active';
       localStorage.setItem('userStatus', userStatus);
       
       // Save user role for admin access control
@@ -188,7 +189,8 @@ const Login = () => {
       localStorage.setItem('token', res.data.access_token);
       
       // Save user status for menu access control
-      const userStatus = res.data.user.status?.status || res.data.user.status || 'active';
+      // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
+      const userStatus = res.data.user.accountStatus || 'active';
       localStorage.setItem('userStatus', userStatus);
       
       // Save user role for admin access control
