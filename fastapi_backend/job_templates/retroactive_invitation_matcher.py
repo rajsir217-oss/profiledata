@@ -96,8 +96,8 @@ async def execute(db: AsyncIOMotorDatabase) -> dict:
                     {"_id": invitation["_id"]},
                     {
                         "$set": {
-                            "emailStatus": "ACCEPTED",
-                            "smsStatus": "ACCEPTED",
+                            "emailStatus": "accepted",  # lowercase to match InvitationStatus enum
+                            "smsStatus": "accepted",    # lowercase to match InvitationStatus enum
                             "registeredUsername": username,
                             "registeredAt": registered_at,
                             "updatedAt": datetime.utcnow()
@@ -133,7 +133,7 @@ async def execute(db: AsyncIOMotorDatabase) -> dict:
     
     # Verification
     accepted_count = await db.invitations.count_documents({
-        "emailStatus": "ACCEPTED"
+        "emailStatus": "accepted"  # lowercase to match InvitationStatus enum
     })
     logger.info(f"🔍 Total Accepted Invitations: {accepted_count}")
     
