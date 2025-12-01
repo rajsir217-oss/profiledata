@@ -264,18 +264,21 @@ class InvitationService:
     
     async def archive_invitation(self, invitation_id: str) -> bool:
         """Archive an invitation"""
-        
-        result = await self.collection.update_one(
-            {"_id": ObjectId(invitation_id)},
-            {
-                "$set": {
-                    "archived": True,
-                    "updatedAt": datetime.utcnow()
+        try:
+            result = await self.collection.update_one(
+                {"_id": ObjectId(invitation_id)},
+                {
+                    "$set": {
+                        "archived": True,
+                        "updatedAt": datetime.utcnow()
+                    }
                 }
-            }
-        )
-        
-        return result.modified_count > 0
+            )
+            
+            return result.modified_count > 0
+        except Exception as e:
+            print(f"Error archiving invitation {invitation_id}: {e}")
+            raise
     
     async def delete_invitation(self, invitation_id: str) -> bool:
         """Permanently delete an invitation"""

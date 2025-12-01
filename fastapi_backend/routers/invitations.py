@@ -149,8 +149,15 @@ async def get_invitation_stats(
     """Get invitation system statistics (Admin only)"""
     check_admin(current_user)
     
-    service = InvitationService(db)
-    return await service.get_statistics()
+    try:
+        service = InvitationService(db)
+        return await service.get_statistics()
+    except Exception as e:
+        logger.error(f"Error getting invitation stats: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get invitation statistics: {str(e)}"
+        )
 
 
 @router.get("/{invitation_id}", response_model=InvitationResponse)
