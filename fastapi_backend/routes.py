@@ -998,6 +998,7 @@ async def update_user_profile(
     familyBackground: Optional[str] = Form(None),
     aboutYou: Optional[str] = Form(None),
     aboutMe: Optional[str] = Form(None),  # NEW: consistent naming
+    bio: Optional[str] = Form(None),  # NEW: Short tagline/bio
     partnerPreference: Optional[str] = Form(None),
     partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
     images: List[UploadFile] = File(default=[]),
@@ -1147,6 +1148,10 @@ async def update_user_profile(
     elif aboutYou is not None and aboutYou.strip():
         update_data["aboutYou"] = aboutYou.strip()
         update_data["aboutMe"] = aboutYou.strip()  # Keep both for compatibility
+    
+    # Bio / Tagline
+    if bio is not None and bio.strip():
+        update_data["bio"] = bio.strip()
     
     if partnerPreference is not None and partnerPreference.strip():
         update_data["partnerPreference"] = partnerPreference.strip()
