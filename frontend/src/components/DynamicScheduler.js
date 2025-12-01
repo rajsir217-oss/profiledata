@@ -91,24 +91,24 @@ const DynamicScheduler = ({ currentUser }) => {
 
   // Load templates on mount
   useEffect(() => {
-    if (isAdmin) {
+    if (userRole === 'admin') {
       loadTemplates();
       loadSchedulerStatus();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdmin]);
+  }, [userRole]);
 
   // Load jobs when filters change
   useEffect(() => {
-    if (isAdmin) {
+    if (userRole === 'admin') {
       loadJobs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTemplate, filterEnabled, currentPage, refreshTrigger, isAdmin]);
+  }, [filterTemplate, filterEnabled, currentPage, refreshTrigger, userRole]);
 
   // Check for pre-selected template from Template Manager
   useEffect(() => {
-    if (!isAdmin) return;
+    if (userRole !== 'admin') return;
     
     const selectedTemplateId = localStorage.getItem('selectedJobTemplate');
     if (selectedTemplateId && templates.length > 0) {
@@ -132,7 +132,7 @@ const DynamicScheduler = ({ currentUser }) => {
       localStorage.removeItem('selectedJobTemplate');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [templates, isAdmin]);
+  }, [templates, userRole]);
 
   // Show access denied message if not admin (but don't early return - breaks hooks)
   if (!isAdmin) {
