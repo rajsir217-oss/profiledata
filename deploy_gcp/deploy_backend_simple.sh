@@ -89,7 +89,7 @@ SIMPLETEXTING_API_TOKEN=SIMPLETEXTING_API_TOKEN:latest,\
 SIMPLETEXTING_ACCOUNT_PHONE=SIMPLETEXTING_ACCOUNT_PHONE:latest"
 
 echo ""
-echo "✅ Deployment complete!"
+echo "✅ Backend deployment complete!"
 echo ""
 
 # Get the actual deployed URL
@@ -98,6 +98,46 @@ BACKEND_URL=$(gcloud run services describe $SERVICE_NAME \
   --format "value(status.url)")
 
 echo "Service URL: $BACKEND_URL"
+
+# ============================================================================
+# CRITICAL: Trigger frontend redeployment to clear Cloud Run CDN cache
+# ============================================================================
+echo ""
+echo "🔄 Triggering frontend redeployment to clear CDN cache..."
+echo "   (This prevents CORS errors by ensuring frontend uses new backend config)"
+
+FRONTEND_SERVICE="matrimonial-frontend"
+
+# Check if frontend service exists
+if gcloud run services describe $FRONTEND_SERVICE --region $REGION --project $PROJECT_ID &>/dev/null; then
+  echo "   ✅ Found frontend service: $FRONTEND_SERVICE"
+  
+  # Trigger a new revision by updating a no-op environment variable
+  TIMESTAMP=$(date +%s)
+  
+  gcloud run services update $FRONTEND_SERVICE \
+    --region $REGION \
+    --project $PROJECT_ID \
+    --update-env-vars "CACHE_BUST=$TIMESTAMP" \
+    --quiet
+  
+  if [ $? -eq 0 ]; then
+    echo "   ✅ Frontend redeployed successfully (cache cleared)"
+    FRONTEND_URL=$(gcloud run services describe $FRONTEND_SERVICE \
+      --region $REGION \
+      --format "value(status.url)")
+    echo "   Frontend URL: $FRONTEND_URL"
+  else
+    echo "   ⚠️  Frontend redeploy failed (non-fatal, continuing...)"
+  fi
+else
+  echo "   ℹ️  Frontend service not found (skipping cache clear)"
+fi
+
+echo ""
+echo "============================================================================"
+echo "✅ DEPLOYMENT COMPLETE"
+echo "============================================================================"
 echo ""
 
 # URLs are now set in initial deployment (lines 64-66)

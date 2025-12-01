@@ -14,15 +14,19 @@
 # - ✅ Notification template updates
 # - ✅ Post-deployment validation
 #
-# FIXES APPLIED (Nov 25, 2025):
-# 1. CORS Configuration:
+# FIXES APPLIED:
+# 1. CORS Configuration (Nov 25, 2025):
 #    - ENV=production and FRONTEND_URL set in INITIAL deployment
 #    - No regex in production (explicit origins only)
 #    - Prevents CORS errors by configuring backend correctly from startup
-# 2. Utils Module:
+# 2. Auto Frontend Cache Clear (Nov 30, 2025):
+#    - Backend deployment now auto-triggers frontend redeployment
+#    - Clears Cloud Run CDN cache to prevent CORS errors
+#    - No need to manually deploy frontend after backend changes
+# 3. Utils Module (Nov 25, 2025):
 #    - Merged utils.py into utils/__init__.py package
 #    - Fixed ImportError for get_full_image_url and branding utilities
-# 3. Notification Templates:
+# 4. Notification Templates (Nov 25, 2025):
 #    - Auto-updates pii_granted template after backend deployment
 #    - Fixes template variable evaluation ({match.firstName})
 #

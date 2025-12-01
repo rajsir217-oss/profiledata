@@ -167,9 +167,16 @@ class RetroactiveInvitationMatcherTemplate(JobTemplate):
     
     def get_schema(self) -> Dict[str, Any]:
         """Define job parameters schema (no parameters needed)"""
-        return {}
+        return {
+            "type": "object",
+            "properties": {}
+        }
     
-    async def execute_async(self, context: JobExecutionContext) -> JobResult:
+    def validate_params(self, params: Dict[str, Any]) -> tuple:
+        """Validate job parameters (no validation needed)"""
+        return True, None
+    
+    async def execute(self, context: JobExecutionContext) -> JobResult:
         """
         Execute retroactive invitation matching
         
@@ -184,13 +191,15 @@ class RetroactiveInvitationMatcherTemplate(JobTemplate):
         
         if result.get("status") == "error":
             return JobResult(
-                success=False,
-                error_message=result.get("error"),
-                details=result
+                status="failed",
+                message="Retroactive matching failed",
+                errors=[result.get("error")],
+                duration_seconds=0.0
             )
         
         return JobResult(
-            success=True,
+            status="completed",
             message=f"Matched {result['matched']} users to invitations",
-            details=result
+            details=result,
+            duration_seconds=0.0
         )
