@@ -1102,6 +1102,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       // Skip passwordConfirm, heightFeet, heightInches - handled separately
       if (key === 'passwordConfirm' || key === 'heightFeet' || key === 'heightInches') continue;
       
+      // Skip creatorInfo - will be handled separately below
+      if (key === 'creatorInfo') continue;
+      
       // Handle arrays and objects specially
       if (key === 'languagesSpoken') {
         data.append(key, JSON.stringify(formData[key]));
@@ -1113,6 +1116,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         data.append(key, JSON.stringify(formData[key]));
       } else {
         data.append(key, formData[key]);
+      }
+    }
+    
+    // Handle creatorInfo - flatten to individual fields for backend
+    if (formData.creatorInfo && formData.profileCreatedBy !== 'me') {
+      if (formData.creatorInfo.fullName) {
+        data.append('creatorFullName', formData.creatorInfo.fullName);
+      }
+      if (formData.creatorInfo.relationship) {
+        data.append('creatorRelationship', formData.creatorInfo.relationship);
+      }
+      if (formData.creatorInfo.notes) {
+        data.append('creatorNotes', formData.creatorInfo.notes);
       }
     }
     
