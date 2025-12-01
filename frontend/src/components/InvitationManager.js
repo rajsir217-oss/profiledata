@@ -164,9 +164,35 @@ const InvitationManager = () => {
       if (response.ok) {
         const data = await response.json();
         setStats(data);
+      } else {
+        console.error('Failed to load stats:', response.status, response.statusText);
+        // Set default stats to prevent UI breaking
+        setStats({
+          totalInvitations: 0,
+          pendingInvitations: 0,
+          sentInvitations: 0,
+          acceptedInvitations: 0,
+          expiredInvitations: 0,
+          archivedInvitations: 0,
+          emailSuccessRate: 0,
+          smsSuccessRate: 0,
+          acceptanceRate: 0
+        });
       }
     } catch (err) {
       console.error('Error loading stats:', err);
+      // Set default stats to prevent UI breaking
+      setStats({
+        totalInvitations: 0,
+        pendingInvitations: 0,
+        sentInvitations: 0,
+        acceptedInvitations: 0,
+        expiredInvitations: 0,
+        archivedInvitations: 0,
+        emailSuccessRate: 0,
+        smsSuccessRate: 0,
+        acceptanceRate: 0
+      });
     }
   };
 
