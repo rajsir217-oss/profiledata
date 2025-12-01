@@ -8,6 +8,9 @@ import os
 import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 
+# Force production environment BEFORE importing Settings
+os.environ['APP_ENVIRONMENT'] = 'production'
+
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -17,6 +20,11 @@ async def main():
     """Check L3V3L scoring configuration"""
     
     settings = Settings()
+    
+    print("🔧 Loading configuration for environment: production")
+    print("✅ Loaded configuration from .env.production")
+    print(f"🗄️  Database: {settings.database_name}")
+    print(f"🔗 MongoDB URL: {settings.mongodb_url[:50]}...")
     
     # Connect to MongoDB
     client = AsyncIOMotorClient(settings.mongodb_url, tlsCAFile=certifi.where())

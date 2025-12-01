@@ -517,8 +517,10 @@ async def register_user(
         # Residential Information
         "countryOfOrigin": countryOfOrigin,
         "countryOfResidence": countryOfResidence,
+        "country": countryOfResidence,  # Alias for L3V3L scoring
         "state": state,
         "location": location,
+        "city": location,  # Alias for L3V3L scoring
         # USA-specific field
         "citizenshipStatus": citizenshipStatus if countryOfResidence == "US" else None,
         # India-specific fields
@@ -1109,6 +1111,8 @@ async def update_user_profile(
         update_data["countryOfOrigin"] = countryOfOrigin.strip()
     if countryOfResidence is not None and countryOfResidence.strip():
         update_data["countryOfResidence"] = countryOfResidence.strip()
+        # ALSO save as 'country' for L3V3L scoring compatibility
+        update_data["country"] = countryOfResidence.strip()
     if state is not None and state.strip():
         update_data["state"] = state.strip()
     if caste is not None and caste.strip():
@@ -1125,6 +1129,8 @@ async def update_user_profile(
         update_data["eatingPreference"] = eatingPreference.strip()
     if location is not None and location.strip():
         update_data["location"] = location.strip()
+        # ALSO save as 'city' for L3V3L scoring compatibility
+        update_data["city"] = location.strip()
     
     # Education & Work
     if workingStatus is not None and workingStatus.strip():
