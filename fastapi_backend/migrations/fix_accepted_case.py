@@ -10,6 +10,7 @@ This migration fixes the 17 invitations that were incorrectly updated.
 import asyncio
 import sys
 import os
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
 
@@ -24,8 +25,8 @@ async def main():
     settings = Settings()
     
     # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client.get_database(settings.mongodb_database)
+    client = AsyncIOMotorClient(settings.mongodb_url, tlsCAFile=certifi.where())
+    db = client.get_database(settings.database_name)
     
     print("=" * 80)
     print("🔧 Fixing Invitation Status Case")
