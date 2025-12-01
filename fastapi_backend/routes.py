@@ -313,6 +313,11 @@ async def register_user(
     wantsChildren: Optional[str] = Form(None),
     pets: Optional[str] = Form(None),
     bio: Optional[str] = Form(None),
+    # Profile Creator Metadata
+    profileCreatedBy: Optional[str] = Form(None),  # Self, Parent, Sibling, Friend, etc.
+    creatorFullName: Optional[str] = Form(None),  # Creator's full name
+    creatorRelationship: Optional[str] = Form(None),  # Relationship to profile owner
+    creatorNotes: Optional[str] = Form(None),  # Why profile was created by someone else
     # Legal consent fields
     agreedToAge: bool = Form(False),
     agreedToTerms: bool = Form(False),
@@ -547,6 +552,13 @@ async def register_user(
         "wantsChildren": wantsChildren,
         "pets": pets,
         "bio": bio,
+        # Profile Creator Metadata
+        "profileCreatedBy": profileCreatedBy,
+        "creatorInfo": {
+            "fullName": creatorFullName,
+            "relationship": creatorRelationship,
+            "notes": creatorNotes
+        } if profileCreatedBy and profileCreatedBy != "Self" else None,
         "images": image_paths,
         # Legal consent metadata (for audit trail and GDPR compliance)
         "agreedToAge": agreedToAge,
@@ -1887,6 +1899,140 @@ async def update_user_preferences(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to update preferences: {str(e)}"
+        )
+
+@router.put("/profile/{username}/consent")
+async def update_user_consent(
+    username: str,
+    consent_data: dict,
+    current_user: dict = Depends(get_current_user),
+    request: Request = None,
+    db = Depends(get_database)
+):
+    """
+    Update user consent after policy changes (GDPR compliance)
+    
+    This endpoint allows users to re-consent after policy updates and
+    maintains an audit trail of consent changes for legal compliance.
+    """
+    logger.info(f"📋 Consent update request for user '{username}'")
+    
+    # Extract current username from JWT
+    current_username = current_user.get("username")
+    if not current_username:
+        logger.error(f"❌ Could not extract username from JWT token")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Authentication error: Could not identify user"
+        )
+    
+    # Only allow users to update their own consent (admins cannot consent for users)
+    if current_username.lower() != username.lower():
+        logger.warning(f"⚠️ User '{current_username}' attempted to update consent for '{username}'")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only update your own consent preferences"
+        )
+    
+    # Validate required fields
+    required_consents = ['agreedToTerms', 'agreedToPrivacy', 'agreedToGuidelines', 'agreedToDataProcessing']
+    for field in required_consents:
+        if field not in consent_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Missing required consent field: {field}"
+            )
+        if not isinstance(consent_data[field], bool):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Consent field '{field}' must be a boolean"
+            )
+    
+    # Validate that all required consents are True
+    if not all([consent_data.get(field) for field in required_consents]):
+        logger.warning(f"⚠️ Consent update failed: User '{username}' did not agree to all required policies")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You must agree to all required policies (Terms, Privacy, Guidelines, Data Processing)"
+        )
+    
+    try:
+        # Find user
+        user = await db.users.find_one(get_username_query(username))
+        if not user:
+            logger.warning(f"⚠️ Consent update failed: User '{username}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        now = datetime.utcnow()
+        
+        # Prepare update data
+        update_data = {
+            "agreedToTerms": consent_data.get('agreedToTerms'),
+            "agreedToPrivacy": consent_data.get('agreedToPrivacy'),
+            "agreedToGuidelines": consent_data.get('agreedToGuidelines'),
+            "agreedToDataProcessing": consent_data.get('agreedToDataProcessing'),
+            "agreedToMarketing": consent_data.get('agreedToMarketing', False),
+            "termsAgreedAt": now.isoformat(),
+            "privacyAgreedAt": now.isoformat(),
+            "consentVersion": consent_data.get('consentVersion', '1.0'),  # Track policy version
+            "consentIpAddress": request.client.host if request else None,
+            "consentUserAgent": request.headers.get("user-agent") if request else None,
+            "consentUpdatedAt": now.isoformat(),
+            "updatedAt": now.isoformat()
+        }
+        
+        # Create audit trail entry
+        consent_history_entry = {
+            "timestamp": now.isoformat(),
+            "agreedToTerms": consent_data.get('agreedToTerms'),
+            "agreedToPrivacy": consent_data.get('agreedToPrivacy'),
+            "agreedToGuidelines": consent_data.get('agreedToGuidelines'),
+            "agreedToDataProcessing": consent_data.get('agreedToDataProcessing'),
+            "agreedToMarketing": consent_data.get('agreedToMarketing', False),
+            "consentVersion": consent_data.get('consentVersion', '1.0'),
+            "ipAddress": request.client.host if request else None,
+            "userAgent": request.headers.get("user-agent") if request else None
+        }
+        
+        # Update user document
+        result = await db.users.update_one(
+            get_username_query(username),
+            {
+                "$set": update_data,
+                "$push": {
+                    "consentHistory": {
+                        "$each": [consent_history_entry],
+                        "$slice": -10  # Keep last 10 consent updates
+                    }
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            logger.warning(f"⚠️ Consent update failed: User '{username}' not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+        
+        logger.info(f"✅ Consent updated for user '{username}' (version: {consent_data.get('consentVersion', '1.0')})")
+        
+        return {
+            "message": "Consent preferences updated successfully",
+            "consentVersion": consent_data.get('consentVersion', '1.0'),
+            "updatedAt": now.isoformat()
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating consent for '{username}': {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update consent: {str(e)}"
         )
 
 @router.get("/admin/users")
