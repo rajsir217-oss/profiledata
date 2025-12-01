@@ -44,6 +44,13 @@ const DynamicScheduler = ({ currentUser }) => {
   const loadTemplates = async () => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No auth token found');
+        toast.error('Authentication required. Please log in again.');
+        navigate('/login');
+        return;
+      }
+
       const response = await fetch(getBackendApiUrl('/api/admin/scheduler/templates'), {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -51,7 +58,9 @@ const DynamicScheduler = ({ currentUser }) => {
       });
       
       if (!response.ok) {
-        console.error('Templates API error:', response.status, await response.text());
+        const errorText = await response.text();
+        console.error('Templates API error:', response.status, errorText);
+        toast.error(`Failed to load templates: ${response.status}`);
         return;
       }
       
@@ -64,6 +73,7 @@ const DynamicScheduler = ({ currentUser }) => {
       setTemplates(sortedTemplates);
     } catch (err) {
       console.error('Error loading templates:', err);
+      toast.error(`Error loading templates: ${err.message}`);
     }
   };
 
