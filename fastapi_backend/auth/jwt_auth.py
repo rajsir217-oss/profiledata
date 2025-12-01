@@ -163,8 +163,9 @@ class AuthenticationService:
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
-            # Check if user is active
-            if user.get("status", {}).get("status") != "active":
+            # Check if user is active (use unified accountStatus field)
+            # CRITICAL FIX: Use accountStatus instead of legacy status.status
+            if user.get("accountStatus") != "active":
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="User account is not active"
