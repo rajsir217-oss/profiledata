@@ -192,7 +192,12 @@ async def manage_user(
         
         if action == "activate":
             update_data["accountStatus"] = "active"  # Use accountStatus (unified field)
+            # CRITICAL FIX: Also approve admin approval when activating
+            update_data["adminApprovalStatus"] = "approved"
+            update_data["adminApprovedBy"] = current_user.get("username")
+            update_data["adminApprovedAt"] = datetime.utcnow().isoformat()
             event = SECURITY_EVENTS["ACCOUNT_UNLOCKED"]
+            logger.info(f"✅ Setting adminApprovalStatus='approved' for user '{username}' (activated by {current_user.get('username')})")
             
             # Clear all content violations when reactivating user
             violation_result = await db.content_violations.delete_many({
@@ -413,17 +418,27 @@ async def update_user_status(
             if violation_result.deleted_count > 0:
                 logger.info(f"✅ Cleared {violation_result.deleted_count} violations for user '{username}' during status change to active")
         
+        # Prepare update data
+        now = datetime.utcnow()
+        update_data = {
+            "accountStatus": new_account_status,
+            "status.updated_by": current_user.get("username"),  # Track who made change
+            "status.updated_at": now,
+            "updated_at": now
+        }
+        
+        # CRITICAL FIX: When setting status to 'active', also approve admin approval
+        # This prevents mismatch between accountStatus and adminApprovalStatus
+        if new_account_status == 'active':
+            update_data["adminApprovalStatus"] = "approved"
+            update_data["adminApprovedBy"] = current_user.get("username")
+            update_data["adminApprovedAt"] = now.isoformat()
+            logger.info(f"✅ Setting adminApprovalStatus='approved' for user '{username}' (activated by {current_user.get('username')})")
+        
         # Update accountStatus (unified field)
         result = await db.users.update_one(
             {"username": username},
-            {
-                "$set": {
-                    "accountStatus": new_account_status,
-                    "status.updated_by": current_user.get("username"),  # Track who made change
-                    "status.updated_at": datetime.utcnow(),
-                    "updated_at": datetime.utcnow()
-                }
-            }
+            {"$set": update_data}
         )
         
         if result.modified_count == 0:
