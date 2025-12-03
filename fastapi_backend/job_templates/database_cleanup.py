@@ -40,36 +40,36 @@ class DatabaseCleanupTemplate(JobTemplate):
         return {
             "type": "object",
             "properties": {
-                "collection": {
-                    "type": "string",
-                    "description": "Collection name to clean up",
-                    "enum": self.ALLOWED_COLLECTIONS
-                },
-                "condition_type": {
-                    "type": "string",
-                    "description": "Type of condition to apply",
-                    "enum": ["older_than_days", "custom_query"],
-                    "default": "older_than_days"
-                },
-                "days_old": {
-                    "type": "integer",
-                    "description": "Delete records older than this many days",
-                    "minimum": 1,
-                    "maximum": 3650
-                },
-                "date_field": {
-                    "type": "string",
-                    "description": "Field name containing the date (e.g., 'created_at', 'updated_at')",
-                    "default": "created_at"
-                },
-                "custom_condition": {
-                    "type": "object",
-                    "description": "Custom MongoDB query condition (advanced users only)"
+                "cleanup_targets": {
+                    "type": "array",
+                    "description": "List of collections to clean up with their retention policies",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "collection": {
+                                "type": "string",
+                                "description": "Collection name",
+                                "enum": self.ALLOWED_COLLECTIONS
+                            },
+                            "days_old": {
+                                "type": "integer",
+                                "description": "Delete records older than this many days",
+                                "minimum": 1,
+                                "maximum": 3650
+                            },
+                            "date_field": {
+                                "type": "string",
+                                "description": "Date field name",
+                                "default": "created_at"
+                            }
+                        },
+                        "required": ["collection", "days_old"]
+                    }
                 },
                 "dry_run": {
                     "type": "boolean",
                     "description": "Preview changes without actually deleting",
-                    "default": True
+                    "default": False
                 },
                 "batch_size": {
                     "type": "integer",
@@ -79,170 +79,177 @@ class DatabaseCleanupTemplate(JobTemplate):
                     "default": 1000
                 }
             },
-            "required": ["collection"],
-            "oneOf": [
-                {"required": ["condition_type", "days_old", "date_field"]},
-                {"required": ["condition_type", "custom_condition"]}
-            ]
+            "required": ["cleanup_targets"]
         }
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate parameters"""
-        # Check collection
-        collection = params.get("collection")
-        if not collection:
-            return False, "Collection name is required"
+        # Check cleanup_targets
+        cleanup_targets = params.get("cleanup_targets")
+        if not cleanup_targets:
+            return False, "cleanup_targets is required"
         
-        if collection not in self.ALLOWED_COLLECTIONS:
-            return False, f"Collection '{collection}' is not allowed. Allowed: {', '.join(self.ALLOWED_COLLECTIONS)}"
+        if not isinstance(cleanup_targets, list) or len(cleanup_targets) == 0:
+            return False, "cleanup_targets must be a non-empty array"
         
-        # Check condition type
-        condition_type = params.get("condition_type", "older_than_days")
-        
-        if condition_type == "older_than_days":
-            if "days_old" not in params:
-                return False, "days_old is required when using older_than_days condition"
+        # Validate each target
+        for idx, target in enumerate(cleanup_targets):
+            if not isinstance(target, dict):
+                return False, f"cleanup_targets[{idx}] must be an object"
             
-            days_old = params.get("days_old")
+            collection = target.get("collection")
+            if not collection:
+                return False, f"cleanup_targets[{idx}].collection is required"
+            
+            if collection not in self.ALLOWED_COLLECTIONS:
+                return False, f"Collection '{collection}' is not allowed"
+            
+            days_old = target.get("days_old")
+            if not days_old:
+                return False, f"cleanup_targets[{idx}].days_old is required"
+            
             if not isinstance(days_old, int) or days_old < 1:
-                return False, "days_old must be a positive integer"
-            
-            if "date_field" not in params:
-                return False, "date_field is required when using older_than_days condition"
-        
-        elif condition_type == "custom_query":
-            if "custom_condition" not in params:
-                return False, "custom_condition is required when using custom_query type"
-            
-            if not isinstance(params["custom_condition"], dict):
-                return False, "custom_condition must be a valid MongoDB query object"
-        
-        else:
-            return False, f"Invalid condition_type: {condition_type}"
+                return False, f"cleanup_targets[{idx}].days_old must be a positive integer"
         
         return True, None
     
     async def execute(self, context: JobExecutionContext) -> JobResult:
-        """Execute database cleanup"""
+        """Execute database cleanup for multiple collections"""
         params = context.parameters
         
         # Validate required parameters
-        if "collection" not in params:
+        if "cleanup_targets" not in params:
             return JobResult(
                 status="failed",
-                message="Missing required parameter: 'collection'. Please edit the job and specify which collection to clean up.",
-                errors=["collection parameter is required"]
+                message="Missing required parameter: 'cleanup_targets'",
+                errors=["cleanup_targets parameter is required"]
             )
         
-        collection_name = params["collection"]
-        dry_run = params.get("dry_run", True)
+        cleanup_targets = params["cleanup_targets"]
+        dry_run = params.get("dry_run", False)
         batch_size = params.get("batch_size", 1000)
         
-        context.log("INFO", f"Starting database cleanup for collection: {collection_name}")
-        context.log("INFO", f"Dry run mode: {dry_run}")
+        context.log("INFO", f"🧹 Starting multi-collection database cleanup")
+        context.log("INFO", f"📋 Targets: {len(cleanup_targets)} collections")
+        context.log("INFO", f"{'🔍 DRY RUN MODE' if dry_run else '🗑️  LIVE DELETION MODE'}")
+        context.log("INFO", "="*60)
         
-        # Build query condition
-        condition = await self._build_condition(params, context)
+        total_deleted = 0
+        total_processed = 0
+        results_by_collection = {}
+        errors = []
         
-        try:
-            collection = context.db[collection_name]
+        # Process each collection target
+        for target in cleanup_targets:
+            collection_name = target["collection"]
+            days_old = target["days_old"]
+            date_field = target.get("date_field", "created_at")
             
-            # Count matching records
-            count = await collection.count_documents(condition)
-            context.log("INFO", f"Found {count} records matching condition")
+            context.log("INFO", f"\n📁 Processing: {collection_name}")
+            context.log("INFO", f"   ⏰ Retention: {days_old} days")
+            context.log("INFO", f"   📅 Date field: {date_field}")
             
-            if count == 0:
-                return JobResult(
-                    status="success",
-                    message="No records found matching the cleanup condition",
-                    records_processed=0,
-                    records_affected=0
+            try:
+                result = await self._cleanup_collection(
+                    context=context,
+                    collection_name=collection_name,
+                    days_old=days_old,
+                    date_field=date_field,
+                    dry_run=dry_run,
+                    batch_size=batch_size
                 )
-            
-            if dry_run:
-                # Get sample of records that would be deleted
-                sample_records = await collection.find(condition).limit(5).to_list(length=5)
-                sample_ids = [str(r.get("_id")) for r in sample_records]
                 
-                context.log("INFO", f"DRY RUN: Would delete {count} records")
-                context.log("INFO", f"Sample IDs: {sample_ids[:3]}")
+                results_by_collection[collection_name] = result
+                total_deleted += result["deleted"]
+                total_processed += result["found"]
                 
-                return JobResult(
-                    status="success",
-                    message=f"Dry run: Would delete {count} records",
-                    details={
-                        "count": count,
-                        "sample_ids": sample_ids,
-                        "condition": str(condition)
-                    },
-                    records_processed=count,
-                    records_affected=0
-                )
-            
-            # Actual deletion (in batches)
-            deleted_count = 0
-            processed_count = 0
-            
-            while True:
-                # Delete in batches
-                result = await collection.delete_many(condition, limit=batch_size if batch_size < count else None)
-                batch_deleted = result.deleted_count
-                
-                if batch_deleted == 0:
-                    break
-                
-                deleted_count += batch_deleted
-                processed_count += batch_deleted
-                
-                context.log("INFO", f"Deleted batch: {batch_deleted} records (total: {deleted_count}/{count})")
-                
-                if deleted_count >= count:
-                    break
-            
-            context.log("INFO", f"Cleanup completed: {deleted_count} records deleted")
-            
-            return JobResult(
-                status="success",
-                message=f"Successfully deleted {deleted_count} records from {collection_name}",
-                details={
-                    "collection": collection_name,
-                    "condition": str(condition),
-                    "deleted_count": deleted_count
-                },
-                records_processed=processed_count,
-                records_affected=deleted_count
-            )
-            
-        except Exception as e:
-            context.log("ERROR", f"Cleanup failed: {str(e)}")
-            return JobResult(
-                status="failed",
-                message=f"Database cleanup failed: {str(e)}",
-                errors=[str(e)]
-            )
-    
-    async def _build_condition(self, params: Dict[str, Any], context: JobExecutionContext) -> Dict[str, Any]:
-        """Build MongoDB query condition from parameters"""
-        condition_type = params.get("condition_type", "older_than_days")
+                if result["deleted"] > 0 or result["found"] > 0:
+                    context.log("INFO", f"   ✅ {collection_name}: {'Would delete' if dry_run else 'Deleted'} {result['deleted']} of {result['found']} old records")
+                else:
+                    context.log("INFO", f"   ✨ {collection_name}: No old records found")
+                    
+            except Exception as e:
+                error_msg = f"{collection_name}: {str(e)}"
+                errors.append(error_msg)
+                context.log("ERROR", f"   ❌ {error_msg}")
+                results_by_collection[collection_name] = {
+                    "found": 0,
+                    "deleted": 0,
+                    "error": str(e)
+                }
         
-        if condition_type == "older_than_days":
-            days_old = params["days_old"]
-            date_field = params.get("date_field", "created_at")
-            
-            # Calculate cutoff date
-            cutoff_date = datetime.utcnow() - timedelta(days=days_old)
-            
-            condition = {
-                date_field: {"$lt": cutoff_date}
-            }
-            
-            context.log("INFO", f"Condition: {date_field} < {cutoff_date.isoformat()}")
-            
-        elif condition_type == "custom_query":
-            condition = params["custom_condition"]
-            context.log("INFO", f"Using custom condition: {condition}")
+        context.log("INFO", "="*60)
+        context.log("INFO", f"\n📊 SUMMARY:")
+        context.log("INFO", f"   Collections processed: {len(cleanup_targets)}")
+        context.log("INFO", f"   Total old records found: {total_processed}")
+        context.log("INFO", f"   Total {'would be deleted' if dry_run else 'deleted'}: {total_deleted}")
         
+        if errors:
+            context.log("WARNING", f"   ⚠️  Errors: {len(errors)}")
+        
+        # Determine overall status
+        if len(errors) == len(cleanup_targets):
+            status = "failed"
+            message = f"All collections failed to clean up"
+        elif errors:
+            status = "partial"
+            message = f"{'Dry run completed' if dry_run else 'Cleanup completed'} with {len(errors)} errors. Deleted {total_deleted} records."
         else:
-            raise ValueError(f"Invalid condition_type: {condition_type}")
+            status = "success"
+            message = f"{'Dry run: Would delete' if dry_run else 'Successfully deleted'} {total_deleted} records across {len(cleanup_targets)} collections"
         
-        return condition
+        return JobResult(
+            status=status,
+            message=message,
+            details={
+                "dry_run": dry_run,
+                "results_by_collection": results_by_collection,
+                "total_found": total_processed,
+                "total_deleted": total_deleted
+            },
+            records_processed=total_processed,
+            records_affected=total_deleted,
+            errors=errors if errors else None
+        )
+    
+    async def _cleanup_collection(
+        self,
+        context: JobExecutionContext,
+        collection_name: str,
+        days_old: int,
+        date_field: str,
+        dry_run: bool,
+        batch_size: int
+    ) -> Dict[str, Any]:
+        """Clean up a single collection"""
+        # Calculate cutoff date
+        cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+        
+        condition = {
+            date_field: {"$lt": cutoff_date}
+        }
+        
+        collection = context.db[collection_name]
+        
+        # Count matching records
+        count = await collection.count_documents(condition)
+        
+        if count == 0:
+            return {"found": 0, "deleted": 0}
+        
+        if dry_run:
+            return {"found": count, "deleted": count}  # Would delete
+        
+        # Actual deletion (in batches)
+        deleted_count = 0
+        
+        while deleted_count < count:
+            result = await collection.delete_many(condition)
+            batch_deleted = result.deleted_count
+            
+            if batch_deleted == 0:
+                break
+            
+            deleted_count += batch_deleted
+        
+        return {"found": count, "deleted": deleted_count}
