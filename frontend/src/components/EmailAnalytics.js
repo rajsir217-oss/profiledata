@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EmailAnalytics.css';
 import PageHeader from './PageHeader';
-import { API_ENDPOINTS } from '../config/apiConfig';
+import { getBackendUrl } from '../config/apiConfig';
 
 const EmailAnalytics = () => {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ const EmailAnalytics = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${API_ENDPOINTS.BASE_URL}/api/email-tracking/stats/summary?days=${period}`,
+        `${getBackendUrl()}/api/email-tracking/stats/summary?days=${period}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`

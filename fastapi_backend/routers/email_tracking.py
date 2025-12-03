@@ -31,7 +31,7 @@ TRACKING_PIXEL = bytes([
 async def track_email_open(
     tracking_id: str,
     request: Request,
-    db = None
+    db = Depends(get_database)
 ):
     """
     Track email open via tracking pixel
@@ -42,15 +42,12 @@ async def track_email_open(
     Args:
         tracking_id: Unique identifier for this email (notification queue _id)
         request: FastAPI request object (for IP, user agent)
+        db: Database connection (injected)
     
     Returns:
         1x1 transparent PNG image
     """
     try:
-        # Get database if not injected (for dependency injection)
-        if db is None:
-            from database import get_database_sync
-            db = get_database_sync()
         
         # Extract request metadata
         user_agent = request.headers.get("user-agent", "Unknown")
@@ -113,10 +110,10 @@ async def track_email_open(
 @router.get("/click/{tracking_id}")
 async def track_email_click(
     tracking_id: str,
+    request: Request,
     url: str = Query(..., description="Destination URL"),
     link_type: str = Query("generic", description="Type of link clicked"),
-    request: Request = None,
-    db = None
+    db = Depends(get_database)
 ):
     """
     Track email link click and redirect to destination
@@ -125,16 +122,13 @@ async def track_email_click(
         tracking_id: Unique identifier for this email
         url: Destination URL to redirect to
         link_type: Type of link (e.g., 'profile', 'chat', 'button', 'unsubscribe')
-        request: FastAPI request object
+        request: FastAPI request object (injected)
+        db: Database connection (injected)
     
     Returns:
         Redirect to destination URL
     """
     try:
-        # Get database if not injected
-        if db is None:
-            from database import get_database_sync
-            db = get_database_sync()
         
         # Extract request metadata
         user_agent = request.headers.get("user-agent", "Unknown") if request else "Unknown"
