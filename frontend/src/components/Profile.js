@@ -14,6 +14,7 @@ import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
 import { generateAboutMe, generatePartnerPreference } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
+import { getWorkingStatus } from "../utils/workStatusHelper";
 import "./Profile.css";
 
 // Create axios instance for verification API
@@ -1349,18 +1350,7 @@ const Profile = () => {
                 </select>
               </div>
             </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label><strong>Working Status:</strong></label>
-                <select name="workingStatus" value={editFormData.workingStatus || ''} onChange={handleEditChange} className="form-control">
-                  <option value="">Select</option>
-                  <option value="Employed">Employed</option>
-                  <option value="Self-Employed">Self-Employed</option>
-                  <option value="Unemployed">Unemployed</option>
-                  <option value="Student">Student</option>
-                </select>
-              </div>
-            </div>
+            {/* Working Status is auto-computed from work experience - see Qualifications tab */}
             <div className="form-row">
               <div className="form-group">
                 <label><strong>Citizenship Status:</strong></label>
@@ -1393,7 +1383,7 @@ const Profile = () => {
             {user.religion && <p><strong>Religion:</strong> {user.religion}</p>}
             {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
             {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
-            {user.workingStatus && <p><strong>Working Status:</strong> {user.workingStatus}</p>}
+            {getWorkingStatus(user) && <p><strong>Working Status:</strong> {getWorkingStatus(user)}</p>}
             {user.linkedinUrl && <p><strong>LinkedIn:</strong> <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer">{user.linkedinUrl}</a></p>}
             {user.citizenshipStatus && <p><strong>Citizenship Status:</strong> {user.citizenshipStatus}</p>}
           </div>
@@ -1419,8 +1409,7 @@ const Profile = () => {
             )}
             {user.motherTongue && <p><strong>Mother Tongue:</strong> {user.motherTongue}</p>}
             {user.caste && <p><strong>Caste:</strong> {user.caste}</p>}
-            {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
-            {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
+            {user.castePreference && <p><strong>Caste Details:</strong> {user.castePreference}</p>}
             {user.familyType && <p><strong>Family Type:</strong> {user.familyType}</p>}
             {user.familyValues && <p><strong>Family Values:</strong> {user.familyValues}</p>}
           </div>
@@ -1429,7 +1418,7 @@ const Profile = () => {
       )}
 
       {/* Personal & Lifestyle */}
-      {(user.bodyType || user.drinking || user.smoking || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
+      {(user.bodyType || user.drinking || user.smoking || user.eatingPreference || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
         <div className="profile-section">
           <div className="section-header-with-edit">
             <h3 onClick={() => toggleSection('personalLifestyle')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1442,6 +1431,7 @@ const Profile = () => {
             {user.bodyType && <p><strong>Body Type:</strong> {user.bodyType}</p>}
             {user.drinking && <p><strong>Drinking:</strong> {user.drinking}</p>}
             {user.smoking && <p><strong>Smoking:</strong> {user.smoking}</p>}
+            {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
             {user.hasChildren && <p><strong>Has Children:</strong> {user.hasChildren}</p>}
             {user.wantsChildren && <p><strong>Wants Children:</strong> {user.wantsChildren}</p>}
             {user.pets && <p><strong>Pets:</strong> {user.pets}</p>}
@@ -1600,10 +1590,7 @@ const Profile = () => {
         </div>
         {!collapsedSections.preferencesBackground && (
         <div className="profile-info">
-          {user.castePreference && <p><strong>Caste Preference:</strong> {user.castePreference}</p>}
-          {user.eatingPreference && <p><strong>Eating Preference:</strong> {user.eatingPreference}</p>}
-          {user.familyType && <p><strong>Family Type:</strong> {user.familyType}</p>}
-          {user.familyValues && <p><strong>Family Values:</strong> {user.familyValues}</p>}
+          {/* Removed duplicates: castePreference, eatingPreference, familyType, familyValues - already in Regional & Cultural */}
           {user.familyBackground && <p><strong>Family Background:</strong> {user.familyBackground}</p>}
           {(user.aboutMe || user.aboutYou) && <p><strong>About:</strong> {user.aboutMe || user.aboutYou}</p>}
           {user.partnerPreference && <p><strong>Partner Preference:</strong> {user.partnerPreference}</p>}
