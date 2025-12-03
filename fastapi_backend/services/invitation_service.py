@@ -288,9 +288,15 @@ class InvitationService:
     
     async def get_statistics(self) -> InvitationStats:
         """Get invitation system statistics"""
+        import logging
+        logger = logging.getLogger(__name__)
         
+        logger.info("📊 Starting statistics calculation...")
         total = await self.collection.count_documents({})
+        logger.info(f"📊 Total invitations: {total}")
+        
         archived = await self.collection.count_documents({"archived": True})
+        logger.info(f"📊 Archived invitations: {archived}")
         
         pending = await self.collection.count_documents({
             "archived": False,
@@ -299,10 +305,12 @@ class InvitationService:
                 {"smsStatus": InvitationStatus.PENDING}
             ]
         })
+        logger.info(f"📊 Pending invitations: {pending}")
         
         accepted = await self.collection.count_documents({
             "registeredAt": {"$ne": None}
         })
+        logger.info(f"📊 Accepted invitations: {accepted}")
         
         # Calculate success rates
         email_sent = await self.collection.count_documents({
@@ -317,31 +325,38 @@ class InvitationService:
         sms_success_rate = (sms_sent / total * 100) if total > 0 else 0
         acceptance_rate = (accepted / total * 100) if total > 0 else 0
         
-        # Calculate average time to accept
-        pipeline = [
-            {"$match": {"registeredAt": {"$ne": None}}},
-            {"$project": {
-                "timeToAccept": {
-                    "$subtract": ["$registeredAt", "$createdAt"]
-                }
-            }},
-            {"$group": {
-                "_id": None,
-                "avgTime": {"$avg": "$timeToAccept"}
-            }}
-        ]
-        
-        result = await self.collection.aggregate(pipeline).to_list(length=1)
-        avg_time_ms = result[0]["avgTime"] if result else None
-        
+        # Calculate average time to accept (with error handling)
         avg_time_str = None
-        if avg_time_ms:
-            days = int(avg_time_ms / (1000 * 60 * 60 * 24))
-            if days > 0:
-                avg_time_str = f"{days} day{'s' if days > 1 else ''}"
-            else:
-                hours = int(avg_time_ms / (1000 * 60 * 60))
-                avg_time_str = f"{hours} hour{'s' if hours > 1 else ''}"
+        try:
+            pipeline = [
+                {"$match": {
+                    "registeredAt": {"$ne": None, "$type": "date"},
+                    "createdAt": {"$type": "date"}
+                }},
+                {"$project": {
+                    "timeToAccept": {
+                        "$subtract": ["$registeredAt", "$createdAt"]
+                    }
+                }},
+                {"$group": {
+                    "_id": None,
+                    "avgTime": {"$avg": "$timeToAccept"}
+                }}
+            ]
+            
+            result = await self.collection.aggregate(pipeline).to_list(length=1)
+            avg_time_ms = result[0]["avgTime"] if result else None
+            
+            if avg_time_ms:
+                days = int(avg_time_ms / (1000 * 60 * 60 * 24))
+                if days > 0:
+                    avg_time_str = f"{days} day{'s' if days > 1 else ''}"
+                else:
+                    hours = int(avg_time_ms / (1000 * 60 * 60))
+                    avg_time_str = f"{hours} hour{'s' if hours > 1 else ''}"
+        except Exception as e:
+            logger.warning(f"⚠️ Could not calculate average time to accept: {e}")
+            # Continue without avg time - not critical
         
         return InvitationStats(
             totalInvitations=total,

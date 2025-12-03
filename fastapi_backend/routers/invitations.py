@@ -7,9 +7,12 @@ Purpose: API endpoints for invitation management (Admin only)
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Optional
 from motor.motor_asyncio import AsyncIOMotorDatabase
+import logging
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from database import get_database
+
+logger = logging.getLogger(__name__)
 from models.invitation_models import (
     InvitationCreate,
     InvitationUpdate,
@@ -147,13 +150,17 @@ async def get_invitation_stats(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get invitation system statistics (Admin only)"""
+    logger.info(f"📊 Stats endpoint called by user: {current_user.get('username')}")
     check_admin(current_user)
     
     try:
         service = InvitationService(db)
-        return await service.get_statistics()
+        logger.info("📊 Calling service.get_statistics()...")
+        stats = await service.get_statistics()
+        logger.info(f"📊 Stats calculated successfully: {stats.dict()}")
+        return stats
     except Exception as e:
-        logger.error(f"Error getting invitation stats: {e}", exc_info=True)
+        logger.error(f"❌ Error getting invitation stats: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get invitation statistics: {str(e)}"
