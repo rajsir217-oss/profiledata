@@ -462,10 +462,17 @@ const JobExecutionHistory = ({ job, onClose }) => {
                         <td>{formatDuration(execution.duration_seconds)}</td>
                         <td>{execution.triggered_by}</td>
                         <td>
-                          <div style={{ display: 'flex', gap: '8px' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                             <button
                               className="btn-view"
                               onClick={() => loadExecutionDetails(execution._id)}
+                              style={{ 
+                                padding: '6px 12px',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                background: 'transparent',
+                                cursor: 'pointer'
+                              }}
                             >
                               👁️ View
                             </button>
@@ -473,6 +480,7 @@ const JobExecutionHistory = ({ job, onClose }) => {
                               onDelete={() => handleDeleteExecution(execution._id)}
                               itemName="execution"
                               size="small"
+                              icon="🗑️"
                             />
                           </div>
                         </td>

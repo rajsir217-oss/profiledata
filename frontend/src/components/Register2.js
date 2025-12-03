@@ -621,11 +621,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         break;
 
       case "castePreference":
-        if (!value.trim()) {
-          error = "Caste preference is required";
-        } else if (value.length < 2) {
-          error = "Please enter a valid caste preference";
-        }
+        // REMOVED: This field was confusing (user's caste notes vs partner's caste preference)
+        // It's no longer in the form. Partner's caste preference is in partnerCriteria.caste
         break;
 
       case "eatingPreference":
@@ -2143,6 +2140,125 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
         
+        {/* Location, Caste, Mother Tongue, Eating Preference - Moved here before Religion */}
+        {/* Location (City/Town) */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">
+              City/Town <span className="text-danger">*</span>
+            </label>
+            {formData.countryOfResidence === 'US' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
+              <Autocomplete
+                value={formData.location}
+                onChange={(value) => {
+                  setFormData({ ...formData, location: value });
+                  setFieldErrors({ ...fieldErrors, location: '' });
+                  setTouchedFields({ ...touchedFields, location: true });
+                }}
+                suggestions={US_CITIES_BY_STATE[formData.state]}
+                placeholder="Type to search cities..."
+                name="location"
+                disabled={!formData.state}
+                className={`${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
+              />
+            ) : (
+              <input
+                type="text"
+                className={`form-control ${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
+                name="location"
+                value={formData.location}
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="e.g., Bangalore, New York City"
+                required
+              />
+            )}
+            {fieldErrors.location && touchedFields.location && (
+              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
+            )}
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Citizenship Status</label>
+            {formData.countryOfResidence === 'US' ? (
+              <select 
+                className={`form-control ${getFieldClass('citizenshipStatus', formData.citizenshipStatus)}`}
+                name="citizenshipStatus" 
+                value={formData.citizenshipStatus} 
+                onChange={handleChange}
+              >
+                <option value="Citizen">Citizen</option>
+                <option value="Greencard">Greencard</option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                className="form-control"
+                value="n/a"
+                readOnly
+                disabled
+              />
+            )}
+            <small className="text-muted">Relevant for USA residents</small>
+          </div>
+        </div>
+
+        {/* Caste, Mother Tongue, Eating Preference */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Caste <span className="text-muted">(Optional)</span></label>
+            <input
+              type="text"
+              className="form-control"
+              name="caste"
+              value={formData.caste}
+              onChange={handleChange}
+              placeholder="e.g., Brahmin, Kshatriya, etc."
+            />
+            <small className="text-muted">Only visible to matched users</small>
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Mother Tongue</label>
+            <select
+              className="form-control"
+              name="motherTongue"
+              value={formData.motherTongue}
+              onChange={handleChange}
+            >
+              <option value="">Select Language</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Tamil">Tamil</option>
+              <option value="Telugu">Telugu</option>
+              <option value="Marathi">Marathi</option>
+              <option value="Bengali">Bengali</option>
+              <option value="Gujarati">Gujarati</option>
+              <option value="Kannada">Kannada</option>
+              <option value="Malayalam">Malayalam</option>
+              <option value="Punjabi">Punjabi</option>
+              <option value="Urdu">Urdu</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
+        
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">Eating Preference</label>
+            <select
+              className="form-control"
+              name="eatingPreference"
+              value={formData.eatingPreference}
+              onChange={handleChange}
+            >
+              <option value="">Select...</option>
+              <option value="Vegetarian">🥗 Vegetarian</option>
+              <option value="Eggetarian">🥚 Eggetarian</option>
+              <option value="Non-Veg">🍖 Non-Veg</option>
+              <option value="Others">Others</option>
+            </select>
+            <small className="text-muted">Your dietary preference</small>
+          </div>
+        </div>
+        
         {/* Religion and Languages Spoken */}
         <div className="row mb-3">
           <div className="col-md-6">
@@ -2439,108 +2555,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
         
-        {/* Location (City/Town) & Citizenship Status for USA */}
-        <div className="row mb-3">
-          <div className="col-md-6">
-            <label className="form-label">
-              City/Town <span className="text-danger">*</span>
-            </label>
-            {formData.countryOfResidence === 'US' && formData.state && US_CITIES_BY_STATE[formData.state] ? (
-              <Autocomplete
-                value={formData.location}
-                onChange={(value) => {
-                  setFormData({ ...formData, location: value });
-                  setFieldErrors({ ...fieldErrors, location: '' });
-                  setTouchedFields({ ...touchedFields, location: true });
-                }}
-                suggestions={US_CITIES_BY_STATE[formData.state]}
-                placeholder="Type to search cities..."
-                name="location"
-                disabled={!formData.state}
-                className={`${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
-              />
-            ) : (
-              <input
-                type="text"
-                className={`form-control ${getFieldClass('location', formData.location)} ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
-                name="location"
-                value={formData.location}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                placeholder="e.g., Bangalore, New York City"
-                required
-              />
-            )}
-            {fieldErrors.location && touchedFields.location && (
-              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
-            )}
-          </div>
-          <div className="col-md-6">
-            <label className="form-label">Citizenship Status</label>
-            {formData.countryOfResidence === 'US' ? (
-              <select 
-                className={`form-control ${getFieldClass('citizenshipStatus', formData.citizenshipStatus)}`}
-                name="citizenshipStatus" 
-                value={formData.citizenshipStatus} 
-                onChange={handleChange}
-              >
-                <option value="Citizen">Citizen</option>
-                <option value="Greencard">Greencard</option>
-              </select>
-            ) : (
-              <input
-                type="text"
-                className="form-control"
-                value="n/a"
-                readOnly
-                disabled
-              />
-            )}
-            <small className="text-muted">Relevant for USA residents</small>
-          </div>
-        </div>
-
-        {/* India-Specific Fields (Conditional) */}
+        {/* REMOVED: Location, Caste, Mother Tongue, Eating Preference - Now above Religion section */}
+        
+        {/* India-Specific Fields (Conditional) - Keep only Family fields here */}
         {formData.countryOfOrigin === 'IN' && (
           <>
             <div className="alert alert-info info-tip-box" style={{marginBottom: '20px'}}>
               <strong>🇮🇳 India-Specific Fields</strong> - These fields are important for matrimonial matchmaking in India
-            </div>
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <label className="form-label">Caste <span className="text-muted">(Optional)</span></label>
-                <input
-                  type="text"
-                  className="form-control"
-                  name="caste"
-                  value={formData.caste}
-                  onChange={handleChange}
-                  placeholder="e.g., Brahmin, Kshatriya, etc."
-                />
-                <small className="text-muted">Only visible to matched users</small>
-              </div>
-              <div className="col-md-6">
-                <label className="form-label">Mother Tongue</label>
-                <select
-                  className="form-control"
-                  name="motherTongue"
-                  value={formData.motherTongue}
-                  onChange={handleChange}
-                >
-                  <option value="">Select Language</option>
-                  <option value="Hindi">Hindi</option>
-                  <option value="Tamil">Tamil</option>
-                  <option value="Telugu">Telugu</option>
-                  <option value="Marathi">Marathi</option>
-                  <option value="Bengali">Bengali</option>
-                  <option value="Gujarati">Gujarati</option>
-                  <option value="Kannada">Kannada</option>
-                  <option value="Malayalam">Malayalam</option>
-                  <option value="Punjabi">Punjabi</option>
-                  <option value="Urdu">Urdu</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
             </div>
             <div className="row mb-3">
               <div className="col-md-6">
@@ -2811,60 +2832,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           )}
         </div>
         
-        {/* Partner Preferences: Caste, Eating, Location */}
-        <div className="row mb-3">
-          <div className="col-md-4">
-            <label className="form-label">Caste Preference</label>
-            <input 
-              type="text" 
-              className={`form-control ${getFieldClass('castePreference', formData.castePreference)} ${fieldErrors.castePreference && touchedFields.castePreference ? 'is-invalid' : ''}`}
-              name="castePreference" 
-              value={formData.castePreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-            />
-            {fieldErrors.castePreference && touchedFields.castePreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.castePreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Eating Preference</label>
-            <select 
-              className={`form-control ${getFieldClass('eatingPreference', formData.eatingPreference)} ${fieldErrors.eatingPreference && touchedFields.eatingPreference ? 'is-invalid' : ''}`}
-              name="eatingPreference" 
-              value={formData.eatingPreference} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-            >
-              <option value="">Select...</option>
-              <option value="Vegetarian">Vegetarian</option>
-              <option value="Eggetarian">Eggetarian</option>
-              <option value="Non-Veg">Non-Veg</option>
-              <option value="Others">Others</option>
-            </select>
-            {fieldErrors.eatingPreference && touchedFields.eatingPreference && (
-              <div className="invalid-feedback d-block">{fieldErrors.eatingPreference}</div>
-            )}
-          </div>
-          <div className="col-md-4">
-            <label className="form-label">Location Preference</label>
-            <input 
-              type="text" 
-              className={`form-control ${fieldErrors.location && touchedFields.location ? 'is-invalid' : ''}`}
-              name="location" 
-              value={formData.location} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required 
-              placeholder="e.g., New York, USA"
-            />
-            {fieldErrors.location && touchedFields.location && (
-              <div className="invalid-feedback d-block">{fieldErrors.location}</div>
-            )}
-          </div>
-        </div>
+        {/* REMOVED: Legacy fields that confused user's info with partner preferences
+            - castePreference: User's caste notes (not partner's desired caste)
+            - eatingPreference: User's diet (not partner's desired diet) 
+            - location: User's current location (not partner's desired location)
+            
+            These fields are now in the About Me tab (Regional/Lifestyle sections).
+            Actual partner preferences are in the structured partnerCriteria fields below.
+        */}
         
         {/* Age Preference - Relative to Your Age */}
         <div className="mb-4" style={{ background: 'var(--info-background, #e7f3ff)', padding: '16px', borderRadius: '8px', border: '2px solid var(--info-border, #b3d9ff)' }}>
@@ -3910,7 +3885,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       {/* Draft Recovery Modal */}
       {showDraftModal && draftData && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 1050 }}>
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog" style={{ marginTop: '20px', marginBottom: 'auto' }}>
             <div className="modal-content">
               <div className="modal-header" style={{
                 background: 'linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%)',

@@ -72,6 +72,12 @@ class NotificationTrigger(str, Enum):
     ACCOUNT_UNPAUSED = "account_unpaused"
     AUTO_UNPAUSE_REMINDER = "auto_unpause_reminder"
     PAUSE_WEEKLY_SUMMARY = "pause_weekly_summary"
+    
+    # Account status changes (admin actions)
+    STATUS_APPROVED = "status_approved"
+    STATUS_SUSPENDED = "status_suspended"
+    STATUS_BANNED = "status_banned"
+    STATUS_PAUSED = "status_paused"
 
 
 class FrequencyType(str, Enum):
