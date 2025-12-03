@@ -163,6 +163,11 @@ const Profile = () => {
         console.log('📡 Gender value:', res.data?.gender);
         console.log('📡 Height value:', res.data?.height);
         console.log('📡 Location value:', res.data?.location);
+        console.log('📡 🔍 RELIGION value:', res.data?.religion);
+        console.log('📡 🎯 PARTNER CRITERIA:', res.data?.partnerCriteria);
+        console.log('📡 Partner Criteria Religion:', res.data?.partnerCriteria?.religion);
+        console.log('📡 Partner Criteria Education:', res.data?.partnerCriteria?.educationLevel);
+        console.log('📡 Partner Criteria Profession:', res.data?.partnerCriteria?.profession);
         setUser(res.data);
         
         // Check if this is the current user's profile

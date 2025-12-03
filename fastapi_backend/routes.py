@@ -914,6 +914,7 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     
     # Debug: Log profileId presence
     logger.debug(f"📋 ProfileId in DB response: {user.get('profileId', 'NOT FOUND')}")
+    logger.info(f"🔍 RELIGION RETRIEVE: Religion value from DB for user {username}: '{user.get('religion', 'NOT SET')}'")
     
     # 🔓 DECRYPT PII fields (if encrypted)
     try:
@@ -1107,6 +1108,9 @@ async def update_user_profile(
     # Regional/Cultural fields
     if religion is not None and religion.strip():
         update_data["religion"] = religion.strip()
+        logger.info(f"🔍 RELIGION UPDATE: Setting religion to '{religion.strip()}' for user {username}")
+    else:
+        logger.warning(f"⚠️ RELIGION UPDATE: Religion field is None or empty for user {username}. Value: {religion}")
     if countryOfOrigin is not None and countryOfOrigin.strip():
         update_data["countryOfOrigin"] = countryOfOrigin.strip()
     if countryOfResidence is not None and countryOfResidence.strip():
@@ -1214,9 +1218,15 @@ async def update_user_profile(
     
     if partnerCriteria is not None and partnerCriteria.strip():
         try:
-            update_data["partnerCriteria"] = json.loads(partnerCriteria)
+            parsed_criteria = json.loads(partnerCriteria)
+            update_data["partnerCriteria"] = parsed_criteria
+            logger.info(f"🎯 PARTNER CRITERIA UPDATE: Received and parsed partner criteria for user {username}")
+            logger.info(f"   Keys: {list(parsed_criteria.keys())}")
+            logger.info(f"   Religion: {parsed_criteria.get('religion', 'NOT SET')}")
         except json.JSONDecodeError:
             logger.warning(f"Invalid JSON for partnerCriteria: {partnerCriteria}")
+    else:
+        logger.warning(f"⚠️ PARTNER CRITERIA: Not received or empty for user {username}. Value: {partnerCriteria}")
     
     if linkedinUrl is not None and linkedinUrl.strip():
         update_data["linkedinUrl"] = linkedinUrl.strip()

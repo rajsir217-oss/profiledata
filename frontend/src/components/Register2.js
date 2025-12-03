@@ -75,7 +75,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       educationLevel: ["Bachelor's"],
       profession: ["Any"],
       languages: ["English"],
-      religion: ["Any Religion"],
+      religion: ["Any"],
       caste: "No Preference",
       location: ["Any"],
       eatingPreference: ["Any"],
@@ -154,7 +154,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       educationLevel: ["Bachelor's"],
       profession: ["Any"],
       languages: ["English"],
-      religion: ["Any Religion"],
+      religion: ["Any"],
       caste: "No Preference",
       location: ["Any"],
       eatingPreference: ["Any"],
@@ -1165,6 +1165,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         console.log('  - Contact Email:', formData.contactEmail);
         console.log('  - Country of Residence:', formData.countryOfResidence);
         console.log('  - State:', formData.state);
+        console.log('  🔍 RELIGION:', formData.religion);
+        console.log('  🎯 PARTNER CRITERIA:', formData.partnerCriteria);
+        console.log('     - Religion:', formData.partnerCriteria?.religion);
+        console.log('     - Education:', formData.partnerCriteria?.educationLevel);
+        console.log('     - Profession:', formData.partnerCriteria?.profession);
         console.log('  - Existing images:', existingImages.length);
         console.log('  - New images:', newImages.length);
         console.log('  - Images to delete:', imagesToDelete.length);
@@ -1493,6 +1498,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           const userData = response.data;
           
           console.log('Loaded user data:', userData);
+          console.log('🎯 PARTNER CRITERIA from DB:', userData.partnerCriteria);
+          console.log('   - Religion:', userData.partnerCriteria?.religion);
+          console.log('   - Education:', userData.partnerCriteria?.educationLevel);
+          console.log('   - Profession:', userData.partnerCriteria?.profession);
 
           // Parse height from "5'6"" format
           let heightFeet = '';
@@ -1576,7 +1585,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               educationLevel: userData.partnerCriteria?.educationLevel || ['Bachelor\'s'],
               profession: userData.partnerCriteria?.profession || ['Any'],
               languages: userData.partnerCriteria?.languages || ['English'],
-              religion: userData.partnerCriteria?.religion || ['Any Religion'],
+              religion: userData.partnerCriteria?.religion || ['Any'],
               caste: userData.partnerCriteria?.caste || 'No Preference',
               location: userData.partnerCriteria?.location || ['Any'],
               eatingPreference: userData.partnerCriteria?.eatingPreference || ['Any'],
@@ -1597,6 +1606,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             password: '',
             passwordConfirm: ''
           });
+
+          console.log('✅ FormData set - partner criteria populated');
 
           // Set existing images
           if (userData.images && Array.isArray(userData.images)) {
@@ -3177,10 +3188,42 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
         
-        {/* India-specific: Languages, Religion, Caste Preferences */}
+        {/* Preferred Religion (for all countries) */}
+        <div className="row mb-3">
+          <div className="col-md-12">
+            <label className="form-label">Preferred Religion <span className="text-muted">(Multiple)</span></label>
+            <select
+              multiple
+              className="form-control"
+              value={formData.partnerCriteria.religion}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: { ...prev.partnerCriteria, religion: selected }
+                }));
+              }}
+              style={{ minHeight: '80px' }}
+            >
+              <option value="Hindu">Hindu</option>
+              <option value="Muslim">Muslim</option>
+              <option value="Christian">Christian</option>
+              <option value="Sikh">Sikh</option>
+              <option value="Buddhist">Buddhist</option>
+              <option value="Jain">Jain</option>
+              <option value="Jewish">Jewish</option>
+              <option value="Parsi">Parsi</option>
+              <option value="Other">Other</option>
+              <option value="Any">Any Religion</option>
+            </select>
+            <small className="text-muted">Hold Ctrl/Cmd to select multiple. Selected: {formData.partnerCriteria.religion.length}</small>
+          </div>
+        </div>
+        
+        {/* India-specific: Languages, Caste Preferences */}
         {formData.countryOfResidence === "India" && (
           <div className="row mb-3">
-            <div className="col-md-4">
+            <div className="col-md-6">
               <label className="form-label">Preferred Languages <span className="text-muted">(Multiple)</span></label>
               <select
                 multiple
@@ -3209,35 +3252,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               </select>
               <small className="text-muted">Hold Ctrl/Cmd to select multiple. Selected: {formData.partnerCriteria.languages.length}</small>
             </div>
-            <div className="col-md-4">
-              <label className="form-label">Preferred Religion <span className="text-muted">(Multiple)</span></label>
-              <select
-                multiple
-                className="form-control"
-                value={formData.partnerCriteria.religion}
-                onChange={(e) => {
-                  const selected = Array.from(e.target.selectedOptions, option => option.value);
-                  setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: { ...prev.partnerCriteria, religion: selected }
-                  }));
-                }}
-                style={{ minHeight: '80px' }}
-              >
-                <option value="Hindu">Hindu</option>
-                <option value="Muslim">Muslim</option>
-                <option value="Christian">Christian</option>
-                <option value="Sikh">Sikh</option>
-                <option value="Buddhist">Buddhist</option>
-                <option value="Jain">Jain</option>
-                <option value="Jewish">Jewish</option>
-                <option value="Parsi">Parsi</option>
-                <option value="Other">Other</option>
-                <option value="Any">Any Religion</option>
-              </select>
-              <small className="text-muted">Hold Ctrl/Cmd to select multiple. Selected: {formData.partnerCriteria.religion.length}</small>
-            </div>
-            <div className="col-md-4">
+            <div className="col-md-6">
               <label className="form-label">Preferred Caste</label>
               <input
                 type="text"
@@ -3387,22 +3402,43 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
-        {/* ROW 3c: Religion */}
+        {/* ROW 3c: Partner Preferred Religion */}
         <div className="row mb-3">
           <div className="col-md-12">
-            <label className="form-label">Religion</label>
+            <label className="form-label">Preferred Religion (Partner)</label>
             <ButtonGroup
               options={[
                 { value: 'Hindu', label: '🕉️ Hindu' },
                 { value: 'Christian', label: '✝️ Christian' },
                 { value: 'Muslim', label: '☪️ Muslim' },
+                { value: 'Any', label: 'Any' },
                 { value: 'Other', label: 'Other' }
               ]}
-              value={formData.religion}
-              onChange={handleChange}
-              name="religion"
-              error={fieldErrors.religion}
-              touched={touchedFields.religion}
+              value={formData.partnerCriteria.religion?.[0] || 'Any'}
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    religion: [value]
+                  }
+                }));
+                
+                // Auto-save for edit mode
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) {
+                    clearTimeout(autoSaveTimerRef.current);
+                  }
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify({
+                      ...formData.partnerCriteria,
+                      religion: [value]
+                    }), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.religion"
             />
           </div>
         </div>
@@ -3514,17 +3550,53 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             )}
           </div>
           <div className="col-md-6">
-            <label className="form-label">Languages Spoken</label>
-            <input
-              type="text"
-              className={`form-control ${fieldErrors.languages && touchedFields.languages ? 'is-invalid' : ''}`}
-              name="languages"
-              value={formData.languages}
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="e.g., English, Spanish, Hindi"
-            />
-            <small className="text-muted">Separate with commas</small>
+            <label className="form-label">Preferred Languages (Partner)</label>
+            <select
+              multiple
+              className="form-control"
+              value={formData.partnerCriteria.languages}
+              onChange={(e) => {
+                const selected = Array.from(e.target.selectedOptions, option => option.value);
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: {
+                    ...prev.partnerCriteria,
+                    languages: selected
+                  }
+                }));
+                
+                // Auto-save for edit mode
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) {
+                    clearTimeout(autoSaveTimerRef.current);
+                  }
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify({
+                      ...formData.partnerCriteria,
+                      languages: selected
+                    }), formData);
+                  }, 1000);
+                }
+              }}
+              style={{ minHeight: '100px' }}
+            >
+              <option value="English">English</option>
+              <option value="Spanish">Spanish</option>
+              <option value="Hindi">Hindi</option>
+              <option value="Tamil">Tamil</option>
+              <option value="Telugu">Telugu</option>
+              <option value="Marathi">Marathi</option>
+              <option value="Bengali">Bengali</option>
+              <option value="Kannada">Kannada</option>
+              <option value="Malayalam">Malayalam</option>
+              <option value="Gujarati">Gujarati</option>
+              <option value="Punjabi">Punjabi</option>
+              <option value="Mandarin">Mandarin</option>
+              <option value="French">French</option>
+              <option value="German">German</option>
+              <option value="Any">Any Language</option>
+            </select>
+            <small className="text-muted">Hold Ctrl/Cmd to select multiple. Selected: {formData.partnerCriteria.languages.length}</small>
             {fieldErrors.languages && touchedFields.languages && (
               <div className="invalid-feedback d-block">{fieldErrors.languages}</div>
             )}
