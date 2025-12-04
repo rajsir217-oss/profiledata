@@ -18,6 +18,13 @@
   /* min-height: 100vh; */
 }
 
+/* Override Bootstrap container max-width for user management page parent */
+.container:has(.user-management-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Responsive container widths to match Admin Dashboard */
 @media (max-width: 1024px) {
   .user-management-container {

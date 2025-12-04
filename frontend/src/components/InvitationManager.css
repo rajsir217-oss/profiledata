@@ -1,7 +1,14 @@
 .invitation-manager {
   padding: 20px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+}
+
+/* Override Bootstrap container max-width for invitation manager page parent */
+.container:has(.invitation-manager) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .invitation-header {
