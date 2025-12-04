@@ -154,18 +154,37 @@
   color: white;
 }
 
-/* Online Indicator - Rounded square, same height as other buttons */
+/* Online Indicator Container */
+.online-indicator-container {
+  position: relative;
+  margin-left: 12px;
+}
+
+/* Online Indicator */
 .online-indicator {
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 0 10px;
-  height: 44px; /* Match logout button height */
-  border-radius: 12px;
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  cursor: help;
+  gap: 6px;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  min-height: 44px; /* Accessibility */
+  transition: all 0.2s ease;
+}
+
+.online-indicator.clickable {
+  cursor: pointer;
+}
+
+.online-indicator.clickable:hover {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3));
+  border-color: rgba(16, 185, 129, 0.5);
+  transform: translateY(-1px);
+}
+
+.online-indicator.clickable:active {
+  transform: translateY(0);
 }
 
 .online-dot {

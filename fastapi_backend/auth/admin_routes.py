@@ -469,6 +469,8 @@ async def update_user_status(
             db=db,
             username=username,
             user_email=user.get("contactEmail") or user.get("email"),
+            firstname=user.get("firstName", ""),
+            lastname=user.get("lastName", ""),
             old_status=old_status_value,
             new_status=new_account_status,
             reason=request.reason,
@@ -492,6 +494,8 @@ async def _queue_status_change_notification(
     db,
     username: str,
     user_email: str,
+    firstname: str,
+    lastname: str,
     old_status: str,
     new_status: str,
     reason: Optional[str],
@@ -517,6 +521,8 @@ async def _queue_status_change_notification(
         subject = "🎉 Your Profile is Now Active - Welcome to USVedika!"
         template_data = {
             "username": username,
+            "firstname": firstname,
+            "lastname": lastname,
             "status": "active",
             "message": "Your profile has been approved and is now active. You can now access all features and start connecting with matches!"
         }

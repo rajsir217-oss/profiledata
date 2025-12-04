@@ -6,6 +6,7 @@ import { getApiUrl } from '../config/apiConfig';
 import { getImageUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
+import OnlineUsersDropdown from './OnlineUsersDropdown';
 import Logo from './Logo';
 import { getFirstName } from '../utils/userDisplay';
 import logger from '../utils/logger';
@@ -15,8 +16,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
+  const [userRole, setUserRole] = useState(null);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showMessagesDropdown, setShowMessagesDropdown] = useState(false);
+  const [showOnlineDropdown, setShowOnlineDropdown] = useState(false);
   const [selectedProfile, setSelectedProfile] = useState(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [violations, setViolations] = useState(null);
@@ -71,10 +74,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           setIsLoggedIn(true);
           setCurrentUser(username);
           
+          // Load user role from localStorage
+          const role = localStorage.getItem('userRole');
+          setUserRole(role);
+          
           // Load user profile for display name (pass requester to avoid PII masking)
           try {
             const response = await api.get(`/profile/${username}?requester=${username}`);
             setUserProfile(response.data);
+            
+            // Update role from profile if available
+            if (response.data.role) {
+              setUserRole(response.data.role);
+            }
             
             // Load user violations
             loadUserViolations(username);
@@ -271,9 +283,25 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             </span>
           </div>
           {onlineCount > 0 && (
-            <div className="online-indicator">
-              <span className="online-dot">🟢</span>
-              <span className="online-count">{onlineCount}</span>
+            <div className="online-indicator-container">
+              <div 
+                className={`online-indicator ${userRole === 'admin' || userRole === 'moderator' ? 'clickable' : ''}`}
+                onClick={() => {
+                  if (userRole === 'admin' || userRole === 'moderator') {
+                    setShowOnlineDropdown(!showOnlineDropdown);
+                  }
+                }}
+                title={userRole === 'admin' || userRole === 'moderator' ? 'Click to see who\'s online' : `${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}
+              >
+                <span className="online-dot">🟢</span>
+                <span className="online-count">{onlineCount}</span>
+              </div>
+              {(userRole === 'admin' || userRole === 'moderator') && (
+                <OnlineUsersDropdown
+                  isOpen={showOnlineDropdown}
+                  onClose={() => setShowOnlineDropdown(false)}
+                />
+              )}
             </div>
           )}
         </div>
