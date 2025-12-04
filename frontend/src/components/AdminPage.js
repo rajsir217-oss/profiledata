@@ -189,11 +189,16 @@ const AdminPage = () => {
   const calculateComputedFields = (user) => {
     const now = new Date();
     
-    // Calculate age from date of birth
+    // Calculate age from birth month and year
     let age = 'N/A';
-    if (user.dateOfBirth) {
-      const birthDate = new Date(user.dateOfBirth);
-      age = Math.floor((now - birthDate) / (1000 * 60 * 60 * 24 * 365.25));
+    if (user.birthMonth && user.birthYear) {
+      const currentMonth = now.getMonth() + 1; // JS months are 0-indexed
+      const currentYear = now.getFullYear();
+      age = currentYear - user.birthYear;
+      // If birthday hasn't happened this year yet, subtract 1
+      if (currentMonth < user.birthMonth) {
+        age--;
+      }
     }
     
     // Calculate days since registration
