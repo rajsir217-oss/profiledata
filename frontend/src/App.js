@@ -53,6 +53,7 @@ import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
+import TooltipDemo from './components/TooltipDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
@@ -299,6 +300,9 @@ function AppContent() {
               
               {/* Logo Showcase - for design review */}
               <Route path="/logo-showcase" element={<LogoShowcase />} />
+              
+              {/* Tooltip Demo - for UI development */}
+              <Route path="/tooltip-demo" element={<TooltipDemo />} />
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

@@ -4,6 +4,7 @@
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Responsive width to match result cards */
@@ -27,6 +28,7 @@
   flex-direction: column;
   gap: 16px;
   margin-bottom: 20px;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Keyword Search - Full width */
@@ -39,6 +41,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Third row: Height Min and Height Max */
@@ -46,6 +49,7 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Advanced Filters Grid Layout - 3 columns */
@@ -54,6 +58,7 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   margin-bottom: 20px;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 /* Responsive: Single column on mobile */
@@ -123,6 +128,8 @@
 /* Form Group Styling */
 .unified-search-filters .form-group {
   margin-bottom: 0;
+  position: relative; /* Allow tooltips to position relative to form group */
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 .unified-search-filters .form-group label {
@@ -131,6 +138,8 @@
   font-weight: 500;
   color: var(--text-color);
   font-size: 14px;
+  position: relative;
+  z-index: 1;
 }
 
 .unified-search-filters .form-control {

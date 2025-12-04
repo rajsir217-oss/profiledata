@@ -1,5 +1,6 @@
 import React from 'react';
 import logger from '../utils/logger';
+import Tooltip from './Tooltip';
 import './SearchFilters.css';
 
 /**
@@ -69,8 +70,13 @@ const SearchFilters = ({
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ fontSize: '20px' }}>🎯</span>
-              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-color)' }}>
+              <h4 style={{ margin: 0, fontSize: '16px', fontWeight: 600, color: 'var(--text-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Minimum Compatibility Score
+                <Tooltip 
+                  text="Filter matches by L3V3L compatibility score. Higher scores indicate better alignment with your values, preferences, and personality traits."
+                  position="top"
+                  icon 
+                />
               </h4>
             </div>
             <span style={{ 
@@ -115,7 +121,14 @@ const SearchFilters = ({
         {/* Row 1: Keyword Search (Full Width) */}
         <div className="col-keyword">
           <div className="form-group">
-            <label>Keyword Search</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Keyword Search
+              <Tooltip 
+                text="Search across all profile fields including bio, interests, occupation, and more. Leave empty to see all matches."
+                position="top"
+                icon 
+              />
+            </label>
             <input
               type="text"
               className="form-control"
@@ -131,7 +144,14 @@ const SearchFilters = ({
         <div className="filter-row-location-age">
           <div className="col-location">
             <div className="form-group">
-              <label>Location</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Location
+                <Tooltip 
+                  text="Filter by city, state, or region. Partial matches work too (e.g., 'CA' for California)."
+                  position="top"
+                  icon 
+                />
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -144,7 +164,14 @@ const SearchFilters = ({
           </div>
           <div className="col-age-range">
             <div className="form-group">
-              <label>Age Range</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Age Range
+                <Tooltip 
+                  text="Set minimum and maximum age for matches. Leave blank for no age restriction. Minimum allowed: 19, Maximum: 100."
+                  position="top"
+                  icon 
+                />
+              </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="number"
@@ -199,7 +226,14 @@ const SearchFilters = ({
         <div className="filter-row-height">
           <div className="col-height-min">
             <div className="form-group">
-              <label>Height (Min)</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Height (Min)
+                <Tooltip 
+                  text="Minimum height preference. Matches will be at least this tall."
+                  position="top"
+                  icon 
+                />
+              </label>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <select
                   className="form-control"
@@ -231,7 +265,14 @@ const SearchFilters = ({
           </div>
           <div className="col-height-max">
             <div className="form-group">
-              <label>Height (Max)</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Height (Max)
+                <Tooltip 
+                  text="Maximum height preference. Matches will be at most this tall."
+                  position="top"
+                  icon 
+                />
+              </label>
               <div style={{ display: 'flex', gap: '4px' }}>
                 <select
                   className="form-control"
@@ -368,7 +409,14 @@ const SearchFilters = ({
           <div className="advanced-filters-section">
               <div className="col-gender">
                 <div className="form-group">
-                  <label>Gender</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Gender
+                    <Tooltip 
+                      text="Filter by gender preference. Default is set to opposite gender for most users. Admins can search all genders."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="gender"
@@ -391,7 +439,14 @@ const SearchFilters = ({
               </div>
               <div className="col-body-type">
                 <div className="form-group">
-                  <label>Body Type</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Body Type
+                    <Tooltip 
+                      text="Filter by body type preference if specified by the user."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="bodyType"
@@ -407,7 +462,14 @@ const SearchFilters = ({
               </div>
               <div className="col-occupation">
                 <div className="form-group">
-                  <label>Occupation</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Occupation
+                    <Tooltip 
+                      text="Filter by profession or career field."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="occupation"
@@ -423,7 +485,14 @@ const SearchFilters = ({
               </div>
               <div className="col-eating">
                 <div className="form-group">
-                  <label>Eating</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Eating
+                    <Tooltip 
+                      text="Filter by eating preference (vegetarian, non-vegetarian, vegan, etc.)."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="eatingPreference"
@@ -439,7 +508,14 @@ const SearchFilters = ({
               </div>
               <div className="col-drinking">
                 <div className="form-group">
-                  <label>Drinking</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Drinking
+                    <Tooltip 
+                      text="Filter by alcohol consumption habits (never, socially, regularly, etc.)."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="drinking"
@@ -455,7 +531,14 @@ const SearchFilters = ({
               </div>
               <div className="col-smoking">
                 <div className="form-group">
-                  <label>Smoking</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Smoking
+                    <Tooltip 
+                      text="Filter by smoking habits (never, occasionally, regularly, etc.)."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <select
                     className="form-control"
                     name="smoking"
@@ -471,7 +554,14 @@ const SearchFilters = ({
               </div>
               <div className="col-days-back">
                 <div className="form-group">
-                  <label>Days Back</label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    Days Back
+                    <Tooltip 
+                      text="Show only profiles created within the last X days. Useful for finding new members."
+                      position="top"
+                      icon 
+                    />
+                  </label>
                   <input
                     type="number"
                     className="form-control"

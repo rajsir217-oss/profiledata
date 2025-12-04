@@ -1,0 +1,249 @@
+/* Tooltip Container */
+.tooltip-container {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: help;
+  z-index: 1; /* Ensure above other elements */
+}
+
+/* Info Icon Wrapper */
+.tooltip-icon-wrapper {
+  cursor: pointer;
+  outline: none;
+  margin-left: 6px;
+  pointer-events: auto; /* Ensure clickable */
+  z-index: 10; /* Above other inline elements */
+}
+
+.tooltip-icon-wrapper:focus {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+/* Info Icon */
+.tooltip-icon {
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: var(--primary-color);
+  color: white;
+  border-radius: 50%;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+  pointer-events: auto; /* Ensure icon itself is clickable */
+  position: relative;
+  z-index: 1;
+}
+
+.tooltip-icon-wrapper:active .tooltip-icon,
+.tooltip-icon:active {
+  transform: scale(0.95);
+}
+
+.tooltip-icon-wrapper[aria-expanded="true"] .tooltip-icon {
+  background: var(--secondary-color);
+}
+
+/* Tooltip Bubble */
+.tooltip-bubble {
+  position: absolute !important;
+  z-index: 99999 !important;
+  padding: 18px 42px 18px 18px !important; /* Padding for text, extra room for close button */
+  background: rgba(255, 255, 255, 0.98) !important;
+  background-clip: padding-box !important; /* Ensure background covers padding area */
+  color: #dc2626 !important; /* Red text */
+  border: 2px solid var(--primary-color, #6366f1) !important;
+  border-radius: 8px !important;
+  font-size: 14px !important;
+  font-weight: 500 !important;
+  line-height: 1.7 !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.1) !important;
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow-wrap: break-word !important;
+  animation: tooltipFadeIn 0.2s ease-out !important;
+  pointer-events: auto !important;
+  min-width: 250px !important;
+  max-width: 450px !important;
+  width: fit-content !important; /* Fit to content */
+  min-height: fit-content !important; /* Ensure height fits content */
+  height: auto !important;
+  display: inline-block !important; /* Inline-block shrinks to content */
+  box-sizing: border-box !important;
+  backdrop-filter: blur(10px) !important;
+  overflow: hidden !important; /* Clip to rounded corners */
+  vertical-align: top !important;
+}
+
+/* Close Button */
+.tooltip-close {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  color: #dc2626 !important; /* Red to match tooltip text */
+  font-size: 20px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  padding: 4px !important;
+  width: 24px !important;
+  height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  opacity: 0.7 !important;
+  transition: all 0.2s ease !important;
+  font-weight: bold !important;
+  z-index: 10 !important; /* Above content */
+}
+
+.tooltip-close:hover {
+  opacity: 1 !important;
+  background: rgba(220, 38, 38, 0.1) !important;
+  color: #dc2626 !important;
+}
+
+.tooltip-close:active {
+  transform: scale(0.9) !important;
+}
+
+/* Animation */
+@keyframes tooltipFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fixed positioning - breaks out of stacking context */
+.tooltip-fixed {
+  position: fixed !important;
+}
+
+.tooltip-fixed.tooltip-top {
+  transform: translate(-50%, -100%) !important;
+}
+
+.tooltip-fixed.tooltip-bottom {
+  transform: translate(-50%, 0) !important;
+}
+
+/* Position: Top (default) */
+.tooltip-top {
+  bottom: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-top::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 8px solid transparent;
+  border-top-color: rgba(255, 255, 255, 0.98); /* Match tooltip background */
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
+}
+
+/* Position: Bottom */
+.tooltip-bottom {
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.tooltip-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-bottom-color: rgba(255, 255, 255, 0.98);
+}
+
+/* Position: Left */
+.tooltip-left {
+  right: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tooltip-left::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: rgba(255, 255, 255, 0.98);
+}
+
+/* Position: Right */
+.tooltip-right {
+  left: calc(100% + 8px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.tooltip-right::after {
+  content: '';
+  position: absolute;
+  right: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: rgba(255, 255, 255, 0.98);
+}
+
+/* Theme-specific styles - Removed in favor of high-contrast universal design */
+/* Tooltips now use a light background with dark text for visibility in all themes */
+
+/* Responsive: Smaller tooltip on mobile */
+@media (max-width: 768px) {
+  .tooltip-bubble {
+    min-width: 200px !important;
+    max-width: 350px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important; /* Bolder text on mobile for readability */
+    padding: 14px 36px 14px 14px !important; /* Adjusted for close button */
+    line-height: 1.6 !important;
+  }
+  
+  .tooltip-icon {
+    font-size: 14px;
+    width: 18px;
+    height: 18px;
+  }
+  
+  .tooltip-close {
+    top: 6px !important;
+    right: 6px !important;
+    font-size: 18px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+}
+
+/* Accessibility: High contrast for better visibility */
+@media (prefers-contrast: high) {
+  .tooltip-bubble {
+    border-width: 2px;
+    font-weight: 500;
+  }
+}

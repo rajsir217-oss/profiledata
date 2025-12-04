@@ -11,15 +11,17 @@
 /* Collapsible Filters Container */
 .filters-container {
   transition: all 0.3s ease-in-out;
-  overflow: hidden;
+  overflow: visible; /* Allow tooltips to show outside */
 }
 
 .filters-container.collapsed {
   max-height: 80px;
+  overflow: hidden; /* Only hide overflow when collapsed */
 }
 
 .filters-container.expanded {
   max-height: none;
+  overflow: visible; /* Allow tooltips to overflow */
 }
 
 .filters-collapsed-header {
