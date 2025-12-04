@@ -2,11 +2,17 @@
 
 .activity-logs {
   padding: 20px;
-  max-width: 1400px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   background: var(--background-color);
   min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for activity logs page parent */
+.container:has(.activity-logs) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Header */
