@@ -1,9 +1,9 @@
 /* Profile Page Styles */
 
-/* Profile Page Container */
+/* Profile Page Container - Full width layout (98%) */
 .container.mt-4 {
-  width: 80% !important;
-  max-width: 1400px !important;
+  width: 98% !important;
+  max-width: 98% !important;
   margin: 0 auto !important;
   padding: 20px;
 }
