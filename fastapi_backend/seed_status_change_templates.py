@@ -41,9 +41,14 @@ templates = [
             <p>Welcome to USVedika</p>
         </div>
         <div class="content">
-            <p>Hi {username},</p>
+            <p>Hi {firstname} {lastname},</p>
             
-            <p><strong>Great news!</strong> Your profile has been approved by our team and is now active.</p>
+            <p><strong>Great news!</strong> Your profile has been approved by our team and is now active. Keep username: <strong>{username}</strong>, keep it safe.</p>
+            
+            <p style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px; margin: 15px 0; border-radius: 4px;">
+                <strong>User ID:</strong> {username}<br>
+                <strong>Status:</strong> Active
+            </p>
             
             <p>{message}</p>
             
