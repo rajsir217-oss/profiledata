@@ -13,7 +13,10 @@ const OnlineUsersDropdown = ({ isOpen, onClose }) => {
 
   useEffect(() => {
     if (isOpen) {
+      console.log('📂 Dropdown opened, loading users...');
       loadOnlineUsers();
+    } else {
+      console.log('📪 Dropdown closed');
     }
   }, [isOpen]);
 
@@ -34,10 +37,13 @@ const OnlineUsersDropdown = ({ isOpen, onClose }) => {
   const loadOnlineUsers = async () => {
     setLoading(true);
     try {
+      console.log('🔍 Loading online users...');
       const users = await socketService.getOnlineUsers();
+      console.log('✅ Online users loaded:', users);
       logger.info('Online users loaded:', users);
       setOnlineUsers(users || []);
     } catch (error) {
+      console.error('❌ Error loading online users:', error);
       logger.error('Error loading online users:', error);
       setOnlineUsers([]);
     } finally {

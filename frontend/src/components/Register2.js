@@ -156,7 +156,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       languages: ["English"],
       religion: ["Any"],
       caste: "No Preference",
-      location: ["Any"],
+      location: "Any Location",
       eatingPreference: ["Any"],
       familyType: ["Any"],
       familyValues: ["Moderate"]
@@ -1584,7 +1584,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               languages: userData.partnerCriteria?.languages || ['English'],
               religion: userData.partnerCriteria?.religion || ['Any'],
               caste: userData.partnerCriteria?.caste || 'No Preference',
-              location: userData.partnerCriteria?.location || ['Any'],
+              location: userData.partnerCriteria?.location || 'Any Location',
               eatingPreference: userData.partnerCriteria?.eatingPreference || ['Any'],
               familyType: userData.partnerCriteria?.familyType || ['Any'],
               familyValues: userData.partnerCriteria?.familyValues || ['Moderate']
@@ -3150,31 +3150,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             <small className="text-muted">Selected: {formData.partnerCriteria.profession.length}</small>
           </div>
           <div className="col-md-4">
-            <label className="form-label">Preferred Locations <span className="text-muted">(Multiple)</span></label>
-            <select
-              multiple
+            <label className="form-label">Preferred Locations</label>
+            <input
+              type="text"
               className="form-control"
               value={formData.partnerCriteria.location}
               onChange={(e) => {
-                const selected = Array.from(e.target.selectedOptions, option => option.value);
                 setFormData(prev => ({
                   ...prev,
-                  partnerCriteria: { ...prev.partnerCriteria, location: selected }
+                  partnerCriteria: { ...prev.partnerCriteria, location: e.target.value }
                 }));
               }}
-              style={{ minHeight: '80px' }}
-            >
-              <option value="Bangalore">Bangalore</option>
-              <option value="Mumbai">Mumbai</option>
-              <option value="Delhi">Delhi</option>
-              <option value="Chennai">Chennai</option>
-              <option value="Hyderabad">Hyderabad</option>
-              <option value="California">California</option>
-              <option value="New York">New York</option>
-              <option value="Texas">Texas</option>
-              <option value="Any">Any Location</option>
-            </select>
-            <small className="text-muted">Selected: {formData.partnerCriteria.location.length}</small>
+              placeholder="e.g., Any Location, California, New York, etc."
+            />
+            <small className="text-muted">Enter preferred locations (comma-separated or free text)</small>
           </div>
         </div>
         
