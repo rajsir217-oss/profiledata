@@ -209,7 +209,24 @@ const Profile = () => {
         }
       } catch (err) {
         console.error("Error fetching profile:", err);
-        setError("Unable to load profile");
+        console.error("Error details:", {
+          message: err.message,
+          response: err.response?.data,
+          status: err.response?.status,
+          username: username,
+          currentUsername: currentUsername
+        });
+        
+        // More specific error messages
+        if (err.response?.status === 404) {
+          setError(`Profile not found: ${username}`);
+        } else if (err.response?.status === 403) {
+          setError("You don't have permission to view this profile");
+        } else if (err.response?.data?.detail) {
+          setError(err.response.data.detail);
+        } else {
+          setError(`Unable to load profile: ${err.message || 'Unknown error'}`);
+        }
       } finally {
         setLoading(false);
       }

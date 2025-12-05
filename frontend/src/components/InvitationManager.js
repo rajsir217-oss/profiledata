@@ -922,27 +922,25 @@ const InvitationManager = () => {
         </table>
       </div>
 
-      {/* View More Pagination */}
+      {/* View More Pagination - without outer container */}
       {sortedInvitations.length > 0 && (
-        <div className="pagination-container">
-          {displayedCount < sortedInvitations.length ? (
-            <div className="pagination-controls">
-              <button
-                className="view-more-btn"
-                onClick={handleLoadMore}
-                disabled={loadingMore}
-              >
-                View more ({Math.min(20, sortedInvitations.length - displayedCount)} more) of {displayedCount}/{sortedInvitations.length}
-              </button>
+        displayedCount < sortedInvitations.length ? (
+          <div className="pagination-controls">
+            <button
+              className="view-more-btn"
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+            >
+              View more ({Math.min(20, sortedInvitations.length - displayedCount)} more) of {displayedCount}/{sortedInvitations.length}
+            </button>
+          </div>
+        ) : (
+          <div className="pagination-controls">
+            <div className="all-loaded-message">
+              ✓ All {sortedInvitations.length} invitations loaded
             </div>
-          ) : (
-            <div className="pagination-controls">
-              <div className="all-loaded-message">
-                ✓ All {sortedInvitations.length} invitations loaded
-              </div>
-            </div>
-          )}
-        </div>
+          </div>
+        )
       )}
 
       {/* Add Invitation Modal */}

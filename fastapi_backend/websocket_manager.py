@@ -216,10 +216,27 @@ async def typing(sid, data):
 
 @sio.event
 async def get_online_users(sid, data):
-    """Get list of online users"""
+    """Get list of online users with profile info"""
+    from main import db
+    
+    usernames = list(online_users.keys())
+    user_list = []
+    
+    # Fetch user details from database
+    for username in usernames:
+        user = await db.users.find_one({"username": username})
+        if user:
+            user_list.append({
+                "username": user.get("username"),
+                "firstName": user.get("firstName"),
+                "lastName": user.get("lastName"),
+                "profileImage": user.get("images", [None])[0] if user.get("images") else None,
+                "role": user.get("role", "free_user")
+            })
+    
     await sio.emit('online_users_list', {
-        'users': list(online_users.keys()),
-        'count': len(online_users)
+        'users': user_list,
+        'count': len(user_list)
     }, room=sid)
 
 async def broadcast_online_count():
