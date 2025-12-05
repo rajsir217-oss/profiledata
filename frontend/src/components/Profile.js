@@ -1707,8 +1707,12 @@ const Profile = () => {
             {user.partnerCriteria.profession && user.partnerCriteria.profession.length > 0 && (
               <p><strong>Preferred Profession:</strong> {user.partnerCriteria.profession.join(', ')}</p>
             )}
-            {user.partnerCriteria.location && user.partnerCriteria.location.length > 0 && (
-              <p><strong>Preferred Locations:</strong> {user.partnerCriteria.location.join(', ')}</p>
+            {user.partnerCriteria.location && (
+              <p><strong>Preferred Locations:</strong> {
+                Array.isArray(user.partnerCriteria.location) 
+                  ? user.partnerCriteria.location.join(', ')
+                  : user.partnerCriteria.location
+              }</p>
             )}
             {user.partnerCriteria.languages && user.partnerCriteria.languages.length > 0 && (
               <p><strong>Preferred Languages:</strong> {user.partnerCriteria.languages.join(', ')}</p>

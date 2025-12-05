@@ -291,7 +291,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
                     setShowOnlineDropdown(!showOnlineDropdown);
                   }
                 }}
-                title={userRole === 'admin' || userRole === 'moderator' ? 'Click to see who\'s online' : `${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}
+                title={userRole === 'admin' || userRole === 'moderator' 
+                  ? 'Click to see who\'s online' 
+                  : `Currently ${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}
               >
                 <span className="online-dot">🟢</span>
                 <span className="online-count">{onlineCount}</span>

@@ -47,6 +47,38 @@
 
 ## 💾 Database Changes
 
+### 0. Run Database Migrations (REQUIRED FIRST)
+```bash
+cd fastapi_backend/migrations
+python run_migrations.py
+```
+**What it does:**
+- Migrates `partnerCriteria.location` from array to string format
+- Converts values like `["California", "New York"]` → `"California, New York"`
+- Converts empty arrays or `["Any"]` → `"Any Location"`
+- Safe to run multiple times (skips already-migrated records)
+
+**Verify migration:**
+```bash
+python run_migrations.py --status
+```
+- [ ] Migration 006_migrate_location_to_string.py completed
+- [ ] No pending migrations
+- [ ] All array-based locations converted to strings
+
+**Check migration results:**
+```bash
+mongosh $MONGODB_URL --eval "
+  print('Array-based locations:', db.users.countDocuments({'partnerCriteria.location': {\$type: 'array'}}));
+  print('String-based locations:', db.users.countDocuments({'partnerCriteria.location': {\$type: 'string'}}));
+  print('Sample locations:');
+  db.users.find({'partnerCriteria.location': {\$exists: true}}, 
+    {username: 1, 'partnerCriteria.location': 1}).limit(3).forEach(printjson);
+"
+```
+- [ ] Array-based locations: 0
+- [ ] String-based locations: matches total user count
+
 ### 1. Create Indexes on `email_analytics`
 ```bash
 mongosh $MONGODB_URL --eval "
