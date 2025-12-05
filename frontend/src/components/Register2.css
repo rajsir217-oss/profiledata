@@ -1,5 +1,12 @@
 /* Register2 Specific Styles - For Tabbed Layout */
 
+/* Container width for edit mode */
+.register-container.edit-mode {
+  width: 100% !important;
+  max-width: 90% !important;
+  margin: 0 auto !important;
+}
+
 /* ========================================
    DISABLE ALL TRANSITIONS AND ANIMATIONS
    Override Bootstrap and any other CSS
@@ -114,14 +121,14 @@
 /* Registration mode - glass effect over wedding background */
 .register-container.registration-mode .tab-bar {
   background: rgba(255, 255, 255, 0.95) !important;
-  backdrop-filter: blur(10px) !important;
+  /* backdrop-filter: blur(10px) !important; */
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Edit mode - theme-aware colors */
 .register-container.edit-mode .tab-bar {
   background: var(--card-background) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+  /* box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important; */
 }
 
 /* Ensure content sits below tabs with proper spacing */
@@ -223,8 +230,21 @@
   opacity: 0.5;
 }
 
+/* Responsive width adjustments */
+@media (max-width: 1440px) {
+  .register-container.edit-mode {
+    width: 95% !important;
+    max-width: 95% !important;
+  }
+}
+
 /* Mobile responsive */
 @media (max-width: 768px) {
+  .register-container.edit-mode {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
   .register-container .tab-bar {
     padding: 6px !important;
     border-radius: 8px 8px 0 0 !important;
@@ -612,7 +632,7 @@
 
 .tab-navigation-buttons .btn-outline-secondary {
   color: var(--text-color) !important;
-  background: white !important;
+  background: rgb(104, 124, 70) !important;
   border: 2px solid var(--border-color) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }

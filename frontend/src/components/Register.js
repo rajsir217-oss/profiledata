@@ -1762,7 +1762,7 @@ const Register = () => {
           <h6 style={{ color: 'var(--text-color, #333)', marginBottom: '12px' }}>📏 Height Preference (relative to your height)</h6>
           <div className="row mb-3">
             <div className="col-md-6">
-              <label className="form-label">How much shorter?</label>
+              <label className="form-label">Minimum Height (shortest acceptable)</label>
               <select
                 className={`form-control ${formData.partnerCriteria.heightRangeRelative.minInches === 0 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.minInches}
@@ -1774,18 +1774,25 @@ const Register = () => {
                   }
                 }))}
               >
-                <option value="0">Same height as mine</option>
-                <option value="-1">1 inch shorter</option>
-                <option value="-2">2 inches shorter</option>
-                <option value="-3">3 inches shorter</option>
-                <option value="-4">4 inches shorter</option>
-                <option value="-6">6 inches shorter</option>
-                <option value="-12">1 foot shorter</option>
                 <option value="-24">2 feet shorter</option>
+                <option value="-12">1 foot shorter</option>
+                <option value="-6">6 inches shorter</option>
+                <option value="-4">4 inches shorter</option>
+                <option value="-3">3 inches shorter</option>
+                <option value="-2">2 inches shorter</option>
+                <option value="-1">1 inch shorter</option>
+                <option value="0">Same height as mine</option>
+                <option value="1">1 inch taller</option>
+                <option value="2">2 inches taller</option>
+                <option value="3">3 inches taller</option>
+                <option value="4">4 inches taller</option>
+                <option value="6">6 inches taller</option>
+                <option value="12">1 foot taller</option>
+                <option value="24">2 feet taller</option>
               </select>
             </div>
             <div className="col-md-6">
-              <label className="form-label">How much taller?</label>
+              <label className="form-label">Maximum Height (tallest acceptable)</label>
               <select
                 className={`form-control ${formData.partnerCriteria.heightRangeRelative.maxInches === 6 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.maxInches}
@@ -1797,6 +1804,13 @@ const Register = () => {
                   }
                 }))}
               >
+                <option value="-24">2 feet shorter</option>
+                <option value="-12">1 foot shorter</option>
+                <option value="-6">6 inches shorter</option>
+                <option value="-4">4 inches shorter</option>
+                <option value="-3">3 inches shorter</option>
+                <option value="-2">2 inches shorter</option>
+                <option value="-1">1 inch shorter</option>
                 <option value="0">Same height as mine</option>
                 <option value="1">1 inch taller</option>
                 <option value="2">2 inches taller</option>

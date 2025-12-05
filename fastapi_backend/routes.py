@@ -6115,14 +6115,30 @@ async def get_online_count():
     return {"onlineCount": count}
 
 @router.get("/online-status/users")
-async def get_online_users():
-    """Get list of currently online users"""
+async def get_online_users(db = Depends(get_database)):
+    """Get list of currently online users with profile info"""
     from redis_manager import get_redis_manager
     
     redis = get_redis_manager()
-    users = redis.get_online_users()
-    logger.info(f"Online users: {len(users)} - {users}")
-    return {"onlineUsers": users, "count": len(users)}
+    usernames = redis.get_online_users()
+    logger.info(f"Online usernames: {len(usernames)} - {usernames}")
+    
+    # Fetch user details from database
+    user_list = []
+    for username in usernames:
+        user = await db.users.find_one({"username": username})
+        if user:
+            # Return only necessary fields for dropdown
+            user_list.append({
+                "username": user.get("username"),
+                "firstName": user.get("firstName"),
+                "lastName": user.get("lastName"),
+                "profileImage": user.get("images", [None])[0] if user.get("images") else None,
+                "role": user.get("role", "free_user")
+            })
+    
+    logger.info(f"Online users with profiles: {len(user_list)}")
+    return {"onlineUsers": user_list, "count": len(user_list)}
 
 @router.get("/online-status/{username}")
 async def check_user_online(username: str):
