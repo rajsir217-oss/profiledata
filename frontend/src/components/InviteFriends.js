@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import LoadMore from './LoadMore';
 import './InviteFriends.css';
 
 const InviteFriends = () => {
+  const location = useLocation();
   const [invitations, setInvitations] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -20,6 +22,7 @@ const InviteFriends = () => {
     email: '',
     phone: '',
     channel: 'email',
+    emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
     customMessage: '',
     sendImmediately: true
   });
@@ -75,11 +78,21 @@ const InviteFriends = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Check if modal should be opened automatically (from navigation state)
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent re-opening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const token = localStorage.getItem('token');
+      console.log('📤 Sending invitation:', formData);
       const response = await fetch(`${getBackendUrl()}/api/user-invitations`, {
         method: 'POST',
         headers: {
@@ -89,6 +102,7 @@ const InviteFriends = () => {
         body: JSON.stringify(formData)
       });
 
+      console.log('📥 Response status:', response.status);
       if (response.ok) {
         setShowAddModal(false);
         setFormData({
@@ -96,6 +110,7 @@ const InviteFriends = () => {
           email: '',
           phone: '',
           channel: 'email',
+          emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
           customMessage: '',
           sendImmediately: true
         });
@@ -103,12 +118,14 @@ const InviteFriends = () => {
         loadData();
       } else {
         const data = await response.json();
+        console.error('❌ Error response:', data);
         const errorMsg = typeof data.detail === 'string' 
           ? data.detail 
           : data.detail?.[0]?.msg || 'Failed to send invitation';
         toastService.error(errorMsg);
       }
     } catch (err) {
+      console.error('❌ Exception:', err);
       toastService.error('Error sending invitation: ' + err.message);
     }
   };
@@ -362,6 +379,17 @@ const InviteFriends = () => {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   placeholder="+1 234 567 8900"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Email Subject *</label>
+                <input
+                  type="text"
+                  value={formData.emailSubject}
+                  onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
+                  placeholder="Email subject line"
+                  required
                 />
               </div>
 

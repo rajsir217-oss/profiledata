@@ -225,10 +225,14 @@ class EmailNotifierTemplate(JobTemplate):
         """Render email subject and body from template"""
         from config import settings
         
+        # Try to find template (check both 'enabled' and 'active' for backwards compatibility)
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
             "channel": NotificationChannel.EMAIL,
-            "active": True
+            "$or": [
+                {"enabled": True},
+                {"active": True}
+            ]
         })
         
         # Inject app URLs and tracking into template data
@@ -278,8 +282,28 @@ class EmailNotifierTemplate(JobTemplate):
         }
         
         if not template:
-            subject = f"New {notification.trigger} notification"
-            body = f"You have a new {notification.trigger} event."
+            # Fallback for when template is not found
+            trigger_name = notification.trigger.replace("_", " ").title()
+            
+            # Get requester name from template_data
+            requester_name = "Someone"
+            if isinstance(template_data, dict):
+                match_data = template_data.get("match", {})
+                if isinstance(match_data, dict):
+                    first = match_data.get("firstName", "")
+                    last = match_data.get("lastName", "")
+                    if first and last:
+                        requester_name = f"{first} {last}"
+                    elif first:
+                        requester_name = first
+            
+            # Better fallback messages
+            if notification.trigger == "pii_request":
+                subject = "📧 New Photo / Contact Access Request"
+                body = f"You have a new photo/contact access request from {requester_name}. Please login to your account to review the request."
+            else:
+                subject = f"New {trigger_name} Notification"
+                body = f"You have a new {trigger_name.lower()} notification. Please login to view details."
         else:
             subject = service.render_template(
                 template.get("subject", ""),

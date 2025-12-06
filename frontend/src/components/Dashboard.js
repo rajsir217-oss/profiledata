@@ -208,7 +208,7 @@ const Dashboard = () => {
         api.get(`/shortlist/${user}`),
         api.get(`/profile-views/${user}`),
         api.get(`/exclusions/${user}`),
-        api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
+        api.get(`/pii-requests/${user}/outgoing`),
         api.get(`/their-favorites/${user}`),
         api.get(`/their-shortlists/${user}`)
       ]);
@@ -516,15 +516,21 @@ const Dashboard = () => {
 
   const handleCancelPIIRequest = async (requestUsername) => {
     try {
-      // For now, just remove from UI - backend endpoint needs to be created  
+      // Call API to cancel the request
+      await api.delete(`/pii-requests/${currentUser}/outgoing/${requestUsername}`);
+      
+      // Remove from UI
       setDashboardData(prev => ({
         ...prev,
         myRequests: prev.myRequests.filter(r => 
           (typeof r === 'string' ? r : r.username) !== requestUsername
         )
       }));
+      
+      toast.success('Photo request cancelled');
     } catch (err) {
       logger.error(`Failed to cancel request: ${err.message}`);
+      toast.error('Failed to cancel request');
     }
   };
 
@@ -729,12 +735,23 @@ const Dashboard = () => {
     if (!user) return null;
 
     // Handle different data structures (regular users vs PII requests)
-    // PII requests have requesterProfile nested inside
-    const username = user.username || user.viewerProfile?.username || user.userProfile?.username || user.requesterProfile?.username;
+    // Incoming PII requests have requesterProfile nested inside
+    // Outgoing PII requests have profileOwner nested inside
+    const username = user.username || 
+                    user.viewerProfile?.username || 
+                    user.userProfile?.username || 
+                    user.requesterProfile?.username ||
+                    user.profileOwner?.username;
+    
     const displayUser = user.requesterProfile ? {
       ...user.requesterProfile,
       requestedData: user.requested_data, // Add requested PII types
       requestedAt: user.requested_at      // Add timestamp
+    } : user.profileOwner ? {
+      ...user.profileOwner,
+      requestType: user.requestType,      // Add request type (photos, phone, etc)
+      requestStatus: user.status,         // Add status (pending, approved, denied)
+      requestedAt: user.requestedAt       // Add timestamp
     } : user;
 
     // Determine user state for kebab menu
@@ -1050,9 +1067,9 @@ const Dashboard = () => {
           
           {expandedGroups.myActivities && (
             <div className="column-sections">
-              {renderSection('My Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage)}
-              {renderSection('My Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites)}
-              {renderSection('My Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist)}
+              {renderSection('Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage)}
+              {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites)}
+              {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist)}
               {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest)}
               {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions)}
             </div>
@@ -1078,7 +1095,7 @@ const Dashboard = () => {
           
           {/* Image Access Requests Section */}
           <CategorySection
-            title="Image Access Requests"
+            title="Photo Requests"
             icon="📬"
             color="#10b981"
             sectionKey="imageAccessRequests"
@@ -1101,8 +1118,8 @@ const Dashboard = () => {
             </div>
           </CategorySection>
           
-              {renderSection('Their Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
-              {renderSection('Their Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
+              {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
+              {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
             </div>
           )}
         </div>
