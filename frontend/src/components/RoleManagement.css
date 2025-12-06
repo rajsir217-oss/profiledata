@@ -1,11 +1,20 @@
 /* Role Management Component Styles */
 
 .role-management {
-  padding: 30px;
+  padding: 20px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+  background: var(--background-color);
+  min-height: 100vh;
   animation: fadeIn 0.3s ease;
   position: relative;
+}
+
+/* Override Bootstrap container max-width for role management page parent */
+.container:has(.role-management) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Notification Bubble */
@@ -593,11 +602,7 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .role-management {
-    width: 95%;
-  }
-
-  .role-management {
-    padding: 20px 15px;
+    padding: 15px;
   }
 
   .role-management-header h1 {

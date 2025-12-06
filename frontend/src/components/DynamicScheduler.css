@@ -1,10 +1,18 @@
 /* Dynamic Scheduler Component Styles */
 
 .dynamic-scheduler {
-  padding: 2rem;
+  padding: 20px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
+  background: var(--background-color);
+  min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for dynamic scheduler page parent */
+.container:has(.dynamic-scheduler) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Header */

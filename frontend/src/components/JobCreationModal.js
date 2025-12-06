@@ -297,14 +297,51 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
     }
     
     if (schema.type === 'array') {
-      return (
-        <textarea
-          value={Array.isArray(value) ? value.join(', ') : ''}
-          onChange={(e) => handleParameterChange(key, e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
-          placeholder="Enter comma-separated values"
-          className={hasError ? 'error' : ''}
-        />
-      );
+      // Check if array contains objects (complex array)
+      const isArrayOfObjects = schema.items && schema.items.type === 'object';
+      
+      if (isArrayOfObjects) {
+        // Handle array of objects as JSON
+        return (
+          <textarea
+            value={Array.isArray(value) ? JSON.stringify(value, null, 2) : ''}
+            onChange={(e) => {
+              try {
+                const parsed = JSON.parse(e.target.value);
+                if (Array.isArray(parsed)) {
+                  handleParameterChange(key, parsed);
+                } else {
+                  // Invalid - not an array
+                  setParamErrors(prev => ({
+                    ...prev,
+                    [key]: 'Must be a valid JSON array'
+                  }));
+                }
+              } catch (err) {
+                // Invalid JSON - show error but keep value
+                setParamErrors(prev => ({
+                  ...prev,
+                  [key]: 'Invalid JSON format'
+                }));
+              }
+            }}
+            placeholder='[{"key": "value"}]'
+            rows={6}
+            className={hasError ? 'error' : ''}
+            style={{ fontFamily: 'monospace', fontSize: '13px' }}
+          />
+        );
+      } else {
+        // Handle simple arrays (strings, numbers, etc.) as comma-separated
+        return (
+          <textarea
+            value={Array.isArray(value) ? value.join(', ') : ''}
+            onChange={(e) => handleParameterChange(key, e.target.value.split(',').map(s => s.trim()).filter(Boolean))}
+            placeholder="Enter comma-separated values"
+            className={hasError ? 'error' : ''}
+          />
+        );
+      }
     }
     
     if (schema.type === 'object') {

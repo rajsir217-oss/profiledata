@@ -7,9 +7,17 @@
 
 .pii-management-page {
   padding: 20px;
-  width: 80%;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   background: var(--background-color);
+  min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for PII management page parent */
+.container:has(.pii-management-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .pii-loading {
@@ -507,8 +515,7 @@
 
 @media (max-width: 768px) {
   .pii-management-page {
-    width: 100%;
-    padding: 12px;
+    padding: 15px;
   }
 
   .pii-header h2 {

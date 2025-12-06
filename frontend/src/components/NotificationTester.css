@@ -2,9 +2,16 @@
 .notification-tester {
   padding: 20px;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   background: var(--background-color);
   min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for notification tester page parent */
+.container:has(.notification-tester) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .tester-header {
@@ -359,7 +366,6 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .notification-tester {
-    width: 95%;
     padding: 15px;
   }
 

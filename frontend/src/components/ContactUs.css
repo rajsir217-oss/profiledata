@@ -3,12 +3,19 @@
 .contact-page {
   min-height: 100vh;
   background: var(--background-color);
-  padding: 40px 20px;
+  padding: 20px;
 }
 
 .contact-container {
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+}
+
+/* Override Bootstrap container max-width for contact page parent */
+.container:has(.contact-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Header */
@@ -519,10 +526,6 @@ textarea.form-control {
 }
 
 @media (max-width: 768px) {
-  .contact-container {
-    width: 95%;
-  }
-
   .contact-header h1 {
     font-size: 32px;
   }
