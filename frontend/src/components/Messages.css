@@ -3,17 +3,17 @@
   height: calc(100vh - 70px);
   display: flex;
   flex-direction: column;
-  padding: 0 20px;
-  margin: 0 auto;
+  padding: 20px;
+  margin: 0;
   width: 100%;
-  max-width: 1400px;
+  background: var(--background-color);
 }
 
-/* Responsive container widths */
-@media (max-width: 1024px) {
-  .messages-page {
-    width: 95%;
-  }
+/* Override Bootstrap container max-width for messages page parent */
+.container:has(.messages-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .messages-loading {
@@ -56,8 +56,7 @@
 
 @media (max-width: 768px) {
   .messages-page {
-    width: 100%;
-    padding: 0 10px;
+    padding: 10px;
   }
 
   .messages-container {

@@ -3,10 +3,17 @@
 .admin-contact-page {
   min-height: 100vh;
   background: var(--background-color);
-  padding: 16px 20px;
+  padding: 20px;
   position: relative;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
+}
+
+/* Override Bootstrap container max-width for admin contact page parent */
+.container:has(.admin-contact-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Status Bubble Notification */
@@ -650,8 +657,7 @@
 
 @media (max-width: 768px) {
   .admin-contact-page {
-    width: 95%;
-    padding: 12px 15px;
+    padding: 15px;
   }
 
   .stats-grid {

@@ -167,15 +167,16 @@
 }
 
 .btn-approve,
-.btn-deny {
+.btn-deny,
+.btn-cancel {
   border: none;
   padding: 8px 18px;
   border-radius: 8px;
+  font-size: 14px;
   font-weight: 600;
-  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
+  flex: 1;
   min-width: 100px;
 }
 
@@ -191,27 +192,31 @@
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
 }
 
-.btn-deny {
+.btn-deny,
+.btn-cancel {
   background: var(--danger-color);
   color: white;
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.2);
 }
 
-.btn-deny:hover:not(:disabled) {
+.btn-deny:hover:not(:disabled),
+.btn-cancel:hover:not(:disabled) {
   background: var(--danger-hover);
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
 }
 
 .btn-approve:disabled,
-.btn-deny:disabled {
+.btn-deny:disabled,
+.btn-cancel:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none;
 }
 
 .btn-approve:active:not(:disabled),
-.btn-deny:active:not(:disabled) {
+.btn-deny:active:not(:disabled),
+.btn-cancel:active:not(:disabled) {
   transform: translateY(0);
 }
 
@@ -276,7 +281,8 @@
   }
 
   .btn-approve,
-  .btn-deny {
+  .btn-deny,
+  .btn-cancel {
     flex: 1;
   }
 }

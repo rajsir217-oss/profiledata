@@ -20,9 +20,18 @@
 }
 
 .invite-friends {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: var(--spacing-xl, 2rem);
+  width: 100%;
+  margin: 0;
+  padding: 20px;
+  background: var(--background-color);
+  min-height: 100vh;
+}
+
+/* Override Bootstrap container max-width for invite friends page parent */
+.container:has(.invite-friends) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 .invite-header {

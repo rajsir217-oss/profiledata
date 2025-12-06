@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
+import logger from '../utils/logger';
 import './PhotoRequestsModal.css';
 import { formatRelativeTime } from '../utils/timeFormatter';
 
@@ -15,10 +16,16 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/pii-requests/${username}/incoming?status_filter=pending`);
-      setRequests(response.data.requests || []);
+      // Fetch outgoing PII requests - same as Dashboard uses
+      // Filter by pending status only
+      const response = await api.get(`/pii-requests/${username}/outgoing?status_filter=pending`);
+      const requests = response.data.requests || [];
+      logger.debug('Photo Requests Response:', response.data);
+      logger.debug('Number of requests:', requests.length);
+      logger.debug('First request:', requests[0]);
+      setRequests(requests);
     } catch (err) {
-      console.error('Error loading photo requests:', err);
+      logger.error('Error loading photo requests:', err);
       setError('Failed to load photo requests');
     } finally {
       setLoading(false);
@@ -47,12 +54,16 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
     }
   }, [isOpen, onClose]);
 
-  const handleApprove = async (request) => {
+  const handleCancelRequest = async (request) => {
     setProcessingId(request.id);
     try {
-      // For photo requests, we could navigate to PII Management for full image selection
-      // For now, approve directly with permanent access
-      await api.put(`/pii-requests/${request.id}/approve?username=${username}`, {});
+      // Cancel outgoing PII request - same as Dashboard uses
+      const targetUsername = request.profileOwner?.username;
+      if (!targetUsername) {
+        setError('Invalid request data');
+        return;
+      }
+      await api.delete(`/pii-requests/${username}/outgoing/${targetUsername}`);
       
       // Reload requests
       await loadPendingRequests();
@@ -62,28 +73,8 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
         onRequestHandled();
       }
     } catch (err) {
-      console.error('Error approving request:', err);
-      setError('Failed to approve request');
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleDeny = async (request) => {
-    setProcessingId(request.id);
-    try {
-      await api.delete(`/pii-requests/${request.id}?username=${username}`);
-      
-      // Reload requests
-      await loadPendingRequests();
-      
-      // Notify parent to refresh dashboard data
-      if (onRequestHandled) {
-        onRequestHandled();
-      }
-    } catch (err) {
-      console.error('Error denying request:', err);
-      setError('Failed to deny request');
+      logger.error('Error cancelling request:', err);
+      setError('Failed to cancel request');
     } finally {
       setProcessingId(null);
     }
@@ -114,7 +105,7 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
     <div className="modal-overlay" onClick={onClose}>
       <div className="photo-requests-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🔒 Pending Photo Requests</h2>
+          <h2>🔒 My Photo Requests</h2>
           <button className="close-button" onClick={onClose}>×</button>
         </div>
 
@@ -137,14 +128,15 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
             <div className="empty-state">
               <span className="empty-icon">🔒</span>
               <p>No pending requests</p>
-              <small>You don't have any photo access requests at the moment</small>
+              <small>You haven't sent any photo access requests yet</small>
             </div>
           )}
 
           {!loading && !error && requests.length > 0 && (
             <div className="requests-list">
               {requests.map((request) => {
-                const requester = request.requesterProfile || {};
+                // For outgoing requests, show the profile owner (who we sent the request to)
+                const targetUser = request.profileOwner || {};
                 const requestedTypes = Array.isArray(request.requestedInfo) 
                   ? request.requestedInfo 
                   : [request.requestType];
@@ -152,10 +144,10 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
                 return (
                   <div key={request.id} className="request-item">
                     <div className="request-avatar">
-                      {requester.images && requester.images.length > 0 ? (
+                      {targetUser.images && targetUser.images.length > 0 ? (
                         <img 
-                          src={requester.images[0]} 
-                          alt={requester.username}
+                          src={targetUser.images[0]} 
+                          alt={targetUser.username}
                           onError={(e) => {
                             e.target.style.display = 'none';
                             e.target.nextSibling.style.display = 'flex';
@@ -164,17 +156,17 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
                       ) : null}
                       <div 
                         className="avatar-placeholder" 
-                        style={{ display: requester.images && requester.images.length > 0 ? 'none' : 'flex' }}
+                        style={{ display: targetUser.images && targetUser.images.length > 0 ? 'none' : 'flex' }}
                       >
-                        {requester.username ? requester.username.charAt(0).toUpperCase() : '?'}
+                        {targetUser.username ? targetUser.username.charAt(0).toUpperCase() : '?'}
                       </div>
                     </div>
 
                     <div className="request-info">
                       <div className="request-name">
-                        {requester.firstName || requester.username || 'Unknown'}
+                        {targetUser.firstName || targetUser.username || 'Unknown'}
                       </div>
-                      <div className="request-username">@{requester.username}</div>
+                      <div className="request-username">@{targetUser.username}</div>
                       <div className="request-details">
                         <span className="request-types">
                           {requestedTypes.map((type, idx) => (
@@ -190,24 +182,17 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
                         </div>
                       )}
                       <div className="request-timestamp">
-                        {formatRelativeTime(request.requested_at)}
+                        {formatRelativeTime(request.requestedAt)}
                       </div>
                     </div>
 
                     <div className="request-actions">
                       <button
-                        className="btn-approve"
-                        onClick={() => handleApprove(request)}
+                        className="btn-cancel"
+                        onClick={() => handleCancelRequest(request)}
                         disabled={processingId === request.id}
                       >
-                        {processingId === request.id ? '...' : '✅ Approve'}
-                      </button>
-                      <button
-                        className="btn-deny"
-                        onClick={() => handleDeny(request)}
-                        disabled={processingId === request.id}
-                      >
-                        {processingId === request.id ? '...' : '❌ Deny'}
+                        {processingId === request.id ? '...' : '❌ Cancel Request'}
                       </button>
                     </div>
                   </div>

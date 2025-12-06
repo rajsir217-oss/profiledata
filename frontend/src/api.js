@@ -390,6 +390,28 @@ export const imageAccess = {
     } catch (error) {
       throw error.response?.data || error.message;
     }
+  },
+
+  // Get incoming image access requests for a user
+  getIncomingRequests: async (username, status = 'pending') => {
+    try {
+      const response = await imageAccessApi.get(`/api/image-access/${username}/requests/incoming`, {
+        params: status ? { status } : {}
+      });
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
+
+  // Deny/reject an image access request
+  denyRequest: async (requestId, data) => {
+    try {
+      const response = await imageAccessApi.post(`/api/image-access/requests/${requestId}/deny`, data);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
   }
 };
 
