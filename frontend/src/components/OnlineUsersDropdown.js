@@ -119,7 +119,7 @@ const OnlineUsersDropdown = ({ isOpen, onClose }) => {
                   )}
                 </div>
               </div>
-              <div className="view-profile-arrow">→</div>
+              <div className="view-profile-arrow" title="View profile">👁️</div>
             </div>
           ))}
         </div>

@@ -183,7 +183,7 @@ const Favorites = () => {
   return (
     <div className="search-page">
       <div className="container-fluid">
-        <h2 className="mb-4">⭐ My Favorites</h2>
+        <h2 className="mb-4">⭐ Favorites</h2>
 
         {statusMessage && (
           <div className={`alert ${statusMessage.includes('❌') ? 'alert-danger' : 'alert-success'} alert-dismissible fade show`} role="alert">

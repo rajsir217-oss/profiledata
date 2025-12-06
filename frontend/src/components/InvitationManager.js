@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [invitations, setInvitations] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -79,6 +80,15 @@ const InvitationManager = () => {
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeArchived]);
+
+  // Check if modal should be opened automatically (from navigation state)
+  useEffect(() => {
+    if (location.state?.openModal) {
+      setShowAddModal(true);
+      // Clear the state to prevent re-opening on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   // Extract unique senders when invitations load
   useEffect(() => {

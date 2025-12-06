@@ -196,6 +196,14 @@
   color: white;
   font-size: 14px;
   font-weight: 700;
+  display: none; /* Hide number on desktop, show text instead */
+}
+
+.online-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
   min-width: 20px;
   text-align: center;
 }
@@ -251,6 +259,42 @@
   font-size: 20px;
   font-weight: 600;
   letter-spacing: 0.5px;
+}
+
+/* Refer a Friend Button - matches messages button style */
+.btn-refer-friend {
+  position: relative;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  border-radius: 12px; /* Rounded square like messages button */
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.btn-refer-friend:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-refer-friend:active {
+  transform: scale(0.95);
+}
+
+.refer-icon {
+  font-size: 20px;
+}
+
+.refer-text {
+  display: none; /* Hidden by default, will show on desktop with adjusted styles */
 }
 
 /* User Info - Rounded square */
@@ -516,9 +560,21 @@
     gap: 4px;
   }
   
+  /* Hide tooltips on mobile - use pointer-events to disable hover */
+  .online-indicator::before,
+  .online-indicator::after {
+    display: none !important;
+  }
+  
+  /* Mobile: Show number, hide text */
   .online-count {
+    display: block !important; /* Show number on mobile */
     font-size: 13px;
     min-width: 18px;
+  }
+  
+  .online-text {
+    display: none !important; /* Hide text on mobile */
   }
   
   .online-dot {
@@ -532,7 +588,8 @@
     font-size: 22px;
   }
   
-  .btn-messages {
+  .btn-messages,
+  .btn-refer-friend {
     width: 44px;
     height: 44px;
     font-size: 20px;

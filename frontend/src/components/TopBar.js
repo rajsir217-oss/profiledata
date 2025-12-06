@@ -291,12 +291,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
                     setShowOnlineDropdown(!showOnlineDropdown);
                   }
                 }}
-                title={userRole === 'admin' || userRole === 'moderator' 
-                  ? 'Click to see who\'s online' 
-                  : `Currently ${onlineCount} user${onlineCount !== 1 ? 's' : ''} online`}
               >
                 <span className="online-dot">🟢</span>
                 <span className="online-count">{onlineCount}</span>
+                <span className="online-text">{onlineCount} user{onlineCount !== 1 ? 's' : ''} online</span>
               </div>
               {(userRole === 'admin' || userRole === 'moderator') && (
                 <OnlineUsersDropdown
@@ -308,6 +306,21 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           )}
         </div>
         <div className="top-bar-right">
+          {/* Refer a Friend Button */}
+          <button 
+            className="btn-refer-friend" 
+            onClick={() => {
+              const route = userRole === 'admin' || userRole === 'moderator' 
+                ? '/invitations' 
+                : '/invite-friends';
+              navigate(route, { state: { openModal: true } });
+            }}
+            title="Invite friends"
+          >
+            <span className="refer-icon">👥</span>
+            <span className="refer-text">Refer a Friend</span>
+          </button>
+          
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
             <button 
@@ -342,9 +355,6 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             </div>
             <span className="user-name">{userProfile ? getFirstName(userProfile) : currentUser}</span>
           </div>
-          <button className="btn-logout" onClick={handleLogout} title="Logout">
-            🚪 <span className="logout-text">Logout</span>
-          </button>
         </div>
         
         {/* Message Modal */}

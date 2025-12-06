@@ -221,7 +221,7 @@
 }
 
 .btn-reject {
-  background: white;
+  background: var(--card-background);
   color: var(--danger-color, #dc3545);
   border: 2px solid var(--danger-color, #dc3545);
 }
@@ -352,8 +352,8 @@ textarea.form-control {
 }
 
 .approval-notice {
-  background: #fffbea;
-  border: 2px solid #ffc107;
+  background: var(--warning-light, rgba(255, 193, 7, 0.1));
+  border: 2px solid var(--warning-color, #ffc107);
   border-radius: 8px;
   padding: 16px;
   margin-bottom: 24px;
@@ -373,7 +373,7 @@ textarea.form-control {
 .notice-text strong {
   display: block;
   margin-bottom: 8px;
-  color: #333;
+  color: var(--text-color);
   font-size: 13px;
 }
 
@@ -385,7 +385,7 @@ textarea.form-control {
 
 .notice-text li {
   font-size: 12px;
-  color: #666;
+  color: var(--text-secondary);
   margin-bottom: 4px;
   line-height: 1.4;
 }
@@ -397,13 +397,13 @@ textarea.form-control {
 }
 
 .btn-secondary {
-  background: white;
-  color: var(--text-color, #333);
-  border: 2px solid var(--border-color, #e0e0e0);
+  background: var(--card-background);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
 }
 
 .btn-secondary:hover:not(:disabled) {
-  background: #f5f5f5;
+  background: var(--hover-background);
   border-color: #10b981;
 }
 
@@ -428,33 +428,8 @@ textarea.form-control {
   }
 }
 
-/* Dark Theme */
-body.theme-dark .access-request-manager {
-  background: var(--card-background-dark, #1f2937);
-}
-
-body.theme-dark .request-card {
-  background: #374151;
-  border-color: #4b5563;
-}
-
-body.theme-dark .request-details {
-  background: #1f2937;
-}
-
-body.theme-dark .approval-modal {
-  background: var(--card-background-dark, #1f2937);
-}
-
-body.theme-dark .approval-info {
-  background: rgba(16, 185, 129, 0.1);
-}
-
-body.theme-dark .form-control {
-  background: #374151;
-  border-color: #4b5563;
-  color: #f9fafb;
-}
+/* Theme-aware CSS - all colors now use CSS variables */
+/* No theme-specific overrides needed! */
 
 /* Responsive */
 @media (max-width: 768px) {

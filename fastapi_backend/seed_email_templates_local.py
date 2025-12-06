@@ -1,18 +1,33 @@
 """
-Seed Production Database with ALL Email Templates
-Combines all templates and seeds to production MongoDB
-Run this with production MongoDB URL
+Seed Email Templates to MongoDB
+Supports both local (.env.local) and production (.env.production)
+Usage:
+    python3 seed_email_templates_local.py            # Uses current environment
+    python3 seed_email_templates_local.py local      # Force local
+    python3 seed_email_templates_local.py production # Force production
 """
 
-import asyncio
+import sys
 import os
-from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime
-import certifi
 
-# Get MongoDB URL from environment or use production default
-MONGODB_URL = os.getenv("MONGODB_URL", "mongodb+srv://matrimonial-prod-cluster.mongodb.net")
-DATABASE_NAME = "matrimonialDB"
+# CRITICAL: Set APP_ENVIRONMENT before importing anything else!
+if len(sys.argv) > 1:
+    env = sys.argv[1].lower()
+    if env in ["production", "local", "staging"]:
+        os.environ["APP_ENVIRONMENT"] = env
+    else:
+        print(f"❌ Invalid environment: {env}")
+        print("Usage: python3 seed_email_templates_local.py [local|production|staging]")
+        sys.exit(1)
+
+# Now import after setting ENV
+import asyncio
+import certifi
+from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime, UTC
+from config import Settings
+
+settings = Settings()
 
 # Template generator function
 def create_template(trigger, category, subject, color, priority, description, cta_text, cta_link_type):
@@ -89,13 +104,14 @@ def create_template(trigger, category, subject, color, priority, description, ct
         "body": html_body,
         "priority": priority,
         "enabled": True,
-        "createdAt": datetime.utcnow(),
-        "updatedAt": datetime.utcnow()
+        "active": True,  # For backwards compatibility
+        "createdAt": datetime.now(UTC),
+        "updatedAt": datetime.now(UTC)
     }
 
 # ALL 21 EMAIL TEMPLATES
 ALL_TEMPLATES = [
-    # 1-5: Core templates (from seed_complete_email_templates.py)
+    # 1-5: Core templates
     create_template(
         "new_match", "match",
         "🎉 You have a new match, {recipient_firstName}!",
@@ -132,7 +148,7 @@ ALL_TEMPLATES = [
         "View All Activity", "dashboard"
     ),
     
-    # 6-20: Additional templates (from add_remaining_templates.py)
+    # 6-20: Additional templates
     create_template(
         "shortlist_added", "engagement",
         "⭐ {match_firstName} added you to their shortlist!",
@@ -249,101 +265,73 @@ ALL_TEMPLATES = [
     )
 ]
 
-async def seed_production():
-    """Seed all 21 templates to production database"""
+async def seed_local():
+    """Seed all 21 templates to database"""
+    env_name = os.getenv("APP_ENVIRONMENT", "local").upper()
+    
     print("=" * 60)
-    print("🌱 SEEDING PRODUCTION EMAIL TEMPLATES")
+    print(f"🌱 SEEDING EMAIL TEMPLATES - {env_name} ENVIRONMENT")
     print("=" * 60)
-    print(f"MongoDB URL: {MONGODB_URL[:50]}...")
-    print(f"Database: {DATABASE_NAME}")
+    print(f"MongoDB URL: {settings.mongodb_url[:50]}...")
+    print(f"Database: {settings.database_name}")
     print(f"Total templates to seed: {len(ALL_TEMPLATES)}")
     print("=" * 60)
     
+    # Confirmation for production
+    if env_name == "PRODUCTION":
+        print("\n⚠️  WARNING: You are about to update PRODUCTION email templates!")
+        response = input("Are you sure? Type 'yes' to continue: ")
+        if response.lower() != "yes":
+            print("❌ Aborted.")
+            return
+        print()
+    
     try:
-        # Connect with proper SSL certificate handling
-        client = AsyncIOMotorClient(MONGODB_URL, tlsCAFile=certifi.where())
-        db = client[DATABASE_NAME]
+        # Connect to MongoDB (with SSL support for Atlas)
+        if "mongodb+srv://" in settings.mongodb_url or "mongodb.net" in settings.mongodb_url:
+            # Production MongoDB Atlas - requires SSL certificate
+            client = AsyncIOMotorClient(settings.mongodb_url, tlsCAFile=certifi.where())
+        else:
+            # Local MongoDB - no SSL needed
+            client = AsyncIOMotorClient(settings.mongodb_url)
+        db = client[settings.database_name]
+        
         collection = db.notification_templates
         
-        # Test connection
-        await db.command('ping')
-        print("✅ Connected to MongoDB")
+        # Clear old templates
+        deleted = await collection.delete_many({"channel": "email"})
+        print(f"\n🗑️  Cleared {deleted.deleted_count} old email templates")
         
-        inserted = 0
-        updated = 0
-        skipped = 0
+        # Insert all templates
+        print(f"\n📨 Inserting {len(ALL_TEMPLATES)} email templates...\n")
         
         for template in ALL_TEMPLATES:
-            # Check if already exists
-            existing = await collection.find_one({
-                "trigger": template["trigger"],
-                "channel": "email"
-            })
-            
-            if existing:
-                # Update existing template
-                await collection.update_one(
-                    {"_id": existing["_id"]},
-                    {"$set": {
-                        "subject": template["subject"],
-                        "body": template["body"],
-                        "category": template["category"],
-                        "priority": template["priority"],
-                        "enabled": template["enabled"],
-                        "updatedAt": datetime.utcnow()
-                    }}
-                )
-                print(f"   🔄 Updated: {template['trigger']} ({template['category']})")
-                updated += 1
-            else:
-                await collection.insert_one(template)
-                print(f"   ✅ Created: {template['trigger']} ({template['category']})")
-                inserted += 1
+            result = await collection.insert_one(template)
+            print(f"   ✅ {template['trigger']} ({template['category']}) - {template['priority']}")
         
-        total = await collection.count_documents({"channel": "email"})
+        print(f"\n🎉 All templates seeded successfully!")
+        print(f"📊 Total templates: {await collection.count_documents({'channel': 'email'})}")
         
         print("\n" + "=" * 60)
-        print("🎉 SEEDING COMPLETE!")
+        print("TEMPLATES READY!")
         print("=" * 60)
-        print(f"   ✅ Inserted: {inserted}")
-        print(f"   🔄 Updated: {updated}")
-        print(f"   ⏭️  Skipped: {skipped}")
-        print(f"   📊 Total email templates: {total}")
+        print("✅ All email templates are now fixed with:")
+        print("   • Correct variable format ({recipient_firstName})")
+        print("   • Working button URLs ({dashboard_url}, etc.)")
+        print("   • Proper footer links")
         print("=" * 60)
-        
-        if total >= 20:
-            print("\n🎊 SUCCESS! All email templates are now in production!")
-            print("\n📝 Templates include all categories:")
-            print("   ✅ Match notifications")
-            print("   ✅ Message alerts")
-            print("   ✅ Engagement triggers")
-            print("   ✅ Privacy & security")
-            print("   ✅ Onboarding & milestones")
-            print("   ✅ Weekly digests")
         
         client.close()
         
     except Exception as e:
         print(f"\n❌ Error: {e}")
-        print("\n💡 Make sure:")
-        print("   1. MONGODB_URL environment variable is set")
-        print("   2. MongoDB connection string includes credentials")
-        print("   3. Network access is configured")
-        raise
+        if env_name == "PRODUCTION":
+            print("\n💡 Check your production MongoDB connection:")
+            print("   - MongoDB Atlas URL is correct")
+            print("   - Network access/IP whitelist is configured")
+            print("   - Credentials are valid")
+        else:
+            print("\n💡 Make sure local MongoDB is running!")
 
 if __name__ == "__main__":
-    import sys
-    
-    # Check if running with --auto flag (for scripted execution)
-    auto_mode = '--auto' in sys.argv
-    
-    if not auto_mode:
-        print("\n⚠️  This will seed/update email templates in PRODUCTION database!")
-        print(f"MongoDB: {os.getenv('MONGODB_URL', 'NOT SET')[:50]}...")
-        response = input("\nContinue? (yes/no): ")
-        
-        if response.lower() != 'yes':
-            print("❌ Cancelled")
-            sys.exit(0)
-    
-    asyncio.run(seed_production())
+    asyncio.run(seed_local())
