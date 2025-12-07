@@ -83,6 +83,12 @@ class L3V3LMatchingEngine:
     def __init__(self):
         self.scaler = MinMaxScaler()
     
+    def _safe_lower(self, value) -> str:
+        """Safely convert value to lowercase string, handling None"""
+        if value is None:
+            return ''
+        return str(value).lower()
+    
     def calculate_match_score(self, user1: Dict, user2: Dict) -> Dict:
         """
         Calculate comprehensive L3V3L match score between two users
@@ -135,7 +141,10 @@ class L3V3LMatchingEngine:
             }
             
         except Exception as e:
+            import traceback
             logger.error(f"Error calculating match score: {e}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.error(f"User1: {user1.get('username')}, User2: {user2.get('username')}")
             return {
                 'total_score': 0,
                 'component_scores': {},
@@ -145,8 +154,8 @@ class L3V3LMatchingEngine:
     
     def _score_gender(self, user1: Dict, user2: Dict) -> float:
         """Score gender compatibility (opposite gender preferred)"""
-        gender1 = user1.get('gender', '').lower()
-        gender2 = user2.get('gender', '').lower()
+        gender1 = self._safe_lower(user1.get('gender'))
+        gender2 = self._safe_lower(user2.get('gender'))
         
         if not gender1 or not gender2:
             return 0.0
@@ -170,8 +179,8 @@ class L3V3LMatchingEngine:
         # This can be enhanced with dedicated L3V3L questionnaire responses
         
         # 1. Family Values alignment (Loyalty)
-        family_values1 = user1.get('familyValues', '').lower()
-        family_values2 = user2.get('familyValues', '').lower()
+        family_values1 = self._safe_lower(user1.get('familyValues'))
+        family_values2 = self._safe_lower(user2.get('familyValues'))
         if family_values1 and family_values2:
             if family_values1 == family_values2:
                 score += 1.0
@@ -182,8 +191,8 @@ class L3V3LMatchingEngine:
             factors += 1
         
         # 2. Partner Preference text analysis (Vulnerability, Effort)
-        partner_pref1 = user1.get('partnerPreference', '').lower()
-        partner_pref2 = user2.get('partnerPreference', '').lower()
+        partner_pref1 = self._safe_lower(user1.get('partnerPreference'))
+        partner_pref2 = self._safe_lower(user2.get('partnerPreference'))
         if partner_pref1 and partner_pref2:
             # Look for emotional depth keywords
             emotional_keywords = ['honest', 'open', 'caring', 'understanding', 
@@ -195,8 +204,8 @@ class L3V3LMatchingEngine:
             factors += 1
         
         # 3. About Me text analysis (Elevation, Laughter)
-        about1 = user1.get('aboutMe', '').lower()
-        about2 = user2.get('aboutMe', '').lower()
+        about1 = self._safe_lower(user1.get('aboutMe'))
+        about2 = self._safe_lower(user2.get('aboutMe'))
         if about1 and about2:
             # Look for positive personality traits
             positive_traits = ['fun', 'funny', 'humor', 'adventure', 'travel',
@@ -241,8 +250,8 @@ class L3V3LMatchingEngine:
                 factors += 1
                 
                 # 2b. Location/city proximity
-                loc1 = user1.get('location', '').lower()
-                loc2 = user2.get('location', '').lower()
+                loc1 = self._safe_lower(user1.get('location'))
+                loc2 = self._safe_lower(user2.get('location'))
                 if loc1 and loc2:
                     if loc1 == loc2:
                         score += 1.0
@@ -493,8 +502,8 @@ class L3V3LMatchingEngine:
             factors += 1
         
         # 3. Work location compatibility
-        work_loc1 = user1.get('workLocation', '').lower()
-        work_loc2 = user2.get('workLocation', '').lower()
+        work_loc1 = self._safe_lower(user1.get('workLocation'))
+        work_loc2 = self._safe_lower(user2.get('workLocation'))
         if work_loc1 and work_loc2:
             if work_loc1 == work_loc2:
                 score += 1.0
@@ -738,7 +747,7 @@ class L3V3LMatchingEngine:
         
         # Get current/latest job
         current_job = work_exp[0] if work_exp else {}
-        title = current_job.get('title', '').lower()
+        title = self._safe_lower(current_job.get('title'))
         
         # Match against profession categories
         for prof, details in self.PROFESSION_STRESS.items():
