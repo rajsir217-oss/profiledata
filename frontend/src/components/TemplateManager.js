@@ -71,7 +71,10 @@ const TemplateManager = () => {
       newMatches: 3,
       favorites: 8,
       searchCount: 45,
-      increase: 25
+      increase: 25,
+      matchCount: 5,
+      messageCount: 12,
+      viewCount: 25
     },
     message: {
       preview: 'Hey! I saw your profile and would love to connect...'
@@ -86,7 +89,8 @@ const TemplateManager = () => {
     },
     profile: {
       completeness: 75,
-      missingFields: 'photos, bio'
+      missingFields: 'photos, bio',
+      url: `${getFrontendUrl()}/profile`
     },
     matches: {
       count: 5
@@ -96,7 +100,17 @@ const TemplateManager = () => {
       device: 'Chrome on MacBook',
       timestamp: new Date().toLocaleString(),
       ipAddress: '192.168.1.1'
-    }
+    },
+    // Flattened URL variables for underscore notation
+    dashboard: { url: `${getFrontendUrl()}/dashboard` },
+    chat: { url: `${getFrontendUrl()}/messages` },
+    search: { url: `${getFrontendUrl()}/search` },
+    preferences: { url: `${getFrontendUrl()}/preferences` },
+    unsubscribe: { url: `${getFrontendUrl()}/unsubscribe` },
+    tracking_pixel: { url: '#' },
+    reset: { url: `${getFrontendUrl()}/reset-password` },
+    security: { url: `${getFrontendUrl()}/security` },
+    contact: { url: `${getFrontendUrl()}/contact` }
   };
 
   const loadTemplates = useCallback(async () => {
@@ -320,16 +334,34 @@ const TemplateManager = () => {
     let renderedBody = template.body;
     let renderedSubject = template.subject;
 
-    // Replace variables in body
+    // Replace variables in body - support both dot and underscore notation
     Object.entries(sampleData).forEach(([category, data]) => {
       if (typeof data === 'object') {
         Object.entries(data).forEach(([key, value]) => {
-          const regex = new RegExp(`{${category}\\.${key}}`, 'g');
-          renderedBody = renderedBody.replace(regex, value);
-          renderedSubject = renderedSubject.replace(regex, value);
+          // Dot notation: {category.key}
+          const dotRegex = new RegExp(`{${category}\\.${key}}`, 'g');
+          renderedBody = renderedBody.replace(dotRegex, value);
+          renderedSubject = renderedSubject.replace(dotRegex, value);
+          
+          // Underscore notation: {category_key}
+          const underscoreRegex = new RegExp(`{${category}_${key}}`, 'g');
+          renderedBody = renderedBody.replace(underscoreRegex, value);
+          renderedSubject = renderedSubject.replace(underscoreRegex, value);
         });
       }
     });
+    
+    // Also handle simple variables like {firstname}, {username}, etc.
+    renderedBody = renderedBody
+      .replace(/{firstname}/g, sampleData.recipient.firstName)
+      .replace(/{lastname}/g, 'Doe')
+      .replace(/{username}/g, sampleData.recipient.username)
+      .replace(/{message}/g, 'Your account status has been updated.')
+      .replace(/{reason}/g, 'Policy violation');
+    renderedSubject = renderedSubject
+      .replace(/{firstname}/g, sampleData.recipient.firstName)
+      .replace(/{lastname}/g, 'Doe')
+      .replace(/{username}/g, sampleData.recipient.username);
 
     setPreviewData({
       ...template,
@@ -340,9 +372,17 @@ const TemplateManager = () => {
   };
 
   const handleTestSend = async (template) => {
+    console.log('🧪 Test send clicked for template:', template.trigger);
     try {
       const token = localStorage.getItem('token');
       const username = localStorage.getItem('username');
+      
+      console.log('📤 Sending test notification:', {
+        url: API_ENDPOINTS.NOTIFICATION_SEND,
+        username,
+        trigger: template.trigger,
+        channel: template.channel
+      });
 
       const response = await fetch(API_ENDPOINTS.NOTIFICATION_SEND, {
         method: 'POST',
@@ -358,12 +398,15 @@ const TemplateManager = () => {
         })
       });
 
-      if (!response.ok) throw new Error('Failed to send test notification');
+      const data = await response.json();
+      console.log('📬 Response:', response.status, data);
+
+      if (!response.ok) throw new Error(data.detail || 'Failed to send test notification');
 
       toast.success('Test notification sent! Check your email.');
     } catch (err) {
-      console.error('Error sending test:', err);
-      toast.error('Failed to send test notification');
+      console.error('❌ Error sending test:', err);
+      toast.error(`Failed to send test: ${err.message}`);
     }
   };
 

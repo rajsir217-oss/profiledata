@@ -5,13 +5,18 @@ import UniversalTabContainer from './UniversalTabContainer';
 import './NotificationManagement.css';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
+import EventStatusLog from './EventStatusLog';
+import EmailDeliveryLog from './EmailDeliveryLog';
 
 const NotificationManagement = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
   // Check URL param for initial tab
-  const defaultTab = searchParams.get('tab') === 'templates' ? 'templates' : 'queue';
+  const tabParam = searchParams.get('tab');
+  const defaultTab = tabParam === 'templates' ? 'templates' : 
+                     tabParam === 'logs' ? 'logs' :
+                     tabParam === 'delivery' ? 'delivery' : 'queue';
 
   // Admin-only protection
   useEffect(() => {
@@ -43,6 +48,18 @@ const NotificationManagement = () => {
             icon: '📋',
             label: 'EventQ',
             content: <EventQueueManager />
+          },
+          {
+            id: 'logs',
+            icon: '📜',
+            label: 'Logs',
+            content: <EventStatusLog />
+          },
+          {
+            id: 'delivery',
+            icon: '📬',
+            label: 'DeliveryLog',
+            content: <EmailDeliveryLog />
           },
           {
             id: 'templates',

@@ -172,7 +172,7 @@ class EmailNotifierTemplate(JobTemplate):
                         success=True
                     )
                     
-                    # Log notification
+                    # Log notification with lineage tracking
                     await service.log_notification(
                         username=notification.username,
                         trigger=notification.trigger,
@@ -180,7 +180,8 @@ class EmailNotifierTemplate(JobTemplate):
                         priority=notification.priority,
                         subject=subject,
                         preview=body[:100],
-                        cost=0.0
+                        cost=0.0,
+                        template_data=notification.templateData  # Include lineage_token
                     )
                     
                     sent_count += 1
@@ -280,6 +281,12 @@ class EmailNotifierTemplate(JobTemplate):
             "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={search_url_encoded}&link_type=search",
             "securityUrl": f"{frontend_url}/preferences"
         }
+        
+        # Also add flattened URL variables for templates using {dashboard_url} format
+        template_data["dashboard_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={dashboard_url_encoded}&link_type=dashboard"
+        template_data["preferences_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={preferences_url_encoded}&link_type=preferences"
+        template_data["unsubscribe_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={unsubscribe_url_encoded}&link_type=unsubscribe"
+        template_data["tracking_pixel_url"] = f"{backend_url}/api/email-tracking/pixel/{tracking_id}"
         
         if not template:
             # Fallback for when template is not found

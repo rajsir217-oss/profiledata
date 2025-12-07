@@ -7,9 +7,20 @@ Creates templates for: profile approved, account suspended, account banned, acco
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
+import os
 
-MONGO_URL = "mongodb://localhost:27017"
-DB_NAME = "matrimonialDB"
+# Use EnvironmentManager to auto-detect and load correct environment
+from env_config import EnvironmentManager
+
+# Auto-detect environment and load appropriate .env file
+env_manager = EnvironmentManager()
+current_env = env_manager.detect_environment()
+env_manager.load_environment_config(current_env)
+
+# Get configuration from environment variables
+MONGO_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
+DB_NAME = os.getenv("DATABASE_NAME", "matrimonialDB")
+APP_URL = os.getenv("APP_URL", "http://localhost:3000")
 
 templates = [
     {
@@ -62,7 +73,7 @@ templates = [
             </div>
             
             <center>
-                <a href="https://usvedika.com/dashboard" class="button">Go to Dashboard</a>
+                <a href="{app_url}/dashboard" class="button">Go to Dashboard</a>
             </center>
             
             <p>If you have any questions, feel free to reach out to our support team.</p>
@@ -71,7 +82,7 @@ templates = [
         </div>
         <div class="footer">
             <p>&copy; 2025 USVedika. All rights reserved.</p>
-            <p><a href="https://usvedika.com/help">Help Center</a> | <a href="https://usvedika.com/contact">Contact Us</a></p>
+            <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
 </body>
@@ -128,14 +139,14 @@ templates = [
             <p>If you believe this is a mistake or would like to appeal this decision, please contact our support team.</p>
             
             <center>
-                <a href="https://usvedika.com/contact" class="button">Contact Support</a>
+                <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
             <p>Best regards,<br>The USVedika Team</p>
         </div>
         <div class="footer">
             <p>&copy; 2025 USVedika. All rights reserved.</p>
-            <p><a href="https://usvedika.com/help">Help Center</a> | <a href="https://usvedika.com/contact">Contact Us</a></p>
+            <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
 </body>
@@ -193,7 +204,7 @@ templates = [
             <p>This decision was made after careful review and is final. If you have questions about this action, you may contact our support team.</p>
             
             <center>
-                <a href="https://usvedika.com/contact" class="button">Contact Support</a>
+                <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
             <p>Best regards,<br>The USVedika Team</p>
@@ -260,14 +271,14 @@ templates = [
             <p>If you have questions about this pause or would like to request reactivation, please contact our support team.</p>
             
             <center>
-                <a href="https://usvedika.com/contact" class="button">Contact Support</a>
+                <a href="{app_url}/contact" class="button">Contact Support</a>
             </center>
             
             <p>Best regards,<br>The USVedika Team</p>
         </div>
         <div class="footer">
             <p>&copy; 2025 USVedika. All rights reserved.</p>
-            <p><a href="https://usvedika.com/help">Help Center</a> | <a href="https://usvedika.com/contact">Contact Us</a></p>
+            <p><a href="{app_url}/help">Help Center</a> | <a href="{app_url}/contact">Contact Us</a></p>
         </div>
     </div>
 </body>
@@ -279,31 +290,50 @@ templates = [
 ]
 
 async def seed_templates():
-    client = AsyncIOMotorClient(MONGO_URL)
+    # Add SSL certificate handling for MongoDB Atlas connections
+    import ssl
+    import certifi
+    
+    # Create SSL context for MongoDB Atlas
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+    
+    # Connect to MongoDB with SSL support
+    if "mongodb+srv" in MONGO_URL or "mongodb.net" in MONGO_URL:
+        client = AsyncIOMotorClient(MONGO_URL, tlsCAFile=certifi.where())
+    else:
+        client = AsyncIOMotorClient(MONGO_URL)
+    
     db = client[DB_NAME]
     
     print("🌱 Seeding status change email templates...")
+    print(f"🌍 Environment: {current_env}")
+    print(f"📍 APP_URL: {APP_URL}")
+    print(f"🗄️  Database: {DB_NAME}")
     
     for template in templates:
+        # Replace {app_url} placeholder with actual APP_URL
+        template_copy = template.copy()
+        template_copy["body"] = template_copy["body"].replace("{app_url}", APP_URL)
+        
         # Check if template already exists
-        existing = await db.notification_templates.find_one({"trigger": template["trigger"]})
+        existing = await db.notification_templates.find_one({"trigger": template_copy["trigger"]})
         
         if existing:
             # Update existing template
-            template["updatedAt"] = datetime.utcnow()
+            template_copy["updatedAt"] = datetime.utcnow()
             await db.notification_templates.update_one(
-                {"trigger": template["trigger"]},
-                {"$set": template}
+                {"trigger": template_copy["trigger"]},
+                {"$set": template_copy}
             )
-            print(f"  ✅ Updated template: {template['trigger']}")
+            print(f"  ✅ Updated template: {template_copy['trigger']}")
         else:
             # Insert new template
-            template["createdAt"] = datetime.utcnow()
-            template["updatedAt"] = datetime.utcnow()
-            await db.notification_templates.insert_one(template)
-            print(f"  ✅ Created template: {template['trigger']}")
+            template_copy["createdAt"] = datetime.utcnow()
+            template_copy["updatedAt"] = datetime.utcnow()
+            await db.notification_templates.insert_one(template_copy)
+            print(f"  ✅ Created template: {template_copy['trigger']}")
     
-    print(f"\n✅ Successfully seeded {len(templates)} templates!")
+    print(f"\n✅ Successfully seeded {len(templates)} templates with APP_URL={APP_URL}")
     
     client.close()
 

@@ -78,6 +78,7 @@ class NotificationTrigger(str, Enum):
     STATUS_SUSPENDED = "status_suspended"
     STATUS_BANNED = "status_banned"
     STATUS_PAUSED = "status_paused"
+    STATUS_REACTIVATED = "status_reactivated"  # For suspended/paused → active
 
 
 class FrequencyType(str, Enum):

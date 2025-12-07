@@ -251,6 +251,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '⚙️',
+        label: 'Notification Config',
+        subLabel: 'Status change triggers',
+        action: () => navigate('/admin/notification-config')
+      });
+      
+      items.push({
         icon: '📢',
         label: 'Announcement Management',
         subLabel: 'Site-wide announcements',

@@ -10,7 +10,7 @@ const EventQueueManager = () => {
   const [queueItems, setQueueItems] = useState([]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('queue'); // 'queue' or 'logs'
+  // Logs tab moved to top-level in NotificationManagement
   const toast = useToast();
   const [filters, setFilters] = useState({
     status: 'all',
@@ -106,11 +106,8 @@ const EventQueueManager = () => {
         return;
       }
       
-      if (activeTab === 'queue') {
-        await loadQueue(token);
-      } else {
-        await loadLogs(token);
-      }
+      // Only load queue - logs are in separate Logs tab
+      await loadQueue(token);
       
       await loadStats(token);
     } catch (err) {
@@ -121,7 +118,7 @@ const EventQueueManager = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -129,19 +126,17 @@ const EventQueueManager = () => {
     return () => clearInterval(interval);
   }, [loadData]);
 
-  // Clear selections when switching tabs
+  // Clear selections on data reload
   useEffect(() => {
     setSelectedItems(new Set());
-  }, [activeTab]);
+  }, [queueItems]);
 
   const handleDeleteQueueItem = async (itemId) => {
     try {
       const token = localStorage.getItem('token');
       
-      // Use different endpoint based on active tab
-      const endpoint = activeTab === 'queue'
-        ? getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`)
-        : getBackendApiUrl(`/api/notifications/logs/${itemId}`);
+      // Queue endpoint only - logs are in DeliveryLog tab
+      const endpoint = getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`);
       
       const response = await fetch(endpoint, {
         method: 'DELETE',
@@ -154,7 +149,7 @@ const EventQueueManager = () => {
       }
 
       loadData();
-      toast.success(`${activeTab === 'queue' ? 'Queue item' : 'Log entry'} deleted`);
+      toast.success('Queue item deleted');
     } catch (err) {
       console.error('Error deleting item:', err);
       toast.error(err.message || 'Failed to delete item');
@@ -215,10 +210,8 @@ const EventQueueManager = () => {
       const token = localStorage.getItem('token');
       const count = selectedItems.size;
       
-      // Use different endpoint based on active tab
-      const endpoint = activeTab === 'queue' 
-        ? (itemId) => getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`)
-        : (itemId) => getBackendApiUrl(`/api/notifications/logs/${itemId}`)
+      // Queue endpoint only - logs are in DeliveryLog tab
+      const endpoint = (itemId) => getBackendApiUrl(`/api/notifications/queue/${itemId}?hard_delete=true`)
       
       const deletePromises = Array.from(selectedItems).map(async itemId => {
         const response = await fetch(endpoint(itemId), {
@@ -319,7 +312,7 @@ const EventQueueManager = () => {
   };
 
   const getFilteredItems = () => {
-    const items = activeTab === 'queue' ? queueItems : logs;
+    const items = queueItems; // Only show queue items - logs are in separate Logs tab
     
     // Filter items
     let filtered = items.filter(item => {
@@ -411,20 +404,9 @@ const EventQueueManager = () => {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="tabs">
-        <button
-          className={`tab ${activeTab === 'queue' ? 'active' : ''}`}
-          onClick={() => setActiveTab('queue')}
-        >
-          📥 Queue ({queueItems.length})
-        </button>
-        <button
-          className={`tab ${activeTab === 'logs' ? 'active' : ''}`}
-          onClick={() => setActiveTab('logs')}
-        >
-          📜 Logs ({logs.length})
-        </button>
+      {/* Queue Only - Logs moved to DeliveryLog tab */}
+      <div className="queue-header-bar">
+        <span className="queue-label">📥 Queue ({queueItems.length})</span>
       </div>
 
       {/* Filters */}
@@ -616,7 +598,7 @@ const EventQueueManager = () => {
                         <DeleteButton
                           onDelete={() => handleDeleteQueueItem(item._id)}
                           itemName={`${item.trigger} notification for ${item.username}`}
-                          confirmMessage={`Are you sure you want to delete this notification ${activeTab === 'queue' ? 'from the queue' : 'from logs'}?`}
+                          confirmMessage="Are you sure you want to delete this notification from the queue?"
                         />
                       )}
                       {/* Show retry for failed/error items */}
