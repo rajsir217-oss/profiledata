@@ -164,47 +164,86 @@ const SearchPage2 = () => {
           }
         }
         
-        // Set default age range based on gender
+        // Set default age range from partnerCriteria (user's saved preferences)
         let defaultAgeMin = '';
         let defaultAgeMax = '';
-        if (userAge && userGender) {
+        const partnerCriteria = response.data.partnerCriteria;
+        
+        // Debug: Log the full partnerCriteria object
+        console.log('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
+        console.log('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
+        
+        if (partnerCriteria?.ageRangeRelative && userAge) {
+          // Use relative age offsets from partner criteria
+          const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
+          const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
+          defaultAgeMin = Math.max(19, userAge + minOffset).toString();
+          defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
+          console.log('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
+        } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
+          // Fallback to absolute age range if set
+          defaultAgeMin = partnerCriteria.ageRange.min.toString();
+          defaultAgeMax = partnerCriteria.ageRange.max.toString();
+          console.log('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
+        } else if (userAge && userGender) {
+          // Final fallback: gender-based defaults
           if (userGender === 'male') {
-            // For male profile: Min = age - 3, Max = age + 1
-            defaultAgeMin = (userAge - 3).toString();
-            defaultAgeMax = (userAge + 1).toString();
+            // Male: looking for younger (age - 5) to slightly older (age + 1)
+            defaultAgeMin = Math.max(19, userAge - 5).toString();
+            defaultAgeMax = Math.min(100, userAge + 1).toString();
           } else if (userGender === 'female') {
-            // For female profile: Min = age - 1, Max = age + 3
-            defaultAgeMin = (userAge - 1).toString();
-            defaultAgeMax = (userAge + 3).toString();
+            // Female: looking for slightly younger (age - 1) to older (age + 5)
+            defaultAgeMin = Math.max(19, userAge - 1).toString();
+            defaultAgeMax = Math.min(100, userAge + 5).toString();
           }
+          console.log('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
         }
         
-        // Set default height range based on gender
+        // Set default height range from partnerCriteria (user's saved preferences)
         let defaultHeightMinFeet = '';
         let defaultHeightMinInches = '';
         let defaultHeightMaxFeet = '';
         let defaultHeightMaxInches = '';
         
-        if (userHeightTotalInches && userGender) {
+        if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
+          // Use relative height offsets from partner criteria
+          const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
+          const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
+          const minTotalInches = userHeightTotalInches + minInchesOffset;
+          const maxTotalInches = userHeightTotalInches + maxInchesOffset;
+          
+          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+          defaultHeightMinInches = (minTotalInches % 12).toString();
+          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+          defaultHeightMaxInches = (maxTotalInches % 12).toString();
+          console.log('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
+        } else if (partnerCriteria?.heightRange?.minFeet) {
+          // Fallback to absolute height range if set
+          defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
+          defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
+          defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
+          defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
+          console.log('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
+        } else if (userHeightTotalInches && userGender) {
+          // Final fallback: gender-based defaults
           if (userGender === 'male') {
-            // For male profile: Min = user height - 3 inches, Max = user height
-            const minTotalInches = userHeightTotalInches - 3;
+            // Male: looking for shorter (height - 6") to same height
+            const minTotalInches = userHeightTotalInches - 6;
             const maxTotalInches = userHeightTotalInches;
-            
             defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
             defaultHeightMinInches = (minTotalInches % 12).toString();
             defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
             defaultHeightMaxInches = (maxTotalInches % 12).toString();
           } else if (userGender === 'female') {
-            // For female profile: Min = user height, Max = user height + 3 inches
-            const minTotalInches = userHeightTotalInches;
-            const maxTotalInches = userHeightTotalInches + 3;
-            
+            // Female: looking for taller (height + 1") to much taller (height + 6")
+            const minTotalInches = userHeightTotalInches + 1;
+            const maxTotalInches = userHeightTotalInches + 6;
             defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
             defaultHeightMinInches = (minTotalInches % 12).toString();
             defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
             defaultHeightMaxInches = (maxTotalInches % 12).toString();
           }
+          console.log('🎯 Using gender-based height defaults');
         }
         
         console.log('📊 Default search criteria:', {
