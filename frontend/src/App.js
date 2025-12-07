@@ -64,7 +64,7 @@ import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
 import { getUserPreferences } from './api';
 import { getApiUrl } from './config/apiConfig';
-import { onMessageListener } from './services/pushNotificationService';
+import { onMessageListener, requestNotificationPermission } from './services/pushNotificationService';
 import toastService from './services/toastService';
 import logger from './utils/logger';
 
@@ -178,11 +178,9 @@ function AppContent() {
       
       if (token) {
         // User is logged in, request notification permission
-        // TEMPORARILY DISABLED: Backend endpoint not yet implemented
-        // TODO: Enable when /api/users/push-subscriptions/subscribe endpoint is ready
         try {
-          // await requestNotificationPermission();
-          logger.info('Push notifications temporarily disabled - endpoint not implemented');
+          await requestNotificationPermission();
+          logger.info('Push notifications initialized');
         } catch (error) {
           logger.error('Failed to initialize push notifications:', error);
         }
