@@ -25,6 +25,8 @@ from .security_models import (
 )
 from .security_config import DEFAULT_PERMISSIONS, USER_STATUS, SECURITY_EVENTS
 from .password_utils import PasswordManager
+from services.event_dispatcher import EventDispatcher, UserEventType
+from notification_config.notification_triggers import should_notify_status_change
 import logging
 
 logger = logging.getLogger(__name__)
@@ -387,12 +389,15 @@ async def update_user_status(
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        # Get old status
-        old_status = user.get('status', {})
-        if isinstance(old_status, dict):
-            old_status_value = old_status.get('status', 'pending')
-        else:
-            old_status_value = old_status or 'pending'
+        # Get old status from accountStatus (unified field)
+        # Fall back to nested status.status for backwards compatibility
+        old_status_value = user.get('accountStatus')
+        if not old_status_value:
+            old_status = user.get('status', {})
+            if isinstance(old_status, dict):
+                old_status_value = old_status.get('status', 'pending')
+            else:
+                old_status_value = old_status or 'pending'
         
         # Map legacy status values to accountStatus if needed
         # Accept both old names (pending, banned) and new names (pending_admin_approval)
@@ -464,18 +469,57 @@ async def update_user_status(
         
         logger.info(f"✅ Admin {current_user.get('username')} changed status for '{username}' from '{old_status_value}' to '{request.status}'")
         
-        # Queue email notification for specific status changes
-        await _queue_status_change_notification(
-            db=db,
-            username=username,
-            user_email=user.get("contactEmail") or user.get("email"),
-            firstname=user.get("firstName", ""),
-            lastname=user.get("lastName", ""),
-            old_status=old_status_value,
-            new_status=new_account_status,
-            reason=request.reason,
-            admin_username=current_user.get("username")
-        )
+        # Check if this status change should trigger a notification
+        # This is configurable via notification_config/notification_triggers.py
+        notification_config = should_notify_status_change(old_status_value, new_account_status)
+        
+        if notification_config["should_notify"]:
+            event_dispatcher = EventDispatcher(db)
+            
+            # Map new status to event type
+            event_type_map = {
+                'active': UserEventType.USER_APPROVED,
+                'suspended': UserEventType.USER_SUSPENDED,
+                'paused': UserEventType.USER_PAUSED,
+                'banned': UserEventType.USER_BANNED,
+            }
+            
+            # Get event type or default to PROFILE_UPDATED
+            event_type = event_type_map.get(new_account_status, UserEventType.PROFILE_UPDATED)
+            
+            # For suspended status, check if it's actually a ban based on reason
+            if new_account_status == 'suspended' and request.reason:
+                if 'ban' in request.reason.lower() or 'permanent' in request.reason.lower():
+                    event_type = UserEventType.USER_BANNED
+            
+            # Generate lineage token to trace the entire workflow
+            import uuid
+            lineage_token = str(uuid.uuid4())
+            
+            logger.info(f"📧 Dispatching notification for status change: {old_status_value} → {new_account_status} (trigger: {notification_config['trigger']}, lineage: {lineage_token})")
+            
+            # Get user's name with fallbacks for different field names
+            user_firstname = user.get("firstName") or user.get("firstname") or user.get("first_name") or username
+            user_lastname = user.get("lastName") or user.get("lastname") or user.get("last_name") or ""
+            
+            await event_dispatcher.dispatch(
+                event_type=event_type,
+                actor_username=current_user.get("username"),
+                target_username=username,
+                metadata={
+                    "firstname": user_firstname,
+                    "lastname": user_lastname,
+                    "old_status": old_status_value,
+                    "new_status": new_account_status,
+                    "reason": request.reason,
+                    "status_transition": f"{old_status_value} → {new_account_status}",
+                    "notification_trigger": notification_config["trigger"],
+                    "lineage_token": lineage_token  # Track workflow end-to-end
+                },
+                priority=notification_config["priority"]
+            )
+        else:
+            logger.info(f"ℹ️ Status change {old_status_value} → {new_account_status} does not trigger notification (disabled in config)")
         
         return {
             "message": f"Status updated to '{request.status}' successfully",
@@ -489,102 +533,6 @@ async def update_user_status(
     except Exception as e:
         logger.error(f"Error updating status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-async def _queue_status_change_notification(
-    db,
-    username: str,
-    user_email: str,
-    firstname: str,
-    lastname: str,
-    old_status: str,
-    new_status: str,
-    reason: Optional[str],
-    admin_username: str
-):
-    """
-    Queue email notification for status changes (approval, suspension, ban)
-    """
-    # Only send for specific status transitions
-    should_notify = (
-        (old_status in ['pending_admin_approval', 'pending'] and new_status == 'active') or  # Approval
-        (new_status == 'suspended') or  # Suspension
-        (old_status != 'suspended' and new_status == 'suspended') or  # Ban (mapped to suspended)
-        (new_status == 'paused')  # Paused
-    )
-    
-    if not should_notify or not user_email:
-        return
-    
-    # Determine notification type and template
-    if new_status == 'active':
-        notification_type = 'status_approved'
-        subject = "🎉 Your Profile is Now Active - Welcome to USVedika!"
-        template_data = {
-            "username": username,
-            "firstname": firstname,
-            "lastname": lastname,
-            "status": "active",
-            "message": "Your profile has been approved and is now active. You can now access all features and start connecting with matches!"
-        }
-    elif new_status == 'suspended':
-        # Check if it's a ban or suspension based on old status
-        if reason and ('ban' in reason.lower() or 'permanent' in reason.lower()):
-            notification_type = 'status_banned'
-            subject = "⛔ Your Account Has Been Banned"
-            template_data = {
-                "username": username,
-                "status": "banned",
-                "reason": reason or "Violation of terms of service",
-                "message": "Your account has been permanently banned and you can no longer access USVedika."
-            }
-        else:
-            notification_type = 'status_suspended'
-            subject = "⚠️ Your Account Has Been Suspended"
-            template_data = {
-                "username": username,
-                "status": "suspended",
-                "reason": reason or "Pending investigation",
-                "message": "Your account has been temporarily suspended. Please contact support for more information."
-            }
-    elif new_status == 'paused':
-        notification_type = 'status_paused'
-        subject = "⏸️ Your Account Has Been Paused by Admin"
-        template_data = {
-            "username": username,
-            "status": "paused",
-            "reason": reason or "Administrative action",
-            "message": "Your account has been paused by an administrator. Your profile is temporarily hidden and you cannot access certain features."
-        }
-    else:
-        return  # No notification needed
-    
-    # Queue notification
-    try:
-        await db.notification_queue.insert_one({
-            "username": username,
-            "email": user_email,
-            "trigger": notification_type,  # Use "trigger" not "type" to match notification schema
-            "type": notification_type,      # Keep "type" for backwards compatibility
-            "channels": ["email"],          # ARRAY format to match service query
-            "channel": "email",             # Keep singular for backwards compatibility
-            "subject": subject,
-            "templateData": template_data,
-            "status": "pending",
-            "attempts": 0,
-            "priority": "high",
-            "metadata": {
-                "old_status": old_status,
-                "new_status": new_status,
-                "reason": reason,
-                "changed_by": admin_username
-            },
-            "createdAt": datetime.utcnow(),
-            "updatedAt": datetime.utcnow()
-        })
-        logger.info(f"📧 Queued {notification_type} notification for {username} ({user_email})")
-    except Exception as e:
-        logger.error(f"❌ Failed to queue status change notification: {e}")
-        # Don't fail the status change if notification fails
 
 @router.post("/users/{username}/grant-permissions", dependencies=[Depends(require_admin)])
 async def grant_custom_permissions(

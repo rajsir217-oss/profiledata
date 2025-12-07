@@ -300,13 +300,19 @@ class NotificationService:
             # Support nested keys like {{match.firstName}} or {match.firstName}
             if isinstance(value, dict):
                 for nested_key, nested_value in value.items():
-                    # Handle both double and single brace syntax
-                    double_brace = f"{{{{{key}.{nested_key}}}}}"  # {{key.nested}}
-                    single_brace = f"{{{key}.{nested_key}}}"       # {key.nested}
+                    # Handle dot notation: {key.nested}
+                    double_brace_dot = f"{{{{{key}.{nested_key}}}}}"  # {{key.nested}}
+                    single_brace_dot = f"{{{key}.{nested_key}}}"       # {key.nested}
+                    
+                    # Handle underscore notation: {key_nested}
+                    double_brace_underscore = f"{{{{{key}_{nested_key}}}}}"  # {{key_nested}}
+                    single_brace_underscore = f"{{{key}_{nested_key}}}"       # {key_nested}
                     
                     str_value = str(nested_value) if nested_value is not None else ""
-                    result = result.replace(double_brace, str_value)
-                    result = result.replace(single_brace, str_value)
+                    result = result.replace(double_brace_dot, str_value)
+                    result = result.replace(single_brace_dot, str_value)
+                    result = result.replace(double_brace_underscore, str_value)
+                    result = result.replace(single_brace_underscore, str_value)
             else:
                 # Handle both double and single brace syntax
                 double_brace = f"{{{{{key}}}}}"  # {{key}}
@@ -397,7 +403,8 @@ class NotificationService:
         status: NotificationStatus = NotificationStatus.SENT,
         subject: Optional[str] = None,
         preview: Optional[str] = None,
-        cost: float = 0.0
+        cost: float = 0.0,
+        template_data: Optional[Dict[str, Any]] = None  # Include for lineage tracking
     ) -> None:
         """Log sent notification for analytics"""
         log_entry = NotificationLog(
@@ -412,7 +419,12 @@ class NotificationService:
             sentAt=datetime.utcnow()
         )
         
-        await self.log_collection.insert_one(log_entry.dict())
+        # Add template data (includes lineage_token) to log entry
+        log_dict = log_entry.dict()
+        if template_data:
+            log_dict["templateData"] = template_data
+        
+        await self.log_collection.insert_one(log_dict)
     
     async def track_open(self, log_id: str) -> None:
         """Track notification opened"""
@@ -511,6 +523,19 @@ class NotificationService:
         prefs: NotificationPreferences
     ) -> bool:
         """Check if user wants this notification"""
+        # Admin/system status notifications always bypass user preferences
+        # These are critical notifications users cannot opt out of
+        system_triggers = [
+            NotificationTrigger.STATUS_APPROVED,
+            NotificationTrigger.STATUS_SUSPENDED,
+            NotificationTrigger.STATUS_BANNED,
+            NotificationTrigger.STATUS_PAUSED,
+            NotificationTrigger.STATUS_REACTIVATED,
+            NotificationTrigger.SUSPICIOUS_LOGIN,
+        ]
+        if trigger in system_triggers:
+            return True
+        
         user_channels = prefs.channels.get(trigger, [])
         return any(channel in user_channels for channel in channels)
     
@@ -593,7 +618,8 @@ class NotificationService:
         trigger: str,
         channels: List[str],
         template_data: Optional[Dict[str, Any]] = None,
-        priority: str = "medium"  # Changed from "normal" to valid enum value
+        priority: str = "medium",  # Changed from "normal" to valid enum value
+        lineage_token: Optional[str] = None  # Track workflow end-to-end
     ) -> Optional[NotificationQueueItem]:
         """Simple helper to queue a notification"""
         try:
@@ -606,12 +632,17 @@ class NotificationService:
             # Convert priority string to enum
             priority_enum = NotificationPriority(priority)
             
+            # Include lineage token in template data for tracking
+            enriched_template_data = template_data or {}
+            if lineage_token:
+                enriched_template_data["lineage_token"] = lineage_token
+            
             # Create queue item
             queue_data = NotificationQueueCreate(
                 username=username,
                 trigger=trigger_enum,
                 channels=channel_enums,
-                templateData=template_data or {},
+                templateData=enriched_template_data,
                 priority=priority_enum,
                 scheduledFor=None
             )

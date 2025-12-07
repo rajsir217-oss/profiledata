@@ -205,6 +205,15 @@ const EmailAnalytics = () => {
               <li><strong>Engagement:</strong> 5-10% is average, 10%+ is excellent</li>
             </ul>
           </div>
+
+          {/* Link to Notification Management for Delivery Logs */}
+          <div className="delivery-log-link">
+            <h4>📬 Email Delivery Log</h4>
+            <p>View detailed email delivery logs with lineage tracking in Notification Management</p>
+            <a href="/notification-management?tab=logs" className="btn-view-logs">
+              View Delivery Logs →
+            </a>
+          </div>
         </>
       ) : (
         <div className="empty-state">

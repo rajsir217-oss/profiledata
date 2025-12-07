@@ -23,6 +23,7 @@ from routes_meta_admin import router as meta_admin_router
 from routes_image_access import router as image_access_router
 from routes_pii_access import router as pii_access_router
 from routers.notifications import router as notifications_router
+from routers.notification_config_routes import router as notification_config_router
 from routers.activity_logs import router as activity_logs_router
 from routers.verification import router as verification_router
 from routers.push_subscriptions import router as push_subscriptions_router
@@ -252,6 +253,7 @@ app.include_router(meta_admin_router, prefix="/api", tags=["meta-admin"])  # Met
 app.include_router(image_access_router)  # Image access routes (already has /api/image-access prefix)
 app.include_router(pii_access_router)  # PII access routes (already has /api/pii-access prefix)
 app.include_router(notifications_router)  # Notification routes (already has /api/notifications prefix)
+app.include_router(notification_config_router)  # Notification trigger configuration (already has /api/admin/notification-config prefix)
 app.include_router(admin_notifications_router, prefix="/api/admin", tags=["admin-notifications"])  # Admin saved search notification management
 app.include_router(activity_logs_router)  # Activity logs routes (already has /api/activity-logs prefix)
 app.include_router(verification_router)  # Email verification routes (already has /api/verification prefix)

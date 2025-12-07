@@ -141,6 +141,7 @@ async def send_notification(
 @router.get("/queue", response_model=List[NotificationQueueItem])
 async def get_notification_queue(
     status: Optional[str] = Query(None),
+    include_all: bool = Query(False, description="Include all statuses (sent, failed, skipped)"),
     limit: int = Query(50, le=100),
     current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
@@ -158,14 +159,15 @@ async def get_notification_queue(
         query["username"] = current_user["username"]
     # Admins see all notifications (no username filter)
     
-    # Filter by status - default to only show pending/scheduled (not sent/failed)
+    # Filter by status
     if status:
         query["status"] = status
-    else:
-        # Only show items that haven't been sent yet
+    elif not include_all:
+        # Default: only show items that haven't been sent yet
         query["status"] = {"$in": ["pending", "scheduled", "processing"]}
+    # If include_all=True, don't filter by status (show all)
     
-    cursor = service.queue_collection.find(query).limit(limit)
+    cursor = service.queue_collection.find(query).sort("createdAt", -1).limit(limit)
     notifications = []
     
     async for doc in cursor:
@@ -605,11 +607,17 @@ async def get_template(
     current_user: dict = Depends(get_current_user),
     service: NotificationService = Depends(get_notification_service)
 ):
-    """Get a specific template by ID (admin only)"""
+    """Get a specific template by ID or trigger name (admin only)"""
     try:
         from bson import ObjectId
         
-        template = await service.db.notification_templates.find_one({"_id": ObjectId(template_id)})
+        # Try to query by ObjectId first, then by trigger name
+        try:
+            # If it's a valid ObjectId, query by _id
+            template = await service.db.notification_templates.find_one({"_id": ObjectId(template_id)})
+        except:
+            # If not a valid ObjectId, assume it's a trigger name
+            template = await service.db.notification_templates.find_one({"trigger": template_id})
         
         if not template:
             raise HTTPException(status_code=404, detail="Template not found")
@@ -619,6 +627,8 @@ async def get_template(
         
         return template
         
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error fetching template: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch template: {str(e)}")
