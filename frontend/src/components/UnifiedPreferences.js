@@ -16,6 +16,12 @@ import {
 import api from '../api';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { 
+  requestNotificationPermission, 
+  getNotificationPermission,
+  sendTestNotification,
+  isPushNotificationSupported 
+} from '../services/pushNotificationService';
 
 const UnifiedPreferences = () => {
   const location = useLocation();
@@ -61,6 +67,12 @@ const UnifiedPreferences = () => {
   const [notificationPreferences, setNotificationPreferences] = useState(null);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
+
+  // Push Notification State
+  const [pushPermission, setPushPermission] = useState('default');
+  const [pushSupported, setPushSupported] = useState(false);
+  const [testingPush, setTestingPush] = useState(false);
+  const [enablingPush, setEnablingPush] = useState(false);
 
   // Pause Settings State
   const [pauseStatus, setPauseStatus] = useState(null);
@@ -258,6 +270,10 @@ const UnifiedPreferences = () => {
     fetchSmsOptInStatus();
     checkAdminStatus();
     loadPauseStatus();
+    
+    // Check push notification status
+    setPushSupported(isPushNotificationSupported());
+    setPushPermission(getNotificationPermission());
   }, []);
 
   // Load MFA status
@@ -479,6 +495,48 @@ const UnifiedPreferences = () => {
       showToast('Failed to reset preferences', 'error');
     } finally {
       setSavingNotifications(false);
+    }
+  };
+
+  // Push Notification Handlers
+  const handleEnablePush = async () => {
+    try {
+      setEnablingPush(true);
+      const token = await requestNotificationPermission();
+      if (token) {
+        setPushPermission('granted');
+        showToast('Push notifications enabled! You will now receive browser notifications.', 'success');
+      } else {
+        const newPermission = getNotificationPermission();
+        setPushPermission(newPermission);
+        if (newPermission === 'denied') {
+          showToast('Push notifications blocked. Please enable in browser settings.', 'error');
+        } else {
+          showToast('Push notification setup was cancelled.', 'info');
+        }
+      }
+    } catch (error) {
+      console.error('Error enabling push notifications:', error);
+      showToast('Failed to enable push notifications', 'error');
+    } finally {
+      setEnablingPush(false);
+    }
+  };
+
+  const handleTestPush = async () => {
+    try {
+      setTestingPush(true);
+      const result = await sendTestNotification();
+      if (result.success) {
+        showToast(`Test notification sent! ${result.message}`, 'success');
+      } else {
+        showToast(result.message || 'No active push subscriptions found', 'warning');
+      }
+    } catch (error) {
+      console.error('Error sending test push:', error);
+      showToast('Failed to send test notification. Make sure push is enabled.', 'error');
+    } finally {
+      setTestingPush(false);
     }
   };
 
@@ -1198,6 +1256,68 @@ const UnifiedPreferences = () => {
             label: 'Notifications ',
             content: notificationPreferences && (
               <div className="notification-settings">
+          {/* Push Notification Status */}
+          <section className="settings-section push-status-section">
+            <h2>📲 Push Notifications</h2>
+            <p className="section-description">Receive instant browser notifications</p>
+            
+            <div className="push-status-card" style={{
+              background: 'var(--surface-color)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '12px',
+              padding: '20px',
+              marginTop: '16px'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>
+                      {pushPermission === 'granted' ? '✅' : pushPermission === 'denied' ? '🚫' : '⏳'}
+                    </span>
+                    <strong style={{ fontSize: '1.1rem' }}>
+                      {pushPermission === 'granted' ? 'Push Enabled' : 
+                       pushPermission === 'denied' ? 'Push Blocked' : 
+                       pushPermission === 'unsupported' ? 'Not Supported' : 'Push Not Enabled'}
+                    </strong>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.9rem' }}>
+                    {pushPermission === 'granted' 
+                      ? 'You will receive browser notifications for enabled events.'
+                      : pushPermission === 'denied'
+                      ? 'Push notifications are blocked. Enable in browser settings.'
+                      : pushPermission === 'unsupported'
+                      ? 'Your browser does not support push notifications.'
+                      : 'Enable push notifications to receive instant alerts.'}
+                  </p>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  {pushPermission !== 'granted' && pushPermission !== 'unsupported' && (
+                    <button
+                      className="btn-primary"
+                      onClick={handleEnablePush}
+                      disabled={enablingPush}
+                      style={{ minWidth: '140px' }}
+                    >
+                      {enablingPush ? '⏳ Enabling...' : '🔔 Enable Push'}
+                    </button>
+                  )}
+                  
+                  {pushPermission === 'granted' && (
+                    <button
+                      className="btn-secondary"
+                      onClick={handleTestPush}
+                      disabled={testingPush}
+                      style={{ minWidth: '140px' }}
+                    >
+                      {testingPush ? '⏳ Sending...' : '🧪 Test Push'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </section>
+
           {/* Notification Channels */}
           <section className="settings-section">
             <h2>🔔 Notification Channels</h2>

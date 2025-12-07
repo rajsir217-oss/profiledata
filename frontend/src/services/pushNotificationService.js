@@ -5,8 +5,24 @@
 
 import { initializeApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage } from 'firebase/messaging';
-import api from '../api';
+import axios from 'axios';
+import { getBackendUrl } from '../config/apiConfig';
 import logger from '../utils/logger';
+
+// Create axios instance for push notification API calls
+// Push subscriptions are at /api/push-subscriptions, not /api/users/push-subscriptions
+const pushApi = axios.create();
+
+pushApi.interceptors.request.use((config) => {
+  if (!config.baseURL && !config.url?.startsWith('http')) {
+    config.baseURL = `${getBackendUrl()}/api/push-subscriptions`;
+  }
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Firebase configuration from environment variables
 const firebaseConfig = {
@@ -100,7 +116,7 @@ export const requestNotificationPermission = async () => {
         
         // Send token to backend
         try {
-          await api.post('/push-subscriptions/subscribe', {
+          await pushApi.post('/subscribe', {
             token,
             deviceInfo: {
               browser: navigator.userAgent.split(' ').slice(-1)[0],
@@ -166,7 +182,7 @@ export const onMessageListener = (callback) => {
  */
 export const unsubscribeFromPush = async (token) => {
   try {
-    await api.delete(`/push-subscriptions/unsubscribe?token=${encodeURIComponent(token)}`);
+    await pushApi.delete(`/unsubscribe?token=${encodeURIComponent(token)}`);
     logger.success('Unsubscribed from push notifications');
   } catch (error) {
     logger.error('Failed to unsubscribe:', error);
@@ -179,7 +195,7 @@ export const unsubscribeFromPush = async (token) => {
  */
 export const getMySubscriptions = async () => {
   try {
-    const response = await api.get('/push-subscriptions/my-subscriptions');
+    const response = await pushApi.get('/my-subscriptions');
     return response.data;
   } catch (error) {
     logger.error('Failed to get subscriptions:', error);
@@ -192,7 +208,7 @@ export const getMySubscriptions = async () => {
  */
 export const sendTestNotification = async () => {
   try {
-    const response = await api.post('/push-subscriptions/test');
+    const response = await pushApi.post('/test');
     logger.success('Test notification sent:', response.data);
     return response.data;
   } catch (error) {
