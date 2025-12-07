@@ -367,18 +367,36 @@ const AdminPage = () => {
               <th onClick={() => handleSort('firstName')} style={{ cursor: 'pointer' }}>
                 NAME {sortField === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>AGE</th>
-              <th>DAYS ACTIVE</th>
+              <th onClick={() => handleSort('computedAge')} style={{ cursor: 'pointer' }}>
+                AGE {sortField === 'computedAge' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('computedDaysActive')} style={{ cursor: 'pointer' }}>
+                DAYS ACTIVE {sortField === 'computedDaysActive' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('contactEmail')} style={{ cursor: 'pointer' }}>
                 EMAIL {sortField === 'contactEmail' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th>CONTACT</th>
-              <th>GENDER</th>
-              <th>LOCATION</th>
-              <th>IMAGES</th>
-              <th>MSGS SENT</th>
-              <th>MSGS RCVD</th>
-              <th>PENDING</th>
+              <th onClick={() => handleSort('contactNumber')} style={{ cursor: 'pointer' }}>
+                CONTACT {sortField === 'contactNumber' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('sex')} style={{ cursor: 'pointer' }}>
+                GENDER {sortField === 'sex' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('location')} style={{ cursor: 'pointer' }}>
+                LOCATION {sortField === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('imagesCount')} style={{ cursor: 'pointer' }}>
+                IMAGES {sortField === 'imagesCount' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('messagesSent')} style={{ cursor: 'pointer' }}>
+                MSGS SENT {sortField === 'messagesSent' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('messagesReceived')} style={{ cursor: 'pointer' }}>
+                MSGS RCVD {sortField === 'messagesReceived' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
+              <th onClick={() => handleSort('pendingReplies')} style={{ cursor: 'pointer' }}>
+                PENDING {sortField === 'pendingReplies' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
             </tr>
           </thead>
           <tbody>
