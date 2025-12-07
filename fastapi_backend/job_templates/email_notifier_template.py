@@ -327,12 +327,10 @@ class EmailNotifierTemplate(JobTemplate):
     async def _send_email(self, to_email: str, subject: str, body: str, notification) -> None:
         """Send email via SMTP"""
         # Debug logging
-        print(f"DEBUG: SMTP Configuration:")
-        print(f"  Host: {self.smtp_host}")
-        print(f"  Port: {self.smtp_port}")
-        print(f"  User: {self.smtp_user}")
-        print(f"  Password: {'SET' if self.smtp_password else 'NOT SET'}")
-        print(f"  From: {self.from_email}")
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"📧 SMTP Configuration: Host={self.smtp_host}, Port={self.smtp_port}, User={self.smtp_user}, Password={'SET' if self.smtp_password else 'NOT SET'}, From={self.from_email}")
         
         if not self.smtp_user or not self.smtp_password:
             raise Exception(f"SMTP credentials not configured (user={self.smtp_user}, pass={'SET' if self.smtp_password else 'NOT SET'})")
@@ -345,12 +343,12 @@ class EmailNotifierTemplate(JobTemplate):
         html_body = self._create_html_email(body, notification)
         msg.attach(MIMEText(html_body, 'html'))
         
-        print(f"DEBUG: Sending email to {to_email}...")
+        logger.info(f"📧 Sending email to {to_email}...")
         with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
             server.starttls()
             server.login(self.smtp_user, self.smtp_password)
             server.send_message(msg)
-        print(f"DEBUG: Email sent successfully!")
+        logger.info(f"📧 Email sent successfully to {to_email}!")
     
     def _create_html_email(self, body: str, notification) -> str:
         """Create HTML email with styling"""

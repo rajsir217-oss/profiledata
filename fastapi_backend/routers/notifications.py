@@ -150,8 +150,8 @@ async def get_notification_queue(
     # Build query based on user role
     query = {}
     
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
+    # Check if user is admin (support both 'role' and 'role_name' fields)
+    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
     is_admin = (user_role == "admin" or current_user["username"] == "admin")
     
     # Non-admins only see their own notifications
@@ -361,16 +361,24 @@ async def get_notification_logs(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification logs (sent notifications history)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
-    is_admin = (user_role == "admin" or current_user["username"] == "admin")
+    # Check if user is admin (support both 'role' and 'role_name' fields)
+    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
+    username = current_user.get("username", "")
+    is_admin = (user_role == "admin" or username == "admin")
     
     # Build query based on role
-    query = {} if is_admin else {"username": current_user["username"]}
+    query = {} if is_admin else {"username": username}
+    
+    # Debug logging
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"📋 Fetching notification logs - user: {username}, role: {user_role}, is_admin: {is_admin}, query: {query}")
     
     logs = await service.db["notification_log"].find(
         query
-    ).sort("sent_at", -1).skip(skip).limit(limit).to_list(length=limit)
+    ).sort("sentAt", -1).skip(skip).limit(limit).to_list(length=limit)
+    
+    logger.info(f"📋 Found {len(logs)} notification logs")
     
     # Serialize ObjectId
     for log in logs:
