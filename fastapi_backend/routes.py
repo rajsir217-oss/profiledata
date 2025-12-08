@@ -132,6 +132,7 @@ DASHBOARD_USER_PROJECTION = {
     "age": 1,
     "birthMonth": 1,
     "birthYear": 1,
+    "dateOfBirth": 1,
     "gender": 1,
     "location": 1,
     "region": 1,
