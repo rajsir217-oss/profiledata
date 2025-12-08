@@ -255,7 +255,9 @@ class PushNotificationService:
             }
             
         except Exception as e:
-            logger.error(f"Failed to send multicast notification: {e}")
+            logger.error(f"Failed to send multicast notification: {type(e).__name__}: {e}")
+            import traceback
+            logger.error(f"Traceback: {traceback.format_exc()}")
             return {
                 "success": False,
                 "error": str(e),
