@@ -275,6 +275,40 @@ const SearchResultCard = ({
   const displayEducation = getEducation();
   const displayOccupation = getOccupation();
 
+  // Format height for display (e.g., "5' 6\"")
+  const getDisplayHeight = () => {
+    if (user.height) return user.height;
+    if (user.heightInches) {
+      const feet = Math.floor(user.heightInches / 12);
+      const inches = user.heightInches % 12;
+      return `${feet}' ${inches}"`;
+    }
+    return null;
+  };
+
+  // Format DOB for display (MM/YYYY format)
+  const getDisplayDOB = () => {
+    // Try birthMonth and birthYear first
+    if (user.birthMonth && user.birthYear) {
+      const month = String(user.birthMonth).padStart(2, '0');
+      return `${month}/${user.birthYear}`;
+    }
+    // Try dateOfBirth field
+    if (user.dateOfBirth) {
+      try {
+        const date = new Date(user.dateOfBirth);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${month}/${date.getFullYear()}`;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const displayHeight = getDisplayHeight();
+  const displayDOB = getDisplayDOB();
+
   // Debug: Log if education/occupation is missing
   if (!displayEducation || !displayOccupation) {
     console.log(`[SearchCard] ${user.username} - Missing data:`, {
@@ -706,16 +740,26 @@ const SearchResultCard = ({
                     </div>
                   </div>
 
-                  {/* User Details - ALWAYS show */}
-                  <div className="user-details">
-                    <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                    <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
-                    <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
+                  {/* User Details - Two column layout */}
+                  <div className="user-details-grid">
+                    <div className="user-details-left">
+                      <p className="detail-line"><strong>📍</strong> {user.location}</p>
+                      <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
+                      <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
 
-                    {/* Simplified badges - max 2 priority tags */}
-                    <div className="user-badges-compact">
-                      {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
-                      {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
+                      {/* Simplified badges - max 2 priority tags */}
+                      <div className="user-badges-compact">
+                        {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
+                        {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
+                      </div>
+                    </div>
+                    <div className="user-details-right-col">
+                      {displayHeight && (
+                        <p className="detail-line-right"><strong>HEIGHT:</strong> {displayHeight}</p>
+                      )}
+                      {displayDOB && (
+                        <p className="detail-line-right"><strong>DOB:</strong> {displayDOB}</p>
+                      )}
                     </div>
                   </div>
                   
@@ -742,23 +786,33 @@ const SearchResultCard = ({
                   </div>
                 </>
               ) : (
-                <div className="user-details">
-                  <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                  <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
-                  <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
+                <div className="user-details-grid">
+                  <div className="user-details-left">
+                    <p className="detail-line"><strong>📍</strong> {user.location}</p>
+                    <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
+                    <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
 
-                  {/* Simplified badges - max 2 priority tags */}
-                  <div className="user-badges-compact">
-                    {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
-                    {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
-                  </div>
-
-                  {/* PII Status - Show only if granted */}
-                  {hasPiiAccess && (
-                    <div className="pii-granted-compact">
-                      <span className="pii-status-badge">✓ Contact Info Granted</span>
+                    {/* Simplified badges - max 2 priority tags */}
+                    <div className="user-badges-compact">
+                      {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
+                      {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
                     </div>
-                  )}
+
+                    {/* PII Status - Show only if granted */}
+                    {hasPiiAccess && (
+                      <div className="pii-granted-compact">
+                        <span className="pii-status-badge">✓ Contact Info Granted</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="user-details-right-col">
+                    {displayHeight && (
+                      <p className="detail-line-right"><strong>HEIGHT:</strong> {displayHeight}</p>
+                    )}
+                    {displayDOB && (
+                      <p className="detail-line-right"><strong>DOB:</strong> {displayDOB}</p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
