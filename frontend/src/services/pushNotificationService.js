@@ -40,11 +40,20 @@ const VAPID_KEY = process.env.REACT_APP_FIREBASE_VAPID_KEY;
 
 // Check if Firebase is configured
 const isFirebaseConfigured = () => {
-  return !!(
+  const configured = !!(
     firebaseConfig.apiKey &&
     firebaseConfig.projectId &&
     VAPID_KEY
   );
+  // Always log this for debugging push issues
+  console.log('[Push] Firebase config check:', {
+    configured,
+    hasApiKey: !!firebaseConfig.apiKey,
+    hasProjectId: !!firebaseConfig.projectId,
+    hasVapidKey: !!VAPID_KEY,
+    vapidKeyLength: VAPID_KEY?.length
+  });
+  return configured;
 };
 
 // Initialize Firebase only if configured
@@ -65,13 +74,13 @@ if (isFirebaseConfigured()) {
     app = initializeApp(firebaseConfig);
     messaging = getMessaging(app);
     firebaseEnabled = true;
-    logger.success('Firebase initialized successfully');
+    console.log('[Push] ✅ Firebase initialized successfully');
   } catch (error) {
-    logger.warn('Firebase initialization failed:', error.message);
+    console.error('[Push] ❌ Firebase initialization failed:', error.message);
     firebaseEnabled = false;
   }
 } else {
-  logger.info('Firebase push notifications not configured - skipping initialization');
+  console.warn('[Push] ⚠️ Firebase not configured - push notifications disabled');
   firebaseEnabled = false;
 }
 
@@ -80,10 +89,11 @@ if (isFirebaseConfigured()) {
  * @returns {Promise<string|null>} FCM device token or null
  */
 export const requestNotificationPermission = async () => {
+  console.log('[Push] requestNotificationPermission called, firebaseEnabled:', firebaseEnabled);
   try {
     // Check if Firebase is configured
     if (!firebaseEnabled) {
-      logger.info('Push notifications disabled - Firebase not configured');
+      console.warn('[Push] Push notifications disabled - Firebase not configured');
       return null;
     }
 
@@ -103,19 +113,21 @@ export const requestNotificationPermission = async () => {
     const permission = await Notification.requestPermission();
     
     if (permission === 'granted') {
-      logger.success('Notification permission granted');
-      logger.debug('Using VAPID key:', VAPID_KEY?.substring(0, 20) + '...');
+      console.log('[Push] ✅ Notification permission granted');
+      console.log('[Push] Using VAPID key:', VAPID_KEY?.substring(0, 20) + '...');
       
       // Get FCM token (Firebase will register its own service worker)
+      console.log('[Push] Requesting FCM token...');
       const token = await getToken(messaging, {
         vapidKey: VAPID_KEY
       });
       
       if (token) {
-        logger.success('FCM token obtained:', token.substring(0, 20) + '...');
+        console.log('[Push] ✅ FCM token obtained:', token.substring(0, 20) + '...');
         
         // Send token to backend
         try {
+          console.log('[Push] Registering token with backend...');
           await pushApi.post('/subscribe', {
             token,
             deviceInfo: {
@@ -125,18 +137,18 @@ export const requestNotificationPermission = async () => {
             }
           });
           
-          logger.success('Device registered for push notifications');
+          console.log('[Push] ✅ Device registered for push notifications');
           return token;
         } catch (error) {
-          logger.error('Failed to register device:', error);
+          console.error('[Push] ❌ Failed to register device:', error);
           return token; // Return token even if backend registration fails
         }
       } else {
-        logger.warn('No FCM token available');
+        console.warn('[Push] ⚠️ No FCM token available');
         return null;
       }
     } else if (permission === 'denied') {
-      logger.warn('Notification permission denied');
+      console.warn('[Push] ❌ Notification permission denied');
       return null;
     } else {
       logger.info('Notification permission dismissed');

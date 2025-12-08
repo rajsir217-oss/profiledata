@@ -30,7 +30,7 @@ openpyxl==3.1.5  # Excel file processing for data imports
 google-cloud-storage==2.10.0
 
 # Firebase Cloud Messaging (for push notifications)
-firebase-admin==6.2.0
+firebase-admin==6.5.0
 
 # Twilio (for SMS/OTP)
 twilio==8.10.0

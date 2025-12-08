@@ -175,13 +175,17 @@ function AppContent() {
   useEffect(() => {
     const initializePushNotifications = async () => {
       const token = localStorage.getItem('token');
+      console.log('[App.js] initializePushNotifications called, hasToken:', !!token);
       
       if (token) {
         // User is logged in, request notification permission
         try {
-          await requestNotificationPermission();
+          console.log('[App.js] Calling requestNotificationPermission...');
+          const fcmToken = await requestNotificationPermission();
+          console.log('[App.js] requestNotificationPermission result:', fcmToken ? 'Token obtained' : 'No token');
           logger.info('Push notifications initialized');
         } catch (error) {
+          console.error('[App.js] Failed to initialize push notifications:', error);
           logger.error('Failed to initialize push notifications:', error);
         }
         

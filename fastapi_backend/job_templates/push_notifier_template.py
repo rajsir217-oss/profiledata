@@ -133,7 +133,7 @@ class PushNotifierTemplate(JobTemplate):
                     # Get user's active device tokens
                     subscriptions = await db.push_subscriptions.find({
                         "username": username,
-                        "is_active": True
+                        "isActive": True
                     }).to_list(100)
                     
                     if not subscriptions:
@@ -153,7 +153,7 @@ class PushNotifierTemplate(JobTemplate):
                         )
                         continue
                     
-                    tokens = [sub["device_token"] for sub in subscriptions]
+                    tokens = [sub["token"] for sub in subscriptions]
                     
                     # Prepare notification content
                     title = notification.get("title", "ProfileData Notification")

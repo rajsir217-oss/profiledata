@@ -43,8 +43,12 @@ async def subscribe_to_push(
     - If token already exists, updates timestamp
     - Supports multiple devices per user
     """
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         username = current_user["username"]
+        logger.info(f"[Push Subscribe] User: {username}, Token: {subscription.token[:20]}...")
         
         # Check if token already exists
         existing = await db.push_subscriptions.find_one({
@@ -54,6 +58,7 @@ async def subscribe_to_push(
         
         if existing:
             # Update existing subscription
+            logger.info(f"[Push Subscribe] Updating existing subscription for {username}")
             await db.push_subscriptions.update_one(
                 {"_id": existing["_id"]},
                 {
@@ -72,6 +77,7 @@ async def subscribe_to_push(
             }
         else:
             # Create new subscription
+            logger.info(f"[Push Subscribe] Creating new subscription for {username}")
             subscription_doc = {
                 "username": username,
                 "token": subscription.token,
@@ -213,14 +219,19 @@ async def send_test_notification(
     """
     try:
         from services.push_service import PushNotificationService
+        import logging
+        logger = logging.getLogger(__name__)
         
         username = current_user["username"]
+        logger.info(f"[Push Test] Looking for subscriptions for user: {username}")
         
         # Get user's active tokens
         subscriptions = await db.push_subscriptions.find({
             "username": username,
             "isActive": True
         }).to_list(length=100)
+        
+        logger.info(f"[Push Test] Found {len(subscriptions)} subscriptions")
         
         if not subscriptions:
             return {
@@ -229,27 +240,60 @@ async def send_test_notification(
             }
         
         tokens = [sub["token"] for sub in subscriptions]
+        logger.info(f"[Push Test] Tokens to send: {[t[:30] + '...' for t in tokens]}")
         
-        # Send test notification
+        # Send test notification using single send for each token
         push_service = PushNotificationService()
-        result = await push_service.send_to_multiple_tokens(
-            tokens=tokens,
-            title="🔔 Test Notification",
-            body="Push notifications are working! You're all set.",
-            data={
-                "type": "test",
-                "timestamp": datetime.utcnow().isoformat()
-            }
-        )
+        success_count = 0
+        failure_count = 0
+        errors = []
+        
+        for token in tokens:
+            result = await push_service.send_to_token(
+                token=token,
+                title="🔔 Test Notification",
+                body="Push notifications are working! You're all set.",
+                data={
+                    "type": "test",
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+            if result.get("success"):
+                success_count += 1
+            else:
+                failure_count += 1
+                errors.append(result.get("error", "Unknown error"))
         
         return {
-            "success": result["success"],
-            "message": f"Test sent to {result['successCount']} device(s)",
-            "details": result
+            "success": success_count > 0,
+            "message": f"Test sent to {success_count} device(s)",
+            "details": {
+                "successCount": success_count,
+                "failureCount": failure_count,
+                "errors": errors
+            }
         }
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send test: {str(e)}")
+
+
+@router.get("/debug-firebase")
+async def debug_firebase():
+    """Debug endpoint to check Firebase initialization status"""
+    import os
+    from services.push_service import PushNotificationService, FIREBASE_AVAILABLE
+    
+    return {
+        "firebase_sdk_available": FIREBASE_AVAILABLE,
+        "firebase_initialized": PushNotificationService._initialized,
+        "env_vars": {
+            "FIREBASE_PROJECT_ID": os.getenv("FIREBASE_PROJECT_ID", "NOT SET"),
+            "FIREBASE_CLIENT_EMAIL": os.getenv("FIREBASE_CLIENT_EMAIL", "NOT SET")[:30] + "..." if os.getenv("FIREBASE_CLIENT_EMAIL") else "NOT SET",
+            "FIREBASE_PRIVATE_KEY_SET": bool(os.getenv("FIREBASE_PRIVATE_KEY")),
+            "FIREBASE_PRIVATE_KEY_LENGTH": len(os.getenv("FIREBASE_PRIVATE_KEY", "")),
+        }
+    }
 
 
 @router.get("/stats")
