@@ -5123,7 +5123,7 @@ body.theme-rose .request-pics-btn-main:active {
   font-weight: 600;
 }
 
-/* Mobile: Stack HEIGHT/DOB below details */
+/* Mobile: Keep HEIGHT/DOB in column layout, hide labels */
 @media (max-width: 480px) {
   .user-details-grid {
     flex-direction: column;
@@ -5131,13 +5131,17 @@ body.theme-rose .request-pics-btn-main:active {
   }
   
   .user-details-right-col {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 16px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
   
   .detail-line-right {
     font-size: 12px;
+  }
+  
+  /* Hide HEIGHT: and DOB: labels on mobile */
+  .detail-line-right strong {
+    display: none;
   }
 }
