@@ -228,6 +228,67 @@ const SearchResultCard = ({
     });
   }
 
+  // Extract education from educationHistory array or use legacy education field
+  const getEducation = () => {
+    // First check for legacy simple education field
+    if (user.education) return user.education;
+    
+    // Extract from educationHistory array
+    if (user.educationHistory && user.educationHistory.length > 0) {
+      const latestEdu = user.educationHistory[0]; // Get first (usually highest) education
+      if (latestEdu.degree && latestEdu.institution) {
+        return `${latestEdu.degree}, ${latestEdu.institution}`;
+      } else if (latestEdu.degree) {
+        return latestEdu.degree;
+      } else if (latestEdu.level) {
+        return latestEdu.level;
+      }
+    }
+    return null;
+  };
+
+  // Extract occupation from workExperience array or use legacy occupation field
+  const getOccupation = () => {
+    // First check for legacy simple occupation field
+    if (user.occupation) return user.occupation;
+    
+    // Extract from workExperience array
+    if (user.workExperience && user.workExperience.length > 0) {
+      // Find current job first
+      const currentJob = user.workExperience.find(w => w.isCurrent || w.status === 'current');
+      const job = currentJob || user.workExperience[0];
+      
+      if (job.position && job.company) {
+        return `${job.position} at ${job.company}`;
+      } else if (job.position) {
+        return job.position;
+      } else if (job.company) {
+        return job.company;
+      } else if (job.description) {
+        // Fallback to description if no position/company
+        return job.description;
+      }
+    }
+    return null;
+  };
+
+  const displayEducation = getEducation();
+  const displayOccupation = getOccupation();
+
+  // Debug: Log if education/occupation is missing
+  if (!displayEducation || !displayOccupation) {
+    console.log(`[SearchCard] ${user.username} - Missing data:`, {
+      education: displayEducation,
+      occupation: displayOccupation,
+      hasEducationHistory: !!user.educationHistory,
+      educationHistoryLength: user.educationHistory?.length,
+      hasWorkExperience: !!user.workExperience,
+      workExperienceLength: user.workExperience?.length,
+      legacyEducation: user.education,
+      legacyOccupation: user.occupation
+    });
+  }
+
   const handlePrevImage = (e) => {
     e.stopPropagation();
     setCurrentImageIndex(prev => prev > 0 ? prev - 1 : 0);
@@ -411,8 +472,8 @@ const SearchResultCard = ({
 
             {/* Column 3: Education & Work */}
             <div className="row-info-column-2">
-              <p className="row-detail"><strong>🎓</strong> {user.education}</p>
-              <p className="row-detail"><strong>💼</strong> {user.occupation}</p>
+              <p className="row-detail"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
+              <p className="row-detail"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
               {user.bodyType && <span className="badge bg-warning badge-sm">{user.bodyType}</span>}
             </div>
 
@@ -648,8 +709,8 @@ const SearchResultCard = ({
                   {/* User Details - ALWAYS show */}
                   <div className="user-details">
                     <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                    <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
-                    <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
+                    <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
+                    <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
 
                     {/* Simplified badges - max 2 priority tags */}
                     <div className="user-badges-compact">
@@ -683,8 +744,8 @@ const SearchResultCard = ({
               ) : (
                 <div className="user-details">
                   <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                  <p className="detail-line"><strong>💼</strong> {user.occupation || 'Not specified'}</p>
-                  <p className="detail-line"><strong>🎓</strong> {user.education || 'Not specified'}</p>
+                  <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
+                  <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
 
                   {/* Simplified badges - max 2 priority tags */}
                   <div className="user-badges-compact">

@@ -137,6 +137,8 @@ DASHBOARD_USER_PROJECTION = {
     "region": 1,
     "occupation": 1,
     "education": 1,
+    "educationHistory": 1,  # Structured education array
+    "workExperience": 1,    # Structured work experience array
     "bio": 1,
     "aboutMe": 1,
     "about": 1,
