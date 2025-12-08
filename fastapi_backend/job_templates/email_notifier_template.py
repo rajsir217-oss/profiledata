@@ -287,6 +287,7 @@ class EmailNotifierTemplate(JobTemplate):
         template_data["preferences_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={preferences_url_encoded}&link_type=preferences"
         template_data["unsubscribe_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={unsubscribe_url_encoded}&link_type=unsubscribe"
         template_data["tracking_pixel_url"] = f"{backend_url}/api/email-tracking/pixel/{tracking_id}"
+        template_data["profile_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile"
         
         if not template:
             # Fallback for when template is not found
