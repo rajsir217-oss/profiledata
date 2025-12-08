@@ -430,11 +430,11 @@ const InvitationManager = () => {
   // Bulk selection handlers
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      // Select all pending invitations only
-      const pendingInvitations = displayedInvitations
-        .filter(inv => inv.emailStatus === 'pending' && !inv.archived)
+      // Select all non-accepted, non-archived invitations (pending, sent, failed, delivered)
+      const selectableInvitations = displayedInvitations
+        .filter(inv => inv.emailStatus !== 'accepted' && !inv.archived)
         .map(inv => inv.id);
-      setSelectedInvitations(pendingInvitations);
+      setSelectedInvitations(selectableInvitations);
     } else {
       setSelectedInvitations([]);
     }
@@ -491,6 +491,18 @@ const InvitationManager = () => {
     } finally {
       setBulkSending(false);
     }
+  };
+
+  // Get counts of selected invitations by status
+  const getSelectedCounts = () => {
+    const selected = invitations.filter(inv => selectedInvitations.includes(inv.id));
+    return {
+      pending: selected.filter(inv => inv.emailStatus === 'pending').length,
+      sent: selected.filter(inv => inv.emailStatus === 'sent').length,
+      delivered: selected.filter(inv => inv.emailStatus === 'delivered').length,
+      failed: selected.filter(inv => inv.emailStatus === 'failed').length,
+      total: selected.length
+    };
   };
 
   // Filter and slice invitations for pagination
@@ -615,15 +627,21 @@ const InvitationManager = () => {
           <button className="btn-primary" onClick={() => setShowAddModal(true)}>
             ➕ New Invitation
           </button>
-          {selectedInvitations.length > 0 && (
-            <button 
-              className="btn-primary" 
-              onClick={() => setShowBulkSendModal(true)}
-              style={{ background: 'var(--success-color)' }}
-            >
-              📧 Send Selected ({selectedInvitations.length})
-            </button>
-          )}
+          {selectedInvitations.length > 0 && (() => {
+            const counts = getSelectedCounts();
+            const hasResends = counts.sent + counts.delivered + counts.failed > 0;
+            const hasPending = counts.pending > 0;
+            const buttonText = hasPending && hasResends ? 'Send/Resend' : hasPending ? 'Send' : 'Resend';
+            return (
+              <button 
+                className="btn-primary" 
+                onClick={() => setShowBulkSendModal(true)}
+                style={{ background: 'var(--success-color)' }}
+              >
+                📧 {buttonText} Selected ({selectedInvitations.length})
+              </button>
+            );
+          })()}
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <label className="checkbox-label">
@@ -797,8 +815,8 @@ const InvitationManager = () => {
                 <input
                   type="checkbox"
                   onChange={handleSelectAll}
-                  checked={selectedInvitations.length > 0 && selectedInvitations.length === displayedInvitations.filter(inv => inv.emailStatus === 'pending' && !inv.archived).length}
-                  title="Select all pending invitations"
+                  checked={selectedInvitations.length > 0 && selectedInvitations.length === displayedInvitations.filter(inv => inv.emailStatus !== 'accepted' && !inv.archived).length}
+                  title="Select all invitations for bulk send/resend"
                 />
               </th>
               <th className="sortable" onClick={() => handleSort('name')}>
@@ -844,7 +862,7 @@ const InvitationManager = () => {
               displayedInvitations.map((invitation) => (
                 <tr key={invitation.id} className={invitation.archived ? 'archived-row' : ''}>
                   <td style={{ textAlign: 'center' }}>
-                    {invitation.emailStatus === 'pending' && !invitation.archived && (
+                    {invitation.emailStatus !== 'accepted' && !invitation.archived && (
                       <input
                         type="checkbox"
                         checked={selectedInvitations.includes(invitation.id)}
@@ -1053,11 +1071,13 @@ const InvitationManager = () => {
       )}
 
       {/* Bulk Send Modal */}
-      {showBulkSendModal && (
+      {showBulkSendModal && (() => {
+        const counts = getSelectedCounts();
+        return (
         <div className="modal-overlay" onClick={() => !bulkSending && setShowBulkSendModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
             <div className="modal-header">
-              <h2>📧 Send Bulk Invitations</h2>
+              <h2>📧 {counts.pending > 0 && counts.sent + counts.delivered + counts.failed > 0 ? 'Send & Resend' : counts.pending > 0 ? 'Send' : 'Resend'} Bulk Invitations</h2>
               <button className="btn-close" onClick={() => setShowBulkSendModal(false)} disabled={bulkSending}>✕</button>
             </div>
             
@@ -1069,9 +1089,23 @@ const InvitationManager = () => {
                 marginBottom: '20px',
                 border: '1px solid var(--info-color)'
               }}>
-                <p style={{ margin: 0, color: 'var(--text-color)', fontSize: '14px' }}>
-                  📊 <strong>{selectedInvitations.length} invitations</strong> selected and ready to send
+                <p style={{ margin: 0, color: 'var(--text-color)', fontSize: '14px', marginBottom: '10px' }}>
+                  📊 <strong>{selectedInvitations.length} invitations</strong> selected:
                 </p>
+                <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', fontSize: '13px' }}>
+                  {counts.pending > 0 && (
+                    <span style={{ color: 'var(--warning-color)' }}>🆕 {counts.pending} new (first send)</span>
+                  )}
+                  {counts.sent > 0 && (
+                    <span style={{ color: 'var(--success-color)' }}>📤 {counts.sent} sent (resend)</span>
+                  )}
+                  {counts.delivered > 0 && (
+                    <span style={{ color: 'var(--primary-color)' }}>✅ {counts.delivered} delivered (resend)</span>
+                  )}
+                  {counts.failed > 0 && (
+                    <span style={{ color: 'var(--error-color)' }}>❌ {counts.failed} failed (retry)</span>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">
@@ -1130,7 +1164,8 @@ const InvitationManager = () => {
             </div>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Edit Invitation Modal */}
       {showEditModal && editingInvitation && (
