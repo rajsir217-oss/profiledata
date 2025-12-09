@@ -39,8 +39,13 @@
 
 .dropdown-header .close-btn {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 50%;
+  transform: translateY(-50%) !important;
+  right: 16px;
+}
+
+.dropdown-header .close-btn:hover {
+  transform: translateY(-50%) !important;
 }
 
 .dropdown-header h4 {
@@ -65,11 +70,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  background: var(--hover-color);
   color: var(--text-color);
 }
 
