@@ -45,9 +45,9 @@ generate_default_message() {
 # Get current timestamp
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Check for -M or --merge flag (merge mode)
+# Check for -main flag (merge mode: dev -> main)
 MERGE_MODE=false
-if [ "$1" == "-M" ] || [ "$1" == "--merge" ]; then
+if [ "$1" == "-main" ]; then
     MERGE_MODE=true
     shift  # Remove flag from arguments
 fi
