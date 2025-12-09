@@ -245,7 +245,8 @@ const SavedSearchNotificationManager = () => {
     if (testEmail === 'admin') {
       emailToSend = localStorage.getItem('email') || 'admin@email.com';
     } else if (testEmail === 'user') {
-      emailToSend = selectedSearch.username + '@email.com'; // Adjust based on your user email structure
+      // Send "user" to backend - it will fetch the actual email from user's profile
+      emailToSend = 'user';
     } else {
       emailToSend = customEmail;
       if (!emailToSend || !emailToSend.includes('@')) {
@@ -256,14 +257,16 @@ const SavedSearchNotificationManager = () => {
     
     try {
       setActionLoading(true);
-      await adminApi.post('/api/admin/saved-searches/test', {
+      const response = await adminApi.post('/api/admin/saved-searches/test', {
         searchId: selectedSearch.id,
         username: selectedSearch.username,
         testEmail: emailToSend
       });
       
       setShowTestModal(false);
-      toast.success(`Test email sent to ${emailToSend}`);
+      // Show the actual email that was used (returned from backend)
+      const actualEmail = response.data.testEmail || emailToSend;
+      toast.success(`Test email sent to ${actualEmail}`);
     } catch (err) {
       console.error('Error sending test email:', err);
       toast.error(`Failed to send test: ${err.response?.data?.detail || err.message}`);

@@ -9,6 +9,8 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from bson import ObjectId
 from pymongo import ReturnDocument
 import logging
+import pytz
+from croniter import croniter
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +176,9 @@ class JobRegistryService:
             
             # Recalculate next run if schedule changed (use camelCase for MongoDB)
             if "schedule" in updates:
-                updates["nextRunAt"] = self._calculate_next_run(updates["schedule"])
+                next_run = self._calculate_next_run(updates["schedule"])
+                updates["nextRunAt"] = next_run
+                logger.info(f"📅 Schedule updated - next run calculated: {next_run}")
             
             # Update timestamps and version (use camelCase for MongoDB)
             updates["updatedAt"] = datetime.utcnow()
@@ -296,28 +300,30 @@ class JobRegistryService:
             return datetime.utcnow() + timedelta(seconds=interval_seconds)
         
         elif schedule_type == "cron":
-            # Simplified cron handling without croniter dependency
-            # Most jobs should use interval scheduling instead
-            # For basic cron patterns, convert to approximate intervals:
             cron_expression = schedule.get("expression", "0 * * * *")
+            timezone_str = schedule.get("timezone", "UTC")
             
-            # Parse basic patterns
-            if cron_expression.startswith("*/"):
-                # Every N minutes: */5 * * * * = every 5 minutes
-                parts = cron_expression.split()
-                if parts[0].startswith("*/"):
-                    minutes = int(parts[0][2:])
-                    return datetime.utcnow() + timedelta(minutes=minutes)
-            
-            # Default fallback patterns
-            if cron_expression == "0 * * * *":  # Every hour
+            try:
+                # Get timezone
+                tz = pytz.timezone(timezone_str)
+                
+                # Get current time in the job's timezone
+                now_tz = datetime.now(tz)
+                
+                # Use croniter to calculate next run time
+                cron = croniter(cron_expression, now_tz)
+                next_run_tz = cron.get_next(datetime)
+                
+                # Convert back to UTC for storage
+                next_run_utc = next_run_tz.astimezone(pytz.UTC).replace(tzinfo=None)
+                
+                logger.debug(f"Cron '{cron_expression}' in {timezone_str}: next run at {next_run_utc} UTC")
+                return next_run_utc
+                
+            except Exception as e:
+                logger.error(f"Error parsing cron expression '{cron_expression}': {e}")
+                # Fallback to 1 hour interval on error
                 return datetime.utcnow() + timedelta(hours=1)
-            elif cron_expression == "0 0 * * *":  # Daily at midnight
-                return datetime.utcnow() + timedelta(days=1)
-            
-            # Default to 1 hour for unsupported patterns
-            logger.warning(f"Unsupported cron pattern: {cron_expression}, using 1 hour interval")
-            return datetime.utcnow() + timedelta(hours=1)
         
         else:
             # Default to 1 hour interval
