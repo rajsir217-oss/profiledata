@@ -61,11 +61,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     educationHistory: [{
       level: "Under Graduation",
       degree: "BS",
-      institution: "One of the Top 10 Institution"
+      institution: "UC Berkeley, CA"
     }],
     workExperience: [{
       status: "current",
-      description: "Marketing Manager in Health Care Sector",
+      description: "MD, Resident @ ABC Hospital",
       location: "San Francisco"
     }],
     familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
@@ -127,12 +127,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     educationHistory: [{
       level: "Under Graduation",
       degree: "BS",
-      institution: "One of the Top 10 Institution"
+      institution: "UC Berkeley, CA"
     }],  // Array of education entries with default
     // Professional & Work Related Information
     workExperience: [{
       status: "current",
-      description: "Marketing Manager in Health Care Sector",
+      description: "MD, Resident @ ABC Hospital",
       location: "San Francisco"
     }],  // Array of work experience entries with default
     linkedinUrl: "",

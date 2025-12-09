@@ -6126,19 +6126,24 @@ async def get_online_users(db = Depends(get_database)):
     usernames = redis.get_online_users()
     logger.info(f"Online usernames: {len(usernames)} - {usernames}")
     
-    # Fetch user details from database
+    if not usernames:
+        return {"onlineUsers": [], "count": 0}
+    
+    # Fetch all user details in a SINGLE query using $in (much faster!)
+    cursor = db.users.find(
+        {"username": {"$in": usernames}},
+        {"username": 1, "firstName": 1, "lastName": 1, "images": 1, "role": 1, "_id": 0}
+    )
+    
     user_list = []
-    for username in usernames:
-        user = await db.users.find_one({"username": username})
-        if user:
-            # Return only necessary fields for dropdown
-            user_list.append({
-                "username": user.get("username"),
-                "firstName": user.get("firstName"),
-                "lastName": user.get("lastName"),
-                "profileImage": user.get("images", [None])[0] if user.get("images") else None,
-                "role": user.get("role", "free_user")
-            })
+    async for user in cursor:
+        user_list.append({
+            "username": user.get("username"),
+            "firstName": user.get("firstName"),
+            "lastName": user.get("lastName"),
+            "profileImage": user.get("images", [None])[0] if user.get("images") else None,
+            "role": user.get("role", "free_user")
+        })
     
     logger.info(f"Online users with profiles: {len(user_list)}")
     return {"onlineUsers": user_list, "count": len(user_list)}

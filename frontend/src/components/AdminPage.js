@@ -268,6 +268,29 @@ const AdminPage = () => {
     setDisplayCount(recordsPerPage);
   }, [searchTerm, genderFilter, statusFilter, sortField, sortOrder]);
 
+  // ESC key handler to close modals
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape') {
+        if (showStatusModal) {
+          setShowStatusModal(false);
+          setSelectedUserForStatus(null);
+        }
+        if (deleteConfirm) {
+          setDeleteConfirm(null);
+        }
+        if (showDeletionSummary) {
+          setShowDeletionSummary(false);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [showStatusModal, deleteConfirm, showDeletionSummary]);
+
   const handleLoadMore = () => {
     setDisplayCount(prev => Math.min(prev + recordsPerPage, filteredUsers.length));
   };
@@ -639,20 +662,20 @@ const AdminPage = () => {
                   rows="3"
                 />
               </div>
-              
-              {/* Footer Buttons */}
-              <div className="status-modal-footer">
-                <button className="btn-cancel" onClick={() => setShowStatusModal(false)}>
-                  Cancel
-                </button>
-                <button 
-                  className="btn-confirm" 
-                  onClick={handleStatusChange}
-                  disabled={selectedStatus === (selectedUserForStatus.accountStatus || 'pending_admin_approval')}
-                >
-                  🔐 Update Status
-                </button>
-              </div>
+            </div>
+            
+            {/* Footer Buttons - Outside body for sticky positioning */}
+            <div className="status-modal-footer">
+              <button className="btn-cancel" onClick={() => setShowStatusModal(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn-confirm" 
+                onClick={handleStatusChange}
+                disabled={selectedStatus === (selectedUserForStatus.accountStatus || 'pending_admin_approval')}
+              >
+                🔐 Update Status
+              </button>
             </div>
           </div>
         </div>

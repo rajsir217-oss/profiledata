@@ -242,7 +242,7 @@ class SocketService {
               console.error('❌ API fallback failed:', error);
               resolve([]);
             });
-        }, 3000); // 3 second timeout
+        }, 1500); // 1.5 second timeout (reduced from 3s)
         
         this.socket.emit('get_online_users', {});
         this.socket.once('online_users_list', (data) => {
