@@ -230,39 +230,14 @@ class SocketService {
   }
 
   async getOnlineUsers() {
-    if (this.connected) {
-      return new Promise((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          console.warn('⏱️ WebSocket timeout, falling back to API...');
-          this.socket.off('online_users_list');
-          // Fallback to API on timeout
-          api.get('/online-status/users')
-            .then(response => resolve(response.data.onlineUsers || []))
-            .catch(error => {
-              console.error('❌ API fallback failed:', error);
-              resolve([]);
-            });
-        }, 1500); // 1.5 second timeout (reduced from 3s)
-        
-        this.socket.emit('get_online_users', {});
-        this.socket.once('online_users_list', (data) => {
-          clearTimeout(timeout);
-          console.log('✅ WebSocket response:', data);
-          resolve(data.users || []);
-        });
-      });
-    } else {
-      // Fallback to API
-      try {
-        console.log('📡 Using API (WebSocket not connected)');
-        const response = await api.get('/online-status/users');
-        console.log('✅ API Response:', response.data);
-        return response.data.onlineUsers || [];
-      } catch (error) {
-        console.error('❌ API Error:', error);
-        logger.error('Error getting online users:', error);
-        return [];
-      }
+    // Always use API directly - it's faster and more reliable than WebSocket
+    try {
+      const response = await api.get('/online-status/users');
+      return response.data.onlineUsers || [];
+    } catch (error) {
+      console.error('❌ Error getting online users:', error);
+      logger.error('Error getting online users:', error);
+      return [];
     }
   }
 
