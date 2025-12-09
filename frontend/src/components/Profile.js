@@ -52,6 +52,11 @@ const Profile = () => {
   // L3V3L Matching Data
   const [l3v3lMatchData, setL3v3lMatchData] = useState(null);
   
+  // Editable About Me state
+  const [isEditingAboutMe, setIsEditingAboutMe] = useState(false);
+  const [editedAboutMe, setEditedAboutMe] = useState('');
+  const [savingAboutMe, setSavingAboutMe] = useState(false);
+  
   console.log('📍 Profile component loaded for username:', username);
   
   // Check for status message from ProtectedRoute
@@ -777,6 +782,51 @@ const Profile = () => {
     }
   };
 
+  // Handle About Me edit
+  const handleEditAboutMe = () => {
+    // Initialize with custom content or strip HTML from generated content
+    const currentContent = user.customAboutMe || 
+      generateAboutMe(user).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    setEditedAboutMe(currentContent);
+    setIsEditingAboutMe(true);
+  };
+
+  const handleSaveAboutMe = async () => {
+    setSavingAboutMe(true);
+    try {
+      const formData = new FormData();
+      formData.append('customAboutMe', editedAboutMe);
+      
+      const response = await api.put(`/profile/${username}`, formData);
+      setUser(response.data.user || response.data);
+      setIsEditingAboutMe(false);
+      showToast('About Me updated successfully!', 'success');
+    } catch (err) {
+      console.error('Error saving About Me:', err);
+      showToast('Failed to update About Me', 'error');
+    } finally {
+      setSavingAboutMe(false);
+    }
+  };
+
+  const handleResetAboutMe = async () => {
+    setSavingAboutMe(true);
+    try {
+      const formData = new FormData();
+      formData.append('customAboutMe', '__RESET__');  // Special value to clear custom content
+      
+      const response = await api.put(`/profile/${username}`, formData);
+      setUser(response.data.user || response.data);
+      setIsEditingAboutMe(false);
+      showToast('About Me reset to auto-generated content', 'success');
+    } catch (err) {
+      console.error('Error resetting About Me:', err);
+      showToast('Failed to reset About Me', 'error');
+    } finally {
+      setSavingAboutMe(false);
+    }
+  };
+
   if (loading) return <p>Loading profile...</p>;
   if (error) return <p className="text-danger">{error}</p>;
   if (!user) return <p>No profile found.</p>;
@@ -1263,11 +1313,78 @@ const Profile = () => {
 
       {/* About Me Narrative */}
       <div className="profile-section profile-narrative-section">
-        <h3>📝 About Me</h3>
-        <div 
-          className="profile-narrative-content"
-          dangerouslySetInnerHTML={{ __html: generateAboutMe(user) }}
-        />
+        <div className="section-header-with-edit">
+          <h3>📝 About Me</h3>
+          {isOwnProfile && !isEditingAboutMe && (
+            <button 
+              onClick={handleEditAboutMe}
+              title="Edit About Me"
+              style={{ padding: '2px 5px', fontSize: '10px', background: 'transparent', border: '1px solid #666', borderRadius: '3px', cursor: 'pointer', opacity: 0.7 }}
+            >
+              ✎
+            </button>
+          )}
+          {isOwnProfile && isEditingAboutMe && (
+            <div style={{ display: 'flex', gap: '3px' }}>
+              <button 
+                onClick={handleSaveAboutMe}
+                disabled={savingAboutMe}
+                title="Save"
+                style={{ padding: '2px 5px', fontSize: '10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+              >
+                {savingAboutMe ? '⏳' : '✓'}
+              </button>
+              {user.customAboutMe && (
+                <button 
+                  onClick={handleResetAboutMe}
+                  disabled={savingAboutMe}
+                  title="Reset to auto-generated"
+                  style={{ padding: '2px 5px', fontSize: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+                >
+                  ↺
+                </button>
+              )}
+              <button 
+                onClick={() => setIsEditingAboutMe(false)}
+                disabled={savingAboutMe}
+                title="Cancel"
+                style={{ padding: '2px 5px', fontSize: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {isEditingAboutMe ? (
+          <div className="about-me-edit-container">
+            <textarea
+              value={editedAboutMe}
+              onChange={(e) => setEditedAboutMe(e.target.value)}
+              className="about-me-textarea"
+              rows={10}
+              placeholder="Write about yourself..."
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                border: '1px solid #ddd',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                resize: 'vertical',
+                fontFamily: 'inherit'
+              }}
+            />
+            <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
+              💡 Tip: Write in your own words. This will replace the auto-generated content.
+            </p>
+          </div>
+        ) : (
+          <div 
+            className="profile-narrative-content"
+            dangerouslySetInnerHTML={{ __html: user.customAboutMe || generateAboutMe(user) }}
+          />
+        )}
       </div>
 
       {/* What You're Looking For Narrative */}

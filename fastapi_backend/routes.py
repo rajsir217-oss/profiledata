@@ -1024,6 +1024,7 @@ async def update_user_profile(
     creatorNotes: Optional[str] = Form(None),  # Why profile was created by someone else
     partnerPreference: Optional[str] = Form(None),
     partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
+    customAboutMe: Optional[str] = Form(None),  # User's custom About Me content (overrides auto-generated)
     images: List[UploadFile] = File(default=[]),
     imagesToDelete: Optional[str] = Form(None),
     imageOrder: Optional[str] = Form(None),  # NEW: JSON array of image URLs in desired order
@@ -1182,6 +1183,15 @@ async def update_user_profile(
     # Bio / Tagline
     if bio is not None and bio.strip():
         update_data["bio"] = bio.strip()
+    
+    # Custom About Me (user-edited content that overrides auto-generated)
+    # Note: "__RESET__" means "reset to auto-generated" - clear the field
+    if customAboutMe is not None:
+        if customAboutMe.strip() == "__RESET__":
+            # Special value to reset - set to empty string (frontend checks for truthy)
+            update_data["customAboutMe"] = ""
+        elif customAboutMe.strip():
+            update_data["customAboutMe"] = customAboutMe.strip()
     
     # Profile Creator Metadata
     if profileCreatedBy is not None:
