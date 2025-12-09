@@ -225,16 +225,26 @@ class EmailNotifierTemplate(JobTemplate):
     async def _render_email(self, service, notification, db) -> Tuple[str, str]:
         """Render email subject and body from template"""
         from config import settings
+        import logging
+        logger = logging.getLogger(__name__)
+        
+        logger.info(f"🔍 Looking for template with trigger: '{notification.trigger}'")
         
         # Try to find template (check both 'enabled' and 'active' for backwards compatibility)
+        # Templates can have either flat structure (channel, enabled) or nested (channels.email.enabled)
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
-            "channel": NotificationChannel.EMAIL,
             "$or": [
-                {"enabled": True},
-                {"active": True}
+                # Flat structure
+                {"channel": NotificationChannel.EMAIL, "enabled": True},
+                {"channel": NotificationChannel.EMAIL, "active": True},
+                # Nested structure (channels.email)
+                {"channels.email.enabled": True, "isActive": True},
+                {"channels.email.enabled": True}
             ]
         })
+        
+        logger.info(f"📋 Template found: {template is not None}")
         
         # Inject app URLs and tracking into template data
         template_data = notification.templateData.copy() if notification.templateData else {}
@@ -313,15 +323,19 @@ class EmailNotifierTemplate(JobTemplate):
                 subject = f"New {trigger_name} Notification"
                 body = f"You have a new {trigger_name.lower()} notification. Please login to view details."
         else:
-            subject = service.render_template(
-                template.get("subject", ""),
-                template_data
-            )
-            # Use 'body' field for HTML templates
-            body = service.render_template(
-                template.get("body", template.get("bodyTemplate", "")),
-                template_data
-            )
+            # Support both flat and nested template structures
+            if "channels" in template and "email" in template["channels"]:
+                # Nested structure: channels.email.subject, channels.email.htmlBody
+                email_config = template["channels"]["email"]
+                subject_template = email_config.get("subject", "")
+                body_template = email_config.get("htmlBody", email_config.get("body", ""))
+            else:
+                # Flat structure: subject, body
+                subject_template = template.get("subject", "")
+                body_template = template.get("body", template.get("bodyTemplate", ""))
+            
+            subject = service.render_template(subject_template, template_data)
+            body = service.render_template(body_template, template_data)
         
         return subject, body
     

@@ -218,12 +218,19 @@ EMAIL_TEMPLATE = """
 </head>
 <body>
     <div class="header">
-        <h1>🔍 New Matches for Your Saved Search</h1>
-        <p style="margin: 10px 0 0 0; opacity: 0.9;">We found {match_count} new profile{plural} matching your criteria!</p>
+        <h1>� L3V3LMATCH</h1>
+        <p style="margin: 10px 0 0 0; opacity: 0.9;">New matches for your saved search!</p>
+    </div>
+    
+    <div style="padding: 20px 30px;">
+        <h2 style="margin: 0 0 15px 0; color: #2d3748;">Hi {user_first_name}! 👋</h2>
+        <p style="color: #4a5568; font-size: 16px; margin: 0 0 20px 0;">
+            Great news! We found <strong style="color: #667eea;">{match_count} new profile{plural}</strong> matching your saved search:
+        </p>
     </div>
     
     <div class="search-name">
-        <h2 style="margin: 0 0 10px 0; color: #2d3748;">📌 {search_name}</h2>
+        <h2 style="margin: 0 0 10px 0; color: #2d3748;">� {search_name}</h2>
         <p class="search-description">{search_description}</p>
     </div>
     
@@ -239,30 +246,30 @@ EMAIL_TEMPLATE = """
 """
 
 MATCH_CARD_TEMPLATE = """
-<div class="match-card">
-    <h3 class="match-name">{name}</h3>
+<div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+    <h3 style="font-size: 18px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0;">{name}</h3>
     {l3v3l_badge}
-    <div class="match-details">
-        <div class="match-detail">
-            <span class="match-detail-icon">🎂</span>
+    <div style="margin: 12px 0;">
+        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+            <span style="margin-right: 8px;">🎂</span>
             <span>{age} years old</span>
         </div>
-        <div class="match-detail">
-            <span class="match-detail-icon">📏</span>
+        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+            <span style="margin-right: 8px;">📏</span>
             <span>{height}</span>
         </div>
-        <div class="match-detail">
-            <span class="match-detail-icon">📍</span>
+        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+            <span style="margin-right: 8px;">📍</span>
             <span>{location}</span>
         </div>
-        <div class="match-detail">
-            <span class="match-detail-icon">🎓</span>
+        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+            <span style="margin-right: 8px;">🎓</span>
             <span>{education}</span>
         </div>
         {religion_detail}
         {occupation_detail}
     </div>
-    <a href="{profile_url}" class="view-profile-btn">View Full Profile →</a>
+    <a href="{profile_url}" style="display: inline-block; color: #667eea; text-decoration: none; font-weight: 500; font-size: 14px; margin-top: 8px;">View Full Profile →</a>
 </div>
 """
 
@@ -535,9 +542,12 @@ async def find_matches_for_search(
         query['occupation'] = {'$regex': criteria['occupation'], '$options': 'i'}
     
     # Only get recent profiles (created in lookback period)
+    # NOTE: For scheduled runs, we want to notify about NEW profiles only
+    # For manual runs, lookback_hours is set to 0 to check ALL profiles
     if lookback_hours > 0:
         cutoff_time = datetime.utcnow() - timedelta(hours=lookback_hours)
         query['createdAt'] = {'$gte': cutoff_time}
+        logger.info(f"📅 Filtering profiles created after {cutoff_time} (last {lookback_hours} hours)")
     
     # Log the final query
     logger.info(f"📊 Final MongoDB query: {query}")
@@ -651,8 +661,8 @@ async def send_matches_email(
             religion_detail = ''
             if decrypted_match.get('religion'):
                 religion_detail = f'''
-                <div class="match-detail">
-                    <span class="match-detail-icon">🕉️</span>
+                <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                    <span style="margin-right: 8px;">🕉️</span>
                     <span>{decrypted_match['religion']}</span>
                 </div>
                 '''
@@ -661,8 +671,8 @@ async def send_matches_email(
             occupation_detail = ''
             if decrypted_match.get('occupation'):
                 occupation_detail = f'''
-                <div class="match-detail">
-                    <span class="match-detail-icon">💼</span>
+                <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                    <span style="margin-right: 8px;">💼</span>
                     <span>{decrypted_match['occupation']}</span>
                 </div>
                 '''
@@ -670,7 +680,7 @@ async def send_matches_email(
             # L3V3L badge (if score exists)
             l3v3l_badge = ''
             if decrypted_match.get('matchScore'):
-                l3v3l_badge = f'<span class="match-badge">🦋 {decrypted_match["matchScore"]}% Match</span>'
+                l3v3l_badge = f'<span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; display: inline-block; margin-bottom: 8px;">🦋 {decrypted_match["matchScore"]}% Match</span>'
             
             # Build profile URL
             profile_url = f"{app_url}/profile/{decrypted_match['username']}"
@@ -697,15 +707,20 @@ async def send_matches_email(
         # Build complete email HTML
         plural = 'es' if len(matches) != 1 else ''
         matches_container = f'''
-        <div class="stats-banner">
-            <p style="margin: 0;">Found <strong>{len(matches)}</strong> new match{plural} for you!</p>
+        <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">{len(matches)}</strong> new match{plural} for you!</p>
         </div>
-        <div class="matches-container">
+        <div style="margin-top: 20px;">
             {''.join(matches_html_parts)}
         </div>
         '''
         
+        # Get user info for personalization
+        user = await db.users.find_one({'username': username})
+        user_first_name = user.get('firstName', username) if user else username
+        
         email_html = EMAIL_TEMPLATE.format(
+            user_first_name=user_first_name,
             match_count=len(matches),
             plural=plural,
             search_name=search_name,
@@ -715,24 +730,21 @@ async def send_matches_email(
         )
         
         # Queue notification via NotificationService
+        # The notification template will render the email with profile cards
         notification_service = NotificationService(db)
         
-        # Get user info for template
-        user = await db.users.find_one({'username': username})
-        user_first_name = user.get('firstName', username) if user else username
-        
-        # Build template data
+        # Build template data with the pre-rendered HTML
         template_data = {
             'user': {
                 'firstName': user_first_name,
                 'username': username
             },
             'matchCount': len(matches),
-            'plural': plural,  # 'es' or ''
+            'plural': plural,
             'searchName': search_name,
-            'searchDescription': search_description,  # Keep original, not empty string
+            'searchDescription': search_description or 'Your saved search criteria',
             'matchesHtml': matches_container,
-            'matchesText': f"Found {len(matches)} new match{plural}"  # For text version
+            'appUrl': app_url
         }
         
         # Queue the notification
