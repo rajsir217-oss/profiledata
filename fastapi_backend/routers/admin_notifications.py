@@ -489,7 +489,7 @@ async def test_notification(
     {
         "searchId": "...",
         "username": "...",
-        "testEmail": "admin@email.com"
+        "testEmail": "admin@email.com" or "user" (to use user's actual email)
     }
     """
     try:
@@ -510,6 +510,16 @@ async def test_notification(
         
         if not search:
             raise HTTPException(status_code=404, detail="Search not found")
+        
+        # If testEmail is "user", fetch the actual user's email from their profile
+        if test_email == "user":
+            user = await db.users.find_one({"username": username})
+            if user:
+                test_email = user.get("contactEmail") or user.get("email")
+                if not test_email:
+                    raise HTTPException(status_code=400, detail=f"User '{username}' has no email address in their profile")
+            else:
+                raise HTTPException(status_code=404, detail=f"User '{username}' not found")
         
         # Create a test notification log entry
         log_entry = {

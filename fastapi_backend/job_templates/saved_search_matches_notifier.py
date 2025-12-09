@@ -73,8 +73,8 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
             "lookbackHours": {
                 "type": "integer",
                 "label": "Lookback Hours",
-                "description": "Only notify for profiles created in the last N hours",
-                "default": 24,
+                "description": "Only notify for profiles created in the last N hours (168 = 7 days)",
+                "default": 168,
                 "min": 0,
                 "max": 720
             },
@@ -296,10 +296,11 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         # Detect manual run from UI (triggered_by starts with 'manual:' or manualRun flag)
         triggered_by = params.get('triggered_by', '')
         is_manual_run = triggered_by.startswith('manual') or params.get('manualRun', False)
+        logger.info(f"🔧 triggered_by='{triggered_by}', is_manual_run={is_manual_run}")
         
         # Get configuration
         batch_size = params.get('batchSize', 50)
-        lookback_hours = params.get('lookbackHours', 24)  # Check for profiles created in last 24h
+        lookback_hours = params.get('lookbackHours', 168)  # Check for profiles created in last 7 days (168 hours)
         app_url = params.get('appUrl', 'http://localhost:3000')
         
         # Apply overrides for manual runs
@@ -410,8 +411,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                             # Mark matches as notified
                             await mark_matches_notified(db, username, search_id, new_matches)
                             
-                            # Update last notification time
-                            await update_last_notification_time(db, username, search_id)
+                            # Update last notification time (with matches count for history)
+                            await update_last_notification_time(db, username, search_id, len(new_matches))
                             
                             logger.info(f"✅ Sent email to {username} with {len(new_matches)} new matches for '{search_name}'")
                         
@@ -465,6 +466,8 @@ async def find_matches_for_search(
         'username': {'$ne': username},  # Exclude self
         'accountStatus': 'active'  # Only match active users (unified field)
     }
+    
+    logger.info(f"🔍 Building query for user '{username}' with criteria: {criteria}")
     
     # Apply gender filter
     if criteria.get('gender'):
@@ -536,9 +539,14 @@ async def find_matches_for_search(
         cutoff_time = datetime.utcnow() - timedelta(hours=lookback_hours)
         query['createdAt'] = {'$gte': cutoff_time}
     
-    # Fetch matches
-    cursor = db.users.find(query).limit(20)  # Limit to top 20 matches
+    # Log the final query
+    logger.info(f"📊 Final MongoDB query: {query}")
+    
+    # Fetch matches - sorted by createdAt descending (newest first)
+    cursor = db.users.find(query).sort("createdAt", -1).limit(20)  # Limit to top 20 matches, newest first
     matches = await cursor.to_list(length=20)
+    
+    logger.info(f"✅ Found {len(matches)} matches for query")
     
     return matches
 
@@ -806,10 +814,14 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     return True
 
 
-async def update_last_notification_time(db, username: str, search_id: str):
+async def update_last_notification_time(db, username: str, search_id: str, matches_count: int = 0):
     """
     Update the last notification timestamp for a search
+    Updates both the tracking collection and the saved_searches document
     """
+    now = datetime.utcnow()
+    
+    # Update tracking collection (for duplicate prevention)
     await db.saved_search_notifications.update_one(
         {
             'username': username,
@@ -817,11 +829,39 @@ async def update_last_notification_time(db, username: str, search_id: str):
         },
         {
             '$set': {
-                'last_notification_sent': datetime.utcnow()
+                'last_notification_sent': now
             }
         },
         upsert=True
     )
+    
+    # Also update the saved_searches document with notification history
+    # This is what the admin UI reads for "Last Sent" status
+    from bson import ObjectId
+    try:
+        notification_record = {
+            'sentAt': now,
+            'status': 'sent',
+            'matchesCount': matches_count
+        }
+        
+        await db.saved_searches.update_one(
+            {'_id': ObjectId(search_id)},
+            {
+                '$push': {
+                    'notificationHistory': {
+                        '$each': [notification_record],
+                        '$slice': -10  # Keep only last 10 records
+                    }
+                },
+                '$set': {
+                    'notifications.lastSent': now
+                }
+            }
+        )
+        logger.debug(f"Updated notification history for search {search_id}")
+    except Exception as e:
+        logger.error(f"Error updating saved_searches notification history: {e}")
 
 
 def calculate_age(date_of_birth):

@@ -219,6 +219,14 @@ const DynamicScheduler = ({ currentUser }) => {
         body: JSON.stringify(cleanedData)
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          toast.error('Session expired. Please login again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userRole');
+          navigate('/login');
+          return;
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to create job');
       }
@@ -278,6 +286,14 @@ const DynamicScheduler = ({ currentUser }) => {
       });
       
       if (!response.ok) {
+        if (response.status === 401) {
+          toast.error('Session expired. Please login again.');
+          localStorage.removeItem('token');
+          localStorage.removeItem('username');
+          localStorage.removeItem('userRole');
+          navigate('/login');
+          return;
+        }
         const errorData = await response.json();
         throw new Error(errorData.detail || 'Failed to update job');
       }
