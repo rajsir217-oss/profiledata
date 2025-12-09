@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # Quick git workflow script - gitp (git push)
-# Usage: ./gitp.sh ["Your commit message"]
+# Usage: 
+#   gitp ["Your commit message"]       - Commit and push to current branch
+#   gitp -main ["Your commit message"] - Commit to dev, merge to main, checkout back to dev
 # Note: Timestamp is automatically appended to all commit messages
 
 set -e  # Exit on any error
@@ -11,6 +13,7 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
@@ -30,6 +33,10 @@ print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
+print_merge() {
+    echo -e "${CYAN}[MERGE]${NC} $1"
+}
+
 # Generate default commit message with timestamp
 generate_default_message() {
     echo "changes made on $(date '+%Y-%m-%d | %H:%M:%S')"
@@ -37,6 +44,13 @@ generate_default_message() {
 
 # Get current timestamp
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Check for -M or --merge flag (merge mode)
+MERGE_MODE=false
+if [ "$1" == "-M" ] || [ "$1" == "--merge" ]; then
+    MERGE_MODE=true
+    shift  # Remove flag from arguments
+fi
 
 # Check if commit message is provided, otherwise use default
 if [ $# -eq 0 ]; then
@@ -113,6 +127,79 @@ else
     print_error "Failed to push changes"
     print_status "You might need to set up authentication or the remote repository"
     exit 1
+fi
+
+# Handle merge mode (-m flag)
+if [ "$MERGE_MODE" = true ]; then
+    echo ""
+    print_merge "=========================================="
+    print_merge "Starting merge workflow: dev -> main"
+    print_merge "=========================================="
+    
+    # Check if we're on dev branch
+    if [ "$CURRENT_BRANCH" != "dev" ]; then
+        print_error "Merge mode requires you to be on 'dev' branch!"
+        print_error "Current branch: $CURRENT_BRANCH"
+        print_status "Please checkout to dev branch first: git checkout dev"
+        exit 1
+    fi
+    
+    # Checkout to main
+    print_merge "Checking out to main branch..."
+    if git checkout main; then
+        print_success "Switched to main branch"
+    else
+        print_error "Failed to checkout main branch"
+        git checkout dev  # Try to go back to dev
+        exit 1
+    fi
+    
+    # Pull latest main (in case there are remote changes)
+    print_merge "Pulling latest changes from main..."
+    if git pull origin main; then
+        print_success "Main branch is up to date"
+    else
+        print_warning "Could not pull main (might be up to date or no remote)"
+    fi
+    
+    # Merge dev into main
+    print_merge "Merging dev into main..."
+    if git merge dev -m "Merge dev into main [$TIMESTAMP]"; then
+        print_success "Merged dev into main successfully"
+    else
+        print_error "Merge conflict detected!"
+        print_error "Please resolve conflicts manually, then:"
+        print_status "  1. git add ."
+        print_status "  2. git commit"
+        print_status "  3. git push origin main"
+        print_status "  4. git checkout dev"
+        exit 1
+    fi
+    
+    # Push main to remote
+    print_merge "Pushing main to remote..."
+    if git push origin main; then
+        print_success "Main branch pushed successfully!"
+    else
+        print_error "Failed to push main branch"
+        exit 1
+    fi
+    
+    # Checkout back to dev
+    print_merge "Checking out back to dev branch..."
+    if git checkout dev; then
+        print_success "Switched back to dev branch"
+    else
+        print_error "Failed to checkout dev branch"
+        exit 1
+    fi
+    
+    echo ""
+    print_merge "=========================================="
+    print_success "Merge workflow completed! 🚀"
+    print_merge "=========================================="
+    print_status "dev -> main merge successful"
+    print_status "You are now on: dev branch"
 fi
 
 print_success "Git workflow completed successfully! 🎉"
