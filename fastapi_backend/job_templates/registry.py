@@ -157,6 +157,7 @@ def initialize_templates():
     from .analytics_notifier import AnalyticsNotifierTemplate
     from .age_updater_template import AgeUpdaterTemplate
     from .retroactive_invitation_matcher import RetroactiveInvitationMatcherTemplate
+    from .invitation_resend_template import InvitationResendTemplate
     
     registry = get_template_registry()
     
@@ -177,6 +178,7 @@ def initialize_templates():
     registry.register(MessageStatsSyncTemplate())
     registry.register(AgeUpdaterTemplate())
     registry.register(RetroactiveInvitationMatcherTemplate())
+    registry.register(InvitationResendTemplate())
     
     # Register notification job templates
     registry.register(EmailNotifierTemplate())

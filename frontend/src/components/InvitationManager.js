@@ -402,7 +402,7 @@ const InvitationManager = () => {
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status, resendCount = 0) => {
     const statusClasses = {
       'pending': 'status-pending',
       'sent': 'status-sent',
@@ -412,11 +412,35 @@ const InvitationManager = () => {
       'expired': 'status-expired'
     };
 
+    const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+    const resendBadge = resendCount > 0 ? ` (${resendCount})` : '';
+
     return (
       <span className={`btn-action ${statusClasses[status] || ''}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {statusText}{resendBadge}
       </span>
     );
+  };
+
+  // Format last sent date
+  const formatLastSent = (lastEmailSentAt, emailSentAt) => {
+    const dateToUse = lastEmailSentAt || emailSentAt;
+    if (!dateToUse) return '-';
+    
+    const date = new Date(dateToUse);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    
+    // For older dates, show the actual date
+    return date.toLocaleDateString();
   };
 
   const handleLoadMore = () => {
@@ -845,8 +869,8 @@ const InvitationManager = () => {
                 SMS Status {sortColumn === 'smsStatus' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
               <th>Action</th>
-              <th className="sortable" onClick={() => handleSort('createdAt')}>
-                Time Lapse {sortColumn === 'createdAt' && (sortDirection === 'asc' ? '▲' : '▼')}
+              <th className="sortable" onClick={() => handleSort('lastEmailSentAt')}>
+                Last Sent {sortColumn === 'lastEmailSentAt' && (sortDirection === 'asc' ? '▲' : '▼')}
               </th>
               <th>Actions</th>
             </tr>
@@ -887,7 +911,7 @@ const InvitationManager = () => {
                       {invitation.invitedBy === 'admin' ? '👤 Admin' : `👥 ${invitation.invitedBy}`}
                     </span>
                   </td>
-                  <td>{getStatusBadge(invitation.emailStatus)}</td>
+                  <td>{getStatusBadge(invitation.emailStatus, invitation.emailResendCount)}</td>
                   <td>
                     {invitation.emailStatus !== 'accepted' && (
                       <button
@@ -914,7 +938,7 @@ const InvitationManager = () => {
                       </button>
                     )}
                   </td>
-                  <td>{invitation.timeLapse}</td>
+                  <td>{formatLastSent(invitation.lastEmailSentAt, invitation.emailSentAt)}</td>
                   <td>
                     <div className="action-buttons">
                       <button
