@@ -15,6 +15,7 @@ import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activit
 import { generateAboutMe, generatePartnerPreference } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import { getWorkingStatus } from "../utils/workStatusHelper";
+import RichTextEditor from "./shared/RichTextEditor";
 import "./Profile.css";
 
 // Create axios instance for verification API
@@ -1317,38 +1318,38 @@ const Profile = () => {
           <h3>📝 About Me</h3>
           {isOwnProfile && !isEditingAboutMe && (
             <button 
+              className="about-me-edit-btn"
               onClick={handleEditAboutMe}
               title="Edit About Me"
-              style={{ padding: '2px 5px', fontSize: '10px', background: 'transparent', border: '1px solid #666', borderRadius: '3px', cursor: 'pointer', opacity: 0.7 }}
             >
               ✎
             </button>
           )}
           {isOwnProfile && isEditingAboutMe && (
-            <div style={{ display: 'flex', gap: '3px' }}>
+            <div className="about-me-action-btns">
               <button 
+                className="about-me-save-btn"
                 onClick={handleSaveAboutMe}
                 disabled={savingAboutMe}
                 title="Save"
-                style={{ padding: '2px 5px', fontSize: '10px', background: '#28a745', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
               >
                 {savingAboutMe ? '⏳' : '✓'}
               </button>
               {user.customAboutMe && (
                 <button 
+                  className="about-me-reset-btn"
                   onClick={handleResetAboutMe}
                   disabled={savingAboutMe}
                   title="Reset to auto-generated"
-                  style={{ padding: '2px 5px', fontSize: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
                 >
                   ↺
                 </button>
               )}
               <button 
+                className="about-me-cancel-btn"
                 onClick={() => setIsEditingAboutMe(false)}
                 disabled={savingAboutMe}
                 title="Cancel"
-                style={{ padding: '2px 5px', fontSize: '10px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}
               >
                 ✕
               </button>
@@ -1358,25 +1359,15 @@ const Profile = () => {
         
         {isEditingAboutMe ? (
           <div className="about-me-edit-container">
-            <textarea
+            <RichTextEditor
               value={editedAboutMe}
-              onChange={(e) => setEditedAboutMe(e.target.value)}
-              className="about-me-textarea"
-              rows={10}
-              placeholder="Write about yourself..."
-              style={{
-                width: '100%',
-                padding: '12px',
-                borderRadius: '8px',
-                border: '1px solid #ddd',
-                fontSize: '14px',
-                lineHeight: '1.6',
-                resize: 'vertical',
-                fontFamily: 'inherit'
-              }}
+              onChange={setEditedAboutMe}
+              placeholder="Write about yourself... Use the toolbar to add bold, colors, and more!"
+              minHeight={200}
+              simpleToolbar={true}
             />
-            <p style={{ fontSize: '12px', color: '#666', marginTop: '8px' }}>
-              💡 Tip: Write in your own words. This will replace the auto-generated content.
+            <p className="about-me-tip">
+              💡 Tip: Use the toolbar above to format your text with <strong>bold</strong>, <em>italic</em>, colors, and lists!
             </p>
           </div>
         ) : (

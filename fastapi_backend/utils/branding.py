@@ -35,7 +35,7 @@ def get_app_branding():
                 elif app_name:
                     full_name = app_name
                 else:
-                    full_name = "L3V3L Dating"  # Ultimate fallback
+                    full_name = "L3V3L MATCHES"  # Ultimate fallback
                 
                 return {
                     "app_name": full_name,
@@ -45,7 +45,7 @@ def get_app_branding():
         
         # Fallback if file doesn't exist
         return {
-            "app_name": "L3V3L Dating",
+            "app_name": "L3V3L MATCHES",
             "app_name_short": "L3V3L",
             "tagline": ""
         }
@@ -53,7 +53,7 @@ def get_app_branding():
     except Exception as e:
         print(f"Warning: Could not load whitelabel.json: {e}")
         return {
-            "app_name": "L3V3L Dating",
+            "app_name": "L3V3L MATCHES",
             "app_name_short": "L3V3L",
             "tagline": ""
         }

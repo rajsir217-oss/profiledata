@@ -49,7 +49,8 @@ class Settings(BaseSettings):
     smtp_user: Optional[str] = None
     smtp_password: Optional[str] = None
     from_email: Optional[str] = None
-    from_name: Optional[str] = "L3V3L Dating"
+    from_name: Optional[str] = "L3V3L MATCHES"
+    reply_to_email: Optional[str] = None  # If set, adds Reply-To header (use for no-reply)
     
     # SMS Configuration
     sms_provider: Optional[str] = "twilio"  # Options: "simpletexting", "twilio", "auto"

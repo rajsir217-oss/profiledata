@@ -1,0 +1,275 @@
+/* Rich Text Editor - Theme-Aware Styling (React 19 Compatible) */
+
+.rich-text-editor-container {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+  background: var(--input-bg, var(--surface-color));
+}
+
+.rich-text-editor-container.read-only {
+  pointer-events: none;
+  opacity: 0.8;
+}
+
+/* Toolbar Styling */
+.rte-toolbar {
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid var(--border-color);
+}
+
+.toolbar-group:last-child {
+  border-right: none;
+  padding-right: 0;
+}
+
+/* Toolbar Buttons */
+.toolbar-btn {
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.toolbar-btn:hover {
+  background: var(--hover-background);
+  border-color: var(--border-color);
+}
+
+.toolbar-btn.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.toolbar-btn:active {
+  transform: scale(0.95);
+}
+
+/* Color Button */
+.color-btn {
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 6px;
+}
+
+.color-icon {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.color-bar {
+  width: 16px;
+  height: 3px;
+  border-radius: 1px;
+}
+
+.highlight-icon {
+  font-size: 16px;
+}
+
+/* Color Picker Container */
+.color-picker-container {
+  position: relative;
+}
+
+/* Color Picker Dropdown */
+.color-picker-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+  background: #ffffff !important;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  padding: 8px;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
+  /* Ensure no color inheritance */
+  isolation: isolate;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 3px;
+  width: auto;
+  background: #ffffff;
+}
+
+.color-swatch {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  /* Force the inline background color to show */
+  background-color: inherit;
+  -webkit-appearance: none;
+  appearance: none;
+  padding: 0;
+  min-width: 18px;
+  min-height: 18px;
+}
+
+.color-swatch:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  z-index: 1;
+  border-color: rgba(0, 0, 0, 0.4);
+}
+
+/* Editor Content Area */
+.rte-content {
+  min-height: var(--editor-min-height, 200px);
+  padding: 12px 16px;
+  color: var(--text-color);
+  line-height: 1.6;
+  font-size: 14px;
+  outline: none;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* Placeholder */
+.rte-content:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* Content Styling */
+.rte-content p {
+  margin-bottom: 0.75em;
+}
+
+.rte-content ul,
+.rte-content ol {
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.rte-content li {
+  margin-bottom: 0.25em;
+}
+
+.rte-content a {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.rte-content a:hover {
+  color: var(--secondary-color);
+}
+
+/* Focus State */
+.rich-text-editor-container:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .rte-toolbar {
+    padding: 6px 8px;
+    gap: 6px;
+  }
+  
+  .toolbar-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 15px;
+  }
+  
+  .toolbar-group {
+    gap: 3px;
+    padding-right: 6px;
+  }
+  
+  .rte-content {
+    padding: 10px 12px;
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+  
+  .color-picker-dropdown {
+    left: -50px;
+  }
+}
+
+/* Dark Theme Adjustments */
+.theme-dark .color-picker-dropdown {
+  background: #2a2a2a;
+  border-color: #444;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+.theme-dark .color-swatch {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Ensure color swatches always show their true color in all themes */
+.color-picker-dropdown {
+  background: #ffffff !important;
+}
+
+.color-picker-dropdown .color-swatch {
+  filter: none !important;
+  mix-blend-mode: normal !important;
+  opacity: 1 !important;
+  /* Let inline style backgroundColor take precedence */
+}
+
+/* Override any theme color modifications */
+.theme-dark .color-picker-dropdown,
+.theme-rose .color-picker-dropdown,
+.theme-light-gray .color-picker-dropdown,
+.theme-ultra-light-gray .color-picker-dropdown {
+  background: #ffffff !important;
+}
+
+.theme-dark .color-picker-dropdown .color-swatch,
+.theme-rose .color-picker-dropdown .color-swatch,
+.theme-light-gray .color-picker-dropdown .color-swatch,
+.theme-ultra-light-gray .color-picker-dropdown .color-swatch {
+  filter: none !important;
+  opacity: 1 !important;
+}

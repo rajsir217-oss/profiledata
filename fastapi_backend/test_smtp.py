@@ -12,7 +12,7 @@ SMTP_PORT = 587
 SMTP_USER = "rajl3v3l@gmail.com"
 SMTP_PASSWORD = "anypnmtpkxcqvboz"  # App password without spaces
 FROM_EMAIL = "rajl3v3l@gmail.com"
-FROM_NAME = "L3V3L Dating"
+FROM_NAME = "L3V3L MATCHES"
 TO_EMAIL = "rsiripuram04@gmail.com"
 
 def test_smtp():

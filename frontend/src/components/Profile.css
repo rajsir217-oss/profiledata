@@ -729,6 +729,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 16px;
+  gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .section-header-with-edit h3 {
@@ -736,6 +738,48 @@
   padding-bottom: 0;
   border-bottom: none;
   flex: 1;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Mobile fix for About Me header */
+@media (max-width: 480px) {
+  .section-header-with-edit {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .section-header-with-edit h3 {
+    font-size: 15px !important;
+    white-space: nowrap;
+    min-width: 0;
+  }
+  
+  /* Small edit button on mobile */
+  .about-me-edit-btn {
+    width: 22px;
+    height: 22px;
+    min-width: 22px;
+    font-size: 11px;
+  }
+  
+  .about-me-action-btns {
+    gap: 3px;
+  }
+  
+  .about-me-save-btn,
+  .about-me-reset-btn,
+  .about-me-cancel-btn {
+    width: 26px;
+    height: 26px;
+    min-width: 26px;
+    max-width: 26px;
+    padding: 0;
+    font-size: 12px;
+  }
 }
 
 /* Edit Section Button */
@@ -1496,4 +1540,154 @@
   .carousel-label {
     display: none; /* Hide labels on very small screens, show only arrows */
   }
+}
+
+/* About Me Edit Button */
+.about-me-edit-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  opacity: 0.7;
+  color: var(--text-color);
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.about-me-edit-btn:hover {
+  opacity: 1;
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+/* About Me Action Buttons Container */
+.about-me-action-btns {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  align-items: center;
+}
+
+.about-me-save-btn,
+.about-me-reset-btn,
+.about-me-cancel-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  font-size: 14px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.about-me-save-btn {
+  background: var(--success-color);
+  color: white;
+}
+
+.about-me-save-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.about-me-reset-btn {
+  background: var(--text-muted);
+  color: white;
+}
+
+.about-me-reset-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.about-me-cancel-btn {
+  background: var(--danger-color);
+  color: white;
+}
+
+.about-me-cancel-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.about-me-save-btn:disabled,
+.about-me-reset-btn:disabled,
+.about-me-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* About Me Rich Text Editor Styles */
+.about-me-edit-container {
+  margin-top: 12px;
+}
+
+.about-me-tip {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 10px;
+  padding: 8px 12px;
+  background: var(--surface-color);
+  border-radius: 6px;
+  border-left: 3px solid var(--primary-color);
+}
+
+.about-me-tip strong {
+  color: var(--text-color);
+}
+
+.about-me-tip em {
+  color: var(--text-secondary);
+}
+
+/* Profile narrative content - render rich text properly */
+.profile-narrative-content {
+  line-height: 1.7;
+  color: var(--text-color);
+}
+
+.profile-narrative-content strong,
+.profile-narrative-content b {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.profile-narrative-content em,
+.profile-narrative-content i {
+  font-style: italic;
+}
+
+.profile-narrative-content u {
+  text-decoration: underline;
+}
+
+.profile-narrative-content ul,
+.profile-narrative-content ol {
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.profile-narrative-content li {
+  margin-bottom: 0.25em;
+}
+
+.profile-narrative-content p {
+  margin-bottom: 0.75em;
+}
+
+.profile-narrative-content p:last-child {
+  margin-bottom: 0;
 }

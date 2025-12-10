@@ -26,7 +26,6 @@ export const getWorkingStatus = (user) => {
     'freelancer',
     'own business',
     'entrepreneur',
-    'consultant',
     'independent contractor',
     'business owner',
     'proprietor'

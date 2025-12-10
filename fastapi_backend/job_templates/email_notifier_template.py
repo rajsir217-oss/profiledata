@@ -351,9 +351,17 @@ class EmailNotifierTemplate(JobTemplate):
             raise Exception(f"SMTP credentials not configured (user={self.smtp_user}, pass={'SET' if self.smtp_password else 'NOT SET'})")
         
         msg = MIMEMultipart('alternative')
-        msg['From'] = f"{self.from_name} <{self.from_email}>"
+        msg['From'] = f"{self.from_name} (Do Not Reply) <{self.from_email}>"
         msg['To'] = to_email
         msg['Subject'] = subject
+        
+        # Add Reply-To header to discourage replies (or use configured no-reply address)
+        reply_to = settings.reply_to_email or self.from_email
+        msg['Reply-To'] = f"No Reply <{reply_to}>"
+        
+        # Add header to indicate this is an automated message
+        msg['X-Auto-Response-Suppress'] = 'All'
+        msg['Auto-Submitted'] = 'auto-generated'
         
         html_body = self._create_html_email(body, notification)
         msg.attach(MIMEText(html_body, 'html'))
@@ -366,29 +374,130 @@ class EmailNotifierTemplate(JobTemplate):
         logger.info(f"📧 Email sent successfully to {to_email}!")
     
     def _create_html_email(self, body: str, notification) -> str:
-        """Create HTML email with styling"""
-        app_url = os.getenv("APP_URL", "https://app.datingsite.com")
+        """Create HTML email with inline CSS styling (email client compatible)"""
+        frontend_url = settings.frontend_url or "http://localhost:3000"
         
-        html = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <meta charset="UTF-8">
-            <style>
-                body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-                .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-                           color: white; padding: 30px; text-align: center; }}
-                .content {{ background: #ffffff; padding: 30px; }}
-                .footer {{ background: #f5f5f5; padding: 20px; text-align: center; font-size: 12px; }}
-            </style>
-        </head>
-        <body>
-            <div class="header"><h1>💜 {self.from_name}</h1></div>
-            <div class="content">{body}</div>
-            <div class="footer">
-                <p>© 2025 {self.from_name}. All rights reserved.</p>
+        # Check if body already contains full HTML structure (from database template)
+        # Look for common HTML wrapper indicators
+        body_lower = body.lower()
+        has_full_html = (
+            '<!doctype' in body_lower or 
+            '<html' in body_lower or
+            'l3v3l match' in body_lower or  # Our branded template header (L3V3L MATCHES or L3V3LMATCH)
+            '<head>' in body_lower or
+            'linear-gradient' in body_lower or  # Our header gradient (any format)
+            ('background:' in body_lower and '#667eea' in body_lower)  # Our brand colors
+        )
+        
+        if has_full_html:
+            # Template already has full HTML - append no-reply notice at the end
+            no_reply_notice = f"""
+            <div style="max-width: 600px; margin: 20px auto; padding: 0 15px;">
+                <div style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px 18px; margin-top: 20px;">
+                    <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
+                        ⚠️ <strong style="color: #664d03;">Do not reply to this email.</strong> This is an automated notification 
+                        and replies are not monitored. To communicate with other members, please use the 
+                        messaging feature on our platform.
+                    </p>
+                </div>
+                <p style="text-align: center; font-size: 11px; color: #999; margin: 15px 0;">
+                    This is an automated message. Please do not reply directly to this email.
+                </p>
             </div>
-        </body>
-        </html>
-        """
+            """
+            # Insert before </body> tag if exists, otherwise append at end
+            if '</body>' in body.lower():
+                body = body.replace('</body>', f'{no_reply_notice}</body>')
+                body = body.replace('</BODY>', f'{no_reply_notice}</BODY>')
+            else:
+                # Just append at the end
+                body = body + no_reply_notice
+            return body
+        
+        # Use inline styles for maximum email client compatibility
+        html = f"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!--[if mso]>
+    <style type="text/css">
+        body, table, td {{font-family: Arial, sans-serif !important;}}
+    </style>
+    <![endif]-->
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; line-height: 1.6; color: #333333; background-color: #f4f4f4;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f4;">
+        <tr>
+            <td align="center" style="padding: 20px 10px;">
+                <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;">
+                            <h1 style="margin: 0; color: #ffffff; font-size: 28px; font-weight: 600;">💜 L3V3L MATCHES</h1>
+                            <p style="margin: 10px 0 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">🦋 L3V3L</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 30px 25px; background-color: #ffffff;">
+                            <div style="font-size: 15px; line-height: 1.7; color: #333333;">
+                                {body}
+                            </div>
+                            
+                            <!-- Action Hint Box -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 25px 0 15px 0;">
+                                <tr>
+                                    <td style="background-color: #e7f3ff; border: 1px solid #b6d4fe; border-radius: 8px; padding: 14px 18px;">
+                                        <p style="margin: 0; font-size: 13px; color: #084298; line-height: 1.5;">
+                                            💡 <strong style="color: #052c65;">To take action:</strong> Please click the button above or 
+                                            <a href="{frontend_url}/dashboard" style="color: #667eea; text-decoration: underline;">log in to your account</a> 
+                                            to respond to this notification.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <!-- No-Reply Warning Box -->
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 15px 0 0 0;">
+                                <tr>
+                                    <td style="background-color: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 14px 18px;">
+                                        <p style="margin: 0; font-size: 13px; color: #856404; line-height: 1.5;">
+                                            ⚠️ <strong style="color: #664d03;">Do not reply to this email.</strong> This is an automated notification 
+                                            and replies are not monitored. To communicate with other members, please use the 
+                                            messaging feature on our platform.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f8f9fa; padding: 25px 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                            <p style="margin: 0 0 10px 0; font-size: 12px; color: #6c757d;">
+                                This is an automated message from {self.from_name}. Please do not reply directly to this email.
+                            </p>
+                            <p style="margin: 0 0 10px 0; font-size: 12px;">
+                                <a href="{frontend_url}/preferences" style="color: #667eea; text-decoration: none;">Manage Notifications</a>
+                                <span style="color: #adb5bd; margin: 0 8px;">|</span>
+                                <a href="{frontend_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+                            </p>
+                            <p style="margin: 0; font-size: 11px; color: #adb5bd;">
+                                © 2025 {self.from_name}. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+"""
         return html
