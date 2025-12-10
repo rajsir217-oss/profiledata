@@ -464,6 +464,10 @@ async def send_invitation_notifications(
     # Use register2 page and prefill email
     invitation_link = f"{settings.app_url}/register2?invitation={invitation.invitationToken}&email={quote(invitation.email)}"
     
+    # Check if this is a resend (email was already sent before)
+    is_email_resend = invitation.emailStatus in [InvitationStatus.SENT, InvitationStatus.DELIVERED, InvitationStatus.FAILED]
+    is_sms_resend = invitation.smsStatus in [InvitationStatus.SENT, InvitationStatus.DELIVERED, InvitationStatus.FAILED]
+    
     # Send email
     if channel in [InvitationChannel.EMAIL, InvitationChannel.BOTH]:
         try:
@@ -476,11 +480,12 @@ async def send_invitation_notifications(
                 email_subject=getattr(invitation, 'emailSubject', None)
             )
             
-            # Update status
+            # Update status (pass is_resend to track resend count)
             await invitation_service.update_invitation_status(
                 invitation.id,
                 InvitationChannel.EMAIL,
-                InvitationStatus.SENT
+                InvitationStatus.SENT,
+                is_resend=is_email_resend
             )
         except Exception as e:
             await invitation_service.update_invitation_status(
@@ -562,11 +567,12 @@ async def send_invitation_notifications(
                 logger.info(f"🔵 SMS send result: {result}")
                 
                 if result["success"]:
-                    # Update status to SENT
+                    # Update status to SENT (pass is_resend to track resend count)
                     await invitation_service.update_invitation_status(
                         invitation.id,
                         InvitationChannel.SMS,
-                        InvitationStatus.SENT
+                        InvitationStatus.SENT,
+                        is_resend=is_sms_resend
                     )
                 else:
                     # Mark as failed

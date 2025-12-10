@@ -205,7 +205,8 @@ class InvitationService:
         invitation_id: str,
         channel: InvitationChannel,
         status: InvitationStatus,
-        failed_reason: Optional[str] = None
+        failed_reason: Optional[str] = None,
+        is_resend: bool = False
     ) -> bool:
         """Update invitation delivery status"""
         
@@ -215,10 +216,17 @@ class InvitationService:
             }
         }
         
+        # Initialize $inc if we need to increment resend count
+        inc_doc = {}
+        
         if channel == InvitationChannel.EMAIL:
             update_doc["$set"]["emailStatus"] = status
             if status == InvitationStatus.SENT:
                 update_doc["$set"]["emailSentAt"] = datetime.utcnow()
+                update_doc["$set"]["lastEmailSentAt"] = datetime.utcnow()
+                # Increment resend count if this is a resend (not first send)
+                if is_resend:
+                    inc_doc["emailResendCount"] = 1
             elif status == InvitationStatus.DELIVERED:
                 update_doc["$set"]["emailDeliveredAt"] = datetime.utcnow()
             elif status == InvitationStatus.FAILED and failed_reason:
@@ -228,10 +236,18 @@ class InvitationService:
             update_doc["$set"]["smsStatus"] = status
             if status == InvitationStatus.SENT:
                 update_doc["$set"]["smsSentAt"] = datetime.utcnow()
+                update_doc["$set"]["lastSmsSentAt"] = datetime.utcnow()
+                # Increment resend count if this is a resend (not first send)
+                if is_resend:
+                    inc_doc["smsResendCount"] = 1
             elif status == InvitationStatus.DELIVERED:
                 update_doc["$set"]["smsDeliveredAt"] = datetime.utcnow()
             elif status == InvitationStatus.FAILED and failed_reason:
                 update_doc["$set"]["smsFailedReason"] = failed_reason
+        
+        # Add $inc operator if we have increments
+        if inc_doc:
+            update_doc["$inc"] = inc_doc
         
         result = await self.collection.update_one(
             {"_id": ObjectId(invitation_id)},

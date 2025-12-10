@@ -87,6 +87,12 @@ class InvitationDB(InvitationBase):
     invitationToken: Optional[str] = Field(None, description="Unique token for invitation link")
     tokenExpiresAt: Optional[datetime] = None
     
+    # Resend tracking
+    emailResendCount: int = Field(default=0, description="Number of times email has been resent")
+    smsResendCount: int = Field(default=0, description="Number of times SMS has been resent")
+    lastEmailSentAt: Optional[datetime] = Field(None, description="Timestamp of last email send")
+    lastSmsSentAt: Optional[datetime] = Field(None, description="Timestamp of last SMS send")
+    
     class Config:
         populate_by_name = True
 
@@ -123,6 +129,12 @@ class InvitationResponse(BaseModel):
     # Computed fields
     timeLapse: Optional[str] = Field(None, description="Time since invitation created")
     isExpired: bool = Field(default=False, description="Whether invitation has expired")
+    
+    # Resend tracking
+    emailResendCount: int = Field(default=0, description="Number of times email has been resent")
+    smsResendCount: int = Field(default=0, description="Number of times SMS has been resent")
+    lastEmailSentAt: Optional[datetime] = Field(None, description="Timestamp of last email send")
+    lastSmsSentAt: Optional[datetime] = Field(None, description="Timestamp of last SMS send")
 
 
 class InvitationListResponse(BaseModel):
