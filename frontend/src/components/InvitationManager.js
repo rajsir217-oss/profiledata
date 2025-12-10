@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
+import DeleteButton from './DeleteButton';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -318,8 +319,7 @@ const InvitationManager = () => {
   };
 
   const handleDelete = async (invitationId) => {
-    // Delete archived invitations only (2-click pattern: Archive → Delete)
-
+    // Delete invitation (uses 2-click DeleteButton pattern for confirmation)
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
@@ -924,23 +924,20 @@ const InvitationManager = () => {
                       >
                         ✏️
                       </button>
-                      {!invitation.archived ? (
+                      {!invitation.archived && (
                         <button
-                          className="btn-icon"
+                          className="btn-icon btn-archive"
                           onClick={() => handleArchive(invitation.id)}
                           title="Archive"
                         >
                           🗄️
                         </button>
-                      ) : (
-                        <button
-                          className="btn-icon"
-                          onClick={() => handleDelete(invitation.id)}
-                          title="Delete Permanently"
-                        >
-                          🗑️
-                        </button>
                       )}
+                      <DeleteButton
+                        onDelete={() => handleDelete(invitation.id)}
+                        itemName="invitation"
+                        size="small"
+                      />
                     </div>
                   </td>
                 </tr>

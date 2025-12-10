@@ -58,7 +58,7 @@ test_notification = {
     "templateData": {
         "test": True,
         "recipient_email": recipient,
-        "sent_from": "L3V3L Dating Backend",
+        "sent_from": "L3V3L MATCHES Backend",
         "timestamp": datetime.utcnow().isoformat(),
         "subject": "🎉 Real Email Test from L3V3L",
         "message": "This is a test email sent via SMTP. If you received this, your email configuration is working perfectly!"

@@ -396,34 +396,42 @@
 
 .action-buttons {
   display: flex;
-  gap: 8px;
+  gap: 4px;
   justify-content: flex-start;
   align-items: center;
   height: 100%;
 }
 
-.btn-icon {
-  background: none;
-  border: none;
-  font-size: 22px;
+.action-buttons .btn-icon {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 8px !important;
+  font-size: 14px;
   cursor: pointer;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  transition: all 0.2s ease;
-  min-width: 40px;
-  min-height: 40px;
+  padding: 4px 8px;
+  transition: all 0.3s ease;
+  min-width: 28px;
+  min-height: 28px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-secondary);
 }
 
-.btn-icon:hover {
-  background: var(--hover-bg, rgba(0, 0, 0, 0.05));
+.action-buttons .btn-icon:hover {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
   transform: scale(1.1);
 }
 
-.btn-icon:active {
+.action-buttons .btn-icon:active {
   transform: scale(0.95);
+}
+
+.action-buttons .btn-icon.btn-archive:hover {
+  background: var(--warning-color, #f59e0b);
+  border-color: var(--warning-color, #f59e0b);
 }
 
 /* Primary Button */
