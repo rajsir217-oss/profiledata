@@ -146,7 +146,7 @@ async def send_invitation_email(
     <div class="container">
         <div class="header">
             <h1>💝 You're Invited!</h1>
-            <p>Join L3V3LMATCH - Where Connections Matter</p>
+            <p>Join L3V3L MATCHES - Where Connections Matter</p>
         </div>
         
         <div class="content">
@@ -155,7 +155,7 @@ async def send_invitation_email(
             </div>
             
             <div class="message">
-                <p>We're excited to invite you to join <strong>L3V3LMATCH</strong>, a premium matrimonial platform designed to help you find meaningful connections.</p>
+                <p>We're excited to invite you to join <strong>L3V3L MATCHES</strong>, a premium matrimonial platform designed to help you find meaningful connections.</p>
                 
                 {custom_message_html}
                 
@@ -169,7 +169,7 @@ async def send_invitation_email(
             </center>
             
             <div class="features">
-                <h3>Why Join L3V3LMATCH?</h3>
+                <h3>Why Join L3V3L MATCHES?</h3>
                 <ul class="feature-list">
                     <li>Advanced L3V3L matching algorithm for compatibility</li>
                     <li>Privacy-first approach with controlled information sharing</li>
@@ -186,9 +186,9 @@ async def send_invitation_email(
         </div>
         
         <div class="footer">
-            <p><strong>L3V3LMATCH</strong> - Premium Matrimonial Platform</p>
+            <p><strong>L3V3L MATCHES</strong> - Premium Matrimonial Platform</p>
             <p style="margin-top: 20px; font-size: 12px; color: #999;">
-                This invitation was sent by the L3V3LMATCH team. If you believe this was sent in error, 
+                This invitation was sent by the L3V3L MATCHES team. If you believe this was sent in error, 
                 please ignore this email or contact support.
             </p>
         </div>
@@ -218,13 +218,13 @@ async def send_invitation_email(
     text_content = f"""
 Hello {to_name}!
 
-You're invited to join L3V3LMATCH - a premium matrimonial platform designed to help you find meaningful connections.
+You're invited to join L3V3L MATCHES - a premium matrimonial platform designed to help you find meaningful connections.
 
 {f'Personal Message: {custom_message}' if custom_message else ''}
 
 Create your profile now: {invitation_link}
 
-Why Join L3V3LMATCH?
+Why Join L3V3L MATCHES?
 • Advanced L3V3L matching algorithm for compatibility
 • Privacy-first approach with controlled information sharing
 • Verified profiles for authentic connections
@@ -235,14 +235,22 @@ Why Join L3V3LMATCH?
 This invitation link is valid for 30 days.
 
 Best regards,
-The L3V3LMATCH Team
+The L3V3L MATCHES Team
     """
     
     # Create email
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = email_subject or "You're Invited to Join L3V3LMATCH! 💝"
-    msg['From'] = f"{settings.from_name} <{settings.from_email}>"
+    msg['Subject'] = email_subject or "You're Invited to Join L3V3L MATCHES! 💝"
+    msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
     msg['To'] = to_email
+    
+    # Add Reply-To header to discourage replies
+    reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
+    msg['Reply-To'] = f"No Reply <{reply_to}>"
+    
+    # Add headers to indicate this is an automated message
+    msg['X-Auto-Response-Suppress'] = 'All'
+    msg['Auto-Submitted'] = 'auto-generated'
     
     # Attach both versions
     part1 = MIMEText(text_content, 'plain')
@@ -352,7 +360,7 @@ async def send_password_reset_email(
         <div class="content">
             <div class="greeting">Hello {to_name}!</div>
             
-            <p>You requested to reset your password for your L3V3LMATCH account.</p>
+            <p>You requested to reset your password for your L3V3L MATCHES account.</p>
             
             <p>Use the code below to complete your password reset:</p>
             
@@ -366,7 +374,7 @@ async def send_password_reset_email(
         </div>
         
         <div class="footer">
-            <p><strong>L3V3LMATCH</strong> - Premium Matrimonial Platform</p>
+            <p><strong>L3V3L MATCHES</strong> - Premium Matrimonial Platform</p>
             <p style="margin-top: 20px; font-size: 12px; color: #999;">
                 This is an automated message. Please do not reply to this email.
             </p>
@@ -386,7 +394,7 @@ async def send_password_reset_email(
     text_content = f"""
 Hello {to_name}!
 
-You requested to reset your password for your L3V3LMATCH account.
+You requested to reset your password for your L3V3L MATCHES account.
 
 Your password reset code is: {reset_code}
 
@@ -395,14 +403,22 @@ This code expires in 15 minutes.
 If you didn't request this password reset, please ignore this email.
 
 Best regards,
-The L3V3LMATCH Team
+The L3V3L MATCHES Team
     """
     
     # Create email
     msg = MIMEMultipart('alternative')
-    msg['Subject'] = f"🔐 Password Reset Code - L3V3LMATCH"
-    msg['From'] = f"{settings.from_name} <{settings.from_email}>"
+    msg['Subject'] = f"🔐 Password Reset Code - L3V3L MATCHES"
+    msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
     msg['To'] = to_email
+    
+    # Add Reply-To header to discourage replies
+    reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
+    msg['Reply-To'] = f"No Reply <{reply_to}>"
+    
+    # Add headers to indicate this is an automated message
+    msg['X-Auto-Response-Suppress'] = 'All'
+    msg['Auto-Submitted'] = 'auto-generated'
     
     # Attach both versions
     part1 = MIMEText(text_content, 'plain')

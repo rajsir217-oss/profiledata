@@ -240,9 +240,17 @@ class EmailVerificationService:
             try:
                 # Create message
                 msg = MIMEMultipart('alternative')
-                msg['From'] = f"{settings.from_name} <{settings.from_email}>"
+                msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
                 msg['To'] = to_email
                 msg['Subject'] = subject
+                
+                # Add Reply-To header to discourage replies
+                reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
+                msg['Reply-To'] = f"No Reply <{reply_to}>"
+                
+                # Add headers to indicate this is an automated message
+                msg['X-Auto-Response-Suppress'] = 'All'
+                msg['Auto-Submitted'] = 'auto-generated'
                 
                 # Attach both plain text and HTML
                 part1 = MIMEText(text_content, 'plain')

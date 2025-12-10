@@ -136,8 +136,16 @@ class EmailOTPService:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
+            msg['From'] = f"{self.from_name} (Do Not Reply) <{self.from_email}>"
             msg['To'] = email
+            
+            # Add Reply-To header to discourage replies
+            reply_to = getattr(settings, 'reply_to_email', None) or self.from_email
+            msg['Reply-To'] = f"No Reply <{reply_to}>"
+            
+            # Add headers to indicate this is an automated message
+            msg['X-Auto-Response-Suppress'] = 'All'
+            msg['Auto-Submitted'] = 'auto-generated'
             
             # Attach both plain text and HTML versions
             msg.attach(MIMEText(text_body, 'plain', 'utf-8'))

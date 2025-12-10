@@ -33,7 +33,7 @@ async def test_email_config():
         print("   SMTP_USER=your-email@gmail.com")
         print("   SMTP_PASSWORD=your-app-password")
         print("   FROM_EMAIL=your-email@gmail.com")
-        print("   FROM_NAME=L3V3L Dating")
+        print("   FROM_NAME=L3V3L MATCHES")
         return False
     
     print("\n✓ Configuration looks complete")
@@ -80,7 +80,7 @@ async def test_email_config():
         msg = MIMEMultipart('alternative')
         msg['From'] = f"{settings.from_name} <{settings.from_email}>"
         msg['To'] = test_email
-        msg['Subject'] = "L3V3L Dating - Email Test"
+        msg['Subject'] = "L3V3L MATCHES - Email Test"
         
         html_body = """
         <!DOCTYPE html>
@@ -98,7 +98,7 @@ async def test_email_config():
         <body>
             <div class="container">
                 <div class="header">
-                    <h1>💜 L3V3L Dating</h1>
+                    <h1>💜 L3V3L MATCHES</h1>
                 </div>
                 <div class="content">
                     <p class="success">✓ Email Configuration Working!</p>
