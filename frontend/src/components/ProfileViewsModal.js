@@ -117,8 +117,16 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
                       </div>
                       <div className="view-details">
                         <span className="view-location">📍 {profile.location}</span>
-                        {profile.occupation && (
-                          <span className="view-occupation">• {profile.occupation}</span>
+                      </div>
+                      <div className="view-quick-info">
+                        {profile.age && (
+                          <span className="quick-info-item" title="Age">🎂 {profile.age}y</span>
+                        )}
+                        {profile.height && (
+                          <span className="quick-info-item" title="Height">📏 {profile.height}</span>
+                        )}
+                        {(profile.education || profile.highestDegree) && (
+                          <span className="quick-info-item" title="Education">🎓 {profile.highestDegree || profile.education}</span>
                         )}
                       </div>
                       <div className="view-timestamp">

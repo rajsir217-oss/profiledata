@@ -269,6 +269,25 @@
   text-overflow: ellipsis;
 }
 
+.view-quick-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.quick-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  background: var(--surface-color, #f3f4f6);
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
 .view-timestamp {
   font-size: 12px;
   color: var(--text-tertiary, #999);

@@ -27,9 +27,8 @@ class EmailOTPService:
         self.from_email = settings.from_email
         self.from_name = settings.from_name
         
-        # Load app name from whitelabel.json
-        from utils.branding import get_app_name
-        self.app_name = getattr(settings, 'app_name', None) or get_app_name()
+        # Use from_name for email branding (L3V3L MATCHES)
+        self.app_name = self.from_name or "L3V3L MATCHES"
         
         # Check if SMTP is configured
         self.enabled = all([
