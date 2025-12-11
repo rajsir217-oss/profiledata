@@ -78,6 +78,17 @@
   border-radius: 12px;
   font-size: 13px;
   font-weight: 700;
+}
+
+.category-tooltip {
+  font-size: 14px;
+  cursor: help;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.category-tooltip:hover {
+  opacity: 1;
   min-width: 28px;
   text-align: center;
 }

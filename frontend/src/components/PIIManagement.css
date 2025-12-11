@@ -463,6 +463,31 @@
   margin-bottom: 0;
 }
 
+/* Panel Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+  color: white;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+}
+
+.panel-header p {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Alert */
 .alert {
   padding: 14px 20px;
@@ -591,32 +616,45 @@
   /* Smaller cards on mobile */
   .access-card,
   .request-card {
-    padding: 16px;
+    padding: 12px;
   }
   
   /* Smaller avatars on mobile */
   .access-avatar,
   .access-avatar-placeholder {
-    width: 60px;
-    height: 60px;
-    font-size: 24px;
+    width: 50px;
+    height: 50px;
+    font-size: 20px;
   }
   
   /* Better text sizing */
   .access-username {
-    font-size: 15px;
+    font-size: 14px;
   }
   
   .access-user-handle {
-    font-size: 13px;
+    font-size: 12px;
+  }
+  
+  /* Panel header mobile fix */
+  .panel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 12px;
   }
   
   .panel-header h3 {
-    font-size: 16px;
+    font-size: 15px;
+    margin: 0;
+    line-height: 1.3;
   }
   
   .panel-header p {
-    font-size: 12px;
+    font-size: 11px;
+    margin: 0;
+    line-height: 1.3;
+    opacity: 0.9;
   }
   
   .empty-state p {
@@ -625,6 +663,52 @@
   
   .empty-state-small p {
     font-size: 13px;
+  }
+  
+  /* Request card mobile improvements */
+  .request-card-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  /* Mobile: Avatar left, name/username right-aligned */
+  .user-info {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .user-details {
+    text-align: right;
+    flex: 1;
+  }
+  
+  .user-details h4 {
+    font-size: 14px;
+    margin: 0 0 2px 0;
+  }
+  
+  .user-details p {
+    font-size: 12px;
+    margin: 0;
+  }
+  
+  /* Keep avatar on the right side visually */
+  .access-avatar,
+  .access-avatar-placeholder {
+    order: 1;
+  }
+  
+  .request-type,
+  .request-message {
+    font-size: 13px;
+  }
+  
+  .request-date {
+    font-size: 11px;
   }
 }
 

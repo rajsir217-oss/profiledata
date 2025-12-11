@@ -32,7 +32,11 @@ class DatabaseCleanupTemplate(JobTemplate):
         "contact_tickets",
         "notifications",
         "activity_logs",
-        "job_executions"
+        "job_executions",
+        "favorites",      # User favorites - 45 day retention
+        "shortlists",     # User shortlists - 45 day retention
+        "exclusions",     # User exclusions - optional cleanup
+        "profile_views"   # Profile view history
     ]
     
     def get_schema(self) -> Dict[str, Any]:

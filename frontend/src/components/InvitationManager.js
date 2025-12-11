@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
 import toastService from '../services/toastService';
 import DeleteButton from './DeleteButton';
+import SEO from './SEO';
 import './InvitationManager.css';
 
 const InvitationManager = () => {
@@ -617,9 +618,15 @@ const InvitationManager = () => {
   }
 
   return (
-    <div className="invitation-manager">
-      <div className="invitation-header">
-        <h1>📧 Invitation Manager</h1>
+    <>
+      <SEO
+        title="📧 Invitation Manager | 🦋 L3V3L Matches"
+        description="Manage user invitations and track registration conversions"
+        noindex={true}
+      />
+      <div className="invitation-manager">
+        <div className="invitation-header">
+          <h1>📧 Invitation Manager</h1>
         <p className="subtitle">Manage user invitations and track registration conversions</p>
       </div>
 
@@ -1264,7 +1271,8 @@ const InvitationManager = () => {
       )}
 
       {/* Toast notifications handled by ToastContainer in App.js */}
-    </div>
+      </div>
+    </>
   );
 };
 

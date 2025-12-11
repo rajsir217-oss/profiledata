@@ -804,7 +804,16 @@ const Dashboard = () => {
       'theirShortlists': 'their-shortlists'
     };
     
+    // Tooltips for sections with retention policies
+    const tooltipMap = {
+      'myFavorites': '⏰ Favorites are automatically removed after 45 days. Add profiles you\'re interested in!',
+      'myShortlists': '⏰ Shortlists are automatically removed after 45 days. Use this for profiles you\'re seriously considering.',
+      'theirFavorites': 'Profiles who have added you to their favorites (last 45 days)',
+      'theirShortlists': 'Profiles who have shortlisted you (last 45 days)'
+    };
+    
     const context = contextMap[sectionKey] || 'default';
+    const tooltip = tooltipMap[sectionKey];
     
     return (
       <CategorySection
@@ -819,6 +828,7 @@ const Dashboard = () => {
         isDraggable={isDraggable}
         viewMode={viewMode}
         emptyMessage={`No ${title.toLowerCase()} yet`}
+        tooltip={tooltip}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
