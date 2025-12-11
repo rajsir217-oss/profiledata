@@ -168,7 +168,6 @@ class InvitationResendTemplate(JobTemplate):
                     if not inv_token:
                         import secrets
                         import string
-                        from datetime import timedelta
                         
                         context.log("info", f"🔑 Generating token for invitation {inv_id} (missing token)")
                         
