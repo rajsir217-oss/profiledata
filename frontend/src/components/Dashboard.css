@@ -277,6 +277,106 @@
   }
 }
 
+/* Photo Reminder Banner - Similar to MFA but with warm orange/coral gradient */
+.photo-reminder-banner {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.15);
+  animation: slideInDown 0.5s ease-out;
+}
+
+.photo-reminder-content {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.photo-reminder-icon {
+  font-size: 48px;
+  flex-shrink: 0;
+}
+
+.photo-reminder-text {
+  flex: 1;
+  color: white;
+}
+
+.photo-reminder-text strong {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 6px;
+  letter-spacing: -0.3px;
+}
+
+.photo-reminder-text p {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+  line-height: 1.4;
+}
+
+.photo-reminder-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn-upload-photos {
+  background: white;
+  color: #f5576c;
+  border: none;
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-upload-photos:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #fff5f6;
+}
+
+.btn-dismiss-photo {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.btn-dismiss-photo:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Responsive Photo Reminder Banner */
+@media (max-width: 768px) {
+  .photo-reminder-content {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .photo-reminder-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 /* View Controls Group - Right aligned within header */
 .view-controls-group {
   display: flex !important;
