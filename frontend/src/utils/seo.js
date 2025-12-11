@@ -4,7 +4,8 @@
  */
 
 // Base URL - update for production
-const BASE_URL = process.env.REACT_APP_SITE_URL || 'https://l3v3l.matrimony.com';
+const BASE_URL = process.env.REACT_APP_SITE_URL || 'https://l3v3lmatches.com';
+const SITE_NAME = '🦋 L3V3L Matches';
 
 /**
  * Generate structured data (JSON-LD) for organization
@@ -14,7 +15,7 @@ export const getOrganizationSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "Organization",
-    "name": "L3V3L Matrimony",
+    "name": "L3V3L Matches",
     "url": BASE_URL,
     "logo": `${BASE_URL}/logo.png`,
     "description": "Modern matchmaking platform connecting people for meaningful relationships",
@@ -43,7 +44,7 @@ export const getWebsiteSchema = () => {
   return {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    "name": "L3V3L Matrimony",
+    "name": "L3V3L Matches",
     "url": BASE_URL,
     "potentialAction": {
       "@type": "SearchAction",
@@ -108,11 +109,11 @@ export const getArticleSchema = (article) => {
     "image": article.image || `${BASE_URL}/og-image.jpg`,
     "author": {
       "@type": "Person",
-      "name": article.author || "L3V3L Matrimony"
+      "name": article.author || "L3V3L Matches"
     },
     "publisher": {
       "@type": "Organization",
-      "name": "L3V3L Matrimony",
+      "name": "L3V3L Matches",
       "logo": {
         "@type": "ImageObject",
         "url": `${BASE_URL}/logo.png`
@@ -131,92 +132,98 @@ export const getArticleSchema = (article) => {
 export const getPageSEO = (pageName) => {
   const seoData = {
     home: {
-      title: 'L3V3L Matrimony - Find Your Perfect Life Partner',
-      description: 'Join L3V3L Matrimony, the modern matchmaking platform. Connect with thousands of verified profiles for meaningful relationships and marriage.',
+      title: '🦋 L3V3L Matches - Find Your Perfect Life Partner',
+      description: 'Join L3V3L Matches, the modern matchmaking platform. Connect with thousands of verified profiles for meaningful relationships and marriage.',
       keywords: 'matrimony, matchmaking, marriage, wedding, life partner, shaadi, vivah, relationship, dating, love',
       url: BASE_URL,
       type: 'website'
     },
     login: {
-      title: 'Login to Your Account',
-      description: 'Login to L3V3L Matrimony to access your dashboard, messages, and matches.',
+      title: '🦋 Login | L3V3L Matches',
+      description: 'Login to L3V3L Matches to access your dashboard, messages, and matches.',
       keywords: 'login, sign in, matrimony login, member login',
       url: `${BASE_URL}/login`,
       type: 'website',
       noindex: true
     },
     register: {
-      title: 'Create Your Free Profile',
-      description: 'Join L3V3L Matrimony for free. Create your profile in minutes and start connecting with verified matches today.',
+      title: '🦋 Create Your Free Profile | L3V3L Matches',
+      description: 'Join L3V3L Matches for free. Create your profile in minutes and start connecting with verified matches today.',
       keywords: 'register, sign up, create profile, join matrimony, free registration',
       url: `${BASE_URL}/register2`,
       type: 'website'
     },
     'l3v3l-info': {
-      title: 'About L3V3L Matchmaking Algorithm',
+      title: '🦋 About L3V3L Matchmaking Algorithm | L3V3L Matches',
       description: 'Learn about the L3V3L algorithm - our advanced 3-level matching system that finds you the most compatible life partner.',
       keywords: 'L3V3L algorithm, matchmaking algorithm, compatibility matching, AI matching',
       url: `${BASE_URL}/l3v3l-info`,
       type: 'article'
     },
     contact: {
-      title: 'Contact Us - Get in Touch',
-      description: 'Have questions? Contact L3V3L Matrimony support team. We\'re here to help you find your perfect match.',
+      title: '🦋 Contact Us | L3V3L Matches',
+      description: 'Have questions? Contact L3V3L Matches support team. We\'re here to help you find your perfect match',
       keywords: 'contact, support, help, customer service, get in touch',
       url: `${BASE_URL}/contact`,
       type: 'website'
     },
     'privacy-policy': {
-      title: 'Privacy Policy - Your Data is Safe',
-      description: 'Read our privacy policy to understand how L3V3L Matrimony protects your personal information and data.',
+      title: '🦋 Privacy Policy | L3V3L Matches',
+      description: 'Read our privacy policy to understand how L3V3L Matches protects your personal information and data',
       keywords: 'privacy policy, data protection, privacy, security, GDPR',
       url: `${BASE_URL}/privacy-policy`,
       type: 'article'
     },
     'terms-of-service': {
-      title: 'Terms of Service - User Agreement',
-      description: 'L3V3L Matrimony terms of service. Read our user agreement and community guidelines.',
+      title: '🦋 Terms of Service | L3V3L Matches',
+      description: 'L3V3L Matches terms of service. Read our user agreement and community guidelines',
       keywords: 'terms of service, user agreement, terms and conditions, legal',
       url: `${BASE_URL}/terms-of-service`,
       type: 'article'
     },
     'community-guidelines': {
-      title: 'Community Guidelines - Safe & Respectful',
-      description: 'Our community guidelines ensure a safe, respectful environment for all L3V3L Matrimony members.',
+      title: '🦋 Community Guidelines | L3V3L Matches',
+      description: 'Our community guidelines ensure a safe, respectful environment for all L3V3L Matches members',
       keywords: 'community guidelines, safety, respect, code of conduct',
       url: `${BASE_URL}/community-guidelines`,
       type: 'article'
     },
     'cookie-policy': {
-      title: 'Cookie Policy - How We Use Cookies',
-      description: 'Learn about how L3V3L Matrimony uses cookies to improve your experience.',
+      title: '🦋 Cookie Policy | L3V3L Matches',
+      description: 'Learn about how L3V3L Matches uses cookies to improve your experience',
       keywords: 'cookie policy, cookies, tracking, privacy',
       url: `${BASE_URL}/cookie-policy`,
       type: 'article'
     },
     // Private pages (noindex)
     dashboard: {
-      title: 'Dashboard',
-      description: 'Your L3V3L Matrimony dashboard',
+      title: '🦋 Dashboard | L3V3L Matches',
+      description: 'Your L3V3L Matches dashboard',
       keywords: '',
       url: `${BASE_URL}/dashboard`,
       noindex: true
     },
     profile: {
-      title: 'Profile',
+      title: '🦋 Profile | L3V3L Matches',
       description: 'View profile',
       keywords: '',
       noindex: true
     },
     messages: {
-      title: 'Messages',
+      title: '🦋 Messages | L3V3L Matches',
       description: 'Your conversations',
       keywords: '',
       noindex: true
     },
     search: {
-      title: 'Search',
+      title: '🦋 Search | L3V3L Matches',
       description: 'Search for matches',
+      keywords: '',
+      noindex: true
+    },
+    invitations: {
+      title: '📧 Invitation Manager | 🦋 L3V3L Matches',
+      description: 'Manage user invitations and track registration conversions',
       keywords: '',
       noindex: true
     }

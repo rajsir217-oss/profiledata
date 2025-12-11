@@ -18,20 +18,20 @@ import { Helmet } from 'react-helmet-async';
  * @param {string} props.publishedTime - Article published time
  */
 const SEO = ({
-  title = 'L3V3L Matrimony - Find Your Perfect Match',
-  description = 'L3V3L Matrimony is a modern matchmaking platform connecting people for meaningful relationships. Join thousands finding love today.',
+  title = '🦋 L3V3L Matches - Find Your Perfect Match',
+  description = 'L3V3L Matches is a modern matchmaking platform connecting people for meaningful relationships. Join thousands finding love today.',
   keywords = 'matrimony, matchmaking, marriage, relationships, dating, love, partner, marriage bureau, shaadi, vivah',
-  image = 'https://l3v3l.matrimony.com/og-image.jpg',
-  url = 'https://l3v3l.matrimony.com',
+  image = 'https://l3v3lmatches.com/og-image.jpg',
+  url = 'https://l3v3lmatches.com',
   type = 'website',
   noindex = false,
-  author = 'L3V3L Matrimony',
+  author = 'L3V3L Matches',
   publishedTime = null,
   twitterCard = 'summary_large_image',
-  twitterSite = '@l3v3lmatrimony'
+  twitterSite = '@l3v3lmatches'
 }) => {
   // Construct full title with site name
-  const fullTitle = title.includes('L3V3L') ? title : `${title} | L3V3L Matrimony`;
+  const fullTitle = title.includes('L3V3L') ? title : `${title} | 🦋 L3V3L Matches`;
 
   return (
     <Helmet>
@@ -54,7 +54,7 @@ const SEO = ({
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
       <meta property="og:url" content={url} />
-      <meta property="og:site_name" content="L3V3L Matrimony" />
+      <meta property="og:site_name" content="L3V3L Matches" />
       <meta property="og:locale" content="en_US" />
       
       {/* Article-specific OG tags */}

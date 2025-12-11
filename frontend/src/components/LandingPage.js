@@ -195,7 +195,7 @@ const LandingPage = () => {
       <footer className="landing-footer">
         <div className="footer-content">
           <div className="footer-section">
-            <h4>L3V3L Matrimony</h4>
+            <h4>🦋 L3V3L Matches</h4>
             <p>Find your perfect match with AI-powered compatibility</p>
           </div>
           <div className="footer-section">
@@ -214,7 +214,7 @@ const LandingPage = () => {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; 2025 L3V3L Matrimony. All rights reserved.</p>
+          <p>&copy; 2025 L3V3L Matches. All rights reserved.</p>
         </div>
       </footer>
     </div>

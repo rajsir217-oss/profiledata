@@ -293,8 +293,12 @@ async def get_notification_analytics(
     )
     
     # Add queue counts for Event Queue Manager
+    # Count all items that are not yet sent/failed (includes pending, scheduled, queued, etc.)
     queue_query = {"username": username} if username else {}
-    queued = await service.queue_collection.count_documents({**queue_query, "status": {"$in": ["pending", "scheduled"]}})
+    queued = await service.queue_collection.count_documents({
+        **queue_query, 
+        "status": {"$nin": ["sent", "delivered", "failed", "processing"]}
+    })
     processing = await service.queue_collection.count_documents({**queue_query, "status": "processing"})
     
     # Count recent logs for 24h stats

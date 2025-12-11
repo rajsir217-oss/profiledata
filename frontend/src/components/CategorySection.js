@@ -35,6 +35,7 @@ const CategorySection = ({
   isDraggable = false,
   viewMode = 'cards', // 'cards' or 'rows'
   emptyMessage,
+  tooltip, // Optional tooltip text for the section header
   onDragStart,
   onDragEnd,
   onDragOver,
@@ -140,6 +141,9 @@ const CategorySection = ({
           <span className="category-icon">{icon}</span>
           <h3>{title}</h3>
           <span className="category-count">{count}</span>
+          {tooltip && (
+            <span className="category-tooltip" title={tooltip}>ℹ️</span>
+          )}
           {isDraggable && viewMode === 'cards' && count > 1 && (
             <span className="drag-hint" title="Drag to reorder">⇅</span>
           )}

@@ -411,21 +411,15 @@ const AdminPage = () => {
               <th onClick={() => handleSort('imagesCount')} style={{ cursor: 'pointer' }}>
                 IMAGES {sortField === 'imagesCount' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
-              <th onClick={() => handleSort('messagesSent')} style={{ cursor: 'pointer' }}>
-                MSGS SENT {sortField === 'messagesSent' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </th>
-              <th onClick={() => handleSort('messagesReceived')} style={{ cursor: 'pointer' }}>
-                MSGS RCVD {sortField === 'messagesReceived' && (sortOrder === 'asc' ? '↑' : '↓')}
-              </th>
-              <th onClick={() => handleSort('pendingReplies')} style={{ cursor: 'pointer' }}>
-                PENDING {sortField === 'pendingReplies' && (sortOrder === 'asc' ? '↑' : '↓')}
+              <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
+                STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
             </tr>
           </thead>
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="13" className="text-center text-muted py-4">
+                <td colSpan="11" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -482,13 +476,29 @@ const AdminPage = () => {
                     <span className="badge bg-info">{user.images?.length || 0}</span>
                   </td>
                   <td>
-                    <span className="badge bg-success">{user.messagesSent || 0}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-primary">{user.messagesReceived || 0}</span>
-                  </td>
-                  <td>
-                    <span className="badge bg-warning">{user.pendingReplies || 0}</span>
+                    {(() => {
+                      const status = user.accountStatus || 'active';
+                      const statusConfig = {
+                        'pending_email_verification': { label: 'Pending Email', bg: 'bg-warning', icon: '📧' },
+                        'pending_admin_approval': { label: 'Pending Approval', bg: 'bg-info', icon: '⏳' },
+                        'active': { label: 'Active', bg: 'bg-success', icon: '✓' },
+                        'inactive': { label: 'Inactive', bg: 'bg-secondary', icon: '💤' },
+                        'paused': { label: 'Paused', bg: 'bg-warning', icon: '⏸️' },
+                        'suspended': { label: 'Suspended', bg: 'bg-danger', icon: '🔒' },
+                        'banned': { label: 'Banned', bg: 'bg-dark', icon: '🚫' }
+                      };
+                      const config = statusConfig[status] || { label: status, bg: 'bg-secondary', icon: '?' };
+                      return (
+                        <span 
+                          className={`badge ${config.bg}`} 
+                          style={{ cursor: 'pointer' }}
+                          onClick={() => handleEditStatus(user)}
+                          title="Click to change status"
+                        >
+                          {config.icon} {config.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))

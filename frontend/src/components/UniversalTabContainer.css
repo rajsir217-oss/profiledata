@@ -422,35 +422,50 @@
 }
 
 @media (max-width: 480px) {
+  .tab-nav {
+    gap: 2px;
+    padding: 4px;
+    justify-content: space-between;
+  }
+  
   .tab-button {
     font-size: var(--font-size-xs);
-    gap: 4px;
-    min-height: 36px;
-    height: 36px;
+    gap: 2px;
+    min-height: 44px;
+    height: 44px;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 4px;
+    justify-content: center;
+    flex-direction: column;
   }
 
   .tab-icon {
-    font-size: 18px;
+    font-size: 20px;
+    margin-bottom: 2px;
   }
 
   .tab-badge {
-    font-size: 10px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 4px;
+    font-size: 9px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 3px;
+    position: absolute;
+    top: 2px;
+    right: 2px;
   }
 
   .variant-underlined .tab-button,
   .variant-pills .tab-button,
   .variant-bordered .tab-button {
-    padding: 8px 10px;
+    padding: 6px 4px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
   }
 
-  /* Show only icons on mobile */
-  .tab-button {
-    justify-content: center;
-    min-width: 56px;
-    padding: 8px 12px;
+  /* Show only icons on mobile - stacked layout */
+  .tab-label {
+    display: none !important;
   }
 }
 
