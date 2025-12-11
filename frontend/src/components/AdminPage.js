@@ -684,7 +684,7 @@ const AdminPage = () => {
                 onClick={handleStatusChange}
                 disabled={selectedStatus === (selectedUserForStatus.accountStatus || 'pending_admin_approval')}
               >
-                🔐 Update Status
+                🔐 Update<span className="hide-on-mobile"> Status</span>
               </button>
             </div>
           </div>

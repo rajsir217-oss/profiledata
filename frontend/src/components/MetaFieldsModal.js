@@ -180,8 +180,16 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
       <div className="modal-overlay">
         <div className="meta-fields-modal">
           <div className="modal-header">
-            <h2>Loading...</h2>
-            <button className="close-btn" onClick={onClose}>×</button>
+            <div className="user-info">
+              <div className="user-avatar">
+                {username.charAt(0).toUpperCase()}
+              </div>
+              <div className="user-details">
+                <h4>{username}</h4>
+                <p>🎖️ Meta Fields Manager</p>
+              </div>
+            </div>
+            <button className="close-btn" onClick={onClose}>✕</button>
           </div>
           <div className="loading-spinner">Loading meta fields...</div>
         </div>
@@ -193,9 +201,16 @@ const MetaFieldsModal = ({ username, onClose, onUpdate }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="meta-fields-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>🎖️ Meta Fields Manager</h2>
-          <span className="username-badge">{username}</span>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <div className="user-info">
+            <div className="user-avatar">
+              {username.charAt(0).toUpperCase()}
+            </div>
+            <div className="user-details">
+              <h4>{username}</h4>
+              <p>🎖️ Meta Fields Manager</p>
+            </div>
+          </div>
+          <button className="close-btn" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-tabs">

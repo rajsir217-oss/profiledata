@@ -315,11 +315,20 @@ class EmailVerificationService:
             stored_token = user.get("emailVerificationToken")
             print(f"🔑 Stored token: {stored_token[:20]}..." if stored_token and len(stored_token) > 20 else f"🔑 Stored token: {stored_token}")
             
+            # Check if token exists in database
+            if not stored_token:
+                print(f"❌ No verification token found for user '{username}' - may have been used already")
+                return {
+                    "success": False,
+                    "message": "Verification token not found. It may have already been used or expired. Please request a new verification email.",
+                    "tokenNotFound": True
+                }
+            
             if stored_token != token:
                 print(f"❌ Token mismatch! Stored: {stored_token}, Received: {token}")
                 return {
                     "success": False,
-                    "message": "Invalid verification token"
+                    "message": "Invalid verification token. Please use the most recent verification email sent to you."
                 }
             
             # Check if token expired

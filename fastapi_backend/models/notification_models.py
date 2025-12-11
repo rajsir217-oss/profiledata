@@ -148,6 +148,22 @@ class SMSOptimization(BaseModel):
     )
 
 
+class PrivacySettings(BaseModel):
+    """Privacy settings for hiding user activity from others (Premium feature)"""
+    hideFavorites: bool = Field(
+        default=False,
+        description="Don't notify others when you favorite them"
+    )
+    hideShortlist: bool = Field(
+        default=False,
+        description="Don't notify others when you shortlist them"
+    )
+    hideProfileViews: bool = Field(
+        default=False,
+        description="Don't notify others when you view their profile"
+    )
+
+
 class NotificationPreferences(BaseModel):
     """User notification preferences"""
     username: str = Field(..., description="User username")
@@ -185,6 +201,9 @@ class NotificationPreferences(BaseModel):
     # SMS optimization
     smsOptimization: SMSOptimization = Field(default_factory=SMSOptimization)
     
+    # Privacy settings (Premium feature)
+    privacySettings: PrivacySettings = Field(default_factory=PrivacySettings)
+    
     # Engagement metrics
     engagement: Dict[str, Any] = Field(
         default_factory=lambda: {
@@ -210,6 +229,7 @@ class NotificationPreferencesUpdate(BaseModel):
     quietHours: Optional[QuietHours] = None
     rateLimit: Optional[Dict[str, RateLimit]] = None
     smsOptimization: Optional[SMSOptimization] = None
+    privacySettings: Optional[PrivacySettings] = None
 
 
 # ============================================

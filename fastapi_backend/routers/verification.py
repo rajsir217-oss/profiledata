@@ -27,6 +27,7 @@ class VerificationResponse(BaseModel):
     nextStep: Optional[str] = None
     alreadyVerified: Optional[bool] = False
     expired: Optional[bool] = False
+    tokenNotFound: Optional[bool] = False
 
 @router.post("/verify-email", response_model=VerificationResponse)
 async def verify_email(

@@ -1077,11 +1077,11 @@ const Dashboard = () => {
           
           {expandedGroups.myActivities && (
             <div className="column-sections">
-              {renderSection('Messages', dashboardData.myMessages, 'myMessages', '💬', '#667eea', handleDeleteMessage)}
-              {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#ff6b6b', handleRemoveFromFavorites)}
-              {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#4ecdc4', handleRemoveFromShortlist)}
-              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#9b59b6', handleCancelPIIRequest)}
-              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#95a5a6', handleRemoveFromExclusions)}
+              {renderSection('Messages', dashboardData.myMessages, 'myMessages', '💬', '#5a6fd6', handleDeleteMessage)}
+              {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#d4a574', handleRemoveFromFavorites)}
+              {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#6ba8a0', handleRemoveFromShortlist)}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#8b7bb5', handleCancelPIIRequest)}
+              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#8a9499', handleRemoveFromExclusions)}
             </div>
           )}
         </div>
@@ -1101,13 +1101,13 @@ const Dashboard = () => {
           
           {expandedGroups.othersActivities && (
             <div className="column-sections">
-              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#f39c12', handleClearViewHistory)}
+              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#c9944a', handleClearViewHistory)}
           
           {/* Image Access Requests Section */}
           <CategorySection
             title="Photo Requests"
             icon="📬"
-            color="#10b981"
+            color="#5a9a8a"
             sectionKey="imageAccessRequests"
             data={[]}
             isExpanded={activeSections.imageAccessRequests}
@@ -1128,8 +1128,8 @@ const Dashboard = () => {
             </div>
           </CategorySection>
           
-              {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#e91e63', null)}
-              {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#00bcd4', null)}
+              {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#c4687a', null)}
+              {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#5a9eb5', null)}
             </div>
           )}
         </div>
