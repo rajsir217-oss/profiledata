@@ -100,6 +100,9 @@ const Dashboard = () => {
   // MFA notification state
   const [showMfaNotification, setShowMfaNotification] = useState(false);
   
+  // Photo reminder notification state
+  const [showPhotoReminder, setShowPhotoReminder] = useState(false);
+  
   // Pause feature state
   const [pauseStatus, setPauseStatus] = useState(null);
   const [showPauseSettings, setShowPauseSettings] = useState(false);
@@ -120,11 +123,18 @@ const Dashboard = () => {
       return;
     }
     
-    // Load user profile for display name
+    // Load user profile for display name and check for photos
     const loadUserProfile = async () => {
       try {
         const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
         setUserProfile(response.data);
+        
+        // Check if user has no photos and hasn't dismissed the reminder this session
+        const photoReminderDismissed = sessionStorage.getItem('photoReminderDismissed');
+        const userImages = response.data?.images || [];
+        if (userImages.length === 0 && !photoReminderDismissed) {
+          setShowPhotoReminder(true);
+        }
       } catch (error) {
         logger.error('Error loading user profile:', error);
       }
@@ -298,6 +308,17 @@ const Dashboard = () => {
   const handleEnableMfa = () => {
     navigate('/preferences?tab=security');
     setShowMfaNotification(false);
+  };
+
+  // Photo reminder handlers
+  const handleDismissPhotoReminder = () => {
+    setShowPhotoReminder(false);
+    sessionStorage.setItem('photoReminderDismissed', 'true');
+  };
+
+  const handleUploadPhotos = () => {
+    navigate('/edit-profile');
+    setShowPhotoReminder(false);
   };
 
   // Pause feature functions
@@ -995,6 +1016,34 @@ const Dashboard = () => {
               <button 
                 className="btn-dismiss-mfa"
                 onClick={handleDismissMfaNotification}
+                title="Don't show this again"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Photo Upload Reminder Banner */}
+      {showPhotoReminder && (
+        <div className="photo-reminder-banner">
+          <div className="photo-reminder-content">
+            <div className="photo-reminder-icon">📸</div>
+            <div className="photo-reminder-text">
+              <strong>Add photos to get 10x more profile views!</strong>
+              <p>Profiles with photos receive significantly more interest. Upload your best photos now!</p>
+            </div>
+            <div className="photo-reminder-actions">
+              <button 
+                className="btn-upload-photos"
+                onClick={handleUploadPhotos}
+              >
+                Upload Photos
+              </button>
+              <button 
+                className="btn-dismiss-photo"
+                onClick={handleDismissPhotoReminder}
                 title="Don't show this again"
               >
                 ✕
