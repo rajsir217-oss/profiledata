@@ -375,7 +375,7 @@ async def update_user_status(
     try:
         # Validate status (accept both old and new status values)
         valid_statuses = [
-            'pending', 'active', 'inactive', 'suspended', 'banned',  # Legacy values
+            'pending', 'active', 'inactive', 'suspended', 'banned', 'paused',  # Legacy values
             'pending_email_verification', 'pending_admin_approval', 'deactivated'  # New accountStatus values
         ]
         if request.status not in valid_statuses:
