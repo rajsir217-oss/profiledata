@@ -6,9 +6,9 @@
  * These are modified by deploy script at build time
  */
 const POD_CONFIG = {
-  backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
-  api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users',
-  ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
+  backend: process.env.REACT_APP_POD_BACKEND_URL,
+  api: process.env.REACT_APP_POD_API_URL,
+  ws: process.env.REACT_APP_POD_WS_URL
 };
 
 /**

@@ -19,6 +19,7 @@ import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Any, Tuple, Optional
 import asyncio
+from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .base import JobTemplate, JobExecutionContext, JobResult
@@ -791,11 +792,20 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     notification_time = notifications.get('time', '09:00')  # HH:MM format
     day_of_week = notifications.get('dayOfWeek', 'monday')  # for weekly
     
-    # Get current time (you might want to use user's timezone here)
-    now = datetime.utcnow()
-    current_hour = now.hour
-    current_minute = now.minute
-    current_weekday = now.strftime('%A').lower()  # 'monday', 'tuesday', etc.
+    # Get user's timezone from search or default to US/Pacific (most users are in PST/PDT)
+    user_timezone_str = notifications.get('timezone', 'America/Los_Angeles')
+    try:
+        user_tz = ZoneInfo(user_timezone_str)
+    except Exception:
+        logger.warning(f"Invalid timezone '{user_timezone_str}', defaulting to America/Los_Angeles")
+        user_tz = ZoneInfo('America/Los_Angeles')
+    
+    # Get current time in user's timezone
+    now_utc = datetime.utcnow().replace(tzinfo=ZoneInfo('UTC'))
+    now_user = now_utc.astimezone(user_tz)
+    current_hour = now_user.hour
+    current_minute = now_user.minute
+    current_weekday = now_user.strftime('%A').lower()  # 'monday', 'tuesday', etc.
     
     # Parse notification time
     try:
@@ -810,6 +820,10 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
         current_hour == notif_hour and 
         abs(current_minute - notif_minute) < 60  # Within same hour
     )
+    
+    logger.debug(f"Schedule check for '{search.get('name')}': user_tz={user_timezone_str}, "
+                 f"now={now_user.strftime('%H:%M %A')}, scheduled={notif_hour:02d}:{notif_minute:02d}, "
+                 f"time_matches={time_matches}")
     
     if not time_matches:
         return False
