@@ -42,22 +42,93 @@
   }
 }
 
+/* Modal Header with Gradient - Matches Status Modal Style */
 .modal-header {
-  padding: 24px;
-  border-bottom: 2px solid var(--border-color);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  flex-shrink: 0;
+  border-radius: 16px 16px 0 0;
+}
+
+.modal-header .user-info {
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: linear-gradient(135deg, var(--card-background) 0%, var(--hover-background) 100%);
+  gap: 15px;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  min-width: unset !important;
+  min-height: unset !important;
+  max-width: unset !important;
+  max-height: unset !important;
+  cursor: default !important;
 }
 
-.modal-header h2 {
+.modal-header .user-avatar {
+  width: 50px;
+  height: 50px;
+  min-width: 50px;
+  min-height: 50px;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.3) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 600;
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  overflow: hidden !important;
+  position: relative;
+  box-shadow: none !important;
+}
+
+.modal-header .user-avatar::before,
+.modal-header .user-avatar::after {
+  display: none !important;
+  content: none !important;
+}
+
+.modal-header .user-details h4 {
   margin: 0;
-  font-size: 24px;
-  color: var(--text-color);
-  flex: 1;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
 }
 
+.modal-header .user-details p {
+  margin: 4px 0 0 0;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 0.9;
+}
+
+.modal-header .close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.modal-header .close-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: rotate(90deg);
+}
+
+/* Legacy styles - kept for backwards compatibility */
 .username-badge {
   background: var(--primary-color);
   color: white;

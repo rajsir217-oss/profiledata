@@ -40,9 +40,9 @@ const VerifyEmail = () => {
           navigate('/login');
         }, 5000);
       } else {
-        if (response.data.expired) {
+        if (response.data.expired || response.data.tokenNotFound) {
           setStatus('expired');
-          setMessage(response.data.message || 'Verification link has expired.');
+          setMessage(response.data.message || 'Verification link has expired or was already used.');
         } else {
           setStatus('error');
           setMessage(response.data.message || 'Verification failed.');

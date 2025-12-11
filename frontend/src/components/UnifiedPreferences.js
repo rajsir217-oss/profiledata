@@ -67,6 +67,14 @@ const UnifiedPreferences = () => {
   const [notificationPreferences, setNotificationPreferences] = useState(null);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [savingNotifications, setSavingNotifications] = useState(false);
+  
+  // Privacy Settings State (Premium feature)
+  const [userRole, setUserRole] = useState('free_user');
+  const [privacySettings, setPrivacySettings] = useState({
+    hideFavorites: false,
+    hideShortlist: false,
+    hideProfileViews: false
+  });
 
   // Push Notification State
   const [pushPermission, setPushPermission] = useState('default');
@@ -229,6 +237,15 @@ const UnifiedPreferences = () => {
         setLoadingNotifications(true);
         const data = await notifications.getPreferences();
         setNotificationPreferences(data);
+        
+        // Load privacy settings from notification preferences
+        if (data.privacySettings) {
+          setPrivacySettings({
+            hideFavorites: data.privacySettings.hideFavorites || false,
+            hideShortlist: data.privacySettings.hideShortlist || false,
+            hideProfileViews: data.privacySettings.hideProfileViews || false
+          });
+        }
       } catch (error) {
         console.error('Error loading notification preferences:', error);
         showToast('Failed to load notification preferences', 'error');
@@ -260,10 +277,11 @@ const UnifiedPreferences = () => {
 
     const checkAdminStatus = () => {
       const username = localStorage.getItem('username');
-      const userRole = localStorage.getItem('userRole');
-      console.log('🔍 Checking admin status - Username:', username, 'Role:', userRole);
-      console.log('🔍 Is Admin?', userRole === 'admin');
-      setIsAdmin(userRole === 'admin');
+      const role = localStorage.getItem('userRole');
+      console.log('🔍 Checking admin status - Username:', username, 'Role:', role);
+      console.log('🔍 Is Admin?', role === 'admin');
+      setIsAdmin(role === 'admin');
+      setUserRole(role || 'free_user');
     };
 
     fetchNotificationPreferences();
@@ -466,12 +484,20 @@ const UnifiedPreferences = () => {
     });
   };
 
+  const handlePrivacyToggle = (setting) => {
+    setPrivacySettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }));
+  };
+
   const handleSaveNotifications = async () => {
     try {
       setSavingNotifications(true);
       await notifications.updatePreferences({
         channels: notificationPreferences.channels,
-        quietHours: notificationPreferences.quietHours
+        quietHours: notificationPreferences.quietHours,
+        privacySettings: privacySettings
       });
       showToast('Notification preferences saved successfully!', 'success');
     } catch (error) {
@@ -1400,6 +1426,117 @@ const UnifiedPreferences = () => {
               </div>
             )}
           </section>
+
+          {/* Privacy Settings - Premium Feature (visible only for non-free users) */}
+          {userRole !== 'free_user' && (
+            <section className="settings-section privacy-settings-section">
+              <h2>🔒 Privacy Settings</h2>
+              <p className="section-description">
+                Control whether others are notified about your activity
+                <span style={{ 
+                  marginLeft: '8px', 
+                  padding: '2px 8px', 
+                  background: 'var(--success-light)', 
+                  color: 'var(--success-color)', 
+                  borderRadius: '12px', 
+                  fontSize: '0.75rem',
+                  fontWeight: '600'
+                }}>
+                  Premium
+                </span>
+              </p>
+
+              <div className="privacy-toggles" style={{ marginTop: '16px' }}>
+                <div className="privacy-toggle-row" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div>
+                    <strong>Hide Favorites</strong>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Others won't know when you favorite them
+                    </p>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={privacySettings.hideFavorites}
+                      onChange={() => handlePrivacyToggle('hideFavorites')}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+
+                <div className="privacy-toggle-row" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  marginBottom: '12px'
+                }}>
+                  <div>
+                    <strong>Hide Shortlist</strong>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Others won't know when you shortlist them
+                    </p>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={privacySettings.hideShortlist}
+                      onChange={() => handlePrivacyToggle('hideShortlist')}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+
+                <div className="privacy-toggle-row" style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px',
+                  background: 'var(--surface-color)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px'
+                }}>
+                  <div>
+                    <strong>Hide Profile Views</strong>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Others won't know when you view their profile
+                    </p>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={privacySettings.hideProfileViews}
+                      onChange={() => handlePrivacyToggle('hideProfileViews')}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                background: 'var(--info-light)',
+                border: '1px solid var(--info-color)',
+                borderRadius: '8px',
+                fontSize: '0.9rem'
+              }}>
+                <strong>ℹ️ Note:</strong> When enabled, your actions will still be recorded but the other person won't receive any notification about it.
+              </div>
+            </section>
+          )}
 
           {/* Action Buttons */}
           <div className="notification-actions">

@@ -267,6 +267,47 @@ class EventDispatcher:
             )
     
     # ============================================
+    # Privacy Settings Helper
+    # ============================================
+    
+    async def _check_actor_privacy(self, actor_username: str, privacy_type: str) -> bool:
+        """
+        Check if actor has privacy settings enabled that should block notifications.
+        
+        Args:
+            actor_username: The user performing the action
+            privacy_type: One of 'hideFavorites', 'hideShortlist', 'hideProfileViews'
+        
+        Returns:
+            True if notification should be blocked (privacy enabled), False otherwise
+        """
+        try:
+            # Get actor's notification preferences
+            prefs = await self.db.notification_preferences.find_one({"username": actor_username})
+            if not prefs:
+                return False  # No preferences = default (not hidden)
+            
+            privacy_settings = prefs.get("privacySettings", {})
+            is_hidden = privacy_settings.get(privacy_type, False)
+            
+            if is_hidden:
+                # Also check if user is premium (non-free_user)
+                actor = await self.db.users.find_one({"username": actor_username})
+                if actor:
+                    role_name = actor.get("role_name", "free_user")
+                    # Only premium users can use privacy features
+                    if role_name == "free_user":
+                        logger.debug(f"🔓 {actor_username} has {privacy_type} enabled but is free_user - ignoring")
+                        return False
+                    logger.info(f"🔒 {actor_username} has {privacy_type} enabled (role: {role_name}) - blocking notification")
+                    return True
+            
+            return False
+        except Exception as e:
+            logger.warning(f"⚠️ Error checking privacy settings for {actor_username}: {e}")
+            return False  # Default to sending notification on error
+    
+    # ============================================
     # Default Event Handlers (Notification Triggers)
     # ============================================
     
@@ -280,6 +321,11 @@ class EventDispatcher:
                 return
             
             logger.info(f"📊 Favorite added: {actor_username} → {target_username}")
+            
+            # Check if actor has privacy settings to hide favorites (Premium feature)
+            if await self._check_actor_privacy(actor_username, "hideFavorites"):
+                logger.info(f"🔒 Skipping 'favorited' notification - {actor_username} has hideFavorites enabled")
+                return
             
             # Fetch BOTH user's full data
             actor = await self.db.users.find_one({"username": actor_username})
@@ -410,6 +456,11 @@ class EventDispatcher:
             target_username = event_data.get("target")
             actor_username = event_data.get("actor")
             
+            # Check if actor has privacy settings to hide shortlist (Premium feature)
+            if await self._check_actor_privacy(actor_username, "hideShortlist"):
+                logger.info(f"🔒 Skipping 'shortlist_added' notification - {actor_username} has hideShortlist enabled")
+                return
+            
             # Fetch BOTH user's full data
             actor = await self.db.users.find_one({"username": actor_username})
             target = await self.db.users.find_one({"username": target_username})
@@ -491,6 +542,11 @@ class EventDispatcher:
         try:
             target = event_data.get("target")
             actor = event_data.get("actor")
+            
+            # Check if actor has privacy settings to hide profile views (Premium feature)
+            if await self._check_actor_privacy(actor, "hideProfileViews"):
+                logger.info(f"🔒 Skipping 'profile_view' notification - {actor} has hideProfileViews enabled")
+                return
             
             # Fetch viewer's profile
             viewer = await self.db.users.find_one({"username": actor})
