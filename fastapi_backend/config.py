@@ -78,6 +78,11 @@ class Settings(BaseSettings):
     enable_websockets: Optional[bool] = True
     debug_mode: Optional[bool] = False
     
+    # AI Services (Free Tier Options)
+    gemini_api_key: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    ai_provider: Optional[str] = "groq"  # "gemini" or "groq"
+    
     # Logging Configuration
     log_level: Optional[str] = "INFO"
     log_file: Optional[str] = "logs/app.log"
