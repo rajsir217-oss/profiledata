@@ -166,7 +166,14 @@
   font-size: 14px;
   outline: none;
   overflow-y: auto;
-  max-height: 400px;
+  max-height: 600px;
+  resize: vertical;
+}
+
+/* Resize handle styling */
+.rte-content::-webkit-resizer {
+  background: linear-gradient(135deg, transparent 50%, var(--border-color) 50%, var(--border-color) 60%, transparent 60%, transparent 70%, var(--border-color) 70%, var(--border-color) 80%, transparent 80%);
+  border-radius: 0 0 8px 0;
 }
 
 /* Placeholder */
