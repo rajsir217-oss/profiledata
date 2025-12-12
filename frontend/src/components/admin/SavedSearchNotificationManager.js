@@ -81,11 +81,11 @@ const SavedSearchNotificationManager = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searches, statusFilter, searchQuery]);
 
-  const fetchSavedSearches = async () => {
+  const fetchSavedSearches = async (filterOverride = null) => {
     try {
       setLoading(true);
       const response = await adminApi.get('/api/admin/saved-searches/with-notifications', {
-        params: { status_filter: statusFilter }
+        params: { status_filter: filterOverride ?? statusFilter }
       });
       setSearches(response.data.searches || []);
       setError('');
@@ -191,29 +191,34 @@ const SavedSearchNotificationManager = () => {
     }
   };
 
-  const handleDisable = async () => {
-    if (!selectedSearch || !disableReason.trim()) {
-      toast.warning('Please provide a reason for disabling');
-      return;
-    }
+  const handleToggleNotifications = async (search) => {
+    const isCurrentlyActive = search.isActive;
     
     try {
       setActionLoading(true);
-      await adminApi.post('/api/admin/saved-searches/disable', {
-        searchId: selectedSearch.id,
-        username: selectedSearch.username,
-        reason: disableReason,
-        notifyUser: notifyUser
-      });
       
-      setShowDisableModal(false);
-      setDisableReason('');
-      setNotifyUser(false);
+      if (isCurrentlyActive) {
+        // Disable
+        await adminApi.post('/api/admin/saved-searches/disable', {
+          searchId: search.id,
+          username: search.username,
+          reason: 'Admin disabled via toggle',
+          notifyUser: false
+        });
+        toast.success('Notifications disabled');
+      } else {
+        // Enable
+        await adminApi.post('/api/admin/saved-searches/enable', {
+          searchId: search.id,
+          username: search.username
+        });
+        toast.success('Notifications enabled');
+      }
+      
       fetchSavedSearches();
-      toast.success('Notifications disabled successfully');
     } catch (err) {
-      console.error('Error disabling notifications:', err);
-      toast.error(`Failed to disable: ${err.response?.data?.detail || err.message}`);
+      console.error('Error toggling notifications:', err);
+      toast.error(`Failed to ${isCurrentlyActive ? 'disable' : 'enable'}: ${err.response?.data?.detail || err.message}`);
     } finally {
       setActionLoading(false);
     }
@@ -381,8 +386,9 @@ const SavedSearchNotificationManager = () => {
           <select 
             value={statusFilter} 
             onChange={(e) => {
-              setStatusFilter(e.target.value);
-              fetchSavedSearches(); // Refetch with new filter
+              const newFilter = e.target.value;
+              setStatusFilter(newFilter);
+              fetchSavedSearches(newFilter); // Pass new filter directly to avoid state timing issue
             }}
             className="form-select"
           >
@@ -484,33 +490,25 @@ const SavedSearchNotificationManager = () => {
                 </div>
                 
                 <div className="search-card-actions">
-                  {isActive ? (
-                    <>
-                      <button 
-                        className="btn btn-sm btn-primary"
-                        onClick={() => openOverrideModal(search)}
-                        disabled={actionLoading}
-                      >
-                        ✏️ Override
-                      </button>
-                      <button 
-                        className="btn btn-sm btn-danger"
-                        onClick={() => {
-                          setSelectedSearch(search);
-                          setShowDisableModal(true);
-                        }}
-                        disabled={actionLoading}
-                      >
-                        🔕 Disable
-                      </button>
-                    </>
-                  ) : (
+                  {/* Toggle Switch for Enable/Disable */}
+                  <label className="toggle-switch" title={isActive ? 'Click to disable' : 'Click to enable'}>
+                    <input
+                      type="checkbox"
+                      checked={isActive}
+                      onChange={() => handleToggleNotifications(search)}
+                      disabled={actionLoading}
+                    />
+                    <span className="toggle-slider"></span>
+                    <span className="toggle-label">{isActive ? '🔔 On' : '🔕 Off'}</span>
+                  </label>
+                  
+                  {isActive && (
                     <button 
-                      className="btn btn-sm btn-success"
-                      onClick={() => handleEnable(search)}
+                      className="btn btn-sm btn-primary"
+                      onClick={() => openOverrideModal(search)}
                       disabled={actionLoading}
                     >
-                      🔔 Enable
+                      ✏️ Override
                     </button>
                   )}
                   <button 
@@ -646,62 +644,6 @@ const SavedSearchNotificationManager = () => {
                 disabled={actionLoading}
               >
                 {actionLoading ? 'Saving...' : 'Save Override'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Disable Modal */}
-      {showDisableModal && selectedSearch && (
-        <div className="modal-overlay" onClick={() => setShowDisableModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <h3>Disable Notifications</h3>
-            
-            <div className="modal-body">
-              <div className="search-details">
-                <p><strong>User:</strong> {selectedSearch.username}</p>
-                <p><strong>Search:</strong> {selectedSearch.name}</p>
-              </div>
-              
-              <div className="alert alert-warning">
-                This will stop all email notifications for this search. The user will not be able to re-enable it.
-              </div>
-              
-              <label>Reason (required):</label>
-              <textarea
-                value={disableReason}
-                onChange={(e) => setDisableReason(e.target.value)}
-                placeholder="Explain why you're disabling (e.g., Search too broad - generating spam)..."
-                rows="3"
-                className="form-control"
-                required
-              />
-              
-              <label className="checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={notifyUser}
-                  onChange={(e) => setNotifyUser(e.target.checked)}
-                />
-                Notify user via email
-              </label>
-            </div>
-            
-            <div className="modal-actions">
-              <button 
-                onClick={() => setShowDisableModal(false)} 
-                className="btn btn-secondary"
-                disabled={actionLoading}
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={handleDisable} 
-                className="btn btn-danger"
-                disabled={actionLoading || !disableReason.trim()}
-              >
-                {actionLoading ? 'Disabling...' : 'Disable Notifications'}
               </button>
             </div>
           </div>

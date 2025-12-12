@@ -58,19 +58,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     state: "California",
     location: "San Francisco",
     citizenshipStatus: "Citizen",
-    educationHistory: [{
-      level: "Under Graduation",
-      degree: "BS",
-      institution: "UC Berkeley, CA"
-    }],
-    workExperience: [{
-      status: "current",
-      description: "MD, Resident @ ABC Hospital",
-      location: "San Francisco"
-    }],
-    familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
-    aboutMe: "I am a entrepreneur based in Srinagar. Love to explore new places and cuisines. Seeking a travel buddy and life companion.",
-    partnerPreference: "Looking for someone who is family-oriented and ambitious. Education and values are important to me.",
+    educationHistory: [],
+    workExperience: [],
+    familyBackground: "",
+    aboutMe: "",
+    partnerPreference: "",
     partnerCriteria: {
       educationLevel: ["Bachelor's"],
       profession: ["Any"],
@@ -124,22 +116,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     familyType: "",
     familyValues: "",
     // Educational Information
-    educationHistory: [{
-      level: "Under Graduation",
-      degree: "BS",
-      institution: "UC Berkeley, CA"
-    }],  // Array of education entries with default
+    educationHistory: [],  // Array of education entries - start empty
     // Professional & Work Related Information
-    workExperience: [{
-      status: "current",
-      description: "MD, Resident @ ABC Hospital",
-      location: "San Francisco"
-    }],  // Array of work experience entries with default
+    workExperience: [],  // Array of work experience entries - start empty
     linkedinUrl: "",
     // About Me and Partner Information
-    familyBackground: "Loving nuclear family from Srinagar. Father is retired and mother is working professional. Have siblings.",
-    aboutMe: "I am a entrepreneur based in Srinagar. Love to explore new places and cuisines. Seeking a travel buddy and life companion.",  // Renamed from aboutYou
-    partnerPreference: "Looking for someone who is family-oriented and ambitious. Education and values are important to me.",
+    familyBackground: "",
+    aboutMe: "",
+    partnerPreference: "",
     // Partner Matching Criteria
     partnerCriteria: {
       ageRange: { min: "", max: "" }, // Legacy - kept for backward compatibility

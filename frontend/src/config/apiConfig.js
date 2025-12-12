@@ -4,11 +4,12 @@
 /**
  * POD Configuration (for deployment script compatibility)
  * These are modified by deploy script at build time
+ * Only use POD config in production - don't fallback to production URLs in dev
  */
 const POD_CONFIG = {
-  backend: process.env.REACT_APP_POD_BACKEND_URL,
-  api: process.env.REACT_APP_POD_API_URL,
-  ws: process.env.REACT_APP_POD_WS_URL
+  backend: process.env.REACT_APP_POD_BACKEND_URL || null,
+  api: process.env.REACT_APP_POD_API_URL || null,
+  ws: process.env.REACT_APP_POD_WS_URL || null
 };
 
 /**
@@ -24,29 +25,29 @@ const POD_CONFIG = {
  * Production (.env.production): https://matrimonial-backend-7cxoxmouuq-uc.a.run.app
  */
 export const getBackendUrl = () => {
-  // Priority 1: Runtime config (loaded from /config.js at runtime)
-  if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.SOCKET_URL) {
-    return window.RUNTIME_CONFIG.SOCKET_URL;
-  }
-  
-  // Priority 2: POD config (set by deployment script)
-  if (POD_CONFIG.backend) {
-    return POD_CONFIG.backend;
-  }
-  
-  // Priority 3: Environment variable (from .env files)
+  // Priority 1: Environment variable (from .env files) - LOCAL DEV
+  // This ensures local dev uses localhost even if POD_CONFIG exists
   if (process.env.REACT_APP_BACKEND_URL) {
     return process.env.REACT_APP_BACKEND_URL;
   }
   
-  // Fallback only if env var is not set
+  // Priority 2: Runtime config (loaded from /config.js at runtime)
+  if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.SOCKET_URL) {
+    return window.RUNTIME_CONFIG.SOCKET_URL;
+  }
+  
+  // Priority 3: POD config (set by deployment script) - PRODUCTION
+  if (POD_CONFIG.backend) {
+    return POD_CONFIG.backend;
+  }
+  
+  // Fallback only if nothing is set
   if (process.env.NODE_ENV === 'production') {
     console.warn('⚠️ REACT_APP_BACKEND_URL not set! Using fallback production URL.');
     return 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app';
   }
   
   // Development fallback
-  console.warn('⚠️ REACT_APP_BACKEND_URL not set! Using fallback localhost URL.');
   return 'http://localhost:8000';
 };
 
@@ -55,17 +56,22 @@ export const getBackendUrl = () => {
  * @returns {string} Full API URL with /api/users prefix
  */
 export const getApiUrl = () => {
-  // Priority 1: Runtime config (loaded from /config.js at runtime)
+  // Priority 1: Environment variable (from .env files) - LOCAL DEV
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // Priority 2: Runtime config (loaded from /config.js at runtime)
   if (typeof window !== 'undefined' && window.RUNTIME_CONFIG?.API_URL) {
     return window.RUNTIME_CONFIG.API_URL;
   }
   
-  // Priority 2: POD config API URL (set by deployment script)
+  // Priority 3: POD config API URL (set by deployment script) - PRODUCTION
   if (POD_CONFIG.api) {
     return POD_CONFIG.api;
   }
   
-  // Priority 3: Construct from backend URL
+  // Fallback: Construct from backend URL
   return `${getBackendUrl()}/api/users`;
 };
 

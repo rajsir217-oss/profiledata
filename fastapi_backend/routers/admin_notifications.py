@@ -234,8 +234,12 @@ async def disable_notification(
         reason = disable_data.get("reason", "")
         notify_user = disable_data.get("notifyUser", False)
         
-        if not search_id or not username or not reason:
-            raise HTTPException(status_code=400, detail="searchId, username, and reason required")
+        if not search_id or not username:
+            raise HTTPException(status_code=400, detail="searchId and username required")
+        
+        # Default reason if not provided
+        if not reason:
+            reason = "Admin disabled"
         
         logger.info(f"🔕 Admin '{current_user['username']}' disabling notification for search {search_id}")
         

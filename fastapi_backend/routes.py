@@ -2872,6 +2872,17 @@ async def update_saved_search(username: str, search_id: str, search_data: dict, 
         
         logger.info(f"📝 Updating search '{search_data.get('name')}' with data: {update_data}")
         
+        # If user is updating notification settings, clear any active admin override
+        # (but preserve disabled status if admin disabled notifications)
+        if "notifications" in search_data:
+            existing = await db.saved_searches.find_one({"_id": ObjectId(search_id), "username": username})
+            if existing:
+                admin_override = existing.get("adminOverride", {})
+                # Only clear override if it's not a disabled override
+                if admin_override and not admin_override.get("disabled", False):
+                    update_data["adminOverride"] = None
+                    logger.info(f"🔄 Clearing admin override since user is updating their notification settings")
+        
         # Update the saved search
         result = await db.saved_searches.update_one(
             {"_id": ObjectId(search_id), "username": username},
