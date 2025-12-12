@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
 import PageHeader from './PageHeader';
@@ -13,6 +13,7 @@ const PIIManagement = () => {
   const [successMessage, setSuccessMessage] = useState('');
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [grantedAccess, setGrantedAccess] = useState([]);
   const [receivedAccess, setReceivedAccess] = useState([]);
@@ -30,6 +31,13 @@ const PIIManagement = () => {
   const [ownerImages, setOwnerImages] = useState([]);
   
   const currentUsername = localStorage.getItem('username');
+
+  const getDefaultTabFromUrl = () => {
+    const params = new URLSearchParams(location.search);
+    const tab = (params.get('tab') || '').toLowerCase();
+    const allowed = new Set(['granted', 'received', 'incoming', 'outgoing', 'history']);
+    return allowed.has(tab) ? tab : 'granted';
+  };
 
   // Handle tab change (no need to reload data - it's already loaded)
   const handleTabChange = (tabId) => {
@@ -583,7 +591,8 @@ const PIIManagement = () => {
       {/* Tabs - Using UniversalTabContainer */}
       <UniversalTabContainer
         variant="underlined"
-        defaultTab="granted"
+        defaultTab={getDefaultTabFromUrl()}
+        key={getDefaultTabFromUrl()}
         onTabChange={handleTabChange}
         tabs={[
           {
