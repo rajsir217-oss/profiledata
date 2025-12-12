@@ -249,24 +249,38 @@ class EmailNotifierTemplate(JobTemplate):
         # Inject app URLs and tracking into template data
         template_data = notification.templateData.copy() if notification.templateData else {}
         tracking_id = str(notification.id)
-        backend_url = settings.backend_url or "http://localhost:8000"
-        frontend_url = settings.frontend_url or "http://localhost:3000"
+        backend_url = settings.backend_url
+        frontend_url = settings.frontend_url
         
-        # Build profile URL for the actor user on the frontend
+        # Build profile URL for the relevant user on the frontend.
+        # NOTE: event templates frequently provide `match.username` (not `actor.username`).
         actor_username = None
-        actor_data = template_data.get("actor") if isinstance(template_data, dict) else None
-        if isinstance(actor_data, dict):
-            actor_username = actor_data.get("username")
-        
-        if actor_username:
-            from urllib.parse import quote
-            profile_url = f"{frontend_url}/profile/{actor_username}"
-            encoded_profile_url = quote(profile_url, safe="")
+        if isinstance(template_data, dict):
+            actor_data = template_data.get("actor")
+            if isinstance(actor_data, dict):
+                actor_username = actor_data.get("username")
+
+            if not actor_username:
+                match_data = template_data.get("match")
+                if isinstance(match_data, dict):
+                    actor_username = match_data.get("username")
+
+            if not actor_username:
+                actor_username = template_data.get("match_username")
+
+        from urllib.parse import quote
+        profile_path = f"/profile/{actor_username}" if actor_username else ""
+
+        # For pii_granted, the CTA should open the Contact Information section.
+        if notification.trigger == "pii_granted" and actor_username:
+            profile_url = f"{frontend_url}{profile_path}?open=contact"
+        elif actor_username:
+            profile_url = f"{frontend_url}{profile_path}"
         else:
-            # Fallback to app home if actor username is missing
-            from urllib.parse import quote
+            # Fallback to app home if username is missing
             profile_url = frontend_url
-            encoded_profile_url = quote(profile_url, safe="")
+
+        encoded_profile_url = quote(profile_url, safe="")
         
         # Add app URLs with tracking
         from urllib.parse import quote
@@ -284,8 +298,8 @@ class EmailNotifierTemplate(JobTemplate):
             "chatUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/messages', safe='')}&link_type=chat",
             "unsubscribeUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={unsubscribe_url_encoded}&link_type=unsubscribe",
             "preferencesUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={preferences_url_encoded}&link_type=preferences",
-            "approveUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii/approve', safe='')}&link_type=approve",
-            "denyUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii/deny', safe='')}&link_type=deny",
+            "approveUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii-management?tab=incoming', safe='')}&link_type=approve",
+            "denyUrl_tracked": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={quote(f'{frontend_url}/pii-management?tab=incoming', safe='')}&link_type=deny",
             "dashboardUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={dashboard_url_encoded}&link_type=dashboard",
             "contactUrl": f"{frontend_url}/contact",
             "searchUrl": f"{backend_url}/api/email-tracking/click/{tracking_id}?url={search_url_encoded}&link_type=search",

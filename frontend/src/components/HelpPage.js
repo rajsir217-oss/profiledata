@@ -12,6 +12,7 @@ const HelpPage = () => {
     { id: 'l3v3l', icon: '🦋', title: 'L3V3L Matching' },
     { id: 'profile', icon: '👤', title: 'Your Profile' },
     { id: 'connections', icon: '💬', title: 'Connections & Chat' },
+    { id: 'contact-access', icon: '🔐', title: 'Contact & Photo Access' },
     { id: 'privacy', icon: '🔒', title: 'Privacy & Safety' },
     { id: 'account', icon: '⚙️', title: 'Account Settings' },
     { id: 'faq', icon: '❓', title: 'FAQ' }
@@ -25,38 +26,39 @@ const HelpPage = () => {
             <h2>🚀 Getting Started with L3V3L Matches</h2>
             
             <div className="help-section">
-              <h3>Welcome to Your Matrimonial Journey!</h3>
-              <p>L3V3L Matches is a modern matrimonial platform that uses AI-powered compatibility matching to help you find your perfect life partner.</p>
+              <h3>Welcome!</h3>
+              <p>L3V3L Matches helps you discover compatible profiles, organize your shortlists, and chat — all in one place.</p>
+              <p>If you’re new, don’t worry. This guide is written for everyday users (no technical knowledge needed).</p>
             </div>
 
             <div className="help-section">
-              <h3>Quick Start Guide</h3>
+              <h3>Quick Start (5 Steps)</h3>
               <ol>
                 <li>
-                  <strong>Complete Your Profile:</strong>
-                  <p>Go to Profile → Edit Profile and fill in all sections. A complete profile gets better matches!</p>
+                  <strong>Create your account & verify your email:</strong>
+                  <p>After you register, check your inbox for a verification email. Verification helps keep the community real and safe.</p>
                 </li>
                 <li>
-                  <strong>Upload Photos:</strong>
-                  <p>Add clear, recent photos. Profiles with photos get 5x more views!</p>
+                  <strong>Complete your profile:</strong>
+                  <p>Go to <strong>Edit Profile</strong> and fill out the key sections (basic info, background, and preferences). More detail = better matching.</p>
                 </li>
                 <li>
-                  <strong>Set Your Preferences:</strong>
-                  <p>Specify what you're looking for in Partner Preferences section.</p>
+                  <strong>Add photos (optional but recommended):</strong>
+                  <p>Photos increase trust and responses. You can also keep photos private and share them later (see “Contact & Photo Access”).</p>
                 </li>
                 <li>
-                  <strong>Start Searching:</strong>
-                  <p>Use our advanced search with L3V3L compatibility scoring to find matches.</p>
+                  <strong>Search for matches:</strong>
+                  <p>Go to <strong>Search</strong> and start broad (age + location + a keyword). Then refine with filters and L3V3L score.</p>
                 </li>
                 <li>
-                  <strong>Connect & Chat:</strong>
-                  <p>Send interest, favorite profiles, and start conversations with your matches.</p>
+                  <strong>Organize and connect:</strong>
+                  <p>Use <strong>Favorite</strong> and <strong>Shortlist</strong> to organize profiles. When you’re ready, use <strong>Message</strong> to start a conversation.</p>
                 </li>
               </ol>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Complete profiles with photos and detailed information rank higher in search results and get more visibility!
+              <strong>💡 Pro Tip:</strong> If search results feel “empty”, loosen your filters first (age range, location, keyword). Then narrow down.
             </div>
           </div>
         );
@@ -67,52 +69,49 @@ const HelpPage = () => {
             <h2>🔍 Search & Filters</h2>
             
             <div className="help-section">
-              <h3>Basic Search</h3>
-              <p>Use the search bar to find profiles by:</p>
+              <h3>How Search Works (Simple Explanation)</h3>
+              <p>Search shows you profiles that match your filters. Think of filters like a shopping checklist — the more you add, the fewer results you’ll see.</p>
               <ul>
-                <li><strong>Keyword:</strong> Search by name, location, occupation, or interests</li>
-                <li><strong>Location:</strong> Filter by city or state</li>
-                <li><strong>Age Range:</strong> Set minimum and maximum age (19-100 years)</li>
-                <li><strong>Height Range:</strong> Specify height preferences in feet and inches</li>
+                <li><strong>Keyword:</strong> Find profiles by name, region, occupation, education, or bio keywords.</li>
+                <li><strong>Age range:</strong> Set a minimum and maximum age.</li>
+                <li><strong>Height range:</strong> Set min/max height.</li>
+                <li><strong>Location / Region:</strong> Narrow to the region you prefer.</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Advanced Filters</h3>
-              <p>Click "View More" to access additional filters:</p>
+              <h3>Common Filters</h3>
+              <p>Use these to narrow down results:</p>
               <ul>
-                <li>Body Type</li>
-                <li>Occupation & Education</li>
-                <li>Religion & Caste</li>
-                <li>Eating Preferences (Vegetarian, Non-Vegetarian, Vegan)</li>
-                <li>Lifestyle (Drinking, Smoking habits)</li>
-                <li>Recently Added (last 7, 30, or 90 days)</li>
+                <li><strong>Education & occupation</strong></li>
+                <li><strong>Religion / cultural preferences</strong> (when provided)</li>
+                <li><strong>Lifestyle</strong> (eating, drinking, smoking)</li>
+                <li><strong>Recently added</strong> (helps you find new profiles)</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>L3V3L Compatibility Score</h3>
-              <p>Use the slider to set minimum compatibility score (0-100%). Higher scores mean better matches based on:</p>
+              <h3>Using L3V3L Score in Search</h3>
+              <p>You can set a <strong>minimum L3V3L score</strong> to focus on strong matches. Higher scores generally mean better alignment.</p>
               <ul>
-                <li>Values & personality alignment</li>
-                <li>Lifestyle compatibility</li>
-                <li>Demographic factors</li>
-                <li>Partner preferences match</li>
+                <li><strong>Start at 50–60%</strong> if you want more options.</li>
+                <li><strong>Use 70%+</strong> if you want to prioritize strong compatibility.</li>
+                <li>If you see very few results, lower the minimum score first.</li>
               </ul>
             </div>
 
             <div className="help-section">
               <h3>Saved Searches</h3>
-              <p>Save your frequently used search criteria for quick access:</p>
+              <p>If you use the same filters often, save them so you don’t have to set them again every time.</p>
               <ol>
-                <li>Set your desired filters</li>
-                <li>Click "💾 Save Search"</li>
-                <li>Access saved searches from "Saved (2)" tab</li>
+                <li>Set your filters</li>
+                <li>Click <strong>Save Search</strong></li>
+                <li>Click a saved search to instantly run it again</li>
               </ol>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Start with broader criteria, then narrow down using L3V3L compatibility scores for best results!
+              <strong>💡 Pro Tip:</strong> If you’re not sure where to start: try keyword + age range + location, then adjust.
             </div>
           </div>
         );
@@ -124,7 +123,7 @@ const HelpPage = () => {
             
             <div className="help-section">
               <h3>What is L3V3L?</h3>
-              <p>L3V3L is our proprietary AI-powered compatibility algorithm that analyzes multiple dimensions of compatibility to help you find your perfect match.</p>
+              <p>L3V3L is our compatibility score. It summarizes how well two profiles align based on multiple parts of the profile (values, preferences, lifestyle, and more).</p>
             </div>
 
             <div className="help-section">
@@ -132,46 +131,45 @@ const HelpPage = () => {
               <div className="score-breakdown">
                 <div className="score-item">
                   <strong>85-100%</strong> - Excellent Match 💕
-                  <p>Exceptionally compatible. Highly recommended!</p>
+                  <p>Very strong alignment across most categories.</p>
                 </div>
                 <div className="score-item">
                   <strong>70-84%</strong> - Great Match 💚
-                  <p>Strong compatibility across multiple areas.</p>
+                  <p>Strong compatibility — a great place to start conversations.</p>
                 </div>
                 <div className="score-item">
                   <strong>50-69%</strong> - Good Match 👍
-                  <p>Decent compatibility with some shared values.</p>
+                  <p>Some strong overlaps, some differences. Worth exploring.</p>
                 </div>
                 <div className="score-item">
                   <strong>Below 50%</strong> - Low Compatibility
-                  <p>Limited alignment. Consider other matches.</p>
+                  <p>Lower alignment. You can still connect if something stands out.</p>
                 </div>
               </div>
             </div>
 
             <div className="help-section">
-              <h3>L3V3L Components</h3>
+              <h3>What the Score Looks At</h3>
               <ul>
-                <li><strong>Gender Compatibility:</strong> Opposite gender matching (heterosexual platform)</li>
-                <li><strong>Demographics:</strong> Age, location, education, occupation alignment</li>
-                <li><strong>Values & Personality:</strong> Core beliefs, lifestyle choices, interests</li>
-                <li><strong>Partner Preferences:</strong> How well you match each other's stated preferences</li>
-                <li><strong>Lifestyle Compatibility:</strong> Habits, routines, and daily life alignment</li>
+                <li><strong>Demographics:</strong> Age, location/region, education, occupation.</li>
+                <li><strong>Partner preferences:</strong> Whether you match what each other is looking for.</li>
+                <li><strong>Lifestyle:</strong> Habits and day-to-day preferences (when available).</li>
+                <li><strong>Values & personality signals:</strong> Based on what’s written in the profile and preference fields.</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>View Match Reasons</h3>
-              <p>Click on any profile to see detailed breakdown:</p>
+              <h3>See the Breakdown</h3>
+              <p>When you open a profile, you may see an L3V3L breakdown that explains the score. Use it as a guide — not a rule.</p>
               <ul>
-                <li>Component scores (demographics, preferences, personality)</li>
-                <li>Specific reasons for compatibility</li>
-                <li>Areas of strong alignment</li>
+                <li>Which areas are strongest</li>
+                <li>Where there may be differences</li>
+                <li>Helpful “reasons” that summarize why the match is recommended</li>
               </ul>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Focus on matches with 70%+ compatibility for best results. Don't ignore lower scores completely - sometimes chemistry surprises us!
+              <strong>💡 Pro Tip:</strong> Use L3V3L score to prioritize, then read the profile carefully. A great profile fit beats a number.
             </div>
           </div>
         );
@@ -182,23 +180,28 @@ const HelpPage = () => {
             <h2>👤 Your Profile</h2>
             
             <div className="help-section">
-              <h3>Profile Sections</h3>
+              <h3>Why Your Profile Matters</h3>
+              <p>Your profile is what others use to decide whether to connect. The more complete and honest it is, the better your results.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>Editing Your Profile</h3>
               <ol>
                 <li>
                   <strong>Basic Information:</strong>
-                  <p>Name, age, gender, height, location, contact details</p>
+                  <p>The basics that power search filters (age, height, region, etc.).</p>
                 </li>
                 <li>
                   <strong>About You:</strong>
-                  <p>Write a compelling bio that showcases your personality (200-500 words recommended)</p>
+                  <p>Write in simple, real language. What are you like day-to-day? What are you looking for?</p>
                 </li>
                 <li>
                   <strong>Education & Career:</strong>
                   <p>Your educational background and occupation</p>
                 </li>
                 <li>
-                  <strong>Family Background:</strong>
-                  <p>Family values, members, and background</p>
+                  <strong>Background & Preferences:</strong>
+                  <p>Details that help people understand values and expectations.</p>
                 </li>
                 <li>
                   <strong>Lifestyle & Interests:</strong>
@@ -206,34 +209,27 @@ const HelpPage = () => {
                 </li>
                 <li>
                   <strong>Partner Preferences:</strong>
-                  <p>Specify what you're looking for in a life partner</p>
+                  <p>This is used heavily in matching. If you’re too strict, you may see fewer results.</p>
                 </li>
               </ol>
             </div>
 
             <div className="help-section">
-              <h3>Photos Guidelines</h3>
+              <h3>Photo Tips</h3>
               <ul>
-                <li>Upload at least 3-5 clear, recent photos</li>
-                <li>Include face photos, full-body shots, and candid pictures</li>
-                <li>Avoid group photos or heavy filters</li>
-                <li>Professional photos get more attention</li>
-                <li>Supported formats: JPG, PNG (max 5MB each)</li>
+                <li>Use clear, recent photos that look like you today.</li>
+                <li>Avoid heavy filters (it reduces trust).</li>
+                <li>If you prefer privacy, you can keep photos hidden and grant access later.</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Profile Visibility</h3>
-              <p>Control who can see your profile:</p>
-              <ul>
-                <li><strong>Active:</strong> Visible to all users in search</li>
-                <li><strong>Hidden:</strong> Only you can see your profile</li>
-                <li><strong>Paused:</strong> Temporarily hidden (vacation mode)</li>
-              </ul>
+              <h3>Collapsible Sections</h3>
+              <p>On your profile page, sections can be expanded/collapsed. This helps keep long profiles readable.</p>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Complete profiles with photos get 10x more views! Be authentic, positive, and specific about what you're looking for.
+              <strong>💡 Pro Tip:</strong> Update your profile occasionally (even small updates) — active profiles tend to get more engagement.
             </div>
           </div>
         );
@@ -246,47 +242,79 @@ const HelpPage = () => {
             <div className="help-section">
               <h3>Ways to Connect</h3>
               <ul>
-                <li><strong>Send Interest:</strong> Let someone know you're interested</li>
-                <li><strong>Favorite Profile:</strong> Bookmark profiles to view later</li>
-                <li><strong>Start Chat:</strong> Begin a conversation with mutual matches</li>
-                <li><strong>Request Contact Info:</strong> Exchange phone/email details</li>
+                <li><strong>Favorite:</strong> Save someone you like for quick access later.</li>
+                <li><strong>Shortlist:</strong> Your “serious consideration” list.</li>
+                <li><strong>Message:</strong> Start a conversation in the built-in chat.</li>
               </ul>
             </div>
 
             <div className="help-section">
               <h3>Chat Features</h3>
               <ul>
-                <li>Real-time messaging with instant delivery</li>
-                <li>Online/offline status indicators</li>
-                <li>Typing indicators to show activity</li>
-                <li>Message history saved for convenience</li>
-                <li>Emoji and text formatting support</li>
+                <li>Real-time messaging (messages appear instantly when you’re both online)</li>
+                <li>Conversation history saved</li>
+                <li>Online indicators (when available)</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Managing Connections</h3>
+              <h3>Your Lists (Where to Find People Again)</h3>
               <ul>
-                <li><strong>My Favorites:</strong> View all profiles you've favorited</li>
-                <li><strong>Who Favorited Me:</strong> See who's interested in you</li>
-                <li><strong>My Activities:</strong> Track your interactions and interests</li>
-                <li><strong>Block/Report:</strong> Control your experience and stay safe</li>
+                <li><strong>Favorites:</strong> Your saved profiles</li>
+                <li><strong>Shortlist:</strong> Your top candidates</li>
+                <li><strong>Not Interested / Exclusions:</strong> Profiles you don’t want to see again</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Exclusions</h3>
-              <p>If you don't want to see certain profiles:</p>
+              <h3>Not Interested (Exclusions)</h3>
+              <p>If you don’t want to see a profile again, exclude it. Excluded profiles won’t show up in your search results.</p>
               <ol>
                 <li>Go to their profile</li>
-                <li>Click "⛔ Exclude" button</li>
-                <li>They won't appear in your search anymore</li>
-                <li>Manage exclusions in Account Settings</li>
+                <li>Choose the exclude/not-interested action</li>
+                <li>Manage excluded profiles from the Exclusions page</li>
               </ol>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Be respectful and genuine in your conversations. First impressions matter - take time to read profiles before messaging!
+              <strong>💡 Pro Tip:</strong> Read the profile before messaging. Start with a polite, specific opener (mention something you liked).
+            </div>
+          </div>
+        );
+
+      case 'contact-access':
+        return (
+          <div className="help-content">
+            <h2>🔐 Contact & Photo Access</h2>
+
+            <div className="help-section">
+              <h3>Why are some details hidden?</h3>
+              <p>For privacy, sensitive details (like contact info and private photos) may be hidden by default. Access is shared only when the profile owner approves it.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>Requesting access (as the viewer)</h3>
+              <ol>
+                <li>Open the person’s profile</li>
+                <li>Request the specific access you want (for example: photos or LinkedIn)</li>
+                <li>Wait for approval (you’ll see the status as Pending/Approved)</li>
+              </ol>
+              <p>Once approved, you can view the newly available information directly on their profile.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>Approving requests (as the profile owner)</h3>
+              <p>Go to <strong>PII Management</strong> to review requests.</p>
+              <ul>
+                <li><strong>Incoming:</strong> requests you received (you can approve or reject)</li>
+                <li><strong>Outgoing:</strong> requests you sent (you can track status)</li>
+                <li><strong>Received:</strong> access granted to you</li>
+                <li><strong>Granted:</strong> access you granted to others</li>
+              </ul>
+            </div>
+
+            <div className="help-tip">
+              <strong>💡 Pro Tip:</strong> If you clicked an email button like “View Contact Info”, it should open the profile and expand the Contact section when access is granted.
             </div>
           </div>
         );
@@ -298,23 +326,21 @@ const HelpPage = () => {
             
             <div className="help-section">
               <h3>Your Privacy Matters</h3>
-              <p>We take your privacy seriously and provide multiple controls:</p>
+              <p>Use privacy controls to stay safe while you get to know someone.</p>
               <ul>
-                <li>Hide/pause your profile anytime</li>
-                <li>Control who can contact you</li>
-                <li>Block unwanted users</li>
-                <li>Report suspicious profiles</li>
+                <li>Share contact info only when you’re ready (via request/approval)</li>
+                <li>Exclude profiles you don’t want to see again</li>
+                <li>Keep conversations inside the platform until trust is built</li>
               </ul>
             </div>
 
             <div className="help-section">
               <h3>Safety Guidelines</h3>
               <ul>
-                <li><strong>Protect Personal Info:</strong> Don't share phone/email too early</li>
-                <li><strong>Meet in Public:</strong> First meetings should be in public places</li>
-                <li><strong>Trust Your Instincts:</strong> If something feels off, it probably is</li>
-                <li><strong>Verify Profiles:</strong> Look for photo-verified badges</li>
-                <li><strong>Report Concerns:</strong> Use the report feature for suspicious activity</li>
+                <li><strong>Don’t share money or financial info:</strong> Never send money to someone you haven’t met and verified.</li>
+                <li><strong>Meet in public first:</strong> Choose a safe, public place.</li>
+                <li><strong>Trust your instincts:</strong> If something feels wrong, step back.</li>
+                <li><strong>Move slowly:</strong> Verify details over time.</li>
               </ul>
             </div>
 
@@ -330,19 +356,8 @@ const HelpPage = () => {
             </div>
 
             <div className="help-section">
-              <h3>Blocking & Reporting</h3>
-              <p>To block someone:</p>
-              <ol>
-                <li>Go to their profile</li>
-                <li>Click "⛔ Block User"</li>
-                <li>They can't view your profile or contact you</li>
-              </ol>
-              <p>To report:</p>
-              <ol>
-                <li>Click "🚨 Report Profile"</li>
-                <li>Select reason (spam, harassment, fake profile, etc.)</li>
-                <li>Our team reviews within 24 hours</li>
-              </ol>
+              <h3>Managing Your Experience</h3>
+              <p>If you don’t want to interact with someone, use exclusions and focus on profiles you feel comfortable with.</p>
             </div>
 
             <div className="help-tip">
@@ -359,40 +374,34 @@ const HelpPage = () => {
             <div className="help-section">
               <h3>Account Management</h3>
               <ul>
-                <li><strong>Change Password:</strong> Update your password regularly for security</li>
-                <li><strong>Email Preferences:</strong> Control notification frequency</li>
-                <li><strong>Privacy Settings:</strong> Manage profile visibility</li>
-                <li><strong>Deactivate Account:</strong> Temporarily disable your profile</li>
-                <li><strong>Delete Account:</strong> Permanently remove your data</li>
+                <li><strong>Password:</strong> You can change your password from Preferences.</li>
+                <li><strong>Notifications:</strong> Choose which updates you want to receive.</li>
+                <li><strong>Pause account:</strong> Take a break without deleting your profile.</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Notification Settings</h3>
-              <p>Control what notifications you receive:</p>
+              <h3>Notifications</h3>
+              <p>You can control what you’re notified about (and by which channel). Common examples include:</p>
               <ul>
-                <li>New messages and chat activity</li>
-                <li>Profile views and favorites</li>
-                <li>New matches and compatibility updates</li>
-                <li>Weekly match recommendations</li>
-                <li>System updates and announcements</li>
+                <li>Messages</li>
+                <li>Requests for private access (photos/contact)</li>
+                <li>System announcements</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Premium Features</h3>
-              <p>Upgrade for enhanced features:</p>
+              <h3>Pause Account (Taking a Break)</h3>
+              <p>Pausing hides you from search and stops active interactions while keeping your profile saved. You can un-pause anytime.</p>
               <ul>
-                <li>Unlimited daily searches</li>
-                <li>See who viewed your profile</li>
-                <li>Advanced filters and sorting</li>
-                <li>Priority customer support</li>
-                <li>Highlighted profile in search results</li>
+                <li>Hidden from searches while paused</li>
+                <li>Profile stays saved</li>
+                <li>You can still edit your profile</li>
               </ul>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Keep your email updated to receive important notifications and password reset links!
+              <strong>💡 Pro Tip:</strong> If you stop seeing profiles or messages, check whether your account is paused.
             </div>
           </div>
         );
@@ -404,32 +413,32 @@ const HelpPage = () => {
             
             <div className="faq-item">
               <h3>Q: Is L3V3L Matches free to use?</h3>
-              <p><strong>A:</strong> Yes! Basic features are completely free. Premium features are available for enhanced experience.</p>
+              <p><strong>A:</strong> Most core features are available to everyone. Some features may vary by account type or rollout.</p>
             </div>
 
             <div className="faq-item">
               <h3>Q: How does L3V3L matching work?</h3>
-              <p><strong>A:</strong> L3V3L uses AI to analyze compatibility across multiple dimensions: values, lifestyle, demographics, and preferences. Scores range from 0-100%.</p>
+              <p><strong>A:</strong> It combines multiple parts of the profile (preferences + lifestyle + demographics + written profile info) into a single score (0–100%).</p>
             </div>
 
             <div className="faq-item">
               <h3>Q: Why can't I see certain profiles?</h3>
-              <p><strong>A:</strong> This is a heterosexual platform - you'll only see opposite-gender profiles. Also, paused/hidden profiles won't appear in search.</p>
+              <p><strong>A:</strong> Usually it’s because filters are too strict, or the profile is not available in search (for example, paused or not active). Try widening your filters.</p>
             </div>
 
             <div className="faq-item">
               <h3>Q: How do I get more profile views?</h3>
-              <p><strong>A:</strong> Complete your profile, add quality photos, update regularly, and respond to messages promptly. Active users rank higher!</p>
+              <p><strong>A:</strong> Complete your profile, write a clear bio, add (or later share) photos, and respond to messages. Consistency helps.</p>
             </div>
 
             <div className="faq-item">
               <h3>Q: Can I hide my profile temporarily?</h3>
-              <p><strong>A:</strong> Yes! Go to Profile Settings → Pause Profile. Your profile will be hidden but data is saved.</p>
+              <p><strong>A:</strong> Yes — use the <strong>Pause Account</strong> option in Preferences. Your data stays saved.</p>
             </div>
 
             <div className="faq-item">
               <h3>Q: How do I delete my account?</h3>
-              <p><strong>A:</strong> Go to Account Settings → Delete Account. This is permanent and cannot be undone.</p>
+              <p><strong>A:</strong> If the option is available in your account settings, it will permanently remove your profile. If you don’t see it, contact support for help.</p>
             </div>
 
             <div className="faq-item">
@@ -438,8 +447,8 @@ const HelpPage = () => {
             </div>
 
             <div className="faq-item">
-              <h3>Q: How do I report a fake profile?</h3>
-              <p><strong>A:</strong> Go to the profile → Click "Report" → Select reason. Our team reviews all reports within 24 hours.</p>
+              <h3>Q: Why can’t I see photos or contact info?</h3>
+              <p><strong>A:</strong> Some information is private by default. You can request access, and the profile owner can approve it in PII Management.</p>
             </div>
 
             <div className="faq-item">
@@ -449,7 +458,7 @@ const HelpPage = () => {
 
             <div className="faq-item">
               <h3>Q: Still need help?</h3>
-              <p><strong>A:</strong> Contact us at support@l3v3lmatches.com or use the chat support in your dashboard.</p>
+              <p><strong>A:</strong> Email <strong>support@l3v3lmatches.com</strong> and include your username plus a short description of the issue.</p>
             </div>
           </div>
         );

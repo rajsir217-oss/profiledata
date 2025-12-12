@@ -132,6 +132,18 @@ const Profile = () => {
     preferencesBackground: true,
     partnerCriteria: true
   });
+
+  // Deep-link support (e.g. from email CTA): /profile/:username?open=contact
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const open = params.get('open');
+    if (open === 'contact') {
+      setCollapsedSections(prev => ({
+        ...prev,
+        contactInformation: false
+      }));
+    }
+  }, [location.search]);
   
   const toggleSection = (sectionName) => {
     setCollapsedSections(prev => ({
