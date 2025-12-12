@@ -58,6 +58,11 @@ const Profile = () => {
   const [editedAboutMe, setEditedAboutMe] = useState('');
   const [savingAboutMe, setSavingAboutMe] = useState(false);
   
+  // AI Rephrase state
+  const [isRephrasing, setIsRephrasing] = useState(false);
+  const [rephraseStyle, setRephraseStyle] = useState('concise');
+  const [aiProvider, setAiProvider] = useState('groq'); // 'groq' (recommended) or 'gemini'
+  
   console.log('📍 Profile component loaded for username:', username);
   
   // Check for status message from ProtectedRoute
@@ -828,6 +833,45 @@ const Profile = () => {
     }
   };
 
+  // AI Rephrase handler
+  const handleRephraseWithAI = async () => {
+    if (!editedAboutMe || editedAboutMe.trim().length < 20) {
+      showToast('Please enter at least 20 characters to rephrase', 'warning');
+      return;
+    }
+    
+    setIsRephrasing(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/ai/rephrase`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          text: editedAboutMe.replace(/<[^>]*>/g, ''), // Strip HTML tags
+          style: rephraseStyle,
+          provider: aiProvider
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.rephrased_text) {
+        setEditedAboutMe(data.rephrased_text);
+        showToast('✨ Text rephrased with AI!', 'success');
+      } else {
+        showToast(data.error || 'Failed to rephrase text', 'error');
+      }
+    } catch (err) {
+      console.error('Error rephrasing with AI:', err);
+      showToast('Failed to connect to AI service', 'error');
+    } finally {
+      setIsRephrasing(false);
+    }
+  };
+
   if (loading) return <p>Loading profile...</p>;
   if (error) return <p className="text-danger">{error}</p>;
   if (!user) return <p>No profile found.</p>;
@@ -1041,42 +1085,68 @@ const Profile = () => {
 
       <div className="profile-header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
-          {/* Profile Avatar */}
-          {isOwnProfile && (
-            <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
-              {/* Main Avatar */}
-              <div style={{
-                width: '120px',
-                height: '120px',
-                borderRadius: '50%',
-                overflow: 'hidden',
-                border: '4px solid var(--primary-color, #667eea)',
-                boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
-                backgroundColor: '#f0f0f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '48px',
-                fontWeight: 'bold',
-                color: '#667eea',
-                cursor: user.images?.[0] ? 'pointer' : 'default'
-              }}
-              onClick={() => {
-                if (user.images?.[0]) {
-                  setLightboxImage(user.images[0]);
-                  setShowLightbox(true);
-                }
-              }}
-              title={user.images?.[0] ? 'Click to enlarge' : ''}
-              >
-                {user.images?.[0] ? (
-                  <img src={user.images[0]} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
-                )}
-              </div>
+          {/* Profile Avatar - Always shown */}
+          <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
+            {/* Main Avatar */}
+            <div style={{
+              width: '120px',
+              height: '120px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              border: `4px solid ${user.gender === 'Female' ? '#ec4899' : 'var(--primary-color, #667eea)'}`,
+              boxShadow: '0 4px 15px rgba(0,0,0,0.2)',
+              backgroundColor: user.gender === 'Female' ? '#fce7f3' : '#e0e7ff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '48px',
+              fontWeight: 'bold',
+              color: user.gender === 'Female' ? '#ec4899' : '#667eea',
+              cursor: (isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? 'pointer' : 'default',
+              position: 'relative'
+            }}
+            onClick={() => {
+              if ((isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0]) {
+                setLightboxImage(user.images[0]);
+                setShowLightbox(true);
+              }
+            }}
+            title={(isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? 'Click to enlarge' : ''}
+            >
+              {/* Show actual image if own profile, has access, or is admin */}
+              {(isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? (
+                <img src={user.images[0]} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : user.images?.[0] ? (
+                /* Show blurred image if user has photos but viewer has no access */
+                <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                  <img 
+                    src={user.images[0]} 
+                    alt={user.firstName} 
+                    style={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      objectFit: 'cover',
+                      filter: 'blur(15px)',
+                      transform: 'scale(1.1)'
+                    }} 
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    fontSize: '24px',
+                    textShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}>
+                    🔒
+                  </div>
+                </div>
+              ) : (
+                /* Show initials if no photos */
+                <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
+              )}
             </div>
-          )}
+          </div>
           
           {/* Profile Info */}
           <div className="profile-title-section" style={{ flex: 1, minWidth: '250px' }}>
@@ -1366,9 +1436,44 @@ const Profile = () => {
               minHeight={200}
               simpleToolbar={true}
             />
-            <p className="about-me-tip">
-              💡 Tip: Use the toolbar above to format your text with <strong>bold</strong>, <em>italic</em>, colors, and lists!
-            </p>
+            
+            {/* AI Rephrase Section */}
+            <div className="ai-rephrase-section">
+              <div className="ai-rephrase-controls">
+                <select 
+                  value={aiProvider} 
+                  onChange={(e) => setAiProvider(e.target.value)}
+                  className="ai-provider-select"
+                  disabled={isRephrasing}
+                  title="Choose AI provider"
+                >
+                  <option value="groq">⚡ Groq (Recommended)</option>
+                  <option value="gemini">🌐 Gemini</option>
+                </select>
+                <select 
+                  value={rephraseStyle} 
+                  onChange={(e) => setRephraseStyle(e.target.value)}
+                  className="ai-style-select"
+                  disabled={isRephrasing}
+                >
+                  <option value="concise">✂️ Concise & Sharp</option>
+                  <option value="warm">🌟 Warm & Friendly</option>
+                  <option value="professional">💼 Professional</option>
+                  <option value="casual">😊 Casual</option>
+                </select>
+                <button 
+                  className="btn-ai-rephrase"
+                  onClick={handleRephraseWithAI}
+                  disabled={isRephrasing || !editedAboutMe || editedAboutMe.trim().length < 20}
+                  title="Rephrase your text using AI"
+                >
+                  {isRephrasing ? '✨ Rephrasing...' : '✨ Rephrase with AI'}
+                </button>
+              </div>
+              <p className="ai-rephrase-hint">
+                💡 AI will rephrase your text while keeping all facts intact
+              </p>
+            </div>
           </div>
         ) : (
           <div 

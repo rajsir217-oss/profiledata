@@ -38,6 +38,7 @@ from routers.email_tracking import router as email_tracking_router
 from routers.account_deletion import router as account_deletion_router
 from routers.announcements import router as announcements_router
 from routers.short_urls import router as short_urls_router
+from routers.ai_router import router as ai_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -268,6 +269,7 @@ app.include_router(email_tracking_router)  # Email tracking routes (already has 
 app.include_router(account_deletion_router)  # Account deletion routes (already has /api/users/account prefix)
 app.include_router(announcements_router, prefix="/api", tags=["announcements"])  # Announcement/marquee routes
 app.include_router(short_urls_router)  # Short URL redirects (no prefix - uses /s/{code})
+app.include_router(ai_router)  # AI routes (already has /api/ai prefix)
 
 # Health check endpoint
 @app.get("/health")
