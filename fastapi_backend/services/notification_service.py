@@ -9,6 +9,9 @@ from pymongo.database import Database
 from fastapi import HTTPException
 import re
 import pytz
+import logging
+
+logger = logging.getLogger(__name__)
 
 from models.notification_models import (
     NotificationQueueItem,
@@ -125,9 +128,17 @@ class NotificationService:
         
         # Get user preferences
         prefs = await self.get_preferences(create_data.username)
+        print(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}", flush=True)
+        print(f"📧 User prefs channels: {prefs.channels}", flush=True)
+        logger.info(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}")
+        logger.info(f"📧 User prefs channels: {prefs.channels}")
         
         # Check if user wants this notification
-        if not await self._should_send(create_data.trigger, create_data.channels, prefs):
+        should_send = await self._should_send(create_data.trigger, create_data.channels, prefs)
+        print(f"📧 _should_send returned: {should_send}", flush=True)
+        logger.info(f"📧 _should_send returned: {should_send}")
+        if not should_send:
+            logger.warning(f"❌ User {create_data.username} has disabled {create_data.trigger} notifications")
             raise HTTPException(
                 status_code=400,
                 detail=f"User has disabled {create_data.trigger} notifications"
@@ -536,8 +547,34 @@ class NotificationService:
         if trigger in system_triggers:
             return True
         
-        user_channels = prefs.channels.get(trigger, [])
-        return any(channel in user_channels for channel in channels)
+        # Triggers that are enabled by default (user can opt-out)
+        # If user hasn't set preferences for these, allow them
+        default_enabled_triggers = [
+            NotificationTrigger.SAVED_SEARCH_MATCHES,
+            NotificationTrigger.NEW_MATCH,
+            NotificationTrigger.FAVORITED,
+            NotificationTrigger.SHORTLIST_ADDED,
+            NotificationTrigger.PII_REQUEST,
+            NotificationTrigger.PII_GRANTED,
+            NotificationTrigger.NEW_MESSAGE,
+        ]
+        
+        # Handle both enum keys and string keys (MongoDB stores as strings due to use_enum_values=True)
+        trigger_value = trigger.value if hasattr(trigger, 'value') else trigger
+        user_channels = prefs.channels.get(trigger, []) or prefs.channels.get(trigger_value, [])
+        
+        # If user has no preference set for this trigger and it's a default-enabled one,
+        # allow it (default to email channel)
+        if not user_channels and trigger in default_enabled_triggers:
+            # Default to allowing email for these triggers
+            # Handle both enum and string comparison
+            email_value = NotificationChannel.EMAIL.value if hasattr(NotificationChannel.EMAIL, 'value') else NotificationChannel.EMAIL
+            return NotificationChannel.EMAIL in channels or email_value in channels
+        
+        # Handle both enum and string values in user_channels
+        channel_values = [c.value if hasattr(c, 'value') else c for c in channels]
+        user_channel_values = [c.value if hasattr(c, 'value') else c for c in user_channels]
+        return any(cv in user_channel_values or c in user_channels for c, cv in zip(channels, channel_values))
     
     async def _check_rate_limit(
         self,

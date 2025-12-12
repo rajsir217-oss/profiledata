@@ -164,7 +164,8 @@ async def get_notification_queue(
         query["status"] = status
     elif not include_all:
         # Default: only show items that haven't been sent yet
-        query["status"] = {"$in": ["pending", "scheduled", "processing"]}
+        # Include "queued" for backwards compatibility
+        query["status"] = {"$in": ["pending", "scheduled", "processing", "queued"]}
     # If include_all=True, don't filter by status (show all)
     
     cursor = service.queue_collection.find(query).sort("createdAt", -1).limit(limit)
@@ -274,8 +275,8 @@ async def get_notification_analytics(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get notification analytics (admin sees global, users see their own)"""
-    # Check if user is admin
-    user_role = current_user.get("role", "free_user")
+    # Check if user is admin (support both 'role' and 'role_name' fields)
+    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
     is_admin = (user_role == "admin" or current_user["username"] == "admin")
     
     end_date = datetime.utcnow()
@@ -294,10 +295,11 @@ async def get_notification_analytics(
     
     # Add queue counts for Event Queue Manager
     # Count items that are pending or scheduled (not yet sent/failed)
+    # Also include "queued" for backwards compatibility with any direct DB inserts
     queue_query = {"username": username} if username else {}
     queued = await service.queue_collection.count_documents({
         **queue_query, 
-        "status": {"$in": ["pending", "scheduled"]}
+        "status": {"$in": ["pending", "scheduled", "queued"]}
     })
     processing = await service.queue_collection.count_documents({**queue_query, "status": "processing"})
     

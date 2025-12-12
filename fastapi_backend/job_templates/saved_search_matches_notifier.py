@@ -89,6 +89,7 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
     
     async def execute(self, context: JobExecutionContext) -> JobResult:
         """Execute the saved search matches notifier job"""
+        print("🚀🚀🚀 CLASS EXECUTE METHOD CALLED 🚀🚀🚀", flush=True)
         return await run_saved_search_notifier(context.db, context.parameters)
 
 # Email template HTML
@@ -286,6 +287,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
     Returns:
         JobResult with execution results
     """
+    print("🔍🔍🔍 JOB STARTING - saved_search_matches_notifier 🔍🔍🔍", flush=True)
     logger.info("🔍 Starting Saved Search Matches Notifier job...")
     
     start_time = datetime.utcnow()
@@ -403,6 +405,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         stats['total_matches_found'] += len(new_matches)
                         
                         # Send email notification
+                        print(f"📧 About to send email to {username} ({user_email}) with {len(new_matches)} matches", flush=True)
+                        logger.info(f"📧 About to send email to {username} ({user_email}) with {len(new_matches)} matches")
                         email_sent = await send_matches_email(
                             db,
                             user_email,
@@ -412,6 +416,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                             new_matches,
                             app_url
                         )
+                        print(f"📧 send_matches_email returned: {email_sent}", flush=True)
+                        logger.info(f"📧 send_matches_email returned: {email_sent}")
                         
                         if email_sent:
                             stats['emails_sent'] += 1
@@ -762,7 +768,9 @@ async def send_matches_email(
         return True
         
     except Exception as e:
+        import traceback
         logger.error(f"❌ Error sending email to {to_email}: {e}")
+        logger.error(f"❌ Full traceback: {traceback.format_exc()}")
         return False
 
 
