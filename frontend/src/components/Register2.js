@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { getBackendUrl } from "../config/apiConfig";
@@ -177,6 +178,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   
   // ImageManager state - For registration, we only have new images (no existing)
   const [existingImages, setExistingImages] = useState([]); // Empty for new registration
+  const [publicImages, setPublicImages] = useState([]);
   const [imagesToDelete, setImagesToDelete] = useState([]); // Not used in registration
   const [newImages, setNewImages] = useState([]); // New images to upload
   const [successMsg, setSuccessMsg] = useState("");
@@ -189,6 +191,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [toast, setToast] = useState(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorModalData, setErrorModalData] = useState({ title: '', message: '', errors: [] });
   const [activeTab, setActiveTab] = useState('about-me');
@@ -1165,8 +1168,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         await api.put(`/profile/${username}`, data);
         
         setIsSubmitting(false); // Clear loading state
-        setSuccessMsg('✅ Profile updated successfully! You can continue editing or click "Back to Profile" when done.');
-        window.scrollTo({ top: 0, behavior: 'auto' }); // Scroll to top to see success message
+        // Show toast notification instead of inline message
+        setToast({ message: '✅ Profile updated successfully!', type: 'success' });
+        setTimeout(() => setToast(null), 4000);
         
       } else {
         // REGISTER MODE: Create new user
@@ -1253,13 +1257,21 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     let filledFields = 0;
 
     if (tabId === 'about-me') {
-      const fields = [
-        'username', 'password', 'passwordConfirm', 'firstName', 'lastName',
-        'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender',
-        'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence',
-        'state', 'location', 'religion', 'languagesSpoken', 'bio',
-        'relationshipStatus', 'lookingFor', 'interests'
-      ];
+      // In edit mode, exclude username/password fields (not applicable)
+      const fields = isEditMode 
+        ? [
+            'firstName', 'lastName', 'contactNumber', 'contactEmail', 
+            'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 
+            'countryOfOrigin', 'countryOfResidence', 'state', 'location', 
+            'religion', 'languagesSpoken', 'bio'
+          ]
+        : [
+            'username', 'password', 'passwordConfirm', 'firstName', 'lastName',
+            'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender',
+            'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence',
+            'state', 'location', 'religion', 'languagesSpoken', 'bio',
+            'relationshipStatus', 'lookingFor', 'interests'
+          ];
       
       fields.forEach(field => {
         totalFields++;
@@ -1268,15 +1280,13 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         if (isFilled) filledFields++;
       });
       
+      // Count images - in edit mode, check existingImages instead of newImages
       totalFields++;
-      if (newImages.length > 0) filledFields++;
+      if (isEditMode ? existingImages.length > 0 : newImages.length > 0) filledFields++;
       
     } else if (tabId === 'background') {
-      const fields = [
-        'educationHistory', 'workExperience', 'linkedinUrl',
-        'familyBackground', 'familyType', 'familyValues', 'aboutMe',
-        'drinking', 'smoking', 'bodyType', 'hasChildren', 'wantsChildren', 'pets'
-      ];
+      // Only count fields actually shown on the Qualifications tab
+      const fields = ['educationHistory', 'workExperience', 'familyBackground'];
       
       fields.forEach(field => {
         totalFields++;
@@ -1593,6 +1603,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           // Set existing images
           if (userData.images && Array.isArray(userData.images)) {
             setExistingImages(userData.images);
+          }
+
+          // Set public images
+          if (userData.publicImages && Array.isArray(userData.publicImages)) {
+            setPublicImages(userData.publicImages);
           }
 
         } catch (error) {
@@ -2312,21 +2327,36 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={() => setBioSampleIndex((prev) => (prev - 1 + bioSamples.length) % bioSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Previous sample"
               >
                 ‹
               </button>
-              <span className="badge bg-primary" style={{ lineHeight: '2', minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
+              <span 
+                className="badge" 
+                style={{ 
+                  height: '32px', lineHeight: '32px', minWidth: '50px', padding: '0 12px', 
+                  fontSize: '14px', borderRadius: '6px',
+                  background: 'var(--success-color, #28a745)', color: 'white'
+                }}
+              >
                 {bioSampleIndex + 1}/{bioSamples.length}
               </span>
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={() => setBioSampleIndex((prev) => (prev + 1) % bioSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Next sample"
               >
                 ›
@@ -2589,6 +2619,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           <ImageManager
             existingImages={existingImages}
             setExistingImages={setExistingImages}
+            publicImages={publicImages}
+            setPublicImages={setPublicImages}
             imagesToDelete={imagesToDelete}
             setImagesToDelete={setImagesToDelete}
             newImages={newImages}
@@ -2713,14 +2745,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           );
         })}
         
-        {/* Partner Matching Criteria Section */}
-        <h5 className="mt-4 mb-3 text-primary">🎯 Partner Matching Criteria</h5>
-        <div className="alert alert-info info-tip-box">
-          <small>
-            <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
-          </small>
-        </div>
-        
         {/* Navigation Buttons */}
         <div className="tab-navigation-buttons mt-4">
           <button
@@ -2750,29 +2774,50 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 <div className="tab-section">
                   <h3 className="section-title">💕 What You're Looking For</h3>
 
+        {/* Partner Matching Criteria Section */}
+        <div className="alert alert-info info-tip-box mb-4">
+          <small>
+            <strong>💡 Tip:</strong> These preferences help us find better matches for you. All fields are optional but recommended for better match quality.
+          </small>
+        </div>
+
         {/* Partner Preference with Sample Carousel */}
         <div className="mb-3">
           <div className="d-flex justify-content-between align-items-center mb-2">
             <label className="form-label mb-0">Partner Preference</label>
             <div className="d-flex align-items-center gap-2">
-              <small className="text-muted" style={{ fontSize: '13px' }}>Samples:</small>
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={() => setPartnerPrefSampleIndex((prev) => (prev - 1 + partnerPrefSamples.length) % partnerPrefSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Previous sample"
               >
                 ‹
               </button>
-              <span className="badge bg-primary" style={{ lineHeight: '2', minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}>
+              <span 
+                className="badge" 
+                style={{ 
+                  height: '32px', lineHeight: '32px', minWidth: '50px', padding: '0 12px', 
+                  fontSize: '14px', borderRadius: '6px',
+                  background: 'var(--success-color, #28a745)', color: 'white'
+                }}
+              >
                 {partnerPrefSampleIndex + 1}/{partnerPrefSamples.length}
               </span>
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={() => setPartnerPrefSampleIndex((prev) => (prev + 1) % partnerPrefSamples.length)}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Next sample"
               >
                 ›
@@ -3807,16 +3852,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                         </button>
                         <button 
                           className="btn btn-success btn-lg" 
-                          type="button"
-                          onClick={() => setShowConfirmationModal(true)}
+                          type="submit"
                           disabled={isSubmitting}
                         >
-                          📋 Review & Save
+                          {isSubmitting ? '💾 Saving...' : '💾 Save Profile'}
                         </button>
                       </div>
-                      <p className="text-muted small text-center mt-2">
-                        Review your changes before saving
-                      </p>
                     </>
                   )}
 
@@ -3828,6 +3869,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           validateTab={validateTabBeforeSwitch}
           onAutoSave={handleTabAutoSave}
           enableAutoSave={!isEditMode}
+          isEditMode={isEditMode}
           activeTabId={activeTab}
           onTabChange={handleTabChange}
         />
@@ -3869,6 +3911,47 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         message={errorModalData.message}
         errors={errorModalData.errors}
       />
+
+      {/* Toast Notification - Portal to body */}
+      {toast && ReactDOM.createPortal(
+        <div 
+          style={{
+            position: 'fixed',
+            top: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            padding: '16px 24px',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+            zIndex: 99999,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            background: toast.type === 'success' ? 'var(--success-color, #28a745)' : 'var(--danger-color, #dc3545)',
+            color: 'white',
+            fontWeight: '500',
+            fontSize: '16px'
+          }}
+        >
+          <span style={{ fontSize: '20px' }}>{toast.type === 'success' ? '✓' : '✕'}</span>
+          <span>{toast.message}</span>
+          <button 
+            onClick={() => setToast(null)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'white',
+              fontSize: '20px',
+              cursor: 'pointer',
+              marginLeft: '10px',
+              padding: '0 4px'
+            }}
+          >
+            ×
+          </button>
+        </div>,
+        document.body
+      )}
 
       {/* Draft Recovery Modal */}
       {showDraftModal && draftData && (

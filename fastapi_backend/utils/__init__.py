@@ -89,24 +89,40 @@ def get_full_image_url(image_path: str) -> str:
     """Convert relative image path to full URL (local or GCS)"""
     if not image_path:
         return settings.backend_url
-    
-    # If already a full URL (GCS or other), return as-is
+
+    # Extract filename for both relative paths and historical full URLs
+    filename = image_path.split('/')[-1]
     if image_path.startswith('http'):
-        logger.debug(f"✅ Already full URL: {image_path}")
-        return image_path
-    
-    # If using GCS and path is relative, convert to GCS URL
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(image_path)
+            filename = parsed.path.split('/')[-1]
+        except Exception:
+            filename = image_path.split('/')[-1]
+
+    if not filename:
+        return settings.backend_url
+
+    # If using GCS, return a short-lived signed URL (objects are NOT public)
     if settings.use_gcs and settings.gcs_bucket_name:
-        # Extract filename from path (remove /uploads/ prefix)
-        filename = image_path.split('/')[-1]
-        folder = "uploads"
-        
-        # Return GCS public URL
-        gcs_url = f"https://storage.googleapis.com/{settings.gcs_bucket_name}/{folder}/{filename}"
-        logger.debug(f"🔄 GCS mode: {image_path} -> {gcs_url}")
-        return gcs_url
-    
-    # For local paths, prepend backend URL
+        try:
+            from google.cloud import storage
+            from datetime import timedelta
+
+            client = storage.Client()
+            bucket = client.bucket(settings.gcs_bucket_name)
+            blob = bucket.blob(f"uploads/{filename}")
+            signed_url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(minutes=15),
+                method="GET",
+            )
+            return signed_url
+        except Exception as e:
+            logger.error(f"❌ Failed to generate signed URL for {filename}: {e}")
+            return settings.backend_url
+
+    # Local mode: prepend backend URL
     if not image_path.startswith('/'):
         image_path = f"/{image_path}"
     local_url = f"{settings.backend_url}{image_path}"

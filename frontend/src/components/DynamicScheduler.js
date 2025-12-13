@@ -471,12 +471,21 @@ const DynamicScheduler = ({ currentUser }) => {
         subtitle="Manage scheduled jobs and automation tasks"
         variant="flat"
         actions={
-          <button 
-            className="btn btn-primary"
-            onClick={() => setShowCreateModal(true)}
-          >
-            ➕ Create New Job
-          </button>
+          <div className="dynamic-scheduler-header-actions">
+            <button
+              type="button"
+              className="dynamic-scheduler-notification-link"
+              onClick={() => navigate('/notification-management')}
+            >
+              🔔 Notification Management
+            </button>
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              ➕ Create New Job
+            </button>
+          </div>
         }
       />
 

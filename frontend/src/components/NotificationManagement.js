@@ -36,6 +36,15 @@ const NotificationManagement = () => {
         icon="🔔"
         title="Notification Management"
         subtitle="Manage notification queue and email/SMS event message templates"
+        actions={
+          <button
+            type="button"
+            className="notification-management-scheduler-link"
+            onClick={() => navigate('/dynamic-scheduler')}
+          >
+            🗓️ Dynamic Scheduler
+          </button>
+        }
         variant="gradient"
       />
 

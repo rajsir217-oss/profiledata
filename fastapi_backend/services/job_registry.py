@@ -260,7 +260,8 @@ class JobRegistryService:
                 return
             
             # Calculate next run time
-            next_run_at = self._calculate_next_run(job["schedule"])
+            schedule = self._get_effective_schedule(job)
+            next_run_at = self._calculate_next_run(schedule)
             
             # Update job (use camelCase for MongoDB fields)
             update_fields = {
@@ -268,6 +269,9 @@ class JobRegistryService:
                 "nextRunAt": next_run_at,
                 "updatedAt": datetime.utcnow()
             }
+
+            if schedule and not job.get("schedule"):
+                update_fields["schedule"] = schedule
             
             # Update last status if provided in execution result
             if "status" in execution_result:
@@ -282,6 +286,24 @@ class JobRegistryService:
             
         except Exception as e:
             logger.error(f"Error updating job after execution: {e}")
+
+    def _get_effective_schedule(self, job: Dict[str, Any]) -> Dict[str, Any]:
+        schedule = job.get("schedule")
+        if isinstance(schedule, dict) and schedule:
+            return schedule
+
+        schedule_type = job.get("schedule_type") or "interval"
+        if schedule_type == "cron":
+            return {
+                "type": "cron",
+                "expression": job.get("cron_expression") or "0 * * * *",
+                "timezone": job.get("timezone") or "UTC"
+            }
+
+        return {
+            "type": "interval",
+            "interval_seconds": job.get("interval_seconds") or 3600
+        }
     
     def _calculate_next_run(self, schedule: Dict[str, Any]) -> datetime:
         """

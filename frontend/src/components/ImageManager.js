@@ -4,7 +4,7 @@ import { getImageUrl } from '../utils/urlHelper';
 import api from '../api';
 import './ImageManager.css';
 
-const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setImagesToDelete, newImages, setNewImages, onError, username, isEditMode }) => {
+const ImageManager = ({ existingImages, setExistingImages, publicImages, setPublicImages, imagesToDelete, setImagesToDelete, newImages, setNewImages, onError, username, isEditMode }) => {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [allImages, setAllImages] = useState([]);
@@ -22,6 +22,63 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
     setTimeout(() => {
       setLocalStatus(null);
     }, duration);
+  };
+
+  const normalizeImagePath = (urlOrPath) => {
+    if (!urlOrPath || typeof urlOrPath !== 'string') return '';
+    try {
+      if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
+        const u = new URL(urlOrPath);
+        return u.pathname || '';
+      }
+      return urlOrPath;
+    } catch (e) {
+      return urlOrPath;
+    }
+  };
+
+  const publicPathSet = new Set((publicImages || []).map(normalizeImagePath));
+
+  const togglePublic = async (imgUrl) => {
+    if (!imgUrl || typeof imgUrl !== 'string') return;
+    if (!setPublicImages) return;
+
+    const authenticatedUsername = localStorage.getItem('username');
+    const currentPath = normalizeImagePath(imgUrl);
+    const currentPublic = Array.isArray(publicImages) ? publicImages : [];
+
+    const isCurrentlyPublic = currentPublic.some((p) => normalizeImagePath(p) === currentPath);
+
+    const nextPublic = isCurrentlyPublic
+      ? currentPublic.filter((p) => normalizeImagePath(p) !== currentPath)
+      : [...currentPublic, imgUrl];
+
+    if (!isEditMode) {
+      setPublicImages(nextPublic);
+      showStatus('success', isCurrentlyPublic ? '✅ Removed from public photos' : '✅ Marked as public photo');
+      return;
+    }
+
+    if (!authenticatedUsername) {
+      showStatus('error', '❌ Not authenticated. Please log in again.');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const response = await api.put(`/profile/${authenticatedUsername}/public-images`, {
+        publicImages: nextPublic
+      });
+
+      const updated = response?.data?.publicImages;
+      setPublicImages(Array.isArray(updated) ? updated : nextPublic);
+      showStatus('success', isCurrentlyPublic ? '✅ Removed from public photos' : '✅ Marked as public photo');
+    } catch (error) {
+      console.error('❌ Failed to update public photos:', error);
+      showStatus('error', '❌ Failed to update public photos. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
   
   // Merge existing and new images for unified display
@@ -151,6 +208,15 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
           
           // Update state after successful deletion
           setExistingImages(remainingImages);
+          if (setPublicImages) {
+            const updatedPublic = response?.data?.publicImages;
+            if (Array.isArray(updatedPublic)) {
+              setPublicImages(updatedPublic);
+            } else {
+              const deletedPath = normalizeImagePath(image.url);
+              setPublicImages((Array.isArray(publicImages) ? publicImages : []).filter((p) => normalizeImagePath(p) !== deletedPath));
+            }
+          }
           setHasUnsavedChanges(false);
           
           showStatus('success', '✅ Photo deleted successfully!');
@@ -501,6 +567,18 @@ const ImageManager = ({ existingImages, setExistingImages, imagesToDelete, setIm
                   >
                     {deleteConfirmIndex === index ? '⚠️ Delete?' : '🗑️'}
                   </button>
+
+                  {/* Public Toggle - only for existing images */}
+                  {!isNew && setPublicImages && (
+                    <button
+                      type="button"
+                      className={`btn-control btn-public-toggle ${publicPathSet.has(normalizeImagePath(img.url)) ? 'is-public' : ''}`}
+                      onClick={() => togglePublic(img.url)}
+                      title={publicPathSet.has(normalizeImagePath(img.url)) ? 'Visible to members (click to make private - PII request needed)' : 'Make visible to members - no PII request needed'}
+                    >
+                      {publicPathSet.has(normalizeImagePath(img.url)) ? '🌍' : '🔒'}
+                    </button>
+                  )}
                 </div>
 
                 {/* Drag Handle Hint */}

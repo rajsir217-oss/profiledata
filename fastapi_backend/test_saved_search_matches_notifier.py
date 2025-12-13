@@ -24,6 +24,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
 
 from job_templates.saved_search_matches_notifier import run_saved_search_notifier
+from config import settings
 
 
 async def main() -> None:
@@ -43,7 +44,7 @@ async def main() -> None:
         "batchSize": 50,
         "lookbackHours": 0,  # 0 = no time filter, find all matching profiles for testing
         # Use frontend URL if available so profile links are correct
-        "appUrl": os.getenv("FRONTEND_URL", "http://localhost:3000"),
+        "appUrl": os.getenv("FRONTEND_URL") or settings.frontend_url,
         "forceRun": True,  # Bypass schedule check for testing
     }
 

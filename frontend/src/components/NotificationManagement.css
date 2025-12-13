@@ -33,6 +33,39 @@
   margin: 0;
 }
 
+.notification-management-scheduler-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-color);
+  background: var(--card-background);
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+}
+
+.notification-management-scheduler-link:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+}
+
+.notification-management-scheduler-link:active {
+  background: var(--active-background);
+  transform: translateY(0);
+}
+
+.notification-management-scheduler-link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+}
+
 /* ===== OBSOLETE TAB STYLES REMOVED =====
  * Tabs now handled by UniversalTabContainer
  * Old .tabs-container, .tabs, .tab, .tab-content removed

@@ -8,6 +8,45 @@
   min-height: 100vh;
 }
 
+ .dynamic-scheduler-header-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+ }
+
+ .dynamic-scheduler-notification-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid var(--border-color);
+  background: var(--surface-color);
+  color: var(--text-color);
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease;
+ }
+
+ .dynamic-scheduler-notification-link:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+ }
+
+ .dynamic-scheduler-notification-link:active {
+  background: var(--active-background);
+  transform: translateY(0);
+ }
+
+ .dynamic-scheduler-notification-link:focus-visible {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 2px;
+ }
+
 /* Override Bootstrap container max-width for dynamic scheduler page parent */
 .container:has(.dynamic-scheduler) {
   max-width: 98% !important;

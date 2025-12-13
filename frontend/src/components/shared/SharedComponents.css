@@ -3,19 +3,139 @@
    Styles for Education, Work, Tables
    ======================================== */
 
-/* Desktop table buttons - icon only */
+/* ========================================
+   THEME-AWARE ACTION BUTTONS
+   Edit & Delete buttons for tables
+   ======================================== */
+
+/* Base action button styles - theme aware */
+.actions-cell .btn {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Edit button - theme aware */
+.actions-cell .btn-warning,
+.table .btn-warning {
+  background-color: var(--warning-light, #fff3cd) !important;
+  border: 2px solid var(--warning-color, #ffc107) !important;
+  color: var(--warning-dark, #856404) !important;
+}
+
+.actions-cell .btn-warning:hover,
+.table .btn-warning:hover {
+  background-color: var(--warning-color, #ffc107) !important;
+  color: var(--text-on-warning, #212529) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Delete button - theme aware */
+.actions-cell .btn-danger,
+.table .btn-danger {
+  background-color: var(--danger-light, #f8d7da) !important;
+  border: 2px solid var(--danger-color, #dc3545) !important;
+  color: var(--danger-dark, #721c24) !important;
+}
+
+.actions-cell .btn-danger:hover,
+.table .btn-danger:hover {
+  background-color: var(--danger-color, #dc3545) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Add button - theme aware (primary) */
+.btn-primary.btn-add,
+.table + .card .btn-primary {
+  background-color: var(--primary-color, #0d6efd) !important;
+  border-color: var(--primary-color, #0d6efd) !important;
+  color: white !important;
+}
+
+.btn-primary.btn-add:hover,
+.table + .card .btn-primary:hover {
+  background-color: var(--primary-hover, #0b5ed7) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   SQUARE ACTION BUTTONS (Add/Update)
+   Consistent with Edit/Delete buttons
+   ======================================== */
+
+/* Base square action button - all screen sizes */
+.btn-square-action {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  min-height: 44px !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s ease !important;
+}
+
+.btn-square-action .btn-icon {
+  font-size: 20px !important;
+  line-height: 1 !important;
+}
+
+/* Add button (primary) - theme aware, matches table buttons */
+.btn-square-action.btn-primary,
+.btn-add-entry {
+  background-color: var(--success-light, #d4edda) !important;
+  border: 2px solid var(--success-color, #28a745) !important;
+  color: var(--success-dark, #155724) !important;
+}
+
+.btn-square-action.btn-primary:hover,
+.btn-add-entry:hover {
+  background-color: var(--success-color, #28a745) !important;
+  color: white !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Update/Save button (when editing) */
+.btn-square-action.btn-primary:not(.btn-add-entry) {
+  background-color: var(--primary-light, #cce5ff) !important;
+  border: 2px solid var(--primary-color, #0d6efd) !important;
+  color: var(--primary-dark, #004085) !important;
+}
+
+.btn-square-action.btn-primary:not(.btn-add-entry):hover {
+  background-color: var(--primary-color, #0d6efd) !important;
+  color: white !important;
+}
+
+/* Desktop table buttons - icon only, match Add button size (44px) */
 @media (min-width: 769px) {
   .table .btn .btn-text {
     display: none;
   }
 
   .table .btn .btn-icon {
-    font-size: 16px;
+    font-size: 20px;
   }
 
   .table .btn-sm {
-    padding: 6px 12px;
-    min-width: 38px;
+    padding: 0 !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   .table .actions-cell {
