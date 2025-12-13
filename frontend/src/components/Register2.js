@@ -3,6 +3,7 @@ import ReactDOM from "react-dom";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { getBackendUrl } from "../config/apiConfig";
+import logger from "../utils/logger";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
 import ProfileConfirmationModal from "./ProfileConfirmationModal";
@@ -676,7 +677,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const autoSaveField = async (fieldName, fieldValue, currentFormData) => {
     if (!isEditMode) return; // Only auto-save in edit mode
     
-    console.log(`🔄 Auto-saving field: ${fieldName} = "${fieldValue}"`);
+    logger.debug(`Auto-saving field: ${fieldName}`);
     setAutoSaving(true);
     setSaveStatus(prev => ({ ...prev, [fieldName]: 'saving' }));
     
@@ -691,10 +692,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         
         if (feet && inches !== '') {
           const combinedHeight = `${feet}'${inches}"`;
-          console.log(`📏 Combined height: ${combinedHeight}`);
+          logger.debug(`Combined height: ${combinedHeight}`);
           data.append('height', combinedHeight);
         } else {
-          console.log(`⚠️ Skipping height save - feet: ${feet}, inches: ${inches}`);
+          logger.debug(`Skipping height save - incomplete`);
           setAutoSaving(false);
           setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
           return; // Don't save incomplete height
@@ -702,7 +703,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       } else {
         // Normal field handling
         if (fieldValue === null || fieldValue === undefined) {
-          console.log(`⚠️ Skipping save - ${fieldName} is null/undefined`);
+          logger.debug(`Skipping save - ${fieldName} is null/undefined`);
           setAutoSaving(false);
           setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
           return;
@@ -711,7 +712,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         if (typeof fieldValue === 'string') {
           // Don't save empty strings for optional fields
           if (fieldValue.trim() === '') {
-            console.log(`⚠️ Skipping save - ${fieldName} is empty`);
+            logger.debug(`Skipping save - ${fieldName} is empty`);
             setAutoSaving(false);
             setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
             return;
@@ -719,7 +720,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           data.append(fieldName, fieldValue.trim());
         } else if (Array.isArray(fieldValue)) {
           if (fieldValue.length === 0) {
-            console.log(`⚠️ Skipping save - ${fieldName} array is empty`);
+            logger.debug(`Skipping save - ${fieldName} array is empty`);
             setAutoSaving(false);
             setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
             return;
@@ -728,7 +729,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         } else if (typeof fieldValue === 'number' || typeof fieldValue === 'boolean') {
           data.append(fieldName, fieldValue.toString());
         } else {
-          console.log(`⚠️ Skipping save - ${fieldName} has unsupported type:`, typeof fieldValue);
+          logger.debug(`Skipping save - ${fieldName} has unsupported type`);
           setAutoSaving(false);
           setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
           return;
@@ -739,12 +740,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       let hasData = false;
       for (let pair of data.entries()) {
         hasData = true;
-        console.log(`📤 Sending: ${pair[0]} = ${pair[1].substring(0, 100)}...`);
+        logger.debug(`Sending field: ${pair[0]}`);
         break;
       }
       
       if (!hasData) {
-        console.log(`⚠️ No data to save for ${fieldName}`);
+        logger.debug(`No data to save for ${fieldName}`);
         setAutoSaving(false);
         setSaveStatus(prev => ({ ...prev, [fieldName]: null }));
         return;
@@ -754,7 +755,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       // NOTE: Don't set Content-Type manually - let browser set it with boundary
       const response = await api.put(`/profile/${username}`, data);
       
-      console.log(`✅ Auto-saved ${fieldName} successfully:`, response.data);
+      logger.debug(`Auto-saved ${fieldName} successfully`);
       
       // Mark as success (use 'height' for status if it's a height field)
       const statusKey = (fieldName === 'heightFeet' || fieldName === 'heightInches') ? 'height' : fieldName;
@@ -1123,9 +1124,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     }
     
     // Append images from ImageManager (newImages contains File objects)
-    console.log('📸 Images being uploaded:', newImages.length, 'files');
+    logger.debug('Images being uploaded:', newImages.length);
     newImages.forEach((img, index) => {
-      console.log(`  - Image ${index + 1}:`, img.name, `(${(img.size / 1024).toFixed(2)} KB)`);
       data.append("images", img);
     });
 
@@ -1144,26 +1144,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         // Add existing images (that weren't deleted)
         data.append('existingImages', JSON.stringify(existingImages));
         
-        console.log('📝 Updating profile for:', username);
-        console.log('  - Contact Number:', formData.contactNumber);
-        console.log('  - Contact Email:', formData.contactEmail);
-        console.log('  - Country of Residence:', formData.countryOfResidence);
-        console.log('  - State:', formData.state);
-        console.log('  🔍 RELIGION:', formData.religion);
-        console.log('  🎯 PARTNER CRITERIA:', formData.partnerCriteria);
-        console.log('     - Religion:', formData.partnerCriteria?.religion);
-        console.log('     - Education:', formData.partnerCriteria?.educationLevel);
-        console.log('     - Profession:', formData.partnerCriteria?.profession);
-        console.log('  - Existing images:', existingImages.length);
-        console.log('  - New images:', newImages.length);
-        console.log('  - Images to delete:', imagesToDelete.length);
-        
-        // Log all FormData entries
-        console.log('FormData entries:');
-        for (let [key, value] of data.entries()) {
-          if (key === 'images') continue; // Skip image file objects
-          console.log(`  ${key}:`, value);
-        }
+        logger.debug('Updating profile for:', username);
         
         await api.put(`/profile/${username}`, data);
         
@@ -1197,7 +1178,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             });
             
             if (response.ok) {
-              console.log('✅ Invitation accepted successfully');
+              logger.debug('Invitation accepted successfully');
             } else {
               const errorData = await response.json();
               console.error('Failed to update invitation status:', errorData);
@@ -1381,11 +1362,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const handleTabAutoSave = async (tabId) => {
     // Skip auto-save in edit mode - we only save on explicit submit
     if (isEditMode) {
-      console.log(`Skipping auto-save in edit mode for tab: ${tabId}`);
+      logger.debug(`Skipping auto-save in edit mode for tab: ${tabId}`);
       return;
     }
     
-    console.log(`Auto-saving ${tabId} data...`);
+    logger.debug(`Auto-saving ${tabId} data...`);
     
     try {
       const draftData = {
@@ -1483,16 +1464,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         }
 
         try {
-          console.log('Loading user data for editing:', username);
+          logger.debug('Loading user data for editing:', username);
           // Add requester parameter to get unmasked data for own profile
           const response = await api.get(`/profile/${username}?requester=${username}`);
           const userData = response.data;
           
-          console.log('Loaded user data:', userData);
-          console.log('🎯 PARTNER CRITERIA from DB:', userData.partnerCriteria);
-          console.log('   - Religion:', userData.partnerCriteria?.religion);
-          console.log('   - Education:', userData.partnerCriteria?.educationLevel);
-          console.log('   - Profession:', userData.partnerCriteria?.profession);
+          logger.debug('Loaded user data for editing');
 
           // Parse height from "5'6"" format
           let heightFeet = '';
@@ -1510,19 +1487,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           const isMaskedPhone = userData.contactNumber && userData.contactNumber.includes('***');
           const isMaskedEmail = userData.contactEmail && userData.contactEmail.includes('***');
           
-          console.log('Contact fields check:', {
-            phone: userData.contactNumber,
-            isMasked: isMaskedPhone,
-            email: userData.contactEmail,
-            isMaskedEmail: isMaskedEmail,
-            note: 'Owner should see unmasked contact info'
-          });
+          logger.debug('Contact fields loaded');
           
-          console.log('Location data check:', {
-            countryOfResidence: userData.countryOfResidence,
-            state: userData.state,
-            location: userData.location
-          });
+          logger.debug('Location data loaded');
 
           // Populate form with existing data
           setFormData({
@@ -1598,7 +1565,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             passwordConfirm: ''
           });
 
-          console.log('✅ FormData set - partner criteria populated');
+          logger.debug('FormData set for editing');
 
           // Set existing images
           if (userData.images && Array.isArray(userData.images)) {
@@ -2097,7 +2064,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="smsOptIn"
                 checked={!!formData.smsOptIn}
                 onChange={(e) => {
-                  console.log('SMS Opt-in checkbox clicked:', e.target.checked);
+                  logger.debug('SMS Opt-in changed:', e.target.checked);
                   setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }));
                 }}
                 style={{cursor: 'pointer', position: 'relative', zIndex: 1}}

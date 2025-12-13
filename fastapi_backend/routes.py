@@ -24,7 +24,7 @@ from models import (
 )
 from database import get_database
 from auth.password_utils import PasswordManager
-from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user
+from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user, get_current_user_optional, get_current_user_from_token
 from l3v3l_matching_engine import matching_engine
 from l3v3l_ml_enhancer import ml_enhancer
 from config import settings
@@ -269,7 +269,8 @@ async def _has_images_access(db, requester_username: str, owner_username: str) -
 @router.get("/media/{filename}")
 async def get_protected_media(
     filename: str,
-    current_user: dict = Depends(get_current_user),
+    token: Optional[str] = Query(None, description="JWT token for img src requests"),
+    current_user: dict = Depends(get_current_user_optional),
     db = Depends(get_database)
 ):
     """Serve uploaded media only to authorized active members.
@@ -278,7 +279,19 @@ async def get_protected_media(
     - owner/admin always
     - if image is marked in owner's publicImages: any active member
     - else: requires active pii_access grant with accessType='images'
+    
+    Supports token via query param for <img src> tags that can't send headers.
     """
+    # If no user from header, try token from query param
+    if not current_user and token:
+        try:
+            current_user = await get_current_user_from_token(token, db)
+        except Exception:
+            pass
+    
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+    
     requester_username = current_user.get("username")
     if not requester_username:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")

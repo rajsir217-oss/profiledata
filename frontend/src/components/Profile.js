@@ -16,6 +16,7 @@ import { generateAboutMe, generatePartnerPreference } from "../utils/profileDesc
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
+import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import "./Profile.css";
 
 // Create axios instance for verification API
@@ -1145,12 +1146,12 @@ const Profile = () => {
             >
               {/* Show actual image if own profile, has access, or is admin */}
               {(canOpenAvatar && avatarSrc) ? (
-                <img src={avatarSrc} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={getAuthenticatedImageUrl(avatarSrc)} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : user.images?.[0] ? (
                 /* Show blurred image if user has photos but viewer has no access */
                 <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                   <img 
-                    src={user.images[0]} 
+                    src={getAuthenticatedImageUrl(user.images[0])} 
                     alt={user.firstName} 
                     style={{ 
                       width: '100%', 
@@ -2046,7 +2047,7 @@ const Profile = () => {
                   aria-label={`View photo ${idx + 1} in full size`}
                 >
                   <img
-                    src={img}
+                    src={getAuthenticatedImageUrl(img)}
                     alt={`${user.firstName}'s profile ${idx + 1}`}
                     style={{ 
                       width: '100%', 
@@ -2423,7 +2424,7 @@ const Profile = () => {
             ✕
           </button>
           <img 
-            src={lightboxImage} 
+            src={getAuthenticatedImageUrl(lightboxImage)} 
             alt="Enlarged view"
             style={{
               maxWidth: '90%',
