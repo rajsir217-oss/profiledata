@@ -271,3 +271,34 @@ async def get_current_user_dependency(
     from database import get_database
     db = get_database()  # Not async - returns database directly
     return await AuthenticationService.get_current_user(credentials, db)
+
+# Optional version that returns None instead of raising exception
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False))
+) -> Optional[Dict]:
+    """Optional dependency - returns None if no valid token instead of raising exception"""
+    if not credentials:
+        return None
+    try:
+        from database import get_database
+        db = get_database()
+        return await AuthenticationService.get_current_user(credentials, db)
+    except HTTPException:
+        return None
+
+async def get_current_user_from_token(token: str, db) -> Optional[Dict]:
+    """Get user from raw token string (for query param tokens)"""
+    try:
+        payload = JWTManager.decode_token(token)
+        JWTManager.verify_token_type(payload, "access")
+        if JWTManager.is_token_expired(payload):
+            return None
+        username = payload.get("sub")
+        if not username:
+            return None
+        user = await db.users.find_one(get_username_query(username))
+        if user and user.get("accountStatus") == "active":
+            return user
+        return None
+    except Exception:
+        return None

@@ -29,14 +29,17 @@ export const getFrontendUrl = () => {
 
 /**
  * Get full image URL (handles relative and absolute URLs)
+ * Automatically adds JWT token for protected media endpoints
  * @param {string} imagePath - Image path from backend
- * @returns {string} Full image URL
+ * @returns {string} Full image URL with auth token if needed
  */
 export const getImageUrl = (imagePath) => {
   if (!imagePath) return '';
   
   const currentBackend = getBackendUrl();
   const isLocalEnvironment = currentBackend.includes('localhost') || currentBackend.includes('127.0.0.1');
+  
+  let finalUrl = imagePath;
   
   // If already absolute URL (from database)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
@@ -53,18 +56,27 @@ export const getImageUrl = (imagePath) => {
         if (imagePath.startsWith(gcpUrl)) {
           // Replace GCP URL with local backend URL
           const relativePath = imagePath.substring(gcpUrl.length);
-          console.log(`🔄 Converting GCP image to local: ${relativePath}`);
-          return `${currentBackend}${relativePath}`;
+          finalUrl = `${currentBackend}${relativePath}`;
+          break;
         }
       }
     }
-    // In production, return GCP URLs as-is
-    return imagePath;
+  } else {
+    // For relative paths - build full URL from current backend
+    const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
+    finalUrl = `${currentBackend}${cleanPath}`;
   }
   
-  // For relative paths - build full URL from current backend
-  const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-  return `${currentBackend}${cleanPath}`;
+  // Add JWT token for protected media endpoints
+  if (finalUrl.includes('/api/users/media/')) {
+    const token = localStorage.getItem('token');
+    if (token) {
+      const separator = finalUrl.includes('?') ? '&' : '?';
+      finalUrl = `${finalUrl}${separator}token=${encodeURIComponent(token)}`;
+    }
+  }
+  
+  return finalUrl;
 };
 
 /**
