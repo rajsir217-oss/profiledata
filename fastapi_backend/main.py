@@ -142,14 +142,14 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Mount static files for uploads (after app creation)
-if os.path.exists(settings.upload_dir):
+# Mount static files for uploads only in non-production
+env = os.getenv("ENV", "development")
+if env != "production" and os.path.exists(settings.upload_dir):
     from fastapi.staticfiles import StaticFiles
     app.mount(f"/{settings.upload_dir}", StaticFiles(directory=settings.upload_dir), name="uploads")
     logger.info(f"📁 Static files mounted at /{settings.upload_dir}")
 
 # CORS middleware (must be added before other middleware)
-env = os.getenv("ENV", "development")
 frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
 
 # Log environment for debugging

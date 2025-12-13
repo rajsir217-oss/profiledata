@@ -23,6 +23,7 @@ from zoneinfo import ZoneInfo
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from .base import JobTemplate, JobExecutionContext, JobResult
+from config import settings
 from services.notification_service import NotificationService
 from crypto_utils import PIIEncryption
 from models.notification_models import (
@@ -83,7 +84,7 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
                 "type": "string",
                 "label": "App URL",
                 "description": "Base URL for profile links in emails",
-                "default": "http://localhost:3000"
+                "default": settings.frontend_url
             }
         }
     
@@ -91,6 +92,25 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
         """Execute the saved search matches notifier job"""
         print("🚀🚀🚀 CLASS EXECUTE METHOD CALLED 🚀🚀🚀", flush=True)
         return await run_saved_search_notifier(context.db, context.parameters)
+
+
+def get_effective_notification_settings(search: Dict[str, Any]) -> Dict[str, Any]:
+    notifications = search.get('notifications') or {}
+    effective = dict(notifications) if isinstance(notifications, dict) else {}
+
+    admin_override = search.get('adminOverride') or {}
+    if isinstance(admin_override, dict) and admin_override:
+        if admin_override.get('disabled') is True:
+            effective['enabled'] = False
+        elif 'enabled' in admin_override:
+            effective['enabled'] = bool(admin_override.get('enabled'))
+
+        for key in ['frequency', 'time', 'dayOfWeek', 'timezone']:
+            value = admin_override.get(key)
+            if value is not None and value != '':
+                effective[key] = value
+
+    return effective
 
 # Email template HTML
 EMAIL_TEMPLATE = """
@@ -311,8 +331,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         # Get configuration
         batch_size = params.get('batchSize', 50)
         lookback_hours = params.get('lookbackHours', 168)  # Check for profiles created in last 7 days (168 hours)
-        app_url = params.get('appUrl', 'http://localhost:3000')
-        
+        app_url = params.get('appUrl') or settings.frontend_url
+
         # Apply overrides for manual runs
         if is_manual_run:
             force_run = True  # Bypass schedule check
@@ -364,15 +384,15 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         criteria = search.get('criteria', {})
                         
                         # Check if notifications are enabled for this search
-                        notifications = search.get('notifications', {})
-                        if not notifications or not notifications.get('enabled'):
+                        notifications = get_effective_notification_settings(search)
+                        if not notifications.get('enabled'):
                             logger.debug(f"  ⏭️ Skipping '{search_name}' - notifications not enabled")
                             continue
                         
                         stats['searches_with_schedule'] += 1
                         
                         # Check if it's time to send based on schedule
-                        if not is_notification_due(search, db, username, search_id, force_run):
+                        if not is_notification_due(search, db, username, search_id, force_run, notifications=notifications):
                             stats['skipped_not_due'] += 1
                             logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
                             continue
@@ -476,10 +496,21 @@ async def find_matches_for_search(
     """Find users matching the search criteria"""
     
     # Build MongoDB query from criteria
-    query = {
-        'username': {'$ne': username},  # Exclude self
-        'accountStatus': 'active'  # Only match active users (unified field)
+    query: Dict[str, Any] = {
+        'username': {'$ne': username}
     }
+
+    query_and = query.get('$and')
+    if not isinstance(query_and, list):
+        query_and = []
+        query['$and'] = query_and
+
+    query_and.append({
+        '$or': [
+            {'accountStatus': 'active'},
+            {'status.status': 'active'}
+        ]
+    })
     
     logger.info(f"🔍 Building query for user '{username}' with criteria: {criteria}")
     
@@ -553,7 +584,15 @@ async def find_matches_for_search(
     # For manual runs, lookback_hours is set to 0 to check ALL profiles
     if lookback_hours > 0:
         cutoff_time = datetime.utcnow() - timedelta(hours=lookback_hours)
-        query['createdAt'] = {'$gte': cutoff_time}
+        cutoff_iso = cutoff_time.isoformat()
+        query_and.append({
+            '$or': [
+                {'createdAt': {'$gte': cutoff_time}},
+                {'created_at': {'$gte': cutoff_time}},
+                {'createdAt': {'$gte': cutoff_iso}},
+                {'created_at': {'$gte': cutoff_iso}}
+            ]
+        })
         logger.info(f"📅 Filtering profiles created after {cutoff_time} (last {lookback_hours} hours)")
     
     # Log the final query
@@ -774,7 +813,7 @@ async def send_matches_email(
         return False
 
 
-def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str, force_run: bool = False) -> bool:
+def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str, force_run: bool = False, notifications: Optional[Dict[str, Any]] = None) -> bool:
     """
     Check if it's time to send notification based on the search's schedule
     
@@ -792,7 +831,7 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     if force_run:
         return True
     
-    notifications = search.get('notifications', {})
+    notifications = notifications if isinstance(notifications, dict) else (search.get('notifications') or {})
     if not notifications.get('enabled'):
         return False
     
@@ -824,10 +863,13 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     
     # Check if we're within the notification window (within 1 hour of scheduled time)
     # This allows the job to run hourly and still catch the notifications
-    time_matches = (
-        current_hour == notif_hour and 
-        abs(current_minute - notif_minute) < 60  # Within same hour
+    scheduled_today = now_user.replace(hour=notif_hour, minute=notif_minute, second=0, microsecond=0)
+    delta_seconds = min(
+        abs((now_user - scheduled_today).total_seconds()),
+        abs((now_user - (scheduled_today + timedelta(days=1))).total_seconds()),
+        abs((now_user - (scheduled_today - timedelta(days=1))).total_seconds())
     )
+    time_matches = delta_seconds < 60 * 60
     
     logger.debug(f"Schedule check for '{search.get('name')}': user_tz={user_timezone_str}, "
                  f"now={now_user.strftime('%H:%M %A')}, scheduled={notif_hour:02d}:{notif_minute:02d}, "

@@ -58,24 +58,36 @@ const TextAreaWithSamples = ({
             <div className="d-flex align-items-center gap-2">
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={handlePrevSample}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Previous sample"
               >
                 ‹
               </button>
               <span 
-                className="badge bg-primary" 
-                style={{ minWidth: '50px', padding: '6px 10px', fontSize: '13px', borderRadius: '6px' }}
+                className="badge" 
+                style={{ 
+                  height: '32px', lineHeight: '32px', minWidth: '50px', padding: '0 12px', 
+                  fontSize: '14px', borderRadius: '6px',
+                  background: 'var(--success-color, #28a745)', color: 'white'
+                }}
               >
                 {sampleIndex + 1}/{samples.length}
               </span>
               <button
                 type="button"
-                className="btn btn-sm btn-outline-primary"
+                className="btn btn-sm"
                 onClick={handleNextSample}
-                style={{ padding: '4px 10px', fontSize: '16px', lineHeight: '1', borderRadius: '6px' }}
+                style={{ 
+                  width: '32px', height: '32px', padding: '0', fontSize: '16px', lineHeight: '1', 
+                  borderRadius: '50%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                  background: 'var(--success-color, #28a745)', color: 'white', border: 'none'
+                }}
                 title="Next sample"
               >
                 ›

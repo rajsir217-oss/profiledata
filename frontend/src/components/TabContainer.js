@@ -30,6 +30,7 @@ const TabContainer = ({
   onAutoSave,
   enableAutoSave = true,
   activeTabId: controlledActiveTabId,
+  isEditMode = false,
   children
 }) => {
   const [activeTab, setActiveTab] = useState(controlledActiveTabId || tabs[0]?.id);
@@ -143,13 +144,18 @@ const TabContainer = ({
                 <span className="tab-label">{tab.label}</span>
               </div>
               <div className="tab-progress-indicator">
-                <span 
-                  className="progress-icon"
-                  style={{ color: getProgressColor(progress) }}
-                >
-                  {getProgressIcon(progress)}
-                </span>
-                <span className="progress-percentage">{Math.round(progress)}%</span>
+                {/* Hide progress for 'complete' tab in edit mode */}
+                {!(isEditMode && tab.id === 'complete') && (
+                  <>
+                    <span 
+                      className="progress-icon"
+                      style={{ color: getProgressColor(progress) }}
+                    >
+                      {getProgressIcon(progress)}
+                    </span>
+                    <span className="progress-percentage">{Math.round(progress)}%</span>
+                  </>
+                )}
               </div>
               {hasErrors && (
                 <span className="error-badge" title="This tab has validation errors">
@@ -203,16 +209,37 @@ const TabContainer = ({
         <div className="overall-progress">
           <span className="progress-label">Overall Progress:</span>
           <div className="progress-bar-container">
-            <div 
-              className="progress-bar-fill"
-              style={{ 
-                width: `${Object.values(tabProgress).reduce((a, b) => a + b, 0) / tabs.length || 0}%`,
-                background: getProgressColor(Object.values(tabProgress).reduce((a, b) => a + b, 0) / tabs.length || 0)
-              }}
-            />
+            {(() => {
+              // In edit mode, exclude 'complete' tab from calculation
+              const tabsForProgress = isEditMode 
+                ? tabs.filter(t => t.id !== 'complete')
+                : tabs;
+              const progressValues = tabsForProgress.map(t => tabProgress[t.id] || 0);
+              const avgProgress = progressValues.length > 0 
+                ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length 
+                : 0;
+              return (
+                <div 
+                  className="progress-bar-fill"
+                  style={{ 
+                    width: `${avgProgress}%`,
+                    background: getProgressColor(avgProgress)
+                  }}
+                />
+              );
+            })()}
           </div>
           <span className="progress-percentage">
-            {Math.round(Object.values(tabProgress).reduce((a, b) => a + b, 0) / tabs.length || 0)}%
+            {(() => {
+              const tabsForProgress = isEditMode 
+                ? tabs.filter(t => t.id !== 'complete')
+                : tabs;
+              const progressValues = tabsForProgress.map(t => tabProgress[t.id] || 0);
+              const avgProgress = progressValues.length > 0 
+                ? progressValues.reduce((a, b) => a + b, 0) / progressValues.length 
+                : 0;
+              return Math.round(avgProgress);
+            })()}%
           </span>
         </div>
       </div>

@@ -889,6 +889,17 @@ const Profile = () => {
   if (!user) return <p>No profile found.</p>;
 
   const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
+
+  const publicImages = Array.isArray(user.publicImages) ? user.publicImages : [];
+  const publicImageObjects = publicImages.map((img, idx) => ({
+    imageId: `${username}-public-${idx}`,
+    imageUrl: img,
+    imageOrder: idx,
+    isProfilePic: false,
+    hasAccess: false,
+    initialVisibility: { type: 'clear' }
+  }));
+  const publicAvatar = publicImages?.[0] || null;
   
   // Check if user has all access
   const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.date_of_birth);
@@ -1100,6 +1111,13 @@ const Profile = () => {
           {/* Profile Avatar - Always shown */}
           <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
             {/* Main Avatar */}
+            {(() => {
+              const viewerHasFullPhotoAccess = (isOwnProfile || piiAccess.images || isAdmin);
+              const avatarSrc = viewerHasFullPhotoAccess ? user.images?.[0] : (publicAvatar || user.images?.[0]);
+              const isPublicAvatar = !viewerHasFullPhotoAccess && !!publicAvatar && avatarSrc === publicAvatar;
+              const canOpenAvatar = (viewerHasFullPhotoAccess || isPublicAvatar) && !!avatarSrc;
+
+              return (
             <div style={{
               width: '120px',
               height: '120px',
@@ -1114,20 +1132,20 @@ const Profile = () => {
               fontSize: '48px',
               fontWeight: 'bold',
               color: user.gender === 'Female' ? '#ec4899' : '#667eea',
-              cursor: (isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? 'pointer' : 'default',
+              cursor: canOpenAvatar ? 'pointer' : 'default',
               position: 'relative'
             }}
             onClick={() => {
-              if ((isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0]) {
-                setLightboxImage(user.images[0]);
+              if (canOpenAvatar) {
+                setLightboxImage(avatarSrc);
                 setShowLightbox(true);
               }
             }}
-            title={(isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? 'Click to enlarge' : ''}
+            title={canOpenAvatar ? 'Click to enlarge' : ''}
             >
               {/* Show actual image if own profile, has access, or is admin */}
-              {(isOwnProfile || piiAccess.images || isAdmin) && user.images?.[0] ? (
-                <img src={user.images[0]} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              {(canOpenAvatar && avatarSrc) ? (
+                <img src={avatarSrc} alt={user.firstName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : user.images?.[0] ? (
                 /* Show blurred image if user has photos but viewer has no access */
                 <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -1158,6 +1176,8 @@ const Profile = () => {
                 <span>{user.firstName?.[0]}{user.lastName?.[0]}</span>
               )}
             </div>
+              );
+            })()}
           </div>
           
           {/* Profile Info */}
@@ -2099,16 +2119,44 @@ const Profile = () => {
             <p className="no-data">No photos available</p>
           )
         ) : (
-          <div className="pii-locked">
-            <div className="lock-icon">🔒</div>
-            <p>Photos are private</p>
-            <button
-              className="btn-request-small"
-              onClick={() => setShowPIIRequestModal(true)}
-            >
-              Request Access
-            </button>
-          </div>
+          <>
+            {publicImageObjects.length > 0 && (
+              <div className="images-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                gap: '16px',
+                marginTop: '16px'
+              }}>
+                {publicImageObjects.map((image, idx) => (
+                  <ProfileImage
+                    key={image.imageId || idx}
+                    image={image}
+                    viewerUsername={currentUsername}
+                    profileOwnerUsername={username}
+                    isFavorited={isFavorited}
+                    isShortlisted={isShortlisted}
+                    onClick={(imageData) => {
+                      const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
+                      if (imageUrl && typeof imageUrl === 'string') {
+                        setLightboxImage(imageUrl);
+                        setShowLightbox(true);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="pii-locked">
+              <div className="lock-icon">🔒</div>
+              <p>Photos are private</p>
+              <button
+                className="btn-request-small"
+                onClick={() => setShowPIIRequestModal(true)}
+              >
+                Request Access
+              </button>
+            </div>
+          </>
         )}
       </div>
 

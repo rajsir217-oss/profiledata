@@ -73,16 +73,11 @@ class StorageService:
             
             # Upload file
             blob.upload_from_string(content, content_type="image/jpeg")
-            
-            # Make publicly accessible
-            blob.make_public()
-            
+
             logger.info(f"✅ File uploaded to GCS: {blob_path} ({file_size_mb:.2f}MB)")
-            
-            # Return properly formatted public URL
-            public_url = f"https://storage.googleapis.com/{self.bucket_name}/{blob_path}"
-            logger.info(f"📸 GCS public URL: {public_url}")
-            return public_url
+
+            # Return relative path (served via protected media endpoint)
+            return f"/uploads/{filename}"
             
         except Exception as e:
             logger.error(f"❌ GCS upload failed: {e}", exc_info=True)
@@ -125,7 +120,7 @@ class StorageService:
         Returns:
             True if deleted successfully
         """
-        if self.use_gcs and file_path.startswith('https://'):
+        if self.use_gcs:
             return await self._delete_from_gcs(file_path)
         else:
             return await self._delete_from_local(file_path)
@@ -133,14 +128,21 @@ class StorageService:
     async def _delete_from_gcs(self, public_url: str) -> bool:
         """Delete file from Google Cloud Storage"""
         try:
-            # Extract blob path from public URL
-            # Format: https://storage.googleapis.com/{bucket}/{path}
-            parts = public_url.split(f'{self.bucket_name}/')
-            if len(parts) < 2:
-                logger.warning(f"⚠️ Invalid GCS URL: {public_url}")
+            blob_path = None
+            if public_url.startswith('https://'):
+                # Format: https://storage.googleapis.com/{bucket}/{path}
+                parts = public_url.split(f'{self.bucket_name}/')
+                if len(parts) >= 2:
+                    blob_path = parts[1]
+            else:
+                filename = public_url.split('/')[-1]
+                if filename:
+                    blob_path = f"uploads/{filename}"
+
+            if not blob_path:
+                logger.warning(f"⚠️ Invalid GCS path: {public_url}")
                 return False
-            
-            blob_path = parts[1]
+
             blob = self.gcs_bucket.blob(blob_path)
             blob.delete()
             

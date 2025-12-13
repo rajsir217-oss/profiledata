@@ -209,34 +209,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       items.push({ isHeader: true, label: 'MONITORING & AUTOMATION' });
       
       items.push({
-        icon: '📧',
-        label: 'Email Analytics',
-        subLabel: 'Track opens & clicks',
-        action: () => navigate('/email-analytics')
-      });
-      
-      items.push({
-        icon: '📊',
-        label: 'Activity Logs',
-        subLabel: 'Monitor user activities',
-        action: () => navigate('/activity-logs')
-      });
-      
-      items.push({
-        icon: '⏸️',
-        label: 'Pause Analytics',
-        subLabel: 'Track pause patterns',
-        action: () => navigate('/pause-analytics')
-      });
-      
-      items.push({
-        icon: '📧',
-        label: 'Invitations Manager',
-        subLabel: 'Manage user invitations',
-        action: () => navigate('/invitations')
-      });
-      
-      items.push({
         icon: '🗓️',
         label: 'Scheduler & Jobs',
         subLabel: 'Manage automated tasks',
@@ -251,6 +223,34 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📢',
+        label: 'Announcement Management',
+        subLabel: 'Site-wide announcements',
+        action: () => navigate('/announcement-management')
+      });
+      
+      items.push({
+        icon: '📧',
+        label: 'Invitations Manager',
+        subLabel: 'Manage user invitations',
+        action: () => navigate('/invitations')
+      });
+      
+      items.push({
+        icon: '📧',
+        label: 'Email Analytics',
+        subLabel: 'Track opens & clicks',
+        action: () => navigate('/email-analytics')
+      });
+      
+      items.push({
+        icon: '📊',
+        label: 'Activity Logs',
+        subLabel: 'Monitor user activities',
+        action: () => navigate('/activity-logs')
+      });
+      
+      items.push({
         icon: '⚙️',
         label: 'Notification Config',
         subLabel: 'Status change triggers',
@@ -258,10 +258,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
-        icon: '📢',
-        label: 'Announcement Management',
-        subLabel: 'Site-wide announcements',
-        action: () => navigate('/announcement-management')
+        icon: '⏸️',
+        label: 'Pause Analytics',
+        subLabel: 'Track pause patterns',
+        action: () => navigate('/pause-analytics')
       });
       
       items.push({

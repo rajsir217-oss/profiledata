@@ -99,12 +99,12 @@
 }
 
 .upload-status-banner.uploading {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
 }
 
 .upload-status-banner.saving {
-  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-hover) 100%);
   color: white;
 }
 
@@ -138,21 +138,21 @@
 }
 
 .local-status-banner.success {
-  background: linear-gradient(135deg, #4caf50 0%, #66bb6a 100%);
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--success-hover) 100%);
   color: white;
-  border: 2px solid #2e7d32;
+  border: 2px solid var(--success-color);
 }
 
 .local-status-banner.error {
-  background: linear-gradient(135deg, #ef5350 0%, #f44336 100%);
+  background: linear-gradient(135deg, var(--danger-color) 0%, var(--danger-hover) 100%);
   color: white;
-  border: 2px solid #c62828;
+  border: 2px solid var(--danger-color);
 }
 
 .local-status-banner.info {
-  background: linear-gradient(135deg, #2196f3 0%, #42a5f5 100%);
+  background: linear-gradient(135deg, var(--info-color) 0%, var(--secondary-color) 100%);
   color: white;
-  border: 2px solid #1565c0;
+  border: 2px solid var(--info-color);
 }
 
 @keyframes slideInDown {
@@ -287,7 +287,7 @@
   position: absolute;
   top: 8px;
   left: 8px;
-  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  background: linear-gradient(135deg, var(--warning-color) 0%, var(--accent-color) 100%);
   color: white;
   padding: 4px 12px;
   border-radius: 20px;
@@ -297,6 +297,32 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   z-index: 2;
+}
+
+/* Public Toggle Button */
+.btn-public-toggle {
+  background: var(--hover-background);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+}
+
+.btn-public-toggle:hover {
+  background: var(--active-background);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-public-toggle.is-public {
+  background: var(--info-light);
+  border-color: var(--info-color);
+  color: var(--info-color);
+}
+
+.btn-public-toggle.is-public:hover {
+  background: var(--info-hover);
+  border-color: var(--info-color);
+  color: var(--text-on-gradient, #ffffff);
 }
 
 /* Photo Number */
@@ -325,80 +351,118 @@
   background: var(--card-background, #fff);
   border-top: 2px solid var(--border-color, #e0e0e0);
   justify-content: center;
+  align-items: center !important;
   flex-wrap: wrap;
 }
 
+.image-controls > button {
+  flex: 0 0 auto !important;
+}
+
 .btn-control {
-  border: none;
-  background: var(--hover-background, #f0f0f0);
-  color: var(--text-color, #333);
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 36px;
-  height: 36px;
+  border: 2px solid var(--border-color, #e0e0e0) !important;
+  background: var(--surface-color, #fff) !important;
+  color: var(--text-color, #333) !important;
+  padding: 0 !important;
+  border-radius: 8px !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  box-sizing: border-box !important;
+  line-height: 1 !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+  flex-grow: 0 !important;
 }
 
 .btn-control:hover {
-  transform: scale(1.1);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .btn-control:active {
   transform: scale(0.95);
 }
 
-/* Profile Pic Button */
+/* Profile Pic Button - Star icon */
 .btn-profile-pic {
-  background: var(--warning-light, #fff3cd);
-  color: var(--warning-dark, #856404);
-  border: 2px solid var(--warning-color, #ffc107);
-  font-size: 18px;
+  background: var(--warning-light, #fff3cd) !important;
+  color: var(--warning-dark, #856404) !important;
+  border: 2px solid var(--warning-color, #ffc107) !important;
 }
 
 .btn-profile-pic:hover {
-  background: var(--warning-color, #ffc107);
-  color: white;
+  background: var(--warning-color, #ffc107) !important;
+  color: var(--text-on-warning, #212529) !important;
 }
 
-/* Move Buttons */
+/* Move Buttons - Arrow icons */
 .btn-move {
-  background: var(--primary-light, #e7eafc);
-  color: var(--primary-color, #667eea);
-  font-size: 14px;
+  background: var(--hover-background, #f8f9fa) !important;
+  color: var(--text-color, #333) !important;
+  border: 2px solid var(--border-color, #dee2e6) !important;
 }
 
 .btn-move:hover {
-  background: var(--primary-color, #667eea);
-  color: white;
+  background: var(--primary-light, #cce5ff) !important;
+  color: var(--primary-color, #0d6efd) !important;
+  border-color: var(--primary-color, #0d6efd) !important;
+}
+
+/* Public/Private Toggle Button */
+.btn-public-toggle {
+  background: var(--success-light, #d4edda) !important;
+  color: var(--success-dark, #155724) !important;
+  border: 2px solid var(--success-color, #28a745) !important;
+}
+
+.btn-public-toggle:hover {
+  background: var(--success-color, #28a745) !important;
+  color: white !important;
+}
+
+.btn-public-toggle.is-private {
+  background: var(--surface-color, #fff) !important;
+  color: var(--text-muted, #6c757d) !important;
+  border: 2px solid var(--border-color, #dee2e6) !important;
+}
+
+.btn-public-toggle.is-private:hover {
+  background: var(--success-light, #d4edda) !important;
+  color: var(--success-dark, #155724) !important;
+  border-color: var(--success-color, #28a745) !important;
 }
 
 /* Delete Button */
 .btn-delete {
-  background: var(--danger-light, #ffebee);
-  color: var(--danger-color, #c62828);
-  font-size: 18px;
+  background: var(--danger-light, #f8d7da) !important;
+  color: var(--danger-dark, #721c24) !important;
+  border: 2px solid var(--danger-color, #dc3545) !important;
 }
 
 .btn-delete:hover {
-  background: var(--danger-color, #ef5350);
-  color: white;
+  background: var(--danger-color, #dc3545) !important;
+  color: white !important;
 }
 
 /* Delete Confirmation State (2-click pattern) */
 .btn-delete.confirm-delete {
-  background: var(--danger-color, #ef5350);
-  color: white;
-  font-weight: 700;
-  font-size: 14px;
+  background: var(--danger-color, #dc3545) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 10px !important;
   animation: pulseWarning 1s ease-in-out infinite;
-  min-width: 80px;
-  padding: 6px 8px;
+  min-width: 50px !important;
+  width: auto !important;
+  padding: 0 6px !important;
 }
 
 @keyframes pulseWarning {
@@ -452,15 +516,15 @@
 
 /* Photo Tips */
 .photo-tips {
-  background: #e7f3ff !important;
-  border: 2px solid #0066cc !important;
+  background: var(--info-background) !important;
+  border: 2px solid var(--info-border) !important;
   border-radius: 10px !important;
   padding: 18px !important;
   margin-top: 20px;
 }
 
 .photo-tips h6 {
-  color: #002952 !important;
+  color: var(--text-color) !important;
   margin: 0 0 12px 0;
   font-weight: 700 !important;
   font-size: 15px !important;
@@ -474,12 +538,12 @@
 .photo-tips li {
   margin-bottom: 8px;
   font-size: 14px !important;
-  color: #003d7a !important;
+  color: var(--text-secondary) !important;
   line-height: 1.6 !important;
 }
 
 .photo-tips li strong {
-  color: #002952 !important;
+  color: var(--text-color) !important;
   font-weight: 600 !important;
 }
 
@@ -494,7 +558,7 @@
 }
 
 .theme-dark .photo-tips li {
-  color: #e2e8f0 !important;
+  color: var(--text-secondary) !important;
 }
 
 .theme-dark .photo-tips li strong {
@@ -526,10 +590,18 @@
   }
 
   .btn-control {
-    padding: 4px 8px;
-    min-width: 32px;
-    height: 32px;
-    font-size: 14px;
+    padding: 3px 6px !important;
+    min-width: 24px !important;
+    height: 24px !important;
+    max-height: 24px !important;
+    font-size: 12px !important;
+  }
+
+  .btn-delete.confirm-delete {
+    min-width: 50px !important;
+    font-size: 10px !important;
+    height: 24px !important;
+    max-height: 24px !important;
   }
 
   .photo-tips {

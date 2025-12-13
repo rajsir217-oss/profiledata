@@ -1,6 +1,6 @@
 # fastapi_backend/routes.py
 from fastapi import APIRouter, HTTPException, status, UploadFile, File, Form, Depends, Request, Query, Body
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, Response
 from typing import List, Optional, Dict, Any
 from datetime import datetime, timedelta, date
 import time
@@ -11,6 +11,7 @@ import json
 import httpx
 import re
 from pathlib import Path
+from urllib.parse import urlparse
 from sse_starlette.sse import EventSourceResponse
 from models import (
     UserCreate, UserResponse, LoginRequest, Token,
@@ -147,6 +148,7 @@ DASHBOARD_USER_PROJECTION = {
     "aboutYou": 1,
     "profileImage": 1,
     "images": 1,
+    "publicImages": 1,
     "contactEmail": 1,
     "contactNumber": 1,
     "lastActive": 1,
@@ -205,6 +207,131 @@ def remove_consent_metadata(user_dict):
     for field in consent_fields:
         user_dict.pop(field, None)
     return user_dict
+
+def _extract_image_path(url_or_path: str) -> str:
+    if not url_or_path:
+        return ''
+    if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+        parsed = urlparse(url_or_path)
+        return parsed.path
+    if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+        return '/' + url_or_path
+    if isinstance(url_or_path, str) and not url_or_path.startswith('/') and url_or_path.startswith(f"{settings.upload_dir}/"):
+        return '/' + url_or_path
+    return url_or_path
+
+def _compute_public_image_paths(existing_images: List[str], public_images: List[str]) -> List[str]:
+    normalized_images = {_extract_image_path(img) for img in (existing_images or []) if img}
+    normalized_public = [_extract_image_path(img) for img in (public_images or []) if img]
+    return [p for p in normalized_public if p in normalized_images]
+
+def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
+    if not user_doc:
+        return False
+    role = (user_doc.get("role") or "").lower()
+    role_name = (user_doc.get("role_name") or "").lower()
+    username = (user_doc.get("username") or "").lower()
+    return role == "admin" or role_name == "admin" or username == "admin"
+
+async def _has_images_access(db, requester_username: str, owner_username: str) -> bool:
+    if not requester_username:
+        return False
+    if requester_username.lower() == owner_username.lower():
+        return True
+
+    requester_user = await db.users.find_one(get_username_query(requester_username), {"role": 1, "role_name": 1, "username": 1})
+    if _is_admin_user(requester_user):
+        return True
+
+    access_doc = await db.pii_access.find_one({
+        "granterUsername": owner_username,
+        "grantedToUsername": requester_username,
+        "accessType": "images",
+        "isActive": True
+    })
+    if not access_doc:
+        return False
+
+    expires_at = access_doc.get("expiresAt")
+    if not expires_at:
+        return True
+    try:
+        expires_dt = expires_at
+        if isinstance(expires_at, str):
+            expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+        if expires_dt > datetime.utcnow():
+            return True
+        await db.pii_access.update_one({"_id": access_doc.get("_id")}, {"$set": {"isActive": False}})
+        return False
+    except Exception:
+        return False
+
+@router.get("/media/{filename}")
+async def get_protected_media(
+    filename: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Serve uploaded media only to authorized active members.
+
+    Access rules:
+    - owner/admin always
+    - if image is marked in owner's publicImages: any active member
+    - else: requires active pii_access grant with accessType='images'
+    """
+    requester_username = current_user.get("username")
+    if not requester_username:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Unauthorized")
+
+    # Locate owner by filename across known fields
+    safe_filename = re.escape(filename)
+    owner = await db.users.find_one(
+        {
+            "$or": [
+                {"images": {"$regex": safe_filename}},
+                {"publicImages": {"$regex": safe_filename}},
+                {"profileImage": {"$regex": safe_filename}}
+            ]
+        },
+        {"username": 1, "images": 1, "publicImages": 1, "profileImage": 1}
+    )
+    if not owner:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+
+    owner_username = owner.get("username")
+    if not owner_username:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+
+    # Determine if this image is public
+    public_list = owner.get("publicImages", [])
+    is_public = any((p or "").split('/')[-1] == filename for p in public_list)
+
+    if not is_public:
+        has_access = await _has_images_access(db, requester_username, owner_username)
+        if not has_access:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this image")
+
+    # Serve from GCS if enabled, else local filesystem
+    if settings.use_gcs and settings.gcs_bucket_name:
+        try:
+            from google.cloud import storage
+            client = storage.Client()
+            bucket = client.bucket(settings.gcs_bucket_name)
+            blob = bucket.blob(f"uploads/{filename}")
+            if not blob.exists():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+            data = blob.download_as_bytes()
+            return Response(content=data, media_type="application/octet-stream")
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"❌ Failed to serve GCS media {filename}: {e}", exc_info=True)
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to fetch media")
+
+    file_path = Path(settings.upload_dir) / filename
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+    return FileResponse(path=str(file_path))
 
 def parse_height_to_inches(height_str):
     """Convert height string '5'8"' or '5 ft 8 in' to total inches"""
@@ -878,9 +1005,38 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
-    
-    # Convert image paths to full URLs
-    user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+
+    existing_images = user.get("images", [])
+    normalized_images = [_extract_image_path(img) for img in existing_images if img]
+    normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+    full_public_urls = [get_full_image_url(p) for p in normalized_public]
+    user["publicImages"] = full_public_urls
+
+    try:
+        from urllib.parse import urlparse
+
+        def extract_path(url_or_path: str) -> str:
+            if not url_or_path:
+                return ''
+            if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+                parsed = urlparse(url_or_path)
+                return parsed.path
+            if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+                return '/' + url_or_path
+            return url_or_path
+
+        db_user = await db.users.find_one(get_username_query(login_data.username), {"images": 1, "publicImages": 1})
+        db_images = db_user.get("images", []) if db_user else []
+        db_public_images = db_user.get("publicImages", []) if db_user else []
+
+        normalized_images = {extract_path(img) for img in db_images if img}
+        normalized_public = [extract_path(img) for img in db_public_images if img]
+        normalized_public = [p for p in normalized_public if p in normalized_images]
+
+        user["publicImages"] = [get_full_image_url(p) for p in normalized_public]
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to compute publicImages for {login_data.username}: {e}")
+        user["publicImages"] = []
     
     logger.info(f"✅ Login successful for user '{login_data.username}'")
     response = {
@@ -897,9 +1053,15 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     return response
 
 @router.get("/profile/{username}")
-async def get_user_profile(username: str, requester: str = None, db = Depends(get_database)):
+async def get_user_profile(
+    username: str,
+    requester: str = None,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
     """Get user profile by username with PII masking"""
-    logger.info(f"👤 Profile request for username: {username} (requester: {requester})")
+    requester_username = current_user.get("username")
+    logger.info(f"👤 Profile request for username: {username} (requester: {requester_username})")
     
     # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
@@ -930,9 +1092,12 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     
     # Remove consent metadata (backend-only fields)
     remove_consent_metadata(user)
-    
-    # Convert image paths to full URLs
-    user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+
+    existing_images = user.get("images", [])
+    normalized_images = [_extract_image_path(img) for img in existing_images if img]
+    normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+    full_public_urls = [get_full_image_url(p) for p in normalized_public]
+    user["publicImages"] = full_public_urls
     
     # Calculate age from birthMonth and birthYear if not already set
     if not user.get("age") and user.get("birthMonth") and user.get("birthYear"):
@@ -943,11 +1108,18 @@ async def get_user_profile(username: str, requester: str = None, db = Depends(ge
     from pii_security import mask_user_pii, check_access_granted
     
     access_granted = False
-    if requester:
-        access_granted = await check_access_granted(db, requester, username)
-        logger.info(f"🔐 PII access for {requester} viewing {username}: {access_granted}")
+    if requester_username:
+        access_granted = await check_access_granted(db, requester_username, username)
+        logger.info(f"🔐 PII access for {requester_username} viewing {username}: {access_granted}")
     
-    user = mask_user_pii(user, requester, access_granted)
+    user = mask_user_pii(user, requester_username, access_granted)
+
+    has_image_access = await _has_images_access(db, requester_username, username)
+
+    if has_image_access:
+        user["images"] = [get_full_image_url(p) for p in normalized_images]
+    else:
+        user["images"] = full_public_urls
     
     # Include visible meta fields if enabled
     if user.get('metaFieldsVisibleToPublic', False):
@@ -1385,6 +1557,27 @@ async def update_user_profile(
         update_data["images"] = existing_images
         logger.info(f"📸 Final image count: {len(existing_images)}")
         logger.info(f"📸 Images field in update_data: {existing_images}")
+
+        try:
+            from urllib.parse import urlparse
+
+            def extract_path(url_or_path: str) -> str:
+                if not url_or_path:
+                    return ''
+                if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+                    parsed = urlparse(url_or_path)
+                    return parsed.path
+                if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+                    return '/' + url_or_path
+                return url_or_path
+
+            current_public = user.get("publicImages", [])
+            normalized_images = {extract_path(img) for img in existing_images if img}
+            normalized_public = [extract_path(img) for img in current_public if img]
+            normalized_public = [p for p in normalized_public if p in normalized_images]
+            update_data["publicImages"] = normalized_public
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to normalize publicImages for {username}: {e}")
     else:
         logger.info(f"ℹ️ Images not modified, not updating images field")
     
@@ -1828,6 +2021,10 @@ async def delete_photo(
     
     # Normalize remaining images
     normalized_remaining = [extract_path(img) for img in remaining_images]
+
+    current_public = user.get("publicImages", [])
+    normalized_public = [extract_path(img) for img in current_public]
+    normalized_public = [p for p in normalized_public if p and p in normalized_remaining]
     
     # Update user's images in database
     try:
@@ -1835,6 +2032,7 @@ async def delete_photo(
             {"username": username},
             {"$set": {
                 "images": normalized_remaining,
+                "publicImages": normalized_public,
                 "updatedAt": datetime.utcnow().isoformat()
             }}
         )
@@ -1847,9 +2045,11 @@ async def delete_photo(
         
         # Return full URLs
         full_urls = [get_full_image_url(img) for img in normalized_remaining]
+        full_public_urls = [get_full_image_url(img) for img in normalized_public]
         
         return {
             "images": full_urls,
+            "publicImages": full_public_urls,
             "message": "Photo deleted successfully"
         }
         
@@ -1859,6 +2059,60 @@ async def delete_photo(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete photo: {str(e)}"
         )
+
+
+@router.put("/profile/{username}/public-images")
+async def update_public_images(
+    username: str,
+    data: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    current_username = current_user.get("username") if isinstance(current_user, dict) else str(current_user)
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+
+    if not current_username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication error")
+    if current_username.lower() != username.lower() and user_role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    user = await db.users.find_one(get_username_query(username), {"images": 1})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    public_images = data.get("publicImages")
+    if public_images is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="publicImages is required")
+    if not isinstance(public_images, list):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="publicImages must be a list")
+
+    from urllib.parse import urlparse
+
+    def extract_path(url_or_path: str) -> str:
+        if not url_or_path:
+            return ''
+        if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+            parsed = urlparse(url_or_path)
+            return parsed.path
+        if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+            return '/' + url_or_path
+        return url_or_path
+
+    existing_images = user.get("images", [])
+    normalized_images = {extract_path(img) for img in existing_images if img}
+
+    normalized_public = [extract_path(img) for img in public_images if img]
+    normalized_public = [p for p in normalized_public if p in normalized_images]
+
+    await db.users.update_one(
+        {"username": username},
+        {"$set": {"publicImages": normalized_public, "updatedAt": datetime.utcnow().isoformat()}}
+    )
+
+    return {
+        "publicImages": [get_full_image_url(img) for img in normalized_public],
+        "message": "Public photos updated"
+    }
 
 # ===== USER PREFERENCES ENDPOINTS =====
 
@@ -2169,8 +2423,12 @@ async def get_all_users(
             if not users[i].get("role_name"):
                 users[i]["role_name"] = "free_user"
             
-            # Convert image paths to full URLs
-            users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]
+            # Convert image paths to full URLs (admin sees all images)
+            existing_images = users[i].get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            users[i]["publicImages"] = full_public_urls
+            users[i]["images"] = [get_full_image_url(img) for img in existing_images]
         
         logger.info(f"✅ Retrieved {len(users)} users (page {page}/{total_pages}, total: {total_count})")
         return {
@@ -2534,6 +2792,7 @@ async def search_users(
     sortOrder: str = "desc",
     page: int = 1,
     limit: int = 20,
+    current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
@@ -2748,7 +3007,12 @@ async def search_users(
             
             # Remove consent metadata (backend-only fields)
             remove_consent_metadata(users[i])
-            users[i]["images"] = [get_full_image_url(img) for img in users[i].get("images", [])]
+
+            existing_images = users[i].get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            users[i]["publicImages"] = full_public_urls
+            users[i]["images"] = full_public_urls
             
             # Calculate age dynamically from birthMonth and birthYear
             from datetime import datetime
@@ -3430,7 +3694,11 @@ async def get_favorites(
                     logger.warning(f"⚠️ Decryption skipped for {fav['favoriteUsername']}: {decrypt_err}")
                 
                 remove_consent_metadata(user)
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
 
@@ -3591,7 +3859,11 @@ async def get_shortlist(
                     logger.warning(f"⚠️ Decryption skipped for {item['shortlistedUsername']}: {decrypt_err}")
                 
                 remove_consent_metadata(user)
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 user["notes"] = item.get("notes")
                 user["addedToShortlistAt"] = item["createdAt"]
                 shortlisted_users.append(user)
@@ -3742,7 +4014,11 @@ async def get_exclusions(
                     logger.warning(f"⚠️ Decryption skipped for {exc['excludedUsername']}: {decrypt_err}")
                 
                 remove_consent_metadata(user)
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 user["excludedAt"] = exc.get("createdAt")
                 excluded_users.append(user)
 
@@ -3950,7 +4226,12 @@ async def get_conversations_enhanced(
             except Exception as decrypt_err:
                 logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
             
-            user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+            # Only return public images for conversations
+            existing_images = user.get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            user["publicImages"] = full_public_urls
+            user["images"] = full_public_urls
             
             # Serialize datetime
             last_msg_time = conv["lastMessage"]["createdAt"]
@@ -4300,7 +4581,11 @@ async def get_conversations(
                     logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
                 
                 remove_consent_metadata(user)
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 conv["otherUser"] = user
                 conv["lastMessage"]["id"] = str(conv["lastMessage"].pop("_id", ""))
             else:
@@ -4389,11 +4674,16 @@ async def get_recent_conversations(
                 # Check online status
                 is_online = redis.is_user_online(other_username)
                 
+                # Use first public image for avatar
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                first_public = normalized_public[0] if normalized_public else None
+                
                 result.append({
                     "username": other_username,
                     "firstName": user.get("firstName", ""),
                     "lastName": user.get("lastName", ""),
-                    "avatar": get_full_image_url(user.get("images", [None])[0]) if user.get("images") else None,
+                    "avatar": get_full_image_url(first_public) if first_public else None,
                     "lastMessage": conv["lastMessage"].get("content", ""),
                     "timestamp": conv["lastMessage"].get("createdAt", ""),
                     "unreadCount": conv.get("unreadCount", 0),
@@ -4694,7 +4984,12 @@ async def get_conversation(
             except Exception as decrypt_err:
                 logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
             
-            other_user["images"] = [get_full_image_url(img) for img in other_user.get("images", [])]
+            # Only return public images
+            existing_images = other_user.get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, other_user.get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            other_user["publicImages"] = full_public_urls
+            other_user["images"] = full_public_urls
         
         logger.info(f"✅ Found {len(messages)} messages in conversation")
         return {
@@ -5023,6 +5318,10 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         result = []
         for viewer in viewers:
             user_data = viewer_dict.get(viewer["viewerUsername"], {})
+            # Use first public image for profileImage
+            existing_images = user_data.get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
+            first_public = normalized_public[0] if normalized_public else None
             result.append({
                 "username": viewer["viewerUsername"],
                 "firstName": user_data.get("firstName"),
@@ -5033,7 +5332,7 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
-                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "profileImage": get_full_image_url(first_public) if first_public else None,
                 "viewedAt": safe_datetime_serialize(viewer.get("viewedAt"))
             })
         
@@ -5086,6 +5385,10 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         result = []
         for fav in favorites:
             user_data = user_dict.get(fav["userUsername"], {})
+            # Use first public image for profileImage
+            existing_images = user_data.get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
+            first_public = normalized_public[0] if normalized_public else None
             result.append({
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -5096,7 +5399,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
-                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "profileImage": get_full_image_url(first_public) if first_public else None,
                 "addedAt": safe_datetime_serialize(fav.get("createdAt"))
             })
         
@@ -5138,6 +5441,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         result = []
         for shortlist in shortlists:
             user_data = user_dict.get(shortlist["userUsername"], {})
+            # Use first public image for profileImage
+            existing_images = user_data.get("images", [])
+            normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
+            first_public = normalized_public[0] if normalized_public else None
             result.append({
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -5148,7 +5455,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
-                "profileImage": get_full_image_url(user_data.get("profileImage")),
+                "profileImage": get_full_image_url(first_public) if first_public else None,
                 "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
             })
         
@@ -5892,7 +6199,12 @@ async def get_granted_access(
             if user:
                 user.pop("password", None)
                 user["_id"] = str(user["_id"])
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                # Only return public images
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 
                 result.append({
                     "userProfile": user,
@@ -5945,7 +6257,12 @@ async def get_revoked_access(
             if user:
                 user.pop("password", None)
                 user["_id"] = str(user["_id"])
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                # Only return public images
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 
                 result.append({
                     "userProfile": user,
@@ -6006,7 +6323,12 @@ async def get_received_access(
             if user:
                 user.pop("password", None)
                 user["_id"] = str(user["_id"])
-                user["images"] = [get_full_image_url(img) for img in user.get("images", [])]
+                # Only return public images
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
                 
                 result.append({
                     "userProfile": user,
@@ -6153,16 +6475,20 @@ async def get_online_users(db = Depends(get_database)):
     # Fetch all user details in a SINGLE query using $in (much faster!)
     cursor = db.users.find(
         {"username": {"$in": usernames}},
-        {"username": 1, "firstName": 1, "lastName": 1, "images": 1, "role": 1, "_id": 0}
+        {"username": 1, "firstName": 1, "lastName": 1, "images": 1, "publicImages": 1, "role": 1, "_id": 0}
     )
     
     user_list = []
     async for user in cursor:
+        # Use first public image for profileImage
+        existing_images = user.get("images", [])
+        normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+        first_public = normalized_public[0] if normalized_public else None
         user_list.append({
             "username": user.get("username"),
             "firstName": user.get("firstName"),
             "lastName": user.get("lastName"),
-            "profileImage": user.get("images", [None])[0] if user.get("images") else None,
+            "profileImage": get_full_image_url(first_public) if first_public else None,
             "role": user.get("role", "free_user")
         })
     
