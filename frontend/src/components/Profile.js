@@ -17,6 +17,7 @@ import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
+import logger from "../utils/logger";
 import "./Profile.css";
 
 // Create axios instance for verification API
