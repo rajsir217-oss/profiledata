@@ -29,7 +29,8 @@ export const getFrontendUrl = () => {
 
 /**
  * Get full image URL (handles relative and absolute URLs)
- * Automatically adds JWT token for protected media endpoints
+ * Automatically adds JWT token for protected media endpoints (local dev only)
+ * In production, GCS signed URLs are returned directly from backend
  * @param {string} imagePath - Image path from backend
  * @returns {string} Full image URL with auth token if needed
  */
@@ -39,35 +40,42 @@ export const getImageUrl = (imagePath) => {
   const currentBackend = getBackendUrl();
   const isLocalEnvironment = currentBackend.includes('localhost') || currentBackend.includes('127.0.0.1');
   
+  // GCS signed URLs - return as-is (already authenticated via signature)
+  // These URLs look like: https://storage.googleapis.com/bucket/...?X-Goog-Signature=...
+  if (imagePath.includes('storage.googleapis.com') || imagePath.includes('X-Goog-Signature')) {
+    return imagePath;
+  }
+  
   let finalUrl = imagePath;
   
   // If already absolute URL (from database)
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    // FORCE local URLs when running locally
+    // FORCE local URLs when running locally (for dev with production DB)
     if (isLocalEnvironment) {
       // Extract the path part after the domain
-      const gcpUrls = [
+      const gcpBackendUrls = [
         'https://matrimonial-backend-458052696267.us-central1.run.app',
-        'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app',
-        'https://storage.googleapis.com'
+        'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app'
       ];
       
-      for (const gcpUrl of gcpUrls) {
+      for (const gcpUrl of gcpBackendUrls) {
         if (imagePath.startsWith(gcpUrl)) {
-          // Replace GCP URL with local backend URL
+          // Replace GCP backend URL with local backend URL
           const relativePath = imagePath.substring(gcpUrl.length);
           finalUrl = `${currentBackend}${relativePath}`;
           break;
         }
       }
     }
+    // In production, return absolute URLs as-is
   } else {
     // For relative paths - build full URL from current backend
     const cleanPath = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
     finalUrl = `${currentBackend}${cleanPath}`;
   }
   
-  // Add JWT token for protected media endpoints
+  // Add JWT token for protected media endpoints (local dev only)
+  // In production, GCS signed URLs are used instead
   if (finalUrl.includes('/api/users/media/')) {
     const token = localStorage.getItem('token');
     if (token) {

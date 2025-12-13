@@ -65,7 +65,7 @@ const Profile = () => {
   const [rephraseStyle, setRephraseStyle] = useState('concise');
   const [aiProvider, setAiProvider] = useState('groq'); // 'groq' (recommended) or 'gemini'
   
-  console.log('📍 Profile component loaded for username:', username);
+  logger.debug('Profile component loaded for:', username);
   
   // Check for status message from ProtectedRoute
   useEffect(() => {
@@ -83,7 +83,7 @@ const Profile = () => {
     if (location.state?.searchResults && location.state?.currentIndex !== null) {
       setSearchResults(location.state.searchResults);
       setCurrentIndex(location.state.currentIndex);
-      console.log('🎯 Carousel context loaded:', {
+      logger.debug('Carousel context loaded:', {
         totalResults: location.state.searchResults.length,
         currentIndex: location.state.currentIndex,
         currentProfile: username
@@ -163,7 +163,7 @@ const Profile = () => {
   // Debug: Log user data when it changes
   useEffect(() => {
     if (user) {
-      console.log('👤 User data loaded:', {
+      logger.debug('User data loaded:', {
         username: user.username,
         gender: user.gender,
         height: user.height,
@@ -183,17 +183,17 @@ const Profile = () => {
         
         // Pass requester to properly handle PII masking
         const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
-        console.log('📡 API Response:', res);
-        console.log('📡 API Response Data:', res.data);
-        console.log('📡 Data keys:', Object.keys(res.data || {}));
-        console.log('📡 Gender value:', res.data?.gender);
-        console.log('📡 Height value:', res.data?.height);
-        console.log('📡 Location value:', res.data?.location);
-        console.log('📡 🔍 RELIGION value:', res.data?.religion);
-        console.log('📡 🎯 PARTNER CRITERIA:', res.data?.partnerCriteria);
-        console.log('📡 Partner Criteria Religion:', res.data?.partnerCriteria?.religion);
-        console.log('📡 Partner Criteria Education:', res.data?.partnerCriteria?.educationLevel);
-        console.log('📡 Partner Criteria Profession:', res.data?.partnerCriteria?.profession);
+        logger.debug('API Response:', res);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         setUser(res.data);
         
         // Check if this is the current user's profile
@@ -272,7 +272,7 @@ const Profile = () => {
     
     // Refresh KPI stats when page regains focus
     const handleFocus = () => {
-      console.log('🔄 Page focused - refreshing KPI stats');
+      logger.debug('Page focused - refreshing KPI stats');
       fetchKPIStats();
     };
     window.addEventListener('focus', handleFocus);
@@ -280,7 +280,7 @@ const Profile = () => {
     // Subscribe to online status changes for this user
     const unsubscribe = onlineStatusService.subscribe((changedUsername, online) => {
       if (changedUsername === username) {
-        console.log(`🔄 Status update for ${username}:`, online ? 'online' : 'offline');
+        logger.debug(`Status update for ${username}:`, online ? 'online' : 'offline');
         setIsOnline(online);
       }
     });
@@ -301,7 +301,7 @@ const Profile = () => {
       if (!currentUsername || isOwnProfile) return;
       
       try {
-        console.log('🦋 Fetching L3V3L match data for:', username);
+        logger.debug('Fetching L3V3L match data for:', username);
         const response = await api.get(`/l3v3l-match-details/${currentUsername}/${username}`);
         
         if (response.data && response.data.matchScore) {
@@ -318,11 +318,11 @@ const Profile = () => {
             cultural_factors: response.data.breakdown?.cultural_factors || 0,
             matchReasons: response.data.matchReasons || []
           });
-          console.log('✅ L3V3L match data loaded:', response.data);
+          logger.debug('L3V3L match data loaded:', response.data);
         }
       } catch (error) {
         // Silently fail - not all profiles will have L3V3L data
-        console.log('📝 No L3V3L match data available (this is normal if not accessed from L3V3L matches page)');
+        logger.debug('No L3V3L match data available');
       }
     };
     
@@ -333,7 +333,7 @@ const Profile = () => {
     try {
       const response = await verificationApi.get(`/api/verification/status/${username}`);
       setActivationStatus(response.data);
-      console.log('📧 Activation status loaded:', response.data);
+      logger.debug('Activation status loaded:', response.data);
     } catch (error) {
       console.error('Error fetching activation status:', error);
       // Don't fail silently, but don't block profile loading
@@ -368,7 +368,7 @@ const Profile = () => {
     
     // ✅ ADMIN BYPASS - Admins have full access to all PII
     if (isAdmin) {
-      console.log('🔓 Admin user detected - granting full PII access');
+      logger.debug('Admin user - full PII access');
       setPiiAccess({
         images: true,
         contact_info: true,
@@ -385,7 +385,7 @@ const Profile = () => {
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
       ]);
       
-      console.log('🔍 PII Access Check Results:', {
+      logger.debug('PII Access Check Results:', {
         images: imagesRes.data.hasAccess,
         contact_info: contactRes.data.hasAccess,
         date_of_birth: dobRes.data.hasAccess,
@@ -456,14 +456,10 @@ const Profile = () => {
           }
         }));
         
-        console.log('📸 Loaded images with access details:', {
-          accessRecord,
-          imageAccessDetails,
-          imagesWithAccess
-        });
+        logger.debug('Loaded images with access');
         setAccessibleImages(imagesWithAccess);
       } else {
-        console.log('📸 No access record found or no images available');
+        logger.debug('No image access record');
         setAccessibleImages([]);
       }
     } catch (err) {
@@ -477,11 +473,11 @@ const Profile = () => {
     const cleanup = onPIIAccessChange(async (detail) => {
       const { action, targetUsername, ownerUsername } = detail;
       
-      console.log('🔔 PII Access Change Event Received:', detail);
+      logger.debug('PII Access Change Event:', detail);
       
       // If this is about access to the current profile we're viewing
       if (ownerUsername === username && targetUsername === currentUsername) {
-        console.log('🔄 Refreshing access for current profile...');
+        logger.debug('Refreshing access');
         
         // Reload PII access status
         await checkPIIAccess();
@@ -507,7 +503,7 @@ const Profile = () => {
   // Auto-load accessible images when PII access is granted
   useEffect(() => {
     if (piiAccess.images && !isOwnProfile && user && user.images?.length > 0) {
-      console.log('🔄 Auto-loading accessible images with expiry details...');
+      logger.debug('Auto-loading accessible images');
       loadAccessibleImages();
     }
   }, [piiAccess.images, user, isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -558,7 +554,7 @@ const Profile = () => {
         return;
       }
 
-      console.log('Submitting access request:', {
+      logger.debug('Submitting access request:', {
         requesterUsername: currentUsername,
         ownerUsername: username,
         imageCount: user.images.length
@@ -571,7 +567,7 @@ const Profile = () => {
         message: requestData.message || ''
       });
 
-      console.log('Access request response:', response);
+      logger.debug('Access request response:', response);
 
       setSuccessMessage('✅ Access request sent successfully!');
       setShowImageAccessModal(false);
@@ -590,7 +586,7 @@ const Profile = () => {
 
   const fetchKPIStats = async () => {
     try {
-      console.log('📊 Fetching KPI stats for:', username);
+      logger.debug('Fetching KPI stats for:', username);
       
       const [viewsRes, shortlistRes, favoritesRes] = await Promise.all([
         api.get(`/profile-views/${username}/count`),
@@ -598,9 +594,9 @@ const Profile = () => {
         api.get(`/their-favorites/${username}`)
       ]);
       
-      console.log('📊 Views Response:', viewsRes.data);
-      console.log('📊 Shortlist Response:', shortlistRes.data);
-      console.log('📊 Favorites Response:', favoritesRes.data);
+      logger.debug('Views Response:', viewsRes.data);
+      logger.debug('Shortlist Response:', shortlistRes.data);
+      logger.debug('Favorites Response:', favoritesRes.data);
       
       const stats = {
         profileViews: viewsRes.data?.totalViews || viewsRes.data?.uniqueViewers || 0,
@@ -608,7 +604,7 @@ const Profile = () => {
         favoritedBy: favoritesRes.data?.users?.length || 0
       };
       
-      console.log('📊 Parsed KPI stats:', stats);
+      logger.debug('Parsed KPI stats:', stats);
       setKpiStats(stats);
     } catch (err) {
       console.error("❌ Error fetching KPI stats:", err);
@@ -692,11 +688,11 @@ const Profile = () => {
     if (searchResults && currentIndex !== null) {
       if (isLeftSwipe) {
         // Swipe left = Next profile
-        console.log('👈 Swipe left detected - navigating to next profile');
+        logger.debug('Swipe left - next profile');
         handleNextProfile();
       } else if (isRightSwipe) {
         // Swipe right = Previous profile
-        console.log('👉 Swipe right detected - navigating to previous profile');
+        logger.debug('Swipe right - previous profile');
         handlePreviousProfile();
       }
     }
@@ -725,8 +721,8 @@ const Profile = () => {
       // Prepare FormData for API
       const formData = new FormData();
       
-      console.log('💾 Saving section:', section);
-      console.log('📝 Edit form data:', editFormData);
+      logger.debug('Saving section:', section);
+      logger.debug('Edit form data:', editFormData);
       
       // Add fields based on section - send all fields from editFormData
       if (section === 'basic') {
@@ -742,24 +738,24 @@ const Profile = () => {
           // Only send fields that have actual values (not empty strings)
           if (value !== undefined && value !== null && value !== '') {
             formData.append(field, value);
-            console.log(`  ✓ ${field}: "${value}"`);
+            logger.debug(`Saving field: ${field}`);
           } else {
-            console.log(`  ⊘ ${field}: SKIPPED (empty or undefined)`);
+            // Skipped empty field
           }
         });
       } else if (section === 'contact') {
         if (editFormData.contactNumber !== undefined && editFormData.contactNumber !== null && editFormData.contactNumber !== '') {
           formData.append('contactNumber', editFormData.contactNumber);
-          console.log(`  ✓ contactNumber: "${editFormData.contactNumber}"`);
+          logger.debug('Saving contactNumber');
         }
         if (editFormData.contactEmail !== undefined && editFormData.contactEmail !== null && editFormData.contactEmail !== '') {
           formData.append('contactEmail', editFormData.contactEmail);
-          console.log(`  ✓ contactEmail: "${editFormData.contactEmail}"`);
+          logger.debug('Saving contactEmail');
         }
       } else if (section === 'dateOfBirth') {
         if (editFormData.dateOfBirth !== undefined && editFormData.dateOfBirth !== null && editFormData.dateOfBirth !== '') {
           formData.append('dateOfBirth', editFormData.dateOfBirth);
-          console.log(`  ✓ dateOfBirth: "${editFormData.dateOfBirth}"`);
+          logger.debug('Saving dateOfBirth');
         }
       }
       
@@ -783,7 +779,7 @@ const Profile = () => {
       // Make API call
       const response = await api.put(`/profile/${username}`, formData);
       
-      console.log('✅ API Response:', response.data);
+      logger.debug('API Response:', response.data);
       
       // Update user data with the response (API returns {message, user})
       setUser(response.data.user || response.data);
@@ -1992,7 +1988,7 @@ const Profile = () => {
             {!isOwnProfile && currentUsername && (
               <button
                 onClick={async () => {
-                  console.log('🔄 Manual refresh triggered');
+                  logger.debug('Manual refresh triggered');
                   await checkPIIAccess();
                   await loadAccessibleImages();
                 }}
@@ -2293,7 +2289,7 @@ const Profile = () => {
           <button
             className="btn-profile-action btn-action-pii"
             onClick={async () => {
-              console.log('📋 Opening PII Request Modal - Refreshing access status...');
+              logger.debug('Opening PII Request Modal');
               await checkPIIAccess();
               setShowPIIRequestModal(true);
             }}
@@ -2366,7 +2362,7 @@ const Profile = () => {
         requestStatus={piiRequestStatus}
         onClose={() => setShowPIIRequestModal(false)}
         onRefresh={() => {
-          console.log('🔄 PIIRequestModal requested refresh');
+          logger.debug('PIIRequestModal refresh');
           checkPIIAccess(); // Refresh access status when modal opens
         }}
         onSuccess={() => {

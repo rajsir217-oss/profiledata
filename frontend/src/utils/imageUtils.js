@@ -9,18 +9,26 @@
  * Get an authenticated image URL by appending the JWT token as a query parameter.
  * This is needed because <img src> tags cannot include Authorization headers.
  * 
+ * In production with GCS, signed URLs are returned directly from backend
+ * and don't need JWT tokens (they're authenticated via GCS signature).
+ * 
  * @param {string} imageUrl - The original image URL
- * @returns {string} - The URL with token appended (if logged in)
+ * @returns {string} - The URL with token appended (if needed)
  */
 export function getAuthenticatedImageUrl(imageUrl) {
   if (!imageUrl) return '';
+  
+  // GCS signed URLs - return as-is (already authenticated via signature)
+  if (imageUrl.includes('storage.googleapis.com') || imageUrl.includes('X-Goog-Signature')) {
+    return imageUrl;
+  }
   
   // Already has token? Return as-is
   if (imageUrl.includes('token=')) {
     return imageUrl;
   }
   
-  // Only add token for our backend media URLs
+  // Only add token for our backend media URLs (local dev)
   if (!imageUrl.includes('/api/users/media/')) {
     return imageUrl;
   }
