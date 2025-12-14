@@ -185,8 +185,30 @@ const PIIManagement = () => {
       try {
         // Fetch owner's images
         const profileRes = await api.get(`/profile/${currentUsername}`);
-        setOwnerImages(profileRes.data.images || []);
-        setSelectedRequest({ request, requesterProfile });
+        const allImages = profileRes.data.images || [];
+        const publicImages = profileRes.data.publicImages || [];
+        
+        // Filter out images that are already public (member-visible)
+        // IMPORTANT: Keep track of original indices for proper access control
+        const privateImagesWithIndices = allImages
+          .map((img, originalIndex) => ({ img, originalIndex }))
+          .filter(({ img }) => {
+            const imgFilename = img.split('/').pop();
+            return !publicImages.some(pubImg => pubImg.split('/').pop() === imgFilename);
+          });
+        
+        if (privateImagesWithIndices.length === 0) {
+          setError('All photos are already visible to members. No private photos to grant access to.');
+          return;
+        }
+        
+        // Pass both the images and their original indices to the modal
+        setOwnerImages(privateImagesWithIndices.map(p => p.img));
+        setSelectedRequest({ 
+          request, 
+          requesterProfile,
+          originalIndices: privateImagesWithIndices.map(p => p.originalIndex)
+        });
         setShowImageManager(true);
       } catch (err) {
         console.error('Error loading owner images:', err);
@@ -214,15 +236,30 @@ const PIIManagement = () => {
   const handleImageAccessGrant = async ({ pictureDurations, responseMessage }) => {
     if (!selectedRequest) return;
     
-    const { request, requesterProfile } = selectedRequest;
+    const { request, requesterProfile, originalIndices } = selectedRequest;
     
     try {
       console.log('📸 Granting image access with durations:', pictureDurations);
+      console.log('📸 Original indices mapping:', originalIndices);
       
-      // Approve the PII request with individual picture durations
+      // Map filtered indices back to original image indices
+      // pictureDurations uses filtered indices (0, 1, 2...) but we need original indices
+      let mappedDurations = pictureDurations;
+      if (originalIndices && originalIndices.length > 0) {
+        mappedDurations = {};
+        Object.entries(pictureDurations).forEach(([filteredIdx, duration]) => {
+          const originalIdx = originalIndices[parseInt(filteredIdx)];
+          if (originalIdx !== undefined) {
+            mappedDurations[originalIdx] = duration;
+          }
+        });
+        console.log('📸 Mapped to original indices:', mappedDurations);
+      }
+      
+      // Approve the PII request with individual picture durations (using original indices)
       const approvalData = {
         responseMessage,
-        pictureDurations  // Send individual durations for each picture
+        pictureDurations: mappedDurations
       };
       
       await api.put(`/pii-requests/${request.id}/approve?username=${currentUsername}`, approvalData);
@@ -287,7 +324,9 @@ const PIIManagement = () => {
   const getAccessTypeLabel = (type) => {
     const labels = {
       'images': '📷 Photos',
+      'contact_number': '📞 Contact Number',
       'contact_info': '📧 Contact Info',
+      'linkedin_url': '🔗 LinkedIn',
       'date_of_birth': '🎂 Date of Birth'
     };
     return labels[type] || type;

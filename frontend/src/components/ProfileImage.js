@@ -64,15 +64,17 @@ const ProfileImage = ({
 
         case 'blurred':
           const blurLevels = { light: 8, medium: 15, heavy: 25 };
+          // Check if this is an expired access (accessReason = 'no_access') vs initial blur
+          const isExpiredAccess = image.accessReason === 'no_access';
           setImageState({
-            state: 'initial-blur',
+            state: isExpiredAccess ? 'expired-blur' : 'initial-blur',
             blur: blurLevels[initialVisibility.blurLevel || 'medium'],
             canView: false,
             showImage: true,
-            showRequestButton: true,
-            icon: '🌫️',
-            message: 'Request to view',
-            bubbleClass: 'info'
+            showRequestButton: false, // Don't show per-image buttons - use main Request Access
+            icon: isExpiredAccess ? '🔒' : '🌫️',
+            message: isExpiredAccess ? 'Access expired' : 'Private photo',
+            bubbleClass: isExpiredAccess ? 'expired' : 'info'
           });
           break;
 
@@ -84,7 +86,7 @@ const ProfileImage = ({
             showImage: false,
             showPlaceholder: true,
             placeholderType: initialVisibility.placeholderType || 'lock',
-            showRequestButton: true,
+            showRequestButton: false, // Don't show per-image buttons - use main Request Access
             icon: '🔒',
             message: 'Private Photo'
           });
@@ -111,7 +113,7 @@ const ProfileImage = ({
               blur: 15,
               canView: false,
               showImage: true,
-              showRequestButton: true,
+              showRequestButton: false, // Don't show per-image buttons
               icon: '💝',
               message: 'Add to favorites to view',
               bubbleClass: 'info'
@@ -120,13 +122,13 @@ const ProfileImage = ({
           break;
 
         default:
-          // Default to blurred
+          // Default to blurred - no per-image request buttons
           setImageState({
             state: 'default-blur',
             blur: 15,
             canView: false,
             showImage: true,
-            showRequestButton: true
+            showRequestButton: false
           });
       }
 

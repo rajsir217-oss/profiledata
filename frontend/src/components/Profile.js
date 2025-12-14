@@ -423,43 +423,45 @@ const Profile = () => {
 
   // Load accessible images with privacy settings and expiry info
   const loadAccessibleImages = async () => {
-    if (isOwnProfile || !currentUsername) {
-      // Owner sees all images normally
+    if (isOwnProfile || !currentUsername || !user) {
+      // Owner sees all images normally, or user not loaded yet
       return;
     }
 
     try {
-      // Fetch PII access info to get expiry details
-      const accessResponse = await api.get(`/pii-access/${currentUsername}/received`);
-      const receivedAccess = accessResponse.data.receivedAccess || [];
+      // Use the new per-image access check endpoint
+      // This accounts for one-time views, expiry, and per-image access rules
+      const accessResponse = await api.get(`/pii-access/check-images`, {
+        params: {
+          requester: currentUsername,
+          profile_owner: username
+        }
+      });
       
-      // Find access record for this profile owner
-      const accessRecord = receivedAccess.find(
-        access => access.userProfile?.username === username && 
-                  access.accessTypes?.includes('images')
-      );
+      const imageAccessList = accessResponse.data.images || [];
       
-      if (accessRecord && user.images?.length > 0) {
-        // Get expiry info from accessDetails for images
-        const imageAccessDetails = accessRecord.accessDetails?.images || {};
+      if (user?.images?.length > 0) {
+        // Create image objects with per-image access status
+        const imagesWithAccess = user.images.map((img, idx) => {
+          const accessInfo = imageAccessList.find(a => a.index === idx) || { hasAccess: false, reason: 'unknown' };
+          return {
+            imageId: `${username}-img-${idx}`,
+            imageUrl: img,
+            imageOrder: idx,
+            isProfilePic: idx === 0,
+            hasAccess: accessInfo.hasAccess,
+            accessReason: accessInfo.reason,
+            // For images without access, show blurred
+            initialVisibility: accessInfo.hasAccess 
+              ? { type: 'clear' } 
+              : { type: 'blurred', blurLevel: 'heavy' }
+          };
+        });
         
-        // Create image objects with access details
-        const imagesWithAccess = user.images.map((img, idx) => ({
-          imageId: `${username}-img-${idx}`,
-          imageUrl: img,
-          imageOrder: idx,
-          isProfilePic: idx === 0,
-          hasAccess: true,
-          accessDetails: {
-            grantedAt: imageAccessDetails.grantedAt,
-            expiresAt: imageAccessDetails.expiresAt
-          }
-        }));
-        
-        logger.debug('Loaded images with access');
+        logger.debug('Loaded images with per-image access:', imagesWithAccess);
         setAccessibleImages(imagesWithAccess);
       } else {
-        logger.debug('No image access record');
+        logger.debug('No images to load');
         setAccessibleImages([]);
       }
     } catch (err) {
@@ -1108,12 +1110,20 @@ const Profile = () => {
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
           {/* Profile Avatar - Always shown */}
           <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
-            {/* Main Avatar */}
+            {/* Main Avatar - Always use image[0] (profile picture) */}
             {(() => {
-              const viewerHasFullPhotoAccess = (isOwnProfile || piiAccess.images || isAdmin);
-              const avatarSrc = viewerHasFullPhotoAccess ? user.images?.[0] : (publicAvatar || user.images?.[0]);
-              const isPublicAvatar = !viewerHasFullPhotoAccess && !!publicAvatar && avatarSrc === publicAvatar;
-              const canOpenAvatar = (viewerHasFullPhotoAccess || isPublicAvatar) && !!avatarSrc;
+              // Check per-image access for avatar (first image, index 0)
+              const avatarAccessInfo = accessibleImages.find(img => img.imageOrder === 0);
+              // If accessibleImages is empty (not loaded yet), default to false for non-owners
+              const hasAvatarAccess = accessibleImages.length > 0 
+                ? (avatarAccessInfo?.hasAccess ?? false)
+                : false;
+              
+              // Avatar should ALWAYS be image[0] (the profile picture)
+              // Only show it clearly if: own profile, admin, or has per-image access to image[0]
+              const viewerHasAvatarAccess = (isOwnProfile || isAdmin || (piiAccess.images && hasAvatarAccess));
+              const avatarSrc = user.images?.[0]; // Always use image[0] as avatar
+              const canOpenAvatar = viewerHasAvatarAccess && !!avatarSrc;
 
               return (
             <div style={{
@@ -2078,41 +2088,56 @@ const Profile = () => {
           )
         ) : piiAccess.images ? (
           user.images?.length > 0 ? (
-            <div className="images-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-              gap: '16px',
-              marginTop: '16px'
-            }}>
-              {(accessibleImages.length > 0 ? accessibleImages : 
-                user.images?.map((img, idx) => ({
-                  imageId: `${username}-img-${idx}`,
-                  imageUrl: img,
-                  imageOrder: idx,
-                  isProfilePic: idx === 0,
-                  hasAccess: piiAccess.images, // ✅ Use PII access status
-                  initialVisibility: { type: 'clear' } // ✅ Show clear if has access
-                }))
-              ).map((image, idx) => (
-                <ProfileImage
-                  key={image.imageId || idx}
-                  image={image}
-                  viewerUsername={currentUsername}
-                  profileOwnerUsername={username}
-                  isFavorited={isFavorited}
-                  isShortlisted={isShortlisted}
-                  onRequestAccess={handleRequestAccess}
-                  onRenewAccess={handleRenewAccess}
-                  onClick={(imageData) => {
-                    const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
-                    if (imageUrl && typeof imageUrl === 'string') {
-                      setLightboxImage(imageUrl);
-                      setShowLightbox(true);
-                    }
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <div className="images-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                gap: '16px',
+                marginTop: '16px'
+              }}>
+                {(accessibleImages.length > 0 ? accessibleImages : 
+                  user.images?.map((img, idx) => ({
+                    imageId: `${username}-img-${idx}`,
+                    imageUrl: img,
+                    imageOrder: idx,
+                    isProfilePic: idx === 0,
+                    hasAccess: piiAccess.images,
+                    initialVisibility: { type: 'clear' }
+                  }))
+                ).map((image, idx) => (
+                  <ProfileImage
+                    key={image.imageId || idx}
+                    image={image}
+                    viewerUsername={currentUsername}
+                    profileOwnerUsername={username}
+                    isFavorited={isFavorited}
+                    isShortlisted={isShortlisted}
+                    onRequestAccess={handleRequestAccess}
+                    onRenewAccess={handleRenewAccess}
+                    onClick={(imageData) => {
+                      const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
+                      if (imageUrl && typeof imageUrl === 'string') {
+                        setLightboxImage(imageUrl);
+                        setShowLightbox(true);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+              {/* Show request access option if some images have expired access */}
+              {accessibleImages.some(img => !img.hasAccess) && (
+                <div className="pii-locked" style={{ marginTop: '16px' }}>
+                  <div className="lock-icon">🔒</div>
+                  <p>Some photos have expired access</p>
+                  <button
+                    className="btn-request-small"
+                    onClick={() => setShowPIIRequestModal(true)}
+                  >
+                    Request Access Again
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
             <p className="no-data">No photos available</p>
           )
@@ -2146,12 +2171,12 @@ const Profile = () => {
             )}
             <div className="pii-locked">
               <div className="lock-icon">🔒</div>
-              <p>Photos are private</p>
+              <p>{publicImageObjects.length > 0 ? 'More photos are private' : 'Photos are private'}</p>
               <button
                 className="btn-request-small"
                 onClick={() => setShowPIIRequestModal(true)}
               >
-                Request Access
+                {publicImageObjects.length > 0 ? 'Request More Photos' : 'Request Access'}
               </button>
             </div>
           </>

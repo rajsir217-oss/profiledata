@@ -1,6 +1,7 @@
 // frontend/src/api.js
 import axios from "axios";
 import { getApiUrl, getBackendUrl } from './config/apiConfig';
+import toastService from './services/toastService';
 
 // Use centralized API config
 const getAPIUrl = getApiUrl;
@@ -37,13 +38,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = error.config?.url || 'unknown';
       
-      // Only log once per session to avoid spam
+      // Only handle once per session to avoid spam
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
         console.warn('🔒 Session expired or invalid token');
         console.warn('📍 Endpoint:', url);
         console.warn('➡️  Redirecting to login...');
         sessionStorage.setItem('hasLoggedOut', 'true');
+        
+        // Show user-visible notification BEFORE redirect
+        toastService.warning('Your session has expired. Please log in again.', 4000);
       }
       
       // Clear all auth data
@@ -54,9 +58,10 @@ api.interceptors.response.use(
       
       // Only redirect if not already on login page
       if (!window.location.pathname.includes('/login')) {
+        // Give user time to see the toast message before redirect
         setTimeout(() => {
           window.location.href = '/login';
-        }, 100);
+        }, 2000);
       }
     }
     return Promise.reject(error);
@@ -237,11 +242,20 @@ imageAccessApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn('🔒 Image Access API: Session expired - redirecting to login');
+      const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+      if (!hasLoggedOut) {
+        console.warn('🔒 Image Access API: Session expired - redirecting to login');
+        sessionStorage.setItem('hasLoggedOut', 'true');
+        toastService.warning('Your session has expired. Please log in again.', 4000);
+      }
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userRole');
-      window.location.href = '/login';
+      if (!window.location.pathname.includes('/login')) {
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
     }
     return Promise.reject(error);
   }
@@ -445,11 +459,20 @@ notificationsApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
-      console.warn('🔒 Notifications API: Session expired - redirecting to login');
+      const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+      if (!hasLoggedOut) {
+        console.warn('🔒 Notifications API: Session expired - redirecting to login');
+        sessionStorage.setItem('hasLoggedOut', 'true');
+        toastService.warning('Your session has expired. Please log in again.', 4000);
+      }
       localStorage.removeItem('token');
       localStorage.removeItem('username');
       localStorage.removeItem('userRole');
-      window.location.href = '/login';
+      if (!window.location.pathname.includes('/login')) {
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 2000);
+      }
     }
     return Promise.reject(error);
   }
