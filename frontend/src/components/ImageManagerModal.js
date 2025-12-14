@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import './ImageManagerModal.css';
 
 const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant }) => {
@@ -90,7 +91,7 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
           <div className="requester-info">
             <div className="requester-avatar">
               {requester.images && requester.images.length > 0 ? (
-                <img src={requester.images[0]} alt={requester.firstName} />
+                <img src={getAuthenticatedImageUrl(requester.images[0])} alt={requester.firstName} />
               ) : (
                 <span className="avatar-placeholder">👤</span>
               )}
@@ -125,7 +126,7 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
                     <tr key={index}>
                       <td className="picture-label">
                         <img 
-                          src={image} 
+                          src={getAuthenticatedImageUrl(image)} 
                           alt={`${requester?.firstName || 'User'}'s profile ${index + 1}`} 
                           className="picture-thumbnail"
                         />

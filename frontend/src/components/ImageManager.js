@@ -174,8 +174,11 @@ const ImageManager = ({ existingImages, setExistingImages, publicImages, setPubl
         setSaving(true);
         
         try {
+          // Strip token parameter from URL if present (for comparison and API call)
+          const cleanImageUrl = image.url.split('?')[0];
+          
           // Remove from local array first for immediate UI feedback
-          const remainingImages = existingImages.filter(img => img !== image.url);
+          const remainingImages = existingImages.filter(img => img.split('?')[0] !== cleanImageUrl);
           
           // Get authenticated username from localStorage
           const authenticatedUsername = localStorage.getItem('username');
@@ -184,7 +187,8 @@ const ImageManager = ({ existingImages, setExistingImages, publicImages, setPubl
           console.log('🔍 Delete photo debug:', {
             authenticatedUsername,
             propUsername: username,
-            imageToDelete: image.url,
+            imageToDelete: cleanImageUrl,
+            originalUrl: image.url,
             token: token ? `${token.substring(0, 30)}...` : 'missing',
             tokenLength: token ? token.length : 0
           });
@@ -198,10 +202,11 @@ const ImageManager = ({ existingImages, setExistingImages, publicImages, setPubl
           }
           
           // Call API to delete - use authenticated username to match token
+          // Send clean URL without token parameter
           console.log(`📤 DELETE Request: /profile/${authenticatedUsername}/delete-photo`);
           const response = await api.put(`/profile/${authenticatedUsername}/delete-photo`, {
-            imageToDelete: image.url,
-            remainingImages: remainingImages
+            imageToDelete: cleanImageUrl,
+            remainingImages: remainingImages.map(img => img.split('?')[0])
           });
           
           console.log('✅ Delete response:', response.data);

@@ -244,6 +244,21 @@
   margin-left: 8px;
 }
 
+.expired-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger-dark, #991b1b);
+  background: var(--danger-light, #fee2e2);
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.pii-type-option.expired {
+  border-color: var(--danger-light, #fecaca);
+  background: var(--danger-light, #fef2f2);
+}
+
 .pii-type-description {
   font-size: 14px;
   color: var(--text-secondary, #6b7280);

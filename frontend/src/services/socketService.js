@@ -13,6 +13,7 @@ class SocketService {
     this.listeners = {};
     this.unreadCounts = new Map(); // Track unread counts per user
     this.onlineStatusCache = new Map(); // Cache online status
+    this.connectionErrorLogged = false; // Prevent console spam
   }
 
   connect(username) {
@@ -33,11 +34,13 @@ class SocketService {
     // Connect to Socket.IO server with username as query parameter
     this.socket = io(socketUrl, {
       path: '/socket.io',
-      transports: ['polling', 'websocket'], // Try polling first, then upgrade to websocket
+      transports: ['websocket', 'polling'], // Try websocket first, fall back to polling
       reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionAttempts: 10,
-      timeout: 10000, // Increase timeout to 10 seconds
+      reconnectionDelay: 5000, // Wait 5 seconds between reconnection attempts
+      reconnectionDelayMax: 30000, // Max 30 seconds between attempts
+      reconnectionAttempts: 3, // Only try 3 times before giving up
+      timeout: 5000,
+      autoConnect: true,
       query: {
         username: username
       }
@@ -66,12 +69,11 @@ class SocketService {
     });
 
     this.socket.on('connect_error', (error) => {
-      logger.error('Socket connection error:', error.message);
-      logger.error('Connection details:', {
-        url: socketUrl,
-        transport: this.socket.io.engine ? this.socket.io.engine.transport.name : 'none',
-        connected: this.connected
-      });
+      // Only log once, not on every retry
+      if (!this.connectionErrorLogged) {
+        logger.warn('Socket.IO server not available - real-time features disabled');
+        this.connectionErrorLogged = true;
+      }
     });
 
     // Online status events

@@ -164,6 +164,17 @@
   font-weight: 500;
 }
 
+.access-type-badge.expired {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.1) 100%);
+  color: var(--danger-color, #ef4444);
+  border: 1px solid var(--danger-light, #fecaca);
+}
+
+.expired-indicator {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
 .access-date {
   font-size: 12px;
   color: var(--text-muted, #999);
@@ -344,6 +355,15 @@
 .badge-cancelled {
   background: var(--surface-color, #e2e3e5);
   color: var(--text-secondary, #383d41);
+}
+
+.badge-expired {
+  background: var(--warning-light, #fff3cd);
+  color: var(--warning-dark, #856404);
+}
+
+.expired-card {
+  border-left: 4px solid var(--warning-color, #ffc107);
 }
 
 .request-card-body {
