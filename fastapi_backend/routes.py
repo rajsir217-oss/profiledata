@@ -739,16 +739,38 @@ async def register_user(
             detail="Username already exists"
         )
     
-    # Check if email already exists
+    # Check if email already exists (must check encrypted value since DB stores encrypted emails)
+    encryptor = get_encryptor()
     if contactEmail:
-        logger.debug(f"Checking if email '{contactEmail}' exists...")
-        existing_email = await db.users.find_one({"contactEmail": contactEmail})
-        if existing_email:
-            logger.warning(f"⚠️ Registration failed: Email '{contactEmail}' already registered")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Email already registered"
-            )
+        logger.debug(f"Checking if email exists...")
+        try:
+            encrypted_email = encryptor.encrypt(contactEmail)
+            existing_email = await db.users.find_one({"contactEmail": encrypted_email})
+            if existing_email:
+                logger.warning(f"⚠️ Registration failed: Email already registered")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already registered"
+                )
+        except Exception as e:
+            logger.warning(f"⚠️ Could not check email uniqueness: {e}")
+            # Continue with registration - better to allow than block on encryption error
+    
+    # Check if phone number already exists (must check encrypted value)
+    if contactNumber:
+        logger.debug(f"Checking if phone number exists...")
+        try:
+            encrypted_phone = encryptor.encrypt(contactNumber)
+            existing_phone = await db.users.find_one({"contactNumber": encrypted_phone})
+            if existing_phone:
+                logger.warning(f"⚠️ Registration failed: Phone number already registered")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Phone number already registered"
+                )
+        except Exception as e:
+            logger.warning(f"⚠️ Could not check phone uniqueness: {e}")
+            # Continue with registration - better to allow than block on encryption error
     
     # Validate and save images
     image_paths = []
