@@ -29,7 +29,8 @@ export function getAuthenticatedImageUrl(imageUrl) {
   }
   
   // Only add token for our backend media URLs (local dev)
-  if (!imageUrl.includes('/api/users/media/')) {
+  // Handles both /media/ and /api/users/media/ endpoints
+  if (!imageUrl.includes('/media/')) {
     return imageUrl;
   }
   

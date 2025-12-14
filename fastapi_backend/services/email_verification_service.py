@@ -150,7 +150,7 @@ class EmailVerificationService:
             <body>
                 <div class="container">
                     <div class="header">
-                        <h1>Welcome to Our Platform!</h1>
+                        <h1>Welcome to L3V3L Matches Platform!</h1>
                         <p>Just one more step to activate your account</p>
                     </div>
                     <div class="content">

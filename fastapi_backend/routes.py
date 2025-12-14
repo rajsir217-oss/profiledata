@@ -233,7 +233,11 @@ def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
     username = (user_doc.get("username") or "").lower()
     return role == "admin" or role_name == "admin" or username == "admin"
 
-async def _has_images_access(db, requester_username: str, owner_username: str) -> bool:
+async def _has_images_access(db, requester_username: str, owner_username: str, image_filename: str = None) -> bool:
+    """Check if requester has access to owner's images.
+    
+    If image_filename is provided, also checks per-image access rules including one-time views.
+    """
     if not requester_username:
         return False
     if requester_username.lower() == owner_username.lower():
@@ -252,19 +256,130 @@ async def _has_images_access(db, requester_username: str, owner_username: str) -
     if not access_doc:
         return False
 
+    # Check global expiry first
     expires_at = access_doc.get("expiresAt")
-    if not expires_at:
+    if expires_at:
+        try:
+            expires_dt = expires_at
+            if isinstance(expires_at, str):
+                expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+            if expires_dt <= datetime.utcnow():
+                await db.pii_access.update_one({"_id": access_doc.get("_id")}, {"$set": {"isActive": False}})
+                return False
+        except Exception:
+            pass
+    
+    # If no specific image requested, just check general access
+    if not image_filename:
         return True
-    try:
-        expires_dt = expires_at
-        if isinstance(expires_at, str):
-            expires_dt = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
-        if expires_dt > datetime.utcnow():
-            return True
-        await db.pii_access.update_one({"_id": access_doc.get("_id")}, {"$set": {"isActive": False}})
+    
+    # Check per-image access rules (pictureDurations)
+    picture_durations = access_doc.get("pictureDurations", {})
+    if not picture_durations:
+        # No per-image rules, general access applies
+        return True
+    
+    # Find the image index by matching filename in owner's images
+    owner = await db.users.find_one(
+        get_username_query(owner_username),
+        {"images": 1}
+    )
+    if not owner:
         return False
-    except Exception:
+    
+    owner_images = owner.get("images", [])
+    image_index = None
+    for idx, img in enumerate(owner_images):
+        if img and img.split('/')[-1] == image_filename:
+            image_index = str(idx)
+            break
+    
+    if image_index is None:
+        # Image not found in owner's images, deny access
         return False
+    
+    # Check if this specific image has access rules
+    image_access = picture_durations.get(image_index)
+    if not image_access:
+        # No specific rule for this image - deny access
+        # Only images explicitly granted in pictureDurations should be accessible
+        return False
+    
+    duration = image_access.get("duration")
+    
+    # Check one-time view
+    if duration == "onetime":
+        viewed_at = image_access.get("viewedAt")
+        if viewed_at is not None:
+            # Already viewed, access expired
+            logger.info(f"🚫 One-time view already used for image {image_index} by {requester_username}")
+            return False
+        # First view - will be marked as viewed after serving
+        return True
+    
+    # Check permanent access
+    if duration == "permanent":
+        return True
+    
+    # Check time-based expiry for this specific image
+    image_expires_at = image_access.get("expiresAt")
+    if image_expires_at:
+        try:
+            expires_dt = image_expires_at
+            if isinstance(image_expires_at, str):
+                expires_dt = datetime.fromisoformat(image_expires_at.replace('Z', '+00:00'))
+            if expires_dt <= datetime.utcnow():
+                return False
+        except Exception:
+            pass
+    
+    return True
+
+
+async def _mark_image_as_viewed(db, requester_username: str, owner_username: str, image_filename: str):
+    """Mark a one-time view image as viewed after serving."""
+    access_doc = await db.pii_access.find_one({
+        "granterUsername": owner_username,
+        "grantedToUsername": requester_username,
+        "accessType": "images",
+        "isActive": True
+    })
+    if not access_doc:
+        return
+    
+    picture_durations = access_doc.get("pictureDurations", {})
+    if not picture_durations:
+        return
+    
+    # Find the image index
+    owner = await db.users.find_one(
+        get_username_query(owner_username),
+        {"images": 1}
+    )
+    if not owner:
+        return
+    
+    owner_images = owner.get("images", [])
+    image_index = None
+    for idx, img in enumerate(owner_images):
+        if img and img.split('/')[-1] == image_filename:
+            image_index = str(idx)
+            break
+    
+    if image_index is None:
+        return
+    
+    image_access = picture_durations.get(image_index)
+    if not image_access:
+        return
+    
+    # Only mark one-time views
+    if image_access.get("duration") == "onetime" and image_access.get("viewedAt") is None:
+        logger.info(f"📸 Marking one-time view as used: image {image_index} for {requester_username}")
+        await db.pii_access.update_one(
+            {"_id": access_doc["_id"]},
+            {"$set": {f"pictureDurations.{image_index}.viewedAt": datetime.utcnow()}}
+        )
 
 @router.get("/media/{filename}")
 async def get_protected_media(
@@ -319,10 +434,18 @@ async def get_protected_media(
     public_list = owner.get("publicImages", [])
     is_public = any((p or "").split('/')[-1] == filename for p in public_list)
 
+    is_one_time_view = False
+    has_full_access = True
     if not is_public:
-        has_access = await _has_images_access(db, requester_username, owner_username)
+        # Pass filename to check per-image access rules including one-time views
+        has_access = await _has_images_access(db, requester_username, owner_username, filename)
         if not has_access:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized to view this image")
+            # Instead of blocking, serve the image but mark as no-access for frontend to blur
+            has_full_access = False
+            logger.info(f"🔒 Serving blurred image {filename} to {requester_username} (access expired/denied)")
+        else:
+            # Check if this is a one-time view that needs to be marked as used
+            is_one_time_view = True  # Will be checked and marked after serving
 
     # Serve from GCS if enabled, else local filesystem
     if settings.use_gcs and settings.gcs_bucket_name:
@@ -334,7 +457,14 @@ async def get_protected_media(
             if not blob.exists():
                 raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
             data = blob.download_as_bytes()
-            return Response(content=data, media_type="application/octet-stream")
+            
+            # Mark one-time view as used after serving
+            if is_one_time_view:
+                await _mark_image_as_viewed(db, requester_username, owner_username, filename)
+            
+            # Add header to indicate access status for frontend blurring
+            headers = {"X-Image-Access": "full" if has_full_access else "blur"}
+            return Response(content=data, media_type="application/octet-stream", headers=headers)
         except HTTPException:
             raise
         except Exception as e:
@@ -344,7 +474,14 @@ async def get_protected_media(
     file_path = Path(settings.upload_dir) / filename
     if not file_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
-    return FileResponse(path=str(file_path))
+    
+    # Mark one-time view as used after serving
+    if is_one_time_view:
+        await _mark_image_as_viewed(db, requester_username, owner_username, filename)
+    
+    # Add header to indicate access status for frontend blurring
+    headers = {"X-Image-Access": "full" if has_full_access else "blur"}
+    return FileResponse(path=str(file_path), headers=headers)
 
 def parse_height_to_inches(height_str):
     """Convert height string '5'8"' or '5 ft 8 in' to total inches"""
@@ -6459,6 +6596,64 @@ async def check_pii_access(
     
     except Exception as e:
         logger.error(f"❌ Error checking PII access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/pii-access/check-images")
+async def check_images_access(
+    requester: str = Query(...),
+    profile_owner: str = Query(...),
+    db = Depends(get_database)
+):
+    """Check per-image access status for all images of a profile owner.
+    
+    Returns access status for each image, accounting for one-time views and expiry.
+    """
+    try:
+        # Get owner's images
+        owner = await db.users.find_one(get_username_query(profile_owner), {"images": 1, "publicImages": 1})
+        if not owner:
+            return {"images": [], "error": "User not found"}
+        
+        all_images = owner.get("images", [])
+        public_images = owner.get("publicImages", [])
+        
+        # Check if requester is owner or admin
+        if requester.lower() == profile_owner.lower():
+            # Owner sees all their images
+            return {
+                "images": [{"index": i, "hasAccess": True, "reason": "owner"} for i in range(len(all_images))]
+            }
+        
+        requester_user = await db.users.find_one(get_username_query(requester), {"role": 1, "role_name": 1})
+        if _is_admin_user(requester_user):
+            return {
+                "images": [{"index": i, "hasAccess": True, "reason": "admin"} for i in range(len(all_images))]
+            }
+        
+        # Check each image's access status
+        image_access_list = []
+        for idx, img in enumerate(all_images):
+            filename = img.split('/')[-1] if img else None
+            
+            # Check if public
+            is_public = any((p or "").split('/')[-1] == filename for p in public_images)
+            if is_public:
+                image_access_list.append({"index": idx, "hasAccess": True, "reason": "public"})
+                continue
+            
+            # Check per-image access
+            has_access = await _has_images_access(db, requester, profile_owner, filename)
+            image_access_list.append({
+                "index": idx, 
+                "hasAccess": has_access, 
+                "reason": "granted" if has_access else "no_access"
+            })
+        
+        return {"images": image_access_list}
+    
+    except Exception as e:
+        logger.error(f"❌ Error checking images access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 

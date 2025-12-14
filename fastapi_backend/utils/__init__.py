@@ -122,12 +122,11 @@ def get_full_image_url(image_path: str) -> str:
             logger.error(f"❌ Failed to generate signed URL for {filename}: {e}")
             return settings.backend_url
 
-    # Local mode: prepend backend URL
-    if not image_path.startswith('/'):
-        image_path = f"/{image_path}"
-    local_url = f"{settings.backend_url}{image_path}"
-    logger.debug(f"🏠 Local mode: {image_path} -> {local_url}")
-    return local_url
+    # Local mode: use /api/users/media/ endpoint for access control (one-time views, expiry, etc.)
+    # The /api/users/media/{filename} endpoint handles authentication and per-image access rules
+    media_url = f"{settings.backend_url}/api/users/media/{filename}"
+    logger.debug(f"🏠 Local mode: {image_path} -> {media_url}")
+    return media_url
 
 # Make branding functions available at package level
 from .branding import get_app_name, get_app_name_short, get_app_branding
