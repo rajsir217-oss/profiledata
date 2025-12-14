@@ -30,7 +30,7 @@
   padding: 10px 16px;
   font-size: 14px;
   font-weight: 500;
-  color: var(--text-color, #495057);
+  color: #495057;
   background: transparent;
   border: none;
   border-radius: 8px;
@@ -38,7 +38,7 @@
   transition: all 0.2s ease;
   white-space: nowrap;
   line-height: 1.5;
-  overflow: hidden;
+  overflow: visible;
   text-overflow: ellipsis;
 }
 

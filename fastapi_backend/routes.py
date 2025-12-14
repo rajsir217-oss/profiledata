@@ -247,14 +247,19 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
     if _is_admin_user(requester_user):
         return True
 
-    access_doc = await db.pii_access.find_one({
+    # Get ALL active access records (there may be multiple)
+    access_docs = await db.pii_access.find({
         "granterUsername": owner_username,
         "grantedToUsername": requester_username,
         "accessType": "images",
         "isActive": True
-    })
-    if not access_doc:
+    }).sort("grantedAt", -1).to_list(10)  # Most recent first
+    
+    if not access_docs:
         return False
+    
+    # Use the most recent access doc for general checks
+    access_doc = access_docs[0]
 
     # Check global expiry first
     expires_at = access_doc.get("expiresAt")
@@ -271,12 +276,6 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
     
     # If no specific image requested, just check general access
     if not image_filename:
-        return True
-    
-    # Check per-image access rules (pictureDurations)
-    picture_durations = access_doc.get("pictureDurations", {})
-    if not picture_durations:
-        # No per-image rules, general access applies
         return True
     
     # Find the image index by matching filename in owner's images
@@ -298,57 +297,68 @@ async def _has_images_access(db, requester_username: str, owner_username: str, i
         # Image not found in owner's images, deny access
         return False
     
-    # Check if this specific image has access rules
-    image_access = picture_durations.get(image_index)
-    if not image_access:
-        # No specific rule for this image - deny access
-        # Only images explicitly granted in pictureDurations should be accessible
-        return False
+    # Check ALL access records for this image - if ANY grants access, allow it
+    for access_doc in access_docs:
+        picture_durations = access_doc.get("pictureDurations", {})
+        if not picture_durations:
+            # No per-image rules in this record, general access applies
+            return True
+        
+        # Check if this specific image has access rules in this record
+        image_access = picture_durations.get(image_index)
+        if not image_access:
+            # No rule for this image in this record, try next
+            continue
+        
+        duration = image_access.get("duration")
+        duration_str = str(duration) if duration else ""
+        
+        # Check one-time view
+        if duration_str == "onetime":
+            viewed_at = image_access.get("viewedAt")
+            if viewed_at is None:
+                # Not yet viewed - access granted
+                return True
+            # Already viewed in this record, try next record
+            continue
+        
+        # Check permanent access
+        if duration_str == "permanent":
+            return True
+        
+        # Check time-based expiry (numeric days)
+        if duration_str.isdigit() or isinstance(duration, int):
+            image_expires_at = image_access.get("expiresAt")
+            if image_expires_at:
+                try:
+                    expires_dt = image_expires_at
+                    if isinstance(image_expires_at, str):
+                        expires_dt = datetime.fromisoformat(image_expires_at.replace('Z', '+00:00'))
+                    if expires_dt > datetime.utcnow():
+                        # Not expired yet - access granted
+                        return True
+                except Exception:
+                    pass
+            else:
+                # No expiresAt set, assume access granted
+                return True
     
-    duration = image_access.get("duration")
-    
-    # Check one-time view
-    if duration == "onetime":
-        viewed_at = image_access.get("viewedAt")
-        if viewed_at is not None:
-            # Already viewed, access expired
-            logger.info(f"🚫 One-time view already used for image {image_index} by {requester_username}")
-            return False
-        # First view - will be marked as viewed after serving
-        return True
-    
-    # Check permanent access
-    if duration == "permanent":
-        return True
-    
-    # Check time-based expiry for this specific image
-    image_expires_at = image_access.get("expiresAt")
-    if image_expires_at:
-        try:
-            expires_dt = image_expires_at
-            if isinstance(image_expires_at, str):
-                expires_dt = datetime.fromisoformat(image_expires_at.replace('Z', '+00:00'))
-            if expires_dt <= datetime.utcnow():
-                return False
-        except Exception:
-            pass
-    
-    return True
+    # No access record grants access to this image
+    logger.info(f"🚫 No active access for image {image_index} by {requester_username}")
+    return False
 
 
 async def _mark_image_as_viewed(db, requester_username: str, owner_username: str, image_filename: str):
     """Mark a one-time view image as viewed after serving."""
-    access_doc = await db.pii_access.find_one({
+    # Get ALL active access records
+    access_docs = await db.pii_access.find({
         "granterUsername": owner_username,
         "grantedToUsername": requester_username,
         "accessType": "images",
         "isActive": True
-    })
-    if not access_doc:
-        return
+    }).sort("grantedAt", -1).to_list(10)
     
-    picture_durations = access_doc.get("pictureDurations", {})
-    if not picture_durations:
+    if not access_docs:
         return
     
     # Find the image index
@@ -369,17 +379,24 @@ async def _mark_image_as_viewed(db, requester_username: str, owner_username: str
     if image_index is None:
         return
     
-    image_access = picture_durations.get(image_index)
-    if not image_access:
-        return
-    
-    # Only mark one-time views
-    if image_access.get("duration") == "onetime" and image_access.get("viewedAt") is None:
-        logger.info(f"📸 Marking one-time view as used: image {image_index} for {requester_username}")
-        await db.pii_access.update_one(
-            {"_id": access_doc["_id"]},
-            {"$set": {f"pictureDurations.{image_index}.viewedAt": datetime.utcnow()}}
-        )
+    # Find the access record with unviewed one-time access for this image
+    for access_doc in access_docs:
+        picture_durations = access_doc.get("pictureDurations", {})
+        if not picture_durations:
+            continue
+        
+        image_access = picture_durations.get(image_index)
+        if not image_access:
+            continue
+        
+        # Only mark one-time views that haven't been viewed yet
+        if image_access.get("duration") == "onetime" and image_access.get("viewedAt") is None:
+            logger.info(f"📸 Marking one-time view as used: image {image_index} for {requester_username}")
+            await db.pii_access.update_one(
+                {"_id": access_doc["_id"]},
+                {"$set": {f"pictureDurations.{image_index}.viewedAt": datetime.utcnow()}}
+            )
+            return  # Only mark one record
 
 @router.get("/media/{filename}")
 async def get_protected_media(
@@ -1533,17 +1550,24 @@ async def update_user_profile(
         update_data["partnerPreference"] = partnerPreference.strip()
     
     # Handle new structured fields (JSON arrays/objects)
+    logger.info(f"📚 educationHistory received: {educationHistory}")
+    logger.info(f"💼 workExperience received: {workExperience}")
+    
     if educationHistory is not None and educationHistory.strip():
         try:
-            update_data["educationHistory"] = json.loads(educationHistory)
-        except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON for educationHistory: {educationHistory}")
+            parsed_edu = json.loads(educationHistory)
+            update_data["educationHistory"] = parsed_edu
+            logger.info(f"✅ Parsed educationHistory: {len(parsed_edu)} entries")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON for educationHistory: {educationHistory}, error: {e}")
     
     if workExperience is not None and workExperience.strip():
         try:
-            update_data["workExperience"] = json.loads(workExperience)
-        except json.JSONDecodeError:
-            logger.warning(f"Invalid JSON for workExperience: {workExperience}")
+            parsed_work = json.loads(workExperience)
+            update_data["workExperience"] = parsed_work
+            logger.info(f"✅ Parsed workExperience: {len(parsed_work)} entries")
+        except json.JSONDecodeError as e:
+            logger.warning(f"Invalid JSON for workExperience: {workExperience}, error: {e}")
     
     if languagesSpoken is not None and languagesSpoken.strip():
         try:
@@ -1990,18 +2014,21 @@ async def reorder_photos(
         if not url_or_path:
             return ''
             
-        # Handle full URLs: http://localhost:8000/uploads/file.jpg
+        # Handle full URLs: http://localhost:8000/uploads/file.jpg or /api/users/media/file.jpg
         if url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
-            # Returns: /uploads/file.jpg
-            return parsed.path
+            path = parsed.path
+        else:
+            path = url_or_path
         
-        # Handle paths without leading slash: uploads/file.jpg
-        if url_or_path.startswith('uploads/'):
-            return '/' + url_or_path
+        # Extract just the filename from various path formats
+        # /api/users/media/file.jpg -> file.jpg
+        # /uploads/file.jpg -> file.jpg
+        # uploads/file.jpg -> file.jpg
+        filename = path.split('/')[-1]
         
-        # Already has leading slash: /uploads/file.jpg
-        return url_or_path
+        # Return normalized path as /uploads/filename
+        return f'/uploads/{filename}'
     
     # Normalize both for comparison
     normalized_new = sorted([extract_path(img) for img in new_order])
@@ -2129,28 +2156,35 @@ async def delete_photo(
     from pathlib import Path
     from urllib.parse import urlparse
     
-    def extract_path(url_or_path):
-        """Normalize all image path formats to /uploads/filename.ext"""
+    def extract_filename(url_or_path):
+        """Extract just the filename from any image path format for comparison"""
         if not url_or_path:
             return ''
+        
+        # Strip query parameters (like ?token=...)
+        if '?' in url_or_path:
+            url_or_path = url_or_path.split('?')[0]
             
         # Handle full URLs: http://localhost:8000/uploads/file.jpg
         if url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
-            # Returns: /uploads/file.jpg
-            return parsed.path
+            url_or_path = parsed.path
         
-        # Handle paths without leading slash: uploads/file.jpg
-        if url_or_path.startswith('uploads/'):
-            return '/' + url_or_path
-        
-        # Already has leading slash: /uploads/file.jpg
-        return url_or_path
+        # Extract just the filename (last part after any /)
+        # This handles all formats:
+        # - /api/users/media/filename.jpg -> filename.jpg
+        # - /uploads/profile_images/filename.jpg -> filename.jpg
+        # - /media/filename.jpg -> filename.jpg
+        # - filename.jpg -> filename.jpg
+        return url_or_path.split('/')[-1]
     
     # Validate that image exists in user's images
     existing_images = user.get("images", [])
-    normalized_to_delete = extract_path(image_to_delete)
-    normalized_existing = [extract_path(img) for img in existing_images]
+    normalized_to_delete = extract_filename(image_to_delete)
+    normalized_existing = [extract_filename(img) for img in existing_images]
+    
+    logger.info(f"🔍 Normalized to delete: {normalized_to_delete}")
+    logger.info(f"🔍 Normalized existing: {normalized_existing}")
     
     if normalized_to_delete not in normalized_existing:
         logger.warning(f"⚠️ Delete failed: Image not found in user's profile")
@@ -2170,10 +2204,10 @@ async def delete_photo(
         logger.warning(f"⚠️ Could not delete physical file: {file_err}")
     
     # Normalize remaining images
-    normalized_remaining = [extract_path(img) for img in remaining_images]
+    normalized_remaining = [extract_filename(img) for img in remaining_images]
 
     current_public = user.get("publicImages", [])
-    normalized_public = [extract_path(img) for img in current_public]
+    normalized_public = [extract_filename(img) for img in current_public]
     normalized_public = [p for p in normalized_public if p and p in normalized_remaining]
     
     # Update user's images in database
@@ -5969,8 +6003,48 @@ async def create_pii_request(
             })
             
             if has_access:
-                logger.info(f"✅ Access already granted for {request_type}")
-                continue
+                # For images, check if all one-time views have expired
+                if request_type == "images":
+                    picture_durations = has_access.get("pictureDurations", {})
+                    if picture_durations:
+                        all_expired = True
+                        for img_idx, img_access in picture_durations.items():
+                            duration = img_access.get("duration", "")
+                            viewed_at = img_access.get("viewedAt")
+                            
+                            # Handle both "one_time" and "onetime" formats
+                            if duration in ("one_time", "onetime"):
+                                if not viewed_at:
+                                    all_expired = False
+                                    break
+                            elif duration == "permanent":
+                                all_expired = False
+                                break
+                            else:
+                                # Time-based: check if expired
+                                expires_at = img_access.get("expiresAt")
+                                if expires_at:
+                                    if isinstance(expires_at, str):
+                                        expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                                    if expires_at > datetime.utcnow():
+                                        all_expired = False
+                                        break
+                                else:
+                                    all_expired = False
+                                    break
+                        
+                        if all_expired:
+                            logger.info(f"⏱️ Images access expired for {username} - allowing new request")
+                            # Don't skip - allow new request since access expired
+                        else:
+                            logger.info(f"✅ Access already granted for {request_type}")
+                            continue
+                    else:
+                        logger.info(f"✅ Access already granted for {request_type}")
+                        continue
+                else:
+                    logger.info(f"✅ Access already granted for {request_type}")
+                    continue
             
             # Create new request
             pii_request = {
@@ -6327,6 +6401,7 @@ async def get_granted_access(
         }).sort("grantedAt", -1).to_list(100)
         
         # Group by user to consolidate multiple access types
+        # Track active (non-expired) access per user per type
         user_access_map = {}
         for access in access_records:
             granted_to = access["grantedToUsername"]
@@ -6334,17 +6409,77 @@ async def get_granted_access(
             if granted_to not in user_access_map:
                 user_access_map[granted_to] = {
                     "username": granted_to,
-                    "accessTypes": [],
+                    "accessTypes": set(),  # Use set to avoid duplicates
+                    "activeTypes": set(),  # Track types with at least one active access
                     "grantedAt": access["grantedAt"],
-                    "accessIds": []
+                    "accessIds": [],
+                    "expiredTypes": []
                 }
             
-            user_access_map[granted_to]["accessTypes"].append(access["accessType"])
+            access_type = access["accessType"]
+            user_access_map[granted_to]["accessTypes"].add(access_type)
             user_access_map[granted_to]["accessIds"].append(str(access["_id"]))
+            
+            # Check if images access has expired (all one-time views used)
+            if access_type == "images":
+                picture_durations = access.get("pictureDurations", {})
+                if picture_durations:
+                    # Check if all granted images have been viewed (one-time expired)
+                    all_expired = True
+                    for img_idx, img_access in picture_durations.items():
+                        duration = img_access.get("duration", "")
+                        viewed_at = img_access.get("viewedAt")
+                        
+                        # Convert duration to string for comparison
+                        duration_str = str(duration) if duration else ""
+                        
+                        # Handle both "one_time" and "onetime" formats
+                        if duration_str in ("one_time", "onetime"):
+                            # One-time view: expired if viewedAt is set
+                            if not viewed_at:
+                                all_expired = False
+                                break
+                        elif duration_str == "permanent":
+                            # Permanent access never expires
+                            all_expired = False
+                            break
+                        elif duration_str.isdigit() or isinstance(duration, int):
+                            # Time-based (1, 2, 3 days, etc.): check if expired
+                            expires_at = img_access.get("expiresAt")
+                            if expires_at:
+                                from datetime import datetime
+                                if isinstance(expires_at, str):
+                                    expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                                if expires_at > datetime.utcnow():
+                                    all_expired = False
+                                    break
+                            else:
+                                # No expiresAt means not expired yet
+                                all_expired = False
+                                break
+                        else:
+                            # Unknown duration type - assume not expired
+                            all_expired = False
+                            break
+                    
+                    if not all_expired:
+                        # This access record has at least one non-expired image
+                        user_access_map[granted_to]["activeTypes"].add("images")
+            else:
+                # Non-image access types are always active if isActive=True
+                user_access_map[granted_to]["activeTypes"].add(access_type)
         
-        # Get user details
+        # Get user details - filter out users with NO active access types
         result = []
         for username_key, access_info in user_access_map.items():
+            # Check if user has ANY active access types
+            active_types = list(access_info["activeTypes"])
+            
+            # Skip this user if all their access types have expired
+            if not active_types:
+                logger.info(f"⏱️ Skipping {username_key} - all access types expired: {access_info['expiredTypes']}")
+                continue
+            
             user = await db.users.find_one({"username": username_key})
             if user:
                 user.pop("password", None)
@@ -6358,12 +6493,13 @@ async def get_granted_access(
                 
                 result.append({
                     "userProfile": user,
-                    "accessTypes": access_info["accessTypes"],
+                    "accessTypes": active_types,  # Only include active (non-expired) types
                     "grantedAt": access_info["grantedAt"].isoformat(),
-                    "accessIds": access_info["accessIds"]
+                    "accessIds": access_info["accessIds"],
+                    "expiredTypes": list(access_info["accessTypes"] - access_info["activeTypes"])
                 })
         
-        logger.info(f"✅ Found {len(result)} users with granted access")
+        logger.info(f"✅ Found {len(result)} users with active granted access")
         return {"grantedAccess": result}
     
     except Exception as e:
@@ -6426,6 +6562,114 @@ async def get_revoked_access(
     
     except Exception as e:
         logger.error(f"❌ Error fetching revoked access: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/pii-access/{username}/expired")
+async def get_expired_access(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get list of users whose access has expired (one-time views used, time-based expired)"""
+    logger.info(f"📊 Getting expired PII access for {username}")
+    
+    try:
+        # Get all active access records - we'll filter for expired ones
+        access_records = await db.pii_access.find({
+            "granterUsername": username,
+            "isActive": True
+        }).sort("grantedAt", -1).to_list(100)
+        
+        # Find users with ALL access types expired
+        user_access_map = {}
+        for access in access_records:
+            granted_to = access["grantedToUsername"]
+            
+            if granted_to not in user_access_map:
+                user_access_map[granted_to] = {
+                    "username": granted_to,
+                    "accessTypes": [],
+                    "grantedAt": access["grantedAt"],
+                    "accessIds": [],
+                    "expiredTypes": []
+                }
+            
+            access_type = access["accessType"]
+            user_access_map[granted_to]["accessTypes"].append(access_type)
+            user_access_map[granted_to]["accessIds"].append(str(access["_id"]))
+            
+            # Check if images access has expired
+            if access_type == "images":
+                picture_durations = access.get("pictureDurations", {})
+                if picture_durations:
+                    all_expired = True
+                    for img_idx, img_access in picture_durations.items():
+                        duration = img_access.get("duration", "")
+                        viewed_at = img_access.get("viewedAt")
+                        
+                        # Convert duration to string for comparison
+                        duration_str = str(duration) if duration else ""
+                        
+                        # Handle both "one_time" and "onetime" formats
+                        if duration_str in ("one_time", "onetime"):
+                            if not viewed_at:
+                                all_expired = False
+                                break
+                        elif duration_str == "permanent":
+                            all_expired = False
+                            break
+                        elif duration_str.isdigit() or isinstance(duration, int):
+                            # Time-based (1, 2, 3 days, etc.): check if expired
+                            expires_at = img_access.get("expiresAt")
+                            if expires_at:
+                                from datetime import datetime
+                                if isinstance(expires_at, str):
+                                    expires_at = datetime.fromisoformat(expires_at.replace('Z', '+00:00'))
+                                if expires_at > datetime.utcnow():
+                                    all_expired = False
+                                    break
+                            else:
+                                all_expired = False
+                                break
+                        else:
+                            # Unknown duration type - assume not expired
+                            all_expired = False
+                            break
+                    
+                    if all_expired:
+                        user_access_map[granted_to]["expiredTypes"].append("images")
+        
+        # Only include users where ALL access types have expired
+        result = []
+        for username_key, access_info in user_access_map.items():
+            active_types = [t for t in access_info["accessTypes"] if t not in access_info["expiredTypes"]]
+            
+            # Only include if ALL types are expired
+            if active_types:
+                continue
+            
+            user = await db.users.find_one({"username": username_key})
+            if user:
+                user.pop("password", None)
+                user["_id"] = str(user["_id"])
+                existing_images = user.get("images", [])
+                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+                full_public_urls = [get_full_image_url(p) for p in normalized_public]
+                user["publicImages"] = full_public_urls
+                user["images"] = full_public_urls
+                
+                result.append({
+                    "userProfile": user,
+                    "accessTypes": access_info["expiredTypes"],
+                    "grantedAt": access_info["grantedAt"].isoformat(),
+                    "accessIds": access_info["accessIds"],
+                    "reason": "expired"
+                })
+        
+        logger.info(f"✅ Found {len(result)} users with expired access")
+        return {"expiredAccess": result}
+    
+    except Exception as e:
+        logger.error(f"❌ Error fetching expired access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/pii-access/{username}/received")

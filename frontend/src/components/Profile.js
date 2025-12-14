@@ -401,18 +401,39 @@ const Profile = () => {
       
       // Check pending request status for each type
       const requestStatus = {};
-      const piiTypes = ['images', 'contact_info', 'date_of_birth', 'linkedin_url'];
       
-      for (const type of piiTypes) {
-        if (imagesRes.data.hasAccess && type === 'images') {
-          requestStatus[type] = 'approved';
-        } else if (contactRes.data.hasAccess && type === 'contact_info') {
-          requestStatus[type] = 'approved';
-        } else if (dobRes.data.hasAccess && type === 'date_of_birth') {
-          requestStatus[type] = 'approved';
-        } else if (linkedinRes.data.hasAccess && type === 'linkedin_url') {
-          requestStatus[type] = 'approved';
+      // For images, we need to check per-image access to determine if access is truly active
+      // The general hasAccess might be true but all one-time views could be expired
+      if (imagesRes.data.hasAccess) {
+        // Check per-image access to see if any images are still accessible
+        try {
+          const perImageRes = await api.get(`/pii-access/check-images`, {
+            params: { requester: currentUsername, profile_owner: username }
+          });
+          const imageAccessList = perImageRes.data.images || [];
+          const hasAnyActiveAccess = imageAccessList.some(img => img.hasAccess && img.reason === 'granted');
+          
+          if (hasAnyActiveAccess) {
+            requestStatus['images'] = 'approved';
+          } else {
+            // All granted access has expired - user can request again
+            requestStatus['images'] = 'expired';
+          }
+        } catch (err) {
+          // Fallback to general access check
+          requestStatus['images'] = 'approved';
         }
+      }
+      
+      // Other PII types use simple hasAccess check
+      if (contactRes.data.hasAccess) {
+        requestStatus['contact_info'] = 'approved';
+      }
+      if (dobRes.data.hasAccess) {
+        requestStatus['date_of_birth'] = 'approved';
+      }
+      if (linkedinRes.data.hasAccess) {
+        requestStatus['linkedin_url'] = 'approved';
       }
       
       setPiiRequestStatus(requestStatus);
@@ -1688,7 +1709,7 @@ const Profile = () => {
       )}
 
       {/* Personal & Lifestyle */}
-      {(user.bodyType || user.drinking || user.smoking || user.eatingPreference || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
+      {(user.relationshipStatus || user.lookingFor || user.bodyType || user.drinking || user.smoking || user.eatingPreference || user.hasChildren || user.wantsChildren || user.pets || user.interests || user.languages) && (
         <div className="profile-section">
           <div className="section-header-with-edit">
             <h3 onClick={() => toggleSection('personalLifestyle')} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1698,6 +1719,8 @@ const Profile = () => {
           </div>
           {!collapsedSections.personalLifestyle && (
           <div className="profile-info">
+            {user.relationshipStatus && <p><strong>Relationship Status:</strong> {user.relationshipStatus}</p>}
+            {user.lookingFor && <p><strong>Looking For:</strong> {user.lookingFor}</p>}
             {user.bodyType && <p><strong>Body Type:</strong> {user.bodyType}</p>}
             {user.drinking && <p><strong>Drinking:</strong> {user.drinking}</p>}
             {user.smoking && <p><strong>Smoking:</strong> {user.smoking}</p>}
@@ -1984,6 +2007,30 @@ const Profile = () => {
             )}
             {user.partnerCriteria.familyValues && user.partnerCriteria.familyValues.length > 0 && (
               <p><strong>Preferred Family Values:</strong> {user.partnerCriteria.familyValues.join(', ')}</p>
+            )}
+            {user.partnerCriteria.relationshipStatus && user.partnerCriteria.relationshipStatus !== 'Any' && (
+              <p><strong>Partner's Relationship Status:</strong> {user.partnerCriteria.relationshipStatus}</p>
+            )}
+            {user.partnerCriteria.lookingFor && user.partnerCriteria.lookingFor !== 'Any' && (
+              <p><strong>Partner Looking For:</strong> {user.partnerCriteria.lookingFor}</p>
+            )}
+            {user.partnerCriteria.bodyType && user.partnerCriteria.bodyType !== 'Any' && (
+              <p><strong>Partner's Body Type:</strong> {user.partnerCriteria.bodyType}</p>
+            )}
+            {user.partnerCriteria.pets && user.partnerCriteria.pets !== 'Any' && (
+              <p><strong>Partner's Pets:</strong> {user.partnerCriteria.pets}</p>
+            )}
+            {user.partnerCriteria.drinking && user.partnerCriteria.drinking !== 'Any' && (
+              <p><strong>Partner's Drinking:</strong> {user.partnerCriteria.drinking}</p>
+            )}
+            {user.partnerCriteria.smoking && user.partnerCriteria.smoking !== 'Any' && (
+              <p><strong>Partner's Smoking:</strong> {user.partnerCriteria.smoking}</p>
+            )}
+            {user.partnerCriteria.hasChildren && user.partnerCriteria.hasChildren !== 'Any' && (
+              <p><strong>Partner Has Children:</strong> {user.partnerCriteria.hasChildren}</p>
+            )}
+            {user.partnerCriteria.wantsChildren && user.partnerCriteria.wantsChildren !== 'Any' && (
+              <p><strong>Partner Wants Children:</strong> {user.partnerCriteria.wantsChildren}</p>
             )}
           </div>
           )}

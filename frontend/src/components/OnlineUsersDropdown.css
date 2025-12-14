@@ -121,8 +121,8 @@
 .online-user-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px;
+  gap: 8px;
+  padding: 10px 12px;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -140,8 +140,8 @@
 /* User Avatar */
 .user-avatar {
   position: relative;
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   flex-shrink: 0;
 }
 
@@ -163,19 +163,19 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 18px;
+  font-size: 14px;
   border: 2px solid var(--border-color);
 }
 
 .online-indicator-dot {
   position: absolute;
-  bottom: 0;
-  right: 0;
-  font-size: 14px;
+  bottom: -2px;
+  right: -2px;
+  font-size: 10px;
   background: var(--card-background);
   border-radius: 50%;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -238,14 +238,17 @@
 
 /* View Profile Arrow */
 .view-profile-arrow {
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-secondary);
-  opacity: 0;
+  opacity: 0.6;
   transition: opacity 0.2s ease;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
 .online-user-item:hover .view-profile-arrow {
   opacity: 1;
+  color: var(--primary-color);
 }
 
 /* Footer */
@@ -273,8 +276,8 @@
   }
 
   .user-avatar {
-    width: 40px;
-    height: 40px;
+    width: 32px;
+    height: 32px;
   }
 
   .online-indicator-dot {

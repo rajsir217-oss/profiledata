@@ -145,7 +145,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       location: "Any Location",
       eatingPreference: ["Any"],
       familyType: ["Any"],
-      familyValues: ["Moderate"]
+      familyValues: ["Moderate"],
+      // Partner lifestyle preferences (separate from owner's lifestyle)
+      relationshipStatus: "Any",
+      lookingFor: "Any",
+      bodyType: "Any",
+      pets: "Any",
+      drinking: "Any",
+      smoking: "Any",
+      hasChildren: "Any",
+      wantsChildren: "Any"
     },
     // New dating-app fields
     relationshipStatus: "Single",
@@ -677,7 +686,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const autoSaveField = async (fieldName, fieldValue, currentFormData) => {
     if (!isEditMode) return; // Only auto-save in edit mode
     
-    logger.debug(`Auto-saving field: ${fieldName}`);
+    logger.debug(`Auto-saving field: ${fieldName}, value: ${fieldValue}, type: ${typeof fieldValue}`);
     setAutoSaving(true);
     setSaveStatus(prev => ({ ...prev, [fieldName]: 'saving' }));
     
@@ -1145,6 +1154,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         data.append('existingImages', JSON.stringify(existingImages));
         
         logger.debug('Updating profile for:', username);
+        console.log('📚 educationHistory being sent:', formData.educationHistory);
+        console.log('💼 workExperience being sent:', formData.workExperience);
         
         await api.put(`/profile/${username}`, data);
         
@@ -1548,7 +1559,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               location: userData.partnerCriteria?.location || 'Any Location',
               eatingPreference: userData.partnerCriteria?.eatingPreference || ['Any'],
               familyType: userData.partnerCriteria?.familyType || ['Any'],
-              familyValues: userData.partnerCriteria?.familyValues || ['Moderate']
+              familyValues: userData.partnerCriteria?.familyValues || ['Moderate'],
+              // Partner lifestyle preferences
+              relationshipStatus: userData.partnerCriteria?.relationshipStatus || 'Any',
+              lookingFor: userData.partnerCriteria?.lookingFor || 'Any',
+              bodyType: userData.partnerCriteria?.bodyType || 'Any',
+              pets: userData.partnerCriteria?.pets || 'Any',
+              drinking: userData.partnerCriteria?.drinking || 'Any',
+              smoking: userData.partnerCriteria?.smoking || 'Any',
+              hasChildren: userData.partnerCriteria?.hasChildren || 'Any',
+              wantsChildren: userData.partnerCriteria?.wantsChildren || 'Any'
             },
             relationshipStatus: userData.relationshipStatus || 'Single',
             lookingFor: userData.lookingFor || 'Serious Relationship',
@@ -2577,6 +2597,241 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </>
         )}
 
+        {/* My Lifestyle Section - Color-coded purple for "About Me" fields */}
+        <div className="lifestyle-section my-lifestyle mt-4" style={{
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(167, 139, 250, 0.05) 100%)',
+          border: '1px solid rgba(139, 92, 246, 0.2)',
+          borderRadius: '12px',
+          padding: '20px'
+        }}>
+          <h5 className="mb-3" style={{ color: 'var(--primary-color)', fontWeight: '600' }}>
+            👤 My Lifestyle & Preferences
+          </h5>
+          <p className="text-muted small mb-3">Tell us about yourself - these help find compatible matches</p>
+          
+          {/* Row 1: Relationship Status & Looking For */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Relationship Status {renderSaveStatus('relationshipStatus')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Single', label: 'Single' },
+                  { value: 'Divorced', label: 'Divorced' },
+                  { value: 'Widowed', label: 'Widowed' },
+                  { value: 'Separated', label: 'Separated' }
+                ]}
+                value={formData.relationshipStatus}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, relationshipStatus: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('relationshipStatus', value, { ...formData, relationshipStatus: value });
+                    }, 1000);
+                  }
+                }}
+                name="relationshipStatus"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Looking For {renderSaveStatus('lookingFor')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Serious Relationship', label: '💍 Serious', icon: '💍' },
+                  { value: 'Marriage', label: '💒 Marriage', icon: '💒' },
+                  { value: 'Casual', label: '☕ Casual', icon: '☕' },
+                  { value: 'Friends', label: '🤝 Friends', icon: '🤝' }
+                ]}
+                value={formData.lookingFor}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, lookingFor: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('lookingFor', value, { ...formData, lookingFor: value });
+                    }, 1000);
+                  }
+                }}
+                name="lookingFor"
+              />
+            </div>
+          </div>
+
+          {/* Row 2: Body Type & Pets */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Body Type {renderSaveStatus('bodyType')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Slim', label: 'Slim' },
+                  { value: 'Athletic', label: 'Athletic' },
+                  { value: 'Average', label: 'Average' },
+                  { value: 'Curvy', label: 'Curvy' },
+                  { value: 'Heavyset', label: 'Heavyset' }
+                ]}
+                value={formData.bodyType}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, bodyType: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('bodyType', value, { ...formData, bodyType: value });
+                    }, 1000);
+                  }
+                }}
+                name="bodyType"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Pets {renderSaveStatus('pets')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Dog', label: '🐕 Dog', icon: '🐕' },
+                  { value: 'Cat', label: '🐈 Cat', icon: '🐈' },
+                  { value: 'Both', label: '🐕🐈 Both', icon: '🐕🐈' },
+                  { value: 'None', label: 'None' },
+                  { value: 'Other', label: 'Other' }
+                ]}
+                value={formData.pets}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, pets: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('pets', value, { ...formData, pets: value });
+                    }, 1000);
+                  }
+                }}
+                name="pets"
+              />
+            </div>
+          </div>
+
+          {/* Row 3: Drinking & Smoking */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Drinking {renderSaveStatus('drinking')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Never', label: 'Never' },
+                  { value: 'Socially', label: 'Socially' },
+                  { value: 'Regularly', label: 'Regularly' }
+                ]}
+                value={formData.drinking}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, drinking: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('drinking', value, { ...formData, drinking: value });
+                    }, 1000);
+                  }
+                }}
+                name="drinking"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Smoking {renderSaveStatus('smoking')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Never', label: 'Never' },
+                  { value: 'Socially', label: 'Socially' },
+                  { value: 'Regularly', label: 'Regularly' }
+                ]}
+                value={formData.smoking}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, smoking: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('smoking', value, { ...formData, smoking: value });
+                    }, 1000);
+                  }
+                }}
+                name="smoking"
+              />
+            </div>
+          </div>
+
+          {/* Row 4: Has Children & Wants Children */}
+          <div className="row mb-3">
+            <div className="col-md-6">
+              <label className="form-label">Has Children {renderSaveStatus('hasChildren')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Yes', label: 'Yes' },
+                  { value: 'No', label: 'No' }
+                ]}
+                value={formData.hasChildren}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, hasChildren: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('hasChildren', value, { ...formData, hasChildren: value });
+                    }, 1000);
+                  }
+                }}
+                name="hasChildren"
+              />
+            </div>
+            <div className="col-md-6">
+              <label className="form-label">Wants Children {renderSaveStatus('wantsChildren')}</label>
+              <ButtonGroup
+                options={[
+                  { value: 'Yes', label: 'Yes' },
+                  { value: 'No', label: 'No' },
+                  { value: 'Maybe', label: 'Maybe' }
+                ]}
+                value={formData.wantsChildren}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, wantsChildren: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('wantsChildren', value, { ...formData, wantsChildren: value });
+                    }, 1000);
+                  }
+                }}
+                name="wantsChildren"
+              />
+            </div>
+          </div>
+
+          {/* Row 5: Interests & Hobbies */}
+          <div className="row mb-3">
+            <div className="col-md-12">
+              <label className="form-label">Interests & Hobbies {renderSaveStatus('interests')}</label>
+              <input
+                type="text"
+                className={`form-control ${getFieldClass('interests', formData.interests)}`}
+                name="interests"
+                value={formData.interests}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setFormData(prev => ({ ...prev, interests: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('interests', value, { ...formData, interests: value });
+                    }, 1000);
+                  }
+                }}
+                placeholder="e.g., Reading, Hiking, Cooking, Travel, Music"
+              />
+              <small className="text-muted">Separate with commas</small>
+            </div>
+          </div>
+        </div>
+
         {/* Profile Images - ImageManager Component */}
         <div className="mt-4">
           <h5 className="mb-3 text-primary">📸 Profile Images</h5>
@@ -2623,7 +2878,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         {/* Education History Section - Using Shared Component */}
         <EducationHistory
           educationHistory={formData.educationHistory}
-          setEducationHistory={(value) => setFormData(prev => ({ ...prev, educationHistory: value }))}
+          setEducationHistory={(value) => {
+            setFormData(prev => ({ ...prev, educationHistory: value }));
+            // Trigger auto-save in edit mode
+            if (isEditMode) {
+              if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+              }
+              autoSaveTimerRef.current = setTimeout(() => {
+                autoSaveField('educationHistory', JSON.stringify(value), { ...formData, educationHistory: value });
+              }, 1000);
+            }
+          }}
           isRequired={true}
           showValidation={true}
           errorMsg={errorMsg}
@@ -2633,7 +2899,18 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         {/* Work Experience Section - Using Shared Component */}
         <WorkExperience
           workExperience={formData.workExperience}
-          setWorkExperience={(value) => setFormData(prev => ({ ...prev, workExperience: value }))}
+          setWorkExperience={(value) => {
+            setFormData(prev => ({ ...prev, workExperience: value }));
+            // Trigger auto-save in edit mode
+            if (isEditMode) {
+              if (autoSaveTimerRef.current) {
+                clearTimeout(autoSaveTimerRef.current);
+              }
+              autoSaveTimerRef.current = setTimeout(() => {
+                autoSaveField('workExperience', JSON.stringify(value), { ...formData, workExperience: value });
+              }, 1000);
+            }
+          }}
           isRequired={true}
           showValidation={true}
           errorMsg={errorMsg}
@@ -3316,63 +3593,100 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         {/* Background & Lifestyle Section with Grid Lines */}
         <div className="background-lifestyle-grid">
         
-        {/* ROW 3a: Relationship Status */}
+        {/* ROW 3a: Partner's Relationship Status */}
         <div className="row mb-3">
           <div className="col-md-12">
-            <label className="form-label">Relationship Status</label>
+            <label className="form-label">Partner's Relationship Status</label>
             <ButtonGroup
               options={[
                 { value: 'Single', label: 'Single' },
                 { value: 'Divorced', label: 'Divorced' },
                 { value: 'Widowed', label: 'Widowed' },
-                { value: 'Separated', label: 'Separated' }
+                { value: 'Separated', label: 'Separated' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.relationshipStatus}
-              onChange={handleChange}
-              name="relationshipStatus"
-              error={fieldErrors.relationshipStatus}
-              touched={touchedFields.relationshipStatus}
+              value={formData.partnerCriteria.relationshipStatus}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, relationshipStatus: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                // Auto-save for edit mode
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.relationshipStatus"
             />
           </div>
         </div>
 
-        {/* ROW 3b: Pets */}
+        {/* ROW 3b: Partner's Pets */}
         <div className="row mb-3">
           <div className="col-md-12">
-            <label className="form-label">Pets</label>
+            <label className="form-label">Partner's Pets Preference</label>
             <ButtonGroup
               options={[
                 { value: 'Dog', label: '🐕 Dog' },
                 { value: 'Cat', label: '🐈 Cat' },
                 { value: 'Both', label: '🐕🐈 Both' },
                 { value: 'None', label: 'None' },
-                { value: 'Other', label: 'Other' }
+                { value: 'Other', label: 'Other' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.pets}
-              onChange={handleChange}
-              name="pets"
-              error={fieldErrors.pets}
-              touched={touchedFields.pets}
+              value={formData.partnerCriteria.pets}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, pets: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.pets"
             />
           </div>
         </div>
 
-        {/* ROW 3b: Looking For */}
+        {/* ROW 3c: Partner Looking For */}
         <div className="row mb-3">
           <div className="col-md-12">
-            <label className="form-label">Looking For</label>
+            <label className="form-label">Partner Looking For</label>
             <ButtonGroup
               options={[
                 { value: 'Serious Relationship', label: '💑 Serious' },
                 { value: 'Marriage', label: '💍 Marriage' },
                 { value: 'Casual Dating', label: '☕ Casual' },
-                { value: 'Friendship', label: '🤝 Friends' }
+                { value: 'Friendship', label: '🤝 Friends' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.lookingFor}
-              onChange={handleChange}
-              name="lookingFor"
-              error={fieldErrors.lookingFor}
-              touched={touchedFields.lookingFor}
+              value={formData.partnerCriteria.lookingFor}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, lookingFor: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.lookingFor"
             />
           </div>
         </div>
@@ -3418,90 +3732,150 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
-        {/* ROW 4: Body Type | Drinking | Smoking | Has Children | Wants Children */}
+        {/* ROW 4: Partner's Body Type */}
         <div className="row mb-3">
           <div className="col-md-12 mb-3">
-            <label className="form-label">Body Type</label>
+            <label className="form-label">Partner's Body Type</label>
             <ButtonGroup
               options={[
                 { value: 'Slim', label: 'Slim' },
                 { value: 'Athletic', label: 'Athletic' },
                 { value: 'Average', label: 'Average' },
                 { value: 'Curvy', label: 'Curvy' },
-                { value: 'Heavyset', label: 'Heavyset' }
+                { value: 'Heavyset', label: 'Heavyset' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.bodyType}
-              onChange={handleChange}
-              name="bodyType"
-              error={fieldErrors.bodyType}
-              touched={touchedFields.bodyType}
+              value={formData.partnerCriteria.bodyType}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, bodyType: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.bodyType"
             />
           </div>
         </div>
 
-        {/* ROW 4b: Drinking | Smoking */}
+        {/* ROW 4b: Partner's Drinking | Smoking */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">Drinking</label>
+            <label className="form-label">Partner's Drinking</label>
             <ButtonGroup
               options={[
                 { value: 'Never', label: 'Never' },
                 { value: 'Socially', label: 'Socially' },
-                { value: 'Regularly', label: 'Regularly' }
+                { value: 'Regularly', label: 'Regularly' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.drinking}
-              onChange={handleChange}
-              name="drinking"
-              error={fieldErrors.drinking}
-              touched={touchedFields.drinking}
+              value={formData.partnerCriteria.drinking}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, drinking: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.drinking"
             />
           </div>
           <div className="col-md-6">
-            <label className="form-label">Smoking</label>
+            <label className="form-label">Partner's Smoking</label>
             <ButtonGroup
               options={[
                 { value: 'Never', label: 'Never' },
                 { value: 'Socially', label: 'Socially' },
-                { value: 'Regularly', label: 'Regularly' }
+                { value: 'Regularly', label: 'Regularly' },
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.smoking}
-              onChange={handleChange}
-              name="smoking"
-              error={fieldErrors.smoking}
-              touched={touchedFields.smoking}
+              value={formData.partnerCriteria.smoking}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, smoking: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.smoking"
             />
           </div>
         </div>
 
-        {/* ROW 4c: Has Children | Wants Children */}
+        {/* ROW 4c: Partner Has Children | Wants Children */}
         <div className="row mb-3">
           <div className="col-md-6">
-            <label className="form-label">Has Children</label>
-            <ButtonGroup
-              options={[
-                { value: 'Yes', label: 'Yes' },
-                { value: 'No', label: 'No' }
-              ]}
-              value={formData.hasChildren}
-              onChange={handleChange}
-              name="hasChildren"
-              error={fieldErrors.hasChildren}
-              touched={touchedFields.hasChildren}
-            />
-          </div>
-          <div className="col-md-6">
-            <label className="form-label">Wants Children</label>
+            <label className="form-label">Partner Has Children</label>
             <ButtonGroup
               options={[
                 { value: 'Yes', label: 'Yes' },
                 { value: 'No', label: 'No' },
-                { value: 'Maybe', label: 'Maybe' }
+                { value: 'Any', label: 'Any' }
               ]}
-              value={formData.wantsChildren}
-              onChange={handleChange}
-              name="wantsChildren"
-              error={fieldErrors.wantsChildren}
-              touched={touchedFields.wantsChildren}
+              value={formData.partnerCriteria.hasChildren}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, hasChildren: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.hasChildren"
+            />
+          </div>
+          <div className="col-md-6">
+            <label className="form-label">Partner Wants Children</label>
+            <ButtonGroup
+              options={[
+                { value: 'Yes', label: 'Yes' },
+                { value: 'No', label: 'No' },
+                { value: 'Maybe', label: 'Maybe' },
+                { value: 'Any', label: 'Any' }
+              ]}
+              value={formData.partnerCriteria.wantsChildren}
+              onChange={(e) => {
+                const value = e.target.value;
+                const newPartnerCriteria = { ...formData.partnerCriteria, wantsChildren: value };
+                setFormData(prev => ({
+                  ...prev,
+                  partnerCriteria: newPartnerCriteria
+                }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('partnerCriteria', JSON.stringify(newPartnerCriteria), formData);
+                  }, 1000);
+                }
+              }}
+              name="partnerCriteria.wantsChildren"
             />
           </div>
         </div>

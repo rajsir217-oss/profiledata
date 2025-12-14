@@ -17,20 +17,29 @@ const ButtonGroup = ({
   vertical = false
 }) => {
   const handleSelect = (optionValue) => {
+    // Ensure value is always a string
+    const stringValue = String(optionValue);
     // Simulate native change event for compatibility with existing handlers
     const event = {
       target: {
         name: name,
-        value: optionValue
+        value: stringValue
       }
     };
     onChange(event);
   };
 
+  // Normalize options to always have value and label
+  const normalizedOptions = options.map(opt => 
+    typeof opt === 'string' 
+      ? { value: opt, label: opt }
+      : { value: opt.value, label: opt.label || opt.value }
+  );
+
   return (
     <div className="button-group-container">
       <div className={`button-group ${vertical ? 'button-group-vertical' : ''} ${error && touched ? 'is-invalid' : ''}`}>
-        {options.map((option) => (
+        {normalizedOptions.map((option) => (
           <button
             key={option.value}
             type="button"

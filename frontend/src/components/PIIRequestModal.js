@@ -291,16 +291,18 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
             </div>
             
             {piiTypes.map(type => {
-              const status = requestStatus[type.value]; // 'approved', 'pending', or null
+              const status = requestStatus[type.value]; // 'approved', 'pending', 'expired', or null
               const hasAccess = status === 'approved';
               const isPending = status === 'pending';
+              const isExpired = status === 'expired';
+              // Only disable if truly has access or pending - expired allows re-request
               const isDisabled = hasAccess || isPending;
               const isSelected = selectedTypes.includes(type.value);
               
               return (
                 <div
                   key={type.value}
-                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''}`}
+                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''} ${isExpired ? 'expired' : ''}`}
                   onClick={() => !isDisabled && handleToggleType(type.value)}
                 >
                   <div className="pii-type-checkbox">
@@ -317,6 +319,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                       {type.label}
                       {hasAccess && <span className="access-badge">✅ Already Granted</span>}
                       {isPending && <span className="pending-badge">📨 Request Sent</span>}
+                      {isExpired && <span className="expired-badge">🔒 Access Expired</span>}
                     </div>
                     <div className="pii-type-description">{type.description}</div>
                   </div>

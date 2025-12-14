@@ -22,6 +22,7 @@ const PIIManagement = () => {
   
   // History data
   const [revokedAccess, setRevokedAccess] = useState([]);
+  const [expiredAccess, setExpiredAccess] = useState([]);
   const [rejectedIncoming, setRejectedIncoming] = useState([]);
   const [rejectedOutgoing, setRejectedOutgoing] = useState([]);
   
@@ -50,16 +51,18 @@ const PIIManagement = () => {
     setError('');
     
     try {
-      // Load PII Access data (granted/received/revoked)
-      const [grantedRes, receivedRes, revokedRes] = await Promise.all([
+      // Load PII Access data (granted/received/revoked/expired)
+      const [grantedRes, receivedRes, revokedRes, expiredRes] = await Promise.all([
         api.get(`/pii-access/${currentUsername}/granted`),
         api.get(`/pii-access/${currentUsername}/received`),
-        api.get(`/pii-access/${currentUsername}/revoked`)
+        api.get(`/pii-access/${currentUsername}/revoked`),
+        api.get(`/pii-access/${currentUsername}/expired`)
       ]);
 
       setGrantedAccess(grantedRes.data.grantedAccess || []);
       setReceivedAccess(receivedRes.data.receivedAccess || []);
       setRevokedAccess(revokedRes.data.grantedAccess || []);
+      setExpiredAccess(expiredRes.data.expiredAccess || []);
       
       // Load PII Requests (incoming/outgoing)
       try {
@@ -349,6 +352,7 @@ const PIIManagement = () => {
   const renderAccessCard = (item, type) => {
     const profile = item.userProfile;
     const isGranted = type === 'granted';
+    const expiredTypes = item.expiredTypes || [];
 
     return (
       <div 
@@ -374,11 +378,19 @@ const PIIManagement = () => {
 
         <div className="access-card-body">
           <div className="access-types">
-            {item.accessTypes.map(type => (
-              <span key={type} className="access-type-badge">
-                {getAccessTypeLabel(type)}
-              </span>
-            ))}
+            {item.accessTypes.map(accessType => {
+              const isExpired = expiredTypes.includes(accessType);
+              return (
+                <span 
+                  key={accessType} 
+                  className={`access-type-badge ${isExpired ? 'expired' : ''}`}
+                  title={isExpired ? 'Access has expired (one-time view used)' : ''}
+                >
+                  {getAccessTypeLabel(accessType)}
+                  {isExpired && <span className="expired-indicator"> ⏱️ Expired</span>}
+                </span>
+              );
+            })}
           </div>
           <p className="access-date">
             {isGranted ? 'Granted' : 'Received'}: {new Date(item.grantedAt).toLocaleDateString()}
@@ -729,7 +741,7 @@ const PIIManagement = () => {
             id: 'history',
             icon: '📜',
             label: 'History',
-            badge: revokedAccess.length + rejectedIncoming.length + rejectedOutgoing.length,
+            badge: revokedAccess.length + expiredAccess.length + rejectedIncoming.length + rejectedOutgoing.length,
             content: (
               <>
             {/* Revoked Access */}
@@ -778,6 +790,61 @@ const PIIManagement = () => {
                           </div>
                           <p className="access-date">
                             Revoked: {new Date(item.grantedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Expired Access */}
+            <div className="requests-section">
+              <div className="panel-header">
+                <h3>⏱️ Expired Access ({expiredAccess.length})</h3>
+                <p>One-time views that have been used up</p>
+              </div>
+              {expiredAccess.length === 0 ? (
+                <div className="empty-state-small">
+                  <p>No expired access</p>
+                </div>
+              ) : (
+                <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
+                  {expiredAccess.map(item => {
+                    const profile = item.userProfile;
+                    return (
+                      <div 
+                        key={profile.username} 
+                        className="access-card clickable history-card expired-card"
+                        onClick={() => handleProfileClick(profile.username)}
+                      >
+                        <div className="access-card-header">
+                          <div className="user-info">
+                            {profile.images?.[0] ? (
+                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                            ) : (
+                              <div className="access-avatar-placeholder">
+                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
+                              </div>
+                            )}
+                            <div>
+                              <h4>{profile.firstName || profile.username}</h4>
+                              <p className="access-username">@{profile.username}</p>
+                            </div>
+                          </div>
+                          <span className="status-badge badge-expired">Expired</span>
+                        </div>
+                        <div className="access-card-body">
+                          <div className="access-types">
+                            {item.accessTypes.map(type => (
+                              <span key={type} className="access-type-badge expired">
+                                {getAccessTypeLabel(type)}
+                              </span>
+                            ))}
+                          </div>
+                          <p className="access-date">
+                            Originally granted: {new Date(item.grantedAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>

@@ -103,29 +103,11 @@ def get_full_image_url(image_path: str) -> str:
     if not filename:
         return settings.backend_url
 
-    # If using GCS, return a short-lived signed URL (objects are NOT public)
-    if settings.use_gcs and settings.gcs_bucket_name:
-        try:
-            from google.cloud import storage
-            from datetime import timedelta
-
-            client = storage.Client()
-            bucket = client.bucket(settings.gcs_bucket_name)
-            blob = bucket.blob(f"uploads/{filename}")
-            signed_url = blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(minutes=15),
-                method="GET",
-            )
-            return signed_url
-        except Exception as e:
-            logger.error(f"❌ Failed to generate signed URL for {filename}: {e}")
-            return settings.backend_url
-
-    # Local mode: use /api/users/media/ endpoint for access control (one-time views, expiry, etc.)
-    # The /api/users/media/{filename} endpoint handles authentication and per-image access rules
+    # ALWAYS route through /api/users/media/ endpoint for access control
+    # This ensures one-time views, expiry, and per-image access rules work in both local and GCS modes
+    # The /media endpoint handles GCS internally if use_gcs is enabled
     media_url = f"{settings.backend_url}/api/users/media/{filename}"
-    logger.debug(f"🏠 Local mode: {image_path} -> {media_url}")
+    logger.debug(f"📸 Image URL: {image_path} -> {media_url}")
     return media_url
 
 # Make branding functions available at package level
