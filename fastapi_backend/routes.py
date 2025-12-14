@@ -6155,9 +6155,21 @@ async def get_outgoing_pii_requests(
         requests = await db.pii_requests.find(query).sort("requestedAt", -1).to_list(100)
         
         # Get profile owner details for each request
+        # Track seen users to deduplicate (show only latest request per user)
+        seen_users = set()
         result = []
         for req in requests:
-            profile_owner = await db.users.find_one({"username": req["profileUsername"]})
+            # Handle both old field name (requestedUsername) and new field name (profileUsername)
+            target_username = req.get("profileUsername") or req.get("requestedUsername")
+            if not target_username:
+                continue
+            
+            # Deduplicate: only show one request per target user (the most recent one)
+            if target_username in seen_users:
+                continue
+            seen_users.add(target_username)
+            
+            profile_owner = await db.users.find_one({"username": target_username})
             if profile_owner:
                 profile_owner.pop("password", None)
                 profile_owner["_id"] = str(profile_owner["_id"])
