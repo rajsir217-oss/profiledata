@@ -237,7 +237,11 @@ class EmailVerificationService:
         from starlette.concurrency import run_in_threadpool
         
         def send_sync():
+            import time
+            start_time = time.time()
             try:
+                print(f"📧 Starting email send to: {to_email}")
+                
                 # Create message
                 msg = MIMEMultipart('alternative')
                 msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
@@ -258,14 +262,21 @@ class EmailVerificationService:
                 msg.attach(part1)
                 msg.attach(part2)
                 
+                print(f"📧 Connecting to SMTP: {settings.smtp_host}:{settings.smtp_port}")
+                connect_start = time.time()
+                
                 # Connect to SMTP server and send
-                with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=10) as server:
+                with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
+                    print(f"📧 SMTP connected in {time.time() - connect_start:.2f}s")
                     if settings.smtp_port == 587:  # TLS
                         server.starttls()
+                        print(f"📧 TLS started")
                     server.login(settings.smtp_user, settings.smtp_password)
+                    print(f"📧 Logged in, sending message...")
                     server.send_message(msg)
                 
-                print(f"✅ Verification email sent to: {to_email}")
+                elapsed = time.time() - start_time
+                print(f"✅ Verification email sent to: {to_email} in {elapsed:.2f}s")
                 return True
                 
             except Exception as e:

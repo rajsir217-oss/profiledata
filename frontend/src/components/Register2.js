@@ -762,7 +762,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       
       // Send update request
       // NOTE: Don't set Content-Type manually - let browser set it with boundary
-      const response = await api.put(`/profile/${username}`, data);
+      await api.put(`/profile/${username}`, data);
       
       logger.debug(`Auto-saved ${fieldName} successfully`);
       

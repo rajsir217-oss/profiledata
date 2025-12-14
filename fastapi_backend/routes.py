@@ -2993,13 +2993,14 @@ async def search_users(
         query["accountStatus"] = "active"
 
     # Text search
-    # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region)
+    # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region and city)
     if keyword:
         query["$or"] = [
             {"firstName": {"$regex": keyword, "$options": "i"}},
             {"lastName": {"$regex": keyword, "$options": "i"}},
             {"username": {"$regex": keyword, "$options": "i"}},
             {"region": {"$regex": keyword, "$options": "i"}},  # Search region, not location
+            {"city": {"$regex": keyword, "$options": "i"}},  # Also search city field
             {"education": {"$regex": keyword, "$options": "i"}},
             {"occupation": {"$regex": keyword, "$options": "i"}},
             {"aboutYou": {"$regex": keyword, "$options": "i"}},
@@ -3040,10 +3041,20 @@ async def search_users(
         ]
 
     # Other filters
-    # ⚠️ IMPORTANT: Can't search on encrypted location, search on region instead
+    # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
     if location:
-        # Search in region field (unencrypted) instead of location (encrypted)
-        query["region"] = {"$regex": location, "$options": "i"}
+        # Search in region, city, OR aboutYou field (all unencrypted) instead of location (encrypted)
+        # aboutYou often contains location info like "I live in Indianapolis, IN"
+        location_query = {"$or": [
+            {"region": {"$regex": location, "$options": "i"}},
+            {"city": {"$regex": location, "$options": "i"}},
+            {"aboutYou": {"$regex": location, "$options": "i"}}
+        ]}
+        # Merge with existing query
+        if "$and" in query:
+            query["$and"].append(location_query)
+        else:
+            query["$and"] = [location_query]
     if occupation:
         query["occupation"] = occupation
     if religion:
