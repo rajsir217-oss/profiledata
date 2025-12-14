@@ -920,7 +920,8 @@ const Profile = () => {
     hasAccess: false,
     initialVisibility: { type: 'clear' }
   }));
-  const publicAvatar = publicImages?.[0] || null;
+  // publicAvatar available for future use if needed
+  // const publicAvatar = publicImages?.[0] || null;
   
   // Check if user has all access
   const hasAllAccess = isOwnProfile || (piiAccess.images && piiAccess.contact_info && piiAccess.date_of_birth);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
+import { getImageUrl } from '../utils/urlHelper';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
 import PageHeader from './PageHeader';
 import ImageManagerModal from './ImageManagerModal';
@@ -363,7 +364,7 @@ const PIIManagement = () => {
         <div className="access-card-header">
           <div className="user-info">
             {profile.images?.[0] ? (
-              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
             ) : (
               <div className="access-avatar-placeholder">
                 {profile.firstName?.[0] || profile.username[0].toUpperCase()}
@@ -433,7 +434,7 @@ const PIIManagement = () => {
         <div className="request-card-header">
           <div className="user-info">
             {profile.images?.[0] ? (
-              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
             ) : (
               <div className="access-avatar-placeholder">
                 {profile.firstName?.[0] || profile.username?.[0]?.toUpperCase() || '?'}
@@ -767,7 +768,7 @@ const PIIManagement = () => {
                         <div className="access-card-header">
                           <div className="user-info">
                             {profile.images?.[0] ? (
-                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
                             ) : (
                               <div className="access-avatar-placeholder">
                                 {profile.firstName?.[0] || profile.username[0].toUpperCase()}
@@ -822,7 +823,7 @@ const PIIManagement = () => {
                         <div className="access-card-header">
                           <div className="user-info">
                             {profile.images?.[0] ? (
-                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
                             ) : (
                               <div className="access-avatar-placeholder">
                                 {profile.firstName?.[0] || profile.username[0].toUpperCase()}
@@ -877,7 +878,7 @@ const PIIManagement = () => {
                         <div className="request-card-header">
                           <div className="user-info">
                             {profile.images?.[0] ? (
-                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
                             ) : (
                               <div className="access-avatar-placeholder">
                                 {profile.firstName?.[0] || profile.username[0].toUpperCase()}
@@ -933,7 +934,7 @@ const PIIManagement = () => {
                         <div className="request-card-header">
                           <div className="user-info">
                             {profile.images?.[0] ? (
-                              <img src={profile.images[0]} alt={profile.username} className="access-avatar" />
+                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
                             ) : (
                               <div className="access-avatar-placeholder">
                                 {profile.firstName?.[0] || profile.username[0].toUpperCase()}

@@ -40,6 +40,11 @@ export const getImageUrl = (imagePath) => {
   const currentBackend = getBackendUrl();
   const isLocalEnvironment = currentBackend.includes('localhost') || currentBackend.includes('127.0.0.1');
   
+  // Debug: Log input path
+  if (imagePath.includes('/api/users/media/')) {
+    console.log('🖼️ getImageUrl input:', imagePath);
+  }
+  
   // GCS signed URLs - return as-is (already authenticated via signature)
   // These URLs look like: https://storage.googleapis.com/bucket/...?X-Goog-Signature=...
   if (imagePath.includes('storage.googleapis.com') || imagePath.includes('X-Goog-Signature')) {
@@ -81,6 +86,9 @@ export const getImageUrl = (imagePath) => {
     if (token) {
       const separator = finalUrl.includes('?') ? '&' : '?';
       finalUrl = `${finalUrl}${separator}token=${encodeURIComponent(token)}`;
+      console.log('🖼️ getImageUrl output (with token):', finalUrl.substring(0, 80) + '...');
+    } else {
+      console.warn('⚠️ No token found in localStorage for protected image:', finalUrl);
     }
   }
   

@@ -55,7 +55,9 @@ export function getAuthenticatedImageUrls(images) {
   return images.map(getAuthenticatedImageUrl);
 }
 
-export default {
+const imageUtils = {
   getAuthenticatedImageUrl,
   getAuthenticatedImageUrls
 };
+
+export default imageUtils;
