@@ -6,7 +6,7 @@ import { getBackendUrl } from "../config/apiConfig";
 import logger from "../utils/logger";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
-import ProfileConfirmationModal from "./ProfileConfirmationModal";
+// ProfileConfirmationModal removed - registration now submits directly
 import { EducationHistory, WorkExperience, TextAreaWithSamples, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
 import SEO from "./SEO";
@@ -200,7 +200,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
-  const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  // showConfirmationModal removed - registration now submits directly
   const [toast, setToast] = useState(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorModalData, setErrorModalData] = useState({ title: '', message: '', errors: [] });
@@ -994,21 +994,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     setActiveTab(newTab);
   };
   
-  // Handle field change in confirmation modal
-  const handleModalFieldChange = (field, value) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-  };
-  
-  // Handle confirmation modal proceed
-  const handleConfirmAndSubmit = () => {
-    setShowConfirmationModal(false);
-    // Trigger actual form submission
-    const form = document.querySelector('form');
-    if (form) {
-      form.requestSubmit();
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
@@ -1168,13 +1153,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       } else {
         // REGISTER MODE: Create new user
         // Step 1: Register user (email is sent automatically by backend)
-        await api.post("/register", data);
-
-        // Step 2: Fetch the saved user profile from backend to get final image URLs
-        const profileRes = await api.get(`/profile/${formData.username}`);
-        setSavedUser(profileRes.data);
+        const registerRes = await api.post("/register", data);
         
-        // Step 2.5: Update invitation status if user registered via invitation
+        // Use the response from registration (contains user data)
+        // Don't fetch profile separately - user isn't logged in yet
+        if (registerRes.data?.user) {
+          setSavedUser(registerRes.data.user);
+        }
+        
+        // Step 2: Update invitation status if user registered via invitation (optional)
         if (invitationToken) {
           try {
             // Use getBackendUrl directly since invitation endpoint is /api/invitations (not /api/users)
@@ -4162,16 +4149,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                         </button>
                         <button 
                           className="btn btn-success btn-lg" 
-                          type="button"
-                          onClick={() => setShowConfirmationModal(true)}
+                          type="submit"
                           disabled={isSubmitting}
                         >
-                          📋 Review & Register
+                          {isSubmitting ? '🚀 Registering...' : '🚀 Register My Profile'}
                         </button>
                       </div>
-                      <p className="text-muted small text-center mt-2">
-                        Review your information before final submission
-                      </p>
                     </>
                   ) : (
                     <>
@@ -4229,18 +4212,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             />
           ))}
         </div>
-      )}
-
-      {/* Profile Confirmation Modal */}
-      {showConfirmationModal && (
-        <ProfileConfirmationModal
-          formData={formData}
-          onConfirm={handleConfirmAndSubmit}
-          onCancel={() => setShowConfirmationModal(false)}
-          onFieldChange={handleModalFieldChange}
-          isSubmitting={isSubmitting}
-          isEditMode={isEditMode}
-        />
       )}
 
       {/* Error Modal */}

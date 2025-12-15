@@ -1281,6 +1281,17 @@ async def get_user_profile(
     requester_username = current_user.get("username")
     logger.info(f"👤 Profile request for username: {username} (requester: {requester_username})")
     
+    # Check if user is viewing their OWN profile or someone else's
+    is_own_profile = requester_username and requester_username.lower() == username.lower()
+    
+    # Non-active users can only view their OWN profile
+    if not is_own_profile and current_user.get("accountStatus") != "active":
+        logger.warning(f"⚠️ Non-active user {requester_username} tried to view profile {username}")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to view other profiles. Please verify your email."
+        )
+    
     # Find user (case-insensitive)
     logger.debug(f"Fetching profile for user '{username}'...")
     user = await db.users.find_one(get_username_query(username))
@@ -3032,6 +3043,13 @@ async def search_users(
 ):
     """Advanced search for users with filters"""
     logger.info(f"🔍 Search request - keyword: '{keyword}', status_filter: '{status_filter}', page: {page}, limit: {limit}")
+    
+    # Non-active users cannot search for other profiles
+    if current_user.get("accountStatus") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to search for profiles. Please verify your email."
+        )
 
     # Build query
     query = {}
@@ -3602,6 +3620,13 @@ async def add_to_favorites(
     db = Depends(get_database)
 ):
     """Add user to favorites"""
+    # Non-active users cannot add favorites
+    if current_user.get("accountStatus") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to use this feature."
+        )
+    
     username = current_user["username"]
     logger.info(f"⭐ Adding {target_username} to {username}'s favorites")
 
@@ -3995,6 +4020,13 @@ async def add_to_shortlist(
     db = Depends(get_database)
 ):
     """Add user to shortlist"""
+    # Non-active users cannot add to shortlist
+    if current_user.get("accountStatus") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to use this feature."
+        )
+    
     username = current_user["username"]
     logger.info(f"📝 Adding {target_username} to {username}'s shortlist")
 
@@ -4161,6 +4193,13 @@ async def add_to_exclusions(
     db = Depends(get_database)
 ):
     """Add user to exclusions"""
+    # Non-active users cannot add exclusions
+    if current_user.get("accountStatus") != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to use this feature."
+        )
+    
     username = current_user["username"]
     logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
 
