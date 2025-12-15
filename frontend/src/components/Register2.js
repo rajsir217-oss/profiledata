@@ -342,6 +342,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const bioSamples = formData.gender === 'Female' ? femaleBioSamples : maleBioSamples;
 
   // Check if username exists in database
+  // Uses public endpoint that doesn't require authentication
   const checkUsernameAvailability = async (username) => {
     if (!username || username.length < 3) {
       return; // Don't check if username is too short
@@ -349,28 +350,28 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
     try {
       setCheckingUsername(true);
-      const response = await api.get(`/profile/${username}`);
+      const response = await api.get(`/check-username/${username}`);
       
-      // If we get a response, username exists
-      if (response.data) {
+      // Check if username is NOT available
+      if (response.data && !response.data.available) {
+        const reason = response.data.reason || "Username already exists. Please choose another.";
         setFieldErrors((prev) => ({ 
           ...prev, 
-          username: "❌ Username already exists. Please choose another." 
+          username: `❌ ${reason}` 
         }));
-      }
-    } catch (error) {
-      // 404 means username doesn't exist (available)
-      if (error.response && error.response.status === 404) {
+      } else {
+        // Username is available - clear any existing error
         setFieldErrors((prev) => {
           const newErrors = { ...prev };
-          // Only clear the error if it was about username existing
           if (newErrors.username && newErrors.username.includes("already exists")) {
             delete newErrors.username;
           }
           return newErrors;
         });
       }
-      // Other errors are ignored (network issues, etc.)
+    } catch (error) {
+      // Network errors are ignored - allow to proceed
+      console.error('Error checking username:', error);
     } finally {
       setCheckingUsername(false);
     }
@@ -1323,17 +1324,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       });
       
       // Check username availability (only in register mode)
+      // Uses public endpoint that doesn't require authentication
       if (!isEditMode && formData.username && !errors.username) {
         try {
           setCheckingUsername(true);
-          const response = await api.get(`/profile/${formData.username}`);
+          const response = await api.get(`/check-username/${formData.username}`);
           
-          // If we get a response, username exists
-          if (response.data) {
-            errors.username = "❌ Username already exists. Please choose another.";
+          // Check if username is NOT available
+          if (response.data && !response.data.available) {
+            const reason = response.data.reason || "Username already exists. Please choose another.";
+            errors.username = `❌ ${reason}`;
             setFieldErrors((prev) => ({ 
               ...prev, 
-              username: "❌ Username already exists. Please choose another." 
+              username: `❌ ${reason}` 
             }));
             
             // Show error modal
@@ -1344,14 +1347,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             });
             setShowErrorModal(true);
           }
+          // If available is true, username is available - no error needed
         } catch (error) {
-          // 404 means username doesn't exist (available) - this is good!
-          if (error.response && error.response.status === 404) {
-            // Username is available
-          } else {
-            // Network error or other issue - allow to proceed
-            console.error('Error checking username:', error);
-          }
+          // Network error or other issue - allow to proceed
+          console.error('Error checking username:', error);
         } finally {
           setCheckingUsername(false);
         }
