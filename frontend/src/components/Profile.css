@@ -95,15 +95,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
-  border-radius: 50%;
-  border: 2px solid var(--border-color);
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: none;
   background: var(--card-background);
   color: var(--text-color);
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
 }
 
 .btn-profile-action:hover:not(:disabled) {
@@ -122,7 +122,7 @@
 }
 
 .btn-profile-action .action-icon {
-  font-size: 26px;
+  font-size: 20px;
   line-height: 1;
 }
 
@@ -130,80 +130,150 @@
   display: none;
 }
 
-/* Specific button colors */
+/* Specific button colors - rounded square style */
 .btn-action-message {
-  border-color: #3498db;
+  background: var(--card-background);
 }
 
 .btn-action-message:hover:not(:disabled) {
-  background: #3498db;
-  color: white;
-  border-color: #3498db;
+  background: rgba(52, 152, 219, 0.15);
 }
 
 .btn-action-favorite {
-  border-color: #f39c12;
+  background: var(--card-background);
 }
 
 .btn-action-favorite.active {
-  background: #f39c12;
-  color: white;
-  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.15);
 }
 
 .btn-action-favorite:hover:not(:disabled) {
-  background: #f39c12;
-  color: white;
-  border-color: #f39c12;
+  background: rgba(243, 156, 18, 0.15);
 }
 
 .btn-action-shortlist {
-  border-color: #27ae60;
+  background: var(--card-background);
 }
 
 .btn-action-shortlist.active {
-  background: #27ae60;
-  color: white;
-  border-color: #27ae60;
+  background: rgba(39, 174, 96, 0.15);
 }
 
 .btn-action-shortlist:hover:not(:disabled) {
-  background: #27ae60;
-  color: white;
-  border-color: #27ae60;
+  background: rgba(39, 174, 96, 0.15);
 }
 
 .btn-action-pii {
-  border-color: #9b59b6;
+  background: var(--card-background);
 }
 
 .btn-action-pii:hover:not(:disabled) {
-  background: #9b59b6;
-  color: white;
-  border-color: #9b59b6;
+  background: rgba(155, 89, 182, 0.15);
 }
 
 .btn-action-pii:disabled {
-  background: #27ae60;
-  color: white;
-  border-color: #27ae60;
+  background: rgba(39, 174, 96, 0.15);
 }
 
 .btn-action-exclude {
-  border-color: #e74c3c;
+  background: var(--card-background);
 }
 
 .btn-action-exclude.active {
-  background: #e74c3c;
-  color: white;
-  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
 }
 
 .btn-action-exclude:hover:not(:disabled) {
-  background: #e74c3c;
-  color: white;
-  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.15);
 }
+
+/* Sticky Action Buttons - Desktop Only */
+.profile-sticky-actions {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 100;
+  padding: 8px 6px;
+  background: var(--card-background);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.btn-sticky-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: var(--background-color);
+  color: var(--text-color);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.btn-sticky-action:hover:not(:disabled) {
+  transform: scale(1.08);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-sticky-action:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-sticky-action:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-sticky-action .action-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Sticky button specific colors */
+.btn-sticky-action.btn-action-message:hover:not(:disabled) {
+  background: rgba(52, 152, 219, 0.15);
+}
+
+.btn-sticky-action.btn-action-favorite:hover:not(:disabled),
+.btn-sticky-action.btn-action-favorite.active {
+  background: rgba(243, 156, 18, 0.15);
+}
+
+.btn-sticky-action.btn-action-shortlist:hover:not(:disabled),
+.btn-sticky-action.btn-action-shortlist.active {
+  background: rgba(39, 174, 96, 0.15);
+}
+
+.btn-sticky-action.btn-action-pii:hover:not(:disabled) {
+  background: rgba(155, 89, 182, 0.15);
+}
+
+.btn-sticky-action.btn-action-pii:disabled {
+  background: rgba(39, 174, 96, 0.15);
+}
+
+.btn-sticky-action.btn-action-exclude:hover:not(:disabled),
+.btn-sticky-action.btn-action-exclude.active {
+  background: rgba(231, 76, 60, 0.15);
+}
+
+/* Hide sticky actions on mobile, show bottom bar */
+@media (max-width: 768px) {
+  .profile-sticky-actions {
+    display: none;
+  }
+}
+
+/* Desktop: Show BOTH sticky sidebar AND bottom action bar */
+/* (No hiding needed - both are visible on desktop) */
 
 /* Responsive: Single column on mobile */
 @media (max-width: 768px) {

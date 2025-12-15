@@ -313,6 +313,10 @@ class EmailNotifierTemplate(JobTemplate):
         template_data["tracking_pixel_url"] = f"{backend_url}/api/email-tracking/pixel/{tracking_id}"
         template_data["profile_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={encoded_profile_url}&link_type=profile"
         
+        # PII Management URL - for contact request emails
+        pii_management_url_encoded = quote(f"{frontend_url}/pii-management?tab=incoming", safe="")
+        template_data["pii_management_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={pii_management_url_encoded}&link_type=pii_management"
+        
         if not template:
             # Fallback for when template is not found
             trigger_name = notification.trigger.replace("_", " ").title()

@@ -5,6 +5,7 @@ import OnlineStatusBadge from './OnlineStatusBadge';
 import { getDisplayName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage.css';
+import { ACTION_ICONS } from '../constants/icons';
 
 /**
  * Reusable Search Result Card Component
@@ -122,30 +123,30 @@ const SearchResultCard = ({
 
     switch (context) {
       case 'my-messages':
-        if (onMessage) bottomActions.push({ icon: '💬', label: 'Open Chat', handler: onMessage, className: 'btn-primary' });
-        if (onRemove) bottomActions.push({ icon: '🗑️', label: 'Delete', handler: onRemove, className: 'btn-danger' });
+        if (onMessage) bottomActions.push({ icon: ACTION_ICONS.MESSAGE, label: 'Open Chat', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.DELETE, label: 'Delete', handler: onRemove, className: 'btn-danger' });
         break;
 
       case 'my-favorites':
-        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
-        if (onRemove) bottomActions.push({ icon: '💔', label: 'Unfavorite', handler: onRemove, className: 'btn-warning' });
+        if (onMessage) bottomActions.push({ icon: ACTION_ICONS.MESSAGE, label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.UNFAVORITE, label: 'Unfavorite', handler: onRemove, className: 'btn-warning' });
         break;
 
       case 'my-shortlists':
-        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
-        if (onRemove) bottomActions.push({ icon: '📤', label: 'Remove', handler: onRemove, className: 'btn-info' });
+        if (onMessage) bottomActions.push({ icon: ACTION_ICONS.MESSAGE, label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.REMOVE_SHORTLIST, label: 'Remove', handler: onRemove, className: 'btn-info' });
         break;
 
       case 'not-interested':
       case 'my-exclusions':
-        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile, className: 'btn-secondary' });
-        if (onRemove) bottomActions.push({ icon: '✅', label: 'Unblock', handler: onRemove, className: 'btn-success' });
+        if (onViewProfile) bottomActions.push({ icon: ACTION_ICONS.VIEW_PROFILE, label: 'View', handler: onViewProfile, className: 'btn-secondary' });
+        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.UNBLOCK, label: 'Unblock', handler: onRemove, className: 'btn-success' });
         break;
 
       case 'pii-requests':
       case 'photo-requests':
-        if (onApprove) bottomActions.push({ icon: '✅', label: 'Approve', handler: onApprove, className: 'btn-success' });
-        if (onDeny) bottomActions.push({ icon: '❌', label: 'Deny', handler: onDeny, className: 'btn-danger' });
+        if (onApprove) bottomActions.push({ icon: ACTION_ICONS.UNBLOCK, label: 'Approve', handler: onApprove, className: 'btn-success' });
+        if (onDeny) bottomActions.push({ icon: ACTION_ICONS.CANCEL, label: 'Deny', handler: onDeny, className: 'btn-danger' });
         break;
 
       case 'search-results':
@@ -154,8 +155,8 @@ const SearchResultCard = ({
       case 'their-favorites':
       case 'their-shortlists':
       default:
-        if (onMessage) bottomActions.push({ icon: '💬', label: 'Message', handler: onMessage, className: 'btn-primary' });
-        if (onViewProfile) bottomActions.push({ icon: '👁️', label: 'View', handler: onViewProfile || navigateToProfile, className: 'btn-secondary' });
+        if (onMessage) bottomActions.push({ icon: ACTION_ICONS.MESSAGE, label: 'Message', handler: onMessage, className: 'btn-primary' });
+        if (onViewProfile) bottomActions.push({ icon: ACTION_ICONS.VIEW_PROFILE, label: 'View', handler: onViewProfile || navigateToProfile, className: 'btn-secondary' });
         break;
     }
 
