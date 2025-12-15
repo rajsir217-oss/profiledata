@@ -163,13 +163,12 @@ class AuthenticationService:
                     headers={"WWW-Authenticate": "Bearer"},
                 )
             
-            # Check if user is active (use unified accountStatus field)
-            # CRITICAL FIX: Use accountStatus instead of legacy status.status
-            if user.get("accountStatus") != "active":
-                raise HTTPException(
-                    status_code=status.HTTP_403_FORBIDDEN,
-                    detail="User account is not active"
-                )
+            # NOTE: We no longer block non-active users here.
+            # Users should be able to view/edit their OWN profile even if:
+            # - Email not verified (pending_email_verification)
+            # - Admin not approved (pending_admin_approval)
+            # Individual endpoints should check accountStatus if they need to restrict access.
+            # The user's accountStatus is included in the returned dict for endpoints to check.
             
             return user
         
@@ -184,8 +183,16 @@ class AuthenticationService:
     async def get_current_active_user(
         current_user: Dict = Depends(get_current_user)
     ) -> Dict:
-        """Get current active user (additional validation)"""
-        # Additional checks can be added here
+        """
+        Get current user and verify they have an active account.
+        Use this dependency for endpoints that should ONLY be accessible to fully activated users.
+        For endpoints where users should access their own data regardless of status, use get_current_user instead.
+        """
+        if current_user.get("accountStatus") != "active":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your account is not fully activated. Please verify your email and wait for admin approval."
+            )
         return current_user
     
     @staticmethod

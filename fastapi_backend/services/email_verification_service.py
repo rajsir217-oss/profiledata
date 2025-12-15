@@ -3,6 +3,7 @@ Email Verification Service
 Handles user email verification, token generation, and account activation
 """
 
+import re
 import secrets
 import hashlib
 from datetime import datetime, timedelta
@@ -14,6 +15,10 @@ from email.mime.multipart import MIMEMultipart
 from config import Settings
 
 settings = Settings()
+
+def get_username_query(username: str):
+    """Create a case-insensitive MongoDB query for username"""
+    return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
 
 class EmailVerificationService:
     """Service for handling email verification and account activation"""
@@ -303,8 +308,8 @@ class EmailVerificationService:
             print(f"🔍 Verifying email for username: {username}")
             print(f"🔑 Token received: {token[:20]}..." if token and len(token) > 20 else f"🔑 Token: {token}")
             
-            # Find user
-            user = await self.users_collection.find_one({"username": username})
+            # Find user (case-insensitive)
+            user = await self.users_collection.find_one(get_username_query(username))
             
             if not user:
                 print(f"❌ User '{username}' not found in database")
@@ -392,8 +397,8 @@ class EmailVerificationService:
             Dictionary with success status and message
         """
         try:
-            # Find user
-            user = await self.users_collection.find_one({"username": username})
+            # Find user (case-insensitive)
+            user = await self.users_collection.find_one(get_username_query(username))
             
             if not user:
                 return {
