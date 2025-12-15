@@ -13,6 +13,7 @@ import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
 import PhotoRequestsModal from './PhotoRequestsModal';
 import ConversationsModal from './ConversationsModal';
+import ContactRequestsModal from './ContactRequestsModal';
 import UserCard from './UserCard';
 import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
@@ -20,6 +21,7 @@ import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
 import { formatRelativeTime } from '../utils/timeFormatter';
 import PauseSettings from './PauseSettings';
+import { SECTION_ICONS, STATS_ICONS } from '../constants/icons';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
@@ -34,6 +36,7 @@ const Dashboard = () => {
   const [showFavoritedByModal, setShowFavoritedByModal] = useState(false);
   const [showPhotoRequestsModal, setShowPhotoRequestsModal] = useState(false);
   const [showConversationsModal, setShowConversationsModal] = useState(false);
+  const [showContactRequestsModal, setShowContactRequestsModal] = useState(false);
   
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
@@ -43,6 +46,7 @@ const Dashboard = () => {
     myViews: [],
     myExclusions: [],
     myRequests: [],
+    incomingContactRequests: [],
     theirFavorites: [],
     theirShortlists: []
   });
@@ -209,6 +213,7 @@ const Dashboard = () => {
         profileViewsRes,
         myExclusionsRes,
         requestsRes,
+        incomingRequestsRes,
         theirFavoritesRes,
         theirShortlistsRes
       ] = await Promise.all([
@@ -219,6 +224,7 @@ const Dashboard = () => {
         api.get(`/profile-views/${user}`),
         api.get(`/exclusions/${user}`),
         api.get(`/pii-requests/${user}/outgoing`),
+        api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
         api.get(`/their-favorites/${user}`),
         api.get(`/their-shortlists/${user}`)
       ]);
@@ -235,6 +241,7 @@ const Dashboard = () => {
         myViews: profileViewsRes.data.views || [],
         myExclusions: myExclusionsRes.data.exclusions || [],
         myRequests: requestsRes.data.requests || [],
+        incomingContactRequests: incomingRequestsRes.data.requests || [],
         theirFavorites: theirFavoritesRes.data.users || [],
         theirShortlists: theirShortlistsRes.data.users || []
       });
@@ -1061,7 +1068,7 @@ const Dashboard = () => {
           style={{ cursor: 'pointer' }}
           title="Click to see who viewed your profile"
         >
-          <div className="stat-icon">👁️</div>
+          <div className="stat-icon">{STATS_ICONS.PROFILE_VIEWS}</div>
           <div className="stat-content">
             <div className="stat-value">{viewMetrics.totalViews}</div>
             <div className="stat-label">Profile Views</div>
@@ -1075,7 +1082,7 @@ const Dashboard = () => {
           style={{ cursor: 'pointer' }}
           title="Click to see who favorited you"
         >
-          <div className="stat-icon">💖</div>
+          <div className="stat-icon">{STATS_ICONS.FAVORITED_BY}</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.theirFavorites.length}</div>
             <div className="stat-label">Favorited By</div>
@@ -1088,7 +1095,7 @@ const Dashboard = () => {
           onClick={() => setShowConversationsModal(true)}
           style={{ cursor: 'pointer' }}
         >
-          <div className="stat-icon">💬</div>
+          <div className="stat-icon">{STATS_ICONS.CONVERSATIONS}</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myMessages.length}</div>
             <div className="stat-label">Conversations</div>
@@ -1101,11 +1108,25 @@ const Dashboard = () => {
           onClick={() => setShowPhotoRequestsModal(true)}
           style={{ cursor: 'pointer' }}
         >
-          <div className="stat-icon">🔒</div>
+          <div className="stat-icon">{STATS_ICONS.PHOTO_REQUESTS}</div>
           <div className="stat-content">
             <div className="stat-value">{dashboardData.myRequests.length}</div>
             <div className="stat-label">Photo Requests</div>
             <div className="stat-sublabel">Pending approvals</div>
+          </div>
+        </div>
+        
+        <div 
+          className={`stat-card-large stat-card-purple clickable ${dashboardData.incomingContactRequests.length > 0 ? 'has-pending' : ''}`}
+          onClick={() => setShowContactRequestsModal(true)}
+          style={{ cursor: 'pointer' }}
+          title="Click to review contact requests from others"
+        >
+          <div className="stat-icon">{STATS_ICONS.CONTACT_REQUESTS}</div>
+          <div className="stat-content">
+            <div className="stat-value">{dashboardData.incomingContactRequests.length}</div>
+            <div className="stat-label">Contact Requests</div>
+            <div className="stat-sublabel">Awaiting your response</div>
           </div>
         </div>
       </div>
@@ -1126,11 +1147,11 @@ const Dashboard = () => {
           
           {expandedGroups.myActivities && (
             <div className="column-sections">
-              {renderSection('Messages', dashboardData.myMessages, 'myMessages', '💬', '#5a6fd6', handleDeleteMessage)}
-              {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', '⭐', '#d4a574', handleRemoveFromFavorites)}
-              {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', '📋', '#6ba8a0', handleRemoveFromShortlist)}
-              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', '🔒', '#8b7bb5', handleCancelPIIRequest)}
-              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', '🙈', '#8a9499', handleRemoveFromExclusions)}
+              {renderSection('Messages', dashboardData.myMessages, 'myMessages', SECTION_ICONS.MESSAGES, '#5a6fd6', handleDeleteMessage)}
+              {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
+              {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
+              {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
+              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
             </div>
           )}
         </div>
@@ -1150,12 +1171,12 @@ const Dashboard = () => {
           
           {expandedGroups.othersActivities && (
             <div className="column-sections">
-              {renderSection('Profile Views', dashboardData.myViews, 'myViews', '👁️', '#c9944a', handleClearViewHistory)}
+              {renderSection('Profile Views', dashboardData.myViews, 'myViews', SECTION_ICONS.PROFILE_VIEWS, '#c9944a', handleClearViewHistory)}
           
           {/* Image Access Requests Section */}
           <CategorySection
             title="Photo Requests"
-            icon="📬"
+            icon={SECTION_ICONS.INCOMING_PHOTO_REQUESTS}
             color="#5a9a8a"
             sectionKey="imageAccessRequests"
             data={[]}
@@ -1177,8 +1198,8 @@ const Dashboard = () => {
             </div>
           </CategorySection>
           
-              {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', '💖', '#c4687a', null)}
-              {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', '📝', '#5a9eb5', null)}
+              {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', SECTION_ICONS.THEIR_FAVORITES, '#c4687a', null)}
+              {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', SECTION_ICONS.THEIR_SHORTLISTS, '#5a9eb5', null)}
             </div>
           )}
         </div>
@@ -1236,6 +1257,14 @@ const Dashboard = () => {
         isOpen={showConversationsModal}
         onClose={() => setShowConversationsModal(false)}
         username={currentUser}
+      />
+
+      {/* Contact Requests Modal (Incoming) */}
+      <ContactRequestsModal
+        isOpen={showContactRequestsModal}
+        onClose={() => setShowContactRequestsModal(false)}
+        username={currentUser}
+        onRequestHandled={() => loadDashboardData(currentUser)}
       />
 
       {/* Pause Settings Modal */}

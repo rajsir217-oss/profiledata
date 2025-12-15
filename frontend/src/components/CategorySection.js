@@ -41,7 +41,8 @@ const CategorySection = ({
   onDragOver,
   onDrop,
   draggedIndex,
-  dragOverIndex
+  dragOverIndex,
+  children // Support for custom content instead of data-driven rendering
 }) => {
   
   const [localDraggedIndex, setLocalDraggedIndex] = useState(null);
@@ -154,7 +155,10 @@ const CategorySection = ({
       {/* Content */}
       {isExpanded && (
         <div className="category-section-content">
-          {data.length > 0 ? (
+          {children ? (
+            // Render custom children if provided
+            children
+          ) : data.length > 0 ? (
             <div className={viewMode === 'cards' ? 'category-cards-grid' : 'category-cards-rows'}>
               {data.map((item, index) => {
                 const isDragging = isDraggable && currentDraggedIndex === index;

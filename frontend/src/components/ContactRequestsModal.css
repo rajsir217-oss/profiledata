@@ -1,0 +1,383 @@
+/* ContactRequestsModal - Theme-aware styling */
+
+.contact-requests-modal {
+  background: var(--card-background);
+  border-radius: 16px;
+  max-width: 600px;
+  width: 95%;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+.contact-requests-modal .modal-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: white;
+  border-radius: 16px 16px 0 0;
+  flex-shrink: 0;
+}
+
+.contact-requests-modal .modal-header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: white;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.contact-requests-modal .close-button {
+  background: rgba(0, 0, 0, 0.6);
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.contact-requests-modal .close-button:hover {
+  background: rgba(0, 0, 0, 0.8);
+  transform: scale(1.05);
+}
+
+.contact-requests-modal .modal-subheader {
+  padding: 12px 24px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.contact-requests-modal .modal-subheader p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.contact-requests-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px;
+}
+
+/* Loading State */
+.contact-requests-modal .loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--text-secondary);
+}
+
+.contact-requests-modal .loading-state .spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error State */
+.contact-requests-modal .error-state {
+  text-align: center;
+  padding: 40px;
+  color: var(--danger-color);
+}
+
+.contact-requests-modal .error-state button {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* Empty State */
+.contact-requests-modal .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.contact-requests-modal .empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.contact-requests-modal .empty-state p {
+  margin: 0 0 8px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.contact-requests-modal .empty-state small {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Requests List */
+.contact-requests-modal .requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.contact-requests-modal .request-item {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.contact-requests-modal .request-item:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Avatar */
+.contact-requests-modal .request-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--hover-background);
+}
+
+.contact-requests-modal .request-avatar.clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.contact-requests-modal .request-avatar.clickable:hover {
+  transform: scale(1.05);
+}
+
+.contact-requests-modal .request-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.contact-requests-modal .avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+/* Request Info */
+.contact-requests-modal .request-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-requests-modal .request-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 2px;
+}
+
+.contact-requests-modal .request-name.clickable {
+  cursor: pointer;
+}
+
+.contact-requests-modal .request-name.clickable:hover {
+  color: var(--primary-color);
+}
+
+.contact-requests-modal .request-age {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.contact-requests-modal .request-username {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.contact-requests-modal .request-location {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.contact-requests-modal .request-details {
+  margin-bottom: 6px;
+}
+
+.contact-requests-modal .request-types {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.contact-requests-modal .request-type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--hover-background);
+  padding: 4px 8px;
+  border-radius: 6px;
+  margin-right: 6px;
+  font-size: 12px;
+  color: var(--text-color);
+}
+
+.contact-requests-modal .request-message {
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-style: italic;
+  margin-bottom: 6px;
+  padding: 8px;
+  background: var(--hover-background);
+  border-radius: 6px;
+}
+
+.contact-requests-modal .request-timestamp {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Request Actions */
+.contact-requests-modal .request-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.contact-requests-modal .btn-approve {
+  padding: 8px 16px;
+  background: var(--success-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.contact-requests-modal .btn-approve:hover:not(:disabled) {
+  background: var(--success-hover);
+  transform: translateY(-1px);
+}
+
+.contact-requests-modal .btn-approve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.contact-requests-modal .btn-reject {
+  padding: 8px 16px;
+  background: transparent;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.contact-requests-modal .btn-reject:hover:not(:disabled) {
+  background: var(--danger-color);
+  color: white;
+}
+
+.contact-requests-modal .btn-reject:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Modal Footer */
+.contact-requests-modal .modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: center;
+  background: var(--surface-color);
+}
+
+.contact-requests-modal .btn-view-all {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.contact-requests-modal .btn-view-all:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .contact-requests-modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 100vh;
+    border-radius: 0;
+  }
+
+  .contact-requests-modal .modal-header {
+    border-radius: 0;
+  }
+
+  .contact-requests-modal .request-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .contact-requests-modal .request-actions {
+    flex-direction: row;
+    width: 100%;
+    margin-top: 12px;
+  }
+
+  .contact-requests-modal .request-actions button {
+    flex: 1;
+  }
+}

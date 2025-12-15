@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import './SimpleKebabMenu.css';
+import { ACTION_ICONS } from '../constants/icons';
 
 /**
  * SimpleKebabMenu - Clean, simple popover menu
@@ -85,7 +86,7 @@ const SimpleKebabMenu = ({
             e.stopPropagation();
             handleItemClick(onViewProfile, 'View Profile');
           }}>
-            👁️ View Profile
+            {ACTION_ICONS.VIEW_PROFILE} View Profile
           </button>
           
           <button onClick={(e) => {
@@ -93,7 +94,7 @@ const SimpleKebabMenu = ({
             e.stopPropagation();
             handleItemClick(onToggleFavorite, 'Toggle Favorite');
           }}>
-            {isFavorited ? '💔' : '⭐'} {isFavorited ? 'Unfavorite' : 'Favorite'}
+            {isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE} {isFavorited ? 'Unfavorite' : 'Favorite'}
           </button>
           
           <button onClick={(e) => {
@@ -101,7 +102,7 @@ const SimpleKebabMenu = ({
             e.stopPropagation();
             handleItemClick(onToggleShortlist, 'Toggle Shortlist');
           }}>
-            {isShortlisted ? '📤' : '📋'} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
+            {isShortlisted ? ACTION_ICONS.REMOVE_SHORTLIST : ACTION_ICONS.SHORTLIST} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
           </button>
           
           {onMessage && (
@@ -110,7 +111,7 @@ const SimpleKebabMenu = ({
               e.stopPropagation();
               handleItemClick(onMessage, 'Message');
             }}>
-              💬 Message
+              {ACTION_ICONS.MESSAGE} Message
             </button>
           )}
           
@@ -122,7 +123,7 @@ const SimpleKebabMenu = ({
               e.stopPropagation();
               handleItemClick(onRequestPII, 'Request Contact');
             }}>
-              🔒 Request Contact
+              {ACTION_ICONS.REQUEST_CONTACT} Request Contact
             </button>
           )}
           
@@ -132,7 +133,7 @@ const SimpleKebabMenu = ({
               e.stopPropagation();
               handleItemClick(onBlock, 'Block');
             }}>
-              🚫 Block
+              {ACTION_ICONS.BLOCK} Block
             </button>
           )}
           
@@ -142,7 +143,7 @@ const SimpleKebabMenu = ({
               e.stopPropagation();
               handleItemClick(onReport, 'Report');
             }}>
-              🚩 Report
+              {ACTION_ICONS.REPORT} Report
             </button>
           )}
         </div>

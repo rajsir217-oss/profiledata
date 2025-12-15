@@ -70,7 +70,8 @@ def create_template(trigger, category, subject, color, priority, description, ct
         "security": "{security_url}",
         "search": "{search_url}",
         "contact": "{contact_url}",
-        "reset": "{reset_url}"
+        "reset": "{reset_url}",
+        "pii_management": "{pii_management_url}"
     }
     
     cta_url = cta_url_map.get(cta_link_type, "{dashboard_url}")
@@ -122,7 +123,7 @@ ALL_TEMPLATES = [
         "📧 Contact Request from {match_firstName}",
         "#8b5cf6", "high",
         "{match_firstName} wants to connect with you outside the platform. Approve or deny this request.",
-        "Review Request", "dashboard"
+        "Review Request", "pii_management"
     ),
     create_template(
         "weekly_digest", "digest",

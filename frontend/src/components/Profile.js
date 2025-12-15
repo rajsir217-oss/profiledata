@@ -19,6 +19,7 @@ import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
 import "./Profile.css";
+import { ACTION_ICONS } from "../constants/icons";
 
 // Create axios instance for verification API
 const verificationApi = axios.create({
@@ -2292,7 +2293,111 @@ const Profile = () => {
         </div>
       )}
 
-      {/* Action Buttons (only for others' profiles) - Moved to bottom */}
+      {/* Sticky Action Buttons - Desktop Only (right side) */}
+      {!isOwnProfile && (
+        <div className="profile-sticky-actions">
+          {/* Message Button */}
+          <button
+            className="btn-sticky-action btn-action-message"
+            onClick={() => setShowMessageModal(true)}
+            disabled={user.accountStatus === 'paused'}
+            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : 'Send Message'}
+          >
+            <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
+          </button>
+
+          {/* Favorite Button */}
+          <button
+            className={`btn-sticky-action btn-action-favorite ${isFavorited ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isFavorited) {
+                  await api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsFavorited(false);
+                  setSuccessMessage('✅ Removed from favorites');
+                } else {
+                  await api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsFavorited(true);
+                  setSuccessMessage('✅ Added to favorites');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update favorites');
+              }
+            }}
+            title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+          >
+            <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
+          </button>
+
+          {/* Shortlist Button */}
+          <button
+            className={`btn-sticky-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isShortlisted) {
+                  await api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsShortlisted(false);
+                  setSuccessMessage('✅ Removed from shortlist');
+                } else {
+                  await api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsShortlisted(true);
+                  setSuccessMessage('✅ Added to shortlist');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update shortlist');
+              }
+            }}
+            title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+          >
+            <span className="action-icon">{ACTION_ICONS.SHORTLIST}</span>
+          </button>
+
+          {/* PII Request Button */}
+          <button
+            className="btn-sticky-action btn-action-pii"
+            onClick={async () => {
+              logger.debug('Opening PII Request Modal');
+              await checkPIIAccess();
+              setShowPIIRequestModal(true);
+            }}
+            disabled={hasAllAccess}
+            title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
+          >
+            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.REQUEST_CONTACT}</span>
+          </button>
+
+          {/* Exclude Button */}
+          <button
+            className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
+            onClick={async () => {
+              try {
+                const currentUser = localStorage.getItem('username');
+                if (isExcluded) {
+                  await api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsExcluded(false);
+                  setSuccessMessage('✅ Removed from not interested');
+                } else {
+                  await api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  setIsExcluded(true);
+                  setSuccessMessage('✅ Marked as not interested');
+                }
+                setTimeout(() => setSuccessMessage(''), 3000);
+              } catch (err) {
+                setError('Failed to update not interested');
+              }
+            }}
+            title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
+          >
+            <span className="action-icon">{isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons - Mobile Only (bottom bar) */}
       {!isOwnProfile && (
         <div className="profile-action-buttons">
           {/* Message Button */}
@@ -2302,7 +2407,7 @@ const Profile = () => {
             disabled={user.accountStatus === 'paused'}
             title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : 'Send Message'}
           >
-            <span className="action-icon">💬</span>
+            <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
             <span className="action-label">Message</span>
           </button>
 
@@ -2328,7 +2433,7 @@ const Profile = () => {
             }}
             title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
           >
-            <span className="action-icon">⭐</span>
+            <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
             <span className="action-label">{isFavorited ? 'Favorited' : 'Favorite'}</span>
           </button>
 
@@ -2354,7 +2459,7 @@ const Profile = () => {
             }}
             title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
           >
-            <span className="action-icon">✓</span>
+            <span className="action-icon">{ACTION_ICONS.SHORTLIST}</span>
             <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
           </button>
 
@@ -2369,7 +2474,7 @@ const Profile = () => {
             disabled={hasAllAccess}
             title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
           >
-            <span className="action-icon">{hasAllAccess ? '✅' : '🔒'}</span>
+            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
 
@@ -2395,8 +2500,8 @@ const Profile = () => {
             }}
             title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
           >
-            <span className="action-icon">✕</span>
-            <span className="action-label">{isExcluded ? 'Not Interested' : 'Not Interested'}</span>
+            <span className="action-icon">{isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED}</span>
+            <span className="action-label">{isExcluded ? 'Unblock' : 'Not Interested'}</span>
           </button>
         </div>
       )}
