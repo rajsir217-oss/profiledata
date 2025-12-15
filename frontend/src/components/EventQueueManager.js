@@ -8,9 +8,9 @@ import DeleteButton from './DeleteButton';
 const EventQueueManager = () => {
   const navigate = useNavigate();
   const [queueItems, setQueueItems] = useState([]);
-  const [logs, setLogs] = useState([]);
+  // eslint-disable-next-line no-unused-vars
+  const [logs, setLogs] = useState([]); // Logs tab moved to top-level in NotificationManagement
   const [loading, setLoading] = useState(true);
-  // Logs tab moved to top-level in NotificationManagement
   const toast = useToast();
   const [filters, setFilters] = useState({
     status: 'all',
@@ -57,6 +57,7 @@ const EventQueueManager = () => {
     setQueueItems(data);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const loadLogs = async (token) => {
     const response = await fetch(getBackendApiUrl('/api/notifications/logs'), {
       headers: { 'Authorization': `Bearer ${token}` }

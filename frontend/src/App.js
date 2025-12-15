@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
 // Registration and Profile pages (both versions available)
+// eslint-disable-next-line no-unused-vars
 import Register from './components/Register';
 import Register2 from './components/Register2';
 import EmailVerificationSent from './components/EmailVerificationSent';

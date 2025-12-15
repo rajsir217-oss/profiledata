@@ -78,7 +78,8 @@ const UnifiedPreferences = () => {
 
   // Push Notification State
   const [pushPermission, setPushPermission] = useState('default');
-  const [pushSupported, setPushSupported] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [pushSupported, setPushSupported] = useState(false); // Reserved for future push notification feature
   const [testingPush, setTestingPush] = useState(false);
   const [enablingPush, setEnablingPush] = useState(false);
 

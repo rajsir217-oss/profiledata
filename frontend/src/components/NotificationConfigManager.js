@@ -173,7 +173,7 @@ const NotificationConfigManager = () => {
 
   // Group triggers by category
   const groupedTriggers = triggers.reduce((acc, trigger) => {
-    const [oldStatus, newStatus] = trigger.transition.split(' → ');
+    const [, newStatus] = trigger.transition.split(' → ');
     
     let category;
     if (newStatus === 'active') {

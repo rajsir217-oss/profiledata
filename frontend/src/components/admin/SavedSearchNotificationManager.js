@@ -42,7 +42,8 @@ const SavedSearchNotificationManager = () => {
   
   // Modals
   const [showOverrideModal, setShowOverrideModal] = useState(false);
-  const [showDisableModal, setShowDisableModal] = useState(false);
+  // eslint-disable-next-line no-unused-vars
+  const [showDisableModal, setShowDisableModal] = useState(false); // Reserved for future disable confirmation modal
   const [showTestModal, setShowTestModal] = useState(false);
   const [showLogModal, setShowLogModal] = useState(false);
   const [selectedSearch, setSelectedSearch] = useState(null);
@@ -59,8 +60,10 @@ const SavedSearchNotificationManager = () => {
   const [enableTimeOverride, setEnableTimeOverride] = useState(false);
   const [enableFrequencyOverride, setEnableFrequencyOverride] = useState(false);
   
-  // Disable form state
+  // Disable form state (reserved for future disable confirmation modal)
+  // eslint-disable-next-line no-unused-vars
   const [disableReason, setDisableReason] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [notifyUser, setNotifyUser] = useState(false);
   
   // Test form state
@@ -224,6 +227,7 @@ const SavedSearchNotificationManager = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleEnable = async (search) => {
     // Enable without confirmation - can add 2-click pattern later if needed
     try {

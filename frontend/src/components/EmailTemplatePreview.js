@@ -15,7 +15,6 @@ const EmailTemplatePreview = () => {
 
   // Security check - admin only
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       navigate('/');

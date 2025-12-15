@@ -20,7 +20,6 @@ const PauseAnalyticsDashboard = () => {
   const [selectedTab, setSelectedTab] = useState('overview');
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
 
     // Check admin access
