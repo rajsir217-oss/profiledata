@@ -7,6 +7,67 @@
   overflow: visible; /* Allow tooltips to overflow */
 }
 
+/* Profile ID Direct Search Section - Separate at top */
+.profile-id-search-section {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+}
+
+.profile-id-search-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.profile-id-search-row .form-control {
+  flex: 1;
+}
+
+.btn-profile-id-search,
+.btn-profile-id-clear {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+}
+
+.btn-profile-id-search {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+}
+
+.btn-profile-id-search:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-profile-id-clear {
+  background: var(--danger-color);
+  color: white;
+  border: none;
+}
+
+.btn-profile-id-clear:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+}
+
+.btn-profile-id-search:disabled,
+.btn-profile-id-clear:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Responsive width to match result cards */
 @media (max-width: 1024px) {
   .unified-search-filters {
@@ -63,6 +124,20 @@
 
 /* Responsive: Single column on mobile */
 @media (max-width: 768px) {
+  .profile-id-search-row {
+    flex-direction: column;
+  }
+  
+  .profile-id-search-row .form-control {
+    width: 100%;
+  }
+  
+  .profile-id-search-row .btn-profile-id-search,
+  .profile-id-search-row .btn-profile-id-clear {
+    width: 100%;
+    justify-content: center;
+  }
+  
   .basic-filters-section .filter-row-location-age,
   .basic-filters-section .filter-row-height,
   .advanced-filters-section {

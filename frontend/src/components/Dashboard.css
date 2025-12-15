@@ -1,18 +1,24 @@
-/* Dashboard Container - Centered with max-width */
+/* Dashboard Container - Full width layout (same as Admin page) */
 .dashboard-container {
   padding: 20px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
   background: var(--background-color);
   min-height: 100vh;
   box-sizing: border-box;
 }
 
+/* Override Bootstrap container max-width for dashboard parent */
+.container:has(.dashboard-container) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
 /* Responsive container widths */
 @media (max-width: 1024px) {
   .dashboard-container {
-    width: 95%;
+    width: 100%;
   }
 }
 

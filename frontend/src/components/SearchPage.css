@@ -1,11 +1,16 @@
-/* Search Page Styles */
+/* Search Page Styles - Full width layout (same as Admin page) */
 .search-page {
   padding: 20px;
   width: 100%;
-  max-width: 1400px;
-  margin: 0 auto;
+  margin: 0;
   background: var(--background-color);
-  /* background: transparent; */
+}
+
+/* Override Bootstrap container max-width for search page parent */
+.container:has(.search-page) {
+  max-width: 98% !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Collapsible Filters Container */

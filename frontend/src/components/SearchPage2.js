@@ -40,6 +40,7 @@ const SearchPage2 = () => {
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
   const [searchCriteria, setSearchCriteria] = useState({
     keyword: '',
+    profileId: '', // Direct Profile ID lookup
     gender: '', // Will be set to opposite gender after loading user profile
     ageMin: '',
     ageMax: '',
@@ -839,6 +840,7 @@ const SearchPage2 = () => {
     
     setSearchCriteria({
       keyword: '',
+      profileId: '', // Clear Profile ID search
       gender: defaults.gender, // Opposite gender only
       ageMin: '', // Empty - search all ages
       ageMax: '',
@@ -882,12 +884,27 @@ const SearchPage2 = () => {
       // STEP 1: Apply traditional search filters
       // Use overrideCriteria if provided (for immediate load), otherwise use state
       const criteriaToUse = overrideCriteria !== null ? overrideCriteria : searchCriteria;
-      const params = {
-        ...criteriaToUse,
-        status: 'active',  // Only search for active users
-        page: page,
-        limit: 500  // Get more results from backend
-      };
+      
+      // Log profileId for debugging
+      console.log('🔍 Profile ID in criteria:', criteriaToUse.profileId);
+      
+      // If profileId is provided, ONLY send profileId (bypass all other filters)
+      let params;
+      if (criteriaToUse.profileId?.trim()) {
+        params = {
+          profileId: criteriaToUse.profileId.trim(),
+          page: page,
+          limit: 500
+        };
+        console.log('🔍 Profile ID search - bypassing other filters');
+      } else {
+        params = {
+          ...criteriaToUse,
+          status: 'active',  // Only search for active users
+          page: page,
+          limit: 500  // Get more results from backend
+        };
+      }
       
       // Convert feet/inches to total inches for height range
       // Only set heightMin if BOTH feet and inches are provided
@@ -938,19 +955,27 @@ const SearchPage2 = () => {
       });
       
       console.log('🔍 Search params after validation:', params);
+      console.log('🔍 profileId in params:', params.profileId);
+      console.log('🔍 Full params object:', JSON.stringify(params, null, 2));
 
       const response = await api.get('/search', { params });
+      console.log('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
       
       console.log('🔍 Raw API response:', response);
       console.log('🔍 response.data:', response.data);
       console.log('🔍 response.data.users:', response.data.users);
       console.log('🔍 response.data.users length:', response.data.users?.length);
       
-      // Filter out own profile, admin, and moderators
+      // Filter out own profile, admin, and moderators (unless doing Profile ID search)
+      const isProfileIdSearch = criteriaToUse.profileId?.trim();
       let filteredUsers = (response.data.users || []).filter(user => {
-        if (user.username === currentUser) return false;
-        const userRole = user.role?.toLowerCase();
-        if (userRole === 'admin' || userRole === 'moderator') return false;
+        // Don't filter out own profile when doing Profile ID search (admin lookup)
+        if (!isProfileIdSearch && user.username === currentUser) return false;
+        // Don't filter out admin/moderator when doing direct Profile ID lookup
+        if (!isProfileIdSearch) {
+          const userRole = user.role?.toLowerCase();
+          if (userRole === 'admin' || userRole === 'moderator') return false;
+        }
         return true;
       });
 
