@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
+import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import './ProfileViewsModal.css';
 
 const ProfileViewsModal = ({ isOpen, onClose, username }) => {
@@ -103,7 +104,7 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
                   <div key={view.id} className="view-item">
                     <div className="view-avatar">
                       {profile.profileImage ? (
-                        <img src={profile.profileImage} alt={profile.username} />
+                        <img src={getAuthenticatedImageUrl(profile.profileImage)} alt={profile.username} />
                       ) : (
                         <div className="avatar-placeholder">
                           {profile.firstName?.[0]}{profile.lastName?.[0]}

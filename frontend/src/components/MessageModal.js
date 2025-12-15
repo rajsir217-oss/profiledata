@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
+import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import './MessageModal.css';
 
 const MessageModal = ({ isOpen, profile, onClose }) => {
@@ -178,7 +179,7 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
           <div className="modal-user-info">
             <div className="modal-avatar-container">
               {profile?.images?.[0] ? (
-                <img src={profile.images[0]} alt={profile.username} className="modal-avatar" />
+                <img src={getAuthenticatedImageUrl(profile.images[0])} alt={profile.username} className="modal-avatar" />
               ) : (
                 <div className="modal-avatar-placeholder">
                   {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
