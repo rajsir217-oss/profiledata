@@ -3018,6 +3018,7 @@ async def delete_user_profile(
 @router.get("/search")
 async def search_users(
     keyword: str = "",
+    profileId: str = "",
     gender: str = "",
     ageMin: int = 0,
     ageMax: int = 0,
@@ -3042,7 +3043,7 @@ async def search_users(
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
-    logger.info(f"🔍 Search request - keyword: '{keyword}', status_filter: '{status_filter}', page: {page}, limit: {limit}")
+    logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}")
     
     # Non-active users cannot search for other profiles
     if current_user.get("accountStatus") != "active":
@@ -3054,98 +3055,115 @@ async def search_users(
     # Build query
     query = {}
     
+    # Profile ID direct lookup - bypasses other filters except status
+    if profileId:
+        logger.info(f"🔍 Direct Profile ID lookup: '{profileId}'")
+        # Use partial match (case-insensitive) for profileId - allows finding profiles even with typos
+        # This searches for profileIds that contain the search term
+        query["profileId"] = {"$regex": profileId, "$options": "i"}
+        # For Profile ID lookup, search ALL statuses (not just active) to find the profile
+        # Admin can see any status, regular users will see the profile but may have limited access
+        logger.info(f"🔍 Profile ID query: {query}")
+    
     # Status filter - use accountStatus (unified field)
-    if status_filter:
-        query["accountStatus"] = {"$regex": f"^{status_filter}$", "$options": "i"}
-    else:
-        # Default to active users only (exclude paused, suspended, deactivated, pending)
-        query["accountStatus"] = "active"
-
-    # Text search
-    # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region and city)
-    if keyword:
-        query["$or"] = [
-            {"firstName": {"$regex": keyword, "$options": "i"}},
-            {"lastName": {"$regex": keyword, "$options": "i"}},
-            {"username": {"$regex": keyword, "$options": "i"}},
-            {"region": {"$regex": keyword, "$options": "i"}},  # Search region, not location
-            {"city": {"$regex": keyword, "$options": "i"}},  # Also search city field
-            {"education": {"$regex": keyword, "$options": "i"}},
-            {"occupation": {"$regex": keyword, "$options": "i"}},
-            {"aboutYou": {"$regex": keyword, "$options": "i"}},
-            {"bio": {"$regex": keyword, "$options": "i"}},
-            {"interests": {"$regex": keyword, "$options": "i"}}
-        ]
-
-    # Gender filter
-    if gender:
-        query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
-
-    # Age filter - Calculate dynamically from birthMonth and birthYear
-    # This ensures age is always accurate and never stale
-    # Store age filter for later use in aggregation pipeline
-    age_filter_min = ageMin if ageMin > 0 else None
-    age_filter_max = ageMax if ageMax > 0 else None
-
-    # Height filter - now using heightInches (numeric field)
-    # Include users who match OR don't have the field (lenient search)
-    if heightMin > 0 or heightMax > 0:
-        height_query = {}
-        if heightMin > 0:
-            height_query["$gte"] = heightMin
-        if heightMax > 0:
-            height_query["$lte"] = heightMax
-        # Lenient: include users who match OR heightInches field doesn't exist
-        if "$or" not in query:
-            query["$or"] = []
-        # Wrap existing $or conditions if they exist
-        existing_or = query.pop("$or", [])
-        query["$and"] = [
-            {"$or": existing_or} if existing_or else {},
-            {"$or": [
-                {"heightInches": height_query},
-                {"heightInches": {"$exists": False}},
-                {"heightInches": None}
-            ]}
-        ]
-
-    # Other filters
-    # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
-    if location:
-        # Search in region, city, OR aboutYou field (all unencrypted) instead of location (encrypted)
-        # aboutYou often contains location info like "I live in Indianapolis, IN"
-        location_query = {"$or": [
-            {"region": {"$regex": location, "$options": "i"}},
-            {"city": {"$regex": location, "$options": "i"}},
-            {"aboutYou": {"$regex": location, "$options": "i"}}
-        ]}
-        # Merge with existing query
-        if "$and" in query:
-            query["$and"].append(location_query)
+    if not profileId:  # Only apply default status filter if not doing Profile ID lookup
+        if status_filter:
+            query["accountStatus"] = {"$regex": f"^{status_filter}$", "$options": "i"}
         else:
-            query["$and"] = [location_query]
-    if occupation:
-        query["occupation"] = occupation
-    if religion:
-        query["religion"] = religion
-    if caste:
-        query["castePreference"] = caste
-    if eatingPreference:
-        query["eatingPreference"] = eatingPreference
-    if drinking:
-        query["drinking"] = drinking
-    if smoking:
-        query["smoking"] = smoking
-    if relationshipStatus:
-        query["relationshipStatus"] = relationshipStatus
-    if bodyType:
-        query["bodyType"] = bodyType
+            # Default to active users only (exclude paused, suspended, deactivated, pending)
+            query["accountStatus"] = "active"
 
-    # Newly added filter (last 7 days)
-    if newlyAdded:
-        from datetime import datetime, timedelta
-        seven_days_ago = datetime.now() - timedelta(days=7)
-        query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
+    # Skip all other filters if profileId is provided (direct lookup)
+    # Initialize age filter variables (needed even if profileId search)
+    age_filter_min = None
+    age_filter_max = None
+    
+    if not profileId:
+        # Text search
+        # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region and city)
+        if keyword:
+            query["$or"] = [
+                {"firstName": {"$regex": keyword, "$options": "i"}},
+                {"lastName": {"$regex": keyword, "$options": "i"}},
+                {"username": {"$regex": keyword, "$options": "i"}},
+                {"region": {"$regex": keyword, "$options": "i"}},  # Search region, not location
+                {"city": {"$regex": keyword, "$options": "i"}},  # Also search city field
+                {"education": {"$regex": keyword, "$options": "i"}},
+                {"occupation": {"$regex": keyword, "$options": "i"}},
+                {"aboutYou": {"$regex": keyword, "$options": "i"}},
+                {"bio": {"$regex": keyword, "$options": "i"}},
+                {"interests": {"$regex": keyword, "$options": "i"}}
+            ]
+
+        # Gender filter
+        if gender:
+            query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
+
+        # Age filter - Calculate dynamically from birthMonth and birthYear
+        # This ensures age is always accurate and never stale
+        # Store age filter for later use in aggregation pipeline
+        age_filter_min = ageMin if ageMin > 0 else None
+        age_filter_max = ageMax if ageMax > 0 else None
+
+        # Height filter - now using heightInches (numeric field)
+        # Include users who match OR don't have the field (lenient search)
+        if heightMin > 0 or heightMax > 0:
+            height_query = {}
+            if heightMin > 0:
+                height_query["$gte"] = heightMin
+            if heightMax > 0:
+                height_query["$lte"] = heightMax
+            # Lenient: include users who match OR heightInches field doesn't exist
+            if "$or" not in query:
+                query["$or"] = []
+            # Wrap existing $or conditions if they exist
+            existing_or = query.pop("$or", [])
+            query["$and"] = [
+                {"$or": existing_or} if existing_or else {},
+                {"$or": [
+                    {"heightInches": height_query},
+                    {"heightInches": {"$exists": False}},
+                    {"heightInches": None}
+                ]}
+            ]
+
+        # Other filters
+        # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
+        if location:
+            # Search in region, city, OR aboutYou field (all unencrypted) instead of location (encrypted)
+            # aboutYou often contains location info like "I live in Indianapolis, IN"
+            location_query = {"$or": [
+                {"region": {"$regex": location, "$options": "i"}},
+                {"city": {"$regex": location, "$options": "i"}},
+                {"aboutYou": {"$regex": location, "$options": "i"}}
+            ]}
+            # Merge with existing query
+            if "$and" in query:
+                query["$and"].append(location_query)
+            else:
+                query["$and"] = [location_query]
+        if occupation:
+            query["occupation"] = occupation
+        if religion:
+            query["religion"] = religion
+        if caste:
+            query["castePreference"] = caste
+        if eatingPreference:
+            query["eatingPreference"] = eatingPreference
+        if drinking:
+            query["drinking"] = drinking
+        if smoking:
+            query["smoking"] = smoking
+        if relationshipStatus:
+            query["relationshipStatus"] = relationshipStatus
+        if bodyType:
+            query["bodyType"] = bodyType
+
+        # Newly added filter (last 7 days)
+        if newlyAdded:
+            from datetime import datetime, timedelta
+            seven_days_ago = datetime.now() - timedelta(days=7)
+            query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
 
     # Sort options
     sort_options = {

@@ -57,8 +57,69 @@ const SearchFilters = ({
     // The filteredUsers in SearchPage2 will automatically re-compute
   };
 
+  // Handle Profile ID search
+  const handleProfileIdSearch = () => {
+    console.log('🔍 Profile ID Search clicked, profileId:', searchCriteria.profileId);
+    if (searchCriteria.profileId?.trim()) {
+      console.log('🔍 Calling onSearch with profileId:', searchCriteria.profileId);
+      onSearch();
+    } else {
+      console.log('🔍 Profile ID is empty, not searching');
+    }
+  };
+
+  // Handle Profile ID clear
+  const handleProfileIdClear = () => {
+    handleInputChange({ target: { name: 'profileId', value: '' } });
+  };
+
   return (
     <div className="unified-search-filters">
+      {/* 0. PROFILE ID DIRECT SEARCH - Separate Section */}
+      <div className="profile-id-search-section">
+        <div className="form-group">
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Profile ID
+            <Tooltip 
+              text="Enter an exact Profile ID to find a specific user directly. This bypasses all other filters."
+              position="top"
+              icon 
+            />
+          </label>
+          <div className="profile-id-search-row">
+            <input
+              type="text"
+              className="form-control"
+              name="profileId"
+              value={searchCriteria.profileId || ''}
+              onChange={handleInputChange}
+              placeholder="e.g., STHa9Lor"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleProfileIdSearch();
+                }
+              }}
+            />
+            <button 
+              type="button" 
+              className="btn btn-primary btn-profile-id-search"
+              onClick={handleProfileIdSearch}
+              disabled={!searchCriteria.profileId?.trim()}
+            >
+              🔍 Search
+            </button>
+            <button 
+              type="button" 
+              className="btn btn-danger btn-profile-id-clear"
+              onClick={handleProfileIdClear}
+              disabled={!searchCriteria.profileId?.trim()}
+            >
+              🗑️ Clear
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* 1. L3V3L COMPATIBILITY SLIDER */}
       {(systemConfig?.enable_l3v3l_for_all || isPremiumUser) && (
         <div className="l3v3l-slider-section" style={{ marginBottom: '24px' }}>
