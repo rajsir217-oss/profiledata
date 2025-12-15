@@ -518,21 +518,31 @@ async def find_matches_for_search(
     if criteria.get('gender'):
         query['gender'] = {'$regex': f'^{criteria["gender"]}$', '$options': 'i'}
     
-    # Apply age range
+    # Apply age range using birthYear (age field is not populated in DB)
+    # Calculate birth year range from age range
     if criteria.get('ageMin') or criteria.get('ageMax'):
-        age_query = {}
+        current_year = datetime.now().year
+        birth_year_query = {}
+        
+        # If ageMin is 33, birthYear should be <= current_year - 33 (e.g., 2025 - 33 = 1992)
         if criteria.get('ageMin'):
             try:
-                age_query['$gte'] = int(criteria['ageMin'])
+                age_min = int(criteria['ageMin'])
+                birth_year_query['$lte'] = current_year - age_min
             except (ValueError, TypeError):
                 pass
+        
+        # If ageMax is 37, birthYear should be >= current_year - 37 (e.g., 2025 - 37 = 1988)
         if criteria.get('ageMax'):
             try:
-                age_query['$lte'] = int(criteria['ageMax'])
+                age_max = int(criteria['ageMax'])
+                birth_year_query['$gte'] = current_year - age_max
             except (ValueError, TypeError):
                 pass
-        if age_query:
-            query['age'] = age_query
+        
+        if birth_year_query:
+            query['birthYear'] = birth_year_query
+            logger.info(f"📅 Age filter: ageMin={criteria.get('ageMin')}, ageMax={criteria.get('ageMax')} -> birthYear query: {birth_year_query}")
     
     # Apply height range
     if criteria.get('heightMinFeet') or criteria.get('heightMaxFeet'):
@@ -684,15 +694,23 @@ async def send_matches_email(
             # Decrypt PII fields
             decrypted_match = pii_encryptor.decrypt_user_pii(match)
             
-            # Get age - either from age field or calculate from birthYear
+            # Get age - either from age field or calculate from birthYear + birthMonth
             age = decrypted_match.get('age')
             if not age and decrypted_match.get('birthYear'):
-                # Calculate age from birthYear
-                current_year = datetime.now().year
+                # Calculate age from birthYear and birthMonth
+                now = datetime.now()
                 birth_year = decrypted_match.get('birthYear')
+                birth_month = decrypted_match.get('birthMonth', 1)  # Default to January if not set
+                
                 if isinstance(birth_year, str):
                     birth_year = int(birth_year)
-                age = current_year - birth_year
+                if isinstance(birth_month, str):
+                    birth_month = int(birth_month)
+                
+                # Calculate age considering month
+                age = now.year - birth_year
+                if now.month < birth_month:
+                    age -= 1  # Birthday hasn't occurred yet this year
             elif not age and decrypted_match.get('dateOfBirth'):
                 # Fallback to dateOfBirth for legacy records
                 age = calculate_age(decrypted_match.get('dateOfBirth'))
