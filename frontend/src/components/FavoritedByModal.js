@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../api';
+import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import './ProfileViewsModal.css'; // Reuse same styles
 
 const FavoritedByModal = ({ isOpen, onClose, username }) => {
@@ -107,7 +108,7 @@ const FavoritedByModal = ({ isOpen, onClose, username }) => {
                 <div key={user.username} className="view-item">
                   <div className="view-avatar">
                     {user.profileImage ? (
-                      <img src={user.profileImage} alt={user.username} />
+                      <img src={getAuthenticatedImageUrl(user.profileImage)} alt={user.username} />
                     ) : (
                       <div className="avatar-placeholder">
                         {user.firstName?.[0]}{user.lastName?.[0]}
