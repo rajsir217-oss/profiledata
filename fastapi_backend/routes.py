@@ -552,6 +552,35 @@ def parse_date_of_birth(dob_str):
     
     return None, None
 
+@router.get("/check-username/{username}")
+async def check_username_availability(
+    username: str,
+    db = Depends(get_database)
+):
+    """
+    Public endpoint to check if a username is available.
+    No authentication required - used during registration.
+    Returns: {"available": true/false, "username": "..."}
+    """
+    logger.info(f"🔍 Checking username availability: {username}")
+    
+    # Validate username format
+    if not username or len(username) < 3:
+        return {"available": False, "username": username, "reason": "Username must be at least 3 characters"}
+    
+    if len(username) > 30:
+        return {"available": False, "username": username, "reason": "Username must be 30 characters or less"}
+    
+    # Check if username exists (case-insensitive)
+    existing_user = await db.users.find_one(get_username_query(username))
+    
+    if existing_user:
+        logger.info(f"❌ Username '{username}' is already taken")
+        return {"available": False, "username": username}
+    
+    logger.info(f"✅ Username '{username}' is available")
+    return {"available": True, "username": username}
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     # Basic Information
