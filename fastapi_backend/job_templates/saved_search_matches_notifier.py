@@ -684,9 +684,17 @@ async def send_matches_email(
             # Decrypt PII fields
             decrypted_match = pii_encryptor.decrypt_user_pii(match)
             
-            # Get age - either from age field or calculate from dateOfBirth
+            # Get age - either from age field or calculate from birthYear
             age = decrypted_match.get('age')
-            if not age and decrypted_match.get('dateOfBirth'):
+            if not age and decrypted_match.get('birthYear'):
+                # Calculate age from birthYear
+                current_year = datetime.now().year
+                birth_year = decrypted_match.get('birthYear')
+                if isinstance(birth_year, str):
+                    birth_year = int(birth_year)
+                age = current_year - birth_year
+            elif not age and decrypted_match.get('dateOfBirth'):
+                # Fallback to dateOfBirth for legacy records
                 age = calculate_age(decrypted_match.get('dateOfBirth'))
             
             # Format height

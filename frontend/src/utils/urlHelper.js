@@ -2,6 +2,7 @@
 // Centralized URL helper to avoid hardcoded localhost references
 
 import { getBackendUrl } from '../config/apiConfig';
+import logger from './logger';
 
 /**
  * Get full backend API URL for a given path
@@ -40,9 +41,9 @@ export const getImageUrl = (imagePath) => {
   const currentBackend = getBackendUrl();
   const isLocalEnvironment = currentBackend.includes('localhost') || currentBackend.includes('127.0.0.1');
   
-  // Debug: Log input path
+  // Debug: Log input path (only in development)
   if (imagePath.includes('/api/users/media/')) {
-    console.log('🖼️ getImageUrl input:', imagePath);
+    logger.debug('🖼️ getImageUrl input:', imagePath);
   }
   
   // GCS signed URLs - return as-is (already authenticated via signature)
@@ -86,9 +87,9 @@ export const getImageUrl = (imagePath) => {
     if (token) {
       const separator = finalUrl.includes('?') ? '&' : '?';
       finalUrl = `${finalUrl}${separator}token=${encodeURIComponent(token)}`;
-      console.log('🖼️ getImageUrl output (with token):', finalUrl.substring(0, 80) + '...');
+      logger.debug('🖼️ getImageUrl output (with token):', finalUrl.substring(0, 80) + '...');
     } else {
-      console.warn('⚠️ No token found in localStorage for protected image:', finalUrl);
+      logger.warn('⚠️ No token found in localStorage for protected image:', finalUrl);
     }
   }
   
