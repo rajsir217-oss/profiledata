@@ -5,7 +5,8 @@
 
 // Base URL - update for production
 const BASE_URL = process.env.REACT_APP_SITE_URL || 'https://l3v3lmatches.com';
-const SITE_NAME = '🦋 L3V3L Matches';
+// eslint-disable-next-line no-unused-vars
+const SITE_NAME = '🦋 L3V3L Matches'; // Reserved for future SEO enhancements
 
 /**
  * Generate structured data (JSON-LD) for organization

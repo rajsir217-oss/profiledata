@@ -21,7 +21,6 @@ const ChangeAdminPassword = () => {
 
   // Security check - only admin can access
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       navigate('/');

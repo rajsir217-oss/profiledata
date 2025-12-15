@@ -11,7 +11,6 @@ const EmailAnalytics = () => {
   const [period, setPeriod] = useState(30);
 
   useEffect(() => {
-    const username = localStorage.getItem('username');
     const userRole = localStorage.getItem('userRole');
     if (userRole !== 'admin') {
       console.warn('⚠️ Unauthorized access attempt to Email Analytics');

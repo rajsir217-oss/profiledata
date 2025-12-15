@@ -1002,98 +1002,106 @@ const InvitationManager = () => {
       {/* Add Invitation Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>Create New Invitation</h2>
-              <button className="btn-close" onClick={() => setShowAddModal(false)}>✕</button>
+          <div className="invitation-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="invitation-modal-header">
+              <h2>✉️ Create New Invitation</h2>
+              <button className="invitation-modal-close" onClick={() => setShowAddModal(false)}>✕</button>
             </div>
             
-            <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label>Name *</label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
+            <div className="invitation-modal-body">
+              {/* Important Note */}
+              <div className="invitation-note">
+                <span className="note-icon">💡</span>
+                <p>Please send invitations to your friends and family who are <strong>US Citizens</strong> and/or <strong>Green Card Holders</strong>.</p>
               </div>
 
-              <div className="form-group">
-                <label>Email *</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Phone (Optional)</label>
-                <input
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="+1 234 567 8900"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Channel</label>
-                <select
-                  value={formData.channel}
-                  onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
-                >
-                  <option value="email">Email Only</option>
-                  <option value="sms">SMS Only</option>
-                  <option value="both">Both Email & SMS</option>
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label>Email Subject *</label>
-                <input
-                  type="text"
-                  value={formData.emailSubject}
-                  onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
-                  required
-                  placeholder="Email subject line"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Custom Message (Optional)</label>
-                <textarea
-                  value={formData.customMessage}
-                  onChange={(e) => setFormData({ ...formData, customMessage: e.target.value })}
-                  rows="3"
-                  placeholder="Add a personal message to the invitation..."
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="checkbox-label">
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label>Name *</label>
                   <input
-                    type="checkbox"
-                    checked={formData.sendImmediately}
-                    onChange={(e) => setFormData({ ...formData, sendImmediately: e.target.checked })}
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    required
                   />
-                  Send invitation immediately
-                </label>
-              </div>
+                </div>
 
-              {error && <div className="error-message">{error}</div>}
+                <div className="form-group">
+                  <label>Email *</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
 
-              <div className="modal-actions">
-                <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn-primary">
-                  Create Invitation
-                </button>
-              </div>
-            </form>
+                <div className="form-group">
+                  <label>Phone (Optional)</label>
+                  <input
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 234 567 8900"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Channel</label>
+                  <select
+                    value={formData.channel}
+                    onChange={(e) => setFormData({ ...formData, channel: e.target.value })}
+                  >
+                    <option value="email">Email Only</option>
+                    <option value="sms">SMS Only</option>
+                    <option value="both">Both Email & SMS</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Email Subject *</label>
+                  <input
+                    type="text"
+                    value={formData.emailSubject}
+                    onChange={(e) => setFormData({ ...formData, emailSubject: e.target.value })}
+                    required
+                    placeholder="Email subject line"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Custom Message (Optional)</label>
+                  <textarea
+                    value={formData.customMessage}
+                    onChange={(e) => setFormData({ ...formData, customMessage: e.target.value })}
+                    rows="3"
+                    placeholder="Add a personal message to the invitation..."
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={formData.sendImmediately}
+                      onChange={(e) => setFormData({ ...formData, sendImmediately: e.target.checked })}
+                    />
+                    Send invitation immediately
+                  </label>
+                </div>
+
+                {error && <div className="error-message">{error}</div>}
+
+                <div className="invitation-modal-footer">
+                  <button type="button" className="btn-secondary" onClick={() => setShowAddModal(false)}>
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn-primary">
+                    Create Invitation
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

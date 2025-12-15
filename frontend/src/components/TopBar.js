@@ -169,8 +169,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, []);
 
+  // eslint-disable-next-line no-unused-vars
   const handleLogout = async () => {
-    const username = currentUser;
     
     // Disconnect WebSocket
     logger.info('Disconnecting WebSocket');
