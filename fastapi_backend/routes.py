@@ -6958,7 +6958,10 @@ async def get_online_count():
     return {"onlineCount": count}
 
 @router.get("/online-status/users")
-async def get_online_users(db = Depends(get_database)):
+async def get_online_users(
+    current_user: dict = Depends(get_current_user_optional),
+    db = Depends(get_database)
+):
     """Get list of currently online users with profile info"""
     from redis_manager import get_redis_manager
     
@@ -6969,6 +6972,9 @@ async def get_online_users(db = Depends(get_database)):
     if not usernames:
         return {"onlineUsers": [], "count": 0}
     
+    # Check if requester is admin - admins see all images
+    is_admin = current_user and _is_admin_user(current_user)
+    
     # Fetch all user details in a SINGLE query using $in (much faster!)
     cursor = db.users.find(
         {"username": {"$in": usernames}},
@@ -6977,15 +6983,21 @@ async def get_online_users(db = Depends(get_database)):
     
     user_list = []
     async for user in cursor:
-        # Use first public image for profileImage
         existing_images = user.get("images", [])
-        normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-        first_public = normalized_public[0] if normalized_public else None
+        
+        if is_admin:
+            # Admin sees first image (any image)
+            first_image = existing_images[0] if existing_images else None
+        else:
+            # Regular users see first public image only
+            normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+            first_image = normalized_public[0] if normalized_public else None
+        
         user_list.append({
             "username": user.get("username"),
             "firstName": user.get("firstName"),
             "lastName": user.get("lastName"),
-            "profileImage": get_full_image_url(first_public) if first_public else None,
+            "profileImage": get_full_image_url(first_image) if first_image else None,
             "role": user.get("role", "free_user")
         })
     
