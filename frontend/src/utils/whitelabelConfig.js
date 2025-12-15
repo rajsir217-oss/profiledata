@@ -44,17 +44,15 @@ export async function loadWhitelabelConfig() {
     const response = await fetch('/whitelabel.json');
     if (response.ok) {
       const config = await response.json();
-      console.log('✅ Loaded whitelabel config from whitelabel.json');
+      // Config loaded successfully (silent in production)
       return config;
     }
     
-    // File not found or error - use defaults
-    console.log('⚙️ Using default whitelabel config (whitelabel.json not found)');
+    // File not found or error - use defaults (silent in production)
     return defaultConfig;
     
   } catch (error) {
-    console.error('❌ Error loading whitelabel config:', error);
-    console.log('⚙️ Falling back to default whitelabel config');
+    // Silent fallback in production
     return defaultConfig;
   }
 }
