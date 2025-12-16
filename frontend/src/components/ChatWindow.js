@@ -256,7 +256,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             className="send-button"
             disabled={!messageText.trim() || otherUser.accountStatus === 'paused'}
           >
-            Send ➤
+            <span className="send-text">Send </span><span className="send-icon">➤</span>
           </button>
         </form>
       </div>

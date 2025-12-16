@@ -12,6 +12,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from urllib.parse import quote, unquote
 from config import Settings
 
 settings = Settings()
@@ -89,8 +90,13 @@ class EmailVerificationService:
             if not token:
                 return False
             
-            # Construct verification URL
-            verification_url = f"{settings.frontend_url}/verify-email?token={token}&username={username}"
+            # Construct verification URL with URL-encoded parameters
+            # Note: token_urlsafe() already produces URL-safe tokens, but encode username for safety
+            encoded_username = quote(username, safe='')
+            verification_url = f"{settings.frontend_url}/verify-email?token={token}&username={encoded_username}"
+            
+            # Log the verification URL for debugging (without full token for security)
+            print(f"📧 Generated verification URL for {username}: {settings.frontend_url}/verify-email?token={token[:10]}...&username={encoded_username}")
             
             # Create email content
             subject = "Verify Your Email - Activate Your Profile"
@@ -173,6 +179,7 @@ class EmailVerificationService:
                         
                         <div class="warning">
                             <strong>⏰ This link expires in 24 hours</strong><br>
+                            <strong>⚠️ Important:</strong> If you requested multiple verification emails, only the MOST RECENT link will work. Previous links are automatically invalidated.<br>
                             If you didn't register for an account, please ignore this email.
                         </div>
                         
@@ -340,8 +347,26 @@ class EmailVerificationService:
                     "tokenNotFound": True
                 }
             
-            if stored_token != token:
-                print(f"❌ Token mismatch! Stored: {stored_token}, Received: {token}")
+            # Strip whitespace and compare tokens
+            token_clean = token.strip() if token else ""
+            stored_token_clean = stored_token.strip() if stored_token else ""
+            
+            if stored_token_clean != token_clean:
+                attempts = user.get("emailVerificationAttempts", 1)
+                print(f"❌ Token mismatch!")
+                print(f"   Stored token (len={len(stored_token_clean)}): {stored_token_clean[:30]}...")
+                print(f"   Received token (len={len(token_clean)}): {token_clean[:30]}...")
+                print(f"   User has requested {attempts} verification email(s)")
+                # Check if it's a partial match (URL truncation issue)
+                if stored_token_clean.startswith(token_clean) or token_clean.startswith(stored_token_clean):
+                    print(f"   ⚠️ Partial match detected - possible URL truncation in email client")
+                
+                # Provide helpful error message based on number of attempts
+                if attempts > 1:
+                    return {
+                        "success": False,
+                        "message": f"This verification link is outdated. You have requested {attempts} verification emails - please use the link from your MOST RECENT email (check your inbox and spam folder)."
+                    }
                 return {
                     "success": False,
                     "message": "Invalid verification token. Please use the most recent verification email sent to you."
@@ -418,20 +443,46 @@ class EmailVerificationService:
             if attempts >= 5:
                 return {
                     "success": False,
-                    "message": "Maximum resend attempts reached. Please try again tomorrow."
+                    "message": "Maximum resend attempts reached. Please try again tomorrow or contact support."
                 }
             
-            # Send verification email
-            success = await self.send_verification_email(
-                username,
-                user.get("contactEmail"),
-                user.get("firstName", "")
-            )
+            # Check cooldown - prevent rapid clicking (30 second minimum between sends)
+            last_sent = user.get("emailVerificationSentAt")
+            if last_sent:
+                # Handle both datetime objects and strings
+                if isinstance(last_sent, str):
+                    try:
+                        last_sent = datetime.fromisoformat(last_sent.replace('Z', '+00:00'))
+                    except:
+                        last_sent = None
+                
+                if last_sent:
+                    seconds_since_last = (datetime.utcnow() - last_sent.replace(tzinfo=None)).total_seconds()
+                    if seconds_since_last < 30:
+                        wait_time = int(30 - seconds_since_last)
+                        return {
+                            "success": False,
+                            "message": f"Please wait {wait_time} seconds before requesting another email. Check your inbox and spam folder for the email we just sent."
+                        }
+            
+            # Get email before sending
+            email = user.get("contactEmail")
+            first_name = user.get("firstName", "")
+            
+            if not email:
+                return {
+                    "success": False,
+                    "message": "No email address found for this account"
+                }
+            
+            # Send verification email (this is async but we'll respond quickly)
+            # The email sending happens in a thread pool so it won't block
+            success = await self.send_verification_email(username, email, first_name)
             
             if success:
                 return {
                     "success": True,
-                    "message": "Verification email sent successfully"
+                    "message": "Verification email sent! Please check your inbox (and spam folder). Only the link in this email will work - previous links are now invalid."
                 }
             else:
                 return {
