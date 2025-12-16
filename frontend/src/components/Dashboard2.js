@@ -566,7 +566,8 @@ const Dashboard2 = () => {
       }));
       
       // Refresh dashboard data to ensure sync
-      await fetchDashboardData();
+      const currentUser = localStorage.getItem('username');
+      await loadDashboardData(currentUser);
       
       logger.info(`Successfully deleted conversation with: ${targetUsername}`);
     } catch (err) {
@@ -857,8 +858,12 @@ const Dashboard2 = () => {
         onMessage={() => handleMessageUser(username, displayUser)}
         onBlock={() => isBlocked ? handleRemoveFromExclusions(username) : handleAddToExclusions(displayUser)}
         onRequestPII={() => handleRequestPII(displayUser)}
-        // Context-specific remove action - handler will receive user object from UserCard
-        onRemove={removeHandler || null}
+        // Context-specific remove action - wrap to extract username from user object
+        onRemove={removeHandler ? (userObj) => {
+          const uname = userObj?.username || username;
+          console.log('🔴 onRemove triggered for:', uname);
+          return removeHandler(uname);
+        } : null}
       />
     );
   };
