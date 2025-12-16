@@ -1,4 +1,5 @@
-FROM node:20-slim
+# Stage 1: Build
+FROM node:20-slim AS builder
 
 WORKDIR /app
 
@@ -6,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies (use legacy-peer-deps for React 19 compatibility)
-RUN npm ci --only=production --legacy-peer-deps
+RUN npm ci --legacy-peer-deps
 
 # Copy app source
 COPY . .
@@ -14,11 +15,17 @@ COPY . .
 # Build the app
 RUN npm run build
 
-# Install serve
-RUN npm install -g serve
+# Stage 2: Production with nginx
+FROM nginx:alpine
+
+# Copy custom nginx config with proper cache headers
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copy built app from builder stage
+COPY --from=builder /app/build /usr/share/nginx/html
 
 # Expose port
 EXPOSE 8080
 
-# Start server
-CMD ["serve", "-s", "build", "-l", "8080"]
+# Start nginx
+CMD ["nginx", "-g", "daemon off;"]
