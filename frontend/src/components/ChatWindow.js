@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import api from '../api';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
+import logger from '../utils/logger';
 import './ChatWindow.css';
 
 const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted }) => {
@@ -8,6 +9,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [messageText, setMessageText] = useState('');
   const [deletingMessage, setDeletingMessage] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const [headerImageError, setHeaderImageError] = useState(false);
   const [messageImageErrors, setMessageImageErrors] = useState({});
 
@@ -58,8 +60,9 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       
       setDeleteConfirm(null);
     } catch (error) {
-      console.error('Error deleting message:', error);
-      alert(error.response?.data?.detail || 'Failed to delete message');
+      logger.error('Error deleting message:', error);
+      setDeleteError(error.response?.data?.detail || 'Failed to delete message');
+      setTimeout(() => setDeleteError(null), 3000);
     } finally {
       setDeletingMessage(null);
     }
@@ -142,6 +145,14 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             <strong>This user is taking a break</strong>
             <p>{otherUser.pauseMessage || 'They have temporarily paused their account and cannot receive messages.'}</p>
           </div>
+        </div>
+      )}
+
+      {/* Delete Error Toast */}
+      {deleteError && (
+        <div className="chat-error-toast">
+          <span className="error-icon">⚠️</span>
+          <span>{deleteError}</span>
         </div>
       )}
 
