@@ -535,9 +535,19 @@ const Dashboard2 = () => {
     }
   };
 
-  const handleDeleteMessage = async (targetUsername) => {
+  const handleDeleteMessage = async (targetUsernameOrUser) => {
+    // Handle both username string and user object
+    const targetUsername = typeof targetUsernameOrUser === 'string' 
+      ? targetUsernameOrUser 
+      : targetUsernameOrUser?.username;
+    
     console.log('🗑️ handleDeleteMessage called with:', targetUsername);
     logger.info(`Deleting message conversation with: ${targetUsername}`);
+    
+    if (!targetUsername) {
+      console.error('🗑️ No target username provided');
+      return;
+    }
     
     try {
       // Call backend API to delete conversation
@@ -554,6 +564,9 @@ const Dashboard2 = () => {
           (typeof m === 'string' ? m : m.username) !== targetUsername
         )
       }));
+      
+      // Refresh dashboard data to ensure sync
+      await fetchDashboardData();
       
       logger.info(`Successfully deleted conversation with: ${targetUsername}`);
     } catch (err) {
@@ -844,11 +857,8 @@ const Dashboard2 = () => {
         onMessage={() => handleMessageUser(username, displayUser)}
         onBlock={() => isBlocked ? handleRemoveFromExclusions(username) : handleAddToExclusions(displayUser)}
         onRequestPII={() => handleRequestPII(displayUser)}
-        // Context-specific remove action - pass username directly
-        onRemove={removeHandler ? async () => {
-          console.log('🔴 onRemove wrapper called for:', username);
-          await removeHandler(username);
-        } : null}
+        // Context-specific remove action - handler will receive user object from UserCard
+        onRemove={removeHandler || null}
       />
     );
   };
