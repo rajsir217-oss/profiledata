@@ -304,12 +304,20 @@ const UserCard = ({
               <button
                 key={index}
                 className={`bottom-action-btn ${action.className || ''}`}
-                onClick={(e) => {
+                onClick={async (e) => {
                   e.stopPropagation();
+                  console.log('🔘 Button clicked:', action.label, 'handler:', !!action.handler, 'user:', user?.username);
                   if (action.handler) {
-                    action.handler(user);
+                    console.log('🔘 Calling handler for:', action.label);
+                    try {
+                      await action.handler(user);
+                      console.log('🔘 Handler completed for:', action.label);
+                    } catch (err) {
+                      console.error('🔘 Handler error:', err);
+                    }
                   } else if (action.onClick) {
-                    action.onClick(user);
+                    console.log('🔘 Calling onClick for:', action.label);
+                    await action.onClick(user);
                   }
                 }}
                 title={action.label}

@@ -5360,6 +5360,40 @@ async def delete_message(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/messages/conversation/{other_username}")
+async def delete_conversation(
+    other_username: str,
+    username: str = Query(..., description="Current user's username"),
+    db = Depends(get_database)
+):
+    """
+    Delete all messages in a conversation between current user and other user.
+    Only deletes messages where the current user is the sender.
+    """
+    try:
+        logger.info(f"🗑️ Delete conversation request: {username} <-> {other_username}")
+        
+        # Delete all messages where current user is sender to other user
+        result = await db.messages.delete_many({
+            "$or": [
+                {"fromUsername": username, "toUsername": other_username},
+                {"fromUsername": other_username, "toUsername": username}
+            ]
+        })
+        
+        logger.info(f"✅ Deleted {result.deleted_count} messages in conversation between {username} and {other_username}")
+        
+        return {
+            "success": True,
+            "message": f"Conversation deleted successfully",
+            "deletedCount": result.deleted_count
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error deleting conversation: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # ===== SMS OPT-IN PREFERENCES =====
 
 @router.get("/users/{username}/sms-optin")

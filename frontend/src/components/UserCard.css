@@ -1013,6 +1013,8 @@ body.theme-ultra-black .user-action-btn {
   background: var(--card-background);
   border-top: 1px solid var(--divider-color);
   justify-content: center;
+  position: relative;
+  z-index: 100;
 }
 
 .bottom-action-btn {
@@ -1032,6 +1034,8 @@ body.theme-ultra-black .user-action-btn {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  z-index: 101;
+  pointer-events: auto !important;
 }
 
 .bottom-action-btn .btn-icon {
