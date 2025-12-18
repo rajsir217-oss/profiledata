@@ -1302,7 +1302,7 @@ const Dashboard2 = () => {
       {/* Others' Activities Section - Collapsible with Horizontal Pills */}
       <div className="activity-group">
         <div 
-          className={`activity-group-header clickable ${expandedGroups.othersActivities ? 'expanded' : ''}`}
+          className={`activity-group-header activity-group-header-light clickable ${expandedGroups.othersActivities ? 'expanded' : ''}`}
           onClick={() => toggleGroup('othersActivities')}
         >
           <div className="activity-group-title">

@@ -640,6 +640,27 @@
   border-radius: 12px 12px 0 0;
 }
 
+/* =================================================================
+   LIGHTER SECTION HEADER - "Who's Interested In You"
+   =================================================================
+   Uses a softer, lighter gradient than "My Activities" section.
+   Theme-aware: Works across all themes (Cozy Light, Dark, Rose, etc.)
+   ================================================================= */
+.activity-group-header.activity-group-header-light {
+  background: linear-gradient(135deg, 
+    color-mix(in srgb, var(--primary-color) 70%, white 30%) 0%, 
+    color-mix(in srgb, var(--secondary-color) 60%, white 40%) 100%
+  );
+}
+
+/* Fallback for browsers that don't support color-mix (Safari < 16.4) */
+@supports not (background: color-mix(in srgb, red 50%, blue 50%)) {
+  .activity-group-header.activity-group-header-light {
+    background: linear-gradient(135deg, var(--secondary-color) 0%, var(--primary-color) 100%);
+    opacity: 0.85;
+  }
+}
+
 /* Clickable header for collapsible sections */
 .activity-group-header.clickable {
   cursor: pointer;
