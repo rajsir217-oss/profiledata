@@ -225,6 +225,47 @@ def _compute_public_image_paths(existing_images: List[str], public_images: List[
     normalized_public = [_extract_image_path(img) for img in (public_images or []) if img]
     return [p for p in normalized_public if p in normalized_images]
 
+async def _get_profile_picture_always_visible(db) -> bool:
+    """
+    Get the profile_picture_always_visible setting from database or config fallback.
+    
+    When True: Profile picture (first image) is always visible to logged-in members
+    When False: Profile picture follows same privacy rules as other images
+    """
+    try:
+        system_settings = await db.system_settings.find_one({"_id": "global"})
+        if system_settings:
+            return system_settings.get("profile_picture_always_visible", True)
+        return settings.profile_picture_always_visible
+    except Exception:
+        return True  # Default to True (industry standard)
+
+def _apply_profile_picture_visibility(user: dict, profile_pic_always_visible: bool) -> dict:
+    """
+    Apply profile picture visibility setting to a user dict for dashboard display.
+    
+    If profile_pic_always_visible is True and user has images, ensures the first image
+    (profile picture) is included in the images array even if not in publicImages.
+    """
+    if not profile_pic_always_visible:
+        return user
+    
+    existing_images = user.get("images", [])
+    all_images = user.get("_all_images", [])  # Original full images list if available
+    
+    # If images is empty but user has images, add profile picture
+    if not existing_images and all_images:
+        first_image = all_images[0] if all_images else None
+        if first_image:
+            user["images"] = [get_full_image_url(first_image)]
+    # If images exists but might be missing profile pic, ensure it's first
+    elif all_images and existing_images:
+        first_image_url = get_full_image_url(all_images[0])
+        if first_image_url not in existing_images:
+            user["images"] = [first_image_url] + existing_images
+    
+    return user
+
 def _is_admin_user(user_doc: Dict[str, Any]) -> bool:
     if not user_doc:
         return False
@@ -3363,6 +3404,9 @@ async def search_users(
             # Get total count for pagination
             total = await db.users.count_documents(query)
 
+        # Get profile picture visibility setting (once, outside loop)
+        profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+        
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):
             user.pop("password", None)
@@ -3382,7 +3426,16 @@ async def search_users(
             normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
             full_public_urls = [get_full_image_url(p) for p in normalized_public]
             users[i]["publicImages"] = full_public_urls
-            users[i]["images"] = full_public_urls
+            
+            # Apply profile picture visibility setting
+            if profile_pic_always_visible and existing_images:
+                profile_pic_url = get_full_image_url(existing_images[0])
+                if profile_pic_url not in full_public_urls:
+                    users[i]["images"] = [profile_pic_url] + full_public_urls
+                else:
+                    users[i]["images"] = full_public_urls
+            else:
+                users[i]["images"] = full_public_urls
             
             # Calculate age dynamically from birthMonth and birthYear
             from datetime import datetime
@@ -4055,6 +4108,9 @@ async def get_favorites(
         favorites_cursor = db.favorites.find({"userUsername": username}).sort("displayOrder", 1)
         favorites = await favorites_cursor.to_list(100)
 
+        # Get profile picture visibility setting
+        profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+
         # Get ONLY needed user fields (not all 162+ fields!)
         favorite_users = []
         for fav in favorites:
@@ -4075,7 +4131,18 @@ async def get_favorites(
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
-                user["images"] = full_public_urls
+                
+                # Apply profile picture visibility setting
+                if profile_pic_always_visible and existing_images:
+                    # Always include profile picture (first image) for logged-in members
+                    profile_pic_url = get_full_image_url(existing_images[0])
+                    if profile_pic_url not in full_public_urls:
+                        user["images"] = [profile_pic_url] + full_public_urls
+                    else:
+                        user["images"] = full_public_urls
+                else:
+                    user["images"] = full_public_urls
+                
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
 
@@ -4227,6 +4294,9 @@ async def get_shortlist(
         shortlist_cursor = db.shortlists.find({"userUsername": username}).sort("displayOrder", 1)
         shortlist = await shortlist_cursor.to_list(100)
 
+        # Get profile picture visibility setting
+        profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+
         # Get ONLY needed user fields (not all 162+ fields!)
         shortlisted_users = []
         for item in shortlist:
@@ -4247,7 +4317,17 @@ async def get_shortlist(
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
-                user["images"] = full_public_urls
+                
+                # Apply profile picture visibility setting
+                if profile_pic_always_visible and existing_images:
+                    profile_pic_url = get_full_image_url(existing_images[0])
+                    if profile_pic_url not in full_public_urls:
+                        user["images"] = [profile_pic_url] + full_public_urls
+                    else:
+                        user["images"] = full_public_urls
+                else:
+                    user["images"] = full_public_urls
+                
                 user["notes"] = item.get("notes")
                 user["addedToShortlistAt"] = item["createdAt"]
                 shortlisted_users.append(user)
@@ -4389,6 +4469,9 @@ async def get_exclusions(
         exclusions_cursor = db.exclusions.find({"userUsername": username}).sort("displayOrder", 1)
         exclusions = await exclusions_cursor.to_list(100)
 
+        # Get profile picture visibility setting
+        profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+
         # Get ONLY needed user fields (not all 162+ fields!)
         excluded_users = []
         for exc in exclusions:
@@ -4409,7 +4492,17 @@ async def get_exclusions(
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
-                user["images"] = full_public_urls
+                
+                # Apply profile picture visibility setting
+                if profile_pic_always_visible and existing_images:
+                    profile_pic_url = get_full_image_url(existing_images[0])
+                    if profile_pic_url not in full_public_urls:
+                        user["images"] = [profile_pic_url] + full_public_urls
+                    else:
+                        user["images"] = full_public_urls
+                else:
+                    user["images"] = full_public_urls
+                
                 user["excludedAt"] = exc.get("createdAt")
                 excluded_users.append(user)
 
@@ -5774,8 +5867,9 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
     
     try:
         # Get system settings for view history retention (applies to favorites too)
-        settings = await db.system_settings.find_one({}) or {}
-        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        system_settings = await db.system_settings.find_one({}) or {}
+        view_history_days = system_settings.get("profile_view_history_days", 7)  # Default 7 days
+        profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
         
         # Calculate cutoff date
         from datetime import timedelta
@@ -5810,10 +5904,16 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         result = []
         for fav in favorites:
             user_data = user_dict.get(fav["userUsername"], {})
-            # Use first public image for profileImage
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
-            first_public = normalized_public[0] if normalized_public else None
+            
+            # Apply profile picture visibility setting
+            if profile_pic_always_visible and existing_images:
+                profile_image = get_full_image_url(existing_images[0])
+            else:
+                first_public = normalized_public[0] if normalized_public else None
+                profile_image = get_full_image_url(first_public) if first_public else None
+            
             result.append({
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -5824,7 +5924,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
-                "profileImage": get_full_image_url(first_public) if first_public else None,
+                "profileImage": profile_image,
                 "addedAt": safe_datetime_serialize(fav.get("createdAt"))
             })
         
@@ -5840,6 +5940,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
     logger.info(f"📝 Getting users who shortlisted {username}")
     
     try:
+        # Get profile picture visibility setting
+        system_settings = await db.system_settings.find_one({}) or {}
+        profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
+        
         # Find all shortlists where current user is the target
         shortlists = await db.shortlists.find(
             {"shortlistedUsername": username}
@@ -5866,10 +5970,16 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         result = []
         for shortlist in shortlists:
             user_data = user_dict.get(shortlist["userUsername"], {})
-            # Use first public image for profileImage
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
-            first_public = normalized_public[0] if normalized_public else None
+            
+            # Apply profile picture visibility setting
+            if profile_pic_always_visible and existing_images:
+                profile_image = get_full_image_url(existing_images[0])
+            else:
+                first_public = normalized_public[0] if normalized_public else None
+                profile_image = get_full_image_url(first_public) if first_public else None
+            
             result.append({
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -5880,7 +5990,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 ),
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
-                "profileImage": get_full_image_url(first_public) if first_public else None,
+                "profileImage": profile_image,
                 "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
             })
         
@@ -6027,9 +6137,10 @@ async def get_profile_views(
     logger.info(f"📊 Getting profile views for {username}")
     
     try:
-        # Get system settings for view history retention
-        settings = await db.system_settings.find_one({}) or {}
-        view_history_days = settings.get("profile_view_history_days", 7)  # Default 7 days
+        # Get system settings for view history retention and profile picture visibility
+        system_settings = await db.system_settings.find_one({}) or {}
+        view_history_days = system_settings.get("profile_view_history_days", 7)  # Default 7 days
+        profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
         
         # Calculate cutoff date
         from datetime import timedelta
@@ -6093,7 +6204,16 @@ async def get_profile_views(
                 viewer.pop("password", None)
                 viewer["_id"] = str(viewer["_id"])
                 remove_consent_metadata(viewer)
-                viewer["images"] = [get_full_image_url(img) for img in viewer.get("images", [])]
+                
+                # Apply profile picture visibility setting
+                existing_images = viewer.get("images", [])
+                if profile_pic_always_visible and existing_images:
+                    # Always include profile picture (first image) for logged-in members
+                    viewer["images"] = [get_full_image_url(existing_images[0])]
+                else:
+                    # Only show public images
+                    normalized_public = _compute_public_image_paths(existing_images, viewer.get("publicImages", []))
+                    viewer["images"] = [get_full_image_url(img) for img in normalized_public]
                 
                 # Decrypt ALL PII fields (contactEmail, contactNumber, location, linkedinUrl)
                 pii_fields = {
