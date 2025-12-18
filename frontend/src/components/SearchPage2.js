@@ -536,9 +536,12 @@ const SearchPage2 = () => {
     const hasError = imageErrors[user.username] || false;
 
     const hasImageAccess = hasPiiAccess(user.username, 'images');
+    
+    // Check if user has any images to display (profile picture always visible when enabled)
+    const hasVisibleImages = user.images && user.images.length > 0;
 
-    // If no access to images, show masked version
-    if (!hasImageAccess) {
+    // If no access to images AND no visible images, show masked version
+    if (!hasImageAccess && !hasVisibleImages) {
       return (
         <div className="profile-image-container">
           <div className="profile-thumbnail-placeholder">

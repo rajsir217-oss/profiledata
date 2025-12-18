@@ -339,8 +339,12 @@ const SearchResultCard = ({
     // Check if user has image access (own profile always has access)
     const isOwnProfile = currentUsername === user.username;
     
-    // If no access to images, show bio with "Request Pics" bubble
-    if (!isOwnProfile && !hasImageAccess) {
+    // Check if user has any images to display
+    // When profile_picture_always_visible is enabled, backend includes profile pic in images array
+    const hasVisibleImages = user.images && user.images.length > 0;
+    
+    // If no access to images AND no visible images, show bio with "Request Pics" bubble
+    if (!isOwnProfile && !hasImageAccess && !hasVisibleImages) {
       return (
         <div className="profile-image-container">
           <div className="search-card-bio-section">
