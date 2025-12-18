@@ -448,17 +448,42 @@ async def get_protected_media(
     filename: str,
     token: Optional[str] = Query(None, description="JWT token for img src requests"),
     current_user: dict = Depends(get_current_user_optional),
-    db = Depends(get_database)
+    db = Depends(get_database),
+    request: Request = None
 ):
     """Serve uploaded media only to authorized active members.
 
     Access rules:
+    - Must be accessed from the app (Referer check) - blocks external hotlinking
     - owner/admin always
+    - if profile_picture_always_visible=true: profile pic visible to all logged-in users
     - if image is marked in owner's publicImages: any active member
     - else: requires active pii_access grant with accessType='images'
     
     Supports token via query param for <img src> tags that can't send headers.
     """
+    # Check Referer header to prevent external hotlinking
+    # Only allow requests from our app's frontend
+    referer = request.headers.get("referer", "") if request else ""
+    allowed_origins = [
+        settings.frontend_url,
+        settings.backend_url,
+        "http://localhost:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:8000",
+    ]
+    # Add production domains
+    if hasattr(settings, 'allowed_origins'):
+        allowed_origins.extend(settings.allowed_origins)
+    
+    is_valid_referer = any(referer.startswith(origin) for origin in allowed_origins if origin)
+    
+    # If no referer or invalid referer, block access (prevents direct URL access)
+    if not referer or not is_valid_referer:
+        logger.warning(f"🚫 Blocked external image access: {filename} from referer: {referer}")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="External access not allowed")
+    
     # If no user from header, try token from query param
     if not current_user and token:
         try:
@@ -3433,6 +3458,10 @@ async def search_users(
         # Get profile picture visibility setting (once, outside loop)
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
         
+        # Check if current user is admin (admins see ALL images)
+        is_admin = _is_admin_user(current_user)
+        logger.info(f"🔍 Search by user {current_user.get('username')}: is_admin={is_admin}, profile_pic_always_visible={profile_pic_always_visible}")
+        
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):
             user.pop("password", None)
@@ -3448,21 +3477,48 @@ async def search_users(
             # Remove consent metadata (backend-only fields)
             remove_consent_metadata(users[i])
 
+            # Get images from multiple possible fields (some users have profileImage, others have images array)
             existing_images = users[i].get("images", [])
+            profile_image = users[i].get("profileImage")
+            
+            # Debug: Log raw image data from database
+            logger.info(f"🖼️ Search {users[i].get('username')}: raw images={existing_images}, profileImage={profile_image}")
+            
+            # If images array is empty but profileImage exists, use it
+            if not existing_images and profile_image:
+                existing_images = [profile_image]
+                logger.info(f"🖼️ Search {users[i].get('username')}: Using profileImage fallback")
+            
             normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
             full_public_urls = [get_full_image_url(p) for p in normalized_public]
             users[i]["publicImages"] = full_public_urls
             
-            # Apply profile picture visibility setting
-            if profile_pic_always_visible and existing_images:
+            # Image visibility logic:
+            # 1. Admin users → see ALL images
+            # 2. profile_pic_always_visible=true → ALL users see avatar (first image)
+            # 3. Otherwise → only public images
+            
+            if is_admin and existing_images:
+                # Admin sees ALL images
+                users[i]["images"] = [get_full_image_url(img) for img in existing_images]
+                users[i]["profilePicVisible"] = True
+                users[i]["imagesMasked"] = False
+                logger.info(f"🖼️ Search {users[i].get('username')}: ADMIN - showing {len(users[i]['images'])} images")
+            elif profile_pic_always_visible and existing_images:
+                # Global setting: show profile picture (first image) to all logged-in users
                 profile_pic_url = get_full_image_url(existing_images[0])
                 if profile_pic_url not in full_public_urls:
                     users[i]["images"] = [profile_pic_url] + full_public_urls
                 else:
-                    users[i]["images"] = full_public_urls
-                users[i]["profilePicVisible"] = True  # Flag for frontend
+                    users[i]["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                users[i]["profilePicVisible"] = True
+                users[i]["imagesMasked"] = False
+                logger.info(f"🖼️ Search {users[i].get('username')}: GLOBAL SETTING - showing {len(users[i]['images'])} images: {users[i]['images'][:1]}")
             else:
+                # Only public images
                 users[i]["images"] = full_public_urls
+                users[i]["imagesMasked"] = len(full_public_urls) == 0
+                logger.info(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
             
             # Calculate age dynamically from birthMonth and birthYear
             from datetime import datetime
@@ -4137,6 +4193,9 @@ async def get_favorites(
 
         # Get profile picture visibility setting
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+        
+        # Check if current user is admin (admins see ALL images)
+        is_admin = _is_admin_user(current_user)
 
         # Get ONLY needed user fields (not all 162+ fields!)
         favorite_users = []
@@ -4155,19 +4214,27 @@ async def get_favorites(
                 
                 remove_consent_metadata(user)
                 existing_images = user.get("images", [])
+                profile_image = user.get("profileImage")
+                
+                # If images array is empty but profileImage exists, use it
+                if not existing_images and profile_image:
+                    existing_images = [profile_image]
+                
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
                 
-                # Apply profile picture visibility setting
-                if profile_pic_always_visible and existing_images:
-                    # Always include profile picture (first image) for logged-in members
+                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
+                if is_admin and existing_images:
+                    user["images"] = [get_full_image_url(img) for img in existing_images]
+                    user["profilePicVisible"] = True
+                elif profile_pic_always_visible and existing_images:
                     profile_pic_url = get_full_image_url(existing_images[0])
                     if profile_pic_url not in full_public_urls:
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
-                        user["images"] = full_public_urls
-                    user["profilePicVisible"] = True  # Flag for frontend
+                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                    user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
                 
@@ -4324,6 +4391,7 @@ async def get_shortlist(
 
         # Get profile picture visibility setting
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+        is_admin = _is_admin_user(current_user)
 
         # Get ONLY needed user fields (not all 162+ fields!)
         shortlisted_users = []
@@ -4342,18 +4410,27 @@ async def get_shortlist(
                 
                 remove_consent_metadata(user)
                 existing_images = user.get("images", [])
+                profile_image = user.get("profileImage")
+                
+                # If images array is empty but profileImage exists, use it
+                if not existing_images and profile_image:
+                    existing_images = [profile_image]
+                
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
                 
-                # Apply profile picture visibility setting
-                if profile_pic_always_visible and existing_images:
+                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
+                if is_admin and existing_images:
+                    user["images"] = [get_full_image_url(img) for img in existing_images]
+                    user["profilePicVisible"] = True
+                elif profile_pic_always_visible and existing_images:
                     profile_pic_url = get_full_image_url(existing_images[0])
                     if profile_pic_url not in full_public_urls:
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
-                        user["images"] = full_public_urls
-                    user["profilePicVisible"] = True  # Flag for frontend
+                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                    user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
                 
@@ -4500,6 +4577,7 @@ async def get_exclusions(
 
         # Get profile picture visibility setting
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+        is_admin = _is_admin_user(current_user)
 
         # Get ONLY needed user fields (not all 162+ fields!)
         excluded_users = []
@@ -4518,18 +4596,27 @@ async def get_exclusions(
                 
                 remove_consent_metadata(user)
                 existing_images = user.get("images", [])
+                profile_image = user.get("profileImage")
+                
+                # If images array is empty but profileImage exists, use it
+                if not existing_images and profile_image:
+                    existing_images = [profile_image]
+                
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
                 full_public_urls = [get_full_image_url(p) for p in normalized_public]
                 user["publicImages"] = full_public_urls
                 
-                # Apply profile picture visibility setting
-                if profile_pic_always_visible and existing_images:
+                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
+                if is_admin and existing_images:
+                    user["images"] = [get_full_image_url(img) for img in existing_images]
+                    user["profilePicVisible"] = True
+                elif profile_pic_always_visible and existing_images:
                     profile_pic_url = get_full_image_url(existing_images[0])
                     if profile_pic_url not in full_public_urls:
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
-                        user["images"] = full_public_urls
-                    user["profilePicVisible"] = True  # Flag for frontend
+                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                    user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
                 
