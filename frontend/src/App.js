@@ -24,8 +24,8 @@ import Shortlist from './components/Shortlist';
 import Exclusions from './components/Exclusions';
 import Messages from './components/Messages';
 import Requests from './components/Requests';
-import Dashboard from './components/Dashboard';
-import Dashboard2 from './components/Dashboard2';
+import DashboardOld from './components/Dashboard'; // Old dashboard - to be removed
+import Dashboard from './components/Dashboard2'; // New dashboard (was Dashboard2)
 import UnifiedPreferences from './components/UnifiedPreferences';
 import PIIManagement from './components/PIIManagement';
 import Testimonials from './components/Testimonials';
@@ -310,8 +310,8 @@ function AppContent() {
               <Route path="/tooltip-demo" element={<TooltipDemo />} />
               
               {/* Protected routes - require active status except profile/edit-profile/preferences */}
+              <Route path="/dashboard-old" element={<ProtectedRoute><DashboardOld /></ProtectedRoute>} />
               <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-              <Route path="/dashboard2" element={<ProtectedRoute><Dashboard2 /></ProtectedRoute>} />
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
