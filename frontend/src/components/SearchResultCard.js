@@ -343,8 +343,11 @@ const SearchResultCard = ({
     // When profile_picture_always_visible is enabled, backend includes profile pic in images array
     const hasVisibleImages = user.images && user.images.length > 0;
     
-    // If no access to images AND no visible images, show bio with "Request Pics" bubble
-    if (!isOwnProfile && !hasImageAccess && !hasVisibleImages) {
+    // Check if profile picture is visible due to global setting (backend sets profilePicVisible: true)
+    const profilePicVisibleGlobal = user.profilePicVisible === true;
+    
+    // If no access to images AND no visible images AND no global profile pic visibility, show bio with "Request Pics" bubble
+    if (!isOwnProfile && !hasImageAccess && !hasVisibleImages && !profilePicVisibleGlobal) {
       return (
         <div className="profile-image-container">
           <div className="search-card-bio-section">
