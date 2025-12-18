@@ -22,6 +22,7 @@ import useToast from '../hooks/useToast';
 import { formatRelativeTime } from '../utils/timeFormatter';
 import PauseSettings from './PauseSettings';
 import { SECTION_ICONS, STATS_ICONS } from '../constants/icons';
+import PollWidget from './PollWidget';
 
 const Dashboard2 = () => {
   const [loading, setLoading] = useState(true);
@@ -1155,6 +1156,9 @@ const Dashboard2 = () => {
           </div>
         </div>
       )}
+
+      {/* Active Polls Section */}
+      <PollWidget />
 
       {/* Stats Overview Section */}
       <div className="dashboard-stats-overview">
