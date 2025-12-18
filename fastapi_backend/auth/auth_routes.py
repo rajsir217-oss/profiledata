@@ -10,6 +10,7 @@ from bson import ObjectId
 import sys
 import os
 import logging
+import re
 
 # Add parent directory to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -28,6 +29,12 @@ from .audit_logger import AuditLogger
 from .authorization import PermissionChecker
 
 logger = logging.getLogger(__name__)
+
+# Helper function for case-insensitive username lookup
+def get_username_query(username: str):
+    """Create a case-insensitive MongoDB query for username"""
+    return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
+
 router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
@@ -190,8 +197,8 @@ async def login(
 ):
     """User login"""
     try:
-        # Get user
-        user = await db.users.find_one({"username": request.username})
+        # Get user (case-insensitive lookup)
+        user = await db.users.find_one(get_username_query(request.username))
         
         if not user:
             # Log failed attempt
