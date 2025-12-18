@@ -231,6 +231,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📊',
+        label: 'Poll Management',
+        subLabel: 'Create & manage polls',
+        action: () => navigate('/poll-management')
+      });
+      
+      items.push({
         icon: '📧',
         label: 'Invitations Manager',
         subLabel: 'Manage user invitations',
