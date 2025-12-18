@@ -14,8 +14,35 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from urllib.parse import quote, unquote
 from config import Settings
+from crypto_utils import get_encryptor
 
 settings = Settings()
+
+def _decrypt_contact_info(value: str) -> str:
+    """
+    Decrypt contact info (email/phone) if encrypted
+    
+    Args:
+        value: Potentially encrypted contact info
+        
+    Returns:
+        Decrypted contact info or original value if not encrypted
+    """
+    if not value:
+        return value
+    
+    # Check if value looks encrypted (Fernet tokens start with 'gAAAAA')
+    if isinstance(value, str) and value.startswith('gAAAAA'):
+        try:
+            encryptor = get_encryptor()
+            decrypted = encryptor.decrypt(value)
+            return decrypted
+        except Exception as e:
+            print(f"❌ Failed to decrypt contact info: {e}")
+            return None
+    
+    # Not encrypted, return as-is
+    return value
 
 def get_username_query(username: str):
     """Create a case-insensitive MongoDB query for username"""
@@ -465,9 +492,17 @@ class EmailVerificationService:
                             "message": f"Please wait {wait_time} seconds before requesting another email. Check your inbox and spam folder for the email we just sent."
                         }
             
-            # Get email before sending
+            # Get email before sending - MUST DECRYPT if encrypted
             email = user.get("contactEmail")
             first_name = user.get("firstName", "")
+            
+            # Decrypt email if it's encrypted (PII encryption)
+            if email:
+                email = _decrypt_contact_info(email)
+            
+            # Also decrypt first_name if encrypted
+            if first_name:
+                first_name = _decrypt_contact_info(first_name) or first_name
             
             if not email:
                 return {
