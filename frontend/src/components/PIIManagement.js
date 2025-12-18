@@ -329,6 +329,7 @@ const PIIManagement = () => {
     const labels = {
       'images': '📷 Photos',
       'contact_number': '📞 Contact Number',
+      'contact_email': '📧 Contact Email',
       'contact_info': '📧 Contact Info',
       'linkedin_url': '🔗 LinkedIn',
       'date_of_birth': '🎂 Date of Birth'

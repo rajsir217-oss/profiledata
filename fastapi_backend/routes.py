@@ -591,6 +591,10 @@ async def register_user(
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(False),  # SMS notifications opt-in
+    # Visibility settings for contact info (default: visible to members)
+    contactNumberVisible: Optional[bool] = Form(True),
+    contactEmailVisible: Optional[bool] = Form(True),
+    linkedinUrlVisible: Optional[bool] = Form(True),
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
     dateOfBirth: Optional[str] = Form(None),  # Alternative format (backward compatibility)
@@ -852,6 +856,10 @@ async def register_user(
         "contactNumber": contactNumber,
         "contactEmail": contactEmail,
         "smsOptIn": smsOptIn,  # SMS notifications opt-in
+        # Visibility settings for contact info
+        "contactNumberVisible": contactNumberVisible if contactNumberVisible is not None else True,
+        "contactEmailVisible": contactEmailVisible if contactEmailVisible is not None else True,
+        "linkedinUrlVisible": linkedinUrlVisible if linkedinUrlVisible is not None else True,
         "birthMonth": birthMonth,
         "birthYear": birthYear,
         "gender": gender,  # Renamed from sex
@@ -1379,6 +1387,10 @@ async def update_user_profile(
     contactNumber: Optional[str] = Form(None),
     contactEmail: Optional[str] = Form(None),
     smsOptIn: Optional[bool] = Form(None),  # SMS notifications opt-in
+    # Visibility settings for contact info
+    contactNumberVisible: Optional[bool] = Form(None),
+    contactEmailVisible: Optional[bool] = Form(None),
+    linkedinUrlVisible: Optional[bool] = Form(None),
     birthMonth: Optional[int] = Form(None),  # Birth month (1-12)
     birthYear: Optional[int] = Form(None),   # Birth year
     gender: Optional[str] = Form(None),
@@ -1495,6 +1507,18 @@ async def update_user_profile(
         update_data["contactEmail"] = contactEmail.strip()
     if smsOptIn is not None:
         update_data["smsOptIn"] = smsOptIn
+    
+    # Visibility settings for contact info
+    logger.info(f"👁️ Visibility settings received - contactNumberVisible: {contactNumberVisible}, contactEmailVisible: {contactEmailVisible}, linkedinUrlVisible: {linkedinUrlVisible}")
+    if contactNumberVisible is not None:
+        update_data["contactNumberVisible"] = contactNumberVisible
+        logger.info(f"👁️ Setting contactNumberVisible = {contactNumberVisible}")
+    if contactEmailVisible is not None:
+        update_data["contactEmailVisible"] = contactEmailVisible
+        logger.info(f"👁️ Setting contactEmailVisible = {contactEmailVisible}")
+    if linkedinUrlVisible is not None:
+        update_data["linkedinUrlVisible"] = linkedinUrlVisible
+        logger.info(f"👁️ Setting linkedinUrlVisible = {linkedinUrlVisible}")
     
     # Update birth month and year
     if birthMonth is not None:

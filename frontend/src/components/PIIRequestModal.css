@@ -254,6 +254,26 @@
   margin-left: 8px;
 }
 
+.member-visible-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #1e40af;
+  background: #dbeafe;
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-left: 8px;
+}
+
+.pii-type-option.member-visible {
+  border-color: #93c5fd;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  cursor: default;
+}
+
+.pii-type-option.member-visible .pii-type-checkbox input {
+  accent-color: #3b82f6;
+}
+
 .pii-type-option.expired {
   border-color: var(--danger-light, #fecaca);
   background: var(--danger-light, #fef2f2);

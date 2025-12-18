@@ -62,21 +62,22 @@ def mask_location(location):
 
 def mask_user_pii(user_data, requester_id=None, access_granted=False):
     """
-    Mask PII fields in user data
+    Mask PII fields in user data based on visibility settings and access grants.
+    
+    Visibility Logic:
+    - If field is set to "visible to members" (e.g., contactNumberVisible=True), don't mask
+    - If field is NOT visible (e.g., contactNumberVisible=False), mask unless access_granted
+    - Default behavior (no visibility setting): mask unless access_granted
 
     Args:
         user_data: User document from database
         requester_id: ID of user requesting to view profile
-        access_granted: Whether access has been granted
+        access_granted: Whether access has been granted via PII request
 
     Returns:
         User data with masked PII fields
     """
     if not user_data:
-        return user_data
-
-    # If access is granted, return unmasked data
-    if access_granted:
         return user_data
 
     # If requester is viewing their own profile, don't mask
@@ -85,27 +86,50 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False):
 
     # Create a copy to avoid modifying original
     masked_data = user_data.copy()
+    
+    # Track if any field was masked
+    any_masked = False
 
-    # Mask PII fields
+    # Check visibility settings for each PII field
+    # If visible=True, show to all members; if visible=False or not set, require access grant
+    
+    # Contact Email
+    contact_email_visible = user_data.get('contactEmailVisible', False)  # Default: not visible (backward compat)
     if 'contactEmail' in masked_data and masked_data['contactEmail']:
-        masked_data['contactEmail'] = mask_email(masked_data['contactEmail'])
-        masked_data['contactEmailMasked'] = True
+        if not contact_email_visible and not access_granted:
+            masked_data['contactEmail'] = mask_email(masked_data['contactEmail'])
+            masked_data['contactEmailMasked'] = True
+            any_masked = True
+        else:
+            masked_data['contactEmailMasked'] = False
 
+    # Contact Number
+    contact_number_visible = user_data.get('contactNumberVisible', False)  # Default: not visible
     if 'contactNumber' in masked_data and masked_data['contactNumber']:
-        masked_data['contactNumber'] = mask_phone(masked_data['contactNumber'])
-        masked_data['contactNumberMasked'] = True
+        if not contact_number_visible and not access_granted:
+            masked_data['contactNumber'] = mask_phone(masked_data['contactNumber'])
+            masked_data['contactNumberMasked'] = True
+            any_masked = True
+        else:
+            masked_data['contactNumberMasked'] = False
 
+    # Location - always partially mask for privacy (just city, not full address)
     if 'location' in masked_data and masked_data['location']:
         masked_data['location'] = mask_location(masked_data['location'])
         masked_data['locationMasked'] = True
 
-    # Mask LinkedIn URL completely
+    # LinkedIn URL
+    linkedin_visible = user_data.get('linkedinUrlVisible', False)  # Default: not visible
     if 'linkedinUrl' in masked_data and masked_data['linkedinUrl']:
-        masked_data['linkedinUrl'] = '[🔒 Private - Request Access]'
-        masked_data['linkedinUrlMasked'] = True
+        if not linkedin_visible and not access_granted:
+            masked_data['linkedinUrl'] = '[🔒 Private - Request Access]'
+            masked_data['linkedinUrlMasked'] = True
+            any_masked = True
+        else:
+            masked_data['linkedinUrlMasked'] = False
 
-    # Add flag indicating PII is masked
-    masked_data['piiMasked'] = True
+    # Add flag indicating if any PII is masked
+    masked_data['piiMasked'] = any_masked
 
     return masked_data
 

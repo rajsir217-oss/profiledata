@@ -2401,6 +2401,11 @@ const SearchPage2 = () => {
           profileName={`${selectedUserForPII.firstName || selectedUserForPII.username}`}
           currentAccess={currentPIIAccess}
           requestStatus={getPIIRequestStatus(selectedUserForPII.username)}
+          visibilitySettings={{
+            contactNumberVisible: selectedUserForPII.contactNumberVisible,
+            contactEmailVisible: selectedUserForPII.contactEmailVisible,
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
+          }}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);

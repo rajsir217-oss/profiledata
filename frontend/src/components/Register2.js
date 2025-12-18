@@ -88,6 +88,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     contactNumber: "",
     contactEmail: "",
     smsOptIn: false,  // SMS notifications opt-in
+    // Visibility settings for contact info (default: visible to members)
+    contactNumberVisible: true,
+    contactEmailVisible: true,
+    linkedinUrlVisible: true,
     birthMonth: "",  // Birth month (1-12)
     birthYear: "",   // Birth year
     gender: "",  // Renamed from sex
@@ -1094,6 +1098,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         data.append(key, JSON.stringify(formData[key]));
       } else if (key === 'workExperience') {
         data.append(key, JSON.stringify(formData[key]));
+      } else if (typeof formData[key] === 'boolean') {
+        // Convert booleans to strings for FormData (FastAPI parses "true"/"false")
+        data.append(key, formData[key].toString());
       } else {
         data.append(key, formData[key]);
       }
@@ -1524,6 +1531,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             educationHistory: userData.educationHistory || [],
             workExperience: userData.workExperience || [],
             linkedinUrl: userData.linkedinUrl || '',
+            // Visibility settings (default to true if not set)
+            contactNumberVisible: userData.contactNumberVisible !== false,
+            contactEmailVisible: userData.contactEmailVisible !== false,
+            linkedinUrlVisible: userData.linkedinUrlVisible !== false,
             familyBackground: userData.familyBackground || '',
             aboutMe: userData.aboutMe || '',
             partnerPreference: userData.partnerPreference || '',
@@ -2061,6 +2072,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {fieldErrors.contactNumber && touchedFields.contactNumber && (
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
+            {/* Visibility Checkbox for Contact Number */}
+            <div className="form-check mt-2">
+              <input 
+                type="checkbox" 
+                className="form-check-input" 
+                id="contactNumberVisible"
+                name="contactNumberVisible"
+                checked={formData.contactNumberVisible !== false}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, contactNumberVisible: e.target.checked }));
+                }}
+                style={{cursor: 'pointer'}}
+              />
+              <label className="form-check-label" htmlFor="contactNumberVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+                👁️ Visible to members (uncheck to require access request)
+              </label>
+            </div>
             {/* SMS Opt-in Checkbox */}
             <div className="form-check mt-2 sms-optin-checkbox">
               <input 
@@ -2110,6 +2138,23 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {fieldErrors.contactEmail && touchedFields.contactEmail && (
               <div className="invalid-feedback d-block">{fieldErrors.contactEmail}</div>
             )}
+            {/* Visibility Checkbox for Contact Email */}
+            <div className="form-check mt-2">
+              <input 
+                type="checkbox" 
+                className="form-check-input" 
+                id="contactEmailVisible"
+                name="contactEmailVisible"
+                checked={formData.contactEmailVisible !== false}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, contactEmailVisible: e.target.checked }));
+                }}
+                style={{cursor: 'pointer'}}
+              />
+              <label className="form-check-label" htmlFor="contactEmailVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+                👁️ Visible to members (uncheck to require access request)
+              </label>
+            </div>
           </div>
         </div>
         
@@ -2903,6 +2948,39 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           setErrorMsg={setErrorMsg}
         />
 
+        {/* LinkedIn URL Field */}
+        <div className="row mb-3">
+          <div className="col-md-6">
+            <label className="form-label">LinkedIn URL <span className="text-muted">(Optional)</span></label>
+            <input 
+              type="url" 
+              className="form-control"
+              name="linkedinUrl" 
+              value={formData.linkedinUrl || ''} 
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="https://linkedin.com/in/yourprofile"
+            />
+            {/* Visibility Checkbox for LinkedIn URL */}
+            <div className="form-check mt-2">
+              <input 
+                type="checkbox" 
+                className="form-check-input" 
+                id="linkedinUrlVisible"
+                name="linkedinUrlVisible"
+                checked={formData.linkedinUrlVisible !== false}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, linkedinUrlVisible: e.target.checked }));
+                }}
+                style={{cursor: 'pointer'}}
+              />
+              <label className="form-check-label" htmlFor="linkedinUrlVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+                👁️ Visible to members (uncheck to require access request)
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Render all other fields as input or textarea as appropriate (deduplicated) */}
         {Object.entries(formData).map(([key, value]) => {
           // Exclude fields that are rendered explicitly elsewhere
@@ -2929,6 +3007,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             "agreedToDataProcessing", "agreedToMarketing",
             // Exclude SMS opt-in (rendered as checkbox with Contact Number)
             "smsOptIn",
+            // Exclude visibility settings (rendered as checkboxes with their respective fields)
+            "contactNumberVisible", "contactEmailVisible", "linkedinUrlVisible",
             // Exclude aboutMe, partnerPreference, and partnerCriteria (rendered explicitly)
             "aboutMe", "partnerPreference", "partnerCriteria",
             // Exclude draft auto-save metadata (internal tracking only)
