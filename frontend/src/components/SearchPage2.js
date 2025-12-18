@@ -2345,7 +2345,7 @@ const SearchPage2 = () => {
                 {viewMode === 'cards' && (
                   <div className="cards-per-row-selector">
                     <span className="selector-label">Cards:</span>
-                    {[2, 3].map(num => (
+                    {[2, 3, 4, 5, 6].map(num => (
                       <button
                         key={num}
                         className={`cards-btn ${cardsPerRow === num ? 'active' : ''}`}
