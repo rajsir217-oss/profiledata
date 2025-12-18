@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
@@ -66,6 +66,20 @@ const SearchResultCard = ({
   const navigate = useNavigate();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [imageError, setImageError] = useState(false);
+  
+  // Memoize image URL with token (must be called unconditionally - React hooks rule)
+  const imageUrlWithToken = useMemo(() => {
+    const hasImages = user.images && user.images.length > 0;
+    const currentImage = hasImages && user.images.length > currentImageIndex 
+      ? user.images[currentImageIndex] 
+      : null;
+    if (!currentImage) return null;
+    const imageSrc = currentImage.startsWith('http') 
+      ? currentImage 
+      : getImageUrl(currentImage);
+    const token = localStorage.getItem('token');
+    return `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}token=${token}`;
+  }, [user.images, currentImageIndex]);
 
   // Navigate to profile with optional search context for carousel navigation
   const navigateToProfile = () => {
@@ -336,64 +350,7 @@ const SearchResultCard = ({
   };
 
   const renderProfileImage = () => {
-    // Check if user has image access (own profile always has access)
-    const isOwnProfile = currentUsername === user.username;
-    
-    // Check if user has any images to display
-    // When profile_picture_always_visible is enabled, backend includes profile pic in images array
-    const hasVisibleImages = user.images && user.images.length > 0;
-    
-    // Check if profile picture is visible due to global setting (backend sets profilePicVisible: true)
-    const profilePicVisibleGlobal = user.profilePicVisible === true;
-    
-    // If no access to images AND no visible images AND no global profile pic visibility, show bio with "Request Pics" bubble
-    if (!isOwnProfile && !hasImageAccess && !hasVisibleImages && !profilePicVisibleGlobal) {
-      return (
-        <div className="profile-image-container">
-          <div className="search-card-bio-section">
-            {/* Bio Text - Images are locked */}
-            <div className="search-bio-content-full">
-              {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-                <p className="search-bio-text-large">
-                  "{user.bio || user.aboutMe || user.about || user.description}"
-                </p>
-              ) : (
-                <p className="search-bio-text-large search-bio-placeholder">
-                  "No bio available. Request access to view photos."
-                </p>
-              )}
-            </div>
-            
-            {/* Request Pics Bubble - Floating on top */}
-            {!isImageRequestPending ? (
-              <button
-                className="request-pics-bubble"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onPIIRequest) {
-                    onPIIRequest(user);
-                  }
-                }}
-                title="Request access to view photos"
-              >
-                🔓 Request Pics
-              </button>
-            ) : (
-              <div className="request-pending-bubble">
-                📨 Request Pics Sent
-              </div>
-            )}
-            
-            {/* Online Status Badge */}
-            <div className="status-badge-absolute">
-              <OnlineStatusBadge username={user.username} size="medium" />
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    // User has access - show images
+    // Get current image to display
     const currentImage = user.images && user.images.length > currentImageIndex 
       ? user.images[currentImageIndex] 
       : null;
@@ -402,56 +359,43 @@ const SearchResultCard = ({
       ? currentImage 
       : getImageUrl(currentImage);
 
-    // Debug: Log image status
+    // Add JWT token for authenticated image access
+    const token = localStorage.getItem('token');
+    const imageWithToken = imageSrc ? `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}token=${token}` : null;
+
+    // If no image available, show placeholder
     if (!currentImage) {
-      console.log(`[SearchCard] ${user.username} - No image, should show bio:`, {
-        hasImages: !!user.images,
-        imageCount: user.images?.length,
-        bio: user.bio?.substring(0, 30),
-        aboutMe: user.aboutMe?.substring(0, 30)
-      });
+      return (
+        <div className="profile-image-container">
+          <div className="profile-thumbnail-placeholder">
+            <span className="no-image-icon">👤</span>
+          </div>
+        </div>
+      );
     }
 
     return (
       <div className="profile-image-container">
-        {currentImage && !imageError ? (
-          <img
-            key={`${user.username}-${currentImageIndex}`}
-            src={`${imageSrc}?t=${Date.now()}`}
-            alt={`${user.firstName}'s profile`}
-            className="profile-thumbnail"
-            onError={(e) => {
-              setImageError(true);
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
-            onLoad={(e) => {
-              setImageError(false);
-              e.target.style.display = 'block';
-              e.target.nextSibling.style.display = 'none';
-            }}
-            crossOrigin="anonymous"
-            loading="lazy"
-          />
-        ) : (
-          <div className="search-card-bio-section">
-            {/* Bio Text Only - Header is already shown above */}
-            <div className="search-bio-content-full">
-              {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-                <p className="search-bio-text-large">
-                  "{user.bio || user.aboutMe || user.about || user.description}"
-                </p>
-              ) : (
-                <p className="search-bio-text-large search-bio-placeholder">
-                  "No bio available. Click to view full profile..."
-                </p>
-              )}
-            </div>
+        <img
+          key={`${user.username}-${currentImageIndex}`}
+          src={imageWithToken}
+          alt={`${user.firstName}'s profile`}
+          className="profile-thumbnail"
+          onError={(e) => {
+            setImageError(true);
+          }}
+          onLoad={(e) => {
+            setImageError(false);
+          }}
+          crossOrigin="anonymous"
+          loading="lazy"
+          style={{ display: imageError ? 'none' : 'block' }}
+        />
+        {imageError && (
+          <div className="profile-thumbnail-placeholder">
+            <span className="no-image-icon">👤</span>
           </div>
         )}
-        <div className="no-image-icon-overlay" style={{display: imageError || !currentImage ? 'none' : 'none'}}>
-          👤
-        </div>
 
         {/* Online Status Badge */}
         <div className="status-badge-absolute">
@@ -680,11 +624,13 @@ const SearchResultCard = ({
     );
   }
 
-  // Render card view (default)
+  // Render card view (default) - Vertical layout matching reference design
+  const hasImages = user.images && user.images.length > 0;
+
   return (
     <div className="result-card">
       <div className="card">
-        {/* Card Title Section with Purple Gradient - Clickable */}
+        {/* 1. Header: Name + Badges + Kebab Menu */}
         <div 
           className="card-title-section"
           onClick={navigateToProfile}
@@ -702,7 +648,6 @@ const SearchResultCard = ({
             )}
             {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
             
-            {/* Simple Kebab Menu */}
             {hasKebabMenu && (
               <SimpleKebabMenu
                 user={user}
@@ -720,133 +665,123 @@ const SearchResultCard = ({
           </div>
         </div>
 
-        <div className="card-body">
-          <div className="d-flex gap-3 mb-3">
-            {/* Hide image area if no access, show if access granted */}
-            {(hasImageAccess || currentUsername === user.username) && (
-              <div className="profile-image-left">
-                {renderProfileImage()}
+        {/* 2. Large Profile Image - Full Width */}
+        <div 
+          className="card-image-section"
+          onClick={navigateToProfile}
+          style={{ cursor: 'pointer' }}
+        >
+          {hasImages && imageUrlWithToken ? (
+            <img
+              src={imageUrlWithToken}
+              alt={`${user.firstName}'s profile`}
+              className="card-profile-image"
+              onError={(e) => {
+                e.target.style.display = 'none';
+                e.target.nextSibling.style.display = 'flex';
+              }}
+            />
+          ) : null}
+          <div 
+            className="card-image-placeholder"
+            style={{ display: hasImages && imageUrlWithToken ? 'none' : 'flex' }}
+          >
+            <span className="placeholder-icon">👤</span>
+          </div>
+          
+          {/* Image Navigation */}
+          {hasImages && user.images.length > 1 && (
+            <>
+              <button
+                className="card-image-nav prev"
+                onClick={(e) => { e.stopPropagation(); handlePrevImage(e); }}
+                disabled={currentImageIndex === 0}
+              >
+                ‹
+              </button>
+              <button
+                className="card-image-nav next"
+                onClick={(e) => { e.stopPropagation(); handleNextImage(e); }}
+                disabled={currentImageIndex === user.images.length - 1}
+              >
+                ›
+              </button>
+              <div className="card-image-counter">
+                {currentImageIndex + 1}/{user.images.length}
               </div>
+            </>
+          )}
+        </div>
+
+        {/* 3. Card Body: Bio, Details, Actions */}
+        <div className="card-body">
+          {/* Bio Quote */}
+          <div className="card-bio-section">
+            {user?.bio || user?.aboutMe || user?.about || user?.description ? (
+              <p className="card-bio-quote">
+                "{(user.bio || user.aboutMe || user.about || user.description).substring(0, 120)}
+                {(user.bio || user.aboutMe || user.about || user.description).length > 120 ? '...' : ''}"
+              </p>
+            ) : (
+              <p className="card-bio-quote card-bio-placeholder">
+                "Click to view full profile..."
+              </p>
             )}
+          </div>
 
-            <div className="user-details-right flex-grow-1">
-              {/* Show bio + details + request button when NO access */}
-              {!hasImageAccess && currentUsername !== user.username ? (
-                <>
-                  {/* Bio Text Section */}
-                  <div className="bio-details-section">
-                    <div className="bio-text-main">
-                      {user?.bio || user?.aboutMe || user?.about || user?.description ? (
-                        <p className="bio-quote-main">
-                          "{user.bio || user.aboutMe || user.about || user.description}"
-                        </p>
-                      ) : (
-                        <p className="bio-quote-main bio-placeholder-main">
-                          "No bio available. Request access to view photos and more details."
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* User Details - Two column layout */}
-                  <div className="user-details-grid">
-                    <div className="user-details-left">
-                      <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                      <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
-                      <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
-
-                      {/* Simplified badges - max 2 priority tags */}
-                      <div className="user-badges-compact">
-                        {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
-                        {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
-                      </div>
-                    </div>
-                    <div className="user-details-right-col">
-                      {displayHeight && (
-                        <p className="detail-line-right"><strong>HEIGHT:</strong> {displayHeight}</p>
-                      )}
-                      {displayDOB && (
-                        <p className="detail-line-right"><strong>DOB:</strong> {displayDOB}</p>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Request Pics Button - At bottom */}
-                  <div className="bio-action-section">
-                    {!isImageRequestPending ? (
-                      <button
-                        className="request-pics-btn-main"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (onPIIRequest) {
-                            onPIIRequest(user);
-                          }
-                        }}
-                        title="Request access to view photos"
-                      >
-                        Request Pics
-                      </button>
-                    ) : (
-                      <div className="request-pending-btn-main">
-                        Request Pics Sent
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="user-details-grid">
-                  <div className="user-details-left">
-                    <p className="detail-line"><strong>📍</strong> {user.location}</p>
-                    <p className="detail-line"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
-                    <p className="detail-line"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
-
-                    {/* Simplified badges - max 2 priority tags */}
-                    <div className="user-badges-compact">
-                      {user.religion && <span className="badge badge-subtle">{user.religion}</span>}
-                      {user.eatingPreference && <span className="badge badge-subtle">{user.eatingPreference}</span>}
-                    </div>
-
-                    {/* PII Status - Show only if granted */}
-                    {hasPiiAccess && (
-                      <div className="pii-granted-compact">
-                        <span className="pii-status-badge">✓ Contact Info Granted</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="user-details-right-col">
-                    {displayHeight && (
-                      <p className="detail-line-right"><strong>HEIGHT:</strong> {displayHeight}</p>
-                    )}
-                    {displayDOB && (
-                      <p className="detail-line-right"><strong>DOB:</strong> {displayDOB}</p>
-                    )}
-                  </div>
-                </div>
-              )}
+          {/* User Details - Two Column Layout */}
+          <div className="card-details-grid">
+            <div className="card-details-left">
+              <p className="card-detail-line">📍 {user.location || 'Location not specified'}</p>
+              <p className="card-detail-line">💼 {displayOccupation || 'Not specified'}</p>
+              <p className="card-detail-line">🎓 {displayEducation || 'Not specified'}</p>
+            </div>
+            <div className="card-details-right">
+              {displayHeight && <p className="card-detail-line"><strong>HEIGHT:</strong> {displayHeight}</p>}
+              {displayDOB && <p className="card-detail-line"><strong>DOB:</strong> {displayDOB}</p>}
             </div>
           </div>
 
-          {/* Bottom Actions Section - Context-aware */}
-          {hasBottomActions && (
-            <div className="search-card-bottom-actions">
-              {bottomActions.map((action, index) => (
+          {/* Badges */}
+          <div className="card-badges">
+            {user.religion && <span className="card-badge">{user.religion}</span>}
+            {user.eatingPreference && <span className="card-badge">{user.eatingPreference}</span>}
+          </div>
+
+          {/* Request Pics Button - Only show if no full image access */}
+          {!hasImageAccess && currentUsername !== user.username && (
+            <div className="card-action-section">
+              {!isImageRequestPending ? (
                 <button
-                  key={index}
-                  className={`bottom-action-btn ${action.className || ''}`}
+                  className="card-request-pics-btn"
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (action.handler) {
-                      action.handler(user);
-                    }
+                    if (onPIIRequest) onPIIRequest(user);
                   }}
-                  title={action.label}
                 >
-                  <span className="btn-icon">{action.icon}</span>
-                  <span className="btn-label">{action.label}</span>
+                  Request Pics
                 </button>
-              ))}
+              ) : (
+                <div className="card-request-pending">
+                  Request Pics Sent
+                </div>
+              )}
             </div>
           )}
+
+          {/* Message Button - Floating */}
+          <div className="card-message-btn-container">
+            <button
+              className="card-message-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onMessage) onMessage(user);
+              }}
+              title="Send Message"
+            >
+              💬
+            </button>
+          </div>
         </div>
       </div>
     </div>

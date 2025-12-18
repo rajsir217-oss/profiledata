@@ -540,11 +540,12 @@ const SearchPage2 = () => {
     // Check if user has any images to display (profile picture always visible when enabled)
     const hasVisibleImages = user.images && user.images.length > 0;
     
-    // Check if profile picture is visible due to global setting (backend sets profilePicVisible: true)
-    const profilePicVisibleGlobal = user.profilePicVisible === true;
+    // SIMPLE LOGIC: If backend sent images in the array, show them!
+    // The backend already handles visibility logic - if images are in the array, they're meant to be shown
+    const canShowImages = hasImageAccess || hasVisibleImages;
 
-    // If no access to images AND no visible images AND no global profile pic visibility, show masked version
-    if (!hasImageAccess && !hasVisibleImages && !profilePicVisibleGlobal) {
+    // If no images to show, show masked version
+    if (!canShowImages) {
       return (
         <div className="profile-image-container">
           <div className="profile-thumbnail-placeholder">
@@ -971,6 +972,16 @@ const SearchPage2 = () => {
       console.log('🔍 response.data:', response.data);
       console.log('🔍 response.data.users:', response.data.users);
       console.log('🔍 response.data.users length:', response.data.users?.length);
+      // Debug: Log images for first 3 users
+      if (response.data.users?.length > 0) {
+        console.log('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
+          username: u.username,
+          images: u.images,
+          imageCount: u.images?.length || 0,
+          profilePicVisible: u.profilePicVisible,
+          imagesMasked: u.imagesMasked
+        })));
+      }
       
       // Filter out own profile, admin, and moderators (unless doing Profile ID search)
       const isProfileIdSearch = criteriaToUse.profileId?.trim();
