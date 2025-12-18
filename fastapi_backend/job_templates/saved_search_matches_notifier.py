@@ -374,6 +374,15 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                     logger.info(f"⚠️ User {username} has no email address")
                     continue
                 
+                # DECRYPT email if encrypted (PII encryption)
+                if user_email and user_email.startswith('gAAAAA'):
+                    try:
+                        pii_encryptor = PIIEncryption()
+                        user_email = pii_encryptor.decrypt(user_email)
+                    except Exception as e:
+                        logger.error(f"❌ Failed to decrypt email for {username}: {e}")
+                        continue
+                
                 # Process each saved search
                 for search in searches:
                     try:

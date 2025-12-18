@@ -522,6 +522,14 @@ async def test_notification(
                 test_email = user.get("contactEmail") or user.get("email")
                 if not test_email:
                     raise HTTPException(status_code=400, detail=f"User '{username}' has no email address in their profile")
+                # DECRYPT email if encrypted (PII encryption)
+                if test_email and test_email.startswith('gAAAAA'):
+                    from crypto_utils import get_encryptor
+                    try:
+                        encryptor = get_encryptor()
+                        test_email = encryptor.decrypt(test_email)
+                    except Exception as e:
+                        raise HTTPException(status_code=500, detail=f"Failed to decrypt email: {str(e)}")
             else:
                 raise HTTPException(status_code=404, detail=f"User '{username}' not found")
         
