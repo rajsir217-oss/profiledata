@@ -96,7 +96,10 @@ const Profile = () => {
   const [piiAccess, setPiiAccess] = useState({
     images: false,
     contact_info: false,
-    date_of_birth: false
+    contact_number: false,
+    contact_email: false,
+    date_of_birth: false,
+    linkedin_url: false
   });
   const [piiRequestStatus, setPiiRequestStatus] = useState({});
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
@@ -373,29 +376,36 @@ const Profile = () => {
       setPiiAccess({
         images: true,
         contact_info: true,
-        date_of_birth: true
+        contact_number: true,
+        contact_email: true,
+        date_of_birth: true,
+        linkedin_url: true
       });
       return;
     }
     
     try {
-      const [imagesRes, contactRes, dobRes, linkedinRes] = await Promise.all([
+      const [imagesRes, contactNumberRes, contactEmailRes, dobRes, linkedinRes] = await Promise.all([
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=images`),
-        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_info`),
+        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_number`),
+        api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=contact_email`),
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=date_of_birth`),
         api.get(`/pii-access/check?requester=${currentUsername}&profile_owner=${username}&access_type=linkedin_url`)
       ]);
       
       logger.debug('PII Access Check Results:', {
         images: imagesRes.data.hasAccess,
-        contact_info: contactRes.data.hasAccess,
+        contact_number: contactNumberRes.data.hasAccess,
+        contact_email: contactEmailRes.data.hasAccess,
         date_of_birth: dobRes.data.hasAccess,
         linkedin_url: linkedinRes.data.hasAccess
       });
       
       setPiiAccess({
         images: imagesRes.data.hasAccess,
-        contact_info: contactRes.data.hasAccess,
+        contact_info: contactNumberRes.data.hasAccess || contactEmailRes.data.hasAccess, // Legacy: true if either contact field has access
+        contact_number: contactNumberRes.data.hasAccess,
+        contact_email: contactEmailRes.data.hasAccess,
         date_of_birth: dobRes.data.hasAccess,
         linkedin_url: linkedinRes.data.hasAccess
       });
@@ -427,8 +437,11 @@ const Profile = () => {
       }
       
       // Other PII types use simple hasAccess check
-      if (contactRes.data.hasAccess) {
-        requestStatus['contact_info'] = 'approved';
+      if (contactNumberRes.data.hasAccess) {
+        requestStatus['contact_number'] = 'approved';
+      }
+      if (contactEmailRes.data.hasAccess) {
+        requestStatus['contact_email'] = 'approved';
       }
       if (dobRes.data.hasAccess) {
         requestStatus['date_of_birth'] = 'approved';
@@ -1785,12 +1798,14 @@ const Profile = () => {
       {user.linkedinUrl && (
         <div className="profile-section">
           <h3>🔗 LinkedIn Profile</h3>
-          {isOwnProfile || !user.linkedinUrlMasked ? (
+          {/* Show LinkedIn if: own profile, visible to members, or not masked */}
+          {isOwnProfile || user.linkedinUrlVisible || !user.linkedinUrlMasked ? (
             <div className="profile-info">
               <p>
                 <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
                   🔗 View LinkedIn Profile
                 </a>
+                {user.linkedinUrlVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
               </p>
             </div>
           ) : (
@@ -1839,7 +1854,8 @@ const Profile = () => {
         </div>
         {!collapsedSections.contactInformation && (
         <>
-        {isOwnProfile || piiAccess.contact_info ? (
+        {/* Show contact info if: own profile, has PII access, OR contact fields are member-visible */}
+        {isOwnProfile || piiAccess.contact_info || user.contactNumberVisible || user.contactEmailVisible ? (
           editingSection === 'contact' ? (
             <div className="inline-edit-form">
               <div className="form-row">
@@ -1855,8 +1871,42 @@ const Profile = () => {
             </div>
           ) : (
             <div className="profile-info">
-              <p><strong>Contact Number:</strong> {user.contactNumber || 'Not provided'}</p>
-              <p><strong>Contact Email:</strong> {user.contactEmail || 'Not provided'}</p>
+              {/* Show contact number if visible or has access */}
+              {(user.contactNumberVisible || piiAccess.contact_number || isOwnProfile) && user.contactNumber && !user.contactNumberMasked ? (
+                <p>
+                  <strong>Contact Number:</strong> {user.contactNumber}
+                  {user.contactNumberVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
+                </p>
+              ) : user.contactNumber ? (
+                <p>
+                  <strong>Contact Number:</strong> <span className="pii-masked">🔒 Private</span>
+                  <button 
+                    className="btn-request-inline" 
+                    onClick={() => setShowPIIRequestModal(true)}
+                    style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color, #667eea)', color: 'white', border: 'none', cursor: 'pointer' }}
+                  >
+                    Request Access
+                  </button>
+                </p>
+              ) : null}
+              {/* Show contact email if visible or has access */}
+              {(user.contactEmailVisible || piiAccess.contact_email || isOwnProfile) && user.contactEmail && !user.contactEmailMasked ? (
+                <p>
+                  <strong>Contact Email:</strong> {user.contactEmail}
+                  {user.contactEmailVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
+                </p>
+              ) : user.contactEmail ? (
+                <p>
+                  <strong>Contact Email:</strong> <span className="pii-masked">🔒 Private</span>
+                  <button 
+                    className="btn-request-inline" 
+                    onClick={() => setShowPIIRequestModal(true)}
+                    style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color, #667eea)', color: 'white', border: 'none', cursor: 'pointer' }}
+                  >
+                    Request Access
+                  </button>
+                </p>
+              ) : null}
             </div>
           )
         ) : (
@@ -2538,6 +2588,11 @@ const Profile = () => {
         profileName={`${user.firstName} ${user.lastName}`}
         currentAccess={piiAccess}
         requestStatus={piiRequestStatus}
+        visibilitySettings={{
+          contactNumberVisible: user.contactNumberVisible,
+          contactEmailVisible: user.contactEmailVisible,
+          linkedinUrlVisible: user.linkedinUrlVisible
+        }}
         onClose={() => setShowPIIRequestModal(false)}
         onRefresh={() => {
           logger.debug('PIIRequestModal refresh');

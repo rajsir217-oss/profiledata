@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './PIIRequestModal.css';
 
-const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, onRefresh, currentAccess = {}, requestStatus = {} }) => {
+const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, onRefresh, currentAccess = {}, requestStatus = {}, visibilitySettings = {} }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -10,11 +10,30 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
   const [successMessage, setSuccessMessage] = useState('');
   const currentUsername = localStorage.getItem('username');
 
-  const piiTypes = [
+  // Map PII type values to visibility setting keys
+  const visibilityKeyMap = {
+    'contact_number': 'contactNumberVisible',
+    'contact_email': 'contactEmailVisible',
+    'linkedin_url': 'linkedinUrlVisible',
+    'images': null // Images don't have a visibility setting
+  };
+
+  // All possible PII types
+  const allPiiTypes = [
     { value: 'images', label: '📷 View Photos', description: 'Access to profile pictures' },
     { value: 'contact_number', label: '📞 Contact Number', description: 'Phone number for direct contact' },
+    { value: 'contact_email', label: '📧 Contact Email', description: 'Email address for direct contact' },
     { value: 'linkedin_url', label: '🔗 LinkedIn Profile', description: 'LinkedIn profile URL' }
   ];
+
+  // Show ALL types - member-visible ones will be shown as checked+locked
+  const piiTypes = allPiiTypes;
+
+  // Get list of member-visible fields for info message (kept for reference)
+  const memberVisibleFields = allPiiTypes.filter(type => {
+    const visibilityKey = visibilityKeyMap[type.value];
+    return visibilityKey && visibilitySettings[visibilityKey] === true;
+  });
 
   // ESC key to close modal
   useEffect(() => {
@@ -295,14 +314,20 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
               const hasAccess = status === 'approved';
               const isPending = status === 'pending';
               const isExpired = status === 'expired';
-              // Only disable if truly has access or pending - expired allows re-request
-              const isDisabled = hasAccess || isPending;
-              const isSelected = selectedTypes.includes(type.value);
+              
+              // Check if this field is already visible to members (no request needed)
+              const visibilityKey = visibilityKeyMap[type.value];
+              const isMemberVisible = visibilityKey && visibilitySettings[visibilityKey] === true;
+              
+              // Disable if: has access, pending, OR already member visible
+              const isDisabled = hasAccess || isPending || isMemberVisible;
+              // Member-visible fields should appear checked (but locked)
+              const isSelected = selectedTypes.includes(type.value) || isMemberVisible;
               
               return (
                 <div
                   key={type.value}
-                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''} ${isExpired ? 'expired' : ''}`}
+                  className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''} ${isExpired ? 'expired' : ''} ${isMemberVisible ? 'member-visible' : ''}`}
                   onClick={() => !isDisabled && handleToggleType(type.value)}
                 >
                   <div className="pii-type-checkbox">
@@ -317,11 +342,16 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                   <div className="pii-type-info">
                     <div className="pii-type-label">
                       {type.label}
-                      {hasAccess && <span className="access-badge">✅ Already Granted</span>}
+                      {isMemberVisible && <span className="member-visible-badge">👁️ Already Member Visible</span>}
+                      {hasAccess && !isMemberVisible && <span className="access-badge">✅ Already Granted</span>}
                       {isPending && <span className="pending-badge">📨 Request Sent</span>}
                       {isExpired && <span className="expired-badge">🔒 Access Expired</span>}
                     </div>
-                    <div className="pii-type-description">{type.description}</div>
+                    <div className="pii-type-description">
+                      {isMemberVisible 
+                        ? 'This information is publicly visible to all members' 
+                        : type.description}
+                    </div>
                   </div>
                 </div>
               );
@@ -355,14 +385,18 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
               className="btn-submit"
               disabled={submitting || selectedTypes.filter(t => {
                 const status = requestStatus[t];
-                return status !== 'approved' && status !== 'pending';
+                const visKey = visibilityKeyMap[t];
+                const isMemberVis = visKey && visibilitySettings[visKey] === true;
+                return status !== 'approved' && status !== 'pending' && !isMemberVis;
               }).length === 0}
             >
               {submitting 
                 ? 'Sending...' 
                 : `Send Request (${selectedTypes.filter(t => {
                     const status = requestStatus[t];
-                    return status !== 'approved' && status !== 'pending';
+                    const visKey = visibilityKeyMap[t];
+                    const isMemberVis = visKey && visibilitySettings[visKey] === true;
+                    return status !== 'approved' && status !== 'pending' && !isMemberVis;
                   }).length})`
               }
             </button>

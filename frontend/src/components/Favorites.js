@@ -242,6 +242,11 @@ const Favorites = () => {
           isOpen={showPIIRequestModal}
           profileUsername={selectedUserForPII.username}
           profileName={`${selectedUserForPII.firstName || selectedUserForPII.username}`}
+          visibilitySettings={{
+            contactNumberVisible: selectedUserForPII.contactNumberVisible,
+            contactEmailVisible: selectedUserForPII.contactEmailVisible,
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
+          }}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);
