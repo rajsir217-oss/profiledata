@@ -294,6 +294,47 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* Visibility checkbox styling for Contact Number/Email */
+.visibility-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.visibility-checkbox .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin-top: 2px;
+  cursor: pointer;
+  border: 2px solid var(--primary-color, #667eea);
+  background-color: var(--input-bg, #ffffff);
+  flex-shrink: 0;
+}
+
+.visibility-checkbox .form-check-input:checked {
+  background-color: var(--primary-color, #667eea);
+  border-color: var(--primary-color, #667eea);
+}
+
+.visibility-checkbox .form-check-label {
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  cursor: pointer;
+  line-height: 1.4;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Responsive: Stack on smaller screens */
+@media (max-width: 576px) {
+  .visibility-checkbox .form-check-label {
+    font-size: 11px;
+  }
+}
+
 .sms-optin-checkbox .form-check-input {
   width: 20px;
   height: 20px;

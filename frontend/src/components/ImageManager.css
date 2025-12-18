@@ -299,7 +299,83 @@
   z-index: 2;
 }
 
-/* Public Toggle Button */
+/* Visibility Toggle Switch */
+.visibility-toggle-container {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--surface-color);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.visibility-toggle-container:hover {
+  border-color: var(--primary-color);
+}
+
+.visibility-toggle-container:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-color);
+}
+
+.visibility-toggle-container.is-public {
+  background: var(--success-light, #d4edda);
+  border-color: var(--success-color);
+}
+
+.visibility-toggle-container.is-private {
+  background: var(--surface-color);
+  border-color: var(--border-color);
+}
+
+/* Toggle Track */
+.toggle-track {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 20px;
+  transition: all 0.3s ease;
+}
+
+.toggle-track.off {
+  background-color: var(--border-color);
+}
+
+.toggle-track.on {
+  background: linear-gradient(135deg, var(--success-color) 0%, var(--info-color) 100%);
+}
+
+/* Toggle Thumb */
+.toggle-thumb {
+  position: absolute;
+  top: 3px;
+  width: 14px;
+  height: 14px;
+  background-color: var(--card-background);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.toggle-track.off .toggle-thumb {
+  left: 3px;
+}
+
+.toggle-track.on .toggle-thumb {
+  left: 19px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Legacy Public Toggle Button - keeping for backward compatibility */
 .btn-public-toggle {
   background: var(--hover-background);
   color: var(--text-color);
@@ -417,29 +493,7 @@
   border-color: var(--primary-color, #0d6efd) !important;
 }
 
-/* Public/Private Toggle Button */
-.btn-public-toggle {
-  background: var(--success-light, #d4edda) !important;
-  color: var(--success-dark, #155724) !important;
-  border: 2px solid var(--success-color, #28a745) !important;
-}
-
-.btn-public-toggle:hover {
-  background: var(--success-color, #28a745) !important;
-  color: white !important;
-}
-
-.btn-public-toggle.is-private {
-  background: var(--surface-color, #fff) !important;
-  color: var(--text-muted, #6c757d) !important;
-  border: 2px solid var(--border-color, #dee2e6) !important;
-}
-
-.btn-public-toggle.is-private:hover {
-  background: var(--success-light, #d4edda) !important;
-  color: var(--success-dark, #155724) !important;
-  border-color: var(--success-color, #28a745) !important;
-}
+/* Legacy Public/Private Toggle Button - replaced by toggle switch */
 
 /* Delete Button */
 .btn-delete {

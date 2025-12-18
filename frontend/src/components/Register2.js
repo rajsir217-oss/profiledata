@@ -92,6 +92,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     contactNumberVisible: true,
     contactEmailVisible: true,
     linkedinUrlVisible: true,
+    imagesVisible: true,  // Default: all images visible to members
     birthMonth: "",  // Birth month (1-12)
     birthYear: "",   // Birth year
     gender: "",  // Renamed from sex
@@ -1531,10 +1532,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             educationHistory: userData.educationHistory || [],
             workExperience: userData.workExperience || [],
             linkedinUrl: userData.linkedinUrl || '',
-            // Visibility settings (default to true if not set)
+            // Visibility settings (default to true for images, false for contact info)
             contactNumberVisible: userData.contactNumberVisible !== false,
             contactEmailVisible: userData.contactEmailVisible !== false,
             linkedinUrlVisible: userData.linkedinUrlVisible !== false,
+            imagesVisible: userData.imagesVisible !== false,  // Default: true
             familyBackground: userData.familyBackground || '',
             aboutMe: userData.aboutMe || '',
             partnerPreference: userData.partnerPreference || '',
@@ -2073,7 +2075,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
             {/* Visibility Checkbox for Contact Number */}
-            <div className="form-check mt-2">
+            <div className="form-check mt-2 visibility-checkbox">
               <input 
                 type="checkbox" 
                 className="form-check-input" 
@@ -2081,11 +2083,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="contactNumberVisible"
                 checked={formData.contactNumberVisible !== false}
                 onChange={(e) => {
-                  setFormData(prev => ({ ...prev, contactNumberVisible: e.target.checked }));
+                  const value = e.target.checked;
+                  setFormData(prev => ({ ...prev, contactNumberVisible: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('contactNumberVisible', value, { ...formData, contactNumberVisible: value });
+                    }, 500);
+                  }
                 }}
-                style={{cursor: 'pointer'}}
               />
-              <label className="form-check-label" htmlFor="contactNumberVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+              <label className="form-check-label" htmlFor="contactNumberVisible">
                 👁️ Visible to members (uncheck to require access request)
               </label>
             </div>
@@ -2098,8 +2106,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="smsOptIn"
                 checked={!!formData.smsOptIn}
                 onChange={(e) => {
-                  logger.debug('SMS Opt-in changed:', e.target.checked);
-                  setFormData(prev => ({ ...prev, smsOptIn: e.target.checked }));
+                  const value = e.target.checked;
+                  logger.debug('SMS Opt-in changed:', value);
+                  setFormData(prev => ({ ...prev, smsOptIn: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('smsOptIn', value, { ...formData, smsOptIn: value });
+                    }, 500);
+                  }
                 }}
                 style={{cursor: 'pointer', position: 'relative', zIndex: 1}}
               />
@@ -2110,8 +2125,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 onClick={(e) => {
                   // Ensure label click toggles checkbox
                   if (e.target.tagName === 'A') return; // Don't toggle if clicking links
-                  console.log('SMS Opt-in label clicked');
-                  setFormData(prev => ({ ...prev, smsOptIn: !prev.smsOptIn }));
+                  const newValue = !formData.smsOptIn;
+                  setFormData(prev => ({ ...prev, smsOptIn: newValue }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('smsOptIn', newValue, { ...formData, smsOptIn: newValue });
+                    }, 500);
+                  }
                 }}
               >
                 📱 I want to receive SMS notifications and updates
@@ -2139,7 +2160,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <div className="invalid-feedback d-block">{fieldErrors.contactEmail}</div>
             )}
             {/* Visibility Checkbox for Contact Email */}
-            <div className="form-check mt-2">
+            <div className="form-check mt-2 visibility-checkbox">
               <input 
                 type="checkbox" 
                 className="form-check-input" 
@@ -2147,11 +2168,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="contactEmailVisible"
                 checked={formData.contactEmailVisible !== false}
                 onChange={(e) => {
-                  setFormData(prev => ({ ...prev, contactEmailVisible: e.target.checked }));
+                  const value = e.target.checked;
+                  setFormData(prev => ({ ...prev, contactEmailVisible: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('contactEmailVisible', value, { ...formData, contactEmailVisible: value });
+                    }, 500);
+                  }
                 }}
-                style={{cursor: 'pointer'}}
               />
-              <label className="form-check-label" htmlFor="contactEmailVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+              <label className="form-check-label" htmlFor="contactEmailVisible">
                 👁️ Visible to members (uncheck to require access request)
               </label>
             </div>
@@ -2882,6 +2909,51 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             username={editUsername || formData.username}
             isEditMode={isEditMode}
           />
+          {/* Quick Actions for All Images */}
+          <div className="d-flex gap-2 mt-3">
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-success"
+              onClick={async () => {
+                // Make all images public
+                const allPublic = [...existingImages];
+                setPublicImages(allPublic);
+                if (isEditMode && (editUsername || formData.username)) {
+                  try {
+                    await api.put(`/profile/${editUsername || formData.username}/public-images`, {
+                      publicImages: allPublic
+                    });
+                  } catch (error) {
+                    console.error('Failed to update public images:', error);
+                  }
+                }
+              }}
+            >
+              👁️ Make All Public
+            </button>
+            <button
+              type="button"
+              className="btn btn-sm btn-outline-secondary"
+              onClick={async () => {
+                // Make all images private
+                setPublicImages([]);
+                if (isEditMode && (editUsername || formData.username)) {
+                  try {
+                    await api.put(`/profile/${editUsername || formData.username}/public-images`, {
+                      publicImages: []
+                    });
+                  } catch (error) {
+                    console.error('Failed to update public images:', error);
+                  }
+                }
+              }}
+            >
+              🔒 Make All Private
+            </button>
+          </div>
+          <small className="text-muted d-block mt-1">
+            💡 Use the toggle switch on each photo to control individual visibility.
+          </small>
         </div>
 
         {/* Continue Button */}
@@ -2962,7 +3034,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               placeholder="https://linkedin.com/in/yourprofile"
             />
             {/* Visibility Checkbox for LinkedIn URL */}
-            <div className="form-check mt-2">
+            <div className="form-check mt-2 visibility-checkbox">
               <input 
                 type="checkbox" 
                 className="form-check-input" 
@@ -2970,11 +3042,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="linkedinUrlVisible"
                 checked={formData.linkedinUrlVisible !== false}
                 onChange={(e) => {
-                  setFormData(prev => ({ ...prev, linkedinUrlVisible: e.target.checked }));
+                  const value = e.target.checked;
+                  setFormData(prev => ({ ...prev, linkedinUrlVisible: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('linkedinUrlVisible', value, { ...formData, linkedinUrlVisible: value });
+                    }, 500);
+                  }
                 }}
-                style={{cursor: 'pointer'}}
               />
-              <label className="form-check-label" htmlFor="linkedinUrlVisible" style={{fontSize: '13px', cursor: 'pointer'}}>
+              <label className="form-check-label" htmlFor="linkedinUrlVisible">
                 👁️ Visible to members (uncheck to require access request)
               </label>
             </div>

@@ -106,3 +106,55 @@ def invalid_user_data():
         "firstName": "Test",
         "contactEmail": "invalid-email"
     }
+
+
+@pytest.fixture
+def test_client(test_db):
+    """Create a test client for API testing (alias for client fixture)."""
+    async def override_get_database():
+        return test_db
+
+    # Override the database dependency
+    app.dependency_overrides[get_database] = override_get_database
+
+    from fastapi.testclient import TestClient
+    test_client = TestClient(app)
+    
+    yield test_client
+
+    # Clean up dependency overrides
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def test_token():
+    """Generate a test JWT token."""
+    import jwt
+    from datetime import datetime, timedelta
+    
+    def _create_token(username: str, expires_delta: timedelta = None):
+        SECRET_KEY = os.getenv("SECRET_KEY", "test_secret_key_for_testing")
+        ALGORITHM = "HS256"
+        
+        if expires_delta is None:
+            expires_delta = timedelta(minutes=30)
+        
+        expire = datetime.utcnow() + expires_delta
+        to_encode = {
+            "sub": username,
+            "exp": expire
+        }
+        encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        return encoded_jwt
+    
+    return _create_token
+
+
+@pytest.fixture
+def auth_headers(test_token):
+    """Generate authorization headers for API requests."""
+    def _auth_headers(username: str):
+        token = test_token(username)
+        return {"Authorization": f"Bearer {token}"}
+    
+    return _auth_headers
