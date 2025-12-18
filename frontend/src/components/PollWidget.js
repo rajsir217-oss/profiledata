@@ -211,7 +211,7 @@ const PollWidget = ({ onPollResponded }) => {
                   onClick={(e) => { e.stopPropagation(); togglePollExpanded(poll._id); }}
                   title="Edit response"
                 >
-                  ✏️ Edit
+                  ✏️
                 </button>
               </div>
             ) : (

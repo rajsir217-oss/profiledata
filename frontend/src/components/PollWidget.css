@@ -391,21 +391,21 @@
 }
 
 .poll-expand-btn {
-  padding: 0.5rem 1rem;
+  padding: 0.5rem 0.6rem;
   background: var(--primary-color);
   color: white;
   border: none;
   border-radius: 6px;
-  font-size: 0.85rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  white-space: nowrap;
   flex-shrink: 0;
+  line-height: 1;
 }
 
 .poll-expand-btn:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
+  transform: scale(1.05);
 }
 
 .poll-collapse-btn {

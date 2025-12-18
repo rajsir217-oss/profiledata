@@ -111,7 +111,9 @@ async def update_poll_response(
 
 def require_admin(current_user: dict = Depends(get_current_user)):
     """Dependency to require admin role"""
-    if current_user.get("role") != "admin":
+    # Check both role and role_name fields for admin status
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
 
