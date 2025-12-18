@@ -32,6 +32,13 @@ const PIIManagement = () => {
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [ownerImages, setOwnerImages] = useState([]);
   
+  // Current user's visibility settings (to show "Member Visible" badges)
+  const [visibilitySettings, setVisibilitySettings] = useState({
+    contactEmailVisible: false,
+    contactNumberVisible: false,
+    linkedinUrlVisible: false
+  });
+  
   const currentUsername = localStorage.getItem('username');
 
   const getDefaultTabFromUrl = () => {
@@ -53,12 +60,21 @@ const PIIManagement = () => {
     
     try {
       // Load PII Access data (granted/received/revoked/expired)
-      const [grantedRes, receivedRes, revokedRes, expiredRes] = await Promise.all([
+      const [grantedRes, receivedRes, revokedRes, expiredRes, profileRes] = await Promise.all([
         api.get(`/pii-access/${currentUsername}/granted`),
         api.get(`/pii-access/${currentUsername}/received`),
         api.get(`/pii-access/${currentUsername}/revoked`),
-        api.get(`/pii-access/${currentUsername}/expired`)
+        api.get(`/pii-access/${currentUsername}/expired`),
+        api.get(`/profile/${currentUsername}`)
       ]);
+      
+      // Extract visibility settings from profile
+      const profile = profileRes.data;
+      setVisibilitySettings({
+        contactEmailVisible: profile.contactEmailVisible || false,
+        contactNumberVisible: profile.contactNumberVisible || false,
+        linkedinUrlVisible: profile.linkedinUrlVisible || false
+      });
 
       setGrantedAccess(grantedRes.data.grantedAccess || []);
       setReceivedAccess(receivedRes.data.receivedAccess || []);
@@ -382,18 +398,35 @@ const PIIManagement = () => {
           <div className="access-types">
             {item.accessTypes.map(accessType => {
               const isExpired = expiredTypes.includes(accessType);
+              // Check if this access type is now member-visible (only for granted tab)
+              const isMemberVisible = isGranted && (
+                (accessType === 'contact_email' && visibilitySettings.contactEmailVisible) ||
+                (accessType === 'contact_number' && visibilitySettings.contactNumberVisible) ||
+                (accessType === 'linkedin_url' && visibilitySettings.linkedinUrlVisible)
+              );
               return (
                 <span 
                   key={accessType} 
-                  className={`access-type-badge ${isExpired ? 'expired' : ''}`}
-                  title={isExpired ? 'Access has expired (one-time view used)' : ''}
+                  className={`access-type-badge ${isExpired ? 'expired' : ''} ${isMemberVisible ? 'member-visible' : ''}`}
+                  title={isMemberVisible ? 'This info is now visible to all members' : isExpired ? 'Access has expired (one-time view used)' : ''}
                 >
                   {getAccessTypeLabel(accessType)}
                   {isExpired && <span className="expired-indicator"> ⏱️ Expired</span>}
+                  {isMemberVisible && <span className="member-visible-indicator"> 👁️</span>}
                 </span>
               );
             })}
           </div>
+          {/* Show note if any access type is now member-visible */}
+          {isGranted && item.accessTypes.some(t => 
+            (t === 'contact_email' && visibilitySettings.contactEmailVisible) ||
+            (t === 'contact_number' && visibilitySettings.contactNumberVisible) ||
+            (t === 'linkedin_url' && visibilitySettings.linkedinUrlVisible)
+          ) && (
+            <p className="member-visible-note">
+              ℹ️ Some info is now visible to all members
+            </p>
+          )}
           <p className="access-date">
             {isGranted ? 'Granted' : 'Received'}: {new Date(item.grantedAt).toLocaleDateString()}
           </p>

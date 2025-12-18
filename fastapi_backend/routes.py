@@ -450,10 +450,42 @@ async def get_protected_media(
     # Determine if this image is public
     public_list = owner.get("publicImages", [])
     is_public = any((p or "").split('/')[-1] == filename for p in public_list)
+    
+    # =================================================================
+    # PROFILE PICTURE ALWAYS VISIBLE (index 0)
+    # =================================================================
+    # When enabled, the first image (profile picture) is always served
+    # with full access to logged-in members, regardless of publicImages.
+    # 
+    # This setting is controlled via:
+    #   1. Admin UI: Preferences -> Config tab -> Profile Picture Visibility
+    #   2. Database: system_settings collection -> profile_picture_always_visible
+    #   3. Fallback: config.py -> profile_picture_always_visible (if DB not set)
+    # =================================================================
+    
+    # Check database setting first, fallback to config.py
+    system_settings = await db.system_settings.find_one({"_id": "global"})
+    profile_pic_always_visible = True  # Default
+    if system_settings:
+        profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
+    else:
+        profile_pic_always_visible = settings.profile_picture_always_visible
+    
+    is_profile_picture = False
+    owner_images = owner.get("images", [])
+    if owner_images and profile_pic_always_visible:
+        # Check if this filename matches the first image (profile picture)
+        first_image = owner_images[0] if owner_images else None
+        if first_image and first_image.split('/')[-1] == filename:
+            is_profile_picture = True
 
     is_one_time_view = False
     has_full_access = True
-    if not is_public:
+    
+    # Profile picture is always accessible when setting is enabled
+    if is_profile_picture:
+        has_full_access = True
+    elif not is_public:
         # Pass filename to check per-image access rules including one-time views
         has_access = await _has_images_access(db, requester_username, owner_username, filename)
         if not has_access:
@@ -1342,21 +1374,37 @@ async def get_user_profile(
         logger.debug(f"🎂 Calculated age for {username}: {user.get('age')}")
     
     # Apply PII masking if requester is not the profile owner
-    from pii_security import mask_user_pii, check_access_granted
+    from pii_security import mask_user_pii, check_access_granted, get_per_field_access
     
     access_granted = False
+    per_field_access = None
     if requester_username:
         access_granted = await check_access_granted(db, requester_username, username)
-        logger.info(f"🔐 PII access for {requester_username} viewing {username}: {access_granted}")
+        per_field_access = await get_per_field_access(db, requester_username, username)
+        logger.info(f"🔐 PII access for {requester_username} viewing {username}: general={access_granted}, per_field={per_field_access}")
     
-    user = mask_user_pii(user, requester_username, access_granted)
+    user = mask_user_pii(user, requester_username, access_granted, per_field_access)
 
-    has_image_access = await _has_images_access(db, requester_username, username)
-
-    if has_image_access:
+    # Handle images based on imagesVisible flag and PII access
+    # If imagesVisible=True (default) OR has images PII access → show all images
+    # If imagesVisible=False AND no access → show only publicImages
+    images_visible = user.get('imagesVisible', True)  # Default: True
+    has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
+    
+    # Also check legacy _has_images_access for backward compatibility
+    has_legacy_image_access = await _has_images_access(db, requester_username, username)
+    
+    # Combine all access checks
+    can_see_all_images = images_visible or has_images_pii_access or has_legacy_image_access
+    
+    if can_see_all_images:
         user["images"] = [get_full_image_url(p) for p in normalized_images]
+        user["imagesMasked"] = False
     else:
         user["images"] = full_public_urls
+        user["imagesMasked"] = True
+    
+    logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}")
     
     # Include visible meta fields if enabled
     if user.get('metaFieldsVisibleToPublic', False):
@@ -2359,20 +2407,36 @@ async def update_public_images(
     from urllib.parse import urlparse
 
     def extract_path(url_or_path: str) -> str:
+        """Extract and normalize image path to /uploads/... format"""
         if not url_or_path:
             return ''
         if isinstance(url_or_path, str) and url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
-            return parsed.path
+            path = parsed.path
+            # Convert /api/users/media/xxx to /uploads/xxx
+            if '/api/users/media/' in path:
+                path = '/uploads/' + path.split('/api/users/media/')[-1]
+            return path
         if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
             return '/' + url_or_path
+        # Handle /api/users/media/ paths directly
+        if isinstance(url_or_path, str) and '/api/users/media/' in url_or_path:
+            return '/uploads/' + url_or_path.split('/api/users/media/')[-1]
         return url_or_path
 
     existing_images = user.get("images", [])
     normalized_images = {extract_path(img) for img in existing_images if img}
 
     normalized_public = [extract_path(img) for img in public_images if img]
+    
+    logger.info(f"📸 Public images update - existing_images: {existing_images}")
+    logger.info(f"📸 Public images update - normalized_images: {normalized_images}")
+    logger.info(f"📸 Public images update - incoming public_images: {public_images}")
+    logger.info(f"📸 Public images update - normalized_public (before filter): {normalized_public}")
+    
     normalized_public = [p for p in normalized_public if p in normalized_images]
+    
+    logger.info(f"📸 Public images update - normalized_public (after filter): {normalized_public}")
 
     await db.users.update_one(
         {"username": username},
@@ -7041,6 +7105,24 @@ async def check_images_access(
     """Check per-image access status for all images of a profile owner.
     
     Returns access status for each image, accounting for one-time views and expiry.
+    
+    PROFILE PICTURE VISIBILITY:
+    ---------------------------
+    The first image (index 0) is treated as the profile picture. Its visibility
+    is controlled by the `profile_picture_always_visible` setting in config.py.
+    
+    When settings.profile_picture_always_visible = True (default):
+        - Profile picture is ALWAYS visible to logged-in members
+        - This follows industry standard for matrimonial/dating platforms
+        - Users expect to see at least one photo before engaging
+    
+    When settings.profile_picture_always_visible = False:
+        - Profile picture follows same privacy rules as other images
+        - Only visible if in publicImages or viewer has PII access
+    
+    To change this behavior:
+        - Set PROFILE_PICTURE_ALWAYS_VISIBLE=false in .env file, OR
+        - Change default in config.py -> profile_picture_always_visible
     """
     try:
         # Get owner's images
@@ -7064,10 +7146,43 @@ async def check_images_access(
                 "images": [{"index": i, "hasAccess": True, "reason": "admin"} for i in range(len(all_images))]
             }
         
+        # =================================================================
+        # PROFILE PICTURE ALWAYS VISIBLE (index 0)
+        # =================================================================
+        # When enabled, the first image (profile picture) is always visible
+        # to logged-in members, regardless of publicImages or PII access.
+        # 
+        # This follows industry standard for matrimonial platforms where
+        # users expect to see at least one photo before engaging.
+        #
+        # This setting is controlled via:
+        #   1. Admin UI: Preferences -> Config tab -> Profile Picture Visibility
+        #   2. Database: system_settings collection -> profile_picture_always_visible
+        #   3. Fallback: config.py -> profile_picture_always_visible (if DB not set)
+        # =================================================================
+        
+        # Check database setting first, fallback to config.py
+        system_settings = await db.system_settings.find_one({"_id": "global"})
+        profile_pic_always_visible = True  # Default
+        if system_settings:
+            profile_pic_always_visible = system_settings.get("profile_picture_always_visible", True)
+        else:
+            # Fallback to config.py setting
+            profile_pic_always_visible = settings.profile_picture_always_visible
+        
         # Check each image's access status
         image_access_list = []
         for idx, img in enumerate(all_images):
             filename = img.split('/')[-1] if img else None
+            
+            # Profile picture (index 0) is always visible when setting is enabled
+            if idx == 0 and profile_pic_always_visible:
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": True, 
+                    "reason": "profile_picture"
+                })
+                continue
             
             # Check if public
             is_public = any((p or "").split('/')[-1] == filename for p in public_images)
@@ -8242,7 +8357,8 @@ async def get_system_settings(db = Depends(get_database)):
             default_settings = {
                 "ticket_delete_days": 30,
                 "default_theme": "cozy-light",
-                "enable_l3v3l_for_all": True
+                "enable_l3v3l_for_all": True,
+                "profile_picture_always_visible": True  # Industry standard default
             }
             logger.info("Using default settings")
             return default_settings
@@ -8250,7 +8366,8 @@ async def get_system_settings(db = Depends(get_database)):
         return {
             "ticket_delete_days": settings.get("ticket_delete_days", 30),
             "default_theme": settings.get("default_theme", "cozy-light"),
-            "enable_l3v3l_for_all": settings.get("enable_l3v3l_for_all", True)
+            "enable_l3v3l_for_all": settings.get("enable_l3v3l_for_all", True),
+            "profile_picture_always_visible": settings.get("profile_picture_always_visible", True)
         }
     except Exception as e:
         logger.error(f"❌ Error loading system settings: {e}", exc_info=True)
@@ -8265,8 +8382,9 @@ async def update_system_settings(
     ticket_delete_days = data.get("ticket_delete_days", 30)
     default_theme = data.get("default_theme", "cozy-light")
     enable_l3v3l_for_all = data.get("enable_l3v3l_for_all", True)
+    profile_picture_always_visible = data.get("profile_picture_always_visible", True)
     
-    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}, enable_l3v3l_for_all={enable_l3v3l_for_all}")
+    logger.info(f"⚙️ Updating system settings: ticket_delete_days={ticket_delete_days}, enable_l3v3l_for_all={enable_l3v3l_for_all}, profile_picture_always_visible={profile_picture_always_visible}")
     
     try:
         # Upsert system settings
@@ -8277,6 +8395,7 @@ async def update_system_settings(
                     "ticket_delete_days": ticket_delete_days,
                     "default_theme": default_theme,
                     "enable_l3v3l_for_all": enable_l3v3l_for_all,
+                    "profile_picture_always_visible": profile_picture_always_visible,
                     "updated_at": datetime.utcnow()
                 }
             },

@@ -37,44 +37,58 @@ const ImageManager = ({ existingImages, setExistingImages, publicImages, setPubl
     }
   };
 
-  const publicPathSet = new Set((publicImages || []).map(normalizeImagePath));
+  /**
+   * Check if an image is marked as public (visible to members)
+   * 
+   * This is the SINGLE source of truth for per-image visibility.
+   * An image is public if it's in the publicImages array.
+   * 
+   * @param {string} imgUrl - The image URL to check
+   * @returns {boolean} - True if image is in publicImages array
+   */
+  const isImagePublic = (imgUrl) => {
+    if (!imgUrl || !publicImages || !Array.isArray(publicImages)) return false;
+    const normalizedImg = normalizeImagePath(imgUrl);
+    const normalizedPublicImages = publicImages.map(normalizeImagePath);
+    return normalizedPublicImages.includes(normalizedImg);
+  };
 
   const togglePublic = async (imgUrl) => {
     if (!imgUrl || typeof imgUrl !== 'string') return;
     if (!setPublicImages) return;
 
-    const authenticatedUsername = localStorage.getItem('username');
-    const currentPath = normalizeImagePath(imgUrl);
+    const targetUsername = username || localStorage.getItem('username');
     const currentPublic = Array.isArray(publicImages) ? publicImages : [];
+    const isCurrentlyPublic = isImagePublic(imgUrl);
 
-    const isCurrentlyPublic = currentPublic.some((p) => normalizeImagePath(p) === currentPath);
-
+    // Build next public list - add or remove from array
     const nextPublic = isCurrentlyPublic
-      ? currentPublic.filter((p) => normalizeImagePath(p) !== currentPath)
+      ? currentPublic.filter((p) => normalizeImagePath(p) !== normalizeImagePath(imgUrl))
       : [...currentPublic, imgUrl];
 
+    // Optimistically update UI first
+    setPublicImages(nextPublic);
+
     if (!isEditMode) {
-      setPublicImages(nextPublic);
       showStatus('success', isCurrentlyPublic ? '✅ Removed from public photos' : '✅ Marked as public photo');
       return;
     }
 
-    if (!authenticatedUsername) {
-      showStatus('error', '❌ Not authenticated. Please log in again.');
+    if (!targetUsername) {
+      showStatus('error', '❌ Username not found. Please try again.');
       return;
     }
 
     setSaving(true);
     try {
-      const response = await api.put(`/profile/${authenticatedUsername}/public-images`, {
+      await api.put(`/profile/${targetUsername}/public-images`, {
         publicImages: nextPublic
       });
-
-      const updated = response?.data?.publicImages;
-      setPublicImages(Array.isArray(updated) ? updated : nextPublic);
       showStatus('success', isCurrentlyPublic ? '✅ Removed from public photos' : '✅ Marked as public photo');
     } catch (error) {
       console.error('❌ Failed to update public photos:', error);
+      // Revert on error
+      setPublicImages(currentPublic);
       showStatus('error', '❌ Failed to update public photos. Please try again.');
     } finally {
       setSaving(false);
@@ -573,17 +587,36 @@ const ImageManager = ({ existingImages, setExistingImages, publicImages, setPubl
                     {deleteConfirmIndex === index ? '⚠️ Delete?' : '🗑️'}
                   </button>
 
-                  {/* Public Toggle - only for existing images */}
-                  {!isNew && setPublicImages && (
-                    <button
-                      type="button"
-                      className={`btn-control btn-public-toggle ${publicPathSet.has(normalizeImagePath(img.url)) ? 'is-public' : ''}`}
-                      onClick={() => togglePublic(img.url)}
-                      title={publicPathSet.has(normalizeImagePath(img.url)) ? 'Visible to members (click to make private - PII request needed)' : 'Make visible to members - no PII request needed'}
-                    >
-                      {publicPathSet.has(normalizeImagePath(img.url)) ? '🌍' : '🔒'}
-                    </button>
-                  )}
+                  {/* Public Toggle Switch - only for existing images */}
+                  {!isNew && setPublicImages && (() => {
+                    const isPublic = isImagePublic(img.url);
+                    return (
+                      <div 
+                        className={`visibility-toggle-container ${isPublic ? 'is-public' : 'is-private'}`}
+                        title={isPublic ? 'Visible to members (click to make private)' : 'Private (click to make visible)'}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          togglePublic(img.url);
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            togglePublic(img.url);
+                          }
+                        }}
+                      >
+                        <div className={`toggle-track ${isPublic ? 'on' : 'off'}`}>
+                          <div className="toggle-thumb"></div>
+                        </div>
+                        <span className="toggle-label">
+                          {isPublic ? '👁️' : '🔒'}
+                        </span>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Drag Handle Hint */}

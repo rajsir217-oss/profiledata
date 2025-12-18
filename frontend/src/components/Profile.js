@@ -200,6 +200,15 @@ const Profile = () => {
         
         setUser(res.data);
         
+        // Debug: Log visibility settings
+        logger.debug('Profile data received - visibility settings:', {
+          contactEmailVisible: res.data.contactEmailVisible,
+          contactNumberVisible: res.data.contactNumberVisible,
+          linkedinUrlVisible: res.data.linkedinUrlVisible,
+          contactEmailMasked: res.data.contactEmailMasked,
+          contactNumberMasked: res.data.contactNumberMasked
+        });
+        
         // Check if this is the current user's profile
         setIsOwnProfile(currentUsername === username);
         
@@ -1794,38 +1803,6 @@ const Profile = () => {
         </div>
       )}
 
-      {/* LinkedIn URL (PII Protected) */}
-      {user.linkedinUrl && (
-        <div className="profile-section">
-          <h3>🔗 LinkedIn Profile</h3>
-          {/* Show LinkedIn if: own profile, visible to members, or not masked */}
-          {isOwnProfile || user.linkedinUrlVisible || !user.linkedinUrlMasked ? (
-            <div className="profile-info">
-              <p>
-                <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" className="btn btn-primary btn-sm">
-                  🔗 View LinkedIn Profile
-                </a>
-                {user.linkedinUrlVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
-              </p>
-            </div>
-          ) : (
-            <div className="pii-locked">
-              <div className="lock-icon">🔒</div>
-              <p>LinkedIn profile is private</p>
-              <button
-                className="btn-request-small"
-                onClick={async () => {
-                  await checkPIIAccess();
-                  setShowPIIRequestModal(true);
-                }}
-              >
-                Request Access
-              </button>
-            </div>
-          )}
-        </div>
-      )}
-
       {/* Contact Information (PII Protected) */}
       <div className="profile-section">
         <div className="section-header-with-edit">
@@ -1855,7 +1832,7 @@ const Profile = () => {
         {!collapsedSections.contactInformation && (
         <>
         {/* Show contact info if: own profile, has PII access, OR contact fields are member-visible */}
-        {isOwnProfile || piiAccess.contact_info || user.contactNumberVisible || user.contactEmailVisible ? (
+        {isOwnProfile || piiAccess.contact_info || user.contactNumberVisible || user.contactEmailVisible || user.linkedinUrlVisible ? (
           editingSection === 'contact' ? (
             <div className="inline-edit-form">
               <div className="form-row">
@@ -1907,6 +1884,29 @@ const Profile = () => {
                   </button>
                 </p>
               ) : null}
+              {/* Show LinkedIn URL if visible or has access */}
+              {user.linkedinUrl && (
+                (user.linkedinUrlVisible || piiAccess.linkedin_url || isOwnProfile) && (!user.linkedinUrlMasked || piiAccess.linkedin_url) ? (
+                  <p>
+                    <strong>LinkedIn:</strong>{' '}
+                    <a href={user.linkedinUrl} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--primary-color, #667eea)' }}>
+                      {user.linkedinUrl}
+                    </a>
+                    {user.linkedinUrlVisible && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}
+                  </p>
+                ) : (
+                  <p>
+                    <strong>LinkedIn:</strong> <span className="pii-masked">🔒 Private</span>
+                    <button 
+                      className="btn-request-inline" 
+                      onClick={() => setShowPIIRequestModal(true)}
+                      style={{ marginLeft: '10px', fontSize: '11px', padding: '2px 8px', borderRadius: '10px', background: 'var(--primary-color, #667eea)', color: 'white', border: 'none', cursor: 'pointer' }}
+                    >
+                      Request Access
+                    </button>
+                  </p>
+                )
+              )}
             </div>
           )
         ) : (
@@ -2092,22 +2092,33 @@ const Profile = () => {
       {/* Profile Images Section */}
       <div className="profile-section">
         <div className="section-header-with-edit">
-          <h3>📷 Photos</h3>
+          <h3>📷 Photos {user.publicImages?.length > 0 && !isOwnProfile && <span className="member-visible-tag" style={{ marginLeft: '8px', fontSize: '11px', color: '#1e40af', background: '#dbeafe', padding: '2px 8px', borderRadius: '10px' }}>👁️ Member Visible</span>}</h3>
           <div style={{ display: 'flex', gap: '8px' }}>
             {!isOwnProfile && currentUsername && (
               <button
                 onClick={async () => {
                   logger.debug('Manual refresh triggered');
-                  await checkPIIAccess();
-                  await loadAccessibleImages();
+                  try {
+                    // Reload profile to get updated publicImages
+                    const response = await api.get(`/profile/${username}`);
+                    if (response.data) {
+                      setUser(response.data);
+                      logger.debug('Profile refreshed, publicImages:', response.data.publicImages);
+                    }
+                    // Also refresh PII access status
+                    await checkPIIAccess();
+                    await loadAccessibleImages();
+                  } catch (err) {
+                    console.error('Error refreshing:', err);
+                  }
                 }}
                 style={{
                   padding: '6px 12px',
                   fontSize: '12px',
                   borderRadius: '6px',
-                  border: '1px solid #ddd',
-                  background: 'white',
-                  color: '#667eea',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--card-background)',
+                  color: 'var(--primary-color)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -2120,6 +2131,11 @@ const Profile = () => {
             )}
           </div>
         </div>
+        {/* Photo visibility logic:
+            1. Own profile: show all images
+            2. Has accessibleImages loaded: use per-image access status (respects one-time views)
+            3. Else: show only publicImages + request access button for private ones
+        */}
         {isOwnProfile ? (
           user.images?.length > 0 ? (
             <div className="images-grid" style={{
@@ -2168,7 +2184,7 @@ const Profile = () => {
                       position: 'absolute',
                       top: '12px',
                       left: '12px',
-                      background: 'linear-gradient(135deg, #ffc107, #ff9800)',
+                      background: 'linear-gradient(135deg, var(--warning-color), var(--warning-dark, #ff9800))',
                       color: 'white',
                       padding: '6px 12px',
                       borderRadius: '20px',
@@ -2185,61 +2201,47 @@ const Profile = () => {
           ) : (
             <p className="no-data">No photos available</p>
           )
-        ) : piiAccess.images ? (
-          user.images?.length > 0 ? (
-            <>
-              <div className="images-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '16px',
-                marginTop: '16px'
-              }}>
-                {(accessibleImages.length > 0 ? accessibleImages : 
-                  user.images?.map((img, idx) => ({
-                    imageId: `${username}-img-${idx}`,
-                    imageUrl: img,
-                    imageOrder: idx,
-                    isProfilePic: idx === 0,
-                    hasAccess: piiAccess.images,
-                    initialVisibility: { type: 'clear' }
-                  }))
-                ).map((image, idx) => (
-                  <ProfileImage
-                    key={image.imageId || idx}
-                    image={image}
-                    viewerUsername={currentUsername}
-                    profileOwnerUsername={username}
-                    isFavorited={isFavorited}
-                    isShortlisted={isShortlisted}
-                    onRequestAccess={handleRequestAccess}
-                    onRenewAccess={handleRenewAccess}
-                    onClick={(imageData) => {
-                      const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
-                      if (imageUrl && typeof imageUrl === 'string') {
-                        setLightboxImage(imageUrl);
-                        setShowLightbox(true);
-                      }
-                    }}
-                  />
-                ))}
+        ) : accessibleImages.length > 0 ? (
+          /* Use per-image access status - respects one-time views and expiry */
+          <>
+            <div className="images-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+              gap: '16px',
+              marginTop: '16px'
+            }}>
+              {accessibleImages.filter(img => img.hasAccess).map((image, idx) => (
+                <ProfileImage
+                  key={image.imageId || idx}
+                  image={image}
+                  viewerUsername={currentUsername}
+                  profileOwnerUsername={username}
+                  isFavorited={isFavorited}
+                  isShortlisted={isShortlisted}
+                  onClick={(imageData) => {
+                    const imageUrl = imageData?.url || imageData?.imageUrl || imageData;
+                    if (imageUrl && typeof imageUrl === 'string') {
+                      setLightboxImage(imageUrl);
+                      setShowLightbox(true);
+                    }
+                  }}
+                />
+              ))}
+            </div>
+            {/* Show request access if some images don't have access */}
+            {accessibleImages.some(img => !img.hasAccess) && (
+              <div className="pii-locked" style={{ marginTop: '16px' }}>
+                <div className="lock-icon">🔒</div>
+                <p>{accessibleImages.filter(img => img.hasAccess).length > 0 ? 'Some photos are private or expired' : 'Photos are private'}</p>
+                <button
+                  className="btn-request-small"
+                  onClick={() => setShowPIIRequestModal(true)}
+                >
+                  Request Access
+                </button>
               </div>
-              {/* Show request access option if some images have expired access */}
-              {accessibleImages.some(img => !img.hasAccess) && (
-                <div className="pii-locked" style={{ marginTop: '16px' }}>
-                  <div className="lock-icon">🔒</div>
-                  <p>Some photos have expired access</p>
-                  <button
-                    className="btn-request-small"
-                    onClick={() => setShowPIIRequestModal(true)}
-                  >
-                    Request Access Again
-                  </button>
-                </div>
-              )}
-            </>
-          ) : (
-            <p className="no-data">No photos available</p>
-          )
+            )}
+          </>
         ) : (
           <>
             {publicImageObjects.length > 0 && (
@@ -2268,16 +2270,19 @@ const Profile = () => {
                 ))}
               </div>
             )}
-            <div className="pii-locked">
-              <div className="lock-icon">🔒</div>
-              <p>{publicImageObjects.length > 0 ? 'More photos are private' : 'Photos are private'}</p>
-              <button
-                className="btn-request-small"
-                onClick={() => setShowPIIRequestModal(true)}
-              >
-                {publicImageObjects.length > 0 ? 'Request More Photos' : 'Request Access'}
-              </button>
-            </div>
+            {/* Only show request access if there are private photos not visible */}
+            {(user.images?.length || 0) > publicImageObjects.length && (
+              <div className="pii-locked">
+                <div className="lock-icon">🔒</div>
+                <p>{publicImageObjects.length > 0 ? 'More photos are private' : 'Photos are private'}</p>
+                <button
+                  className="btn-request-small"
+                  onClick={() => setShowPIIRequestModal(true)}
+                >
+                  {publicImageObjects.length > 0 ? 'Request More Photos' : 'Request Access'}
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>

@@ -45,10 +45,12 @@ const UnifiedPreferences = () => {
   const [ticketDeleteDays, setTicketDeleteDays] = useState(30);
   const [profileViewHistoryDays, setProfileViewHistoryDays] = useState(7);
   const [enableL3V3LForAll, setEnableL3V3LForAll] = useState(true);
+  const [profilePictureAlwaysVisible, setProfilePictureAlwaysVisible] = useState(true);
   const [savingTicketSettings, setSavingTicketSettings] = useState(false);
   const [ticketSettingsMessage, setTicketSettingsMessage] = useState({ type: '', text: '' });
   const [showTooltip, setShowTooltip] = useState(false);
   const [showProfileViewTooltip, setShowProfileViewTooltip] = useState(false);
+  const [showProfilePicTooltip, setShowProfilePicTooltip] = useState(false);
   const [adminSettingsLoading, setAdminSettingsLoading] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -322,9 +324,11 @@ const UnifiedPreferences = () => {
       const ticketDays = response.data.ticket_delete_days;
       const profileViewDays = response.data.profile_view_history_days;
       const enableL3V3L = response.data.enable_l3v3l_for_all;
+      const profilePicVisible = response.data.profile_picture_always_visible;
       setTicketDeleteDays(ticketDays !== undefined && ticketDays !== null ? ticketDays : 30);
       setProfileViewHistoryDays(profileViewDays !== undefined && profileViewDays !== null ? profileViewDays : 7);
       setEnableL3V3LForAll(enableL3V3L !== undefined && enableL3V3L !== null ? enableL3V3L : true);
+      setProfilePictureAlwaysVisible(profilePicVisible !== undefined && profilePicVisible !== null ? profilePicVisible : true);
     } catch (error) {
       console.error('Error loading admin settings:', error);
     } finally {
@@ -340,7 +344,8 @@ const UnifiedPreferences = () => {
       await api.put('/system-settings', {
         ticket_delete_days: ticketDeleteDays,
         profile_view_history_days: profileViewHistoryDays,
-        enable_l3v3l_for_all: enableL3V3LForAll
+        enable_l3v3l_for_all: enableL3V3LForAll,
+        profile_picture_always_visible: profilePictureAlwaysVisible
       });
 
       setTicketSettingsMessage({ type: 'success', text: '✅ Settings saved successfully!' });
@@ -1833,6 +1838,136 @@ const UnifiedPreferences = () => {
                   >
                     {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
                   </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Profile Picture Visibility Settings */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>📷 Profile Picture Visibility</h3>
+              <p>Control whether the profile picture (first image) is always visible to members</p>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label htmlFor="profilePictureAlwaysVisible" style={{ fontWeight: '600' }}>Profile Picture Always Visible</label>
+                  <div style={{ position: 'relative' }}>
+                    <span 
+                      onClick={() => setShowProfilePicTooltip(!showProfilePicTooltip)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '4px 8px',
+                        borderRadius: '50%',
+                        background: 'var(--info-light)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ℹ️
+                    </span>
+                    {showProfilePicTooltip && (
+                      <>
+                        <div 
+                          onClick={() => setShowProfilePicTooltip(false)}
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '0',
+                          marginTop: '8px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          minWidth: '300px',
+                          maxWidth: '400px'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: '8px' }}>Industry Standard Practice:</strong>
+                          <ul style={{ marginLeft: '20px', lineHeight: '1.6' }}>
+                            <li><strong>When ON:</strong> Profile picture (first image) is always visible to logged-in members</li>
+                            <li><strong>When OFF:</strong> Profile picture follows same privacy rules as other photos</li>
+                            <li>Major platforms (Shaadi, BharatMatrimony) show profile pics by default</li>
+                            <li>Users expect to see at least one photo before engaging</li>
+                            <li>Additional photos still respect privacy settings</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                  When enabled, the profile picture is visible to all members regardless of privacy settings.
+                </p>
+                
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <label 
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '12px',
+                      cursor: 'pointer',
+                      padding: '12px 16px',
+                      borderRadius: '8px',
+                      border: `2px solid ${profilePictureAlwaysVisible ? 'var(--success-color)' : 'var(--border-color)'}`,
+                      background: profilePictureAlwaysVisible ? 'var(--success-light)' : 'var(--surface-color)',
+                      transition: 'all 0.2s ease',
+                      flex: '1',
+                      minWidth: '250px'
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      id="profilePictureAlwaysVisible"
+                      checked={profilePictureAlwaysVisible}
+                      onChange={(e) => setProfilePictureAlwaysVisible(e.target.checked)}
+                      disabled={savingTicketSettings}
+                      style={{ 
+                        width: '20px', 
+                        height: '20px',
+                        accentColor: 'var(--success-color)'
+                      }}
+                    />
+                    <span style={{ fontWeight: '500' }}>
+                      {profilePictureAlwaysVisible ? '✅ Enabled - Profile picture always visible' : '🔒 Disabled - Profile picture follows privacy rules'}
+                    </span>
+                  </label>
+                  
+                  <button
+                    onClick={handleSaveTicketSettings}
+                    disabled={savingTicketSettings}
+                    className="btn-primary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    {savingTicketSettings ? '💾 Saving...' : '💾 Save Settings'}
+                  </button>
+                </div>
+
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  background: 'var(--info-light)',
+                  border: '1px solid var(--info-color)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-color)' }}>
+                    <strong>Current Status:</strong> {profilePictureAlwaysVisible ? '👁️ Profile pictures are visible to all members' : '🔒 Profile pictures follow individual privacy settings'}
+                  </p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    This setting only affects the first image (profile picture). Additional photos always respect the user's privacy settings.
+                  </p>
                 </div>
               </div>
             </div>

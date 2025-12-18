@@ -78,6 +78,38 @@ class Settings(BaseSettings):
     enable_websockets: Optional[bool] = True
     debug_mode: Optional[bool] = False
     
+    # ==========================================================================
+    # PROFILE PICTURE VISIBILITY SETTING
+    # ==========================================================================
+    # 
+    # When enabled (True): The profile picture (first image, index 0) is ALWAYS
+    # visible to all logged-in members, regardless of the user's publicImages
+    # settings or PII access grants. This follows industry standard practice
+    # for matrimonial/dating platforms where users expect to see at least one
+    # photo before engaging with a profile.
+    #
+    # When disabled (False): The profile picture follows the same privacy rules
+    # as all other images - it will only be visible if:
+    #   1. It's in the user's publicImages array, OR
+    #   2. The viewer has been granted PII access to images
+    #
+    # INDUSTRY CONTEXT:
+    # - Shaadi.com, BharatMatrimony, Jeevansathi: Profile photo always visible
+    # - Dating apps (Tinder, Hinge, Bumble): All photos visible
+    # - This setting provides flexibility to match your platform's privacy policy
+    #
+    # TO CHANGE THIS SETTING:
+    # Option 1: Set in .env file: PROFILE_PICTURE_ALWAYS_VISIBLE=false
+    # Option 2: Change the default value below
+    #
+    # AFFECTED CODE LOCATIONS:
+    # - Backend: routes.py -> check_images_access() endpoint
+    # - Backend: routes.py -> _has_images_access() function
+    # - Frontend: Profile.js -> loadAccessibleImages() (reads from API response)
+    #
+    # ==========================================================================
+    profile_picture_always_visible: Optional[bool] = True
+    
     # AI Services (Free Tier Options)
     gemini_api_key: Optional[str] = None
     groq_api_key: Optional[str] = None
