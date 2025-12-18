@@ -1460,12 +1460,16 @@ async def get_user_profile(
         else:
             user["images"] = full_public_urls
         user["imagesMasked"] = True  # Still masked (only profile pic visible)
-        user["profilePicVisible"] = True  # Flag to indicate profile pic is visible due to global setting
         logger.info(f"📸 {username}: Showing profile pic via global setting + {len(full_public_urls)} public images")
     else:
         user["images"] = full_public_urls
         user["imagesMasked"] = True
         logger.info(f"📸 {username}: Showing only {len(full_public_urls)} public images (restricted)")
+    
+    # ALWAYS set profilePicVisible flag when global setting is enabled and user has images
+    # This flag tells frontend to show avatar clearly (not blurred/locked)
+    if profile_pic_always_visible and normalized_images:
+        user["profilePicVisible"] = True
     
     logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}")
     
