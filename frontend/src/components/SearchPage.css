@@ -5156,6 +5156,12 @@ body.theme-rose .request-pics-btn-main:active {
    Matches reference: Header > Image > Bio > Details > Badges > Actions
    ============================================ */
 
+/* Card Title Section - Ensure kebab menu appears above image */
+.card-title-section {
+  position: relative;
+  z-index: 10;
+}
+
 /* Card Image Section - Full Width Below Header */
 .card-image-section {
   position: relative;
@@ -5163,6 +5169,7 @@ body.theme-rose .request-pics-btn-main:active {
   height: 280px;
   overflow: hidden;
   background: var(--surface-color);
+  z-index: 1;
 }
 
 .card-profile-image {
