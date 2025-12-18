@@ -233,7 +233,11 @@ async def _get_profile_picture_always_visible(db) -> bool:
     When False: Profile picture follows same privacy rules as other images
     """
     try:
+        # Try with _id: "global" first (standard format)
         system_settings = await db.system_settings.find_one({"_id": "global"})
+        if not system_settings:
+            # Fallback: try without filter (some deployments use different format)
+            system_settings = await db.system_settings.find_one({})
         if system_settings:
             return system_settings.get("profile_picture_always_visible", True)
         return settings.profile_picture_always_visible
@@ -1435,15 +1439,33 @@ async def get_user_profile(
     # Also check legacy _has_images_access for backward compatibility
     has_legacy_image_access = await _has_images_access(db, requester_username, username)
     
+    # Check global profile_picture_always_visible setting
+    profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+    
     # Combine all access checks
     can_see_all_images = images_visible or has_images_pii_access or has_legacy_image_access
+    
+    logger.info(f"📸 Profile {username} image visibility check: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, global_setting={profile_pic_always_visible}, has_images={len(normalized_images)}")
     
     if can_see_all_images:
         user["images"] = [get_full_image_url(p) for p in normalized_images]
         user["imagesMasked"] = False
+        logger.info(f"📸 {username}: Showing ALL {len(normalized_images)} images (full access)")
+    elif profile_pic_always_visible and normalized_images:
+        # Global setting: always show profile picture (first image) to logged-in members
+        profile_pic_url = get_full_image_url(normalized_images[0])
+        # Include profile pic + any public images (avoiding duplicates)
+        if profile_pic_url not in full_public_urls:
+            user["images"] = [profile_pic_url] + full_public_urls
+        else:
+            user["images"] = full_public_urls
+        user["imagesMasked"] = True  # Still masked (only profile pic visible)
+        user["profilePicVisible"] = True  # Flag to indicate profile pic is visible due to global setting
+        logger.info(f"📸 {username}: Showing profile pic via global setting + {len(full_public_urls)} public images")
     else:
         user["images"] = full_public_urls
         user["imagesMasked"] = True
+        logger.info(f"📸 {username}: Showing only {len(full_public_urls)} public images (restricted)")
     
     logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}")
     
@@ -3434,6 +3456,7 @@ async def search_users(
                     users[i]["images"] = [profile_pic_url] + full_public_urls
                 else:
                     users[i]["images"] = full_public_urls
+                users[i]["profilePicVisible"] = True  # Flag for frontend
             else:
                 users[i]["images"] = full_public_urls
             
@@ -4140,6 +4163,7 @@ async def get_favorites(
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
                         user["images"] = full_public_urls
+                    user["profilePicVisible"] = True  # Flag for frontend
                 else:
                     user["images"] = full_public_urls
                 
@@ -4325,6 +4349,7 @@ async def get_shortlist(
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
                         user["images"] = full_public_urls
+                    user["profilePicVisible"] = True  # Flag for frontend
                 else:
                     user["images"] = full_public_urls
                 
@@ -4500,6 +4525,7 @@ async def get_exclusions(
                         user["images"] = [profile_pic_url] + full_public_urls
                     else:
                         user["images"] = full_public_urls
+                    user["profilePicVisible"] = True  # Flag for frontend
                 else:
                     user["images"] = full_public_urls
                 
@@ -5914,7 +5940,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
             
-            result.append({
+            user_result = {
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
@@ -5926,7 +5952,10 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
                 "addedAt": safe_datetime_serialize(fav.get("createdAt"))
-            })
+            }
+            if profile_pic_always_visible and existing_images:
+                user_result["profilePicVisible"] = True
+            result.append(user_result)
         
         logger.info(f"✅ Found {len(result)} users who favorited {username}")
         return {"users": result}
@@ -5980,7 +6009,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
             
-            result.append({
+            user_result = {
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
                 "lastName": user_data.get("lastName"),
@@ -5992,7 +6021,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
                 "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
-            })
+            }
+            if profile_pic_always_visible and existing_images:
+                user_result["profilePicVisible"] = True
+            result.append(user_result)
         
         logger.info(f"✅ Found {len(result)} users who shortlisted {username}")
         return {"users": result}
@@ -6210,6 +6242,7 @@ async def get_profile_views(
                 if profile_pic_always_visible and existing_images:
                     # Always include profile picture (first image) for logged-in members
                     viewer["images"] = [get_full_image_url(existing_images[0])]
+                    viewer["profilePicVisible"] = True  # Flag for frontend
                 else:
                     # Only show public images
                     normalized_public = _compute_public_image_paths(existing_images, viewer.get("publicImages", []))

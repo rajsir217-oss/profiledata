@@ -539,9 +539,12 @@ const SearchPage2 = () => {
     
     // Check if user has any images to display (profile picture always visible when enabled)
     const hasVisibleImages = user.images && user.images.length > 0;
+    
+    // Check if profile picture is visible due to global setting (backend sets profilePicVisible: true)
+    const profilePicVisibleGlobal = user.profilePicVisible === true;
 
-    // If no access to images AND no visible images, show masked version
-    if (!hasImageAccess && !hasVisibleImages) {
+    // If no access to images AND no visible images AND no global profile pic visibility, show masked version
+    if (!hasImageAccess && !hasVisibleImages && !profilePicVisibleGlobal) {
       return (
         <div className="profile-image-container">
           <div className="profile-thumbnail-placeholder">

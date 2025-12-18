@@ -1164,9 +1164,12 @@ const Profile = () => {
                 ? (avatarAccessInfo?.hasAccess ?? false)
                 : false;
               
+              // Check if profile picture is visible due to global setting (backend sets profilePicVisible: true)
+              const profilePicVisibleGlobal = user.profilePicVisible === true;
+              
               // Avatar should ALWAYS be image[0] (the profile picture)
-              // Only show it clearly if: own profile, admin, or has per-image access to image[0]
-              const viewerHasAvatarAccess = (isOwnProfile || isAdmin || (piiAccess.images && hasAvatarAccess));
+              // Show it clearly if: own profile, admin, has per-image access, OR global profile pic visibility is enabled
+              const viewerHasAvatarAccess = (isOwnProfile || isAdmin || (piiAccess.images && hasAvatarAccess) || profilePicVisibleGlobal);
               const avatarSrc = user.images?.[0]; // Always use image[0] as avatar
               const canOpenAvatar = viewerHasAvatarAccess && !!avatarSrc;
 
