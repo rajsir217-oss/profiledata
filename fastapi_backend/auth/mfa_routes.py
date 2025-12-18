@@ -294,8 +294,8 @@ async def send_mfa_code(
     Note: This endpoint doesn't require authentication (used during login)
     """
     try:
-        # Get user and verify MFA is enabled
-        user = await db.users.find_one({"username": request.username})
+        # Get user and verify MFA is enabled (case-insensitive lookup)
+        user = await db.users.find_one({"username": {"$regex": f"^{request.username}$", "$options": "i"}})
         
         if not user:
             # Don't reveal if user exists
@@ -419,8 +419,8 @@ async def verify_mfa_code(
     try:
         otp_manager = OTPManager(db)
         
-        # Check if it's a backup code first
-        user = await db.users.find_one({"username": request.username})
+        # Check if it's a backup code first (case-insensitive lookup)
+        user = await db.users.find_one({"username": {"$regex": f"^{request.username}$", "$options": "i"}})
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

@@ -41,10 +41,14 @@ async def get_all_users(
     status: Optional[str] = None,
     role: Optional[str] = None,
     search: Optional[str] = None,
+    email_search: Optional[str] = Query(None, description="Search by email (searches both encrypted and plaintext)"),
     db = Depends(get_database)
 ):
     """
     Get all users with pagination and filtering (Admin only)
+    
+    - search: General search across username, firstName, lastName, contactEmail
+    - email_search: Dedicated email search that tries both encrypted and plaintext formats
     """
     try:
         # Build query
@@ -57,7 +61,27 @@ async def get_all_users(
         if role:
             query["role_name"] = role
         
-        if search:
+        # Handle dedicated email search - try both encrypted and plaintext
+        if email_search:
+            from crypto_utils import get_encryptor
+            encryptor = get_encryptor()
+            
+            email_conditions = [
+                # Search plaintext (in case some emails aren't encrypted)
+                {"contactEmail": {"$regex": email_search, "$options": "i"}},
+            ]
+            
+            # Also try encrypting the search term and searching for that
+            try:
+                encrypted_email = encryptor.encrypt(email_search.lower())
+                # For encrypted search, we need exact match since regex won't work on encrypted data
+                email_conditions.append({"contactEmail": encrypted_email})
+                logger.info(f"🔍 Email search: plaintext='{email_search}', encrypted prefix='{encrypted_email[:30]}...'")
+            except Exception as enc_err:
+                logger.warning(f"⚠️ Could not encrypt email search term: {enc_err}")
+            
+            query["$or"] = email_conditions
+        elif search:
             query["$or"] = [
                 {"username": {"$regex": search, "$options": "i"}},
                 {"contactEmail": {"$regex": search, "$options": "i"}},  # Primary email field
@@ -75,17 +99,27 @@ async def get_all_users(
         
         # Remove sensitive data and decrypt PII
         from crypto_utils import get_encryptor
+        encryptor = get_encryptor()
         
         for i, user in enumerate(users):
             user["_id"] = str(user["_id"])
             
             # 🔓 DECRYPT PII fields
             try:
-                encryptor = get_encryptor()
-                users[i] = encryptor.decrypt_user_pii(user)
-                logger.debug(f"✅ Decrypted PII for user: {user.get('username', 'unknown')}")
+                raw_email = user.get('contactEmail', '')
+                is_encrypted = raw_email.startswith('gAAAAA') if raw_email else False
+                
+                decrypted_user = encryptor.decrypt_user_pii(user)
+                dec_email = decrypted_user.get('contactEmail', '')
+                
+                # Debug: verify decryption worked
+                if i == 0:
+                    logger.info(f"🔍 User {user.get('username')}: raw_encrypted={is_encrypted}, decrypted_email={dec_email[:30] if dec_email else 'None'}...")
+                
+                users[i] = decrypted_user
             except Exception as decrypt_err:
                 logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
+                users[i] = user  # Keep original if decryption fails
             
             if "security" in users[i]:
                 users[i]["security"].pop("password_hash", None)

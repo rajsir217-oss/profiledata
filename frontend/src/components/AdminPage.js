@@ -31,6 +31,7 @@ const AdminPage = () => {
   const [successMsg, setSuccessMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [emailSearch, setEmailSearch] = useState(''); // Dedicated email search
   const [genderFilter, setGenderFilter] = useState(''); // Gender filter
   const [statusFilter, setStatusFilter] = useState('pending_admin_approval'); // Default to Pending Admin Approval
   const [sortField, setSortField] = useState('username');
@@ -82,21 +83,22 @@ const AdminPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const loadAllUsers = useCallback(async () => {
+  const loadAllUsers = useCallback(async (emailSearchParam = '') => {
     try {
       setLoading(true);
       setError('');
 
-      // Fetch all users
-      const response = await adminApi.get('/api/admin/users?limit=1000');
+      // Build query params
+      const params = new URLSearchParams({ limit: '1000' });
+      if (emailSearchParam) {
+        params.append('email_search', emailSearchParam);
+      }
+
+      // Fetch users (with optional email search)
+      const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       setUsers(response.data.users || []);
       
       console.log(`✅ Loaded ${response.data.users?.length || 0} users`);
-      // Debug: Check if first user has sex field
-      if (response.data.users?.[0]) {
-        console.log('🔍 First user data:', response.data.users[0]);
-        console.log('🔍 Sex field:', response.data.users[0].sex);
-      }
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Failed to load users. ' + (err.response?.data?.detail || err.message));
@@ -109,6 +111,15 @@ const AdminPage = () => {
       setLoading(false);
     }
   }, [navigate]);
+
+  // Handle email search
+  const handleEmailSearch = () => {
+    if (emailSearch.trim()) {
+      loadAllUsers(emailSearch.trim());
+    } else {
+      loadAllUsers(); // Load all if empty
+    }
+  };
 
   const handleEditStatus = (user) => {
     setSelectedUserForStatus(user);
@@ -220,13 +231,16 @@ const AdminPage = () => {
     let filtered = users.map(calculateComputedFields).filter(user => {
       const searchLower = searchTerm.toLowerCase();
       
-      // Apply search filter
-      const matchesSearch = (
-        user.username?.toLowerCase().includes(searchLower) ||
-        user.firstName?.toLowerCase().includes(searchLower) ||
-        user.lastName?.toLowerCase().includes(searchLower) ||
-        user.contactEmail?.toLowerCase().includes(searchLower)
-      );
+      // Apply search filter - username and name only (email search is server-side)
+      if (!searchTerm) {
+        var matchesSearch = true;
+      } else {
+        matchesSearch = (
+          user.username?.toLowerCase().includes(searchLower) ||
+          user.firstName?.toLowerCase().includes(searchLower) ||
+          user.lastName?.toLowerCase().includes(searchLower)
+        );
+      }
       
       // Apply status filter - use accountStatus (unified field)
       const userStatus = user.accountStatus || 'active';
@@ -330,21 +344,49 @@ const AdminPage = () => {
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
         {/* Search and Filter Bar */}
-        <div className="search-filter-bar mb-4 d-flex gap-3">
+        <div className="search-filter-bar mb-4 d-flex gap-3 flex-wrap">
           <input
             type="text"
             className="form-control"
-            placeholder="🔍 Search by username, name, or email..."
+            placeholder="🔍 Search by username or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: 2 }}
+            style={{ flex: 2, minWidth: '200px' }}
           />
+          
+          {/* Dedicated Email Search - searches encrypted DB directly */}
+          <div className="input-group" style={{ flex: 2, minWidth: '250px' }}>
+            <input
+              type="email"
+              className="form-control"
+              placeholder="📧 Search by email (exact match)..."
+              value={emailSearch}
+              onChange={(e) => setEmailSearch(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
+            />
+            <button
+              className="btn btn-outline-primary"
+              onClick={handleEmailSearch}
+              title="Search by email in database"
+            >
+              🔍
+            </button>
+            {emailSearch && (
+              <button
+                className="btn btn-outline-secondary"
+                onClick={() => { setEmailSearch(''); loadAllUsers(); }}
+                title="Clear email search"
+              >
+                ✕
+              </button>
+            )}
+          </div>
           
           <select
             className="form-select"
             value={genderFilter}
             onChange={(e) => setGenderFilter(e.target.value)}
-            style={{ flex: 1, maxWidth: '200px' }}
+            style={{ flex: 1, maxWidth: '150px' }}
           >
             <option value="">All Gender</option>
             <option value="Male">Male</option>
@@ -355,7 +397,7 @@ const AdminPage = () => {
             className="form-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ flex: 1, maxWidth: '250px' }}
+            style={{ flex: 1, maxWidth: '200px' }}
           >
             <option value="">All Status</option>
             <option value="pending_email_verification">Pending Email Verification</option>
@@ -370,7 +412,7 @@ const AdminPage = () => {
           
           <button
             className="btn btn-primary"
-            onClick={loadAllUsers}
+            onClick={() => loadAllUsers()}
             title="Refresh List"
           >
             🔄 Refresh
