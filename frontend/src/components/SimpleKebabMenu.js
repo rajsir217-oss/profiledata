@@ -131,9 +131,9 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onBlock, 'Block');
+              handleItemClick(onBlock, 'Hide');
             }}>
-              {ACTION_ICONS.BLOCK} Block
+              {ACTION_ICONS.BLOCK} Hide
             </button>
           )}
           

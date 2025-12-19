@@ -304,7 +304,7 @@ const KebabMenu = ({
                 onClick={handleMenuItemClick(onBlock)}
               >
                 <span className="menu-icon">🚫</span>
-                <span className="menu-label">Block</span>
+                <span className="menu-label">Hide</span>
               </button>
             )}
             

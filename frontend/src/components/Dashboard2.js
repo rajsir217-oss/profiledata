@@ -644,7 +644,7 @@ const Dashboard2 = () => {
       await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       // Reload dashboard to get fresh data
       await loadDashboardData(currentUser);
-      toast.success(`Added to not interested`);
+      toast.success(`Hidden from search`);
     } catch (err) {
       logger.error(`Failed to add to exclusions: ${err.message}`);
       toast.error(`Failed to add to exclusions`);
@@ -1286,7 +1286,7 @@ const Dashboard2 = () => {
             onClick={() => setMyActiveCategory('myExclusions')}
           >
             <span className="pill-icon">{SECTION_ICONS.NOT_INTERESTED}</span>
-            <span className="pill-label">Not Interested</span>
+            <span className="pill-label">Hidden from Search</span>
             <span className="pill-count">{dashboardData.myExclusions.length}</span>
           </button>
         </div>
@@ -1297,7 +1297,7 @@ const Dashboard2 = () => {
           {myActiveCategory === 'myFavorites' && renderTabContent('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
           {myActiveCategory === 'myShortlists' && renderTabContent('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
           {myActiveCategory === 'myRequests' && renderTabContent('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
-          {myActiveCategory === 'myExclusions' && renderTabContent('Not Interested', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
+          {myActiveCategory === 'myExclusions' && renderTabContent('Hidden from Search', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
         </div>
           </>
         )}
