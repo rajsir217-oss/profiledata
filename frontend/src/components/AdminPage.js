@@ -343,50 +343,30 @@ const AdminPage = () => {
         {error && <div className="alert alert-danger">{error}</div>}
         {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
-        {/* Search and Filter Bar */}
-        <div className="search-filter-bar mb-4 d-flex gap-3 flex-wrap">
+        {/* Search and Filter Bar - Single Row */}
+        <div className="admin-filter-row">
           <input
             type="text"
-            className="form-control"
-            placeholder="🔍 Search by username or name..."
+            className="form-control admin-filter-input"
+            placeholder="🔍 Username or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ flex: 2, minWidth: '200px' }}
+            onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
           />
           
-          {/* Dedicated Email Search - searches encrypted DB directly */}
-          <div className="input-group" style={{ flex: 2, minWidth: '250px' }}>
-            <input
-              type="email"
-              className="form-control"
-              placeholder="📧 Search by email (exact match)..."
-              value={emailSearch}
-              onChange={(e) => setEmailSearch(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
-            />
-            <button
-              className="btn btn-outline-primary"
-              onClick={handleEmailSearch}
-              title="Search by email in database"
-            >
-              🔍
-            </button>
-            {emailSearch && (
-              <button
-                className="btn btn-outline-secondary"
-                onClick={() => { setEmailSearch(''); loadAllUsers(); }}
-                title="Clear email search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
+          <input
+            type="email"
+            className="form-control admin-filter-input"
+            placeholder="📧 Email (exact)..."
+            value={emailSearch}
+            onChange={(e) => setEmailSearch(e.target.value)}
+            onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
+          />
           
           <select
-            className="form-select"
+            className="form-select admin-filter-select"
             value={genderFilter}
             onChange={(e) => setGenderFilter(e.target.value)}
-            style={{ flex: 1, maxWidth: '150px' }}
           >
             <option value="">All Gender</option>
             <option value="Male">Male</option>
@@ -394,14 +374,13 @@ const AdminPage = () => {
           </select>
           
           <select
-            className="form-select"
+            className="form-select admin-filter-select"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            style={{ flex: 1, maxWidth: '200px' }}
           >
             <option value="">All Status</option>
-            <option value="pending_email_verification">Pending Email Verification</option>
-            <option value="pending_admin_approval">Pending Admin Approval</option>
+            <option value="pending_email_verification">Pending Email</option>
+            <option value="pending_admin_approval">Pending Approval</option>
             <option value="active">Active</option>
             <option value="paused">Paused</option>
             <option value="inactive">Inactive</option>
@@ -411,11 +390,11 @@ const AdminPage = () => {
           </select>
           
           <button
-            className="btn btn-primary"
-            onClick={() => loadAllUsers()}
-            title="Refresh List"
+            className="btn btn-primary admin-search-btn"
+            onClick={handleEmailSearch}
+            title="Search"
           >
-            🔄 Refresh
+            🔍 Search
           </button>
         </div>
       </div>
