@@ -228,6 +228,15 @@ async def log_requests(request: Request, call_next):
         
         # Calculate request duration
         duration = time.time() - start_time
+
+        server_timing_value = f"app;dur={duration * 1000:.2f}"
+        existing_server_timing = response.headers.get("Server-Timing")
+        if existing_server_timing:
+            response.headers["Server-Timing"] = f"{existing_server_timing}, {server_timing_value}"
+        else:
+            response.headers["Server-Timing"] = server_timing_value
+        response.headers["X-Process-Time"] = f"{duration:.3f}"
+
         # Log response
         status_emoji = "✅" if response.status_code < 400 else "❌"
         logger.info(f"{status_emoji} {request.method} {request.url.path} - Status: {response.status_code} - Duration: {duration:.3f}s")
