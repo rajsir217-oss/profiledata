@@ -595,7 +595,7 @@ const Dashboard = () => {
       await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       // Reload dashboard to get fresh data
       await loadDashboardData(currentUser);
-      toast.success(`Added to not interested`);
+      toast.success(`Hidden from search`);
     } catch (err) {
       logger.error(`Failed to add to exclusions: ${err.message}`);
       toast.error(`Failed to add to exclusions`);
@@ -1151,7 +1151,7 @@ const Dashboard = () => {
               {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
               {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
               {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
-              {renderSection('Not Interested', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
+              {renderSection('Hidden from Search', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
             </div>
           )}
         </div>
