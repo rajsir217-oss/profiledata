@@ -155,7 +155,9 @@ class AuthenticationService:
         
         # Get user from database (if db provided) - case-insensitive
         if db is not None:
-            user = await db.users.find_one(get_username_query(username))
+            user = await db.users.find_one({"username": username})
+            if user is None:
+                user = await db.users.find_one(get_username_query(username))
             if user is None:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

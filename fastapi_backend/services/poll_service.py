@@ -4,6 +4,7 @@ Business logic for the polling system
 """
 
 import logging
+import asyncio
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -21,12 +22,25 @@ logger = logging.getLogger(__name__)
 
 class PollService:
     """Service for managing polls and responses"""
+
+    _indexes_ready: bool = False
+    _indexes_lock: asyncio.Lock = asyncio.Lock()
+    _indexes_task: asyncio.Task | None = None
     
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.polls_collection = db.polls
         self.responses_collection = db.poll_responses
         self.users_collection = db.users
+
+    async def _create_indexes(self) -> None:
+        await self.polls_collection.create_index([("status", 1), ("created_at", -1)])
+        await self.polls_collection.create_index([("status", 1), ("start_date", 1)])
+        await self.polls_collection.create_index([("status", 1), ("end_date", 1)])
+        await self.polls_collection.create_index([("target_all_users", 1)])
+        await self.polls_collection.create_index([("target_usernames", 1)])
+        await self.responses_collection.create_index([("poll_id", 1), ("username", 1)], unique=True)
+        await self.responses_collection.create_index([("username", 1), ("poll_id", 1)])
     
     # ==================== POLL CRUD ====================
     
@@ -282,61 +296,111 @@ class PollService:
         """Get all active polls that a user can respond to"""
         try:
             now = datetime.utcnow()
-            
-            # Find active polls
-            query = {
-                "status": PollStatus.ACTIVE.value,
-                "$or": [
-                    {"start_date": {"$lte": now}},
-                    {"start_date": None}
-                ],
-                "$or": [
-                    {"end_date": {"$gte": now}},
-                    {"end_date": None}
-                ],
-                "$or": [
-                    {"target_all_users": True},
-                    {"target_usernames": username}
-                ]
+
+            if not PollService._indexes_ready:
+                async with PollService._indexes_lock:
+                    if not PollService._indexes_ready:
+                        if PollService._indexes_task is None:
+                            PollService._indexes_task = asyncio.create_task(self._create_indexes())
+
+                        async def _mark_ready(t: asyncio.Task) -> None:
+                            try:
+                                await t
+                                PollService._indexes_ready = True
+                            except Exception:
+                                PollService._indexes_task = None
+
+                        asyncio.create_task(_mark_ready(PollService._indexes_task))
+
+            projection = {
+                "title": 1,
+                "description": 1,
+                "poll_type": 1,
+                "options": 1,
+                "event_date": 1,
+                "event_time": 1,
+                "event_location": 1,
+                "event_details": 1,
+                "collect_contact_info": 1,
+                "allow_comments": 1,
+                "anonymous": 1,
+                "start_date": 1,
+                "end_date": 1,
+                "status": 1,
+                "created_at": 1,
+                "target_all_users": 1,
+                "target_usernames": 1,
             }
-            
-            # Simplified query to avoid $or conflicts
-            query = {
-                "status": PollStatus.ACTIVE.value,
-            }
-            
-            cursor = self.polls_collection.find(query).sort("created_at", -1)
-            polls = await cursor.to_list(length=100)
-            
-            result = []
+
+            cursor = self.polls_collection.find(
+                {"status": PollStatus.ACTIVE.value},
+                projection=projection,
+            ).sort("created_at", -1)
+            candidates = await cursor.to_list(length=250)
+
+            polls: List[Dict[str, Any]] = []
+            for p in candidates:
+                start_date = p.get("start_date")
+                if start_date not in (None, ""):
+                    if isinstance(start_date, datetime):
+                        if start_date > now:
+                            continue
+                    else:
+                        try:
+                            if start_date > now:
+                                continue
+                        except Exception:
+                            continue
+
+                end_date = p.get("end_date")
+                if end_date not in (None, ""):
+                    if isinstance(end_date, datetime):
+                        if end_date < now:
+                            continue
+                    else:
+                        try:
+                            if end_date < now:
+                                continue
+                        except Exception:
+                            continue
+
+                if p.get("target_all_users") is not True and "target_all_users" in p:
+                    tu = p.get("target_usernames")
+                    if tu is None:
+                        continue
+                    if isinstance(tu, list):
+                        if username not in tu:
+                            continue
+                    else:
+                        if tu != username:
+                            continue
+
+                polls.append(p)
+                if len(polls) >= 50:
+                    break
+
+            poll_ids = [str(p["_id"]) for p in polls]
+            responses_by_poll_id: Dict[str, Dict[str, Any]] = {}
+            if poll_ids:
+                user_responses = await self.responses_collection.find(
+                    {"username": username, "poll_id": {"$in": poll_ids}}
+                ).to_list(length=None)
+                for resp in user_responses:
+                    resp["_id"] = str(resp["_id"])
+                    responses_by_poll_id[resp.get("poll_id")] = resp
+
+            result: List[Dict[str, Any]] = []
             for poll in polls:
                 poll_id = str(poll["_id"])
                 poll["_id"] = poll_id
-                
-                # Check if user has already responded
-                existing_response = await self.responses_collection.find_one({
-                    "poll_id": poll_id,
-                    "username": username
-                })
-                
+
+                existing_response = responses_by_poll_id.get(poll_id)
                 poll["user_has_responded"] = existing_response is not None
                 if existing_response:
-                    existing_response["_id"] = str(existing_response["_id"])
                     poll["user_response"] = existing_response
-                
-                # Filter by targeting
-                if poll.get("target_all_users", True) or username in poll.get("target_usernames", []):
-                    # Filter by date
-                    start_date = poll.get("start_date")
-                    end_date = poll.get("end_date")
-                    
-                    if start_date and start_date > now:
-                        continue
-                    if end_date and end_date < now:
-                        continue
-                    
-                    result.append(poll)
-            
+
+                result.append(poll)
+
             return result
             
         except Exception as e:

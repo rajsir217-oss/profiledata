@@ -4,9 +4,10 @@ API endpoints for the polling system
 """
 
 import logging
+import time
 from datetime import datetime
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from motor.motor_asyncio import AsyncIOMotorDatabase
 
 from database import get_database
@@ -25,12 +26,19 @@ router = APIRouter(prefix="/api/polls", tags=["polls"])
 
 @router.get("/active")
 async def get_active_polls(
+    response: Response,
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get all active polls for the current user"""
     service = PollService(db)
+    t0 = time.perf_counter()
     polls = await service.get_active_polls_for_user(current_user["username"])
+    svc_s = time.perf_counter() - t0
+    svc_ms = svc_s * 1000.0
+
+    response.headers["Server-Timing"] = f"polls_svc;dur={svc_ms:.2f}"
+    response.headers["X-Polls-Service-Time"] = f"{svc_s:.3f}"
     return {
         "success": True,
         "polls": polls,
