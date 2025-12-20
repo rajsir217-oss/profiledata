@@ -194,7 +194,18 @@ function AppContent() {
         
         // Listen for foreground messages
         const unsubscribe = onMessageListener((notification) => {
-          // Show toast notification when message received in foreground
+          // Show OS notification when message received in foreground
+          if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification(notification.title, {
+              body: notification.body,
+              icon: '/logo192.png',
+              badge: '/logo192.png',
+              tag: notification.data?.trigger || 'push-notification',
+              requireInteraction: false
+            });
+          }
+          
+          // Also show in-app toast as backup
           const message = `${notification.title}\n${notification.body}`;
           toastService.info(message, 5000);
         });
