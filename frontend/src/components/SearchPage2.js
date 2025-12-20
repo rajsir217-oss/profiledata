@@ -1924,12 +1924,11 @@ const SearchPage2 = () => {
 
   return (
     <div className="search-page">
-      <PageHeader
-        icon="🔍"
-        title="Search Profiles"
-        subtitle="Find your perfect match with detailed filters + optional L3V3L compatibility scoring"
-        variant="gradient"
-      />
+      {/* Compact title bar instead of large banner */}
+      <div className="compact-page-title">
+        <span className="compact-title-icon">🔍</span>
+        <span className="compact-title-text">Search Profiles</span>
+      </div>
 
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>
@@ -2042,7 +2041,7 @@ const SearchPage2 = () => {
                   {/* Search Tabs */}
                   <UniversalTabContainer
                     key={`search-tabs-${savedSearches.length}`}
-                    variant="underlined"
+                    variant="pills"
                     defaultTab={savedSearches.length > 0 ? "saved" : "search"}
                     tabs={[
                 {
@@ -2092,7 +2091,7 @@ const SearchPage2 = () => {
                         <div className="saved-searches-grid">
                           {savedSearches.map(search => (
                             <div key={search.id} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${selectedSearch?.id === search.id ? 'is-active' : ''}`}>
-                              {/* 1. Name with star + active checkmark */}
+                              {/* Row 1: Name + action buttons */}
                               <div className="saved-search-header">
                                 <h5 className="saved-search-name">
                                   {search.isDefault && <span className="default-badge" title="Default Search">⭐ </span>}
@@ -2101,79 +2100,75 @@ const SearchPage2 = () => {
                                     <span className="active-badge" title="Currently loaded search">✓</span>
                                   )}
                                 </h5>
+                                <div className="saved-search-actions">
+                                  <button
+                                    type="button"
+                                    className="btn-schedule-saved"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleEditSchedule(search);
+                                    }}
+                                    title="Edit notification schedule"
+                                  >
+                                    ⏰
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn-delete-saved"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleDeleteSavedSearch(search.id);
+                                    }}
+                                    title="Delete this saved search"
+                                  >
+                                    🗑️
+                                  </button>
+                                </div>
                               </div>
                               
-                              {/* 2. Description */}
+                              {/* Row 2: Description */}
                               <div className="saved-search-description">
                                 <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
                               </div>
 
-                              {/* 3. Schedule button */}
-                              <button
-                                type="button"
-                                className="btn-schedule-saved"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleEditSchedule(search);
-                                }}
-                                title="Edit notification schedule"
-                              >
-                                ⏰
-                              </button>
-
-                              {/* 4. Delete button */}
-                              <button
-                                type="button"
-                                className="btn-delete-saved"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleDeleteSavedSearch(search.id);
-                                }}
-                                title="Delete this saved search"
-                              >
-                                🗑️
-                              </button>
-
-                              {/* 5. Default indicator/button */}
-                              {!search.isDefault && (
+                              {/* Row 3: Default + Date + Load in a row */}
+                              <div className="saved-search-footer">
+                                {!search.isDefault && (
+                                  <button
+                                    type="button"
+                                    className="btn-set-default"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      handleSetDefaultSearch(search.id, search.name);
+                                    }}
+                                    title="Set as default search"
+                                  >
+                                    ⭐ Default
+                                  </button>
+                                )}
+                                {search.isDefault && (
+                                  <span className="default-indicator" title="This search runs automatically on page load">
+                                    ⭐ Default
+                                  </span>
+                                )}
+                                <span className="saved-date">
+                                  {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
+                                </span>
                                 <button
                                   type="button"
-                                  className="btn-set-default"
+                                  className="btn-load-saved"
                                   onClick={(e) => {
                                     e.preventDefault();
                                     e.stopPropagation();
-                                    handleSetDefaultSearch(search.id, search.name);
+                                    handleLoadSavedSearch(search);
                                   }}
-                                  title="Set as default search"
                                 >
-                                  ⭐ Default
+                                  📂 Load Search
                                 </button>
-                              )}
-                              {search.isDefault && (
-                                <span className="default-indicator" title="This search runs automatically on page load">
-                                  ⭐ Default
-                                </span>
-                              )}
-
-                              {/* 6. Date */}
-                              <span className="saved-date">
-                                {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
-                              </span>
-
-                              {/* 7. Load Search button */}
-                              <button
-                                type="button"
-                                className="btn-load-saved"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleLoadSavedSearch(search);
-                                }}
-                              >
-                                📂 Load Search
-                              </button>
+                              </div>
                             </div>
                           ))}
                         </div>

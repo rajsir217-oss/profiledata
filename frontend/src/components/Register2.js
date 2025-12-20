@@ -3298,6 +3298,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                   }
                 }))}
               >
+                <option value="-4">4 years younger</option>
+                <option value="-3">3 years younger</option>
+                <option value="-2">2 years younger</option>
+                <option value="-1">1 year younger</option>
                 <option value="0">Same age</option>
                 <option value="1">1 year older</option>
                 <option value="2">2 years older</option>

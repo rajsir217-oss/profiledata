@@ -887,24 +887,19 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <PageHeader
-        icon="💑"
-        title="My Dashboard"
-        subtitle={`Welcome back, ${userProfile ? getDisplayName(userProfile) : currentUser}!`}
-        variant="gradient"
-        actions={
-          <>
-            {/* Search Button Only */}
-            <button 
-              className="btn-quick-action btn-search btn-search-l3v3l"
-              onClick={() => navigate('/search')}
-              title="Search with L3V3L Scoring"
-            >
-              🔍
-            </button>
-          </>
-        }
-      />
+      {/* Compact title bar instead of large banner */}
+      <div className="compact-page-title">
+        <span className="compact-title-icon">💑</span>
+        <span className="compact-title-text">My Dashboard</span>
+        <span className="compact-title-subtitle">Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</span>
+        <button 
+          className="compact-title-action"
+          onClick={() => navigate('/search')}
+          title="Search with L3V3L Scoring"
+        >
+          🔍
+        </button>
+      </div>
 
       {/* MFA Warning Banner */}
       {mfaWarning && (
