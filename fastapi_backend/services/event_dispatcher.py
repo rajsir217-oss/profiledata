@@ -359,6 +359,7 @@ class EventDispatcher:
                         "firstName": actor.get("firstName", actor_username),
                         "lastName": actor.get("lastName", ""),
                         "username": actor_username,
+                        "profileId": actor.get("profileId", ""),
                         "location": actor.get("location", ""),
                         "occupation": actor.get("occupation", ""),
                         "age": calculate_age(actor.get("birthMonth"), actor.get("birthYear"))
@@ -366,7 +367,8 @@ class EventDispatcher:
                     "recipient": {  # Nested format for dot notation
                         "firstName": target.get("firstName", target_username),
                         "lastName": target.get("lastName", ""),
-                        "username": target_username
+                        "username": target_username,
+                        "profileId": target.get("profileId", "")
                     },
                     # Flattened format for underscore notation (auto-handled by render_template now)
                 }
@@ -439,6 +441,7 @@ class EventDispatcher:
                             "firstName": other_user_data.get("firstName", other_user_data.get("username")),
                             "lastName": other_user_data.get("lastName", ""),
                             "username": other_user_data.get("username"),
+                            "profileId": other_user_data.get("profileId", ""),
                             "location": other_user_data.get("location", ""),
                             "occupation": other_user_data.get("occupation", "")
                         }
@@ -491,6 +494,7 @@ class EventDispatcher:
                         "firstName": actor.get("firstName", actor_username),
                         "lastName": actor.get("lastName", ""),
                         "username": actor_username,
+                        "profileId": actor.get("profileId", ""),
                         "location": actor.get("location", ""),
                         "occupation": actor.get("occupation", ""),
                         "education": actor.get("education", ""),
@@ -499,7 +503,8 @@ class EventDispatcher:
                     "recipient": {
                         "firstName": target.get("firstName", target_username),
                         "lastName": target.get("lastName", ""),
-                        "username": target_username
+                        "username": target_username,
+                        "profileId": target.get("profileId", "")
                     }
                 }
             )
@@ -559,7 +564,8 @@ class EventDispatcher:
                 template_data={
                     "match": {
                         "firstName": viewer.get("firstName", actor) if viewer else actor,
-                        "username": actor
+                        "username": actor,
+                        "profileId": viewer.get("profileId", "") if viewer else ""
                     }
                 }
             )
@@ -585,7 +591,8 @@ class EventDispatcher:
                 template_data={
                     "match": {
                         "firstName": sender.get("firstName", actor) if sender else actor,
-                        "username": actor
+                        "username": actor,
+                        "profileId": sender.get("profileId", "") if sender else ""
                     },
                     "message_preview": metadata.get("preview", "")
                 },
@@ -617,7 +624,8 @@ class EventDispatcher:
                 channels=["push"],  # Low priority - push only
                 template_data={
                     "match": {
-                        "firstName": reader_name
+                        "firstName": reader_name,
+                        "profileId": reader.get("profileId", "") if reader else ""
                     }
                 },
                 priority="low"
@@ -670,7 +678,8 @@ class EventDispatcher:
                     # Nested format for dot notation: {match.firstName}
                     "match": {
                         "firstName": requester_firstName,
-                        "username": actor
+                        "username": actor,
+                        "profileId": requester.get("profileId", "") if requester else ""
                     },
                     # Flattened format for underscore notation: {match_firstName}
                     "match_firstName": requester_firstName,
@@ -707,6 +716,7 @@ class EventDispatcher:
                 "match": {
                     "username": actor,
                     "firstName": granter_firstName,
+                    "profileId": granter_profile.get("profileId", "") if granter_profile else "",
                     "age": granter_profile.get("age", "N/A") if granter_profile else "N/A",
                     "location": granter_profile.get("location", "") if granter_profile else ""
                 },
@@ -745,7 +755,8 @@ class EventDispatcher:
                     "recipient_firstName": recipient_firstName,
                     "match_firstName": rejecter_firstName,
                     "match": {
-                        "firstName": rejecter_firstName
+                        "firstName": rejecter_firstName,
+                        "profileId": ""  # Rejecter profileId not exposed for privacy
                     }
                 }
             )
@@ -782,6 +793,7 @@ class EventDispatcher:
                 channels=["email"],
                 template_data={
                     "username": target,
+                    "profileId": metadata.get("profileId", ""),
                     "firstname": firstname,
                     "lastname": lastname,
                     "full_name": full_name,
@@ -814,6 +826,7 @@ class EventDispatcher:
                 channels=["email"],
                 template_data={
                     "username": target,
+                    "profileId": metadata.get("profileId", ""),
                     "firstname": firstname,
                     "lastname": lastname,
                     "full_name": full_name,
@@ -846,6 +859,7 @@ class EventDispatcher:
                 channels=["email"],
                 template_data={
                     "username": target,
+                    "profileId": metadata.get("profileId", ""),
                     "firstname": firstname,
                     "lastname": lastname,
                     "full_name": full_name,
@@ -878,6 +892,7 @@ class EventDispatcher:
                 channels=["email"],
                 template_data={
                     "username": target,
+                    "profileId": metadata.get("profileId", ""),
                     "firstname": firstname,
                     "lastname": lastname,
                     "full_name": full_name,
@@ -908,6 +923,7 @@ class EventDispatcher:
                 channels=["email", "sms"],
                 template_data={
                     "username": target,
+                    "profileId": metadata.get("profileId", ""),
                     "firstname": firstname,
                     "lastname": lastname,
                     "recipient_firstName": firstname,  # For template compatibility
@@ -932,6 +948,8 @@ class EventDispatcher:
         Get user's first and last name with consistent fallback logic.
         Checks metadata first, then database, then falls back to username.
         Returns (firstname, lastname, full_name)
+        
+        Note: Also populates metadata with profileId if fetched from database
         """
         metadata = metadata or {}
         
@@ -956,6 +974,9 @@ class EventDispatcher:
                     user.get("last_name") or 
                     ""
                 )
+                # Also get profileId and store in metadata for template use
+                if "profileId" not in metadata:
+                    metadata["profileId"] = user.get("profileId", "")
             else:
                 firstname = username  # Fallback to username
         
