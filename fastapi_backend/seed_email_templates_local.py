@@ -62,6 +62,7 @@ def create_template(trigger, category, subject, color, priority, description, ct
             
             <div class="card">
                 <p>DESCRIPTION</p>
+                <p style="color: #666; font-size: 12px; margin-top: 10px;">Profile ID: <strong>{match.profileId}</strong></p>
             </div>
             
             <center>

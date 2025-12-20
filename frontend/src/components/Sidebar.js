@@ -165,7 +165,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       },
       { 
         icon: '🔒', 
-        label: 'Privacy & Data', 
+        label: 'Data Requests', 
         subLabel: 'Manage PII access',
         action: () => navigate('/pii-management'),
         disabled: !isActive

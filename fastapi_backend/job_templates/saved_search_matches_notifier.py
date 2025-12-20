@@ -273,6 +273,10 @@ MATCH_CARD_TEMPLATE = """
     {l3v3l_badge}
     <div style="margin: 12px 0;">
         <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+            <span style="margin-right: 8px;">🆔</span>
+            <span>Profile ID: <strong>{profile_id}</strong></span>
+        </div>
+        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
             <span style="margin-right: 8px;">🎂</span>
             <span>{age} years old</span>
         </div>
@@ -771,8 +775,12 @@ async def send_matches_email(
             if decrypted_match.get('lastName'):
                 name += f" {decrypted_match['lastName'][0]}."
             
+            # Get profileId
+            profile_id = decrypted_match.get('profileId', '')
+            
             match_html = MATCH_CARD_TEMPLATE.format(
                 name=name,
+                profile_id=profile_id or 'N/A',
                 age=age or '?',
                 height=height,
                 location=location,
