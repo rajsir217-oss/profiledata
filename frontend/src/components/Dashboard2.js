@@ -8,7 +8,6 @@ import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import AccessRequestManager from './AccessRequestManager';
 import logger from '../utils/logger';
-import PageHeader from './PageHeader';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
 import PhotoRequestsModal from './PhotoRequestsModal';
@@ -984,20 +983,6 @@ const Dashboard2 = () => {
 
   return (
     <div className="dashboard-container">
-      {/* Compact title bar instead of large banner */}
-      <div className="compact-page-title">
-        <span className="compact-title-icon">💑</span>
-        <span className="compact-title-text">My Dashboard</span>
-        <span className="compact-title-subtitle">Welcome back, {userProfile ? getDisplayName(userProfile) : currentUser}!</span>
-        <button 
-          className="compact-title-action"
-          onClick={() => navigate('/search')}
-          title="Search with L3V3L Scoring"
-        >
-          🔍
-        </button>
-      </div>
-
       {/* MFA Warning Banner */}
       {mfaWarning && (
         <div className="mfa-warning-banner" style={{

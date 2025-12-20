@@ -6,7 +6,6 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
-import PageHeader from './PageHeader';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import UniversalTabContainer from './UniversalTabContainer';
 import SearchFilters from './SearchFilters';
@@ -1924,11 +1923,6 @@ const SearchPage2 = () => {
 
   return (
     <div className="search-page">
-      {/* Compact title bar instead of large banner */}
-      <div className="compact-page-title">
-        <span className="compact-title-icon">🔍</span>
-        <span className="compact-title-text">Search Profiles</span>
-      </div>
 
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>

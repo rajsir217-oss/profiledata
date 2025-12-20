@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendApiUrl } from '../utils/urlHelper';
-import PageHeader from './PageHeader';
 import './ActivityLogs.css';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
@@ -305,13 +304,6 @@ const ActivityLogs = () => {
   return (
     <div className="activity-logs">
       {/* Toast notifications handled by ToastContainer in App.js */}
-      
-      <PageHeader
-        icon="📊"
-        title="Activity Logs"
-        subtitle="Monitor user activities and system events"
-        variant="flat"
-      />
       
       {/* Stats Cards */}
       {stats && (

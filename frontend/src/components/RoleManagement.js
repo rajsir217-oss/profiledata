@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { hasPermission, getRoleDisplayName, getRoleBadgeColor, getInheritedPermissions } from '../utils/permissions';
 import api from '../api';
-import PageHeader from './PageHeader';
 import UniversalTabContainer from './UniversalTabContainer';
 import './RoleManagement.css';
 
@@ -347,13 +346,6 @@ const RoleManagement = () => {
           <span className="notification-message">{notification.message}</span>
         </div>
       )}
-
-      <PageHeader
-        icon="🎭"
-        title="Role Management"
-        subtitle="View and understand role permissions, limits, and hierarchy"
-        variant="flat"
-      />
 
       <div className="role-selector">
         <label>Select Role:</label>

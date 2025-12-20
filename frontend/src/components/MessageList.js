@@ -1,10 +1,12 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
 import { getDisplayName } from '../utils/userDisplay';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
+  const navigate = useNavigate();
   const [imageErrors, setImageErrors] = React.useState({});
 
   const handleImageError = (username) => {
@@ -29,6 +31,11 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
   const truncateMessage = (message, maxLength = 40) => {
     if (!message) return 'No messages yet';
     return message.length > maxLength ? message.substring(0, maxLength) + '...' : message;
+  };
+
+  const handleViewProfile = (e, username) => {
+    e.stopPropagation();
+    navigate(`/profile/${username}`);
   };
 
   return (
@@ -101,6 +108,15 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                   </p>
                 </div>
               </div>
+              
+              {/* View Profile Button */}
+              <button 
+                className="view-profile-btn"
+                onClick={(e) => handleViewProfile(e, conv.username)}
+                title="View Profile"
+              >
+                👁️
+              </button>
             </div>
           ))
         )}

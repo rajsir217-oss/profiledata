@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import PageHeader from './PageHeader';
 import SystemStatus from './SystemStatus';
 import UniversalTabContainer from './UniversalTabContainer';
 import PauseSettings from './PauseSettings';
@@ -772,12 +771,6 @@ const UnifiedPreferences = () => {
 
   return (
     <div className="unified-preferences-container">
-      <PageHeader
-        icon="⚙️"
-        title="Preferences"
-        subtitle="Manage your account settings and notification preferences"
-        variant="gradient"
-      />
 
       <UniversalTabContainer
         variant="underlined"

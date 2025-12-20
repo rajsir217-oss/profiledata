@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
 import { getBackendApiUrl } from '../utils/urlHelper';
-import PageHeader from './PageHeader';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
@@ -148,7 +147,6 @@ const DynamicScheduler = ({ currentUser }) => {
   if (!isAdmin) {
     return (
       <div className="dynamic-scheduler">
-        <PageHeader title="Dynamic Scheduler" />
         <div className="access-denied">
           <h2>⛔ Access Denied</h2>
           <p>You need administrator privileges to access the Dynamic Scheduler.</p>
@@ -465,29 +463,21 @@ const DynamicScheduler = ({ currentUser }) => {
 
   return (
     <div className="dynamic-scheduler">
-      <PageHeader
-        icon="🗓️"
-        title="Dynamic Scheduler"
-        subtitle="Manage scheduled jobs and automation tasks"
-        variant="flat"
-        actions={
-          <div className="dynamic-scheduler-header-actions">
-            <button
-              type="button"
-              className="dynamic-scheduler-notification-link"
-              onClick={() => navigate('/notification-management')}
-            >
-              🔔 Notification Management
-            </button>
-            <button 
-              className="btn btn-primary"
-              onClick={() => setShowCreateModal(true)}
-            >
-              ➕ Create New Job
-            </button>
-          </div>
-        }
-      />
+      <div className="dynamic-scheduler-header-actions">
+        <button
+          type="button"
+          className="dynamic-scheduler-notification-link"
+          onClick={() => navigate('/notification-management')}
+        >
+          🔔 Notification Management
+        </button>
+        <button 
+          className="btn btn-primary"
+          onClick={() => setShowCreateModal(true)}
+        >
+          ➕ Create New Job
+        </button>
+      </div>
 
       {/* Status Cards */}
       {status && status.jobs && status.scheduler && status.executions && (

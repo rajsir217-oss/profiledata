@@ -8,7 +8,6 @@ import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import AccessRequestManager from './AccessRequestManager';
 import logger from '../utils/logger';
-import PageHeader from './PageHeader';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
 import PhotoRequestsModal from './PhotoRequestsModal';
