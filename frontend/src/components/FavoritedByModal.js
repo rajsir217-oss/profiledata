@@ -107,8 +107,8 @@ const FavoritedByModal = ({ isOpen, onClose, username }) => {
               {favorites.map((user) => (
                 <div key={user.username} className="view-item">
                   <div className="view-avatar">
-                    {user.profileImage ? (
-                      <img src={getAuthenticatedImageUrl(user.profileImage)} alt={user.username} />
+                    {(user.profileImage || (user.images && user.images[0])) ? (
+                      <img src={getAuthenticatedImageUrl(user.profileImage || user.images[0])} alt={user.username} />
                     ) : (
                       <div className="avatar-placeholder">
                         {user.firstName?.[0]}{user.lastName?.[0]}
