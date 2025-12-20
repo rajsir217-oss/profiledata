@@ -5,7 +5,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--modal-overlay, rgba(0, 0, 0, 0.5));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -23,7 +23,7 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 10px 40px var(--shadow-heavy, rgba(0, 0, 0, 0.3));
   animation: slideUp 0.3s ease;
 }
 
@@ -83,13 +83,13 @@
   height: 16px;
   border-radius: 50%;
   border: 3px solid rgba(255, 255, 255, 0.8);
-  background: #10b981;
-  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.3);
+  background: var(--success-color, #10b981);
+  box-shadow: 0 0 0 2px var(--success-shadow, rgba(16, 185, 129, 0.3));
   animation: pulse 2s ease-in-out infinite;
 }
 
 .modal-avatar-container .online-status-indicator.offline {
-  background: #9ca3af;
+  background: var(--text-muted, #9ca3af);
   box-shadow: none;
   animation: none;
 }
