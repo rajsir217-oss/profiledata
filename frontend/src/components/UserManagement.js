@@ -479,11 +479,6 @@ const UserManagement = () => {
 
   return (
     <div className="user-management-container">
-      <div className="user-management-header">
-        <h1>👥 User Management</h1>
-        <p>Manage user roles, permissions, and account status</p>
-      </div>
-
       {/* Filters */}
       <div className="user-management-filters">
         <input

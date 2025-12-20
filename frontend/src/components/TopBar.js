@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
@@ -13,6 +13,7 @@ import logger from '../utils/logger';
 import './TopBar.css';
 
 const TopBar = ({ onSidebarToggle, isOpen }) => {
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -26,6 +27,50 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [onlineCount, setOnlineCount] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const navigate = useNavigate();
+
+  // Get page title based on current route
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === '/dashboard') return { icon: '💑', title: 'My Dashboard', subtitle: 'View your matches and activity' };
+    if (path === '/search') return { icon: '🔍', title: 'Search Profiles', subtitle: 'Find your perfect match' };
+    if (path === '/messages') return { icon: '💬', title: 'My Messages', subtitle: 'Communicate with your connections' };
+    if (path === '/favorites') return { icon: '⭐', title: 'Favorites', subtitle: 'Profiles you\'ve marked as favorites' };
+    if (path === '/shortlist') return { icon: '📋', title: 'Shortlist', subtitle: 'Your curated list of potential matches' };
+    if (path === '/exclusions') return { icon: '🚫', title: 'Exclusions', subtitle: 'Profiles you\'ve chosen to hide' };
+    if (path === '/l3v3l-matches') return { icon: '🎯', title: 'L3V3L Matches', subtitle: 'AI-powered compatibility matches' };
+    if (path === '/pii-management') return { icon: '🔒', title: 'Privacy & Data Management', subtitle: 'Manage who can access your private information' };
+    if (path === '/requests') return { icon: '📬', title: 'Contact Requests', subtitle: 'Manage incoming contact requests' };
+    if (path === '/preferences') return { icon: '🔔', title: 'Notification Preferences', subtitle: 'Customize your notification settings' };
+    if (path === '/user-management') return { icon: '👥', title: 'User Management', subtitle: 'Manage user roles, permissions, and account status' };
+    if (path === '/role-management') return { icon: '🎭', title: 'Role Management', subtitle: 'Configure user roles and permissions' };
+    if (path.startsWith('/profile/')) return { icon: '👤', title: 'Profile', subtitle: 'View profile details' };
+    if (path === '/settings') return { icon: '⚙️', title: 'Settings', subtitle: 'Manage your account settings' };
+    if (path === '/admin') return { icon: '🔧', title: 'Admin', subtitle: 'System administration and configuration' };
+    if (path === '/invite-friends') return { icon: '👥', title: 'Invite Friends', subtitle: 'Share the platform with friends and family' };
+    if (path === '/invitations') return { icon: '✉️', title: 'Invitations', subtitle: 'Manage invitation codes and referrals' };
+    if (path === '/dynamic-scheduler') return { icon: '🗓️', title: 'Dynamic Scheduler', subtitle: 'Manage scheduled jobs and automation tasks' };
+    if (path === '/notification-management') return { icon: '🔔', title: 'Notification Management', subtitle: 'Manage notification queue and templates' };
+    if (path === '/activity-logs') return { icon: '📊', title: 'Activity Logs', subtitle: 'Monitor user activities and system events' };
+    if (path === '/email-analytics') return { icon: '📧', title: 'Email Analytics', subtitle: 'Track email opens, clicks, and engagement' };
+    if (path === '/pause-analytics') return { icon: '⏸️', title: 'Pause Analytics', subtitle: 'Monitor pause feature usage and patterns' };
+    if (path === '/announcement-management') return { icon: '📢', title: 'Announcement Management', subtitle: 'Create and manage site-wide announcements' };
+    if (path === '/email-templates') return { icon: '✉️', title: 'Email Templates', subtitle: 'Preview and manage email templates' };
+    if (path === '/notification-tester') return { icon: '🧪', title: 'Notification Tester', subtitle: 'Test notification delivery' };
+    if (path === '/admin/notification-config') return { icon: '⚙️', title: 'Notification Config', subtitle: 'Configure notification settings' };
+    if (path === '/admin/notifications') return { icon: '📬', title: 'Saved Search Notifications', subtitle: 'Manage saved search notification schedules' };
+    if (path === '/admin/contact') return { icon: '📩', title: 'Contact Management', subtitle: 'Manage contact form submissions' };
+    if (path === '/test-dashboard') return { icon: '🧪', title: 'Test Dashboard', subtitle: 'Testing and development tools' };
+    if (path === '/poll-management') return { icon: '📊', title: 'Poll Management', subtitle: 'Create and manage polls' };
+    if (path === '/testimonials') return { icon: '💬', title: 'Testimonials', subtitle: 'View success stories' };
+    if (path === '/contact') return { icon: '📧', title: 'Contact Us', subtitle: 'Get in touch with support' };
+    if (path === '/matching-criteria') return { icon: '🎯', title: 'Matching Criteria', subtitle: 'Configure your matching preferences' };
+    if (path === '/top-matches') return { icon: '🏆', title: 'Top Matches', subtitle: 'Your best compatibility matches' };
+    if (path === '/edit-profile') return { icon: '✏️', title: 'Edit Profile', subtitle: 'Update your profile information' };
+    if (path === '/help') return { icon: '❓', title: 'Help Center', subtitle: 'Find answers to common questions' };
+    return null;
+  };
+
+  const pageTitle = getPageTitle();
 
   // Listen for window resize to toggle mobile view
   useEffect(() => {
@@ -370,6 +415,19 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           />
         )}
       </div>
+      
+      {/* Page Title Section - Horizontal bar below main topbar */}
+      {pageTitle && (
+        <div className="page-title-section">
+          <span className="page-title-icon">{pageTitle.icon}</span>
+          <div className="page-title-content">
+            <span className="page-title-text">{pageTitle.title}</span>
+            {pageTitle.subtitle && (
+              <span className="page-title-subtitle">{pageTitle.subtitle}</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

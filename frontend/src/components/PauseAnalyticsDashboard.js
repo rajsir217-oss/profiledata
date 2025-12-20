@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
-import PageHeader from './PageHeader';
 import useToast from '../hooks/useToast';
 import './PauseAnalyticsDashboard.css';
 
@@ -78,7 +77,6 @@ const PauseAnalyticsDashboard = () => {
   if (loading) {
     return (
       <div className="pause-analytics-dashboard">
-        <PageHeader title="⏸️ Pause Analytics" showBackButton={false} />
         <div className="loading-container">
           <div className="spinner"></div>
           <p>Loading analytics...</p>
@@ -89,11 +87,6 @@ const PauseAnalyticsDashboard = () => {
 
   return (
     <div className="pause-analytics-dashboard">
-      <PageHeader 
-        title="⏸️ Pause Analytics" 
-        subtitle="Monitor pause feature usage and patterns"
-        showBackButton={false}
-      />
 
       {/* Refresh Button */}
       <div className="analytics-actions">

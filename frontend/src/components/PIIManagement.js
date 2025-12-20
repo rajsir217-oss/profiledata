@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import api from '../api';
 import { getImageUrl } from '../utils/urlHelper';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
-import PageHeader from './PageHeader';
 import ImageManagerModal from './ImageManagerModal';
 import UniversalTabContainer from './UniversalTabContainer';
 import './PIIManagement.css';
@@ -647,32 +646,26 @@ const PIIManagement = () => {
         </div>
       )}
 
-      <PageHeader
-        icon="🔒"
-        title="Privacy & Data Management"
-        subtitle="Manage who can access your private information"
-        variant="gradient"
-        actions={
-          <div className="view-mode-toggle">
-            <button
-              className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
-              onClick={() => setViewMode('cards')}
-              title="Card View"
-            >
-              <span>⊞</span>
-              <span>Cards</span>
-            </button>
-            <button
-              className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
-              onClick={() => setViewMode('rows')}
-              title="Row View"
-            >
-              <span>☰</span>
-              <span>Rows</span>
-            </button>
-          </div>
-        }
-      />
+      <div className="pii-management-actions">
+        <div className="view-mode-toggle">
+          <button
+            className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
+            onClick={() => setViewMode('cards')}
+            title="Card View"
+          >
+            <span>⊞</span>
+            <span>Cards</span>
+          </button>
+          <button
+            className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
+            onClick={() => setViewMode('rows')}
+            title="Row View"
+          >
+            <span>☰</span>
+            <span>Rows</span>
+          </button>
+        </div>
+      </div>
 
       {/* Tabs - Using UniversalTabContainer */}
       <UniversalTabContainer

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './EmailAnalytics.css';
-import PageHeader from './PageHeader';
 import { getBackendUrl } from '../config/apiConfig';
 
 const EmailAnalytics = () => {
@@ -57,12 +56,6 @@ const EmailAnalytics = () => {
 
   return (
     <div className="email-analytics">
-      <PageHeader
-        icon="📧"
-        title="Email Analytics"
-        subtitle="Track email opens, clicks, and engagement"
-        variant="flat"
-      />
 
       {/* Period Selector */}
       <div className="analytics-controls">

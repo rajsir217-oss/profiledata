@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
-import PageHeader from './PageHeader';
 import MessageList from './MessageList';
 import ChatWindow from './ChatWindow';
 import './Messages.css';
@@ -150,13 +149,6 @@ const Messages = () => {
 
   return (
     <div className="messages-page">
-      <PageHeader
-        icon="💬"
-        title="My Messages"
-        subtitle="Communicate with your connections"
-        variant="gradient"
-      />
-      
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
