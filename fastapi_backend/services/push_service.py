@@ -125,8 +125,8 @@ class PushNotificationService:
                 ),
                 webpush=messaging.WebpushConfig(
                     notification=messaging.WebpushNotification(
-                        icon='/logo192.png',
-                        badge='/logo192.png'
+                        icon='https://l3v3lmatches.com/logo192.png',
+                        badge='https://l3v3lmatches.com/logo192.png'
                     )
                 )
             )
@@ -223,8 +223,8 @@ class PushNotificationService:
                 ),
                 webpush=messaging.WebpushConfig(
                     notification=messaging.WebpushNotification(
-                        icon='/logo192.png',
-                        badge='/logo192.png'
+                        icon='https://l3v3lmatches.com/logo192.png',
+                        badge='https://l3v3lmatches.com/logo192.png'
                     )
                 )
             )
