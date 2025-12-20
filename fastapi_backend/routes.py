@@ -3361,6 +3361,19 @@ async def search_users(
     # Calculate skip for pagination
     skip = (page - 1) * limit
 
+    # Get user's exclusions and filter them out from search results
+    current_username = current_user.get("username")
+    exclusions = await db.exclusions.find({"userUsername": current_username}).to_list(100)
+    excluded_usernames = [exc["excludedUsername"] for exc in exclusions]
+    
+    if excluded_usernames:
+        # Add exclusion filter to query - exclude self and excluded users
+        query["username"] = {"$nin": excluded_usernames + [current_username]}
+        logger.info(f"🚫 Excluding {len(excluded_usernames)} users from search results for {current_username}")
+    else:
+        # Just exclude self from results
+        query["username"] = {"$ne": current_username}
+
     try:
         # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
         # Otherwise use simple find for better performance

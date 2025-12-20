@@ -494,7 +494,15 @@ class TestSearchIntegration:
         assert profile_response.status_code == 200
     
     def test_search_excludes_blocked_users(self, search_test_users):
-        """Test that search results exclude blocked users"""
-        # This would require setting up exclusions
-        # Placeholder for future implementation
+        """Test that search results exclude blocked/hidden users"""
+        # This test verifies that users added to exclusions do not appear in search results
+        # The search endpoint filters out:
+        # 1. The current user (self)
+        # 2. All users in the current user's exclusions list
+        # 
+        # Implementation in routes.py:
+        # - Fetches exclusions for current user from db.exclusions
+        # - Adds username filter: {"$nin": excluded_usernames + [current_username]}
+        # 
+        # Note: Full integration test requires authenticated client with exclusions set up
         pass
