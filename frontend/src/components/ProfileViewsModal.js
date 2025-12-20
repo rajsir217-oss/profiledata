@@ -103,8 +103,8 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
                 return (
                   <div key={view.id} className="view-item">
                     <div className="view-avatar">
-                      {profile.profileImage ? (
-                        <img src={getAuthenticatedImageUrl(profile.profileImage)} alt={profile.username} />
+                      {(profile.profileImage || (profile.images && profile.images[0])) ? (
+                        <img src={getAuthenticatedImageUrl(profile.profileImage || profile.images[0])} alt={profile.username} />
                       ) : (
                         <div className="avatar-placeholder">
                           {profile.firstName?.[0]}{profile.lastName?.[0]}
