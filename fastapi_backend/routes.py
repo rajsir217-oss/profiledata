@@ -4214,7 +4214,10 @@ async def get_favorites(
         favorite_users = []
         for fav in favorites:
             user = await db.users.find_one(
-                {"username": fav["favoriteUsername"]},
+                {
+                    "username": fav["favoriteUsername"],
+                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
             if user:
@@ -4410,7 +4413,10 @@ async def get_shortlist(
         shortlisted_users = []
         for item in shortlist:
             user = await db.users.find_one(
-                {"username": item["shortlistedUsername"]},
+                {
+                    "username": item["shortlistedUsername"],
+                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
             if user:
@@ -6016,7 +6022,10 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         # Get user details - OPTIMIZED with field projection
         user_usernames = [f["userUsername"] for f in favorites]
         users = await db.users.find(
-            {"username": {"$in": user_usernames}},
+            {
+                "username": {"$in": user_usernames},
+                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+            },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
         
@@ -6085,7 +6094,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         # Get user details - OPTIMIZED with field projection
         user_usernames = [s["userUsername"] for s in shortlists]
         users = await db.users.find(
-            {"username": {"$in": user_usernames}},
+            {
+                "username": {"$in": user_usernames},
+                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+            },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
         
@@ -6335,7 +6347,10 @@ async def get_profile_views(
         total_view_count = 0
         
         for view in consolidated_views:
-            viewer = await db.users.find_one({"username": view["viewedByUsername"]})
+            viewer = await db.users.find_one({
+                "username": view["viewedByUsername"],
+                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+            })
             if viewer:
                 viewer.pop("password", None)
                 viewer["_id"] = str(viewer["_id"])
