@@ -70,7 +70,7 @@ const SearchPage2 = () => {
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
-    return saved ? parseInt(saved) : 3;
+    return saved ? parseInt(saved) : 4;
   });
   
   // Advanced filters collapse state
