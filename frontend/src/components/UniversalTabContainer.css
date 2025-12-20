@@ -271,32 +271,41 @@
 }
 
 /* ========================================
-   VARIANT: PILLS (Theme-Aware)
+   VARIANT: PILLS (Compact Buttons)
    ======================================== */
 
 .variant-pills .tab-nav {
-  gap: var(--spacing-sm);
-  padding: var(--spacing-sm);
-  background: var(--surface-color);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
+  gap: 8px;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  justify-content: flex-start;
 }
 
 .variant-pills .tab-button {
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-sm);
-  background: transparent;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  font-size: 13px;
+  font-weight: 500;
+  min-height: auto;
+  height: auto;
+  flex: 0 0 auto;
+  width: auto;
 }
 
 .variant-pills .tab-button:hover {
   background: var(--card-background);
-  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-color);
 }
 
 .variant-pills .tab-button.active {
   background: var(--primary-color);
   color: white;
-  box-shadow: 0 0 0 3px var(--primary-color-light);
+  border-color: var(--primary-color);
+  box-shadow: none;
 }
 
 .variant-pills .tab-button.active .tab-badge {
@@ -306,7 +315,7 @@
 }
 
 .variant-pills .tab-content-area {
-  padding-top: var(--spacing-md);
+  padding-top: 12px;
 }
 
 /* ========================================
@@ -398,10 +407,7 @@
   }
 
   .tab-badge {
-    padding: 0 6px;
-    font-size: 11px;
-    min-width: 20px;
-    height: 20px;
+    display: none; /* Hide badge on tablets and mobile */
   }
   
   /* Hide labels on tablets and mobile, show only icons */

@@ -1,9 +1,46 @@
 /* Search Page Styles - Full width layout (same as Admin page) */
 .search-page {
-  padding: 20px;
+  padding: 4px 20px 20px 20px;
   width: 100%;
   margin: 0;
   background: var(--background-color);
+}
+
+/* Compact Page Title - saves vertical space */
+.compact-page-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  margin-bottom: 10px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 8px;
+  color: white;
+}
+
+.compact-title-icon {
+  font-size: 20px;
+}
+
+.compact-title-text {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+@media (max-width: 768px) {
+  .compact-page-title {
+    padding: 10px 12px;
+    margin-bottom: 12px;
+  }
+  
+  .compact-title-icon {
+    font-size: 18px;
+  }
+  
+  .compact-title-text {
+    font-size: 16px;
+  }
 }
 
 /* Override Bootstrap container max-width for search page parent */
@@ -1488,55 +1525,78 @@
   }
 
   .saved-search-card {
-    padding: 12px;
+    padding: 10px;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
   }
   
-  /* Row 1: Name + action buttons */
+  /* Row 1: Name + ALL buttons in same row */
   .saved-search-header {
     width: 100%;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    gap: 6px;
   }
 
   .saved-search-name {
-    font-size: 14px;
+    font-size: 13px;
     flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
   }
   
-  /* Schedule and delete buttons inline with name */
+  .saved-search-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+  
   .btn-schedule-saved,
   .btn-delete-saved {
-    width: 36px;
-    height: 36px;
-    min-width: 36px;
-    min-height: 36px;
+    width: 28px;
+    height: 28px;
+    min-width: 28px;
+    min-height: 28px;
+    font-size: 14px;
   }
   
-  /* Row 2: Default + Date in a row */
+  /* Footer: Default + Date + Load all in one row */
+  .saved-search-footer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+  }
+  
+  /* Hide default button/indicator on mobile - star in name is enough */
   .btn-set-default,
   .default-indicator {
-    flex: 0 0 auto;
+    display: none;
   }
   
   .saved-date {
-    font-size: 11px;
-  }
-
-  /* Row 3: Load Search button full width */
-  .btn-load-saved {
-    width: 100%;
-    padding: 10px 16px;
-    font-size: 14px;
-    order: 10;
+    font-size: 10px;
+    flex-shrink: 0;
   }
   
-  /* Row 4: Description at bottom */
+  .btn-load-saved {
+    margin-left: auto;
+    padding: 4px 10px;
+    font-size: 11px;
+    width: auto;
+    flex-shrink: 0;
+  }
+  
+  /* Description at bottom */
   .saved-search-description {
     width: 100%;
-    order: 11;
+  }
+  
+  .saved-search-description p {
+    font-size: 11px;
   }
 
   .saved-search-description p {
