@@ -1479,59 +1479,74 @@
 /* Mobile tabs - Row layout responsive */
 @media (max-width: 768px) {
   .saved-searches-tab {
-    padding: 2px;
+    padding: 8px;
   }
 
   .saved-searches-grid {
-    gap: 6px;
+    gap: 10px;
     width: 100%;
   }
 
   .saved-search-card {
-    padding: 10px 12px;
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 12px;
+    flex-direction: column;
+    gap: 10px;
   }
   
+  /* Row 1: Name + action buttons */
   .saved-search-header {
-    min-width: auto;
-    flex: 1 1 100%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   }
 
   .saved-search-name {
-    font-size: 13px;
+    font-size: 14px;
+    flex: 1;
   }
   
+  /* Schedule and delete buttons inline with name */
+  .btn-schedule-saved,
+  .btn-delete-saved {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
+  }
+  
+  /* Row 2: Default + Date in a row */
+  .btn-set-default,
+  .default-indicator {
+    flex: 0 0 auto;
+  }
+  
+  .saved-date {
+    font-size: 11px;
+  }
+
+  /* Row 3: Load Search button full width */
+  .btn-load-saved {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 14px;
+    order: 10;
+  }
+  
+  /* Row 4: Description at bottom */
   .saved-search-description {
-    flex: 1 1 100%;
-    order: 3;
+    width: 100%;
+    order: 11;
   }
 
   .saved-search-description p {
     font-size: 12px;
     white-space: normal;
-    line-height: 1.5;
-  }
-  
-  .saved-search-footer {
-    flex-direction: column;
-    gap: 12px;
-    align-items: stretch;
-  }
-  
-  .btn-load-saved {
-    width: 100%;
-    padding: 12px 16px;
-    font-size: 15px;
-  }
-  
-  .saved-date {
-    text-align: center;
-    font-size: 12px;
+    line-height: 1.4;
   }
 
   .empty-saved-searches {
-    padding: 40px 16px;
+    padding: 24px 16px;
   }
 
   .empty-saved-searches .empty-icon {
@@ -1546,44 +1561,52 @@
 /* Extra small mobile - Saved search cards */
 @media (max-width: 480px) {
   .saved-searches-tab {
-    padding: 1px;
+    padding: 4px;
   }
   
   .saved-searches-grid {
-    gap: 6px;
+    gap: 8px;
   }
   
   .saved-search-card {
-    padding: 14px;
-  }
-  
-  .saved-search-header {
-    gap: 8px !important;
+    padding: 10px;
+    gap: 8px;
   }
   
   .saved-search-name {
-    font-size: 14px !important;
+    font-size: 13px;
   }
   
+  .btn-schedule-saved,
   .btn-delete-saved {
-    font-size: 20px !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    width: 40px !important;
-    height: 40px !important;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    min-height: 32px;
+    font-size: 14px;
+  }
+  
+  .btn-set-default,
+  .default-indicator {
+    font-size: 11px;
+    padding: 4px 8px;
   }
   
   .saved-search-description {
-    padding: 10px;
+    padding: 8px;
   }
   
   .saved-search-description p {
-    font-size: 12px;
+    font-size: 11px;
   }
   
   .btn-load-saved {
-    padding: 10px 14px;
-    font-size: 14px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+  
+  .saved-date {
+    font-size: 10px;
   }
 }
 
