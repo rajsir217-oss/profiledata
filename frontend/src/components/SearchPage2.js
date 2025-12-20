@@ -34,6 +34,7 @@ const SearchPage2 = () => {
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
+  const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
 
   // User interaction state
   const [users, setUsers] = useState([]);
@@ -130,6 +131,10 @@ const SearchPage2 = () => {
         const userRole = response.data.role?.toLowerCase();
         const hasPremium = userRole === 'premium' || userRole === 'admin';
         setIsPremiumUser(hasPremium);
+        
+        // Check if user is admin (for clear vs reset behavior)
+        const username = localStorage.getItem('username');
+        setIsAdmin(userRole === 'admin' || username === 'admin');
         
         // Set default gender to opposite gender
         const userGender = response.data.gender?.toLowerCase();
@@ -738,7 +743,9 @@ const SearchPage2 = () => {
     }));
   };
 
-  // Calculate default search criteria from user profile
+  // Calculate default search criteria from user profile and partnerCriteria
+  // Uses partnerCriteria (user's saved partner preferences) when available
+  // Falls back to gender-based defaults if no partnerCriteria set
   const getDefaultSearchCriteria = () => {
     let defaultGender = '';
     let defaultAgeMin = '';
@@ -767,17 +774,6 @@ const SearchPage2 = () => {
         }
       }
 
-      // Set default age range based on gender
-      if (userAge && userGender) {
-        if (userGender === 'male') {
-          defaultAgeMin = (userAge - 3).toString();
-          defaultAgeMax = (userAge + 1).toString();
-        } else if (userGender === 'female') {
-          defaultAgeMin = (userAge - 1).toString();
-          defaultAgeMax = (userAge + 3).toString();
-        }
-      }
-
       // Parse user's height
       let userHeightTotalInches = null;
       if (currentUserProfile.height) {
@@ -789,23 +785,72 @@ const SearchPage2 = () => {
         }
       }
 
-      // Set default height range based on gender
-      if (userHeightTotalInches && userGender) {
+      // Get partnerCriteria from user profile (saved partner preferences)
+      const partnerCriteria = currentUserProfile.partnerCriteria;
+
+      // Set default age range from partnerCriteria (priority) or gender-based fallback
+      if (partnerCriteria?.ageRangeRelative && userAge) {
+        // Use relative age offsets from partner criteria
+        const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
+        const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
+        defaultAgeMin = Math.max(19, userAge + minOffset).toString();
+        defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
+        console.log('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
+      } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
+        // Fallback to absolute age range if set
+        defaultAgeMin = partnerCriteria.ageRange.min.toString();
+        defaultAgeMax = partnerCriteria.ageRange.max.toString();
+        console.log('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
+      } else if (userAge && userGender) {
+        // Final fallback: gender-based defaults
         if (userGender === 'male') {
-          const minTotalInches = userHeightTotalInches - 3;
+          defaultAgeMin = Math.max(19, userAge - 5).toString();
+          defaultAgeMax = Math.min(100, userAge + 1).toString();
+        } else if (userGender === 'female') {
+          defaultAgeMin = Math.max(19, userAge - 1).toString();
+          defaultAgeMax = Math.min(100, userAge + 5).toString();
+        }
+        console.log('🔄 Reset: Using gender-based age defaults');
+      }
+
+      // Set default height range from partnerCriteria (priority) or gender-based fallback
+      if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
+        // Use relative height offsets from partner criteria
+        const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
+        const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
+        const minTotalInches = userHeightTotalInches + minInchesOffset;
+        const maxTotalInches = userHeightTotalInches + maxInchesOffset;
+        
+        defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+        defaultHeightMinInches = (minTotalInches % 12).toString();
+        defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+        defaultHeightMaxInches = (maxTotalInches % 12).toString();
+        console.log('🔄 Reset: Using partnerCriteria.heightRangeRelative');
+      } else if (partnerCriteria?.heightRange?.minFeet) {
+        // Fallback to absolute height range if set
+        defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
+        defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
+        defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
+        defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
+        console.log('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
+      } else if (userHeightTotalInches && userGender) {
+        // Final fallback: gender-based defaults
+        if (userGender === 'male') {
+          const minTotalInches = userHeightTotalInches - 6;
           const maxTotalInches = userHeightTotalInches;
           defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
           defaultHeightMinInches = (minTotalInches % 12).toString();
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
         } else if (userGender === 'female') {
-          const minTotalInches = userHeightTotalInches;
-          const maxTotalInches = userHeightTotalInches + 3;
+          const minTotalInches = userHeightTotalInches + 1;
+          const maxTotalInches = userHeightTotalInches + 6;
           defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
           defaultHeightMinInches = (minTotalInches % 12).toString();
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
         }
+        console.log('🔄 Reset: Using gender-based height defaults');
       }
     }
 
@@ -842,37 +887,71 @@ const SearchPage2 = () => {
   };
 
   const handleClearFilters = () => {
-    // Minimal global defaults - Gender only (widest search)
+    // Admin: Clear all fields (widest search)
+    // Non-admin: Reset to partner criteria defaults
     const defaults = getDefaultSearchCriteria();
     
-    setSearchCriteria({
-      keyword: '',
-      profileId: '', // Clear Profile ID search
-      gender: defaults.gender, // Opposite gender only
-      ageMin: '', // Empty - search all ages
-      ageMax: '',
-      heightMin: '',
-      heightMax: '',
-      heightMinFeet: '', // Empty - search all heights
-      heightMinInches: '',
-      heightMaxFeet: '',
-      heightMaxInches: '',
-      location: '',
-      education: '',
-      occupation: '',
-      religion: '',
-      caste: '',
-      eatingPreference: '',
-      drinking: '',
-      smoking: '',
-      relationshipStatus: '',
-      bodyType: '',
-      newlyAdded: false,
-      sortBy: 'age',
-      sortOrder: 'asc'
-    });
+    if (isAdmin) {
+      // ADMIN: Clear all fields - widest possible search
+      setSearchCriteria({
+        keyword: '',
+        profileId: '',
+        gender: defaults.gender, // Keep opposite gender only
+        ageMin: '', // Empty - search all ages
+        ageMax: '',
+        heightMin: '',
+        heightMax: '',
+        heightMinFeet: '', // Empty - search all heights
+        heightMinInches: '',
+        heightMaxFeet: '',
+        heightMaxInches: '',
+        location: '',
+        education: '',
+        occupation: '',
+        religion: '',
+        caste: '',
+        eatingPreference: '',
+        drinking: '',
+        smoking: '',
+        relationshipStatus: '',
+        bodyType: '',
+        newlyAdded: false,
+        sortBy: 'age',
+        sortOrder: 'asc'
+      });
+      console.log('🧹 Admin: Cleared all search filters');
+    } else {
+      // NON-ADMIN: Reset to partner criteria defaults (smart defaults)
+      setSearchCriteria({
+        keyword: '',
+        profileId: '',
+        gender: defaults.gender,
+        ageMin: defaults.ageMin, // From partner criteria or gender-based defaults
+        ageMax: defaults.ageMax,
+        heightMin: '',
+        heightMax: '',
+        heightMinFeet: defaults.heightMinFeet, // From partner criteria or gender-based defaults
+        heightMinInches: defaults.heightMinInches,
+        heightMaxFeet: defaults.heightMaxFeet,
+        heightMaxInches: defaults.heightMaxInches,
+        location: '',
+        education: '',
+        occupation: '',
+        religion: '',
+        caste: '',
+        eatingPreference: '',
+        drinking: '',
+        smoking: '',
+        relationshipStatus: '',
+        bodyType: '',
+        newlyAdded: false,
+        sortBy: 'age',
+        sortOrder: 'asc'
+      });
+      console.log('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
+    }
+    
     setUsers([]);
-    // setTotalResults(0);
     setSaveSearchName('');
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
@@ -1997,6 +2076,7 @@ const SearchPage2 = () => {
                       occupationOptions={occupationOptions}
                       eatingOptions={eatingOptions}
                       lifestyleOptions={lifestyleOptions}
+                      isAdmin={isAdmin}
                     />
                   )
                 },

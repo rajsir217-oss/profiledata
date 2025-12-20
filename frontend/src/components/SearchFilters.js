@@ -26,6 +26,7 @@ import './SearchFilters.css';
  * @param {Boolean} hideActionButtons - Optional: hide Save/Search buttons (for modal use)
  * @param {String} searchButtonText - Optional: custom text for search button (default: "🔍 Search")
  * @param {String} saveButtonText - Optional: custom text for save button (default: "💾 Save Search")
+ * @param {Boolean} isAdmin - Whether user is admin (affects Clear vs Reset button label)
  */
 const SearchFilters = ({
   searchCriteria,
@@ -46,7 +47,8 @@ const SearchFilters = ({
   lifestyleOptions = [],
   hideActionButtons = false,
   searchButtonText = '🔍 Search',
-  saveButtonText = '💾 Save Search'
+  saveButtonText = '💾 Save Search',
+  isAdmin = false
 }) => {
   
   const handleSliderChange = (e) => {
@@ -667,12 +669,13 @@ const SearchFilters = ({
                   type="button"
                   onClick={onClear}
                   className="btn btn-clear"
+                  title={isAdmin ? 'Clear all filters (widest search)' : 'Reset to your partner preference defaults'}
                   style={{
                     padding: '10px 24px',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '8px',
-                    background: '#d84315',
+                    background: isAdmin ? '#d84315' : 'var(--primary-color)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -681,10 +684,10 @@ const SearchFilters = ({
                     fontSize: '14px',
                     transition: 'all 0.2s ease'
                   }}
-                  onMouseEnter={(e) => e.target.style.background = '#bf360c'}
-                  onMouseLeave={(e) => e.target.style.background = '#d84315'}
+                  onMouseEnter={(e) => e.target.style.background = isAdmin ? '#bf360c' : 'var(--secondary-color)'}
+                  onMouseLeave={(e) => e.target.style.background = isAdmin ? '#d84315' : 'var(--primary-color)'}
                 >
-                  🗑️ Clear
+                  {isAdmin ? '🗑️ Clear' : '🔄 Reset'}
                 </button>
               )}
               {onSave && (
