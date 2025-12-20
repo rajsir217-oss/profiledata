@@ -251,8 +251,8 @@ async def send_test_notification(
         for token in tokens:
             result = await push_service.send_to_token(
                 token=token,
-                title="🔔 Test Notification",
-                body="Push notifications are working! You're all set.",
+                title="🦋 L3V3L Matches",
+                body="Push notifications enabled! You'll receive alerts for new matches, messages & more.",
                 data={
                     "type": "test",
                     "timestamp": datetime.utcnow().isoformat()
