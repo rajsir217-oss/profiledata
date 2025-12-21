@@ -7,6 +7,7 @@ import './Dashboard2.css';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import AccessRequestManager from './AccessRequestManager';
+import PIIRequestsTable from './PIIRequestsTable';
 import logger from '../utils/logger';
 import ProfileViewsModal from './ProfileViewsModal';
 import FavoritedByModal from './FavoritedByModal';
@@ -73,6 +74,12 @@ const Dashboard2 = () => {
   // Current user profile for display name
   const [userProfile, setUserProfile] = useState(null);
   
+  // Active category pill state for PII Requests section
+  const [piiActiveCategory, setPiiActiveCategory] = useState(() => {
+    const saved = localStorage.getItem('dashboard2PiiActiveCategory');
+    return saved || 'piiInbox';
+  });
+
   // Active category pill state for My Activities section
   const [myActiveCategory, setMyActiveCategory] = useState(() => {
     const saved = localStorage.getItem('dashboard2MyActiveCategory');
@@ -105,6 +112,7 @@ const Dashboard2 = () => {
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const saved = localStorage.getItem('dashboard2Groups');
     return saved ? JSON.parse(saved) : {
+      piiRequests: true,
       myActivities: true,
       othersActivities: true
     };
@@ -235,8 +243,8 @@ const Dashboard2 = () => {
         api.get(`/shortlist/${user}`),
         api.get(`/profile-views/${user}`),
         api.get(`/exclusions/${user}`),
-        api.get(`/pii-requests/${user}/outgoing`),
-        api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
+        api.get(`/pii-requests/${user}/outgoing`),  // Fetch ALL outgoing requests to show approved/rejected status
+        api.get(`/pii-requests/${user}/incoming`),  // Fetch ALL incoming requests to show approved/rejected status
         api.get(`/their-favorites/${user}`),
         api.get(`/their-shortlists/${user}`)
       ]);
@@ -403,6 +411,10 @@ const Dashboard2 = () => {
 
   // Persist activeCategory states to localStorage
   useEffect(() => {
+    localStorage.setItem('dashboard2PiiActiveCategory', piiActiveCategory);
+  }, [piiActiveCategory]);
+
+  useEffect(() => {
     localStorage.setItem('dashboard2MyActiveCategory', myActiveCategory);
   }, [myActiveCategory]);
 
@@ -440,6 +452,7 @@ const Dashboard2 = () => {
     if (isAllExpanded) {
       // Collapse all
       setExpandedGroups({
+        piiRequests: false,
         myActivities: false,
         othersActivities: false
       });
@@ -458,6 +471,7 @@ const Dashboard2 = () => {
     } else {
       // Expand all
       setExpandedGroups({
+        piiRequests: true,
         myActivities: true,
         othersActivities: true
       });
@@ -857,7 +871,7 @@ const Dashboard2 = () => {
         onToggleShortlist={() => isShortlisted ? handleRemoveFromShortlist(username) : handleAddToShortlist(displayUser)}
         onMessage={() => handleMessageUser(username, displayUser)}
         onBlock={() => isBlocked ? handleRemoveFromExclusions(username) : handleAddToExclusions(displayUser)}
-        onRequestPII={() => handleRequestPII(displayUser)}
+        onRequestPII={() => handleRequestPII({ ...displayUser, username })}
         // Context-specific remove action - wrap to extract username from user object
         onRemove={removeHandler ? (userObj) => {
           const uname = userObj?.username || username;
@@ -1211,6 +1225,117 @@ const Dashboard2 = () => {
         </div>
       </div>
 
+      {/* PII Requests Section - Dedicated section for incoming/outgoing requests */}
+      <div className="activity-group">
+        <div 
+          className={`activity-group-header activity-group-header-pii clickable ${expandedGroups.piiRequests ? 'expanded' : ''}`}
+          onClick={() => toggleGroup('piiRequests')}
+        >
+          <div className="activity-group-title">
+            <span className="activity-group-icon">🔐</span>
+            <h2>PII Requests</h2>
+            <span className="activity-group-count">
+              {dashboardData.incomingContactRequests.length + dashboardData.myRequests.length}
+            </span>
+          </div>
+          <span className="activity-group-toggle">{expandedGroups.piiRequests ? '▼' : '▶'}</span>
+        </div>
+        
+        {expandedGroups.piiRequests && (
+          <>
+            {/* Horizontal Category Pills */}
+            <div className="category-pills">
+              <button 
+                className={`category-pill pill-inbox ${piiActiveCategory === 'piiInbox' ? 'active' : ''}`}
+                onClick={() => setPiiActiveCategory('piiInbox')}
+              >
+                <span className="pill-icon">📬</span>
+                <span className="pill-label">Requests Inbox</span>
+                <span className="pill-count">{dashboardData.incomingContactRequests.length}</span>
+              </button>
+              <button 
+                className={`category-pill pill-sent ${piiActiveCategory === 'piiSent' ? 'active' : ''}`}
+                onClick={() => setPiiActiveCategory('piiSent')}
+              >
+                <span className="pill-icon">📤</span>
+                <span className="pill-label">Requests Sent</span>
+                <span className="pill-count">{dashboardData.myRequests.length}</span>
+              </button>
+            </div>
+
+            {/* Content Panel for Selected Category */}
+            <div className="category-content">
+              {piiActiveCategory === 'piiInbox' && (
+                <PIIRequestsTable
+                  requests={dashboardData.incomingContactRequests}
+                  type="inbox"
+                  onApprove={async (request, profile) => {
+                    try {
+                      await api.put(`/pii-requests/${request.id}/approve?username=${currentUser}`, {});
+                      logger.info(`Approved request from ${profile?.username}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to approve request:', err);
+                    }
+                  }}
+                  onReject={async (requestId) => {
+                    try {
+                      await api.put(`/pii-requests/${requestId}/reject?username=${currentUser}`);
+                      logger.info(`Rejected request ${requestId}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to reject request:', err);
+                    }
+                  }}
+                  onApproveAll={async (username, requests) => {
+                    try {
+                      for (const req of requests) {
+                        await api.put(`/pii-requests/${req.id}/approve?username=${currentUser}`, {});
+                      }
+                      logger.info(`Approved all requests from ${username}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to approve all requests:', err);
+                    }
+                  }}
+                  onRejectAll={async (username, requests) => {
+                    try {
+                      for (const req of requests) {
+                        await api.put(`/pii-requests/${req.id}/reject?username=${currentUser}`);
+                      }
+                      logger.info(`Rejected all requests from ${username}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to reject all requests:', err);
+                    }
+                  }}
+                  onProfileClick={(username) => navigate(`/profile/${username}`)}
+                  showMutualExchange={true}
+                  compact={true}
+                />
+              )}
+              {piiActiveCategory === 'piiSent' && (
+                <PIIRequestsTable
+                  requests={dashboardData.myRequests}
+                  type="sent"
+                  onCancel={async (requestId) => {
+                    try {
+                      await api.delete(`/pii-requests/${requestId}?username=${currentUser}`);
+                      logger.info(`Cancelled request ${requestId}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to cancel request:', err);
+                    }
+                  }}
+                  onProfileClick={(username) => navigate(`/profile/${username}`)}
+                  compact={true}
+                />
+              )}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* My Activities Section - Collapsible with Horizontal Pills */}
       <div className="activity-group">
         <div 
@@ -1254,14 +1379,6 @@ const Dashboard2 = () => {
             <span className="pill-count">{dashboardData.myShortlists.length}</span>
           </button>
           <button 
-            className={`category-pill pill-requests ${myActiveCategory === 'myRequests' ? 'active' : ''}`}
-            onClick={() => setMyActiveCategory('myRequests')}
-          >
-            <span className="pill-icon">{SECTION_ICONS.MY_PHOTO_REQUESTS}</span>
-            <span className="pill-label">Photo Requests</span>
-            <span className="pill-count">{dashboardData.myRequests.length}</span>
-          </button>
-          <button 
             className={`category-pill pill-exclusions ${myActiveCategory === 'myExclusions' ? 'active' : ''}`}
             onClick={() => setMyActiveCategory('myExclusions')}
           >
@@ -1276,7 +1393,6 @@ const Dashboard2 = () => {
           {myActiveCategory === 'myMessages' && renderTabContent('Messages', dashboardData.myMessages, 'myMessages', SECTION_ICONS.MESSAGES, '#5a6fd6', handleDeleteMessage)}
           {myActiveCategory === 'myFavorites' && renderTabContent('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
           {myActiveCategory === 'myShortlists' && renderTabContent('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
-          {myActiveCategory === 'myRequests' && renderTabContent('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
           {myActiveCategory === 'myExclusions' && renderTabContent('Hidden from Search', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
         </div>
           </>
@@ -1325,14 +1441,6 @@ const Dashboard2 = () => {
             <span className="pill-label">Shortlisted Me</span>
             <span className="pill-count">{dashboardData.theirShortlists.length}</span>
           </button>
-          <button 
-            className={`category-pill pill-incoming-requests ${othersActiveCategory === 'incomingRequests' ? 'active' : ''}`}
-            onClick={() => setOthersActiveCategory('incomingRequests')}
-          >
-            <span className="pill-icon">{SECTION_ICONS.INCOMING_REQUESTS}</span>
-            <span className="pill-label">Photo Requests</span>
-            <span className="pill-count">{dashboardData.incomingContactRequests.length}</span>
-          </button>
         </div>
 
         {/* Content Panel for Selected Category */}
@@ -1340,30 +1448,6 @@ const Dashboard2 = () => {
           {othersActiveCategory === 'theirViews' && renderTabContent('Profile Views', dashboardData.myViews, 'myViews', SECTION_ICONS.PROFILE_VIEWS, '#c9944a', handleClearViewHistory)}
           {othersActiveCategory === 'theirFavorites' && renderTabContent('Favorited Me', dashboardData.theirFavorites, 'theirFavorites', SECTION_ICONS.THEIR_FAVORITES, '#c4687a', null)}
           {othersActiveCategory === 'theirShortlists' && renderTabContent('Shortlisted Me', dashboardData.theirShortlists, 'theirShortlists', SECTION_ICONS.THEIR_SHORTLISTS, '#5a9eb5', null)}
-          {othersActiveCategory === 'incomingRequests' && (
-            <CategorySection
-              title="Incoming Photo Requests"
-              icon={SECTION_ICONS.INCOMING_REQUESTS}
-              color="#5a9a8a"
-              sectionKey="imageAccessRequests"
-              data={[]}
-              isExpanded={activeSections.imageAccessRequests}
-              onToggle={toggleSection}
-            >
-              <div style={{ padding: '16px' }}>
-                <AccessRequestManager
-                  username={currentUser}
-                  onRequestProcessed={(action, request) => {
-                    if (action === 'approved') {
-                      logger.info(`Access approved for ${request.requesterUsername}`);
-                    } else if (action === 'rejected') {
-                      logger.info(`Access rejected for ${request.requesterUsername}`);
-                    }
-                  }}
-                />
-              </div>
-            </CategorySection>
-          )}
         </div>
           </>
         )}

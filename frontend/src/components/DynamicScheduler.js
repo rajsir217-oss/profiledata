@@ -181,6 +181,20 @@ const DynamicScheduler = ({ currentUser }) => {
         }
       });
       const data = await response.json();
+      
+      // Check for API error response
+      if (!response.ok) {
+        const errorMsg = data.detail || data.message || 'Failed to load jobs';
+        // Handle Pydantic validation errors (array of error objects)
+        if (Array.isArray(data.detail)) {
+          const errorMessages = data.detail.map(e => e.msg || JSON.stringify(e)).join(', ');
+          setError(errorMessages);
+        } else {
+          setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to load jobs');
+        }
+        return;
+      }
+      
       console.log('📋 Jobs loaded:', data.jobs?.length || 0);
       if (data.jobs && data.jobs.length > 0) {
         console.log('📋 First job fields:', Object.keys(data.jobs[0]));
@@ -190,7 +204,9 @@ const DynamicScheduler = ({ currentUser }) => {
       setTotalPages(data.pages || 1);
       setTotalJobs(data.total || (data.jobs || []).length);
     } catch (err) {
-      setError('Failed to load jobs');
+      // Ensure error is always a string
+      const errorMsg = err.message || 'Failed to load jobs';
+      setError(typeof errorMsg === 'string' ? errorMsg : 'Failed to load jobs');
       console.error('Error loading jobs:', err);
     } finally {
       setLoading(false);
@@ -420,15 +436,26 @@ const DynamicScheduler = ({ currentUser }) => {
   const formatSchedule = (schedule) => {
     if (!schedule) return 'Not scheduled';
     
-    if (schedule.type === 'interval') {
-      const hours = Math.floor(schedule.interval_seconds / 3600);
-      const minutes = Math.floor((schedule.interval_seconds % 3600) / 60);
-      if (hours > 0) {
-        return `Every ${hours}h ${minutes}m`;
+    // Handle string schedule (legacy format)
+    if (typeof schedule === 'string') {
+      return schedule;
+    }
+    
+    // Handle object schedule
+    if (typeof schedule === 'object') {
+      if (schedule.type === 'interval') {
+        const intervalSeconds = schedule.interval_seconds || 0;
+        const hours = Math.floor(intervalSeconds / 3600);
+        const minutes = Math.floor((intervalSeconds % 3600) / 60);
+        if (hours > 0) {
+          return `Every ${hours}h ${minutes}m`;
+        }
+        return `Every ${minutes}m`;
+      } else if (schedule.type === 'cron') {
+        return `Cron: ${schedule.expression || 'N/A'}`;
       }
-      return `Every ${minutes}m`;
-    } else if (schedule.type === 'cron') {
-      return `Cron: ${schedule.expression}`;
+      // Fallback for unknown object structure
+      return JSON.stringify(schedule);
     }
     
     return 'Unknown schedule';

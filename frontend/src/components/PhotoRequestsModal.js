@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import logger from '../utils/logger';
+import { getImageUrl } from '../utils/urlHelper';
 import './PhotoRequestsModal.css';
 import { formatRelativeTime } from '../utils/timeFormatter';
 
@@ -57,9 +58,13 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
   const handleCancelRequest = async (request) => {
     setProcessingId(request.id);
     try {
-      // Cancel outgoing PII request - same as Dashboard uses
-      const targetUsername = request.profileOwner?.username;
+      // Cancel outgoing PII request
+      // API returns profileOwner as nested object with username field
+      const targetUsername = request.profileOwner?.username || request.profileOwnerUsername;
+      logger.debug('Cancel request - full request object:', JSON.stringify(request, null, 2));
+      logger.debug('Cancel request - targetUsername:', targetUsername);
       if (!targetUsername) {
+        logger.error('Invalid request data - no target username found:', request);
         setError('Invalid request data');
         return;
       }
@@ -146,7 +151,7 @@ const PhotoRequestsModal = ({ isOpen, onClose, username, onRequestHandled }) => 
                     <div className="request-avatar">
                       {targetUser.images && targetUser.images.length > 0 ? (
                         <img 
-                          src={targetUser.images[0]} 
+                          src={getImageUrl(targetUser.images[0])} 
                           alt={targetUser.username}
                           onError={(e) => {
                             e.target.style.display = 'none';
