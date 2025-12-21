@@ -6668,8 +6668,8 @@ async def get_outgoing_pii_requests(
         requests = await db.pii_requests.find(query).sort("requestedAt", -1).to_list(100)
         
         # Get profile owner details for each request
-        # Track seen users to deduplicate (show only latest request per user)
-        seen_users = set()
+        # Cache profile lookups to avoid duplicate DB queries
+        profile_cache = {}
         result = []
         for req in requests:
             # Handle both old field name (requestedUsername) and new field name (profileUsername)
@@ -6677,26 +6677,30 @@ async def get_outgoing_pii_requests(
             if not target_username:
                 continue
             
-            # Deduplicate: only show one request per target user (the most recent one)
-            if target_username in seen_users:
-                continue
-            seen_users.add(target_username)
+            # Use cached profile or fetch from DB
+            if target_username not in profile_cache:
+                profile_owner = await db.users.find_one({"username": target_username})
+                if profile_owner:
+                    profile_owner.pop("password", None)
+                    profile_owner["_id"] = str(profile_owner["_id"])
+                    
+                    # 🔓 Decrypt PII fields
+                    from crypto_utils import get_encryptor
+                    try:
+                        encryptor = get_encryptor()
+                        profile_owner = encryptor.decrypt_user_pii(profile_owner)
+                    except Exception as decrypt_err:
+                        logger.warning(f"⚠️ Decryption skipped for {target_username}: {decrypt_err}")
+                    
+                    raw_images = profile_owner.get("images", [])
+                    profile_owner["images"] = [get_full_image_url(img) for img in raw_images]
+                    logger.info(f"📷 Outgoing request to {target_username}: {len(raw_images)} raw images -> {len(profile_owner['images'])} processed")
+                    profile_cache[target_username] = profile_owner
+                else:
+                    profile_cache[target_username] = None
             
-            profile_owner = await db.users.find_one({"username": target_username})
+            profile_owner = profile_cache[target_username]
             if profile_owner:
-                profile_owner.pop("password", None)
-                profile_owner["_id"] = str(profile_owner["_id"])
-                
-                # 🔓 Decrypt PII fields
-                from crypto_utils import get_encryptor
-                try:
-                    encryptor = get_encryptor()
-                    profile_owner = encryptor.decrypt_user_pii(profile_owner)
-                except Exception as decrypt_err:
-                    logger.warning(f"⚠️ Decryption skipped for {req['profileUsername']}: {decrypt_err}")
-                
-                profile_owner["images"] = [get_full_image_url(img) for img in profile_owner.get("images", [])]
-                
                 request_data = {
                     "id": str(req["_id"]),
                     "requestType": req["requestType"],
@@ -6799,6 +6803,40 @@ async def approve_pii_request(
         logger.info(f"📝 Inserting PII access record: {access_data}")
         await db.pii_access.insert_one(access_data)
         
+        # =================================================================
+        # RECIPROCAL ACCESS: When User A approves User B's request,
+        # User A also gets access to User B's same PII type automatically
+        # =================================================================
+        reciprocal_access_data = {
+            "granterUsername": request["requesterUsername"],  # The original requester now grants
+            "grantedToUsername": username,  # The approver now receives access
+            "accessType": request["requestType"],
+            "grantedAt": datetime.utcnow(),
+            "expiresAt": expires_at,  # Same expiry as the original grant
+            "isActive": True,
+            "createdAt": datetime.utcnow(),
+            "isReciprocal": True  # Flag to identify reciprocal grants
+        }
+        
+        # Check if reciprocal access already exists to avoid duplicates
+        existing_reciprocal = await db.pii_access.find_one({
+            "granterUsername": request["requesterUsername"],
+            "grantedToUsername": username,
+            "accessType": request["requestType"],
+            "isActive": True
+        })
+        
+        if not existing_reciprocal:
+            # For image access, copy picture durations if provided
+            if approve_data.pictureDurations and request["requestType"] == "images":
+                reciprocal_access_data["pictureDurations"] = access_data.get("pictureDurations", {})
+            
+            logger.info(f"🔄 Creating reciprocal access: {request['requesterUsername']} → {username} for {request['requestType']}")
+            await db.pii_access.insert_one(reciprocal_access_data)
+            logger.info(f"🔑 Reciprocal access granted: {request['requesterUsername']} → {username} for {request['requestType']}")
+        else:
+            logger.info(f"🔄 Reciprocal access already exists, skipping duplicate")
+        
         # Dispatch event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
@@ -6808,12 +6846,23 @@ async def approve_pii_request(
                 actor_username=username,  # The granter
                 target_username=request['requesterUsername']  # The requester (gets notified)
             )
+            # Also notify the approver about their reciprocal access
+            await dispatcher.dispatch(
+                event_type=UserEventType.PII_GRANTED,
+                actor_username=request['requesterUsername'],  # The original requester
+                target_username=username  # The approver (gets notified about reciprocal)
+            )
         except Exception as dispatch_err:
             logger.warning(f"⚠️ Failed to dispatch PII granted event: {dispatch_err}")
         
         logger.info(f"✅ PII request approved and access granted (expires: {expires_at or 'never'})")
         logger.info(f"🔑 Access granted: {username} → {request['requesterUsername']} for {request['requestType']}")
-        return {"message": "Request approved and access granted", "expiresAt": expires_at}
+        logger.info(f"🔄 Reciprocal access: {request['requesterUsername']} → {username} for {request['requestType']}")
+        return {
+            "message": "Request approved with reciprocal access granted",
+            "expiresAt": expires_at,
+            "reciprocalAccess": not existing_reciprocal  # True if new reciprocal access was created
+        }
     
     except Exception as e:
         logger.error(f"❌ Error approving PII request: {e}", exc_info=True)
@@ -6909,6 +6958,176 @@ async def cancel_pii_request(
     
     except Exception as e:
         logger.error(f"❌ Error cancelling PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-requests/{username}/outgoing/{target_username}")
+async def cancel_outgoing_pii_request(
+    username: str,
+    target_username: str,
+    db = Depends(get_database)
+):
+    """Cancel an outgoing PII request by username pair"""
+    logger.info(f"🚫 Cancelling outgoing PII request from {username} to {target_username}")
+    
+    try:
+        # Find the pending request
+        # Note: Database uses 'profileUsername' not 'profileOwnerUsername'
+        request = await db.pii_requests.find_one({
+            "requesterUsername": username,
+            "profileUsername": target_username,
+            "status": "pending"
+        })
+        
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        # Update request status
+        await db.pii_requests.update_one(
+            {"_id": request["_id"]},
+            {
+                "$set": {
+                    "status": "cancelled",
+                    "respondedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        logger.info(f"✅ Outgoing PII request cancelled")
+        return {"message": "Request cancelled"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error cancelling outgoing PII request: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-history/{username}")
+async def clear_pii_history(
+    username: str,
+    type: str = Query(..., description="Type of history to clear: revoked, expired, rejected_incoming, rejected_outgoing, all"),
+    db = Depends(get_database)
+):
+    """Clear PII history items for a user"""
+    logger.info(f"🗑️ Clearing PII history for {username}, type: {type}")
+    
+    try:
+        deleted_count = 0
+        
+        if type in ['revoked', 'all']:
+            # Delete revoked/inactive access records
+            # Database uses granterUsername and isActive=False for revoked
+            result = await db.pii_access.delete_many({
+                "granterUsername": username,
+                "isActive": False
+            })
+            deleted_count += result.deleted_count
+            logger.info(f"Deleted {result.deleted_count} revoked access records")
+        
+        if type in ['expired', 'all']:
+            # Delete expired access records (one-time views that were used)
+            # Check for expired based on expiresAt date
+            from datetime import datetime
+            result = await db.pii_access.delete_many({
+                "granterUsername": username,
+                "expiresAt": {"$lt": datetime.utcnow()}
+            })
+            deleted_count += result.deleted_count
+            logger.info(f"Deleted {result.deleted_count} expired access records")
+        
+        if type in ['rejected_incoming', 'all']:
+            # Delete rejected requests where user is the profile owner
+            result = await db.pii_requests.delete_many({
+                "profileUsername": username,
+                "status": "rejected"
+            })
+            deleted_count += result.deleted_count
+        
+        if type in ['rejected_outgoing', 'all']:
+            # Delete rejected requests where user is the requester
+            result = await db.pii_requests.delete_many({
+                "requesterUsername": username,
+                "status": "rejected"
+            })
+            deleted_count += result.deleted_count
+        
+        logger.info(f"✅ Deleted {deleted_count} history items")
+        return {"message": f"Deleted {deleted_count} history items", "deleted_count": deleted_count}
+    
+    except Exception as e:
+        logger.error(f"❌ Error clearing PII history: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-requests/{request_id}/history")
+async def delete_pii_request_history(
+    request_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Delete a specific PII request from history"""
+    logger.info(f"🗑️ Deleting PII request history item {request_id} for {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Verify the user owns this request (either as requester or profile owner)
+        request = await db.pii_requests.find_one({"_id": ObjectId(request_id)})
+        if not request:
+            raise HTTPException(status_code=404, detail="Request not found")
+        
+        if request.get("requesterUsername") != username and request.get("profileUsername") != username:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this request")
+        
+        # Only allow deleting non-pending requests (history items)
+        if request.get("status") == "pending":
+            raise HTTPException(status_code=400, detail="Cannot delete pending requests from history")
+        
+        await db.pii_requests.delete_one({"_id": ObjectId(request_id)})
+        
+        logger.info(f"✅ PII request history item deleted")
+        return {"message": "History item deleted"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting PII request history: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/pii-access/{access_id}")
+async def delete_pii_access_history(
+    access_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Delete a specific PII access record from history"""
+    logger.info(f"🗑️ Deleting PII access history item {access_id} for {username}")
+    
+    try:
+        from bson import ObjectId
+        
+        # Verify the user owns this access record
+        access = await db.pii_access.find_one({"_id": ObjectId(access_id)})
+        if not access:
+            raise HTTPException(status_code=404, detail="Access record not found")
+        
+        if access.get("grantedBy") != username and access.get("grantedTo") != username:
+            raise HTTPException(status_code=403, detail="Not authorized to delete this access record")
+        
+        # Only allow deleting revoked or expired access (history items)
+        is_revoked = access.get("status") == "revoked"
+        is_expired = access.get("isOneTimeAccess") and access.get("accessUsed")
+        
+        if not is_revoked and not is_expired:
+            raise HTTPException(status_code=400, detail="Cannot delete active access records")
+        
+        await db.pii_access.delete_one({"_id": ObjectId(access_id)})
+        
+        logger.info(f"✅ PII access history item deleted")
+        return {"message": "History item deleted"}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error deleting PII access history: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/pii-access/{username}/granted")
@@ -7296,8 +7515,24 @@ async def revoke_pii_access(
         # Revoke access
         await db.pii_access.update_one(
             {"_id": ObjectId(access_id)},
-            {"$set": {"isActive": False}}
+            {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
         )
+        
+        # Also update the corresponding pii_request status to "revoked"
+        # so the requester sees the updated status
+        grantee_username = access.get("grantedToUsername")
+        access_type = access.get("accessType")
+        if grantee_username and access_type:
+            await db.pii_requests.update_many(
+                {
+                    "requesterUsername": grantee_username,
+                    "profileUsername": username,
+                    "requestType": access_type,
+                    "status": "approved"
+                },
+                {"$set": {"status": "revoked", "revokedAt": datetime.utcnow()}}
+            )
+            logger.info(f"📝 Updated request status to 'revoked' for {grantee_username}'s {access_type} request")
         
         logger.info(f"✅ PII access revoked")
         return {"message": "Access revoked"}

@@ -36,7 +36,9 @@ class DatabaseCleanupTemplate(JobTemplate):
         "favorites",      # User favorites - 45 day retention
         "shortlists",     # User shortlists - 45 day retention
         "exclusions",     # User exclusions - optional cleanup
-        "profile_views"   # Profile view history
+        "profile_views",  # Profile view history
+        "pii_requests",   # PII requests - 7 day retention for pending
+        "pii_access"      # PII access grants - cleanup expired
     ]
     
     def get_schema(self) -> Dict[str, Any]:
@@ -146,11 +148,16 @@ class DatabaseCleanupTemplate(JobTemplate):
         # Process each collection target
         for target in cleanup_targets:
             collection_name = target["collection"]
-            days_old = target["days_old"]
+            days_old = target.get("days_old", 0)
             date_field = target.get("date_field", "created_at")
+            status_filter = target.get("status_filter")
+            delete_all_matching = target.get("delete_all_matching", False)
             
             context.log("INFO", f"\n📁 Processing: {collection_name}")
-            context.log("INFO", f"   ⏰ Retention: {days_old} days")
+            if delete_all_matching and status_filter:
+                context.log("INFO", f"   🗑️  Delete ALL with status: {status_filter}")
+            else:
+                context.log("INFO", f"   ⏰ Retention: {days_old} days")
             context.log("INFO", f"   📅 Date field: {date_field}")
             
             try:
@@ -160,7 +167,9 @@ class DatabaseCleanupTemplate(JobTemplate):
                     days_old=days_old,
                     date_field=date_field,
                     dry_run=dry_run,
-                    batch_size=batch_size
+                    batch_size=batch_size,
+                    status_filter=status_filter,
+                    delete_all_matching=delete_all_matching
                 )
                 
                 results_by_collection[collection_name] = result
@@ -223,15 +232,29 @@ class DatabaseCleanupTemplate(JobTemplate):
         days_old: int,
         date_field: str,
         dry_run: bool,
-        batch_size: int
+        batch_size: int,
+        status_filter: Any = None,
+        delete_all_matching: bool = False
     ) -> Dict[str, Any]:
-        """Clean up a single collection"""
-        # Calculate cutoff date
-        cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+        """Clean up a single collection
         
-        condition = {
-            date_field: {"$lt": cutoff_date}
-        }
+        Args:
+            status_filter: Optional status or list of statuses to filter by
+            delete_all_matching: If True, ignore days_old and delete all matching status records
+        """
+        condition = {}
+        
+        # Add date condition unless delete_all_matching is True
+        if not delete_all_matching:
+            cutoff_date = datetime.utcnow() - timedelta(days=days_old)
+            condition[date_field] = {"$lt": cutoff_date}
+        
+        # Add status filter if provided
+        if status_filter:
+            if isinstance(status_filter, list):
+                condition["status"] = {"$in": status_filter}
+            else:
+                condition["status"] = status_filter
         
         collection = context.db[collection_name]
         

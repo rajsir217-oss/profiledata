@@ -352,19 +352,14 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           )}
         </div>
         <div className="top-bar-right">
-          {/* Refer a Friend Button */}
+          {/* Search Button */}
           <button 
             className="btn-refer-friend" 
-            onClick={() => {
-              const route = userRole === 'admin' || userRole === 'moderator' 
-                ? '/invitations' 
-                : '/invite-friends';
-              navigate(route, { state: { openModal: true } });
-            }}
-            title="Invite friends"
+            onClick={() => navigate('/search')}
+            title="Search Profiles"
           >
-            <span className="refer-icon">👥</span>
-            <span className="refer-text">Refer a Friend</span>
+            <span className="refer-icon">🔍</span>
+            <span className="refer-text">Search</span>
           </button>
           
           {/* Messages Icon with Dropdown */}

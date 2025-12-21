@@ -1,17 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import api from '../api';
 import { getImageUrl } from '../utils/urlHelper';
 import { emitPIIAccessChange } from '../utils/piiAccessEvents';
 import ImageManagerModal from './ImageManagerModal';
 import UniversalTabContainer from './UniversalTabContainer';
+import PIIRequestsTable from './PIIRequestsTable';
 import './PIIManagement.css';
 
 const PIIManagement = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -19,6 +19,7 @@ const PIIManagement = () => {
   const [receivedAccess, setReceivedAccess] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
   const [outgoingRequests, setOutgoingRequests] = useState([]);
+  const [allIncomingRequests, setAllIncomingRequests] = useState([]); // All statuses for table view
   
   // History data
   const [revokedAccess, setRevokedAccess] = useState([]);
@@ -43,8 +44,8 @@ const PIIManagement = () => {
   const getDefaultTabFromUrl = () => {
     const params = new URLSearchParams(location.search);
     const tab = (params.get('tab') || '').toLowerCase();
-    const allowed = new Set(['granted', 'received', 'incoming', 'outgoing', 'history']);
-    return allowed.has(tab) ? tab : 'granted';
+    const allowed = new Set(['inbox', 'sent', 'archive']);
+    return allowed.has(tab) ? tab : 'inbox';
   };
 
   // Handle tab change (no need to reload data - it's already loaded)
@@ -117,6 +118,9 @@ const PIIManagement = () => {
         
         const incoming = (incomingRes.data.requests || []).map(mapIncomingRequest);
         const outgoing = (outgoingRes.data.requests || []).map(mapOutgoingRequest);
+        
+        // Store all incoming requests for table view (pending, approved, rejected)
+        setAllIncomingRequests(incoming);
         
         // Filter by status
         setIncomingRequests(incoming.filter(r => r.status === 'pending'));
@@ -340,6 +344,34 @@ const PIIManagement = () => {
     }
   };
 
+  const handleDeleteHistoryItem = async (type, id) => {
+    try {
+      if (type === 'access') {
+        await api.delete(`/pii-access/${id}?username=${currentUsername}`);
+      } else if (type === 'request') {
+        await api.delete(`/pii-requests/${id}/history?username=${currentUsername}`);
+      }
+      await loadAllData();
+      setSuccessMessage('History item deleted successfully.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error deleting history item:', err);
+      setError('Failed to delete history item');
+    }
+  };
+
+  const handleClearAllHistory = async (historyType) => {
+    try {
+      await api.delete(`/pii-history/${currentUsername}?type=${historyType}`);
+      await loadAllData();
+      setSuccessMessage('History cleared successfully.');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error clearing history:', err);
+      setError('Failed to clear history');
+    }
+  };
+
   const getAccessTypeLabel = (type) => {
     const labels = {
       'images': '📷 Photos',
@@ -350,6 +382,628 @@ const PIIManagement = () => {
       'date_of_birth': '🎂 Date of Birth'
     };
     return labels[type] || type;
+  };
+
+  const getAccessTypeIcon = (type) => {
+    const icons = {
+      'images': '📷',
+      'contact_number': '📞',
+      'contact_email': '📧',
+      'contact_info': '📧',
+      'linkedin_url': '🔗',
+      'date_of_birth': '🎂'
+    };
+    return icons[type] || '📄';
+  };
+
+  // Group ALL incoming requests by requester username (for table view with status badges)
+  const groupedIncomingRequests = useMemo(() => {
+    const grouped = {};
+    allIncomingRequests.forEach(req => {
+      const username = req.requesterUsername || req.requesterProfile?.username;
+      if (!username) return;
+      
+      if (!grouped[username]) {
+        grouped[username] = {
+          profile: req.requesterProfile,
+          requests: [],
+          oldestRequestDate: req.requestedAt,
+          hasPending: false
+        };
+      }
+      grouped[username].requests.push(req);
+      // Track if user has any pending requests
+      if (req.status === 'pending') {
+        grouped[username].hasPending = true;
+      }
+      // Track oldest request for expiry warning (only pending)
+      if (req.status === 'pending' && new Date(req.requestedAt) < new Date(grouped[username].oldestRequestDate)) {
+        grouped[username].oldestRequestDate = req.requestedAt;
+      }
+    });
+    return grouped;
+  }, [allIncomingRequests]);
+
+  // Calculate days until expiry (7 day limit)
+  const getDaysUntilExpiry = (requestedAt) => {
+    const requestDate = new Date(requestedAt);
+    const expiryDate = new Date(requestDate.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const now = new Date();
+    const daysLeft = Math.ceil((expiryDate - now) / (24 * 60 * 60 * 1000));
+    return daysLeft;
+  };
+
+  // Format relative time
+  const getRelativeTime = (dateStr) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffDays = Math.floor(diffMs / (24 * 60 * 60 * 1000));
+    const diffHours = Math.floor(diffMs / (60 * 60 * 1000));
+    
+    if (diffDays > 0) return `${diffDays}d ago`;
+    if (diffHours > 0) return `${diffHours}h ago`;
+    return 'Just now';
+  };
+
+  // Handle approve all requests from a user
+  const handleApproveAllFromUser = async (username, requests) => {
+    try {
+      // Check if any are photo requests - if so, we need special handling
+      const photoRequests = requests.filter(r => 
+        r.requestType === 'images' || r.requestType === 'photos'
+      );
+      const nonPhotoRequests = requests.filter(r => 
+        r.requestType !== 'images' && r.requestType !== 'photos'
+      );
+      
+      // Approve non-photo requests directly
+      for (const req of nonPhotoRequests) {
+        await api.put(`/pii-requests/${req.id}/approve?username=${currentUsername}`, {});
+      }
+      
+      // For photo requests, open the ImageManager for the first one
+      if (photoRequests.length > 0) {
+        const req = photoRequests[0];
+        await handleApproveRequest(req, req.requesterProfile);
+        return; // ImageManager will handle the rest
+      }
+      
+      await loadAllData();
+      setSuccessMessage(`All requests from ${username} approved!`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+      emitPIIAccessChange('granted', username, currentUsername);
+    } catch (err) {
+      console.error('Error approving all requests:', err);
+      setError('Failed to approve requests');
+    }
+  };
+
+  // Handle reject all requests from a user
+  const handleRejectAllFromUser = async (username, requests) => {
+    try {
+      for (const req of requests) {
+        await api.put(`/pii-requests/${req.id}/reject?username=${currentUsername}`);
+      }
+      await loadAllData();
+      setSuccessMessage(`All requests from ${username} rejected.`);
+      setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err) {
+      console.error('Error rejecting all requests:', err);
+      setError('Failed to reject requests');
+    }
+  };
+
+  // Get icons for what requester will share (mutual exchange preview)
+  const getMutualExchangeIcons = (profile, requestedTypes) => {
+    const icons = [];
+    const piiTypes = ['contact_number', 'contact_email', 'linkedin_url', 'images'];
+    
+    piiTypes.forEach(type => {
+      // Only show icon if this type was requested AND requester has the data
+      if (requestedTypes[type]) {
+        let hasData = false;
+        let icon = '';
+        let label = '';
+        
+        switch (type) {
+          case 'contact_number':
+            hasData = profile?.contactNumber && profile.contactNumber.trim() !== '';
+            icon = '📞';
+            label = 'Contact Number';
+            break;
+          case 'contact_email':
+            hasData = profile?.contactEmail && profile.contactEmail.trim() !== '';
+            icon = '📧';
+            label = 'Email';
+            break;
+          case 'linkedin_url':
+            hasData = profile?.linkedinUrl && profile.linkedinUrl.trim() !== '';
+            icon = '🔗';
+            label = 'LinkedIn';
+            break;
+          case 'images':
+            hasData = profile?.images && profile.images.length > 0;
+            icon = '📷';
+            label = `${profile?.images?.length || 0} Photos`;
+            break;
+          default:
+            break;
+        }
+        
+        if (hasData) {
+          icons.push({ icon, label, type });
+        }
+      }
+    });
+    
+    return icons;
+  };
+
+  // Render the table-based requests view
+  const renderRequestsTable = () => {
+    const usernames = Object.keys(groupedIncomingRequests);
+    const uniqueUsersCount = usernames.length;
+    const totalRequestsCount = allIncomingRequests.length;
+    const pendingCount = incomingRequests.length;
+    
+    if (totalRequestsCount === 0) {
+      return (
+        <div className="empty-state-small">
+          <p>No requests</p>
+        </div>
+      );
+    }
+
+    // Define all possible PII types for columns
+    const piiTypes = ['contact_number', 'contact_email', 'linkedin_url', 'images'];
+    
+    return (
+      <div className="pii-requests-table-container">
+        <div className="table-summary">
+          {pendingCount > 0 ? (
+            <>{pendingCount} pending request{pendingCount !== 1 ? 's' : ''}</>
+          ) : (
+            <>No pending requests</>
+          )}
+          {totalRequestsCount > pendingCount && (
+            <span className="processed-count"> • {totalRequestsCount - pendingCount} processed</span>
+          )}
+          <span className="mutual-info"> • 🔄 Mutual exchange</span>
+        </div>
+        
+        <div className="pii-requests-table-wrapper">
+          <table className="pii-requests-table">
+            <thead>
+              <tr>
+                <th className="col-profile">Profile</th>
+                <th className="col-requested">Requested</th>
+                <th className="col-pii">📞 Contact #</th>
+                <th className="col-pii">📧 Email</th>
+                <th className="col-pii">🔗 LinkedIn</th>
+                <th className="col-pii">📷 Photos</th>
+                <th className="col-exchange">🔄 You'll Get</th>
+                <th className="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usernames.map(username => {
+                const { profile, requests, oldestRequestDate } = groupedIncomingRequests[username];
+                const daysLeft = getDaysUntilExpiry(oldestRequestDate);
+                const isExpiringSoon = daysLeft <= 2;
+                
+                // Create a map of requested types for this user
+                const requestedTypes = {};
+                requests.forEach(req => {
+                  requestedTypes[req.requestType] = req;
+                });
+                
+                // Get mutual exchange icons
+                const exchangeIcons = getMutualExchangeIcons(profile, requestedTypes);
+                
+                return (
+                  <tr key={username} className={isExpiringSoon ? 'expiring-soon' : ''}>
+                    <td className="col-profile">
+                      <div 
+                        className="table-user-info clickable"
+                        onClick={() => handleProfileClick(username)}
+                      >
+                        {profile?.images?.[0] ? (
+                          <img 
+                            src={getImageUrl(profile.images[0])} 
+                            alt={username} 
+                            className="table-avatar" 
+                          />
+                        ) : (
+                          <div className="table-avatar-placeholder">
+                            {profile?.firstName?.[0] || username[0].toUpperCase()}
+                          </div>
+                        )}
+                        <div className="table-user-details">
+                          <span className="table-user-name">
+                            {profile?.firstName || username}
+                          </span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="col-requested">
+                      <span className={`time-badge ${isExpiringSoon ? 'warning' : ''}`}>
+                        {getRelativeTime(oldestRequestDate)}
+                        {isExpiringSoon && <span className="expiry-warning"> ⚠️</span>}
+                      </span>
+                    </td>
+                    {piiTypes.map(type => {
+                      const request = requestedTypes[type];
+                      return (
+                        <td key={type} className="col-pii">
+                          {request ? (
+                            request.status === 'pending' ? (
+                              <div className="pii-cell-actions">
+                                <button
+                                  className="btn-cell-approve"
+                                  onClick={() => handleApproveRequest(request, profile)}
+                                  title="Approve"
+                                >
+                                  ✅
+                                </button>
+                                <button
+                                  className="btn-cell-reject"
+                                  onClick={() => handleRejectRequest(request.id)}
+                                  title="Reject"
+                                >
+                                  ❌
+                                </button>
+                              </div>
+                            ) : request.status === 'approved' ? (
+                              <span className="status-badge-approved" title="Approved">✅</span>
+                            ) : request.status === 'rejected' ? (
+                              <span className="status-badge-rejected" title="Rejected">❌</span>
+                            ) : (
+                              <span className="not-requested">➖</span>
+                            )
+                          ) : (
+                            <span className="not-requested">➖</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="col-exchange">
+                      <div className="exchange-icons" title="What you'll receive if you approve">
+                        {exchangeIcons.length > 0 ? (
+                          exchangeIcons.map(({ icon, label, type }) => (
+                            <span 
+                              key={type} 
+                              className="exchange-icon" 
+                              title={label}
+                            >
+                              {icon}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="no-exchange" title="Requester has no matching data">—</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="col-actions">
+                      <div className="row-actions">
+                        <button
+                          className="btn-row-approve"
+                          onClick={() => handleApproveAllFromUser(username, requests)}
+                          title={`Approve all ${requests.length} requests`}
+                        >
+                          ✓ All
+                        </button>
+                        <button
+                          className="btn-row-reject"
+                          onClick={() => handleRejectAllFromUser(username, requests)}
+                          title={`Reject all ${requests.length} requests`}
+                        >
+                          ✗ All
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="table-legend">
+          <span><span className="legend-icon">✅</span> Approve</span>
+          <span><span className="legend-icon">❌</span> Reject</span>
+          <span><span className="legend-icon">➖</span> Not Requested</span>
+          <span><span className="legend-icon">🔄</span> Mutual Exchange</span>
+          <span><span className="legend-icon">⚠️</span> Expires soon (7-day limit)</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Memoized archive items for PIIRequestsTable
+  const archiveItems = useMemo(() => {
+    return [
+      ...revokedAccess.map(item => ({
+        type: 'revoked',
+        profile: item.userProfile,
+        accessTypes: item.accessTypes,
+        date: item.grantedAt,
+        direction: 'outgoing'
+      })),
+      ...expiredAccess.map(item => ({
+        type: 'expired',
+        profile: item.userProfile,
+        accessTypes: item.accessTypes,
+        date: item.grantedAt,
+        direction: 'outgoing'
+      })),
+      ...rejectedIncoming.map(req => ({
+        type: 'rejected',
+        profile: req.requesterProfile,
+        accessTypes: [req.requestType],
+        date: req.respondedAt || req.requestedAt,
+        direction: 'incoming'
+      })),
+      ...rejectedOutgoing.map(req => ({
+        type: 'rejected',
+        profile: req.profileOwner,
+        accessTypes: [req.requestType],
+        date: req.respondedAt || req.requestedAt,
+        direction: 'outgoing'
+      }))
+    ].sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [revokedAccess, expiredAccess, rejectedIncoming, rejectedOutgoing]);
+
+  // Render the Archive table view (kept for backward compatibility, now uses PIIRequestsTable)
+  const renderArchiveTable = () => {
+    const totalCount = archiveItems.length;
+
+    if (totalCount === 0) {
+      return (
+        <div className="empty-state">
+          <span className="empty-icon">📁</span>
+          <p>No archived items</p>
+        </div>
+      );
+    }
+
+    const getStatusBadgeClass = (type) => {
+      switch (type) {
+        case 'revoked': return 'badge-revoked';
+        case 'expired': return 'badge-expired';
+        case 'rejected': return 'badge-rejected';
+        default: return '';
+      }
+    };
+
+    const getStatusLabel = (type, direction) => {
+      switch (type) {
+        case 'revoked': return '🚫 Revoked';
+        case 'expired': return '⏱️ Expired';
+        case 'rejected': return direction === 'incoming' ? '❌ You Rejected' : '⛔ They Rejected';
+        default: return type;
+      }
+    };
+
+    return (
+      <div className="pii-requests-table-container archive-table">
+        <div className="table-summary archive-summary">
+          {totalCount} archived item{totalCount !== 1 ? 's' : ''}
+          <button 
+            className="btn-clear-all-archive"
+            onClick={() => {
+              // Clear all history types
+              handleClearAllHistory('all');
+            }}
+            title="Clear all archive"
+          >
+            🗑️ Clear All
+          </button>
+        </div>
+        
+        <div className="pii-requests-table-wrapper">
+          <table className="pii-requests-table">
+            <thead>
+              <tr>
+                <th className="col-profile">Profile</th>
+                <th className="col-status">Status</th>
+                <th className="col-types">Access Types</th>
+                <th className="col-date">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {archiveItems.map((item, index) => (
+                <tr key={`${item.profile?.username}-${index}`}>
+                  <td className="col-profile">
+                    <div 
+                      className="table-user-info clickable"
+                      onClick={() => handleProfileClick(item.profile?.username)}
+                    >
+                      {item.profile?.images?.[0] ? (
+                        <img 
+                          src={getImageUrl(item.profile.images[0])} 
+                          alt={item.profile.username} 
+                          className="table-avatar" 
+                        />
+                      ) : (
+                        <div className="table-avatar-placeholder">
+                          {item.profile?.firstName?.[0] || item.profile?.username?.[0]?.toUpperCase() || '?'}
+                        </div>
+                      )}
+                      <span className="table-user-name">
+                        {item.profile?.firstName || item.profile?.username || 'Unknown'}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="col-status">
+                    <span className={`archive-status-badge ${getStatusBadgeClass(item.type)}`}>
+                      {getStatusLabel(item.type, item.direction)}
+                    </span>
+                  </td>
+                  <td className="col-types">
+                    <div className="archive-types">
+                      {item.accessTypes.map((type, idx) => (
+                        <span key={idx} className="archive-type-icon" title={getAccessTypeLabel(type)}>
+                          {getAccessTypeIcon(type)}
+                        </span>
+                      ))}
+                    </div>
+                  </td>
+                  <td className="col-date">
+                    <span className="archive-date">
+                      {new Date(item.date).toLocaleDateString()}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="table-legend archive-legend">
+          <span><span className="legend-icon">🚫</span> Revoked</span>
+          <span><span className="legend-icon">⏱️</span> Expired</span>
+          <span><span className="legend-icon">❌</span> Rejected</span>
+          <span><span className="legend-icon">⚠️</span> Archived items will be auto-removed after 7 days</span>
+        </div>
+      </div>
+    );
+  };
+
+  // Group outgoing requests by target user (moved outside render function for hooks compliance)
+  const groupedOutgoingRequests = useMemo(() => {
+    const grouped = {};
+    outgoingRequests.forEach(req => {
+      const username = req.profileOwner?.username;
+      if (!username) return;
+      if (!grouped[username]) {
+        grouped[username] = {
+          profile: req.profileOwner,
+          requests: []
+        };
+      }
+      grouped[username].requests.push(req);
+    });
+    return grouped;
+  }, [outgoingRequests]);
+
+  // Render the Requests Sent table view (same columns as Inbox)
+  const renderSentRequestsTable = () => {
+    const totalCount = outgoingRequests.length;
+    // Use snake_case to match PIIRequestModal values stored in DB
+    const piiTypesForSent = ['contact_number', 'contact_email', 'linkedin_url', 'images'];
+
+    if (totalCount === 0) {
+      return (
+        <div className="empty-state">
+          <span className="empty-icon">📭</span>
+          <p>No requests sent</p>
+        </div>
+      );
+    }
+
+    const usernames = Object.keys(groupedOutgoingRequests);
+
+    return (
+      <div className="pii-requests-table-container sent-table">
+        <div className="table-summary sent-summary">
+          {totalCount} pending request{totalCount !== 1 ? 's' : ''} to {usernames.length} user{usernames.length !== 1 ? 's' : ''}
+        </div>
+        
+        <div className="pii-requests-table-wrapper">
+          <table className="pii-requests-table">
+            <thead>
+              <tr>
+                <th className="col-profile">To</th>
+                <th className="col-requested">Requested</th>
+                <th className="col-pii">📞 Contact #</th>
+                <th className="col-pii">📧 Email</th>
+                <th className="col-pii">🔗 LinkedIn</th>
+                <th className="col-pii">📷 Photos</th>
+                <th className="col-actions">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usernames.map(username => {
+                const { profile, requests } = groupedOutgoingRequests[username];
+                const requestedTypes = {};
+                requests.forEach(req => {
+                  // Store by original requestType (snake_case from DB)
+                  requestedTypes[req.requestType] = req;
+                });
+                
+                // Get earliest request time
+                const earliestRequest = requests.reduce((earliest, req) => 
+                  new Date(req.requestedAt) < new Date(earliest.requestedAt) ? req : earliest
+                , requests[0]);
+
+                return (
+                  <tr key={username}>
+                    <td className="col-profile">
+                      <div 
+                        className="table-user-info clickable"
+                        onClick={() => handleProfileClick(username)}
+                      >
+                        {profile?.images?.[0] ? (
+                          <img 
+                            src={getImageUrl(profile.images[0])} 
+                            alt={username} 
+                            className="table-avatar" 
+                          />
+                        ) : (
+                          <div className="table-avatar-placeholder">
+                            {profile?.firstName?.[0] || username[0]?.toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <span className="table-user-name">
+                          {profile?.firstName || username}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="col-requested">
+                      <span className="time-badge">
+                        {getRelativeTime(earliestRequest.requestedAt)}
+                      </span>
+                    </td>
+                    {piiTypesForSent.map(type => {
+                      const request = requestedTypes[type];
+                      return (
+                        <td key={type} className="col-pii">
+                          {request ? (
+                            <span className="sent-pending-badge" title={`Pending - ${getAccessTypeLabel(type)}`}>
+                              ⏳
+                            </span>
+                          ) : (
+                            <span className="not-requested">➖</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                    <td className="col-actions">
+                      <button
+                        className="btn-cancel-request"
+                        onClick={() => {
+                          // Cancel all requests to this user
+                          requests.forEach(req => handleCancelRequest(req.id));
+                        }}
+                        title={`Cancel all ${requests.length} request(s)`}
+                      >
+                        ✗ Cancel
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="table-legend">
+          <span><span className="legend-icon">⏳</span> Pending</span>
+          <span><span className="legend-icon">➖</span> Not Requested</span>
+        </div>
+      </div>
+    );
   };
 
   const getStatusBadge = (status) => {
@@ -395,7 +1049,7 @@ const PIIManagement = () => {
 
         <div className="access-card-body">
           <div className="access-types">
-            {item.accessTypes.map(accessType => {
+            {item.accessTypes.map((accessType, typeIdx) => {
               const isExpired = expiredTypes.includes(accessType);
               // Check if this access type is now member-visible (only for granted tab)
               const isMemberVisible = isGranted && (
@@ -405,7 +1059,7 @@ const PIIManagement = () => {
               );
               return (
                 <span 
-                  key={accessType} 
+                  key={`${accessType}-${typeIdx}`} 
                   className={`access-type-badge ${isExpired ? 'expired' : ''} ${isMemberVisible ? 'member-visible' : ''}`}
                   title={isMemberVisible ? 'This info is now visible to all members' : isExpired ? 'Access has expired (one-time view used)' : ''}
                 >
@@ -646,354 +1300,57 @@ const PIIManagement = () => {
         </div>
       )}
 
-      <div className="pii-management-actions">
-        <div className="view-mode-toggle">
-          <button
-            className={`view-btn ${viewMode === 'cards' ? 'active' : ''}`}
-            onClick={() => setViewMode('cards')}
-            title="Card View"
-          >
-            <span>⊞</span>
-            <span>Cards</span>
-          </button>
-          <button
-            className={`view-btn ${viewMode === 'rows' ? 'active' : ''}`}
-            onClick={() => setViewMode('rows')}
-            title="Row View"
-          >
-            <span>☰</span>
-            <span>Rows</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs - Using UniversalTabContainer */}
+      {/* Tabs - Using UniversalTabContainer with pill style */}
       <UniversalTabContainer
-        variant="underlined"
+        variant="pills"
         defaultTab={getDefaultTabFromUrl()}
         key={getDefaultTabFromUrl()}
         onTabChange={handleTabChange}
         tabs={[
           {
-            id: 'granted',
-            icon: '🔓',
-            label: "Granted",
-            badge: grantedAccess.length,
-            content: (
-              <>
-            <div className="panel-header">
-              <h3>People Who Can See Your Information</h3>
-              <p>You've granted these users access to your private data</p>
-            </div>
-            {grantedAccess.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">🔒</span>
-                <p>You haven't granted access to anyone yet</p>
-              </div>
-            ) : (
-              <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
-                {grantedAccess.map(item => renderAccessCard(item, 'granted'))}
-              </div>
-            )}
-              </>
-            )
-          },
-          {
-            id: 'received',
-            icon: '✅',
-            label: 'Received',
-            badge: receivedAccess.length,
-            content: (
-              <>
-            <div className="panel-header">
-              <h3>Information You Can Access</h3>
-              <p>These users have granted you access to their private data</p>
-            </div>
-            {receivedAccess.length === 0 ? (
-              <div className="empty-state">
-                <span className="empty-icon">📭</span>
-                <p>You don't have access to anyone's private information yet</p>
-              </div>
-            ) : (
-              <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
-                {receivedAccess.map(item => renderAccessCard(item, 'received'))}
-              </div>
-            )}
-              </>
-            )
-          },
-          {
-            id: 'requests',
+            id: 'inbox',
             icon: '📬',
-            label: 'Requests',
-            badge: incomingRequests.length + outgoingRequests.length,
+            label: 'Requests Inbox',
+            badge: allIncomingRequests.length,
             content: (
-              <>
-            {/* Incoming Requests */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>Requests to You ({incomingRequests.length})</h3>
-                <p>People requesting access to your information</p>
-              </div>
-              {incomingRequests.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No pending requests</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
-                  {incomingRequests.map(req => renderRequestCard(req, true))}
-                </div>
-              )}
-            </div>
-
-            {/* Outgoing Requests */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>Your Requests ({outgoingRequests.length})</h3>
-                <p>Requests you've sent to others</p>
-              </div>
-              {outgoingRequests.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No requests sent</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
-                  {outgoingRequests.map(req => renderRequestCard(req, false))}
-                </div>
-              )}
-            </div>
-              </>
+              <PIIRequestsTable
+                requests={allIncomingRequests}
+                type="inbox"
+                onApprove={handleApproveRequest}
+                onReject={handleRejectRequest}
+                onApproveAll={handleApproveAllFromUser}
+                onRejectAll={handleRejectAllFromUser}
+                onProfileClick={(username) => navigate(`/profile/${username}`)}
+                showMutualExchange={true}
+              />
             )
           },
           {
-            id: 'history',
-            icon: '📜',
-            label: 'History',
-            badge: revokedAccess.length + expiredAccess.length + rejectedIncoming.length + rejectedOutgoing.length,
+            id: 'sent',
+            icon: '📤',
+            label: 'Requests Sent',
+            badge: outgoingRequests.length,
             content: (
-              <>
-            {/* Revoked Access */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>🚫 Revoked Access ({revokedAccess.length})</h3>
-                <p>Access you've revoked from others</p>
-              </div>
-              {revokedAccess.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No revoked access</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
-                  {revokedAccess.map(item => {
-                    const profile = item.userProfile;
-                    return (
-                      <div 
-                        key={profile.username} 
-                        className="access-card clickable history-card"
-                        onClick={() => handleProfileClick(profile.username)}
-                      >
-                        <div className="access-card-header">
-                          <div className="user-info">
-                            {profile.images?.[0] ? (
-                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
-                            ) : (
-                              <div className="access-avatar-placeholder">
-                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <h4>{profile.firstName || profile.username}</h4>
-                              <p className="access-username">@{profile.username}</p>
-                            </div>
-                          </div>
-                          <span className="status-badge badge-cancelled">Revoked</span>
-                        </div>
-                        <div className="access-card-body">
-                          <div className="access-types">
-                            {item.accessTypes.map(type => (
-                              <span key={type} className="access-type-badge">
-                                {getAccessTypeLabel(type)}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="access-date">
-                            Revoked: {new Date(item.grantedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Expired Access */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>⏱️ Expired Access ({expiredAccess.length})</h3>
-                <p>One-time views that have been used up</p>
-              </div>
-              {expiredAccess.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No expired access</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'access-grid-cards' : 'access-grid-rows'}>
-                  {expiredAccess.map(item => {
-                    const profile = item.userProfile;
-                    return (
-                      <div 
-                        key={profile.username} 
-                        className="access-card clickable history-card expired-card"
-                        onClick={() => handleProfileClick(profile.username)}
-                      >
-                        <div className="access-card-header">
-                          <div className="user-info">
-                            {profile.images?.[0] ? (
-                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
-                            ) : (
-                              <div className="access-avatar-placeholder">
-                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <h4>{profile.firstName || profile.username}</h4>
-                              <p className="access-username">@{profile.username}</p>
-                            </div>
-                          </div>
-                          <span className="status-badge badge-expired">Expired</span>
-                        </div>
-                        <div className="access-card-body">
-                          <div className="access-types">
-                            {item.accessTypes.map(type => (
-                              <span key={type} className="access-type-badge expired">
-                                {getAccessTypeLabel(type)}
-                              </span>
-                            ))}
-                          </div>
-                          <p className="access-date">
-                            Originally granted: {new Date(item.grantedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Rejected Incoming Requests */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>❌ Rejected Requests to You ({rejectedIncoming.length})</h3>
-                <p>Requests you've rejected</p>
-              </div>
-              {rejectedIncoming.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No rejected requests</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
-                  {rejectedIncoming.map(request => {
-                    const profile = request.requesterProfile;
-                    return (
-                      <div 
-                        key={request.id} 
-                        className="request-card clickable history-card"
-                        onClick={() => handleProfileClick(profile.username)}
-                      >
-                        <div className="request-card-header">
-                          <div className="user-info">
-                            {profile.images?.[0] ? (
-                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
-                            ) : (
-                              <div className="access-avatar-placeholder">
-                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <h4>{profile.firstName || profile.username}</h4>
-                              <p className="access-username">@{profile.username}</p>
-                            </div>
-                          </div>
-                          <span className="status-badge badge-rejected">Rejected</span>
-                        </div>
-                        <div className="request-card-body">
-                          <div className="request-type">
-                            <strong>Requested:</strong> {getAccessTypeLabel(request.requestType)}
-                          </div>
-                          {request.message && (
-                            <div className="request-message">
-                              <strong>Message:</strong> {request.message}
-                            </div>
-                          )}
-                          <p className="request-date">
-                            Rejected: {new Date(request.respondedAt || request.requestedAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Rejected Outgoing Requests */}
-            <div className="requests-section">
-              <div className="panel-header">
-                <h3>⛔ Your Rejected Requests ({rejectedOutgoing.length})</h3>
-                <p>Your requests that were rejected by others</p>
-              </div>
-              {rejectedOutgoing.length === 0 ? (
-                <div className="empty-state-small">
-                  <p>No rejected requests</p>
-                </div>
-              ) : (
-                <div className={viewMode === 'cards' ? 'request-grid-cards' : 'request-grid-rows'}>
-                  {rejectedOutgoing.map(request => {
-                    const profile = request.profileOwner;
-                    return (
-                      <div 
-                        key={request.id} 
-                        className="request-card clickable history-card"
-                        onClick={() => handleProfileClick(profile.username)}
-                      >
-                        <div className="request-card-header">
-                          <div className="user-info">
-                            {profile.images?.[0] ? (
-                              <img src={getImageUrl(profile.images[0])} alt={profile.username} className="access-avatar" />
-                            ) : (
-                              <div className="access-avatar-placeholder">
-                                {profile.firstName?.[0] || profile.username[0].toUpperCase()}
-                              </div>
-                            )}
-                            <div>
-                              <h4>{profile.firstName || profile.username}</h4>
-                              <p className="access-username">@{profile.username}</p>
-                            </div>
-                          </div>
-                          <span className="status-badge badge-rejected">Rejected</span>
-                        </div>
-                        <div className="request-card-body">
-                          <div className="request-type">
-                            <strong>Requested:</strong> {getAccessTypeLabel(request.requestType)}
-                          </div>
-                          {request.message && (
-                            <div className="request-message">
-                              <strong>Your message:</strong> {request.message}
-                            </div>
-                          )}
-                          <p className="request-date">
-                            Rejected: {new Date(request.respondedAt || request.requestedAt).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-              </>
+              <PIIRequestsTable
+                requests={outgoingRequests}
+                type="sent"
+                onCancel={handleCancelRequest}
+                onProfileClick={(username) => navigate(`/profile/${username}`)}
+              />
+            )
+          },
+          {
+            id: 'archive',
+            icon: '📁',
+            label: 'Archive',
+            badge: archiveItems.length,
+            content: (
+              <PIIRequestsTable
+                requests={archiveItems}
+                type="archive"
+                onClearAll={() => handleClearAllHistory('all')}
+                onProfileClick={(username) => navigate(`/profile/${username}`)}
+              />
             )
           }
         ]}

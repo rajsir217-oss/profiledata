@@ -182,7 +182,21 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
       }, 2000);
     } catch (err) {
       console.error('Error creating PII request:', err);
-      setError(err.response?.data?.detail || 'Failed to send request');
+      // Handle Pydantic validation errors (array of objects with {type, loc, msg, input, url})
+      const errorDetail = err.response?.data?.detail;
+      let errorMsg = 'Failed to send request';
+      
+      if (Array.isArray(errorDetail)) {
+        // Pydantic validation errors
+        errorMsg = errorDetail.map(e => e.msg || JSON.stringify(e)).join(', ');
+      } else if (typeof errorDetail === 'string') {
+        errorMsg = errorDetail;
+      } else if (typeof errorDetail === 'object' && errorDetail !== null) {
+        // Single error object
+        errorMsg = errorDetail.msg || errorDetail.message || JSON.stringify(errorDetail);
+      }
+      
+      setError(errorMsg);
       // Auto-hide error after 5 seconds
       setTimeout(() => setError(''), 5000);
     } finally {
@@ -324,7 +338,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                 // Disable if: has access, pending, OR already member visible
                 const isDisabled = hasAccess || isPending || isMemberVisible;
                 // Member-visible fields should appear checked (but locked)
-                const isSelected = selectedTypes.includes(type.value) || isMemberVisible;
+                // Ensure boolean value to avoid uncontrolled->controlled warning
+                const isSelected = selectedTypes.includes(type.value) || isMemberVisible || false;
                 
                 return (
                   <div

@@ -661,6 +661,22 @@
   }
 }
 
+/* PII Requests Section Header - Distinct purple/teal gradient */
+.activity-group-header.activity-group-header-pii {
+  background: linear-gradient(135deg, #6b5b95 0%, #5a9a8a 100%);
+}
+
+/* Pill button styles for PII section */
+.category-pill.pill-inbox.active {
+  background: linear-gradient(135deg, #6b5b95 0%, #8b7bb5 100%);
+  color: white;
+}
+
+.category-pill.pill-sent.active {
+  background: linear-gradient(135deg, #5a9a8a 0%, #6ba8a0 100%);
+  color: white;
+}
+
 /* Clickable header for collapsible sections */
 .activity-group-header.clickable {
   cursor: pointer;

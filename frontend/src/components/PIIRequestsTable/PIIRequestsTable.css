@@ -1,0 +1,658 @@
+/* ========================================
+   PIIRequestsTable - Reusable Table Component
+   ======================================== */
+
+/* Empty State */
+.pii-table-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+}
+
+.pii-table-empty-state .empty-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.6;
+}
+
+.pii-table-empty-state p {
+  margin: 0;
+  font-size: 14px;
+}
+
+/* Table Container */
+.pii-requests-table-container {
+  background: var(--card-background);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pii-requests-table-container.compact {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+/* Table Summary Header */
+.table-summary {
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #6b5b95 0%, #8b7bb5 100%);
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.table-summary .processed-count {
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+.table-summary .mutual-info {
+  opacity: 0.85;
+  font-weight: 400;
+}
+
+/* Sent Table Summary */
+.sent-table .table-summary.sent-summary {
+  background: linear-gradient(135deg, #6ba8a0 0%, #7dbdb5 100%);
+}
+
+/* Archive Table Summary */
+.archive-table .table-summary.archive-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #8a9499 0%, #a0a8ad 100%);
+}
+
+.btn-clear-all-archive {
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear-all-archive:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Table Wrapper */
+.pii-requests-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Table */
+.pii-requests-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.pii-requests-table th,
+.pii-requests-table td {
+  padding: 12px 16px;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pii-requests-table th {
+  background: var(--surface-color);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.pii-requests-table tbody tr:hover {
+  background: var(--hover-color, rgba(0, 0, 0, 0.02));
+}
+
+.pii-requests-table tbody tr.expiring-soon {
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* Column Widths */
+.col-profile {
+  text-align: left !important;
+  min-width: 150px;
+}
+
+.col-requested {
+  min-width: 80px;
+}
+
+.col-pii {
+  min-width: 80px;
+}
+
+.col-exchange {
+  min-width: 100px;
+}
+
+.col-actions {
+  min-width: 100px;
+}
+
+.col-status {
+  min-width: 120px;
+}
+
+.col-types {
+  min-width: 100px;
+}
+
+.col-date {
+  min-width: 100px;
+  text-align: right !important;
+}
+
+/* User Info Cell */
+.table-user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.table-user-info.clickable {
+  cursor: pointer;
+}
+
+.table-user-info.clickable:hover .table-user-name {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+.table-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.table-avatar-placeholder {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.table-user-name {
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+/* Time Badge */
+.time-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--surface-color);
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.time-badge.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+.expiry-warning {
+  margin-left: 2px;
+}
+
+/* PII Cell Actions */
+.pii-cell-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+}
+
+.btn-cell-approve,
+.btn-cell-reject {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-cell-approve {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.btn-cell-approve:hover {
+  background: rgba(34, 197, 94, 0.3);
+  transform: scale(1.1);
+}
+
+.btn-cell-reject {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.btn-cell-reject:hover {
+  background: rgba(239, 68, 68, 0.3);
+  transform: scale(1.1);
+}
+
+/* Status Badges */
+.status-badge-approved,
+.status-badge-rejected {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.status-badge-approved {
+  background: rgba(34, 197, 94, 0.15);
+}
+
+.status-badge-rejected {
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.not-requested {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* Sent Status Badges */
+.sent-pending-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(245, 158, 11, 0.15);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.sent-approved-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success-color);
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.sent-rejected-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger-color);
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.sent-cancelled-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(156, 163, 175, 0.15);
+  color: var(--text-muted);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.sent-revoked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* Member Visible Badge - indicates PII is visible to all members */
+.member-visible-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--primary-color);
+  border-radius: 50%;
+  font-size: 10px;
+  margin-right: 2px;
+  vertical-align: middle;
+}
+
+/* Legend approved/rejected colors */
+.table-legend .legend-icon.approved {
+  color: var(--success-color);
+}
+
+.table-legend .legend-icon.rejected {
+  color: var(--danger-color);
+}
+
+.table-legend .legend-icon.member-visible {
+  color: var(--primary-color);
+}
+
+.table-legend .legend-icon.revoked {
+  color: #f97316;
+}
+
+/* Exchange Icons */
+.exchange-icons {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.exchange-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: rgba(34, 197, 94, 0.1);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.no-exchange {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+/* Row Actions */
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.btn-row-approve,
+.btn-row-reject {
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-row-approve {
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+}
+
+.btn-row-approve:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+.btn-row-reject {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+.btn-row-reject:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+}
+
+/* Cancel Button */
+.btn-cancel-request {
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger-color, #ef4444);
+}
+
+.btn-cancel-request:hover {
+  background: var(--danger-color, #ef4444);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+/* Archive Status Badges */
+.archive-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.archive-status-badge.badge-revoked {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger-color, #ef4444);
+}
+
+.archive-status-badge.badge-expired {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning-color, #f59e0b);
+}
+
+.archive-status-badge.badge-rejected {
+  background: rgba(107, 114, 128, 0.15);
+  color: var(--text-secondary, #6b7280);
+}
+
+/* Archive Types */
+.archive-types {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.archive-type-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: var(--surface-color);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.archive-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Table Legend */
+.table-legend {
+  padding: 12px 20px;
+  background: var(--surface-color);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.table-legend span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legend-icon {
+  font-size: 14px;
+}
+
+/* ========================================
+   RESPONSIVE STYLES
+   ======================================== */
+
+@media (max-width: 768px) {
+  .pii-requests-table-container {
+    border-radius: 8px;
+  }
+
+  .table-summary {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+
+  .pii-requests-table th,
+  .pii-requests-table td {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
+  .col-exchange {
+    display: none;
+  }
+
+  .col-date {
+    display: none;
+  }
+
+  .table-avatar,
+  .table-avatar-placeholder {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
+
+  .btn-cell-approve,
+  .btn-cell-reject,
+  .status-badge-approved,
+  .status-badge-rejected,
+  .sent-pending-badge {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+
+  .btn-row-approve,
+  .btn-row-reject {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .table-legend {
+    padding: 10px 16px;
+    gap: 12px;
+    font-size: 11px;
+  }
+
+  .archive-status-badge {
+    font-size: 10px;
+    padding: 3px 8px;
+  }
+
+  .archive-type-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .col-pii:nth-child(n+4) {
+    display: none;
+  }
+
+  .col-types {
+    display: none;
+  }
+
+  .table-user-info {
+    gap: 6px;
+  }
+
+  .table-user-name {
+    font-size: 12px;
+    max-width: 80px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .btn-clear-all-archive {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
+/* Compact Mode Adjustments */
+.pii-requests-table-container.compact .table-summary {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.pii-requests-table-container.compact .pii-requests-table th,
+.pii-requests-table-container.compact .pii-requests-table td {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.pii-requests-table-container.compact .table-avatar,
+.pii-requests-table-container.compact .table-avatar-placeholder {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+
+.pii-requests-table-container.compact .table-legend {
+  padding: 8px 16px;
+  font-size: 10px;
+}
