@@ -104,7 +104,7 @@ async def add_profileid_to_templates():
             # Look for the closing </div> of the card and insert before it
             profile_id_line = """
                 <p style="color: #666; font-size: 12px; margin-top: 10px;">
-                    Profile ID: <strong>{match.profileId}</strong>
+                    Profile ID: <a href="{profile_url}" style="color: #667eea; font-weight: bold; text-decoration: none;">{match.profileId}</a>
                 </p>"""
             
             # Find a good insertion point - after the main description in the card

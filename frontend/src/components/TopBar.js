@@ -340,7 +340,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               >
                 <span className="online-dot">🟢</span>
                 <span className="online-count">{onlineCount}</span>
-                <span className="online-text">{onlineCount} user{onlineCount !== 1 ? 's' : ''} online</span>
+                <span className="online-text">{onlineCount} member{onlineCount !== 1 ? 's' : ''} online</span>
               </div>
               {(userRole === 'admin' || userRole === 'moderator') && (
                 <OnlineUsersDropdown

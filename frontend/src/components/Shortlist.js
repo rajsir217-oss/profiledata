@@ -22,6 +22,7 @@ const Shortlist = () => {
   // PII Request modal state
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null);
   
   const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
@@ -29,6 +30,7 @@ const Shortlist = () => {
   useEffect(() => {
     loadShortlist();
     loadPiiRequests();
+    loadCurrentUserProfile();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -47,6 +49,17 @@ const Shortlist = () => {
       setError('Failed to load shortlist');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCurrentUserProfile = async () => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) return;
+      const response = await api.get(`/profile/${username}?requester=${username}`);
+      setCurrentUserProfile(response.data);
+    } catch (err) {
+      console.error('Error loading current user profile:', err);
     }
   };
 
@@ -122,9 +135,25 @@ const Shortlist = () => {
     return piiRequests[`${targetUsername}_images`] === 'pending';
   };
 
-  const handlePIIRequest = (user) => {
-    setSelectedUserForPII(user);
-    setShowPIIRequestModal(true);
+  const handlePIIRequest = async (user) => {
+    try {
+      // Fetch target user's full profile to get accurate visibility settings
+      const profileResponse = await api.get(`/profile/${user.username}`);
+      const targetProfile = profileResponse.data;
+      
+      setSelectedUserForPII({
+        ...user,
+        contactNumberVisible: targetProfile.contactNumberVisible,
+        contactEmailVisible: targetProfile.contactEmailVisible,
+        linkedinUrlVisible: targetProfile.linkedinUrlVisible,
+        imagesVisible: targetProfile.imagesVisible
+      });
+      setShowPIIRequestModal(true);
+    } catch (err) {
+      console.error('Failed to fetch profile for PII modal:', err);
+      setSelectedUserForPII(user);
+      setShowPIIRequestModal(true);
+    }
   };
 
   const handlePIIRequestSuccess = async () => {
@@ -245,8 +274,10 @@ const Shortlist = () => {
           visibilitySettings={{
             contactNumberVisible: selectedUserForPII.contactNumberVisible,
             contactEmailVisible: selectedUserForPII.contactEmailVisible,
-            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible,
+            imagesVisible: selectedUserForPII.imagesVisible
           }}
+          requesterProfile={currentUserProfile}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);

@@ -130,6 +130,8 @@ const Dashboard = () => {
     const loadUserProfile = async () => {
       try {
         const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
+        console.log('✅ Dashboard: userProfile loaded:', response.data);
+        console.log('✅ Dashboard: userProfile.images:', response.data?.images);
         setUserProfile(response.data);
         
         // Check if user has no photos and hasn't dismissed the reminder this session
@@ -594,7 +596,7 @@ const Dashboard = () => {
       await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       // Reload dashboard to get fresh data
       await loadDashboardData(currentUser);
-      toast.success(`Hidden from search`);
+      toast.success(`Search Exclude`);
     } catch (err) {
       logger.error(`Failed to add to exclusions: ${err.message}`);
       toast.error(`Failed to add to exclusions`);
@@ -604,7 +606,18 @@ const Dashboard = () => {
   const handleRequestPII = async (user) => {
     try {
       logger.info(`Opening PII request modal for user:`, user);
-      setSelectedUserForPII(user);
+      
+      // Fetch target user's full profile to get accurate visibility settings
+      const profileResponse = await api.get(`/profile/${user.username}`);
+      const targetProfile = profileResponse.data;
+      
+      setSelectedUserForPII({
+        ...user,
+        contactNumberVisible: targetProfile.contactNumberVisible,
+        contactEmailVisible: targetProfile.contactEmailVisible,
+        linkedinUrlVisible: targetProfile.linkedinUrlVisible,
+        imagesVisible: targetProfile.imagesVisible
+      });
       setShowPIIRequestModal(true);
     } catch (err) {
       logger.error(`Failed to open PII request modal: ${err.message}`);
@@ -1145,7 +1158,7 @@ const Dashboard = () => {
               {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
               {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
               {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
-              {renderSection('Hidden from Search', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
+              {renderSection('Search Exclude', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
             </div>
           )}
         </div>
@@ -1218,8 +1231,10 @@ const Dashboard = () => {
         visibilitySettings={{
           contactNumberVisible: selectedUserForPII?.contactNumberVisible,
           contactEmailVisible: selectedUserForPII?.contactEmailVisible,
-          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible
+          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible,
+          imagesVisible: selectedUserForPII?.imagesVisible
         }}
+        requesterProfile={userProfile}
         onClose={() => {
           setShowPIIRequestModal(false);
           setSelectedUserForPII(null);

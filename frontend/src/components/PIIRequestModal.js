@@ -2,7 +2,18 @@ import React, { useState, useEffect } from 'react';
 import api from '../api';
 import './PIIRequestModal.css';
 
-const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSuccess, onRefresh, currentAccess = {}, requestStatus = {}, visibilitySettings = {} }) => {
+const PIIRequestModal = ({ 
+  isOpen, 
+  profileUsername, 
+  profileName, 
+  onClose, 
+  onSuccess, 
+  onRefresh, 
+  currentAccess = {}, 
+  requestStatus = {}, 
+  visibilitySettings = {},
+  requesterProfile = null  // Current user's profile to check if they have data to share
+}) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -15,7 +26,32 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
     'contact_number': 'contactNumberVisible',
     'contact_email': 'contactEmailVisible',
     'linkedin_url': 'linkedinUrlVisible',
-    'images': null // Images don't have a visibility setting
+    'images': 'imagesVisible'
+  };
+
+  // Map PII type values to requester's data fields
+  const requesterDataMap = {
+    'contact_number': (profile) => profile?.contactNumber || profile?.phone,
+    'contact_email': (profile) => profile?.contactEmail || profile?.email,
+    'linkedin_url': (profile) => profile?.linkedinUrl || profile?.linkedin,
+    'images': (profile) => profile?.images?.length > 0
+  };
+
+  // Check if requester has data to share for a given PII type
+  const requesterHasData = (piiType) => {
+    if (!requesterProfile) {
+      console.log('⚠️ PIIRequestModal: requesterProfile is null/undefined');
+      return true; // If no profile provided, assume they have data
+    }
+    const checker = requesterDataMap[piiType];
+    const hasData = checker ? !!checker(requesterProfile) : true;
+    console.log(`🔍 PIIRequestModal: Checking ${piiType} - hasData: ${hasData}`, {
+      contactNumber: requesterProfile.contactNumber,
+      contactEmail: requesterProfile.contactEmail,
+      linkedinUrl: requesterProfile.linkedinUrl,
+      imagesCount: requesterProfile.images?.length
+    });
+    return hasData;
   };
 
   // All possible PII types
@@ -115,11 +151,14 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
       })
       .map(type => type.value);
     
-    // Get all available types (not locked)
+    // Get all available types (not locked AND requester has data to share)
     const availableTypes = piiTypes
       .filter(type => {
         const status = requestStatus[type.value];
-        return status !== 'approved' && status !== 'pending';
+        const visKey = visibilityKeyMap[type.value];
+        const isMemberVis = visKey && visibilitySettings[visKey] === true;
+        const canShare = requesterHasData(type.value);
+        return status !== 'approved' && status !== 'pending' && !isMemberVis && canShare;
       })
       .map(type => type.value);
     
@@ -298,6 +337,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
         <div className="pii-modal-header">
           <h3>🔒 Request Access to Information</h3>
           <p>Request access to {profileName}'s private information</p>
+          <p className="mutual-share-note">Data access is a mutual share -- your matching data will be shared with requestee</p>
           <button className="pii-modal-close" onClick={onClose}>✕</button>
         </div>
 
@@ -335,8 +375,11 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                 const visibilityKey = visibilityKeyMap[type.value];
                 const isMemberVisible = visibilityKey && visibilitySettings[visibilityKey] === true;
                 
-                // Disable if: has access, pending, OR already member visible
-                const isDisabled = hasAccess || isPending || isMemberVisible;
+                // Check if requester has this data to share (mutual exchange requirement)
+                const canShare = requesterHasData(type.value);
+                
+                // Disable if: has access, pending, member visible, OR requester can't share
+                const isDisabled = hasAccess || isPending || isMemberVisible || !canShare;
                 // Member-visible fields should appear checked (but locked)
                 // Ensure boolean value to avoid uncontrolled->controlled warning
                 const isSelected = selectedTypes.includes(type.value) || isMemberVisible || false;
@@ -344,7 +387,7 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                 return (
                   <div
                     key={type.value}
-                    className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''} ${isExpired ? 'expired' : ''} ${isMemberVisible ? 'member-visible' : ''}`}
+                    className={`pii-type-option ${isSelected ? 'selected' : ''} ${hasAccess ? 'has-access' : ''} ${isPending ? 'pending' : ''} ${isExpired ? 'expired' : ''} ${isMemberVisible ? 'member-visible' : ''} ${!canShare ? 'no-data-to-share' : ''}`}
                     onClick={() => !isDisabled && handleToggleType(type.value)}
                   >
                     <div className="pii-type-checkbox">
@@ -359,16 +402,31 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                     <div className="pii-type-info">
                       <div className="pii-type-label">
                         {type.label}
-                        {isMemberVisible && <span className="member-visible-badge">👁️ Already Member Visible</span>}
-                        {hasAccess && !isMemberVisible && <span className="access-badge">✅ Already Granted</span>}
-                        {isPending && <span className="pending-badge">📨 Request Sent</span>}
-                        {isExpired && <span className="expired-badge">🔒 Access Expired</span>}
+                        {!canShare && <span className="no-share-badge">⚠️ You don't have this to share</span>}
+                        {hasAccess && !isMemberVisible && canShare && <span className="access-badge">✅ Already Granted</span>}
+                        {isPending && canShare && <span className="pending-badge">📨 Request Sent</span>}
+                        {isExpired && canShare && <span className="expired-badge">🔒 Access Expired</span>}
                       </div>
-                      <div className="pii-type-description">
-                        {isMemberVisible 
-                          ? 'This information is publicly visible to all members' 
-                          : type.description}
-                      </div>
+                      {isMemberVisible && canShare && (
+                        <div className="member-visible-badge">👁️ Already Member Visible</div>
+                      )}
+                      <div className="pii-type-description">{type.description}</div>
+                      {/* Conditional notes based on requester data and visibility settings */}
+                      {!canShare && (
+                        <div className="pii-type-note note-warning">
+                          You can not make request since you don't have any {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} to share with member, it's a mutual share
+                        </div>
+                      )}
+                      {isMemberVisible && (
+                        <div className="pii-type-note note-muted">
+                          You don't have to request since member made the {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} as member visible true
+                        </div>
+                      )}
+                      {canShare && !isMemberVisible && (
+                        <div className="pii-type-note note-success">
+                          Your {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} will be shared as well
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -407,7 +465,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                   const status = requestStatus[t];
                   const visKey = visibilityKeyMap[t];
                   const isMemberVis = visKey && visibilitySettings[visKey] === true;
-                  return status !== 'approved' && status !== 'pending' && !isMemberVis;
+                  const canShare = requesterHasData(t);
+                  return status !== 'approved' && status !== 'pending' && !isMemberVis && canShare;
                 }).length === 0}
               >
                 {submitting 
@@ -416,7 +475,8 @@ const PIIRequestModal = ({ isOpen, profileUsername, profileName, onClose, onSucc
                       const status = requestStatus[t];
                       const visKey = visibilityKeyMap[t];
                       const isMemberVis = visKey && visibilitySettings[visKey] === true;
-                      return status !== 'approved' && status !== 'pending' && !isMemberVis;
+                      const canShare = requesterHasData(t);
+                      return status !== 'approved' && status !== 'pending' && !isMemberVis && canShare;
                     }).length})`
                 }
               </button>
