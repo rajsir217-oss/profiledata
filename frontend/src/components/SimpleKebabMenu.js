@@ -121,9 +121,9 @@ const SimpleKebabMenu = ({
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onRequestPII, 'Request Contact');
+              handleItemClick(onRequestPII, 'Data Request');
             }}>
-              {ACTION_ICONS.REQUEST_CONTACT} Request Contact
+              {ACTION_ICONS.REQUEST_CONTACT} Data Request
             </button>
           )}
           

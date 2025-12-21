@@ -158,6 +158,7 @@ def initialize_templates():
     from .age_updater_template import AgeUpdaterTemplate
     from .retroactive_invitation_matcher import RetroactiveInvitationMatcherTemplate
     from .invitation_resend_template import InvitationResendTemplate
+    from .pii_access_cleanup import PIIAccessCleanupTemplate
     
     registry = get_template_registry()
     
@@ -179,6 +180,7 @@ def initialize_templates():
     registry.register(AgeUpdaterTemplate())
     registry.register(RetroactiveInvitationMatcherTemplate())
     registry.register(InvitationResendTemplate())
+    registry.register(PIIAccessCleanupTemplate())
     
     # Register notification job templates
     registry.register(EmailNotifierTemplate())

@@ -79,6 +79,14 @@
   opacity: 0.9;
 }
 
+.pii-modal-header .mutual-share-note {
+  margin-top: var(--spacing-sm, 8px);
+  font-size: var(--font-size-xs, 12px);
+  color: var(--warning-color, #f59e0b);
+  font-style: italic;
+  opacity: 1;
+}
+
 .pii-modal-close {
   position: absolute;
   top: 20px;
@@ -275,14 +283,18 @@
   margin-left: 8px;
 }
 
-.member-visible-badge {
-  font-size: 11px;
+.pii-type-info .member-visible-badge {
+  display: block !important;
+  width: fit-content !important;
+  height: auto !important;
+  font-size: var(--font-size-xs, 11px);
   font-weight: 600;
-  color: #1e40af;
-  background: #dbeafe;
-  padding: 4px 10px;
-  border-radius: 12px;
-  margin-left: 8px;
+  color: var(--info-color, #1e40af);
+  background: var(--info-light, #dbeafe);
+  padding: 4px var(--spacing-sm, 10px);
+  border-radius: var(--radius-full, 12px);
+  margin-top: var(--spacing-xs, 4px);
+  margin-left: 0;
 }
 
 .pii-type-option.member-visible {
@@ -298,6 +310,64 @@
 .pii-type-option.expired {
   border-color: var(--danger-light, #fecaca);
   background: var(--danger-light, #fef2f2);
+}
+
+/* No data to share - requester doesn't have this PII type */
+.pii-type-option.no-data-to-share {
+  border-color: var(--warning-color, #fbbf24);
+  background: linear-gradient(135deg, var(--warning-background, #fffbeb) 0%, var(--warning-light, #fef3c7) 100%);
+  cursor: not-allowed;
+  opacity: 0.85;
+}
+
+.pii-type-option.no-data-to-share .pii-type-checkbox input {
+  accent-color: var(--warning-color, #d97706);
+}
+
+.no-share-badge {
+  font-size: var(--font-size-xs, 11px);
+  font-weight: 600;
+  color: var(--warning-dark, #92400e);
+  background: var(--warning-light, #fef3c7);
+  padding: 4px var(--spacing-sm, 10px);
+  border-radius: var(--radius-full, 12px);
+  margin-left: var(--spacing-sm, 8px);
+  border: 1px solid var(--warning-color, #fbbf24);
+}
+
+.pii-type-option.no-data-to-share .pii-type-description {
+  color: var(--warning-dark, #92400e);
+  font-style: italic;
+}
+
+/* Explanatory note text for disabled/special states */
+.pii-type-note {
+  font-size: var(--font-size-xs, 12px);
+  padding: var(--spacing-xs, 6px) var(--spacing-sm, 10px);
+  border-radius: var(--radius-sm, 6px);
+  margin-top: var(--spacing-xs, 6px);
+  line-height: 1.4;
+}
+
+.pii-type-note.note-warning {
+  background: transparent;
+  color: var(--danger-color, #dc2626);
+  border: 1px solid var(--danger-color, #dc2626);
+  border-left: 3px solid var(--danger-color, #dc2626);
+}
+
+.pii-type-note.note-muted {
+  background: transparent;
+  color: var(--text-muted, #6b7280);
+  border: 1px solid var(--text-muted, #9ca3af);
+  border-left: 3px solid var(--text-muted, #9ca3af);
+}
+
+.pii-type-note.note-success {
+  background: transparent;
+  color: var(--success-color, #16a34a);
+  border: 1px solid var(--success-color, #16a34a);
+  border-left: 3px solid var(--success-color, #16a34a);
 }
 
 .pii-type-description {
@@ -446,19 +516,23 @@
   }
 
   .pii-modal-header {
-    padding: 20px;
+    padding: var(--spacing-lg, 20px);
   }
 
   .pii-modal-header h3 {
-    font-size: 18px;
+    font-size: var(--font-size-lg, 18px);
+  }
+
+  .pii-modal-header .mutual-share-note {
+    font-size: 11px;
   }
 
   .pii-modal-content {
-    padding: 20px;
+    padding: var(--spacing-lg, 20px);
   }
   
   .pii-modal-footer {
-    padding: 14px 20px;
+    padding: 14px var(--spacing-lg, 20px);
   }
 
   .pii-type-option {
@@ -466,35 +540,51 @@
   }
 
   .pii-type-label {
-    font-size: 15px;
+    font-size: var(--font-size-sm, 15px);
+  }
+
+  .pii-type-note {
+    font-size: 10px;
+    padding: var(--spacing-xs, 4px) var(--spacing-sm, 8px);
+  }
+
+  .no-share-badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    margin-left: var(--spacing-xs, 4px);
   }
 }
 
 @media (max-width: 480px) {
   .pii-modal-overlay {
-    padding: 10px;
+    padding: var(--spacing-sm, 10px);
   }
 
   .pii-modal {
-    border-radius: 12px;
+    border-radius: var(--radius-lg, 12px);
     min-width: 280px; /* Smaller min for mobile */
   }
 
   .pii-modal-header {
-    border-radius: 12px 12px 0 0;
+    border-radius: var(--radius-lg, 12px) var(--radius-lg, 12px) 0 0;
+  }
+
+  .pii-modal-header .mutual-share-note {
+    font-size: 10px;
+    margin-top: var(--spacing-xs, 6px);
   }
   
   .pii-modal-content {
-    padding: 16px;
+    padding: var(--spacing-md, 16px);
   }
 
   .pii-modal-footer {
-    padding: 12px 16px;
+    padding: var(--spacing-sm, 12px) var(--spacing-md, 16px);
   }
 
   .pii-modal-footer .pii-modal-actions {
     flex-direction: column !important;
-    gap: 10px !important;
+    gap: var(--spacing-sm, 10px) !important;
     align-items: stretch !important;
   }
 
@@ -504,6 +594,15 @@
     max-width: none !important; /* Remove max-width on mobile */
     margin: 0 !important;
     flex: 1 1 auto !important;
+  }
+
+  .pii-type-note {
+    font-size: 9px;
+    padding: var(--spacing-xs, 4px) var(--spacing-xs, 6px);
+  }
+
+  .no-share-badge {
+    display: none; /* Hide badge on very small screens, note text is enough */
   }
 }
 

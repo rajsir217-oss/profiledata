@@ -104,6 +104,7 @@ const Profile = () => {
   const [piiRequestStatus, setPiiRequestStatus] = useState({});
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState(null); // For PII request validation
   
   // Image Access states (new privacy system)
   const [accessibleImages, setAccessibleImages] = useState([]);
@@ -222,6 +223,14 @@ const Profile = () => {
           } catch (viewErr) {
             // Silently fail - don't block profile loading if tracking fails
             console.error("Error tracking profile view:", viewErr);
+          }
+          
+          // Fetch current user's profile for PII request validation
+          try {
+            const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
+            setCurrentUserProfile(myProfileRes.data);
+          } catch (profileErr) {
+            console.error("Error fetching current user profile:", profileErr);
           }
           
           // Check PII access
@@ -1456,6 +1465,64 @@ const Profile = () => {
               <span>Edit Profile</span>
             </button>
           )}
+          
+          {/* Member View: Photo Gallery (5 slots) */}
+          {!isOwnProfile && (
+            <div className="member-photo-gallery">
+              {/* Slot 1: Profile Picture (always shown if available) */}
+              <div className="gallery-slot profile-pic-slot">
+                {user.images?.[0] ? (
+                  <img 
+                    src={getAuthenticatedImageUrl(user.images[0])}
+                    alt="Profile"
+                    className="gallery-image"
+                    onClick={() => {
+                      if (piiAccess.images || user.imagesVisible) {
+                        setLightboxImage(user.images[0]);
+                        setShowLightbox(true);
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="gallery-placeholder">
+                    <span>👤</span>
+                  </div>
+                )}
+                <span className="slot-label">Profile</span>
+              </div>
+              
+              {/* Slots 2-5: Additional Photos (PII access required) */}
+              {[1, 2, 3, 4].map((index) => {
+                const hasAccess = piiAccess.images || user.imagesVisible;
+                const image = user.images?.[index];
+                
+                return (
+                  <div key={index} className={`gallery-slot ${hasAccess ? 'accessible' : 'locked'}`}>
+                    {hasAccess && image ? (
+                      <img 
+                        src={getAuthenticatedImageUrl(image)}
+                        alt={`Photo ${index + 1}`}
+                        className="gallery-image"
+                        onClick={() => {
+                          setLightboxImage(image);
+                          setShowLightbox(true);
+                        }}
+                      />
+                    ) : hasAccess && !image ? (
+                      <div className="gallery-placeholder empty">
+                        <span>📷</span>
+                      </div>
+                    ) : (
+                      <div className="gallery-placeholder locked" title="Request photo access to view">
+                        <span>🔒</span>
+                      </div>
+                    )}
+                    <span className="slot-label">{hasAccess ? (image ? `Photo ${index + 1}` : 'Empty') : 'Locked'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 
@@ -2603,8 +2670,10 @@ const Profile = () => {
         visibilitySettings={{
           contactNumberVisible: user.contactNumberVisible,
           contactEmailVisible: user.contactEmailVisible,
-          linkedinUrlVisible: user.linkedinUrlVisible
+          linkedinUrlVisible: user.linkedinUrlVisible,
+          imagesVisible: user.imagesVisible
         }}
+        requesterProfile={currentUserProfile}
         onClose={() => setShowPIIRequestModal(false)}
         onRefresh={() => {
           logger.debug('PIIRequestModal refresh');

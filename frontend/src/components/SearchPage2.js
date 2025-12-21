@@ -1551,20 +1551,38 @@ const SearchPage2 = () => {
     return age;
   };
 
-  const openPIIRequestModal = (targetUsername) => {
+  const openPIIRequestModal = async (targetUsername) => {
     const user = users.find(u => u.username === targetUsername);
     if (!user) return;
 
-    // Set current PII access status - pass actual status values
-    setCurrentPIIAccess({
-      images: piiRequests[`${targetUsername}_images`] === 'approved',
-      contact_info: piiRequests[`${targetUsername}_contact_info`] === 'approved',
-      date_of_birth: piiRequests[`${targetUsername}_date_of_birth`] === 'approved',
-      linkedin_url: piiRequests[`${targetUsername}_linkedin_url`] === 'approved'
-    });
+    try {
+      // Fetch target user's full profile to get accurate visibility settings
+      const profileResponse = await api.get(`/profile/${targetUsername}`);
+      const targetProfile = profileResponse.data;
 
-    setSelectedUserForPII(user);
-    setShowPIIRequestModal(true);
+      // Set current PII access status - pass actual status values
+      setCurrentPIIAccess({
+        images: piiRequests[`${targetUsername}_images`] === 'approved',
+        contact_info: piiRequests[`${targetUsername}_contact_info`] === 'approved',
+        date_of_birth: piiRequests[`${targetUsername}_date_of_birth`] === 'approved',
+        linkedin_url: piiRequests[`${targetUsername}_linkedin_url`] === 'approved'
+      });
+
+      // Override with fetched visibility settings
+      setSelectedUserForPII({
+        ...user,
+        contactNumberVisible: targetProfile.contactNumberVisible,
+        contactEmailVisible: targetProfile.contactEmailVisible,
+        linkedinUrlVisible: targetProfile.linkedinUrlVisible,
+        imagesVisible: targetProfile.imagesVisible
+      });
+      setShowPIIRequestModal(true);
+    } catch (err) {
+      console.error('Failed to fetch profile for PII modal:', err);
+      // Fallback to user data from search results
+      setSelectedUserForPII(user);
+      setShowPIIRequestModal(true);
+    }
   };
 
   const handlePIIRequestSuccess = async () => {
@@ -2492,8 +2510,10 @@ const SearchPage2 = () => {
           visibilitySettings={{
             contactNumberVisible: selectedUserForPII.contactNumberVisible,
             contactEmailVisible: selectedUserForPII.contactEmailVisible,
-            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible,
+            imagesVisible: selectedUserForPII.imagesVisible
           }}
+          requesterProfile={currentUserProfile}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);

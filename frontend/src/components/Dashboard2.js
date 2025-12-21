@@ -49,7 +49,8 @@ const Dashboard2 = () => {
     myRequests: [],
     incomingContactRequests: [],
     theirFavorites: [],
-    theirShortlists: []
+    theirShortlists: [],
+    receivedAccess: []
   });
   const [lastLoginAt, setLastLoginAt] = useState(null);
   
@@ -66,6 +67,8 @@ const Dashboard2 = () => {
   // PII Request modal state
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
+  const [selectedUserPIIAccess, setSelectedUserPIIAccess] = useState({});
+  const [selectedUserPIIRequestStatus, setSelectedUserPIIRequestStatus] = useState({});
   
   // Online users state
   // eslint-disable-next-line no-unused-vars
@@ -235,7 +238,8 @@ const Dashboard2 = () => {
         requestsRes,
         incomingRequestsRes,
         theirFavoritesRes,
-        theirShortlistsRes
+        theirShortlistsRes,
+        receivedAccessRes
       ] = await Promise.all([
         api.get(`/profile/${user}?requester=${user}`),
         api.get(`/messages/conversations?username=${user}`),
@@ -246,7 +250,8 @@ const Dashboard2 = () => {
         api.get(`/pii-requests/${user}/outgoing`),  // Fetch ALL outgoing requests to show approved/rejected status
         api.get(`/pii-requests/${user}/incoming`),  // Fetch ALL incoming requests to show approved/rejected status
         api.get(`/their-favorites/${user}`),
-        api.get(`/their-shortlists/${user}`)
+        api.get(`/their-shortlists/${user}`),
+        api.get(`/pii-access/${user}/received`)  // Fetch active PII access grants received
       ]);
       
       // Extract last login time from profile
@@ -263,7 +268,8 @@ const Dashboard2 = () => {
         myRequests: requestsRes.data.requests || [],
         incomingContactRequests: incomingRequestsRes.data.requests || [],
         theirFavorites: theirFavoritesRes.data.users || [],
-        theirShortlists: theirShortlistsRes.data.users || []
+        theirShortlists: theirShortlistsRes.data.users || [],
+        receivedAccess: receivedAccessRes.data.receivedAccess || []
       });
       
       // Set view metrics
@@ -657,7 +663,7 @@ const Dashboard2 = () => {
       await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
       // Reload dashboard to get fresh data
       await loadDashboardData(currentUser);
-      toast.success(`Hidden from search`);
+      toast.success(`Search Exclude`);
     } catch (err) {
       logger.error(`Failed to add to exclusions: ${err.message}`);
       toast.error(`Failed to add to exclusions`);
@@ -667,7 +673,48 @@ const Dashboard2 = () => {
   const handleRequestPII = async (user) => {
     try {
       logger.info(`Opening PII request modal for user:`, user);
-      setSelectedUserForPII(user);
+      
+      // Fetch target user's full profile, PII access, and request status in parallel
+      const targetUsername = user.username;
+      const [profileResponse, accessResponse, requestsResponse] = await Promise.all([
+        api.get(`/profile/${targetUsername}`),
+        api.get(`/pii-access/${currentUser}/received`),
+        api.get(`/pii-requests/${currentUser}/outgoing`)
+      ]);
+      
+      // Use fetched profile to get accurate visibility settings
+      const targetProfile = profileResponse.data;
+      setSelectedUserForPII({
+        ...user,
+        // Override with fetched visibility settings
+        contactNumberVisible: targetProfile.contactNumberVisible,
+        contactEmailVisible: targetProfile.contactEmailVisible,
+        linkedinUrlVisible: targetProfile.linkedinUrlVisible,
+        imagesVisible: targetProfile.imagesVisible
+      });
+      
+      // Build current access map for this specific user
+      const accessMap = {};
+      const receivedAccess = accessResponse.data.receivedAccess || [];
+      receivedAccess.forEach(access => {
+        if (access.granterUsername === targetUsername) {
+          (access.accessTypes || []).forEach(type => {
+            accessMap[type] = true;
+          });
+        }
+      });
+      
+      // Build request status map for this specific user
+      const statusMap = {};
+      const requests = requestsResponse.data.requests || [];
+      requests.forEach(req => {
+        if (req.requesteeUsername === targetUsername) {
+          statusMap[req.requestType] = req.status;
+        }
+      });
+      
+      setSelectedUserPIIAccess(accessMap);
+      setSelectedUserPIIRequestStatus(statusMap);
       setShowPIIRequestModal(true);
     } catch (err) {
       logger.error(`Failed to open PII request modal: ${err.message}`);
@@ -1151,77 +1198,54 @@ const Dashboard2 = () => {
         </div>
       )}
 
-      {/* Active Polls Section */}
-      <PollWidget />
-
-      {/* Stats Overview Section */}
-      <div className="dashboard-stats-overview">
-        <div 
-          className="stat-card-large stat-card-primary clickable-card" 
-          onClick={() => setShowProfileViewsModal(true)}
-          style={{ cursor: 'pointer' }}
-          title="Click to see who viewed your profile"
-        >
-          <div className="stat-icon">{STATS_ICONS.PROFILE_VIEWS}</div>
-          <div className="stat-content">
-            <div className="stat-value">{viewMetrics.totalViews}</div>
-            <div className="stat-label">Profile Views</div>
-            <div className="stat-sublabel">{viewMetrics.uniqueViewers} unique viewers</div>
+      {/* Stats Overview Section with inline Poll Widget */}
+      <div className="dashboard-stats-overview stats-with-poll">
+        <div className="stats-cards-group">
+          <div 
+            className="stat-card-large stat-card-primary clickable-card" 
+            onClick={() => setShowProfileViewsModal(true)}
+            style={{ cursor: 'pointer' }}
+            title="Click to see who viewed your profile"
+          >
+            <div className="stat-icon">{STATS_ICONS.PROFILE_VIEWS}</div>
+            <div className="stat-content">
+              <div className="stat-value">{viewMetrics.totalViews}</div>
+              <div className="stat-label">Profile Views</div>
+              <div className="stat-sublabel">{viewMetrics.uniqueViewers} unique viewers</div>
+            </div>
+          </div>
+          
+          <div 
+            className="stat-card-large stat-card-success clickable-card" 
+            onClick={() => setShowFavoritedByModal(true)}
+            style={{ cursor: 'pointer' }}
+            title="Click to see who favorited you"
+          >
+            <div className="stat-icon">{STATS_ICONS.FAVORITED_BY}</div>
+            <div className="stat-content">
+              <div className="stat-value">{dashboardData.theirFavorites.length}</div>
+              <div className="stat-label">Favorited By</div>
+              <div className="stat-sublabel">Others who liked you</div>
+            </div>
+          </div>
+          
+          <div 
+            className="stat-card-large stat-card-info clickable"
+            onClick={() => setShowConversationsModal(true)}
+            style={{ cursor: 'pointer' }}
+          >
+            <div className="stat-icon">{STATS_ICONS.CONVERSATIONS}</div>
+            <div className="stat-content">
+              <div className="stat-value">{dashboardData.myMessages.length}</div>
+              <div className="stat-label">Conversations</div>
+              <div className="stat-sublabel">Active messages</div>
+            </div>
           </div>
         </div>
         
-        <div 
-          className="stat-card-large stat-card-success clickable-card" 
-          onClick={() => setShowFavoritedByModal(true)}
-          style={{ cursor: 'pointer' }}
-          title="Click to see who favorited you"
-        >
-          <div className="stat-icon">{STATS_ICONS.FAVORITED_BY}</div>
-          <div className="stat-content">
-            <div className="stat-value">{dashboardData.theirFavorites.length}</div>
-            <div className="stat-label">Favorited By</div>
-            <div className="stat-sublabel">Others who liked you</div>
-          </div>
-        </div>
-        
-        <div 
-          className="stat-card-large stat-card-info clickable"
-          onClick={() => setShowConversationsModal(true)}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="stat-icon">{STATS_ICONS.CONVERSATIONS}</div>
-          <div className="stat-content">
-            <div className="stat-value">{dashboardData.myMessages.length}</div>
-            <div className="stat-label">Conversations</div>
-            <div className="stat-sublabel">Active messages</div>
-          </div>
-        </div>
-        
-        <div 
-          className="stat-card-large stat-card-warning clickable"
-          onClick={() => setShowPhotoRequestsModal(true)}
-          style={{ cursor: 'pointer' }}
-        >
-          <div className="stat-icon">{STATS_ICONS.PHOTO_REQUESTS}</div>
-          <div className="stat-content">
-            <div className="stat-value">{dashboardData.myRequests.length}</div>
-            <div className="stat-label">Photo Requests</div>
-            <div className="stat-sublabel">Pending approvals</div>
-          </div>
-        </div>
-        
-        <div 
-          className={`stat-card-large stat-card-purple clickable ${dashboardData.incomingContactRequests.length > 0 ? 'has-pending' : ''}`}
-          onClick={() => setShowContactRequestsModal(true)}
-          style={{ cursor: 'pointer' }}
-          title="Click to review contact requests from others"
-        >
-          <div className="stat-icon">{STATS_ICONS.CONTACT_REQUESTS}</div>
-          <div className="stat-content">
-            <div className="stat-value">{dashboardData.incomingContactRequests.length}</div>
-            <div className="stat-label">Contact Requests</div>
-            <div className="stat-sublabel">Awaiting your response</div>
-          </div>
+        {/* Inline Poll Widget */}
+        <div className="poll-widget-inline">
+          <PollWidget inline={true} />
         </div>
       </div>
 
@@ -1233,7 +1257,7 @@ const Dashboard2 = () => {
         >
           <div className="activity-group-title">
             <span className="activity-group-icon">🔐</span>
-            <h2>PII Requests</h2>
+            <h2>Data Requests</h2>
             <span className="activity-group-count">
               {dashboardData.incomingContactRequests.length + dashboardData.myRequests.length}
             </span>
@@ -1260,6 +1284,14 @@ const Dashboard2 = () => {
                 <span className="pill-icon">📤</span>
                 <span className="pill-label">Requests Sent</span>
                 <span className="pill-count">{dashboardData.myRequests.length}</span>
+              </button>
+              <button 
+                className={`category-pill pill-history ${piiActiveCategory === 'piiHistory' ? 'active' : ''}`}
+                onClick={() => setPiiActiveCategory('piiHistory')}
+              >
+                <span className="pill-icon">🔓</span>
+                <span className="pill-label">Access Granted</span>
+                <span className="pill-count">{dashboardData.receivedAccess.length}</span>
               </button>
             </div>
 
@@ -1289,24 +1321,38 @@ const Dashboard2 = () => {
                   }}
                   onApproveAll={async (username, requests) => {
                     try {
-                      for (const req of requests) {
+                      // Only approve pending requests
+                      const pendingRequests = requests.filter(r => r.status === 'pending');
+                      if (pendingRequests.length === 0) {
+                        toast.info('No pending requests to approve');
+                        return;
+                      }
+                      for (const req of pendingRequests) {
                         await api.put(`/pii-requests/${req.id}/approve?username=${currentUser}`, {});
                       }
-                      logger.info(`Approved all requests from ${username}`);
+                      toast.success(`Approved ${pendingRequests.length} request(s) from ${username}`);
                       loadDashboardData(currentUser);
                     } catch (err) {
                       logger.error('Failed to approve all requests:', err);
+                      toast.error('Failed to approve requests');
                     }
                   }}
                   onRejectAll={async (username, requests) => {
                     try {
-                      for (const req of requests) {
+                      // Only reject pending requests
+                      const pendingRequests = requests.filter(r => r.status === 'pending');
+                      if (pendingRequests.length === 0) {
+                        toast.info('No pending requests to reject');
+                        return;
+                      }
+                      for (const req of pendingRequests) {
                         await api.put(`/pii-requests/${req.id}/reject?username=${currentUser}`);
                       }
-                      logger.info(`Rejected all requests from ${username}`);
+                      toast.success(`Rejected ${pendingRequests.length} request(s) from ${username}`);
                       loadDashboardData(currentUser);
                     } catch (err) {
                       logger.error('Failed to reject all requests:', err);
+                      toast.error('Failed to reject requests');
                     }
                   }}
                   onProfileClick={(username) => navigate(`/profile/${username}`)}
@@ -1327,6 +1373,14 @@ const Dashboard2 = () => {
                       logger.error('Failed to cancel request:', err);
                     }
                   }}
+                  onProfileClick={(username) => navigate(`/profile/${username}`)}
+                  compact={true}
+                />
+              )}
+              {piiActiveCategory === 'piiHistory' && (
+                <PIIRequestsTable
+                  requests={dashboardData.receivedAccess}
+                  type="history"
                   onProfileClick={(username) => navigate(`/profile/${username}`)}
                   compact={true}
                 />
@@ -1383,7 +1437,7 @@ const Dashboard2 = () => {
             onClick={() => setMyActiveCategory('myExclusions')}
           >
             <span className="pill-icon">{SECTION_ICONS.NOT_INTERESTED}</span>
-            <span className="pill-label">Hidden from Search</span>
+            <span className="pill-label">Search Exclude</span>
             <span className="pill-count">{dashboardData.myExclusions.length}</span>
           </button>
         </div>
@@ -1393,7 +1447,7 @@ const Dashboard2 = () => {
           {myActiveCategory === 'myMessages' && renderTabContent('Messages', dashboardData.myMessages, 'myMessages', SECTION_ICONS.MESSAGES, '#5a6fd6', handleDeleteMessage)}
           {myActiveCategory === 'myFavorites' && renderTabContent('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
           {myActiveCategory === 'myShortlists' && renderTabContent('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
-          {myActiveCategory === 'myExclusions' && renderTabContent('Hidden from Search', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
+          {myActiveCategory === 'myExclusions' && renderTabContent('Search Exclude', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
         </div>
           </>
         )}
@@ -1469,14 +1523,20 @@ const Dashboard2 = () => {
         isOpen={showPIIRequestModal}
         profileUsername={selectedUserForPII?.username}
         profileName={selectedUserForPII?.firstName || selectedUserForPII?.username}
+        currentAccess={selectedUserPIIAccess}
+        requestStatus={selectedUserPIIRequestStatus}
         visibilitySettings={{
           contactNumberVisible: selectedUserForPII?.contactNumberVisible,
           contactEmailVisible: selectedUserForPII?.contactEmailVisible,
-          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible
+          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible,
+          imagesVisible: selectedUserForPII?.imagesVisible
         }}
+        requesterProfile={userProfile}
         onClose={() => {
           setShowPIIRequestModal(false);
           setSelectedUserForPII(null);
+          setSelectedUserPIIAccess({});
+          setSelectedUserPIIRequestStatus({});
         }}
         onSuccess={() => {
           loadDashboardData(currentUser);

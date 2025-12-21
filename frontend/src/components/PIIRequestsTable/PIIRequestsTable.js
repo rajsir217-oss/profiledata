@@ -551,6 +551,135 @@ const PIIRequestsTable = ({
     );
   }
 
+  // Render HISTORY table (received PII access grants)
+  if (type === 'history') {
+    // API returns: { userProfile, accessTypes, grantedAt, expiresAt, accessIds }
+    // Group by granter username
+    const groupedAccess = {};
+    requests.forEach(access => {
+      // Handle API structure: userProfile contains the granter's profile
+      const profile = access.userProfile || access.granterProfile || access.profile;
+      const granterUsername = profile?.username || access.granterUsername || access.username;
+      if (!granterUsername) return;
+      
+      if (!groupedAccess[granterUsername]) {
+        groupedAccess[granterUsername] = {
+          profile: profile || { username: granterUsername },
+          accessTypes: [],
+          grantedAt: access.grantedAt
+        };
+      }
+      
+      // Add access types
+      if (access.accessTypes) {
+        groupedAccess[granterUsername].accessTypes = [...new Set([
+          ...groupedAccess[granterUsername].accessTypes,
+          ...access.accessTypes
+        ])];
+      } else if (access.accessType) {
+        if (!groupedAccess[granterUsername].accessTypes.includes(access.accessType)) {
+          groupedAccess[granterUsername].accessTypes.push(access.accessType);
+        }
+      }
+    });
+
+    const usernames = Object.keys(groupedAccess);
+
+    if (usernames.length === 0) {
+      return (
+        <div className={`pii-requests-table-container history-table ${compact ? 'compact' : ''}`}>
+          <div className="empty-state">
+            <span className="empty-icon">🔐</span>
+            <p>{emptyMessage || 'No active access grants'}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`pii-requests-table-container history-table ${compact ? 'compact' : ''}`}>
+        <div className="table-summary">
+          {usernames.length} user{usernames.length !== 1 ? 's' : ''} granted you access
+        </div>
+        
+        <div className="pii-requests-table-wrapper">
+          <table className="pii-requests-table">
+            <thead>
+              <tr>
+                <th className="col-profile">From</th>
+                <th className="col-date">Granted</th>
+                <th className="col-pii">📞 Contact</th>
+                <th className="col-pii">📧 Email</th>
+                <th className="col-pii">🔗 LinkedIn</th>
+                <th className="col-pii">📷 Photos</th>
+              </tr>
+            </thead>
+            <tbody>
+              {usernames.map(username => {
+                const { profile, accessTypes, grantedAt } = groupedAccess[username];
+                
+                return (
+                  <tr key={username}>
+                    <td className="col-profile">
+                      <div 
+                        className="table-user-info clickable"
+                        onClick={() => handleProfileClick(username)}
+                      >
+                        {profile?.images?.[0] ? (
+                          <img 
+                            src={getImageUrl(profile.images[0])} 
+                            alt={username} 
+                            className="table-avatar"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                              e.target.nextSibling.style.display = 'flex';
+                            }}
+                          />
+                        ) : null}
+                        <div 
+                          className="table-avatar-placeholder"
+                          style={{ display: profile?.images?.[0] ? 'none' : 'flex' }}
+                        >
+                          {(profile?.firstName?.[0] || username?.[0] || '?').toUpperCase()}
+                        </div>
+                        <span className="table-username">{profile?.firstName || username}</span>
+                      </div>
+                    </td>
+                    <td className="col-date">
+                      <span className="time-badge">
+                        {grantedAt ? getRelativeTime(grantedAt) : '-'}
+                      </span>
+                    </td>
+                    {piiTypes.map(piiType => {
+                      const hasAccess = accessTypes.includes(piiType);
+                      return (
+                        <td key={piiType} className="col-pii">
+                          {hasAccess ? (
+                            <span className="access-granted-badge" title={`${getAccessTypeLabel(piiType)} - Access granted`}>
+                              ✅
+                            </span>
+                          ) : (
+                            <span className="no-access">➖</span>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        
+        <div className="table-legend">
+          <span><span className="legend-icon">✅</span> Access Granted</span>
+          <span><span className="legend-icon">➖</span> Not Granted</span>
+          <span><span className="legend-icon">⚠️</span> Access expires after 10 days</span>
+        </div>
+      </div>
+    );
+  }
+
   // Render ARCHIVE table
   if (type === 'archive') {
     const getStatusBadgeClass = (status) => {

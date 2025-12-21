@@ -16,9 +16,10 @@ pollsApi.interceptors.request.use((config) => {
 
 /**
  * PollWidget - Displays active polls for users to respond to
- * Shows on dashboard as a card widget
+ * Shows on dashboard as a card widget or inline with stat cards
+ * @param {boolean} inline - If true, renders in compact inline mode
  */
-const PollWidget = ({ onPollResponded }) => {
+const PollWidget = ({ onPollResponded, inline = false }) => {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -157,6 +158,7 @@ const PollWidget = ({ onPollResponded }) => {
   };
 
   if (loading) {
+    if (inline) return null; // Don't show loading state in inline mode
     return (
       <div className="poll-widget poll-widget-loading">
         <div className="poll-loading-spinner"></div>
@@ -166,6 +168,7 @@ const PollWidget = ({ onPollResponded }) => {
   }
 
   if (error) {
+    if (inline) return null; // Don't show error in inline mode
     return (
       <div className="poll-widget poll-widget-error">
         <span className="poll-error-icon">⚠️</span>
@@ -180,7 +183,7 @@ const PollWidget = ({ onPollResponded }) => {
   }
 
   return (
-    <div className="poll-widget-container">
+    <div className={`poll-widget-container ${inline ? 'poll-widget-inline' : ''}`}>
       {toast && (
         <div className={`poll-toast poll-toast-${toast.type}`}>
           {toast.type === 'success' ? '✓' : '✕'} {toast.message}

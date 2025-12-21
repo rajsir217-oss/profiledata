@@ -73,7 +73,7 @@ const OnlineUsersDropdown = ({ isOpen, onClose }) => {
       ) : onlineUsers.length === 0 ? (
         <div className="empty-state">
           <span className="empty-icon">😴</span>
-          <p>No other users online right now</p>
+          <p>No other members online right now</p>
         </div>
       ) : (
         <div className="online-users-list">
@@ -126,7 +126,7 @@ const OnlineUsersDropdown = ({ isOpen, onClose }) => {
       )}
 
       <div className="dropdown-footer">
-        <small>{onlineUsers.length} user{onlineUsers.length !== 1 ? 's' : ''} online</small>
+        <small>{onlineUsers.length} member{onlineUsers.length !== 1 ? 's' : ''} online</small>
       </div>
     </div>
   );

@@ -378,6 +378,32 @@
   color: #f97316;
 }
 
+/* History Table Styles */
+.history-table .access-granted-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: rgba(34, 197, 94, 0.15);
+  color: var(--success-color);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.history-table .no-access {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.pill-history {
+  background: linear-gradient(135deg, #8b5cf6, #a855f7) !important;
+}
+
+.pill-history.active {
+  box-shadow: 0 0 0 2px #a855f7, 0 4px 12px rgba(168, 85, 247, 0.4) !important;
+}
+
 /* Exchange Icons */
 .exchange-icons {
   display: flex;
