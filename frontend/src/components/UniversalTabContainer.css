@@ -151,7 +151,11 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  padding: 0;
+  padding: var(--spacing-lg);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background: var(--card-background);
+  margin-top: var(--spacing-sm);
 }
 
 .tab-panel {
@@ -266,10 +270,6 @@
   }
 }
 
-.variant-underlined .tab-content-area {
-  padding-top: var(--spacing-lg);
-}
-
 /* ========================================
    VARIANT: PILLS (Compact Buttons)
    ======================================== */
@@ -314,10 +314,6 @@
   border-color: transparent;
 }
 
-.variant-pills .tab-content-area {
-  padding-top: 12px;
-}
-
 /* ========================================
    VARIANT: BORDERED (Theme-Aware)
    ======================================== */
@@ -355,10 +351,6 @@
   background: rgba(255, 255, 255, 0.3);
   color: white;
   border-color: transparent;
-}
-
-.variant-bordered .tab-content-area {
-  padding-top: var(--spacing-md);
 }
 
 /* ========================================
