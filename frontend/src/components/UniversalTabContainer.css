@@ -23,8 +23,8 @@
   position: relative;
   overflow-x: auto;
   overflow-y: hidden;
-  background: var(--card-background);
-  padding: 8px 12px;
+  background: transparent;
+  padding: 8px 0;  /* Remove horizontal padding to align with content */
 }
 
 .tab-nav::-webkit-scrollbar {

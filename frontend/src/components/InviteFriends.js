@@ -87,6 +87,20 @@ const InviteFriends = () => {
     }
   }, [location]);
 
+  // ESC key handler to close modal (Modal 1 style requirement)
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showAddModal) {
+        setShowAddModal(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscKey);
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+    };
+  }, [showAddModal]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 

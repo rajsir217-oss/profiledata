@@ -674,7 +674,7 @@ const PIIRequestsTable = ({
         <div className="table-legend">
           <span><span className="legend-icon">✅</span> Access Granted</span>
           <span><span className="legend-icon">➖</span> Not Granted</span>
-          <span><span className="legend-icon">⚠️</span> Access expires after 10 days</span>
+          <span><span className="legend-icon">⚠️</span> Access expires after 5 days</span>
         </div>
       </div>
     );

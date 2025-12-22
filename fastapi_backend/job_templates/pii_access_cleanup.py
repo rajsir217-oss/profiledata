@@ -1,6 +1,6 @@
 """
 PII Access Cleanup Job Template
-Deletes expired PII access records after 10 days (both requester and requestee sides)
+Deletes expired PII access records after 5 days (both requester and requestee sides)
 """
 
 from typing import Dict, Any, Tuple, Optional
@@ -35,7 +35,7 @@ class PIIAccessCleanupTemplate(JobTemplate):
     def get_default_params(self) -> Dict[str, Any]:
         """Get default parameters"""
         return {
-            "expiryDays": 10,  # Delete access records after 10 days
+            "expiryDays": 5,  # Delete access records after 5 days
             "dryRun": False,
             "batchSize": 100
         }

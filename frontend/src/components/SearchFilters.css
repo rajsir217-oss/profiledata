@@ -68,13 +68,15 @@
   transform: none;
 }
 
-/* Action Buttons Container - ensure alignment with filter section */
+/* Action Buttons Container - center aligned */
 .search-action-buttons {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: center;  /* Center align buttons */
   margin-bottom: 20px;
-  padding-right: 0; /* Align with right edge of filter fields */
+  padding: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {

@@ -1302,7 +1302,7 @@ const Dashboard2 = () => {
                 onClick={() => setPiiActiveCategory('piiHistory')}
               >
                 <span className="pill-icon">🔓</span>
-                <span className="pill-label">Access Granted</span>
+                <span className="pill-label">Access Received</span>
                 <span className="pill-count">{dashboardData.receivedAccess.length}</span>
               </button>
             </div>
