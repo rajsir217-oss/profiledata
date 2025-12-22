@@ -1,7 +1,7 @@
 // frontend/src/components/ToastContainer.js
 import React, { useState, useEffect } from 'react';
 import toastService from '../services/toastService';
-// Uses global .toast-container and .toast from styles/components.css
+import './Toast.css';
 
 const ToastContainer = () => {
   const [toasts, setToasts] = useState([]);

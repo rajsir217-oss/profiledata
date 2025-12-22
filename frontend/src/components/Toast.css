@@ -110,6 +110,9 @@
 
 .toast-container .toast {
   pointer-events: auto;
+  position: relative;
+  top: auto;
+  right: auto;
 }
 
 /* Responsive */
