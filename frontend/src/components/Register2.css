@@ -1029,6 +1029,37 @@
 }
 
 /* ========================================
+   Clickable Error Field Links
+   ======================================== */
+.error-field-links {
+  margin-left: 4px;
+}
+
+.error-field-link {
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  margin: 0 2px;
+  color: var(--primary-color, #667eea);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s ease !important;
+}
+
+.error-field-link:hover {
+  background: rgba(102, 126, 234, 0.15);
+  color: var(--primary-hover, #5a67d8);
+  text-decoration: none;
+}
+
+.error-field-link:focus {
+  outline: 2px solid var(--primary-color, #667eea);
+  outline-offset: 1px;
+}
+
+/* ========================================
    Mobile Responsive Fixes
    ======================================== */
 @media (max-width: 768px) {
