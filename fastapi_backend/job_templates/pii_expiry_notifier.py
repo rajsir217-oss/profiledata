@@ -16,7 +16,7 @@ class PIIExpiryNotifierTemplate(JobTemplate):
     # Template metadata
     template_type = "pii_expiry_notifier"
     template_name = "PII Expiry Notifier"
-    template_description = "Send notifications for expiring PII access (7-day warning)"
+    template_description = "Send notifications for expiring PII access (3-day warning)"
     category = "notifications"
     icon = "⏰"
     estimated_duration = "1-2 minutes"
@@ -25,7 +25,7 @@ class PIIExpiryNotifierTemplate(JobTemplate):
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
-        days_before = params.get("daysBeforeExpiry", 7)
+        days_before = params.get("daysBeforeExpiry", 3)
         if not isinstance(days_before, int) or days_before < 1 or days_before > 30:
             return False, "daysBeforeExpiry must be an integer between 1 and 30"
         
@@ -34,7 +34,7 @@ class PIIExpiryNotifierTemplate(JobTemplate):
     def get_default_params(self) -> Dict[str, Any]:
         """Get default parameters"""
         return {
-            "daysBeforeExpiry": 7,  # Warn 7 days before expiry
+            "daysBeforeExpiry": 3,  # Warn 3 days before expiry (access expires after 5 days)
             "batchSize": 100
         }
     
@@ -45,7 +45,7 @@ class PIIExpiryNotifierTemplate(JobTemplate):
                 "type": "integer",
                 "label": "Days Before Expiry",
                 "description": "Send notification this many days before PII access expires",
-                "default": 7,
+                "default": 3,
                 "min": 1,
                 "max": 30
             },

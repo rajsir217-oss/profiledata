@@ -1201,14 +1201,16 @@
   font-size: 0.7em;
 }
 
-/* Action Buttons - Above Tabs */
+/* Action Buttons - Center aligned */
 .search-action-buttons {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;  /* Center align buttons */
   align-items: center;
   gap: 12px;
-  padding: 12px 0 12px;
-  margin-bottom: 0;
+  padding: 0 !important;
+  margin-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* ===== OBSOLETE TAB STYLES REMOVED =====

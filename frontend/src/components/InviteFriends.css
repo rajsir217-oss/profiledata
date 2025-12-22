@@ -353,6 +353,12 @@
 
 .invite-modal {
   max-width: 500px;
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--card-background, #ffffff) !important;
+  opacity: 1 !important;
 }
 
 .modal-header {
@@ -371,8 +377,8 @@
   font-weight: 600;
 }
 
-.modal-close {
-  background: var(--modal-close-bg, rgba(0, 0, 0, 0.6));
+.invite-modal .modal-close {
+  background: rgba(0, 0, 0, 0.6) !important;
   border: none;
   width: 32px;
   height: 32px;
@@ -384,15 +390,21 @@
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 }
 
-.modal-close:hover {
-  background: var(--modal-close-hover, rgba(0, 0, 0, 0.8));
+.invite-modal .modal-close:hover {
+  background: rgba(0, 0, 0, 0.8) !important;
   transform: scale(1.05);
 }
 
 .modal-content form {
   padding: 2rem;
+  background: var(--card-background, #ffffff);
+}
+
+.invite-modal form {
+  background: var(--card-background, #ffffff) !important;
 }
 
 .form-group {
