@@ -4,6 +4,7 @@ import api from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
+import ChatFirstPrompt from './ChatFirstPrompt';
 import './SearchPage.css';
 
 const Shortlist = () => {
@@ -23,6 +24,10 @@ const Shortlist = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   const [currentUserProfile, setCurrentUserProfile] = useState(null);
+  
+  // Chat-first prompt state
+  const [showChatFirstPrompt, setShowChatFirstPrompt] = useState(false);
+  const [pendingPIIRequestUser, setPendingPIIRequestUser] = useState(null);
   
   const navigate = useNavigate();
   const currentUsername = localStorage.getItem('username');
@@ -135,7 +140,14 @@ const Shortlist = () => {
     return piiRequests[`${targetUsername}_images`] === 'pending';
   };
 
-  const handlePIIRequest = async (user) => {
+  // Show chat-first prompt before PII request
+  const handlePIIRequest = (user) => {
+    setPendingPIIRequestUser(user);
+    setShowChatFirstPrompt(true);
+  };
+
+  // Actually open the PII modal (after chat-first prompt)
+  const actuallyOpenPIIModal = async (user) => {
     try {
       // Fetch target user's full profile to get accurate visibility settings
       const profileResponse = await api.get(`/profile/${user.username}`);
@@ -264,6 +276,28 @@ const Shortlist = () => {
           }}
         />
       )}
+
+      {/* Chat First Prompt */}
+      <ChatFirstPrompt
+        isOpen={showChatFirstPrompt}
+        onClose={() => {
+          setShowChatFirstPrompt(false);
+          setPendingPIIRequestUser(null);
+        }}
+        onContinue={() => {
+          if (pendingPIIRequestUser) {
+            actuallyOpenPIIModal(pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        onOpenChat={() => {
+          if (pendingPIIRequestUser) {
+            handleMessage(pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        targetUser={pendingPIIRequestUser}
+      />
 
       {/* PII Request Modal */}
       {showPIIRequestModal && selectedUserForPII && (

@@ -68,6 +68,25 @@
   transform: none;
 }
 
+/* Action Buttons Container - ensure alignment with filter section */
+.search-action-buttons {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+  padding-right: 0; /* Align with right edge of filter fields */
+}
+
+@media (max-width: 768px) {
+  .search-action-buttons {
+    flex-direction: column;
+  }
+  
+  .search-action-buttons button {
+    width: 100%;
+  }
+}
+
 /* Responsive width to match result cards */
 @media (max-width: 1024px) {
   .unified-search-filters {

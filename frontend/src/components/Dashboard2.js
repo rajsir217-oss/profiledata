@@ -6,6 +6,7 @@ import { getBackendUrl } from '../config/apiConfig';
 import './Dashboard2.css';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
+import ChatFirstPrompt from './ChatFirstPrompt';
 import AccessRequestManager from './AccessRequestManager';
 import PIIRequestsTable from './PIIRequestsTable';
 import logger from '../utils/logger';
@@ -70,6 +71,10 @@ const Dashboard2 = () => {
   const [selectedUserPIIAccess, setSelectedUserPIIAccess] = useState({});
   const [selectedUserPIIRequestStatus, setSelectedUserPIIRequestStatus] = useState({});
   
+  // Chat-first prompt state (shown before PII request)
+  const [showChatFirstPrompt, setShowChatFirstPrompt] = useState(false);
+  const [pendingPIIRequestUser, setPendingPIIRequestUser] = useState(null);
+  
   // Online users state
   // eslint-disable-next-line no-unused-vars
   const [onlineUsers, setOnlineUsers] = useState(new Set());
@@ -111,13 +116,13 @@ const Dashboard2 = () => {
     };
   });
 
-  // Group expand/collapse states - default to expanded for new layout
+  // Group expand/collapse states - default: Data Requests & My Activities expanded, Admirers collapsed
   const [expandedGroups, setExpandedGroups] = useState(() => {
     const saved = localStorage.getItem('dashboard2Groups');
     return saved ? JSON.parse(saved) : {
       piiRequests: true,
       myActivities: true,
-      othersActivities: true
+      othersActivities: false  // Collapsed by default
     };
   });
 
@@ -670,7 +675,14 @@ const Dashboard2 = () => {
     }
   };
 
-  const handleRequestPII = async (user) => {
+  // Show chat-first prompt before opening PII request modal
+  const handleRequestPII = (user) => {
+    setPendingPIIRequestUser(user);
+    setShowChatFirstPrompt(true);
+  };
+
+  // Actually open the PII request modal (called after chat-first prompt)
+  const openPIIRequestModal = async (user) => {
     try {
       logger.info(`Opening PII request modal for user:`, user);
       
@@ -1461,7 +1473,7 @@ const Dashboard2 = () => {
         >
           <div className="activity-group-title">
             <span className="activity-group-icon">💕</span>
-            <h2>Who's Interested In You</h2>
+            <h2>Admirers</h2>
             <span className="activity-group-count">{getGroupCount('othersActivities')}</span>
           </div>
           <span className="activity-group-toggle">{expandedGroups.othersActivities ? '▼' : '▶'}</span>
@@ -1516,6 +1528,28 @@ const Dashboard2 = () => {
           setShowMessageModal(false);
           setSelectedUserForMessage(null);
         }}
+      />
+
+      {/* Chat First Prompt - shown before PII request */}
+      <ChatFirstPrompt
+        isOpen={showChatFirstPrompt}
+        onClose={() => {
+          setShowChatFirstPrompt(false);
+          setPendingPIIRequestUser(null);
+        }}
+        onContinue={() => {
+          if (pendingPIIRequestUser) {
+            openPIIRequestModal(pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        onOpenChat={() => {
+          if (pendingPIIRequestUser) {
+            handleMessageUser(pendingPIIRequestUser.username, pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        targetUser={pendingPIIRequestUser}
       />
 
       {/* PII Request Modal */}
