@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import logger from '../utils/logger';
 import Tooltip from './Tooltip';
 import './SearchFilters.css';
@@ -50,6 +50,8 @@ const SearchFilters = ({
   saveButtonText = '💾 Save Search',
   isAdmin = false
 }) => {
+  // Validation error state
+  const [validationError, setValidationError] = useState('');
   
   const handleSliderChange = (e) => {
     const newScore = Number(e.target.value);
@@ -59,15 +61,55 @@ const SearchFilters = ({
     // The filteredUsers in SearchPage2 will automatically re-compute
   };
 
-  // Handle Profile ID search
+  // Handle Profile ID search - independent direct lookup (ignores other filters on backend)
   const handleProfileIdSearch = () => {
     console.log('🔍 Profile ID Search clicked, profileId:', searchCriteria.profileId);
     if (searchCriteria.profileId?.trim()) {
-      console.log('🔍 Calling onSearch with profileId:', searchCriteria.profileId);
+      // Profile ID search is handled specially by backend - ignores other filters
+      console.log('🔍 Direct Profile ID lookup:', searchCriteria.profileId);
       onSearch();
     } else {
       console.log('🔍 Profile ID is empty, not searching');
     }
+  };
+
+  // Validate main search criteria (requires at least age range for non-admin users)
+  const validateMainSearch = () => {
+    // Admin users can bypass all validation for troubleshooting
+    if (isAdmin) {
+      return { valid: true };
+    }
+    
+    const hasAgeRange = searchCriteria.ageMin && searchCriteria.ageMax;
+    
+    // Main search requires at least age range for non-admin users
+    if (!hasAgeRange) {
+      return { 
+        valid: false, 
+        message: 'Please specify Age Range (Min and Max) to search' 
+      };
+    }
+    
+    return { valid: true };
+  };
+
+  // Handle main search with validation - clears profileId to use filter criteria
+  const handleMainSearch = () => {
+    const validation = validateMainSearch();
+    if (!validation.valid) {
+      setValidationError(validation.message);
+      // Auto-clear error after 5 seconds
+      setTimeout(() => setValidationError(''), 5000);
+      return;
+    }
+    setValidationError(''); // Clear any previous error
+    
+    // Clear profileId so main search uses filter criteria, not profileId
+    if (searchCriteria.profileId?.trim()) {
+      handleInputChange({ target: { name: 'profileId', value: '' } });
+    }
+    
+    onSearch();
   };
 
   // Handle Profile ID clear
@@ -368,13 +410,43 @@ const SearchFilters = ({
         </div>
       </div>
       
+      {/* Validation Error Message */}
+      {validationError && (
+        <div className="search-validation-error" style={{
+          background: 'rgba(231, 76, 60, 0.1)',
+          border: '1px solid var(--danger-color)',
+          borderRadius: '8px',
+          padding: '12px 16px',
+          marginBottom: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          color: 'var(--danger-color)',
+          fontWeight: 500
+        }}>
+          <span>⚠️</span>
+          <span>{validationError}</span>
+          <button 
+            onClick={() => setValidationError('')}
+            style={{
+              marginLeft: 'auto',
+              background: 'none',
+              border: 'none',
+              color: 'var(--danger-color)',
+              cursor: 'pointer',
+              fontSize: '16px'
+            }}
+          >✕</button>
+        </div>
+      )}
+
       {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
       {!hideActionButtons && (
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginBottom: '20px' }}>
+        <div className="search-action-buttons">
           {onSearch && (
             <button
               type="button"
-              onClick={onSearch}
+              onClick={handleMainSearch}
               className="btn btn-primary"
               style={{
                 padding: '10px 32px',
@@ -641,11 +713,11 @@ const SearchFilters = ({
           
           {/* 6. ACTION BUTTONS - Second appearance (after advanced filters) */}
           {!hideActionButtons && (
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginBottom: '20px' }}>
+            <div className="search-action-buttons">
               {onSearch && (
                 <button
                   type="button"
-                  onClick={onSearch}
+                  onClick={handleMainSearch}
                   className="btn btn-primary"
                   style={{
                     padding: '10px 32px',

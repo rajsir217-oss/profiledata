@@ -122,9 +122,9 @@ const PIIManagement = () => {
         // Store all incoming requests for table view (pending, approved, rejected)
         setAllIncomingRequests(incoming);
         
-        // Filter by status
+        // Filter by status - show all outgoing requests (not just pending) to match Dashboard
         setIncomingRequests(incoming.filter(r => r.status === 'pending'));
-        setOutgoingRequests(outgoing.filter(r => r.status === 'pending'));
+        setOutgoingRequests(outgoing);  // Show ALL outgoing requests (pending, approved, rejected)
         
         // Split history into rejected incoming/outgoing
         setRejectedIncoming(incoming.filter(r => r.status === 'rejected'));

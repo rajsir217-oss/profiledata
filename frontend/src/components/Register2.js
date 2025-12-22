@@ -188,6 +188,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
+  const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
   const [, setInvitationData] = useState(null); // eslint-disable-line no-unused-vars
   const [, setLoadingInvitation] = useState(false); // eslint-disable-line no-unused-vars
   
@@ -1126,6 +1127,14 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       data.append('height', height);
     }
     
+    // Add invitation tracking data (if user registered via invitation)
+    if (invitedBy) {
+      data.append('invitedBy', invitedBy);
+    }
+    if (invitationToken) {
+      data.append('invitationToken', invitationToken);
+    }
+    
     // Append images from ImageManager (newImages contains File objects)
     logger.debug('Images being uploaded:', newImages.length);
     newImages.forEach((img, index) => {
@@ -1433,6 +1442,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             const invitation = await response.json();
             
             setInvitationData(invitation);
+            
+            // Store who invited this user (for saving to profile)
+            if (invitation.invitedBy) {
+              setInvitedBy(invitation.invitedBy);
+            }
             
             // Pre-fill form with invitation data
             setFormData(prev => ({

@@ -6,6 +6,7 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
+import ChatFirstPrompt from './ChatFirstPrompt';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import UniversalTabContainer from './UniversalTabContainer';
 import SearchFilters from './SearchFilters';
@@ -96,6 +97,10 @@ const SearchPage2 = () => {
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [selectedUserForPII, setSelectedUserForPII] = useState(null);
   const [currentPIIAccess, setCurrentPIIAccess] = useState({});
+
+  // Chat-first prompt state (shown before PII request)
+  const [showChatFirstPrompt, setShowChatFirstPrompt] = useState(false);
+  const [pendingPIIRequestUser, setPendingPIIRequestUser] = useState(null);
 
   // Ref to track if default search has been auto-executed
   const hasAutoExecutedRef = useRef(false);
@@ -1551,9 +1556,17 @@ const SearchPage2 = () => {
     return age;
   };
 
-  const openPIIRequestModal = async (targetUsername) => {
+  // Show chat-first prompt before opening PII request modal
+  const openPIIRequestModal = (targetUsername) => {
     const user = users.find(u => u.username === targetUsername);
     if (!user) return;
+    setPendingPIIRequestUser(user);
+    setShowChatFirstPrompt(true);
+  };
+
+  // Actually open the PII modal (called after chat-first prompt)
+  const actuallyOpenPIIRequestModal = async (user) => {
+    const targetUsername = user.username;
 
     try {
       // Fetch target user's full profile to get accurate visibility settings
@@ -1815,11 +1828,20 @@ const SearchPage2 = () => {
   console.log(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
   console.log(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
   
+  // Check if this is a Profile ID search - bypass most filters if so
+  const isProfileIdSearch = searchCriteria.profileId?.trim();
+  
   const filteredUsers = users.filter(user => {
-    // Exclude users who have been excluded by current user
+    // Exclude users who have been excluded by current user (always apply)
     if (excludedUsers.has(user.username)) {
       console.log(`🚫 Filtered out ${user.username} - excluded`);
       return false;
+    }
+
+    // Profile ID search bypasses all other client-side filters
+    if (isProfileIdSearch) {
+      console.log(`✅ ${user.username} - Profile ID search, bypassing filters`);
+      return true;
     }
 
     // Filter by minimum compatibility score (L3V3L)
@@ -2497,6 +2519,28 @@ const SearchPage2 = () => {
         currentCriteria={searchCriteria}
         minMatchScore={minMatchScore}
         editingScheduleFor={editingScheduleFor}
+      />
+
+      {/* Chat First Prompt - shown before PII request */}
+      <ChatFirstPrompt
+        isOpen={showChatFirstPrompt}
+        onClose={() => {
+          setShowChatFirstPrompt(false);
+          setPendingPIIRequestUser(null);
+        }}
+        onContinue={() => {
+          if (pendingPIIRequestUser) {
+            actuallyOpenPIIRequestModal(pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        onOpenChat={() => {
+          if (pendingPIIRequestUser) {
+            handleMessage(pendingPIIRequestUser);
+          }
+          setPendingPIIRequestUser(null);
+        }}
+        targetUser={pendingPIIRequestUser}
       />
 
       {/* PII Request Modal */}

@@ -432,6 +432,9 @@ const AdminPage = () => {
               <th onClick={() => handleSort('imagesCount')} style={{ cursor: 'pointer' }}>
                 IMAGES {sortField === 'imagesCount' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th onClick={() => handleSort('invitedBy')} style={{ cursor: 'pointer' }}>
+                INVITED BY {sortField === 'invitedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -440,7 +443,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="11" className="text-center text-muted py-4">
+                <td colSpan="12" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -495,6 +498,25 @@ const AdminPage = () => {
                   <td>{user.location}</td>
                   <td>
                     <span className="badge bg-info">{user.images?.length || 0}</span>
+                  </td>
+                  <td>
+                    {user.invitedBy && user.invitedBy !== 'system' ? (
+                      <span
+                        className="invited-by-link"
+                        style={{ 
+                          color: '#667eea', 
+                          cursor: 'pointer',
+                          textDecoration: 'underline',
+                          fontWeight: '500'
+                        }}
+                        onClick={() => navigate(`/profile/${user.invitedBy}`)}
+                        title={`View ${user.invitedBy}'s profile`}
+                      >
+                        {user.invitedBy}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#999', fontStyle: 'italic' }}>system</span>
+                    )}
                   </td>
                   <td>
                     {(() => {

@@ -750,6 +750,9 @@ async def register_user(
     creatorFullName: Optional[str] = Form(None),  # Creator's full name
     creatorRelationship: Optional[str] = Form(None),  # Relationship to profile owner
     creatorNotes: Optional[str] = Form(None),  # Why profile was created by someone else
+    # Invitation tracking
+    invitedBy: Optional[str] = Form(None),  # Username of the member who invited this user
+    invitationToken: Optional[str] = Form(None),  # Invitation token used during registration
     # Legal consent fields
     agreedToAge: bool = Form(False),
     agreedToTerms: bool = Form(False),
@@ -1060,7 +1063,10 @@ async def register_user(
         # Messaging stats (initialized to 0)
         "messagesSent": 0,
         "messagesReceived": 0,
-        "pendingReplies": 0
+        "pendingReplies": 0,
+        # Invitation tracking
+        "invitedBy": invitedBy if invitedBy else "system",  # Default to "system" if not invited
+        "invitationToken": invitationToken  # Token used during registration (for audit)
     }
     
     # 🔒 ENCRYPT PII fields before saving
