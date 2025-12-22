@@ -1,6 +1,6 @@
 """
-Email Verification API Routes
-Endpoints for user email verification and account activation
+Email & SMS Verification API Routes
+Endpoints for user email/SMS verification and account activation
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from typing import Optional
 from database import get_database
 from services.email_verification_service import EmailVerificationService
+from services.sms_verification_service import SMSVerificationService
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 
 router = APIRouter(prefix="/api/verification", tags=["verification"])
@@ -20,6 +21,13 @@ class VerifyEmailRequest(BaseModel):
 
 class ResendVerificationRequest(BaseModel):
     username: str
+
+class SendSMSVerificationRequest(BaseModel):
+    username: str
+
+class VerifySMSCodeRequest(BaseModel):
+    username: str
+    code: str
 
 class VerificationResponse(BaseModel):
     success: bool
@@ -358,3 +366,75 @@ async def get_pending_approvals(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching pending approvals: {str(e)}")
+
+
+# ===== SMS VERIFICATION ENDPOINTS =====
+
+@router.get("/sms/availability/{username}")
+async def check_sms_availability(
+    username: str,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Check if SMS verification is available for a user
+    
+    **Returns:**
+    - available: Boolean indicating if SMS verification can be used
+    - phone_masked: Masked phone number (e.g., ***1234)
+    - reason: Reason if not available
+    """
+    service = SMSVerificationService(db)
+    result = await service.check_sms_availability(username)
+    return result
+
+
+@router.post("/sms/send")
+async def send_sms_verification(
+    request: SendSMSVerificationRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Send SMS verification code to user's phone
+    
+    **Flow:**
+    1. User requests SMS verification instead of email
+    2. Backend sends 6-digit OTP code via SMS
+    3. Code expires in 10 minutes
+    
+    **Rate limits:**
+    - 60 seconds cooldown between sends
+    - Maximum 5 attempts per day
+    
+    **Returns:**
+    - success: True if SMS sent
+    - message: Status message
+    - phone_masked: Masked phone number
+    - expires_in_minutes: Code expiry time
+    """
+    service = SMSVerificationService(db)
+    result = await service.send_verification_sms(request.username)
+    return result
+
+
+@router.post("/sms/verify")
+async def verify_sms_code(
+    request: VerifySMSCodeRequest,
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """
+    Verify SMS OTP code and activate account
+    
+    **Flow:**
+    1. User enters 6-digit code received via SMS
+    2. Backend validates code
+    3. If valid, marks phone as verified
+    4. Account status changes to "pending_admin_approval"
+    
+    **Returns:**
+    - success: True if code is valid
+    - message: Status message
+    - nextStep: Next stage in onboarding flow
+    """
+    service = SMSVerificationService(db)
+    result = await service.verify_sms_code(request.username, request.code)
+    return result

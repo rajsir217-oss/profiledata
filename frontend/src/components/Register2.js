@@ -199,6 +199,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [newImages, setNewImages] = useState([]); // New images to upload
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
+  const [errorFields, setErrorFieldsList] = useState([]); // For clickable error field links
   const [savedUser, setSavedUser] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
@@ -873,6 +874,34 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   // Education and Work Experience handlers are now in shared components
   // Image handling is now done by ImageManager component
 
+  // Helper function to convert camelCase field names to readable labels
+  const getFieldLabel = (fieldName) => {
+    const labels = {
+      username: 'Username',
+      password: 'Password',
+      passwordConfirm: 'Confirm Password',
+      firstName: 'First Name',
+      lastName: 'Last Name',
+      contactNumber: 'Phone Number',
+      contactEmail: 'Email',
+      birthMonth: 'Birth Month',
+      birthYear: 'Birth Year',
+      gender: 'Gender',
+      heightFeet: 'Height (Feet)',
+      heightInches: 'Height (Inches)',
+      state: 'State',
+      location: 'City/Location',
+      religion: 'Religion',
+      eatingPreference: 'Eating Preference',
+      familyBackground: 'Family Background',
+      aboutMe: 'About Me',
+      partnerPreference: 'Partner Preference',
+      educationHistory: 'Education',
+      workExperience: 'Work Experience'
+    };
+    return labels[fieldName] || fieldName.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+  };
+
   // Helper function to actually scroll and focus (extracted for reuse)
   const scrollAndFocus = (inputElement) => {
     // Scroll to the element with offset for fixed tab bar (70px TopBar + 80px TabBar)
@@ -907,44 +936,43 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
   // Helper function to scroll to and focus a field (enhanced for tabbed layout)
   const scrollToAndFocusField = (fieldName) => {
-    // Try to find the input element by name or id
-    const inputElement = document.querySelector(`[name="${fieldName}"], #${fieldName}`);
+    // Map fields to their tabs
+    const tabSections = {
+      'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio', 'aboutMe'],
+      'background': ['educationHistory', 'workExperience', 'linkedinUrl', 'familyBackground', 'familyType', 'familyValues', 'drinking', 'smoking', 'bodyType', 'hasChildren', 'wantsChildren', 'pets'],
+      'partner-preferences': ['partnerPreference', 'ageRangeYounger', 'ageRangeOlder', 'heightRangeMin', 'heightRangeMax', 'educationLevel', 'profession', 'languages', 'partnerReligion', 'partnerCaste', 'partnerLocation', 'eatingPreference', 'partnerFamilyType', 'familyValues']
+    };
     
-    if (inputElement) {
-      // Check if element is in a hidden tab and switch to it first
-      const tabPanel = inputElement.closest('.tab-panel');
-      if (tabPanel && !tabPanel.classList.contains('active')) {
-        // Find which tab this field belongs to
-        const tabSections = {
-          'about-me': ['username', 'password', 'passwordConfirm', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches', 'countryOfOrigin', 'countryOfResidence', 'state', 'location', 'religion', 'languagesSpoken', 'caste', 'motherTongue', 'profileCreatedBy', 'relationshipStatus', 'lookingFor', 'interests', 'bio'],
-          'background': ['educationHistory', 'workExperience', 'linkedinUrl', 'familyBackground', 'familyType', 'familyValues', 'aboutMe', 'drinking', 'smoking', 'bodyType', 'hasChildren', 'wantsChildren', 'pets'],
-          'partner-preferences': ['partnerPreference', 'ageRangeYounger', 'ageRangeOlder', 'heightRangeMin', 'heightRangeMax', 'educationLevel', 'profession', 'languages', 'partnerReligion', 'partnerCaste', 'partnerLocation', 'eatingPreference', 'partnerFamilyType', 'familyValues']
-        };
-        
-        // Find which tab the field belongs to
-        let targetTabId = 'about-me'; // default
-        for (const [tabId, fields] of Object.entries(tabSections)) {
-          if (fields.includes(fieldName)) {
-            targetTabId = tabId;
-            break;
-          }
-        }
-        
-        // Click the tab button to switch tabs
-        const tabButton = document.querySelector(`[data-tab-id="${targetTabId}"]`) || 
-                         document.querySelector(`.tab-button:nth-child(${targetTabId === 'about-me' ? 1 : targetTabId === 'background' ? 2 : 3})`);
-        if (tabButton) {
-          tabButton.click();
-          // No animation delay needed - instant tab switch
-          setTimeout(() => scrollAndFocus(inputElement), 50);
-          return;
-        }
+    // Find which tab the field belongs to
+    let targetTabId = 'about-me'; // default
+    for (const [tabId, fields] of Object.entries(tabSections)) {
+      if (fields.includes(fieldName)) {
+        targetTabId = tabId;
+        break;
       }
-      
-      scrollAndFocus(inputElement);
+    }
+    
+    // Switch to the correct tab using React state
+    if (activeTab !== targetTabId) {
+      setActiveTab(targetTabId);
+      // Wait for React to re-render the tab content, then scroll and focus
+      setTimeout(() => {
+        const inputElement = document.querySelector(`[name="${fieldName}"], #${fieldName}`);
+        if (inputElement) {
+          scrollAndFocus(inputElement);
+        } else {
+          // Scroll to top of form if element not found
+          window.scrollTo({ top: 200, behavior: 'smooth' });
+        }
+      }, 100);
     } else {
-      // Fallback to scrolling to top if element not found
-      window.scrollTo({ top: 0, behavior: 'auto' });
+      // Already on the correct tab, just scroll and focus
+      const inputElement = document.querySelector(`[name="${fieldName}"], #${fieldName}`);
+      if (inputElement) {
+        scrollAndFocus(inputElement);
+      } else {
+        window.scrollTo({ top: 200, behavior: 'smooth' });
+      }
     }
   };
 
@@ -1003,6 +1031,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
+    setErrorFieldsList([]); // Clear clickable error fields
     setSuccessMsg("");
     setSavedUser(null);
 
@@ -1062,8 +1091,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     setFieldErrors(errors);
 
     if (hasErrors) {
-      const fieldList = errorFields.join(", ");
-      setErrorMsg(`❌ Please fix validation errors in the following fields: ${fieldList}`);
+      setErrorFieldsList(errorFields); // Store for clickable links
+      setErrorMsg(`❌ Please fix validation errors in the following fields:`);
       
       // Scroll to and focus the first field with an error
       scrollToAndFocusField(errorFields[0]);
@@ -1768,7 +1797,29 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </p>
         </div>
       
-      {errorMsg && <div className="alert alert-danger">{errorMsg}</div>}
+      {errorMsg && (
+        <div className="alert alert-danger">
+          {errorMsg}
+          {errorFields.length > 0 && (
+            <span className="error-field-links">
+              {' '}
+              {errorFields.map((field, index) => (
+                <span key={field}>
+                  <button
+                    type="button"
+                    className="error-field-link"
+                    onClick={() => scrollToAndFocusField(field)}
+                    title={`Click to go to ${getFieldLabel(field)}`}
+                  >
+                    {getFieldLabel(field)}
+                  </button>
+                  {index < errorFields.length - 1 && ', '}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
       
       {isEditMode && (

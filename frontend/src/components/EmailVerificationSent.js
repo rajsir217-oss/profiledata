@@ -12,6 +12,17 @@ const EmailVerificationSent = () => {
   const [resendCooldown, setResendCooldown] = useState(0);
   const [resendStatus, setResendStatus] = useState('');
   const [isResending, setIsResending] = useState(false);
+  
+  // SMS verification state
+  const [showSmsOption, setShowSmsOption] = useState(false);
+  const [smsAvailable, setSmsAvailable] = useState(false);
+  const [phoneMasked, setPhoneMasked] = useState('');
+  const [smsMode, setSmsMode] = useState(false);
+  const [smsCode, setSmsCode] = useState('');
+  const [smsSending, setSmsSending] = useState(false);
+  const [smsVerifying, setSmsVerifying] = useState(false);
+  const [smsStatus, setSmsStatus] = useState('');
+  const [smsCooldown, setSmsCooldown] = useState(0);
 
   useEffect(() => {
     // Get email and username from navigation state
@@ -25,9 +36,30 @@ const EmailVerificationSent = () => {
     if (!stateEmail) {
       navigate('/register2');
     }
+    
+    // Check if SMS verification is available
+    if (stateUsername) {
+      checkSmsAvailability(stateUsername);
+    }
   }, [location, navigate]);
+  
+  // Check if SMS verification is available for this user
+  const checkSmsAvailability = async (user) => {
+    try {
+      const response = await axios.get(
+        `${getBackendUrl()}/api/verification/sms/availability/${user}`
+      );
+      if (response.data.available) {
+        setSmsAvailable(true);
+        setPhoneMasked(response.data.phone_masked);
+        setShowSmsOption(true);
+      }
+    } catch (error) {
+      console.log('SMS verification not available:', error.response?.data?.reason || error.message);
+    }
+  };
 
-  // Cooldown timer
+  // Cooldown timer for email
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => {
@@ -36,6 +68,16 @@ const EmailVerificationSent = () => {
       return () => clearTimeout(timer);
     }
   }, [resendCooldown]);
+  
+  // Cooldown timer for SMS
+  useEffect(() => {
+    if (smsCooldown > 0) {
+      const timer = setTimeout(() => {
+        setSmsCooldown(smsCooldown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [smsCooldown]);
 
   const handleResendEmail = async () => {
     if (resendCooldown > 0 || !username) return;
@@ -67,6 +109,73 @@ const EmailVerificationSent = () => {
 
   const handleGoToLogin = () => {
     navigate('/login');
+  };
+  
+  // SMS verification handlers
+  const handleSendSmsCode = async () => {
+    if (smsCooldown > 0 || !username) return;
+    
+    setSmsSending(true);
+    setSmsStatus('');
+    
+    try {
+      const response = await axios.post(
+        `${getBackendUrl()}/api/verification/sms/send`,
+        { username }
+      );
+      
+      if (response.data.success) {
+        setSmsStatus('sent');
+        setSmsCooldown(60);
+        setSmsMode(true);
+      } else {
+        setSmsStatus('error');
+      }
+    } catch (error) {
+      console.error('Error sending SMS:', error);
+      setSmsStatus('error');
+    } finally {
+      setSmsSending(false);
+    }
+  };
+  
+  const handleVerifySmsCode = async () => {
+    if (!smsCode || smsCode.length !== 6 || !username) return;
+    
+    setSmsVerifying(true);
+    setSmsStatus('');
+    
+    try {
+      const response = await axios.post(
+        `${getBackendUrl()}/api/verification/sms/verify`,
+        { username, code: smsCode }
+      );
+      
+      if (response.data.success) {
+        setSmsStatus('verified');
+        // Redirect to pending approval page or login after 2 seconds
+        setTimeout(() => {
+          navigate('/login', { 
+            state: { 
+              message: 'Phone verified! Your account is pending admin approval.',
+              username 
+            } 
+          });
+        }, 2000);
+      } else {
+        setSmsStatus('invalid');
+      }
+    } catch (error) {
+      console.error('Error verifying SMS code:', error);
+      setSmsStatus('invalid');
+    } finally {
+      setSmsVerifying(false);
+    }
+  };
+  
+  const handleSmsCodeChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+    setSmsCode(value);
   };
 
   const maskEmail = (emailAddress) => {
@@ -154,6 +263,112 @@ const EmailVerificationSent = () => {
             Already Verified? Login
           </button>
         </div>
+
+        {/* SMS Verification Option */}
+        {showSmsOption && smsAvailable && !smsMode && (
+          <div className="sms-option-section">
+            <div className="divider">
+              <span>or</span>
+            </div>
+            <div className="sms-option">
+              <p className="sms-option-text">
+                📱 Email delayed? Verify via SMS instead
+              </p>
+              <p className="sms-phone-display">
+                Send code to: {phoneMasked}
+              </p>
+              <button
+                className="btn-sms"
+                onClick={handleSendSmsCode}
+                disabled={smsSending || smsCooldown > 0}
+              >
+                {smsSending ? (
+                  <>
+                    <span className="spinner-small"></span> Sending...
+                  </>
+                ) : smsCooldown > 0 ? (
+                  `Resend in ${smsCooldown}s`
+                ) : (
+                  '📲 Send SMS Code'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+        
+        {/* SMS Code Entry */}
+        {smsMode && (
+          <div className="sms-verify-section">
+            <div className="divider">
+              <span>SMS Verification</span>
+            </div>
+            
+            {smsStatus === 'sent' && (
+              <div className="alert alert-success">
+                ✅ Code sent to {phoneMasked}
+              </div>
+            )}
+            {smsStatus === 'verified' && (
+              <div className="alert alert-success">
+                ✅ Phone verified! Redirecting...
+              </div>
+            )}
+            {smsStatus === 'invalid' && (
+              <div className="alert alert-error">
+                ❌ Invalid code. Please try again.
+              </div>
+            )}
+            {smsStatus === 'error' && (
+              <div className="alert alert-error">
+                ❌ Failed to send SMS. Please try email verification.
+              </div>
+            )}
+            
+            <div className="sms-code-input-group">
+              <label>Enter 6-digit code:</label>
+              <input
+                type="text"
+                className="sms-code-input"
+                value={smsCode}
+                onChange={handleSmsCodeChange}
+                placeholder="000000"
+                maxLength={6}
+                autoFocus
+              />
+            </div>
+            
+            <div className="sms-actions">
+              <button
+                className="btn-verify-sms"
+                onClick={handleVerifySmsCode}
+                disabled={smsVerifying || smsCode.length !== 6}
+              >
+                {smsVerifying ? (
+                  <>
+                    <span className="spinner-small"></span> Verifying...
+                  </>
+                ) : (
+                  '✓ Verify Code'
+                )}
+              </button>
+              
+              <button
+                className="btn-resend-sms"
+                onClick={handleSendSmsCode}
+                disabled={smsSending || smsCooldown > 0}
+              >
+                {smsCooldown > 0 ? `Resend in ${smsCooldown}s` : '🔄 Resend Code'}
+              </button>
+            </div>
+            
+            <button
+              className="btn-back-to-email"
+              onClick={() => setSmsMode(false)}
+            >
+              ← Back to email verification
+            </button>
+          </div>
+        )}
 
         {/* Help Text */}
         <div className="help-text">
