@@ -59,8 +59,8 @@ class SimpleTextingService:
             if formatted_phone.startswith("1") and len(formatted_phone) == 11:
                 formatted_phone = formatted_phone[1:]  # Remove leading 1 for US numbers
             
-            # Include username in message for multi-profile clarity
-            profile_prefix = f"[{username}] " if username else ""
+            # Include L3V3LMATCHES branding and username in message
+            profile_prefix = f"[L3V3LMATCHES | {username}] " if username else "[L3V3LMATCHES] "
             
             # Create message based on purpose
             if purpose == "verification":
