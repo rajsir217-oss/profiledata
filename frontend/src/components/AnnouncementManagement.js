@@ -6,6 +6,7 @@ import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 import logger from '../utils/logger';
 import './AnnouncementManagement.css';
+import './TickerSettings.css';
 
 // Create axios instance for announcements API
 const announcementsApi = axios.create({
@@ -28,11 +29,33 @@ announcementsApi.interceptors.request.use((config) => {
 const AnnouncementManagement = () => {
   const navigate = useNavigate();
   const toast = useToast();
+  const [activeTab, setActiveTab] = useState('announcements');
   const [announcements, setAnnouncements] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [tickerSettings, setTickerSettings] = useState({
+    profileViewsHours: 24,
+    profileViewsLimit: 5,
+    favoritesHours: 24,
+    favoritesLimit: 5,
+    shortlistsHours: 24,
+    shortlistsLimit: 5,
+    messagesLimit: 3,
+    piiRequestsLimit: 5,
+    expiringAccessDays: 3,
+    expiringAccessLimit: 3,
+    totalItemsLimit: 15,
+    enableProfileViews: true,
+    enableFavorites: true,
+    enableShortlists: true,
+    enableMessages: true,
+    enablePiiRequests: true,
+    enableExpiringAccess: true,
+    enableTips: true
+  });
+  const [savingSettings, setSavingSettings] = useState(false);
   const [formData, setFormData] = useState({
     message: '',
     type: 'info',
@@ -56,6 +79,7 @@ const AnnouncementManagement = () => {
 
     loadAnnouncements();
     loadStats();
+    loadTickerSettings();
   }, [navigate]);
 
   // ESC key to close modal
@@ -89,6 +113,37 @@ const AnnouncementManagement = () => {
     } catch (error) {
       logger.error('Error loading stats:', error);
     }
+  };
+
+  const loadTickerSettings = async () => {
+    try {
+      const response = await announcementsApi.get('/ticker/settings');
+      if (response.data) {
+        setTickerSettings(response.data);
+      }
+    } catch (error) {
+      logger.error('Error loading ticker settings:', error);
+    }
+  };
+
+  const handleSaveTickerSettings = async () => {
+    try {
+      setSavingSettings(true);
+      await announcementsApi.post('/ticker/settings', tickerSettings);
+      toast.success('Ticker settings saved successfully!');
+    } catch (error) {
+      logger.error('Error saving ticker settings:', error);
+      toast.error('Failed to save ticker settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleTickerSettingChange = (field, value) => {
+    setTickerSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
   };
 
   const handleCreate = () => {
@@ -230,11 +285,30 @@ const AnnouncementManagement = () => {
       {/* Header */}
       <div className="management-header">
         <h1>📢 Announcement Management</h1>
-        <p>Create and manage site-wide announcements</p>
+        <p>Create and manage site-wide announcements and ticker settings</p>
       </div>
 
-      {/* Stats */}
-      {stats && (
+      {/* Tab Navigation */}
+      <div className="tab-navigation">
+        <button 
+          className={`tab-button ${activeTab === 'announcements' ? 'active' : ''}`}
+          onClick={() => setActiveTab('announcements')}
+        >
+          📢 Announcements
+        </button>
+        <button 
+          className={`tab-button ${activeTab === 'ticker' ? 'active' : ''}`}
+          onClick={() => setActiveTab('ticker')}
+        >
+          ⚙️ Ticker Settings
+        </button>
+      </div>
+
+      {/* Announcements Tab */}
+      {activeTab === 'announcements' && (
+        <>
+          {/* Stats */}
+          {stats && (
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{stats.totalAnnouncements}</div>
@@ -483,6 +557,291 @@ const AnnouncementManagement = () => {
           ))
         )}
       </div>
+        </>
+      )}
+
+      {/* Ticker Settings Tab */}
+      {activeTab === 'ticker' && (
+        <div className="ticker-settings-panel">
+          <div className="settings-header">
+            <h2>🎛️ Ticker Configuration</h2>
+            <p>Configure what appears in the scrolling info ticker and how often</p>
+          </div>
+
+          <div className="settings-grid">
+            {/* Profile Views */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>👁️ Profile Views</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableProfileViews}
+                    onChange={(e) => handleTickerSettingChange('enableProfileViews', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableProfileViews && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Time Window (hours)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={tickerSettings.profileViewsHours}
+                      onChange={(e) => handleTickerSettingChange('profileViewsHours', parseInt(e.target.value))}
+                    />
+                    <small>Show profile views from the last X hours</small>
+                  </div>
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={tickerSettings.profileViewsLimit}
+                      onChange={(e) => handleTickerSettingChange('profileViewsLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum profile views to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Favorites */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>⭐ Favorites</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableFavorites}
+                    onChange={(e) => handleTickerSettingChange('enableFavorites', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableFavorites && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Time Window (hours)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={tickerSettings.favoritesHours}
+                      onChange={(e) => handleTickerSettingChange('favoritesHours', parseInt(e.target.value))}
+                    />
+                    <small>Show favorites from the last X hours</small>
+                  </div>
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={tickerSettings.favoritesLimit}
+                      onChange={(e) => handleTickerSettingChange('favoritesLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum favorites to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Shortlists */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>📋 Shortlists</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableShortlists}
+                    onChange={(e) => handleTickerSettingChange('enableShortlists', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableShortlists && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Time Window (hours)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="168"
+                      value={tickerSettings.shortlistsHours}
+                      onChange={(e) => handleTickerSettingChange('shortlistsHours', parseInt(e.target.value))}
+                    />
+                    <small>Show shortlists from the last X hours</small>
+                  </div>
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="20"
+                      value={tickerSettings.shortlistsLimit}
+                      onChange={(e) => handleTickerSettingChange('shortlistsLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum shortlists to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Messages */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>💬 Messages</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableMessages}
+                    onChange={(e) => handleTickerSettingChange('enableMessages', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableMessages && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={tickerSettings.messagesLimit}
+                      onChange={(e) => handleTickerSettingChange('messagesLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum unread messages to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* PII Requests */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>📸 PII Requests</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enablePiiRequests}
+                    onChange={(e) => handleTickerSettingChange('enablePiiRequests', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enablePiiRequests && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={tickerSettings.piiRequestsLimit}
+                      onChange={(e) => handleTickerSettingChange('piiRequestsLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum pending PII requests to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Expiring Access */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>⏰ Expiring Access</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableExpiringAccess}
+                    onChange={(e) => handleTickerSettingChange('enableExpiringAccess', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableExpiringAccess && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Warning Days</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={tickerSettings.expiringAccessDays}
+                      onChange={(e) => handleTickerSettingChange('expiringAccessDays', parseInt(e.target.value))}
+                    />
+                    <small>Show access expiring within X days</small>
+                  </div>
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={tickerSettings.expiringAccessLimit}
+                      onChange={(e) => handleTickerSettingChange('expiringAccessLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum expiring access items to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tips */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>💡 Tips</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableTips}
+                    onChange={(e) => handleTickerSettingChange('enableTips', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              <p className="section-description">Show profile completion tips and suggestions</p>
+            </div>
+
+            {/* Global Settings */}
+            <div className="setting-section global-settings">
+              <div className="section-header">
+                <h3>🎯 Global Settings</h3>
+              </div>
+              <div className="setting-inputs">
+                <div className="input-group">
+                  <label>Total Items Limit</label>
+                  <input
+                    type="number"
+                    min="5"
+                    max="50"
+                    value={tickerSettings.totalItemsLimit}
+                    onChange={(e) => handleTickerSettingChange('totalItemsLimit', parseInt(e.target.value))}
+                  />
+                  <small>Maximum total items to show in ticker (across all types)</small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Save Button */}
+          <div className="settings-actions">
+            <button 
+              onClick={handleSaveTickerSettings} 
+              className="btn-save-settings"
+              disabled={savingSettings}
+            >
+              {savingSettings ? '💾 Saving...' : '💾 Save Settings'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

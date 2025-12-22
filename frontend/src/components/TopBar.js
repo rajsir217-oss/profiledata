@@ -8,6 +8,7 @@ import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import OnlineUsersDropdown from './OnlineUsersDropdown';
 import Logo from './Logo';
+import InfoTicker from './InfoTicker';
 import { getFirstName } from '../utils/userDisplay';
 import logger from '../utils/logger';
 import './TopBar.css';
@@ -411,7 +412,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
         )}
       </div>
       
-      {/* Page Title Section - Horizontal bar below main topbar */}
+      {/* Info Ticker - Scrolling information bar */}
+      <InfoTicker />
+      
+      {/* Page Title Section - Horizontal bar below ticker */}
       {pageTitle && (
         <div className="page-title-section">
           <span className="page-title-icon">{pageTitle.icon}</span>

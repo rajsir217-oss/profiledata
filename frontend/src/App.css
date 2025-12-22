@@ -14,7 +14,7 @@
   left: 0; /* Start with no offset (sidebar closed by default) */
   right: 0;
   bottom: 0;
-  padding-top: 120px; /* BrandBanner (50px) + TopBar (60px) + spacing (10px) */
+  padding-top: 156px; /* BrandBanner (50px) + TopBar (60px) + InfoTicker (36px) + spacing (10px) */
   transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   background-color: var(--background-color, #f5f7fa); /* Theme-aware background */
   overflow-y: auto;
