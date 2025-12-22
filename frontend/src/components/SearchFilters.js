@@ -442,7 +442,7 @@ const SearchFilters = ({
 
       {/* 3. ACTION BUTTONS - First appearance (after basic filters) */}
       {!hideActionButtons && (
-        <div className="search-action-buttons">
+        <div className="search-action-buttons" style={{ justifyContent: 'center', display: 'flex', width: '100%' }}>
           {onSearch && (
             <button
               type="button"
