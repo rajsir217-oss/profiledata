@@ -74,6 +74,15 @@
   border-color: var(--primary-color);
 }
 
+/* Sticky action buttons */
+.profile-detail-content > div:first-child button {
+  white-space: nowrap;
+}
+
+.profile-detail-content > div:first-child button:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
   .split-screen-layout {
@@ -85,6 +94,33 @@
   .thumbnail-navigation {
     width: 70px;
     padding: 8px;
+  }
+
+  /* Mobile: Icons only for action buttons */
+  .profile-detail-content > div:first-child {
+    gap: 4px !important;
+    padding: 8px 0 !important;
+  }
+
+  .profile-detail-content > div:first-child button {
+    padding: 8px !important;
+    font-size: 18px !important;
+    min-width: 40px;
+    justify-content: center;
+  }
+
+  /* Hide button text on mobile, show only icons */
+  .action-btn .btn-text {
+    display: none;
+  }
+
+  .action-btn .btn-icon {
+    margin: 0;
+  }
+
+  /* For buttons without separate icon span (Message button) */
+  .action-btn {
+    gap: 0 !important;
   }
 
   .thumbnail-card {
