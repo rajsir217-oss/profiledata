@@ -482,7 +482,7 @@ const AnnouncementManagement = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn-submit">
-                  {editingId ? 'Update' : 'Create'} Announcement
+                  {editingId ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>

@@ -401,7 +401,7 @@
 .btn-icon {
   background: none;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 50px !important;
   padding: 0.5rem;
   font-size: 1rem;
   cursor: pointer;
@@ -432,14 +432,18 @@
 }
 
 .pagination button {
-  padding: 0.75rem 1.5rem;
+  padding: 0.5rem 1rem;
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 50px;
 }
 
 .pagination button:hover:not(:disabled) {
@@ -499,16 +503,20 @@
 
 /* Buttons */
 .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px !important;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .btn-primary {

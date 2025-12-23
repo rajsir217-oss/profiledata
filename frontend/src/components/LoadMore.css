@@ -26,8 +26,15 @@
 
 .load-more-button {
   min-width: 200px;
-  padding: 12px 32px;
+  padding: 12px 2rem;
   border: 1px solid var(--border-color, #e0e0e0);
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   background: var(--card-background, #ffffff);
   color: var(--primary-color, #667eea);
   border-radius: 8px;

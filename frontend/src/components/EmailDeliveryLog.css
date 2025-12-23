@@ -75,6 +75,10 @@
   padding: 8px 16px;
   background: var(--primary-color);
   color: white;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
   border-radius: var(--radius-sm);
   cursor: pointer;

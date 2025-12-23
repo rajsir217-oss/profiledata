@@ -353,9 +353,16 @@
 
 /* Bulk Delete Button */
 .btn-danger {
-  padding: 0.6rem 1.2rem;
-  background: #ef4444;
+  padding: 0.6rem 2rem;
+  background: var(--danger-color);
   color: white;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -377,9 +384,17 @@
 }
 
 .btn-secondary {
-  padding: 0.6rem 1.2rem;
-  background: #6b7280;
-  color: white;
+  padding: 0.6rem 2rem;
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   border: none;
   border-radius: 8px;
   font-weight: 600;

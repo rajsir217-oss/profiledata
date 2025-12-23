@@ -119,12 +119,15 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px !important;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-refresh:hover {
@@ -429,9 +432,12 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-page:hover:not(:disabled) {
@@ -617,11 +623,14 @@
 .btn-cancel, .btn-confirm {
   padding: 12px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-cancel {
@@ -905,11 +914,14 @@
 .action-btn-cancel, .action-btn-confirm {
   padding: 12px 24px;
   border: none;
-  border-radius: 10px;
+  border-radius: 50px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-btn-cancel {
@@ -1022,12 +1034,15 @@
 .bulk-btn {
   padding: 8px 16px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .bulk-role {
@@ -1225,7 +1240,7 @@
 
 /* Cleanup Modal Container */
 .cleanup-modal {
-  background: white;
+  background: var(--card-background);
   border-radius: 16px;
   width: 90%;
   max-width: 480px;
@@ -1234,14 +1249,15 @@
   animation: slideIn 0.3s ease;
 }
 
-/* Purple Gradient Header */
+/* Theme-Aware Gradient Header */
 .cleanup-modal-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   padding: 20px 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   color: white;
+  border-radius: 16px 16px 0 0;
 }
 
 .cleanup-user-info {
@@ -1302,10 +1318,10 @@
   transform: rotate(90deg);
 }
 
-/* White Body Content */
+/* Theme-Aware Body Content */
 .cleanup-modal-body {
   padding: 28px 24px 24px;
-  background: white;
+  background: var(--card-background);
 }
 
 .cleanup-title {
@@ -1322,13 +1338,13 @@
 .cleanup-title h3 {
   font-size: 19px;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--text-color);
   margin: 0;
 }
 
 .cleanup-description {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary);
   margin-bottom: 24px;
   line-height: 1.5;
 }
@@ -1342,18 +1358,18 @@
   display: block;
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-color);
   margin-bottom: 10px;
 }
 
 .cleanup-select {
   width: 100%;
   padding: 12px 16px;
-  border: 2px solid #e5e7eb;
+  border: 2px solid var(--border-color);
   border-radius: 10px;
   font-size: 14px;
-  color: #1f2937;
-  background: white;
+  color: var(--text-color);
+  background: var(--input-bg);
   cursor: pointer;
   transition: all 0.2s ease;
   appearance: none;
@@ -1364,12 +1380,12 @@
 }
 
 .cleanup-select:hover {
-  border-color: #667eea;
+  border-color: var(--primary-color);
 }
 
 .cleanup-select:focus {
   outline: none;
-  border-color: #667eea;
+  border-color: var(--primary-color);
   box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
@@ -1384,18 +1400,18 @@
 
 .cleanup-setting-text {
   font-size: 14px;
-  color: #374151;
+  color: var(--text-color);
   margin-bottom: 6px;
 }
 
 .cleanup-setting-text strong {
   font-weight: 600;
-  color: #667eea;
+  color: var(--primary-color);
 }
 
 .cleanup-affects {
   font-size: 13px;
-  color: #6b7280;
+  color: var(--text-secondary);
 }
 
 /* Modal Footer */
@@ -1405,38 +1421,45 @@
   gap: 12px;
   margin-top: 28px;
   padding-top: 20px;
-  border-top: 1px solid #f3f4f6;
+  border-top: 1px solid var(--border-color);
 }
 
 .cleanup-btn-cancel {
   padding: 11px 24px;
-  border: 2px solid #e5e7eb;
-  border-radius: 10px;
-  background: white;
-  color: #6b7280;
+  border: 2px solid var(--border-color);
+  border-radius: 50px;
+  background: var(--surface-color);
+  color: var(--text-color);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cleanup-btn-cancel:hover {
-  background: #f9fafb;
-  border-color: #d1d5db;
-  color: #374151;
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .cleanup-btn-save {
   padding: 11px 24px;
   border: none;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 50px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .cleanup-btn-save:hover {

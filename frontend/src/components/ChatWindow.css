@@ -306,11 +306,14 @@
   background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
   color: white;
   border: none;
-  border-radius: 24px;
+  border-radius: 50px !important;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .send-button:hover:not(:disabled) {
@@ -521,12 +524,15 @@
 .cancel-delete-btn {
   padding: 4px 10px;
   border: none;
-  border-radius: var(--radius-sm, 4px);
+  border-radius: 50px !important;
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .confirm-delete-btn {

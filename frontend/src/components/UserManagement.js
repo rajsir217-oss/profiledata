@@ -379,7 +379,7 @@ const UserManagement = () => {
     
     // Fetch user's current cleanup settings
     try {
-      const response = await adminApi.get(`/api/users/${user.username}/cleanup-settings`);
+      const response = await adminApi.get(`/api/admin/users/${user.username}/cleanup-settings`);
       setCleanupDays(response.data.cleanup_days || 90);
     } catch (err) {
       console.error('Error fetching cleanup settings:', err);
