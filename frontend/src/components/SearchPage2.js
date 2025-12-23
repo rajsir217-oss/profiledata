@@ -2689,6 +2689,153 @@ const SearchPage2 = () => {
               }}>
                 {selectedProfileForDetail ? (
                   <div className="profile-detail-content">
+                    {/* Sticky Action Buttons */}
+                    <div style={{
+                      position: 'sticky',
+                      top: 0,
+                      background: 'var(--card-background)',
+                      zIndex: 10,
+                      padding: '12px 0',
+                      marginBottom: '16px',
+                      borderBottom: '1px solid var(--border-color)',
+                      display: 'flex',
+                      gap: '8px',
+                      justifyContent: 'flex-end',
+                      flexWrap: 'wrap'
+                    }}>
+                      {/* Message Button */}
+                      <button
+                        onClick={() => handleMessage(selectedProfileForDetail)}
+                        className="action-btn"
+                        style={{
+                          padding: '8px 16px',
+                          background: 'var(--primary-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        💬 <span className="btn-text">Message</span>
+                      </button>
+
+                      {/* Favorite Button */}
+                      <button
+                        onClick={() => handleProfileAction(null, selectedProfileForDetail.username, 'favorite')}
+                        className="action-btn"
+                        style={{
+                          padding: '8px 16px',
+                          background: favoritedUsers.has(selectedProfileForDetail.username) ? 'var(--danger-color)' : 'var(--success-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        {favoritedUsers.has(selectedProfileForDetail.username) ? (
+                          <><span className="btn-icon">💔</span> <span className="btn-text">Unfavorite</span></>
+                        ) : (
+                          <><span className="btn-icon">⭐</span> <span className="btn-text">Favorite</span></>
+                        )}
+                      </button>
+
+                      {/* Shortlist Button */}
+                      <button
+                        onClick={() => handleProfileAction(null, selectedProfileForDetail.username, 'shortlist')}
+                        className="action-btn"
+                        style={{
+                          padding: '8px 16px',
+                          background: shortlistedUsers.has(selectedProfileForDetail.username) ? 'var(--warning-color)' : 'var(--info-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        {shortlistedUsers.has(selectedProfileForDetail.username) ? (
+                          <><span className="btn-icon">📤</span> <span className="btn-text">Remove</span></>
+                        ) : (
+                          <><span className="btn-icon">📋</span> <span className="btn-text">Shortlist</span></>
+                        )}
+                      </button>
+
+                      {/* Hide Button */}
+                      <button
+                        onClick={() => handleProfileAction(null, selectedProfileForDetail.username, 'exclude')}
+                        className="action-btn"
+                        style={{
+                          padding: '8px 16px',
+                          background: excludedUsers.has(selectedProfileForDetail.username) ? 'var(--success-color)' : 'var(--danger-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        {excludedUsers.has(selectedProfileForDetail.username) ? (
+                          <><span className="btn-icon">✅</span> <span className="btn-text">Unhide</span></>
+                        ) : (
+                          <><span className="btn-icon">🚫</span> <span className="btn-text">Hide</span></>
+                        )}
+                      </button>
+
+                      {/* Request PII Button */}
+                      <button
+                        onClick={() => openPIIRequestModal(selectedProfileForDetail.username)}
+                        className="action-btn"
+                        style={{
+                          padding: '8px 16px',
+                          background: 'var(--secondary-color)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: 500,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
+                        onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
+                      >
+                        <span className="btn-icon">🔒</span> <span className="btn-text">Request Info</span>
+                      </button>
+                    </div>
+
                     {/* Profile Header */}
                     <div style={{
                       display: 'flex',
