@@ -68,11 +68,43 @@ const SearchPage2 = () => {
   const [statusMessage, setStatusMessage] = useState('');
   
   // View mode state
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
+  const [viewMode, setViewMode] = useState(() => {
+    const saved = localStorage.getItem('searchViewMode');
+    return saved || 'split'; // Default to split layout
+  }); // 'cards', 'rows', or 'split'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 4;
   });
+  
+  // Split-screen layout state
+  const [selectedProfileForDetail, setSelectedProfileForDetail] = useState(null);
+  const [expandedSections, setExpandedSections] = useState({
+    aboutMe: true,
+    lookingFor: true,
+    basicInfo: false,
+    lifestyle: false,
+    contact: false,
+    preferences: false
+  });
+  
+  // Handler to change view mode and persist to localStorage
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('searchViewMode', mode);
+    // Auto-select first profile when switching to split view
+    if (mode === 'split' && users.length > 0 && !selectedProfileForDetail) {
+      setSelectedProfileForDetail(users[0]);
+    }
+  };
+  
+  // Toggle section expansion in split view
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
   
   // Advanced filters collapse state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -2402,6 +2434,69 @@ const SearchPage2 = () => {
           {/* Sort Controls - Before Results */}
           {sortedUsers.length > 0 && (
             <div className="sort-controls-top">
+              {/* Layout Toggle Buttons */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                  Layout:
+                </span>
+                <div className="layout-toggle-buttons" style={{ display: 'flex', gap: '6px' }}>
+                  <button
+                    onClick={() => handleViewModeChange('split')}
+                    className={`layout-toggle-btn ${viewMode === 'split' ? 'active' : ''}`}
+                    title="Split view - List with detail panel"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: viewMode === 'split' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: viewMode === 'split' ? 'var(--primary-color)' : 'var(--surface-color)',
+                      color: viewMode === 'split' ? 'white' : 'var(--text-color)',
+                      cursor: 'pointer',
+                      fontWeight: viewMode === 'split' ? 600 : 400,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    ⚏ Split
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('cards')}
+                    className={`layout-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+                    title="Card view - Grid layout"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: viewMode === 'cards' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: viewMode === 'cards' ? 'var(--primary-color)' : 'var(--surface-color)',
+                      color: viewMode === 'cards' ? 'white' : 'var(--text-color)',
+                      cursor: 'pointer',
+                      fontWeight: viewMode === 'cards' ? 600 : 400,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    ▦ Cards
+                  </button>
+                  <button
+                    onClick={() => handleViewModeChange('rows')}
+                    className={`layout-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+                    title="Row view - List layout"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: viewMode === 'rows' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: viewMode === 'rows' ? 'var(--primary-color)' : 'var(--surface-color)',
+                      color: viewMode === 'rows' ? 'white' : 'var(--text-color)',
+                      cursor: 'pointer',
+                      fontWeight: viewMode === 'rows' ? 600 : 400,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    ☰ Rows
+                  </button>
+                </div>
+              </div>
+              
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Sort by:
