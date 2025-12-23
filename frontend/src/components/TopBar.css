@@ -198,7 +198,7 @@
   }
   
   .page-title-section .page-title-subtitle {
-    font-size: 11px;
+    display: none;
   }
 }
 

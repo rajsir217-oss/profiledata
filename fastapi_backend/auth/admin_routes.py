@@ -959,3 +959,72 @@ async def get_image_validation_status(
     except Exception as e:
         logger.error(f"Error getting validation status: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# Cleanup Settings Management (Admin)
+# ============================================
+
+def get_username_query(username: str):
+    """Create a case-insensitive MongoDB query for username"""
+    return {"username": {"$regex": f"^{re.escape(username)}$", "$options": "i"}}
+
+@router.get("/users/{username}/cleanup-settings", dependencies=[Depends(require_admin)])
+async def get_user_cleanup_settings(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get user's cleanup settings (Admin only)"""
+    try:
+        user = await db.users.find_one(get_username_query(username))
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Default to 90 days if not set
+        cleanup_days = user.get("cleanup_days", 90)
+        
+        return {"cleanup_days": cleanup_days}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting cleanup settings for {username}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/users/{username}/cleanup-settings", dependencies=[Depends(require_admin)])
+async def update_user_cleanup_settings(
+    username: str,
+    request_body: dict,
+    db = Depends(get_database)
+):
+    """Update user's cleanup settings (Admin only)"""
+    try:
+        cleanup_days = request_body.get("cleanup_days")
+        
+        if cleanup_days is None:
+            raise HTTPException(status_code=400, detail="cleanup_days is required")
+        
+        # Validate cleanup_days
+        if cleanup_days < 1 or cleanup_days > 365:
+            raise HTTPException(
+                status_code=400,
+                detail="Cleanup days must be between 1 and 365"
+            )
+        
+        # Update user's cleanup settings
+        result = await db.users.update_one(
+            get_username_query(username),
+            {"$set": {"cleanup_days": cleanup_days}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"✅ Admin updated cleanup settings for {username}: {cleanup_days} days")
+        return {"message": "Cleanup settings updated successfully", "cleanup_days": cleanup_days}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating cleanup settings for {username}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

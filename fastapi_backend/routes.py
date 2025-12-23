@@ -9139,3 +9139,121 @@ async def get_job_logs(job_name: str, db = Depends(get_database)):
     except Exception as e:
         logger.error(f"❌ Error loading job logs: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+# ============================================
+# Cleanup Settings Endpoints
+# ============================================
+
+@router.get("/cleanup-settings")
+async def get_cleanup_settings(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get user's cleanup settings"""
+    try:
+        username = current_user["username"]
+        user = await db.users.find_one(get_username_query(username))
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # Default to 90 days if not set
+        cleanup_days = user.get("cleanup_days", 90)
+        
+        return {"cleanup_days": cleanup_days}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting cleanup settings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/cleanup-stats")
+async def get_cleanup_stats(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get cleanup statistics for user's data"""
+    try:
+        username = current_user["username"]
+        user = await db.users.find_one(get_username_query(username))
+        
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        cleanup_days = user.get("cleanup_days", 90)
+        cutoff_date = datetime.utcnow() - timedelta(days=cleanup_days)
+        
+        # Count items that would be cleaned up
+        favorites_count = await db.favorites.count_documents({
+            "username": username,
+            "createdAt": {"$lt": cutoff_date}
+        })
+        
+        shortlist_count = await db.shortlist.count_documents({
+            "username": username,
+            "createdAt": {"$lt": cutoff_date}
+        })
+        
+        messages_count = await db.messages.count_documents({
+            "$or": [
+                {"sender": username},
+                {"recipient": username}
+            ],
+            "timestamp": {"$lt": cutoff_date}
+        })
+        
+        return {
+            "cleanup_days": cleanup_days,
+            "items_to_cleanup": {
+                "favorites": favorites_count,
+                "shortlist": shortlist_count,
+                "messages": messages_count
+            },
+            "cutoff_date": cutoff_date.isoformat()
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error getting cleanup stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.put("/cleanup-settings")
+async def update_cleanup_settings(
+    request_body: dict,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Update user's cleanup settings"""
+    try:
+        username = current_user["username"]
+        cleanup_days = request_body.get("cleanup_days")
+        
+        if cleanup_days is None:
+            raise HTTPException(status_code=400, detail="cleanup_days is required")
+        
+        # Validate cleanup_days
+        if cleanup_days < 1 or cleanup_days > 365:
+            raise HTTPException(
+                status_code=400,
+                detail="Cleanup days must be between 1 and 365"
+            )
+        
+        # Update user's cleanup settings
+        result = await db.users.update_one(
+            get_username_query(username),
+            {"$set": {"cleanup_days": cleanup_days}}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        logger.info(f"✅ Updated cleanup settings for {username}: {cleanup_days} days")
+        return {"message": "Cleanup settings updated successfully", "cleanup_days": cleanup_days}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"❌ Error updating cleanup settings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

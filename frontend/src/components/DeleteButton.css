@@ -6,7 +6,7 @@
 .delete-button {
   background: transparent;
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 50px;
   cursor: pointer;
   transition: all 0.3s ease;
   color: var(--text-secondary);
@@ -164,7 +164,7 @@
   padding: 8px 12px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 50px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   animation: slideIn 0.2s ease;
 }
@@ -183,7 +183,7 @@
 .btn-confirm-delete,
 .btn-confirm-cancel {
   padding: 6px 16px;
-  border-radius: 6px;
+  border-radius: 50px;
   border: 1px solid;
   font-size: 14px;
   font-weight: 500;

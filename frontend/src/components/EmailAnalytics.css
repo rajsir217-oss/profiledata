@@ -243,9 +243,15 @@
 }
 
 .btn-view-logs {
-  display: inline-block;
-  padding: 10px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 2rem;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 50px !important;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   color: white;
   text-decoration: none;
   border-radius: var(--radius-md);
@@ -310,8 +316,12 @@
 }
 
 .btn-sm {
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-sm) 1rem;
   font-size: 13px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .logs-table-container {

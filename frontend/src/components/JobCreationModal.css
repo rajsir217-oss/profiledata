@@ -399,9 +399,15 @@
 }
 
 .modal-footer .btn {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -411,6 +417,9 @@
 .modal-footer .btn-primary {
   background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-footer .btn-primary:hover:not(:disabled) {
@@ -427,6 +436,9 @@
   background: var(--hover-background);
   color: var(--text-color);
   border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-footer .btn-secondary:hover {

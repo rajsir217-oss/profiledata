@@ -143,6 +143,10 @@
   background: white;
   color: #f5576c;
   border: none;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 12px 24px;
   border-radius: var(--radius-md, 8px);
   font-size: 15px;
@@ -221,8 +225,12 @@
 
 .btn-enable-mfa {
   background: white;
-  color: #667eea;
+  color: var(--primary-color);
   border: none;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 10px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -242,6 +250,10 @@
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -334,6 +346,10 @@
   background: white;
   color: #f5576c;
   border: none;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 10px 24px;
   border-radius: 8px;
   font-weight: 600;
@@ -353,6 +369,10 @@
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -433,6 +453,10 @@
   background: rgba(255, 255, 255, 0.15);
   color: white;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 8px 16px;
   border-radius: 8px;
   font-size: 13px;
@@ -1725,7 +1749,10 @@
 .btn-quick-action {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: 2px solid rgba(255, 255, 255, 0.3);
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);

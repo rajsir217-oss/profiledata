@@ -212,7 +212,7 @@
   color: var(--accent-secondary, #f5576c);
   border: none;
   padding: 12px 24px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 50px !important;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -292,7 +292,10 @@
   color: var(--primary-color);
   border: none;
   padding: 10px 24px;
-  border-radius: 8px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -312,7 +315,7 @@
   border: 1px solid var(--overlay-border, rgba(255, 255, 255, 0.3));
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 50px !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -403,7 +406,10 @@
   color: var(--accent-secondary, #f5576c);
   border: none;
   padding: 10px 24px;
-  border-radius: 8px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -423,7 +429,7 @@
   border: 1px solid var(--overlay-border, rgba(255, 255, 255, 0.3));
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: 50px !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -502,7 +508,7 @@
   color: white;
   border: 1.5px solid var(--overlay-border, rgba(255, 255, 255, 0.3));
   padding: 8px 16px;
-  border-radius: 8px;
+  border-radius: 50px !important;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
@@ -1318,7 +1324,7 @@
 .btn-quick-action {
   width: 56px;
   height: 56px;
-  border-radius: 12px;
+  border-radius: 50px !important;
   border: 2px solid var(--overlay-border, rgba(255, 255, 255, 0.3));
   background: var(--overlay-subtle, rgba(255, 255, 255, 0.1));
   backdrop-filter: blur(10px);

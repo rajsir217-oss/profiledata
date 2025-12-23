@@ -365,10 +365,13 @@
   padding: 12px 30px;
   font-size: 1rem;
   font-weight: 600;
-  border-radius: 8px;
+  border-radius: 50px !important;
   cursor: pointer;
   transition: all 0.3s ease;
   border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary {
@@ -764,10 +767,13 @@
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: 8px;
+  border-radius: 50px !important;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-danger:hover {
@@ -916,7 +922,7 @@
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 50px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -961,7 +967,7 @@
   color: white;
   border: none;
   padding: 12px 24px;
-  border-radius: var(--radius-md, 8px);
+  border-radius: 50px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
@@ -1075,6 +1081,7 @@
   margin-top: 16px;
   font-size: 16px !important;
   padding: 14px 32px !important;
+  border-radius: 50px !important;
 }
 
 /* ========================================

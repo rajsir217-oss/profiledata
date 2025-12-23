@@ -581,9 +581,15 @@
 }
 
 .btn {
-  padding: 10px 20px;
+  padding: 10px 2rem;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  margin-left: auto;
+  margin-right: auto;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
@@ -593,6 +599,9 @@
 .btn-primary {
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -606,9 +615,12 @@
 }
 
 .btn-outline-secondary {
-  background: white;
-  color: #6c757d;
-  border: 2px solid #e5e7eb;
+  background: var(--card-background);
+  color: var(--text-color);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-outline-secondary:hover {
@@ -616,8 +628,11 @@
 }
 
 .btn-danger {
-  background: #ef4444;
+  background: var(--danger-color);
   color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-danger:hover {
@@ -625,7 +640,7 @@
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 6px 1rem;
   font-size: 13px;
 }
 

@@ -390,7 +390,7 @@ const AdminPage = () => {
           </select>
           
           <button
-            className="btn btn-primary admin-search-btn"
+            className="admin-search-btn"
             onClick={handleEmailSearch}
             title="Search"
           >

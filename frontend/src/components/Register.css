@@ -116,10 +116,16 @@
 }
 
 .sticky-submit button {
-  width: 100%;
-  padding: 12px;
+  width: auto;
+  padding: 12px 2rem;
   font-size: 16px;
   font-weight: 600;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Progress indicator */

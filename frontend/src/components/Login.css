@@ -197,17 +197,22 @@ html {
 }
 
 .login-button {
-  width: 100%;
-  padding: 0.625rem; /* 10px - Reduced from 14px */
+  width: auto;
+  padding: 0.625rem 2rem; /* 10px 32px - Added horizontal padding */
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
   border: none;
-  border-radius: 0.75rem; /* 12px */
+  border-radius: 50px !important;
   font-size: 0.9375rem; /* 15px - Reduced from 16px */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 1rem; /* 16px - Reduced from 24px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .login-button:hover:not(:disabled) {
@@ -280,17 +285,22 @@ html {
 }
 
 .login-back-button {
-  width: 100%;
-  padding: 0.875rem; /* 14px */
-  background: #f3f4f6;
-  color: #374151;
+  width: auto;
+  padding: 0.875rem 2rem; /* 14px 32px - Added horizontal padding */
+  background: var(--surface-color, #f3f4f6);
+  color: var(--text-color, #374151);
   border: none;
-  border-radius: 0.75rem; /* 12px */
+  border-radius: 50px !important;
   font-size: 1rem; /* 16px */
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
   margin-top: 0.75rem; /* 12px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .login-back-button:hover {

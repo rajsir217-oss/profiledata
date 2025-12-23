@@ -128,7 +128,7 @@
 .admin-search-btn {
   flex: 0 0 auto;
   padding: 10px 16px;
-  border-radius: 8px;
+  border-radius: 50px;
   font-weight: 600;
   white-space: nowrap;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
@@ -936,13 +936,18 @@
 .status-modal-footer .btn-cancel {
   padding: 10px 24px;
   border: 2px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 50px;
   background: transparent;
   color: var(--text-color);
   font-size: 15px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 100px;
 }
 
 .status-modal-footer .btn-cancel:hover {
@@ -953,7 +958,7 @@
 .status-modal-footer .btn-confirm {
   padding: 10px 24px;
   border: none;
-  border-radius: 8px;
+  border-radius: 50px;
   background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   font-size: 15px;
@@ -961,6 +966,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  min-width: 100px;
 }
 
 .status-modal-footer .btn-confirm:hover:not(:disabled) {

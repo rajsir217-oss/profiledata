@@ -671,11 +671,17 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.tab-navigation-buttons .btn-outline-secondary {
+.tab-navigation-buttons .btn-outline-secondary,
+.modal-footer .btn-outline-secondary,
+.btn.btn-outline-secondary {
   color: var(--text-color) !important;
   background: rgb(104, 124, 70) !important;
   border: 2px solid var(--border-color) !important;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-radius: 50px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
 }
 
 .tab-navigation-buttons .btn-outline-secondary:hover {

@@ -381,6 +381,10 @@
   color: var(--text-color);
   border: 1px solid var(--border-color);
   font-size: 14px;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-public-toggle:hover {
@@ -439,6 +443,10 @@
   border: 2px solid var(--border-color, #e0e0e0) !important;
   background: var(--surface-color, #fff) !important;
   color: var(--text-color, #333) !important;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   padding: 0 !important;
   border-radius: 8px !important;
   font-size: 16px !important;
@@ -473,6 +481,10 @@
   background: var(--warning-light, #fff3cd) !important;
   color: var(--warning-dark, #856404) !important;
   border: 2px solid var(--warning-color, #ffc107) !important;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-profile-pic:hover {
@@ -485,6 +497,10 @@
   background: var(--hover-background, #f8f9fa) !important;
   color: var(--text-color, #333) !important;
   border: 2px solid var(--border-color, #dee2e6) !important;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-move:hover {
@@ -500,6 +516,10 @@
   background: var(--danger-light, #f8d7da) !important;
   color: var(--danger-dark, #721c24) !important;
   border: 2px solid var(--danger-color, #dc3545) !important;
+  border-radius: 50px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-delete:hover {
