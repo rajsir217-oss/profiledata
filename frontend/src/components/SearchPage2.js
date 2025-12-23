@@ -14,7 +14,7 @@ import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
-import EmbeddedProfile from './EmbeddedProfile';
+import Profile from './Profile';
 import './SearchPage.css';
 import './SearchPage2.css';
 
@@ -2679,27 +2679,26 @@ const SearchPage2 = () => {
                 ))}
               </div>
 
-              {/* Right: Profile Detail Panel - Using EmbeddedProfile component */}
+              {/* Right: Profile Detail Panel - Using Profile component directly */}
               <div className="profile-detail-panel" style={{
                 flex: 1,
                 overflowY: 'auto',
                 background: 'var(--card-background)',
                 borderRadius: 'var(--radius-md)',
-                padding: '16px',
                 border: '1px solid var(--border-color)'
               }}>
                 {selectedProfileForDetail ? (
-                  <EmbeddedProfile
-                    username={selectedProfileForDetail.username}
+                  <Profile
+                    key={selectedProfileForDetail.username}
+                    usernameFromProp={selectedProfileForDetail.username}
+                    embedded={true}
                     onMessage={(user) => handleMessage(user)}
                     onFavorite={(user) => handleProfileAction(null, user.username, 'favorite')}
                     onShortlist={(user) => handleProfileAction(null, user.username, 'shortlist')}
                     onExclude={(user) => handleProfileAction(null, user.username, 'exclude')}
-                    onRequestPII={(user) => openPIIRequestModal(user.username)}
-                    isFavorited={favoritedUsers.has(selectedProfileForDetail.username)}
-                    isShortlisted={shortlistedUsers.has(selectedProfileForDetail.username)}
-                    isExcluded={excludedUsers.has(selectedProfileForDetail.username)}
-                    embedded={true}
+                    isFavoritedProp={favoritedUsers.has(selectedProfileForDetail.username)}
+                    isShortlistedProp={shortlistedUsers.has(selectedProfileForDetail.username)}
+                    isExcludedProp={excludedUsers.has(selectedProfileForDetail.username)}
                   />
                 ) : (
                   <div style={{

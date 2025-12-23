@@ -26,8 +26,19 @@ const verificationApi = axios.create({
   baseURL: getBackendUrl()
 });
 
-const Profile = () => {
-  const { username } = useParams();
+const Profile = ({ 
+  usernameFromProp = null,  // Optional: username passed as prop for embedded mode
+  embedded = false,          // Flag for embedded mode (hides header/navigation)
+  onMessage = null,          // Callback for message action in embedded mode
+  onFavorite = null,         // Callback for favorite action in embedded mode
+  onShortlist = null,        // Callback for shortlist action in embedded mode
+  onExclude = null,          // Callback for exclude action in embedded mode
+  isFavoritedProp = false,   // Favorited state from parent
+  isShortlistedProp = false, // Shortlisted state from parent
+  isExcludedProp = false     // Excluded state from parent
+}) => {
+  const { username: usernameFromParams } = useParams();
+  const username = usernameFromProp || usernameFromParams;
   const navigate = useNavigate();
   const location = useLocation();
   const [user, setUser] = useState(null);
@@ -960,7 +971,7 @@ const Profile = () => {
 
   return (
     <div 
-      className="container mt-4"
+      className={`container ${embedded ? 'profile-embedded' : 'mt-4'}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -1120,8 +1131,8 @@ const Profile = () => {
         />
       )}
 
-      {/* Search Carousel Navigation - Show only when viewing from search */}
-      {searchResults && currentIndex !== null && (
+      {/* Search Carousel Navigation - Show only when viewing from search (not in embedded mode) */}
+      {!embedded && searchResults && currentIndex !== null && (
         <div className="profile-carousel-nav">
           <button 
             className="carousel-back-btn"
