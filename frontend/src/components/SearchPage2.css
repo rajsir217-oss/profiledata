@@ -90,12 +90,16 @@
     height: calc(100vh - 300px);
   }
 
-  /* Mobile: Show only letters in left sidebar - minimal width */
+  /* Mobile: Show only letters in left sidebar */
   .thumbnail-navigation {
-    width: 24px;
-    min-width: 24px;
-    flex: 0 0 24px;
-    padding: 2px 0;
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    padding: 6px 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   /* Mobile: Icons only for action buttons */
@@ -127,34 +131,48 @@
   }
 
   .thumbnail-card {
-    padding: 3px 0;
-    margin-bottom: 1px;
+    padding: 0;
+    margin-bottom: 4px;
     flex-direction: column;
     gap: 0;
     justify-content: center;
     align-items: center;
-    border-radius: 4px;
+    border-radius: 6px;
     border: none;
     background: transparent;
+    overflow: visible;
+    width: 32px;
+    height: 32px;
   }
 
-  /* Remove circle, show just letter on mobile */
+  /* Square letter button on mobile */
   .thumbnail-card > div:first-child {
-    width: auto !important;
-    height: auto !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    background: none !important;
-    border: none !important;
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    background: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
     box-shadow: none !important;
     color: var(--text-color) !important;
-    line-height: 1 !important;
+    line-height: 32px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
 
   /* Selected state for mobile - highlight the letter */
-  .thumbnail-card.selected {
+  .thumbnail-card.selected > div:first-child {
     background: var(--primary-color) !important;
-    border-radius: 4px;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+  }
+
+  .thumbnail-card.selected {
+    background: transparent !important;
+    border-radius: 6px;
   }
 
   .thumbnail-card.selected > div:first-child {
