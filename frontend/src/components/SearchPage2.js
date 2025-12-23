@@ -104,6 +104,12 @@ const SearchPage2 = () => {
 
   // Ref to track if default search has been auto-executed
   const hasAutoExecutedRef = useRef(false);
+  
+  // Ref to track if state has been restored from sessionStorage
+  const hasRestoredStateRef = useRef(false);
+  
+  // Ref for scroll position
+  const searchResultsRef = useRef(null);
 
   // Load more state (for incremental loading instead of pagination)
   const [displayedCount, setDisplayedCount] = useState(20);
@@ -117,6 +123,113 @@ const SearchPage2 = () => {
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
   const navigate = useNavigate();
+  
+  // Save search state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (users.length > 0 && hasRestoredStateRef.current) {
+      const searchState = {
+        users,
+        searchCriteria,
+        sortBy,
+        sortOrder,
+        displayedCount,
+        minMatchScore,
+        favoritedUsers: Array.from(favoritedUsers),
+        shortlistedUsers: Array.from(shortlistedUsers),
+        excludedUsers: Array.from(excludedUsers),
+        selectedSearch,
+        timestamp: Date.now()
+      };
+      sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
+      console.log('💾 Saved search state to sessionStorage');
+    }
+  }, [users, searchCriteria, sortBy, sortOrder, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch]);
+  
+  // Save scroll position before navigating away
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (searchResultsRef.current) {
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
+        console.log('💾 Saved scroll position:', scrollPosition);
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Save scroll position when component unmounts (navigating to profile)
+      if (searchResultsRef.current) {
+        const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+        sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
+        console.log('💾 Saved scroll position on unmount:', scrollPosition);
+      }
+    };
+  }, []);
+  
+  // Restore search state from sessionStorage on mount
+  useEffect(() => {
+    const restoreSearchState = () => {
+      try {
+        const savedState = sessionStorage.getItem('searchPageState');
+        if (savedState) {
+          const state = JSON.parse(savedState);
+          
+          // Check if state is recent (within last 30 minutes)
+          const stateAge = Date.now() - (state.timestamp || 0);
+          const maxAge = 30 * 60 * 1000; // 30 minutes
+          
+          if (stateAge < maxAge) {
+            console.log('🔄 Restoring search state from sessionStorage');
+            
+            // Restore all state
+            setUsers(state.users || []);
+            setSearchCriteria(state.searchCriteria || {});
+            setSortBy(state.sortBy || 'age');
+            setSortOrder(state.sortOrder || 'asc');
+            setDisplayedCount(state.displayedCount || 20);
+            setMinMatchScore(state.minMatchScore || 0);
+            setFavoritedUsers(new Set(state.favoritedUsers || []));
+            setShortlistedUsers(new Set(state.shortlistedUsers || []));
+            setExcludedUsers(new Set(state.excludedUsers || []));
+            setSelectedSearch(state.selectedSearch || null);
+            
+            hasRestoredStateRef.current = true;
+            hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
+            
+            // Restore scroll position after a short delay to let DOM render
+            setTimeout(() => {
+              const savedScrollPosition = sessionStorage.getItem('searchPageScrollPosition');
+              if (savedScrollPosition) {
+                const scrollPos = parseInt(savedScrollPosition, 10);
+                window.scrollTo(0, scrollPos);
+                console.log('🔄 Restored scroll position:', scrollPos);
+              }
+            }, 100);
+            
+            console.log('✅ Search state restored successfully');
+            return true;
+          } else {
+            console.log('⏰ Saved state is too old, clearing...');
+            sessionStorage.removeItem('searchPageState');
+            sessionStorage.removeItem('searchPageScrollPosition');
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error restoring search state:', error);
+        sessionStorage.removeItem('searchPageState');
+        sessionStorage.removeItem('searchPageScrollPosition');
+      }
+      return false;
+    };
+    
+    // Try to restore state first
+    const restored = restoreSearchState();
+    if (!restored) {
+      hasRestoredStateRef.current = true; // Allow saving state even if nothing was restored
+    }
+  }, []);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -396,9 +509,9 @@ const SearchPage2 = () => {
         return;
       }
 
-      // Prevent multiple auto-executions
+      // Prevent multiple auto-executions (or if state was restored)
       if (hasAutoExecutedRef.current) {
-        console.log('⏭️ Already auto-executed default search, skipping');
+        console.log('⏭️ Already auto-executed default search or state restored, skipping');
         return;
       }
 
@@ -2270,7 +2383,7 @@ const SearchPage2 = () => {
           </form>
         </div>
 
-        <div className="search-results">
+        <div className="search-results" ref={searchResultsRef}>
           {loading && (
             <div className="text-center py-4">
               <div className="spinner-border text-primary" role="status">
