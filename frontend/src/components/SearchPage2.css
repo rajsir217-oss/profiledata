@@ -201,3 +201,74 @@
 .layout-toggle-buttons button.active {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
+
+/* Floating Action Buttons - Same style as Profile page */
+.fab-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.fab-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fab-message {
+  background: var(--primary-color);
+}
+
+.fab-favorite {
+  background: var(--success-color);
+}
+
+.fab-favorite.active {
+  background: var(--danger-color);
+}
+
+.fab-shortlist {
+  background: var(--info-color);
+}
+
+.fab-shortlist.active {
+  background: var(--warning-color);
+}
+
+.fab-hide {
+  background: var(--danger-color);
+}
+
+.fab-hide.active {
+  background: var(--success-color);
+}
+
+.fab-request {
+  background: var(--secondary-color);
+}
+
+/* Mobile: Icons only for FAB buttons */
+@media (max-width: 768px) {
+  .fab-btn {
+    padding: 8px;
+    min-width: 36px;
+    height: 36px;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .fab-btn .fab-text {
+    display: none;
+  }
+
+  .floating-action-buttons {
+    gap: 6px !important;
+  }
+}
