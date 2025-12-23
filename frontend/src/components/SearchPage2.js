@@ -15,6 +15,7 @@ import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
 import './SearchPage.css';
+import './SearchPage2.css';
 
 const SearchPage2 = () => {
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
