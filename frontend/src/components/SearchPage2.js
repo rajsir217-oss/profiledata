@@ -2590,12 +2590,437 @@ const SearchPage2 = () => {
             </div>
           )}
 
-          <div 
-            className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
-            style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
-          >
-            {currentRecords.map((user, index) => {
-              return (
+          {/* Split-Screen Layout */}
+          {viewMode === 'split' ? (
+            <div className="split-screen-layout" style={{
+              display: 'flex',
+              gap: '20px',
+              height: 'calc(100vh - 350px)',
+              minHeight: '600px'
+            }}>
+              {/* Left: Thumbnail Navigation */}
+              <div className="thumbnail-navigation" style={{
+                width: '280px',
+                flexShrink: 0,
+                overflowY: 'auto',
+                background: 'var(--surface-color)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px',
+                border: '1px solid var(--border-color)'
+              }}>
+                {currentRecords.map((user, index) => (
+                  <div
+                    key={user.username}
+                    className={`thumbnail-card ${selectedProfileForDetail?.username === user.username ? 'selected' : ''}`}
+                    onClick={() => setSelectedProfileForDetail(user)}
+                    style={{
+                      padding: '12px',
+                      marginBottom: '8px',
+                      background: selectedProfileForDetail?.username === user.username ? 'var(--primary-color)' : 'var(--card-background)',
+                      color: selectedProfileForDetail?.username === user.username ? 'white' : 'var(--text-color)',
+                      borderRadius: 'var(--radius-sm)',
+                      cursor: 'pointer',
+                      border: selectedProfileForDetail?.username === user.username ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      gap: '10px',
+                      alignItems: 'center'
+                    }}
+                  >
+                    {/* Profile Image Thumbnail */}
+                    <div style={{
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      background: 'var(--surface-color)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '24px',
+                      flexShrink: 0,
+                      border: '2px solid ' + (selectedProfileForDetail?.username === user.username ? 'white' : 'var(--border-color)')
+                    }}>
+                      {user.firstName?.charAt(0) || user.username?.charAt(0) || '?'}
+                    </div>
+                    
+                    {/* Profile Info */}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontWeight: 600,
+                        fontSize: '14px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {user.firstName || user.username}
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        opacity: 0.8,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {user.age ? `${user.age}yrs` : ''} {user.location ? `• ${user.location}` : ''}
+                      </div>
+                      {user.matchScore && (
+                        <div style={{
+                          fontSize: '11px',
+                          marginTop: '2px',
+                          fontWeight: 600
+                        }}>
+                          {selectedProfileForDetail?.username === user.username ? '✓' : '🦋'} {user.matchScore}%
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Right: Profile Detail Panel */}
+              <div className="profile-detail-panel" style={{
+                flex: 1,
+                overflowY: 'auto',
+                background: 'var(--card-background)',
+                borderRadius: 'var(--radius-md)',
+                padding: '24px',
+                border: '1px solid var(--border-color)'
+              }}>
+                {selectedProfileForDetail ? (
+                  <div className="profile-detail-content">
+                    {/* Profile Header */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '20px',
+                      marginBottom: '24px',
+                      paddingBottom: '20px',
+                      borderBottom: '2px solid var(--border-color)'
+                    }}>
+                      {/* Large Profile Picture */}
+                      <div style={{
+                        width: '120px',
+                        height: '120px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '48px',
+                        color: 'white',
+                        fontWeight: 600,
+                        flexShrink: 0,
+                        border: '4px solid var(--surface-color)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                      }}>
+                        {selectedProfileForDetail.firstName?.charAt(0) || selectedProfileForDetail.username?.charAt(0) || '?'}
+                      </div>
+                      
+                      {/* Profile Info */}
+                      <div style={{ flex: 1 }}>
+                        <h2 style={{ margin: '0 0 8px 0', fontSize: '28px', fontWeight: 600 }}>
+                          {selectedProfileForDetail.firstName} {selectedProfileForDetail.lastName}
+                        </h2>
+                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                          <strong>Username:</strong> {selectedProfileForDetail.username}
+                        </div>
+                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                          <strong>Profile ID:</strong> {selectedProfileForDetail.profileId || 'N/A'}
+                        </div>
+                        {selectedProfileForDetail.matchScore && (
+                          <div style={{
+                            display: 'inline-block',
+                            background: 'linear-gradient(135deg, var(--primary-color), var(--secondary-color))',
+                            color: 'white',
+                            padding: '6px 16px',
+                            borderRadius: '20px',
+                            fontSize: '14px',
+                            fontWeight: 600
+                          }}>
+                            🦋 {selectedProfileForDetail.matchScore}% Match
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Photo Slots Placeholder */}
+                    <div style={{
+                      display: 'flex',
+                      gap: '8px',
+                      marginBottom: '24px',
+                      overflowX: 'auto',
+                      paddingBottom: '8px'
+                    }}>
+                      {[1, 2, 3, 4, 5].map(i => (
+                        <div key={i} style={{
+                          width: '80px',
+                          height: '80px',
+                          background: 'var(--surface-color)',
+                          borderRadius: 'var(--radius-sm)',
+                          border: '2px dashed var(--border-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          color: 'var(--text-muted)',
+                          flexShrink: 0
+                        }}>
+                          Photo {i}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Bio Quote */}
+                    {selectedProfileForDetail.bio && (
+                      <div style={{
+                        background: 'var(--surface-color)',
+                        padding: '16px',
+                        borderRadius: 'var(--radius-md)',
+                        borderLeft: '4px solid var(--primary-color)',
+                        marginBottom: '20px',
+                        fontStyle: 'italic',
+                        color: 'var(--text-secondary)'
+                      }}>
+                        "{selectedProfileForDetail.bio}"
+                      </div>
+                    )}
+
+                    {/* Collapsible Sections */}
+                    {/* About Me Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('aboutMe')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>📖 About Me</span>
+                        <span>{expandedSections.aboutMe ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.aboutMe && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <p style={{ margin: 0, lineHeight: 1.6 }}>
+                            {selectedProfileForDetail.aboutMe || selectedProfileForDetail.bio || 'No information provided.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* What You're Looking For Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('lookingFor')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>💝 What You're Looking For</span>
+                        <span>{expandedSections.lookingFor ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.lookingFor && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <p style={{ margin: 0, lineHeight: 1.6 }}>
+                            {selectedProfileForDetail.lookingFor || selectedProfileForDetail.partnerPreferences || 'No preferences specified.'}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Basic Information Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('basicInfo')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>👤 Basic Information</span>
+                        <span>{expandedSections.basicInfo ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.basicInfo && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div><strong>Age:</strong> {selectedProfileForDetail.age || 'N/A'}</div>
+                            <div><strong>Height:</strong> {selectedProfileForDetail.height || 'N/A'}</div>
+                            <div><strong>Location:</strong> {selectedProfileForDetail.location || 'N/A'}</div>
+                            <div><strong>Occupation:</strong> {selectedProfileForDetail.occupation || 'N/A'}</div>
+                            <div><strong>Education:</strong> {selectedProfileForDetail.education || 'N/A'}</div>
+                            <div><strong>Religion:</strong> {selectedProfileForDetail.religion || 'N/A'}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Personal & Lifestyle Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('lifestyle')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>🎨 Personal & Lifestyle</span>
+                        <span>{expandedSections.lifestyle ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.lifestyle && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div><strong>Drinking:</strong> {selectedProfileForDetail.drinking || 'N/A'}</div>
+                            <div><strong>Smoking:</strong> {selectedProfileForDetail.smoking || 'N/A'}</div>
+                            <div><strong>Diet:</strong> {selectedProfileForDetail.diet || 'N/A'}</div>
+                            <div><strong>Relationship Status:</strong> {selectedProfileForDetail.relationshipStatus || 'N/A'}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Contact Information Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('contact')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>📞 Contact Information</span>
+                        <span>{expandedSections.contact ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.contact && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <div style={{ display: 'grid', gap: '12px' }}>
+                            <div><strong>Email:</strong> {hasPiiAccess(selectedProfileForDetail.username, 'email') ? selectedProfileForDetail.contactEmail : '🔒 Request Access'}</div>
+                            <div><strong>Phone:</strong> {hasPiiAccess(selectedProfileForDetail.username, 'phone') ? selectedProfileForDetail.contactNumber : '🔒 Request Access'}</div>
+                            <div><strong>LinkedIn:</strong> {hasPiiAccess(selectedProfileForDetail.username, 'linkedin_url') ? selectedProfileForDetail.linkedinUrl : '🔒 Request Access'}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Preferences & Background Section */}
+                    <div className="profile-section" style={{ marginBottom: '16px' }}>
+                      <div
+                        onClick={() => toggleSection('preferences')}
+                        style={{
+                          background: 'var(--surface-color)',
+                          padding: '12px 16px',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontWeight: 600,
+                          border: '1px solid var(--border-color)'
+                        }}
+                      >
+                        <span>💕 Preferences & Background</span>
+                        <span>{expandedSections.preferences ? '▼' : '▶'}</span>
+                      </div>
+                      {expandedSections.preferences && (
+                        <div style={{
+                          padding: '16px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderTop: 'none',
+                          borderRadius: '0 0 var(--radius-sm) var(--radius-sm)'
+                        }}>
+                          <p style={{ margin: 0, lineHeight: 1.6 }}>
+                            Partner preferences and family background information.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    height: '100%',
+                    color: 'var(--text-muted)',
+                    fontSize: '16px'
+                  }}>
+                    Select a profile from the left to view details
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            /* Cards/Rows Layout */
+            <div 
+              className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
+              style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
+            >
+              {currentRecords.map((user, index) => {
+                return (
                 <SearchResultCard
                   key={user.username}
                   user={user}
@@ -2639,8 +3064,9 @@ const SearchPage2 = () => {
                   currentIndex={index}
                 />
               );
-            })}
-          </div>
+              })}
+            </div>
+          )}
 
           {/* LoadMore at Top */}
           {sortedUsers.length > 0 && (
