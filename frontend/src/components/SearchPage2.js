@@ -69,10 +69,12 @@ const SearchPage2 = () => {
   const [excludedUsers, setExcludedUsers] = useState(new Set());
   const [statusMessage, setStatusMessage] = useState('');
   
-  // View mode state
+  // View mode state - default based on screen size (cards for mobile, split for desktop)
   const [viewMode, setViewMode] = useState(() => {
     const saved = localStorage.getItem('searchViewMode');
-    return saved || 'split'; // Default to split layout
+    if (saved) return saved;
+    // Default: cards on mobile (<=768px), split on desktop
+    return window.innerWidth <= 768 ? 'cards' : 'split';
   }); // 'cards', 'rows', or 'split'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
