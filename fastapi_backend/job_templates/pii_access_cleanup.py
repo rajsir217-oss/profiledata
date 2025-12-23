@@ -36,6 +36,7 @@ class PIIAccessCleanupTemplate(JobTemplate):
         """Get default parameters"""
         return {
             "expiryDays": 5,  # Delete access records after 5 days
+            "pendingExpiryDays": 14,  # Auto-expire pending requests after 14 days
             "dryRun": False,
             "batchSize": 100
         }
@@ -50,6 +51,14 @@ class PIIAccessCleanupTemplate(JobTemplate):
                 "default": 10,
                 "min": 1,
                 "max": 365
+            },
+            "pendingExpiryDays": {
+                "type": "integer",
+                "label": "Pending Expiry Days",
+                "description": "Auto-expire pending PII requests older than this many days",
+                "default": 14,
+                "min": 1,
+                "max": 90
             },
             "dryRun": {
                 "type": "boolean",
@@ -177,33 +186,98 @@ class PIIAccessCleanupTemplate(JobTemplate):
                 deleted_count += result.deleted_count
                 context.log("info", f"   ✅ Deleted {result.deleted_count} old requests")
             
+            # ========================================================
+            # STEP 5: Auto-expire old pending requests
+            # Change status from "pending" to "expired" for requests
+            # older than pendingExpiryDays (default 14 days)
+            # ========================================================
+            context.log("info", "")
+            context.log("info", f"📋 Step 5: Auto-expiring old pending requests...")
+            
+            pending_expiry_days = params.get("pendingExpiryDays", 14)
+            pending_cutoff_date = datetime.utcnow() - timedelta(days=pending_expiry_days)
+            
+            # Find pending requests older than pendingExpiryDays
+            # Check both createdAt and requestedAt fields for compatibility
+            pending_query = {
+                "status": "pending",
+                "$or": [
+                    {"createdAt": {"$lt": pending_cutoff_date}},
+                    {"requestedAt": {"$lt": pending_cutoff_date}}
+                ]
+            }
+            
+            pending_count = await context.db.pii_requests.count_documents(pending_query)
+            context.log("info", f"   Found {pending_count} pending requests older than {pending_expiry_days} days")
+            
+            expired_pending_count = 0
+            if not dry_run and pending_count > 0:
+                # Update status to "expired" instead of deleting
+                result = await context.db.pii_requests.update_many(
+                    pending_query,
+                    {
+                        "$set": {
+                            "status": "expired",
+                            "expiredAt": datetime.utcnow(),
+                            "updatedAt": datetime.utcnow()
+                        }
+                    }
+                )
+                expired_pending_count = result.modified_count
+                context.log("info", f"   ✅ Expired {expired_pending_count} old pending requests")
+            
+            # ========================================================
+            # STEP 6: Clean up old expired requests
+            # Delete expired requests older than expiryDays
+            # ========================================================
+            context.log("info", "")
+            context.log("info", f"📋 Step 6: Cleaning up old expired requests...")
+            
+            old_expired_query = {
+                "status": "expired",
+                "expiredAt": {"$lt": cutoff_date}
+            }
+            
+            old_expired_count = await context.db.pii_requests.count_documents(old_expired_query)
+            context.log("info", f"   Found {old_expired_count} old expired requests")
+            
+            if not dry_run and old_expired_count > 0:
+                result = await context.db.pii_requests.delete_many(old_expired_query)
+                deleted_count += result.deleted_count
+                context.log("info", f"   ✅ Deleted {result.deleted_count} old expired requests")
+            
             # Summary
             context.log("info", "")
             context.log("info", "="*60)
             context.log("info", f"📊 SUMMARY:")
             context.log("info", f"   Mode: {'DRY RUN' if dry_run else 'LIVE'}")
-            context.log("info", f"   Expired records found: {expired_count}")
-            context.log("info", f"   Old records found: {old_count}")
+            context.log("info", f"   Expired access records found: {expired_count}")
+            context.log("info", f"   Old access records found: {old_count}")
             context.log("info", f"   Orphaned reciprocal found: {orphaned_count}")
-            context.log("info", f"   Old requests found: {old_requests_count}")
-            context.log("info", f"   Total {'would be' if dry_run else ''} deleted: {expired_count + old_count + orphaned_count + old_requests_count if dry_run else deleted_count}")
+            context.log("info", f"   Old processed requests found: {old_requests_count}")
+            context.log("info", f"   Pending requests expired: {expired_pending_count if not dry_run else pending_count}")
+            context.log("info", f"   Old expired requests deleted: {old_expired_count if not dry_run else old_expired_count}")
+            context.log("info", f"   Total {'would be' if dry_run else ''} deleted: {expired_count + old_count + orphaned_count + old_requests_count + old_expired_count if dry_run else deleted_count}")
             
             duration = (datetime.utcnow() - start_time).total_seconds()
             
             return JobResult(
                 status="success",
-                message=f"{'Would delete' if dry_run else 'Deleted'} {deleted_count} expired PII access records",
+                message=f"{'Would process' if dry_run else 'Processed'} PII cleanup: {deleted_count} deleted, {expired_pending_count} expired",
                 details={
                     "dry_run": dry_run,
                     "expiry_days": expiry_days,
+                    "pending_expiry_days": pending_expiry_days,
                     "expired_by_date": expired_count,
                     "old_by_granted_at": old_count,
                     "orphaned_reciprocal": orphaned_count,
                     "old_requests": old_requests_count,
+                    "pending_expired": expired_pending_count,
+                    "old_expired_deleted": old_expired_count if not dry_run else 0,
                     "total_deleted": deleted_count
                 },
-                records_processed=expired_count + old_count + orphaned_count + old_requests_count,
-                records_affected=deleted_count,
+                records_processed=expired_count + old_count + orphaned_count + old_requests_count + pending_count + old_expired_count,
+                records_affected=deleted_count + expired_pending_count,
                 duration_seconds=duration
             )
             
