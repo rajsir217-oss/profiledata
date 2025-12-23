@@ -5,7 +5,8 @@ Migration: Make Profile ID clickable in email templates (PRODUCTION)
 This migration updates existing email templates to make the Profile ID
 a clickable link that takes users to the profile page.
 
-Run on production with: ENV=production python migrations/fix_profileid_clickable_production.py
+Run on production with: 
+  MONGODB_URL="mongodb+srv://..." DATABASE_NAME="matrimonialDB" python migrations/fix_profileid_clickable_production.py
 """
 
 import asyncio
@@ -16,11 +17,16 @@ import re
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Force production environment
-os.environ['ENV'] = 'production'
-
 from motor.motor_asyncio import AsyncIOMotorClient
-from config import settings
+
+# Get MongoDB URL directly from environment variable (bypasses config)
+MONGODB_URL = os.environ.get('MONGODB_URL')
+DATABASE_NAME = os.environ.get('DATABASE_NAME', 'matrimonialDB')
+
+if not MONGODB_URL:
+    print("❌ Error: MONGODB_URL environment variable is required")
+    print("Usage: MONGODB_URL='mongodb+srv://...' python migrations/fix_profileid_clickable_production.py")
+    sys.exit(1)
 
 
 # The correct clickable format
@@ -42,13 +48,13 @@ async def run_migration():
     
     print("=" * 60)
     print("Migration: Make Profile ID Clickable in Email Templates")
-    print(f"Environment: {os.environ.get('ENV', 'unknown')}")
-    print(f"Database: {settings.database_name}")
+    print(f"Database: {DATABASE_NAME}")
+    print(f"MongoDB: {MONGODB_URL[:50]}...")
     print("=" * 60)
     
-    # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
+    # Connect to MongoDB using environment variables directly
+    client = AsyncIOMotorClient(MONGODB_URL)
+    db = client[DATABASE_NAME]
     
     try:
         # Get ALL templates that contain profileId
