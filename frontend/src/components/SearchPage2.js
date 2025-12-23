@@ -557,45 +557,35 @@ const SearchPage2 = () => {
         
         if (defaultSearch && defaultSearch.criteria) {
           console.log('⭐ Found default saved search:', defaultSearch.name);
+          console.log('📋 Default search criteria:', defaultSearch.criteria);
           
-          // Check if we have saved searches (which will open Saved tab)
-          if (savedSearches.length > 0) {
-            console.log('✅ Saved searches exist - auto-executing default search');
-            console.log('📋 Default search criteria:', defaultSearch.criteria);
-            
-            // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
-            const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
-            console.log('🎯 Min match score:', loadedMinScore);
-            
-            // Find matching search from savedSearches array (to ensure ID format matches)
-            const defaultSearchId = defaultSearch.id || defaultSearch._id;
-            const matchingSearch = savedSearches.find(s => s.id === defaultSearchId || s._id === defaultSearchId);
-            console.log('🔍 Matching search in savedSearches:', matchingSearch?.name);
-            
-            // Load criteria and set selected search (use matching object for badge to work)
-            setSearchCriteria(defaultSearch.criteria);
-            setMinMatchScore(loadedMinScore);
-            setSelectedSearch(matchingSearch || defaultSearch);
-            
-            // Mark as executed
-            hasAutoExecutedRef.current = true;
-            
-            // Execute the search with explicit criteria AND minMatchScore
-            // Don't collapse filters so user sees what's being searched
-            setTimeout(() => {
-              console.log('🔍 Auto-executing default saved search');
-              console.log('   - Criteria:', defaultSearch.criteria);
-              console.log('   - Min match score:', loadedMinScore);
-              handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass criteria and minMatchScore
-              // Show status message to inform user
-              setStatusMessage(`⭐ Default search "${defaultSearch.name}" executed`);
-              setTimeout(() => setStatusMessage(''), 4000); // Clear after 4 seconds
-            }, 500);
-          } else {
-            // No saved searches yet, load criteria silently (no execution, no banner)
-            console.log('📋 Loading criteria silently (no saved searches list yet)');
-            setSearchCriteria(defaultSearch.criteria);
-          }
+          // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
+          const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
+          console.log('🎯 Min match score:', loadedMinScore);
+          
+          // Find matching search from savedSearches array (to ensure ID format matches)
+          const defaultSearchId = defaultSearch.id || defaultSearch._id;
+          const matchingSearch = savedSearches.find(s => s.id === defaultSearchId || s._id === defaultSearchId);
+          console.log('🔍 Matching search in savedSearches:', matchingSearch?.name);
+          
+          // Load criteria and set selected search (use matching object for badge to work)
+          setSearchCriteria(defaultSearch.criteria);
+          setMinMatchScore(loadedMinScore);
+          setSelectedSearch(matchingSearch || defaultSearch);
+          
+          // Mark as executed
+          hasAutoExecutedRef.current = true;
+          
+          // Execute the search with explicit criteria AND minMatchScore
+          setTimeout(() => {
+            console.log('🔍 Auto-executing default saved search');
+            console.log('   - Criteria:', defaultSearch.criteria);
+            console.log('   - Min match score:', loadedMinScore);
+            handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass criteria and minMatchScore
+            // Show status message to inform user
+            setStatusMessage(`⭐ Default search "${defaultSearch.name}" executed`);
+            setTimeout(() => setStatusMessage(''), 4000); // Clear after 4 seconds
+          }, 500);
         } else {
           // No default saved search - just show empty search page
           console.log('🔍 No default search - waiting for user to initiate search');
@@ -607,7 +597,7 @@ const SearchPage2 = () => {
 
     loadAndExecuteDefaultSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUserProfile, savedSearches.length]);
+  }, [currentUserProfile]);
   
   // ❌ DISABLED: No auto-search on gender change
   // User must manually click "Search" button
