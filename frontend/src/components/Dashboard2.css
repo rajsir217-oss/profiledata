@@ -674,131 +674,89 @@
 }
 
 /* ============================================
-   COMPACT STAT CARDS - Inline layout to save space
+   COMPACT STAT CARDS - Rounded rectangle pill style
    ============================================ */
 .stat-card-compact {
-  background: var(--card-background);
-  border-radius: var(--radius-md, 8px);
-  padding: 10px 14px;
+  background: rgba(40, 40, 50, 0.85);
+  border-radius: 16px;
+  padding: 6px 12px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
-  border: 1px solid var(--border-color);
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   transition: all 0.2s ease;
-  position: relative;
-  overflow: hidden;
   cursor: pointer;
 }
 
-.stat-card-compact::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 3px;
-  height: 100%;
-  background: linear-gradient(180deg, var(--primary-color), var(--secondary-color));
-  opacity: 0.7;
-}
-
-.stat-card-compact.stat-card-primary::before {
-  background: linear-gradient(180deg, #667eea, #764ba2);
-}
-
-.stat-card-compact.stat-card-success::before {
-  background: linear-gradient(180deg, #10b981, #059669);
-}
-
-.stat-card-compact.stat-card-info::before {
-  background: linear-gradient(180deg, #3b82f6, #2563eb);
-}
-
 .stat-card-compact:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  background: rgba(50, 50, 60, 0.9);
 }
 
 .stat-icon-compact {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm, 6px);
-  background: rgba(102, 126, 234, 0.1);
-}
-
-.stat-card-compact.stat-card-primary .stat-icon-compact {
-  background: rgba(102, 126, 234, 0.12);
-}
-
-.stat-card-compact.stat-card-success .stat-icon-compact {
-  background: rgba(16, 185, 129, 0.12);
-}
-
-.stat-card-compact.stat-card-info .stat-icon-compact {
-  background: rgba(59, 130, 246, 0.12);
 }
 
 .stat-content-compact {
   flex: 1;
   min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .stat-main-line {
   display: flex;
   align-items: baseline;
-  gap: 6px;
+  gap: 4px;
 }
 
 .stat-value-compact {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 700;
-  color: var(--text-color);
+  color: #fff;
   line-height: 1;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 .stat-label-compact {
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: rgba(255, 255, 255, 0.7);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
 }
 
 .stat-sublabel-compact {
-  font-size: 10px;
-  color: var(--text-muted, #999);
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.5);
   font-weight: 400;
-  margin-top: 2px;
+  white-space: nowrap;
 }
 
 /* Responsive compact cards */
 @media (max-width: 640px) {
   .stat-card-compact {
-    padding: 8px 12px;
+    padding: 5px 10px;
   }
   
   .stat-icon-compact {
-    width: 28px;
-    height: 28px;
-    font-size: 16px;
+    font-size: 14px;
   }
   
   .stat-value-compact {
-    font-size: 18px;
+    font-size: 14px;
   }
   
   .stat-label-compact {
-    font-size: 10px;
+    font-size: 8px;
+  }
+  
+  .stat-sublabel-compact {
+    display: none;
   }
 }
 
