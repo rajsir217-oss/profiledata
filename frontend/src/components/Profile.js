@@ -2674,6 +2674,7 @@ const Profile = () => {
           imagesVisible: user.imagesVisible
         }}
         requesterProfile={currentUserProfile}
+        targetProfile={user}
         onClose={() => setShowPIIRequestModal(false)}
         onRefresh={() => {
           logger.debug('PIIRequestModal refresh');
