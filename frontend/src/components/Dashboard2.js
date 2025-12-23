@@ -1214,43 +1214,47 @@ const Dashboard2 = () => {
       <div className="dashboard-stats-overview stats-with-poll">
         <div className="stats-cards-group">
           <div 
-            className="stat-card-large stat-card-primary clickable-card" 
+            className="stat-card-compact stat-card-primary clickable-card" 
             onClick={() => setShowProfileViewsModal(true)}
-            style={{ cursor: 'pointer' }}
             title="Click to see who viewed your profile"
           >
-            <div className="stat-icon">{STATS_ICONS.PROFILE_VIEWS}</div>
-            <div className="stat-content">
-              <div className="stat-value">{viewMetrics.totalViews}</div>
-              <div className="stat-label">Profile Views</div>
-              <div className="stat-sublabel">{viewMetrics.uniqueViewers} unique viewers</div>
+            <div className="stat-icon-compact">{STATS_ICONS.PROFILE_VIEWS}</div>
+            <div className="stat-content-compact">
+              <div className="stat-main-line">
+                <span className="stat-value-compact">{viewMetrics.totalViews}</span>
+                <span className="stat-label-compact">PROFILE VIEWS</span>
+              </div>
+              <div className="stat-sublabel-compact">{viewMetrics.uniqueViewers} unique viewers</div>
             </div>
           </div>
           
           <div 
-            className="stat-card-large stat-card-success clickable-card" 
+            className="stat-card-compact stat-card-success clickable-card" 
             onClick={() => setShowFavoritedByModal(true)}
-            style={{ cursor: 'pointer' }}
             title="Click to see who favorited you"
           >
-            <div className="stat-icon">{STATS_ICONS.FAVORITED_BY}</div>
-            <div className="stat-content">
-              <div className="stat-value">{dashboardData.theirFavorites.length}</div>
-              <div className="stat-label">Favorited By</div>
-              <div className="stat-sublabel">Others who liked you</div>
+            <div className="stat-icon-compact">{STATS_ICONS.FAVORITED_BY}</div>
+            <div className="stat-content-compact">
+              <div className="stat-main-line">
+                <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
+                <span className="stat-label-compact">FAVORITED BY</span>
+              </div>
+              <div className="stat-sublabel-compact">Others who liked you</div>
             </div>
           </div>
           
           <div 
-            className="stat-card-large stat-card-info clickable"
+            className="stat-card-compact stat-card-info clickable-card"
             onClick={() => setShowConversationsModal(true)}
-            style={{ cursor: 'pointer' }}
+            title="Click to see your conversations"
           >
-            <div className="stat-icon">{STATS_ICONS.CONVERSATIONS}</div>
-            <div className="stat-content">
-              <div className="stat-value">{dashboardData.myMessages.length}</div>
-              <div className="stat-label">Conversations</div>
-              <div className="stat-sublabel">Active messages</div>
+            <div className="stat-icon-compact">{STATS_ICONS.CONVERSATIONS}</div>
+            <div className="stat-content-compact">
+              <div className="stat-main-line">
+                <span className="stat-value-compact">{dashboardData.myMessages.length}</span>
+                <span className="stat-label-compact">CONVERSATIONS</span>
+              </div>
+              <div className="stat-sublabel-compact">Active messages</div>
             </div>
           </div>
         </div>
