@@ -184,6 +184,24 @@
     display: none;
   }
 
+  /* Mobile profile view: hide large circle avatar, simplify header */
+  .profile-embedded .profile-header .profile-avatar,
+  .profile-embedded .profile-header > div:first-child {
+    display: none !important;
+  }
+
+  /* Make profile header more compact on mobile */
+  .profile-embedded .profile-header {
+    flex-direction: column !important;
+    gap: 8px !important;
+    padding-bottom: 12px !important;
+  }
+
+  .profile-embedded .profile-header h2 {
+    font-size: 20px !important;
+    margin-bottom: 4px !important;
+  }
+
   /* Reduce profile detail panel padding */
   .profile-detail-panel {
     padding: 16px;
