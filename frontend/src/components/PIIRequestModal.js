@@ -12,7 +12,8 @@ const PIIRequestModal = ({
   currentAccess = {}, 
   requestStatus = {}, 
   visibilitySettings = {},
-  requesterProfile = null  // Current user's profile to check if they have data to share
+  requesterProfile = null,  // Current user's profile to check if they have data to share
+  targetProfile = null  // Target user's profile to check if they have data (e.g., photos)
 }) => {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [message, setMessage] = useState('');
@@ -37,6 +38,14 @@ const PIIRequestModal = ({
     'images': (profile) => profile?.images?.length > 0
   };
 
+  // Map PII type values to target's data fields (to check if they have data to share)
+  const targetDataMap = {
+    'contact_number': (profile) => profile?.contactNumber || profile?.phone,
+    'contact_email': (profile) => profile?.contactEmail || profile?.email,
+    'linkedin_url': (profile) => profile?.linkedinUrl || profile?.linkedin,
+    'images': (profile) => profile?.images?.length > 0
+  };
+
   // Check if requester has data to share for a given PII type
   const requesterHasData = (piiType) => {
     if (!requesterProfile) {
@@ -50,6 +59,23 @@ const PIIRequestModal = ({
       contactEmail: requesterProfile.contactEmail,
       linkedinUrl: requesterProfile.linkedinUrl,
       imagesCount: requesterProfile.images?.length
+    });
+    return hasData;
+  };
+
+  // Check if target has data to share for a given PII type
+  const targetHasData = (piiType) => {
+    if (!targetProfile) {
+      console.log('⚠️ PIIRequestModal: targetProfile is null/undefined');
+      return true; // If no profile provided, assume they have data
+    }
+    const checker = targetDataMap[piiType];
+    const hasData = checker ? !!checker(targetProfile) : true;
+    console.log(`🔍 PIIRequestModal: Target has ${piiType}: ${hasData}`, {
+      contactNumber: targetProfile.contactNumber,
+      contactEmail: targetProfile.contactEmail,
+      linkedinUrl: targetProfile.linkedinUrl,
+      imagesCount: targetProfile.images?.length
     });
     return hasData;
   };
@@ -372,8 +398,12 @@ const PIIRequestModal = ({
                 const isExpired = status === 'expired';
                 
                 // Check if this field is already visible to members (no request needed)
+                // BUT also check if target actually HAS the data (e.g., photos exist)
                 const visibilityKey = visibilityKeyMap[type.value];
-                const isMemberVisible = visibilityKey && visibilitySettings[visibilityKey] === true;
+                const visibilitySetting = visibilityKey && visibilitySettings[visibilityKey] === true;
+                const targetHasThisData = targetHasData(type.value);
+                // Only show "Already Member Visible" if BOTH setting is true AND data exists
+                const isMemberVisible = visibilitySetting && targetHasThisData;
                 
                 // Check if requester has this data to share (mutual exchange requirement)
                 const canShare = requesterHasData(type.value);
@@ -410,6 +440,9 @@ const PIIRequestModal = ({
                       {isMemberVisible && canShare && (
                         <div className="member-visible-badge">👁️ Already Member Visible</div>
                       )}
+                      {visibilitySetting && !targetHasThisData && canShare && (
+                        <div className="member-visible-badge" style={{background: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7'}}>📭 Member has no {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} yet</div>
+                      )}
                       <div className="pii-type-description">{type.description}</div>
                       {/* Conditional notes based on requester data and visibility settings */}
                       {!canShare && (
@@ -420,6 +453,11 @@ const PIIRequestModal = ({
                       {isMemberVisible && (
                         <div className="pii-type-note note-muted">
                           You don't have to request since member made the {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} as member visible true
+                        </div>
+                      )}
+                      {visibilitySetting && !targetHasThisData && canShare && (
+                        <div className="pii-type-note" style={{color: '#856404', fontSize: '11px'}}>
+                          Member has no {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} yet. Your request will notify them to add it.
                         </div>
                       )}
                       {canShare && !isMemberVisible && (
