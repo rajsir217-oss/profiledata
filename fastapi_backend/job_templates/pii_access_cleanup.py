@@ -173,9 +173,14 @@ class PIIAccessCleanupTemplate(JobTemplate):
             context.log("info", "")
             context.log("info", f"📋 Step 4: Cleaning up old PII requests...")
             
+            # Check multiple date fields for compatibility (updatedAt, respondedAt, createdAt)
             old_requests_query = {
                 "status": {"$in": ["approved", "rejected", "revoked", "cancelled"]},
-                "updatedAt": {"$lt": cutoff_date}
+                "$or": [
+                    {"updatedAt": {"$lt": cutoff_date}},
+                    {"respondedAt": {"$lt": cutoff_date}},
+                    {"createdAt": {"$lt": cutoff_date}}
+                ]
             }
             
             old_requests_count = await context.db.pii_requests.count_documents(old_requests_query)
