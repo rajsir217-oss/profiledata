@@ -696,6 +696,19 @@
   background: var(--hover-background);
 }
 
+/* Color accent for each stat card type */
+.stat-card-compact.stat-card-primary {
+  border-left: 3px solid var(--primary-color, #667eea);
+}
+
+.stat-card-compact.stat-card-success {
+  border-left: 3px solid var(--success-color, #10b981);
+}
+
+.stat-card-compact.stat-card-info {
+  border-left: 3px solid var(--info-color, #3b82f6);
+}
+
 .stat-icon-compact {
   font-size: 16px;
   line-height: 1;
