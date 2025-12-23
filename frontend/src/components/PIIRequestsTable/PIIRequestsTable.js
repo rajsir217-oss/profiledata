@@ -509,6 +509,10 @@ const PIIRequestsTable = ({
                               <span className="sent-revoked-badge" title={`Access Revoked - ${getAccessTypeLabel(piiType)}`}>
                                 🔒
                               </span>
+                            ) : request.status === 'expired' ? (
+                              <span className="sent-expired-badge" title={`Request Expired - ${getAccessTypeLabel(piiType)}`}>
+                                ⏱️
+                              </span>
                             ) : (
                               <span className="sent-pending-badge" title={`Pending - ${getAccessTypeLabel(piiType)}`}>
                                 ⏳
@@ -544,6 +548,7 @@ const PIIRequestsTable = ({
           <span><span className="legend-icon rejected">❌</span> Rejected</span>
           <span><span className="legend-icon cancelled">🚫</span> Cancelled</span>
           <span><span className="legend-icon revoked">🔒</span> Revoked</span>
+          <span><span className="legend-icon expired">⏱️</span> Expired</span>
           <span><span className="legend-icon">➖</span> Not Requested</span>
           <span><span className="legend-icon member-visible">👁️</span> Member Visible</span>
         </div>
