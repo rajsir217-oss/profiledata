@@ -168,18 +168,20 @@ const SearchPage2 = () => {
         searchCriteria,
         sortBy,
         sortOrder,
+        viewMode,
         displayedCount,
         minMatchScore,
         favoritedUsers: Array.from(favoritedUsers),
         shortlistedUsers: Array.from(shortlistedUsers),
         excludedUsers: Array.from(excludedUsers),
         selectedSearch,
+        selectedProfileForDetail,
         timestamp: Date.now()
       };
       sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
       console.log('💾 Saved search state to sessionStorage');
     }
-  }, [users, searchCriteria, sortBy, sortOrder, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch]);
+  }, [users, searchCriteria, sortBy, sortOrder, viewMode, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
   // Save scroll position before navigating away
   useEffect(() => {
@@ -224,12 +226,14 @@ const SearchPage2 = () => {
             setSearchCriteria(state.searchCriteria || {});
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
+            if (state.viewMode) setViewMode(state.viewMode);
             setDisplayedCount(state.displayedCount || 20);
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
             setExcludedUsers(new Set(state.excludedUsers || []));
             setSelectedSearch(state.selectedSearch || null);
+            if (state.selectedProfileForDetail) setSelectedProfileForDetail(state.selectedProfileForDetail);
             
             hasRestoredStateRef.current = true;
             hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
