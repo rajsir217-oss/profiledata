@@ -1214,7 +1214,7 @@ const Dashboard2 = () => {
       <div className="dashboard-stats-overview stats-with-poll">
         <div className="stats-cards-group">
           <div 
-            className="stat-card-compact clickable-card" 
+            className="stat-card-compact stat-card-primary clickable-card" 
             onClick={() => setShowProfileViewsModal(true)}
             title="Click to see who viewed your profile"
           >
@@ -1227,7 +1227,7 @@ const Dashboard2 = () => {
           </div>
           
           <div 
-            className="stat-card-compact clickable-card" 
+            className="stat-card-compact stat-card-success clickable-card" 
             onClick={() => setShowFavoritedByModal(true)}
             title="Click to see who favorited you"
           >
@@ -1239,7 +1239,7 @@ const Dashboard2 = () => {
           </div>
           
           <div 
-            className="stat-card-compact clickable-card"
+            className="stat-card-compact stat-card-info clickable-card"
             onClick={() => setShowConversationsModal(true)}
             title="Click to see your conversations"
           >
