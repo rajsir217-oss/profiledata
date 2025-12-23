@@ -90,12 +90,12 @@
     height: calc(100vh - 300px);
   }
 
-  /* Mobile: Show only avatars in left sidebar - minimal width */
+  /* Mobile: Show only letters in left sidebar - minimal width */
   .thumbnail-navigation {
-    width: 44px;
-    min-width: 44px;
-    flex: 0 0 44px;
-    padding: 3px;
+    width: 32px;
+    min-width: 32px;
+    flex: 0 0 32px;
+    padding: 2px;
   }
 
   /* Mobile: Icons only for action buttons */
@@ -127,28 +127,37 @@
   }
 
   .thumbnail-card {
-    padding: 2px;
-    margin-bottom: 3px;
+    padding: 4px 2px;
+    margin-bottom: 2px;
     flex-direction: column;
     gap: 0;
     justify-content: center;
     align-items: center;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
     border: none;
     background: transparent;
   }
 
-  /* Make avatar smaller on mobile */
+  /* Remove circle, show just letter on mobile */
   .thumbnail-card > div:first-child {
-    width: 32px !important;
-    height: 32px !important;
-    font-size: 13px !important;
+    width: auto !important;
+    height: auto !important;
+    font-size: 16px !important;
+    font-weight: 600 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: var(--text-color) !important;
   }
 
-  /* Selected state for mobile */
+  /* Selected state for mobile - highlight the letter */
   .thumbnail-card.selected {
     background: var(--primary-color) !important;
-    border-radius: 50%;
+    border-radius: var(--radius-sm);
+  }
+
+  .thumbnail-card.selected > div:first-child {
+    color: white !important;
   }
 
   /* Hide text content on mobile - show only avatar */
