@@ -1984,16 +1984,9 @@
 
 /* Embedded Profile Mode - Mobile Optimizations */
 @media (max-width: 768px) {
-  .profile-embedded .profile-header > div:first-child > div:first-child {
+  /* Hide only the avatar container, not the entire header */
+  .profile-embedded .profile-avatar-container {
     display: none !important;
-  }
-
-  .profile-embedded .profile-header > div:first-child {
-    gap: 10px !important;
-  }
-
-  .profile-embedded .profile-header h2 {
-    font-size: 18px !important;
   }
 
   .profile-embedded .member-photo-gallery {
