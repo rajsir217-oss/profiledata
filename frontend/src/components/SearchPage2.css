@@ -92,10 +92,10 @@
 
   /* Mobile: Show only avatars in left sidebar - compact width */
   .thumbnail-navigation {
-    width: 70px;
-    min-width: 70px;
-    flex: 0 0 70px;
-    padding: 6px;
+    width: 55px;
+    min-width: 55px;
+    flex: 0 0 55px;
+    padding: 4px;
   }
 
   /* Mobile: Icons only for action buttons */
@@ -127,19 +127,19 @@
   }
 
   .thumbnail-card {
-    padding: 6px;
-    margin-bottom: 6px;
+    padding: 4px;
+    margin-bottom: 4px;
     flex-direction: column;
-    gap: 2px;
+    gap: 0;
     justify-content: center;
     align-items: center;
   }
 
   /* Make avatar smaller on mobile */
   .thumbnail-card > div:first-child {
-    width: 45px !important;
-    height: 45px !important;
-    font-size: 18px !important;
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 14px !important;
   }
 
   /* Hide text content on mobile - show only avatar */
