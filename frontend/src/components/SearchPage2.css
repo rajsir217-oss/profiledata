@@ -184,43 +184,9 @@
     display: none;
   }
 
-  /* Mobile profile view: hide large circle avatar, simplify header */
-  .profile-embedded .profile-header .profile-avatar,
-  .profile-embedded .profile-header > div:first-child {
-    display: none !important;
-  }
-
-  /* Make profile header more compact on mobile */
-  .profile-embedded .profile-header {
-    flex-direction: column !important;
-    gap: 8px !important;
-    padding-bottom: 12px !important;
-  }
-
-  .profile-embedded .profile-header h2 {
-    font-size: 20px !important;
-    margin-bottom: 4px !important;
-  }
-
   /* Reduce profile detail panel padding */
   .profile-detail-panel {
-    padding: 16px;
-  }
-
-  /* Smaller profile header on mobile */
-  .profile-detail-panel h2 {
-    font-size: 22px !important;
-  }
-
-  .profile-detail-panel > div:first-child > div:first-child {
-    width: 80px !important;
-    height: 80px !important;
-    font-size: 32px !important;
-  }
-
-  /* Stack photo slots vertically on mobile */
-  .profile-detail-panel > div:nth-child(2) {
-    flex-wrap: wrap;
+    padding: 12px;
   }
 }
 
