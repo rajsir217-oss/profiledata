@@ -1981,3 +1981,27 @@
     justify-content: center;
   }
 }
+
+/* Embedded Profile Mode - Mobile Optimizations */
+@media (max-width: 768px) {
+  .profile-embedded .profile-header > div:first-child > div:first-child {
+    display: none !important;
+  }
+
+  .profile-embedded .profile-header > div:first-child {
+    gap: 10px !important;
+  }
+
+  .profile-embedded .profile-header h2 {
+    font-size: 18px !important;
+  }
+
+  .profile-embedded .member-photo-gallery {
+    gap: 6px !important;
+  }
+
+  .profile-embedded .gallery-slot {
+    width: 50px !important;
+    height: 50px !important;
+  }
+}
