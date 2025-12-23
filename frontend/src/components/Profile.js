@@ -1167,7 +1167,7 @@ const Profile = ({
       <div className="profile-header">
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '25px', width: '100%', flexWrap: 'wrap', position: 'relative' }}>
           {/* Profile Avatar - Always shown */}
-          <div style={{ flexShrink: 0, width: '120px', height: '120px' }}>
+          <div className="profile-avatar-container" style={{ flexShrink: 0, width: '120px', height: '120px' }}>
             {/* Main Avatar - Always use image[0] (profile picture) */}
             {(() => {
               // Check per-image access for avatar (first image, index 0)
