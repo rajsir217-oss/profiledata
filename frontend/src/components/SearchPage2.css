@@ -90,9 +90,10 @@
     height: calc(100vh - 300px);
   }
 
-  /* Mobile: Show only avatars in left sidebar */
+  /* Mobile: Show only avatars in left sidebar - flexible width */
   .thumbnail-navigation {
-    width: 70px;
+    width: auto;
+    flex: 0 0 auto;
     padding: 8px;
   }
 
