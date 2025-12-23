@@ -90,11 +90,12 @@
     height: calc(100vh - 300px);
   }
 
-  /* Mobile: Show only avatars in left sidebar - flexible width */
+  /* Mobile: Show only avatars in left sidebar - compact width */
   .thumbnail-navigation {
-    width: auto;
-    flex: 0 0 auto;
-    padding: 8px;
+    width: 70px;
+    min-width: 70px;
+    flex: 0 0 70px;
+    padding: 6px;
   }
 
   /* Mobile: Icons only for action buttons */
@@ -126,22 +127,24 @@
   }
 
   .thumbnail-card {
-    padding: 8px;
-    margin-bottom: 8px;
+    padding: 6px;
+    margin-bottom: 6px;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
+    justify-content: center;
+    align-items: center;
   }
 
-  /* Hide text content on mobile */
+  /* Make avatar smaller on mobile */
+  .thumbnail-card > div:first-child {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 18px !important;
+  }
+
+  /* Hide text content on mobile - show only avatar */
   .thumbnail-card > div:last-child {
     display: none;
-  }
-
-  /* Make avatar larger and centered */
-  .thumbnail-card > div:first-child {
-    width: 50px !important;
-    height: 50px !important;
-    margin: 0 auto;
   }
 
   /* Reduce profile detail panel padding */
@@ -275,11 +278,16 @@
 
 /* Embedded Profile Mode - for split-screen layout */
 .profile-embedded {
-  padding: 0 !important;
+  padding: 12px !important;
   margin: 0 !important;
   max-width: 100% !important;
 }
 
 .profile-embedded .profile-carousel-nav {
+  display: none !important;
+}
+
+/* Hide the floating action buttons sidebar in embedded mode - we have our own */
+.profile-embedded .floating-action-sidebar {
   display: none !important;
 }

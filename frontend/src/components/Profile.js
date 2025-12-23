@@ -28,14 +28,7 @@ const verificationApi = axios.create({
 
 const Profile = ({ 
   usernameFromProp = null,  // Optional: username passed as prop for embedded mode
-  embedded = false,          // Flag for embedded mode (hides header/navigation)
-  onMessage = null,          // Callback for message action in embedded mode
-  onFavorite = null,         // Callback for favorite action in embedded mode
-  onShortlist = null,        // Callback for shortlist action in embedded mode
-  onExclude = null,          // Callback for exclude action in embedded mode
-  isFavoritedProp = false,   // Favorited state from parent
-  isShortlistedProp = false, // Shortlisted state from parent
-  isExcludedProp = false     // Excluded state from parent
+  embedded = false          // Flag for embedded mode (hides header/navigation)
 }) => {
   const { username: usernameFromParams } = useParams();
   const username = usernameFromProp || usernameFromParams;

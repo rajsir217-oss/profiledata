@@ -2692,13 +2692,6 @@ const SearchPage2 = () => {
                     key={selectedProfileForDetail.username}
                     usernameFromProp={selectedProfileForDetail.username}
                     embedded={true}
-                    onMessage={(user) => handleMessage(user)}
-                    onFavorite={(user) => handleProfileAction(null, user.username, 'favorite')}
-                    onShortlist={(user) => handleProfileAction(null, user.username, 'shortlist')}
-                    onExclude={(user) => handleProfileAction(null, user.username, 'exclude')}
-                    isFavoritedProp={favoritedUsers.has(selectedProfileForDetail.username)}
-                    isShortlistedProp={shortlistedUsers.has(selectedProfileForDetail.username)}
-                    isExcludedProp={excludedUsers.has(selectedProfileForDetail.username)}
                   />
                 ) : (
                   <div style={{
