@@ -157,14 +157,68 @@ class PushNotifierTemplate(JobTemplate):
                     
                     # Prepare notification content with brand prefix
                     PREFIX = "[L3V3LMATCHES] "
-                    title = notification.get("title", "L3V3LMATCHES Notification")
-                    body = notification.get("message", "")
+                    trigger = notification.get("trigger", "")
+                    
+                    # User-friendly fallback messages for each trigger type
+                    trigger_messages = {
+                        "pending_pii_request": {
+                            "title": "Someone requested your contact info",
+                            "body": "Login to L3V3LMATCHES.com to respond"
+                        },
+                        "pii_request": {
+                            "title": "New contact info request",
+                            "body": "Login to L3V3LMATCHES.com to respond"
+                        },
+                        "pii_granted": {
+                            "title": "Your contact request was approved!",
+                            "body": "Login to L3V3LMATCHES.com to view their details"
+                        },
+                        "pii_denied": {
+                            "title": "Contact request update",
+                            "body": "Login to L3V3LMATCHES.com for details"
+                        },
+                        "new_message": {
+                            "title": "You have a new message!",
+                            "body": "Login to L3V3LMATCHES.com to read it"
+                        },
+                        "unread_messages": {
+                            "title": "You have unread messages",
+                            "body": "Login to L3V3LMATCHES.com to catch up"
+                        },
+                        "profile_view": {
+                            "title": "Someone viewed your profile!",
+                            "body": "Login to L3V3LMATCHES.com to see who"
+                        },
+                        "new_match": {
+                            "title": "You have a new match!",
+                            "body": "Login to L3V3LMATCHES.com to connect"
+                        },
+                        "mutual_favorite": {
+                            "title": "It's a match! 💕",
+                            "body": "You both favorited each other! Login to connect"
+                        },
+                        "shortlist_added": {
+                            "title": "Someone shortlisted you!",
+                            "body": "Login to L3V3LMATCHES.com to see who"
+                        },
+                        "favorited": {
+                            "title": "Someone favorited your profile!",
+                            "body": "Login to L3V3LMATCHES.com to see who"
+                        },
+                    }
+                    
+                    # Get title and body from notification or use friendly fallback
+                    fallback = trigger_messages.get(trigger, {
+                        "title": "New notification",
+                        "body": "Login to L3V3LMATCHES.com"
+                    })
+                    
+                    title = notification.get("title") or fallback["title"]
+                    body = notification.get("message") or fallback["body"]
                     
                     # Add prefix if not already present
                     if not title.startswith("[L3V3LMATCHES]"):
                         title = f"{PREFIX}{title}"
-                    if body and not body.startswith("[L3V3LMATCHES]"):
-                        body = f"{PREFIX}{body}"
                     
                     data = notification.get("templateData", {})
                     
