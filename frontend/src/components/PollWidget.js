@@ -352,7 +352,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
             <div className="poll-modal" onClick={(e) => e.stopPropagation()}>
               <div className="poll-modal-header">
                 <div className="poll-modal-title">
-                  <span className="poll-icon">📊</span>
+                  <span className="poll-icon">🔔</span>
                   <h2>{selectedPoll.title}</h2>
                 </div>
                 {selectedPoll.user_has_responded && (
@@ -392,7 +392,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
         return (
           <div key={poll._id} className={`poll-widget ${isResponded ? 'poll-responded' : ''}`}>
             <div className="poll-header">
-              <div className="poll-icon">📊</div>
+              <div className="poll-icon">🔔</div>
               <div className="poll-header-content">
                 <h3 className="poll-title">{poll.title}</h3>
                 {isResponded && (
