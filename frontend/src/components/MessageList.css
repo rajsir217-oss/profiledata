@@ -23,32 +23,35 @@
 /* Conversations Container */
 .conversations-container {
   flex: 1;
-  overflow-y: scroll;
+  overflow-y: scroll !important;
   overflow-x: hidden;
 }
 
-/* Always visible thin scrollbar */
+/* Always visible thin scrollbar - even when not scrollable */
 .conversations-container::-webkit-scrollbar {
   width: 6px;
+  display: block !important;
 }
 
 .conversations-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.conversations-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
+.conversations-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 3px;
+  min-height: 40px;
+}
+
 .conversations-container::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 /* Firefox scrollbar */
 .conversations-container {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.4) rgba(255, 255, 255, 0.1);
 }
 
 .no-conversations {
