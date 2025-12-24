@@ -488,11 +488,13 @@
 
 /* Stats with Poll - New Layout - Single Row */
 .dashboard-stats-overview.stats-with-poll {
-  display: flex;
+  display: inline-flex;
   flex-wrap: nowrap;
   gap: var(--spacing-md, 16px);
   align-items: stretch;
-  justify-content: center;
+  justify-content: flex-start;
+  width: auto;
+  max-width: 100%;
 }
 
 .stats-cards-group {
