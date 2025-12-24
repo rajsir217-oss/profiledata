@@ -795,6 +795,14 @@
   border-left: 3px solid #06b6d4;
 }
 
+.stat-card-compact.stat-card-favorited-me {
+  border-left: 3px solid #ec4899;
+}
+
+.stat-card-compact.stat-card-shortlisted-me {
+  border-left: 3px solid #14b8a6;
+}
+
 .stat-card-compact.stat-card-disabled {
   border-left: 3px solid var(--text-muted, #999);
   opacity: 0.5;
@@ -1094,9 +1102,10 @@
   font-size: 14px;
 }
 
-/* Hide My Activities section on mobile - use stat cards instead */
+/* Hide My Activities and Admirers sections on mobile - use stat cards instead */
 @media (max-width: 640px) {
-  .activity-group:has(.activity-group-header-my) {
+  .activity-group:has(.activity-group-header-my),
+  .activity-group:has(.activity-group-header-others) {
     display: none;
   }
 }

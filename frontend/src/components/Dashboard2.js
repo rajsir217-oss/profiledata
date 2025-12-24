@@ -1362,6 +1362,56 @@ const Dashboard2 = () => {
               <span className="stat-label-compact">MY SHORTLISTS</span>
             </div>
           </div>
+          
+          {/* Favorited Me stat card (mobile-optimized) */}
+          <div 
+            className="stat-card-compact stat-card-favorited-me clickable-card"
+            onClick={() => {
+              if (window.innerWidth <= 640) {
+                setMobileActivityCategory('theirFavorites');
+                setShowMobileActivityModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, othersActivities: true }));
+                setOthersActiveCategory('theirFavorites');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-others')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
+            }}
+            title="Click to see who favorited you"
+          >
+            <div className="stat-icon-compact">💕</div>
+            <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
+              <span className="stat-label-compact">FAVORITED ME</span>
+            </div>
+          </div>
+          
+          {/* Shortlisted Me stat card (mobile-optimized) */}
+          <div 
+            className="stat-card-compact stat-card-shortlisted-me clickable-card"
+            onClick={() => {
+              if (window.innerWidth <= 640) {
+                setMobileActivityCategory('theirShortlists');
+                setShowMobileActivityModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, othersActivities: true }));
+                setOthersActiveCategory('theirShortlists');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-others')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
+            }}
+            title="Click to see who shortlisted you"
+          >
+            <div className="stat-icon-compact">📝</div>
+            <span className="stat-badge-mobile">{dashboardData.theirShortlists.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.theirShortlists.length}</span>
+              <span className="stat-label-compact">SHORTLISTED ME</span>
+            </div>
+          </div>
         </div>
         
         {/* Inline Poll Widget or Placeholder */}
@@ -1587,7 +1637,7 @@ const Dashboard2 = () => {
       {/* Others' Activities Section - Collapsible with Horizontal Pills */}
       <div className="activity-group">
         <div 
-          className={`activity-group-header activity-group-header-light clickable ${expandedGroups.othersActivities ? 'expanded' : ''}`}
+          className={`activity-group-header activity-group-header-light activity-group-header-others clickable ${expandedGroups.othersActivities ? 'expanded' : ''}`}
           onClick={() => toggleGroup('othersActivities')}
         >
           <div className="activity-group-title">
@@ -1804,6 +1854,8 @@ const Dashboard2 = () => {
               <h2>
                 {mobileActivityCategory === 'myFavorites' && '⭐ My Favorites'}
                 {mobileActivityCategory === 'myShortlists' && '📋 My Shortlists'}
+                {mobileActivityCategory === 'theirFavorites' && '💕 Favorited Me'}
+                {mobileActivityCategory === 'theirShortlists' && '📝 Shortlisted Me'}
               </h2>
               <button className="mobile-pii-modal-close" onClick={() => setShowMobileActivityModal(false)}>✕</button>
             </div>
@@ -1845,6 +1897,50 @@ const Dashboard2 = () => {
                         }}
                       >
                         <span className="mobile-activity-icon">📋</span>
+                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
+                        <span className="mobile-activity-arrow">→</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              {mobileActivityCategory === 'theirFavorites' && (
+                <div className="mobile-activity-list">
+                  {dashboardData.theirFavorites.length === 0 ? (
+                    <div className="no-data-message">No one has favorited you yet</div>
+                  ) : (
+                    dashboardData.theirFavorites.map((user, index) => (
+                      <div 
+                        key={index} 
+                        className="mobile-activity-item"
+                        onClick={() => {
+                          setShowMobileActivityModal(false);
+                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
+                        }}
+                      >
+                        <span className="mobile-activity-icon">💕</span>
+                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
+                        <span className="mobile-activity-arrow">→</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              {mobileActivityCategory === 'theirShortlists' && (
+                <div className="mobile-activity-list">
+                  {dashboardData.theirShortlists.length === 0 ? (
+                    <div className="no-data-message">No one has shortlisted you yet</div>
+                  ) : (
+                    dashboardData.theirShortlists.map((user, index) => (
+                      <div 
+                        key={index} 
+                        className="mobile-activity-item"
+                        onClick={() => {
+                          setShowMobileActivityModal(false);
+                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
+                        }}
+                      >
+                        <span className="mobile-activity-icon">📝</span>
                         <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
                         <span className="mobile-activity-arrow">→</span>
                       </div>
