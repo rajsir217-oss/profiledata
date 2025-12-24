@@ -327,17 +327,10 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
         >
           <div className="stat-icon-compact">🔔</div>
           <div className="stat-content-compact">
-            <span className="stat-label-compact" style={{ 
-              maxWidth: '120px', 
-              overflow: 'hidden', 
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap'
-            }}>
-              {firstPoll.title}
-            </span>
+            <span className="stat-label-compact">POLL</span>
             {firstPollResponded && (
               <span className="stat-sublabel-compact" style={{ color: 'var(--success-color, #10b981)' }}>
-                ✓ {firstPollSelectedText}
+                ✓ Responded
               </span>
             )}
           </div>
