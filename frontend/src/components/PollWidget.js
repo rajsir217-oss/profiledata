@@ -330,7 +330,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
             <span className="stat-label-compact">POLL</span>
             {firstPollResponded && (
               <span className="stat-sublabel-compact" style={{ color: 'var(--success-color, #10b981)' }}>
-                ✓ Responded
+                ✓
               </span>
             )}
           </div>
