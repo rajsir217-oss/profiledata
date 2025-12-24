@@ -152,8 +152,8 @@ const SearchPage2 = () => {
   const [loadingMore, setLoadingMore] = useState(false);
 
   // Sort state
-  const [sortBy, setSortBy] = useState('age'); // matchScore, age, height, location, occupation, newest
-  const [sortOrder, setSortOrder] = useState('asc'); // desc or asc (asc = youngest first for age)
+  const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
+  const [sortOrder, setSortOrder] = useState('desc'); // desc or asc (desc = newest first)
 
   // Collapse state for filters panel
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
