@@ -285,6 +285,8 @@ class SMSNotifierTemplate(JobTemplate):
     
     async def _render_sms(self, service, notification, db) -> str:
         """Render SMS content from template (max 160 chars)"""
+        PREFIX = "[L3V3LMATCHES] "
+        
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
             "channel": NotificationChannel.SMS,
@@ -294,12 +296,16 @@ class SMSNotifierTemplate(JobTemplate):
         if not template:
             from utils.branding import get_app_name_short
             app_name = get_app_name_short()
-            message = f"New {notification.trigger}: Check your {app_name} app!"
+            message = f"{PREFIX}New {notification.trigger}: Check your {app_name} app!"
         else:
             message = service.render_template(
                 template.get("bodyTemplate", ""),
                 notification.templateData
             )
+            
+            # Add prefix if not already present
+            if not message.startswith("[L3V3LMATCHES]"):
+                message = f"{PREFIX}{message}"
             
             max_length = template.get("maxLength", 160)
             if len(message) > max_length:

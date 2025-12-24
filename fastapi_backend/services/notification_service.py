@@ -69,7 +69,8 @@ class NotificationService:
                 NotificationTrigger.PROFILE_VIEW: [NotificationChannel.PUSH],
                 
                 # PII/Privacy
-                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.SMS, NotificationChannel.PUSH],
                 NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
             },

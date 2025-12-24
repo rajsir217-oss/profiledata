@@ -97,7 +97,7 @@ class SMSService:
             formatted_phone = self.format_phone_number(phone)
             
             # Include username in message for multi-profile clarity
-            profile_prefix = f"[{username}] " if username else ""
+            profile_prefix = f"[L3V3LMATCHES | {username}] " if username else "[L3V3LMATCHES] "
             
             # Create message based on purpose
             if purpose == "verification":

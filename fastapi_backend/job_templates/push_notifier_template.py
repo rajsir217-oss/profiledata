@@ -155,9 +155,17 @@ class PushNotifierTemplate(JobTemplate):
                     
                     tokens = [sub["token"] for sub in subscriptions]
                     
-                    # Prepare notification content
-                    title = notification.get("title", "ProfileData Notification")
+                    # Prepare notification content with brand prefix
+                    PREFIX = "[L3V3LMATCHES] "
+                    title = notification.get("title", "L3V3LMATCHES Notification")
                     body = notification.get("message", "")
+                    
+                    # Add prefix if not already present
+                    if not title.startswith("[L3V3LMATCHES]"):
+                        title = f"{PREFIX}{title}"
+                    if body and not body.startswith("[L3V3LMATCHES]"):
+                        body = f"{PREFIX}{body}"
+                    
                     data = notification.get("templateData", {})
                     
                     # Convert all data values to strings (FCM requirement)

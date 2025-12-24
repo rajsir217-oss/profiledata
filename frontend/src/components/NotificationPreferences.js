@@ -30,6 +30,7 @@ const NotificationPreferences = () => {
     ],
     privacy: [
       { id: 'pii_request', label: 'PII Request', description: 'Someone requests access to your info' },
+      { id: 'pending_pii_request', label: 'Pending Request Reminder', description: 'Reminder about unanswered PII requests' },
       { id: 'pii_granted', label: 'PII Granted', description: 'Your PII access request approved' },
       { id: 'pii_denied', label: 'PII Denied', description: 'Your PII access request denied' },
       { id: 'pii_expiring', label: 'PII Expiring', description: 'PII access expiring in 24h' },

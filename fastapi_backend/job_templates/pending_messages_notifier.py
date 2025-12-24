@@ -193,12 +193,12 @@ class PendingMessagesNotifierTemplate(JobTemplate):
                     
                     # Build notification message
                     if len(sender_names) == 1:
-                        body = f"You have {unread_count} unread message{'s' if unread_count > 1 else ''} from {sender_names[0]}"
+                        body = f"[L3V3LMATCHES] You have {unread_count} unread message{'s' if unread_count > 1 else ''} from {sender_names[0]}"
                     elif len(sender_names) == 2:
-                        body = f"You have {unread_count} unread messages from {sender_names[0]} and {sender_names[1]}"
+                        body = f"[L3V3LMATCHES] You have {unread_count} unread messages from {sender_names[0]} and {sender_names[1]}"
                     else:
                         others_count = len(senders) - 2
-                        body = f"You have {unread_count} unread messages from {sender_names[0]}, {sender_names[1]} and {others_count} other{'s' if others_count > 1 else ''}"
+                        body = f"[L3V3LMATCHES] You have {unread_count} unread messages from {sender_names[0]}, {sender_names[1]} and {others_count} other{'s' if others_count > 1 else ''}"
                     
                     # Queue push notification
                     try:
@@ -212,7 +212,7 @@ class PendingMessagesNotifierTemplate(JobTemplate):
                                     "senders": sender_names,
                                     "message": body
                                 },
-                                title="📬 Unread Messages",
+                                title="[L3V3LMATCHES] 📬 Unread Messages",
                                 message=body
                             )
                         )

@@ -219,7 +219,7 @@ class SMSVerificationService:
                     username=username
                 )
             elif self.otp_manager.sms_provider == "twilio":
-                message = f"L3V3L Matches: Your verification code is {otp_code}. Valid for 10 minutes."
+                message = f"[L3V3LMATCHES] Your verification code is {otp_code}. Valid for 10 minutes."
                 return await self.otp_manager.sms_service.send_notification(phone, message)
             else:
                 return {"success": False, "error": "No SMS provider configured"}
