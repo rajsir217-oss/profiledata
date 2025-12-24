@@ -72,30 +72,42 @@
   font-size: 13px;
 }
 
-/* Conversation Item */
+/* Conversation Item - Thumbnail card style like search split-layout */
 .conversation-item {
   display: flex;
   align-items: center;
-  padding: 15px 20px;
+  padding: 12px;
+  margin: 0 8px 8px 8px;
   cursor: pointer;
-  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm, 8px);
   transition: all 0.2s ease;
   position: relative;
+  gap: 10px;
 }
 
-.conversation-item:hover {
-  background: var(--hover-background, #f8f9fa);
+.conversation-item:hover:not(.active) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: translateX(4px);
 }
 
 .conversation-item.active {
-  background: var(--selected-background, #e3f2fd);
-  border-left: 4px solid var(--primary-color, #667eea);
+  background: var(--primary-color);
+  color: white;
+  border: 2px solid var(--primary-color);
+}
+
+.conversation-item.active .conversation-name,
+.conversation-item.active .conversation-preview,
+.conversation-item.active .conversation-time {
+  color: white;
 }
 
 /* Avatar */
 .conversation-avatar {
   position: relative;
-  margin-right: 12px;
   flex-shrink: 0;
 }
 
