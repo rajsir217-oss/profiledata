@@ -27,7 +27,8 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
   const [selectedOptions, setSelectedOptions] = useState({});
   const [comments, setComments] = useState({});
   const [toast, setToast] = useState(null);
-  const [expandedPolls, setExpandedPolls] = useState({}); // Track which responded polls are expanded
+  const [showModal, setShowModal] = useState(false); // Modal state for inline mode
+  const [selectedPollId, setSelectedPollId] = useState(null); // Which poll to show in modal
 
   useEffect(() => {
     fetchActivePolls();
@@ -141,11 +142,26 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
     }
   };
 
-  const togglePollExpanded = (pollId) => {
-    setExpandedPolls(prev => ({
-      ...prev,
-      [pollId]: !prev[pollId]
-    }));
+  // ESC key handler for modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showModal) {
+        setShowModal(false);
+        setSelectedPollId(null);
+      }
+    };
+    document.addEventListener('keydown', handleEscKey);
+    return () => document.removeEventListener('keydown', handleEscKey);
+  }, [showModal]);
+
+  const openPollModal = (pollId) => {
+    setSelectedPollId(pollId);
+    setShowModal(true);
+  };
+
+  const closePollModal = () => {
+    setShowModal(false);
+    setSelectedPollId(null);
   };
 
   const getSelectedOptionText = (poll) => {
@@ -186,8 +202,184 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
     return null;
   }
 
+  // Get the first poll for inline display (most recent/active)
+  const firstPoll = polls[0];
+  const firstPollResponded = firstPoll?.user_has_responded;
+  const firstPollSelectedText = getSelectedOptionText(firstPoll);
+
+  // Render poll form content (used in both modal and non-inline mode)
+  const renderPollForm = (poll) => {
+    const isResponded = poll.user_has_responded;
+    
+    return (
+      <>
+        {poll.description && (
+          <p className="poll-description">{poll.description}</p>
+        )}
+        
+        {/* Event Details for RSVP polls */}
+        {poll.poll_type === 'rsvp' && (poll.event_date || poll.event_time || poll.event_location) && (
+          <div className="poll-event-details">
+            {poll.event_date && (
+              <div className="poll-event-item">
+                <span className="poll-event-icon">📅</span>
+                <span>{formatEventDate(poll.event_date)}</span>
+              </div>
+            )}
+            {poll.event_time && (
+              <div className="poll-event-item">
+                <span className="poll-event-icon">🕐</span>
+                <span>{poll.event_time}</span>
+              </div>
+            )}
+            {poll.event_location && (
+              <div className="poll-event-item">
+                <span className="poll-event-icon">📍</span>
+                <span>{poll.event_location}</span>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {poll.event_details && (
+          <div className="poll-event-extra">
+            {poll.event_details}
+          </div>
+        )}
+        
+        {/* Poll Options */}
+        <div className="poll-options">
+          {poll.options.map(option => {
+            const isSelected = (selectedOptions[poll._id] || []).includes(option.id);
+            const wasSelected = poll.user_response?.selected_options?.includes(option.id);
+            
+            return (
+              <button
+                key={option.id}
+                className={`poll-option ${isSelected ? 'poll-option-selected' : ''} ${wasSelected ? 'poll-option-was-selected' : ''}`}
+                onClick={() => handleOptionSelect(poll._id, option.id, poll.poll_type)}
+                disabled={submitting[poll._id]}
+              >
+                <span className="poll-option-indicator">
+                  {isSelected ? '●' : '○'}
+                </span>
+                <span className="poll-option-text">{option.text}</span>
+              </button>
+            );
+          })}
+        </div>
+        
+        {/* Comment field if allowed */}
+        {poll.allow_comments && (
+          <div className="poll-comment-section">
+            <textarea
+              className="poll-comment-input"
+              placeholder="Add a comment (optional)..."
+              value={comments[poll._id] || ''}
+              onChange={(e) => setComments(prev => ({ ...prev, [poll._id]: e.target.value }))}
+              disabled={submitting[poll._id]}
+              rows={2}
+            />
+          </div>
+        )}
+        
+        {/* Submit Button */}
+        <div className="poll-actions">
+          <button
+            className="poll-submit-btn"
+            onClick={() => handleSubmitResponse(poll._id)}
+            disabled={submitting[poll._id] || (selectedOptions[poll._id] || []).length === 0}
+          >
+            {submitting[poll._id] ? (
+              <>
+                <span className="poll-btn-spinner"></span>
+                Submitting...
+              </>
+            ) : isResponded ? (
+              'Update Response'
+            ) : (
+              'Submit Response'
+            )}
+          </button>
+        </div>
+        
+        {/* Info about contact collection */}
+        {poll.collect_contact_info && !isResponded && (
+          <p className="poll-info-text">
+            ℹ️ Your contact information will be shared with the organizer
+          </p>
+        )}
+      </>
+    );
+  };
+
+  // INLINE MODE: Show compact stat card + modal
+  if (inline) {
+    const selectedPoll = polls.find(p => p._id === selectedPollId);
+    
+    return (
+      <>
+        {/* Compact stat card */}
+        <div 
+          className="stat-card-compact stat-card-poll clickable-card"
+          onClick={() => openPollModal(firstPoll._id)}
+          title="Click to view/respond to poll"
+        >
+          <div className="stat-icon-compact">📊</div>
+          <div className="stat-content-compact">
+            <span className="stat-label-compact" style={{ 
+              maxWidth: '120px', 
+              overflow: 'hidden', 
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap'
+            }}>
+              {firstPoll.title}
+            </span>
+            {firstPollResponded && (
+              <span className="stat-sublabel-compact" style={{ color: 'var(--success-color, #10b981)' }}>
+                ✓ {firstPollSelectedText}
+              </span>
+            )}
+          </div>
+          {!firstPollResponded && (
+            <span className="poll-badge-new">NEW</span>
+          )}
+        </div>
+
+        {/* Poll Modal */}
+        {showModal && selectedPoll && (
+          <div className="poll-modal-overlay" onClick={closePollModal}>
+            <div className="poll-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="poll-modal-header">
+                <div className="poll-modal-title">
+                  <span className="poll-icon">📊</span>
+                  <h2>{selectedPoll.title}</h2>
+                </div>
+                {selectedPoll.user_has_responded && (
+                  <span className="poll-responded-badge">✓ Responded</span>
+                )}
+                <button className="poll-modal-close" onClick={closePollModal}>✕</button>
+              </div>
+              <div className="poll-modal-body">
+                {renderPollForm(selectedPoll)}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Toast notifications */}
+        {toast && (
+          <div className={`poll-toast poll-toast-${toast.type}`}>
+            {toast.type === 'success' ? '✓' : '✕'} {toast.message}
+          </div>
+        )}
+      </>
+    );
+  }
+
+  // NON-INLINE MODE: Show full poll widget (original behavior)
   return (
-    <div className={`poll-widget-container ${inline ? 'poll-widget-inline' : ''}`}>
+    <div className="poll-widget-container">
       {toast && (
         <div className={`poll-toast poll-toast-${toast.type}`}>
           {toast.type === 'success' ? '✓' : '✕'} {toast.message}
@@ -196,151 +388,19 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
       
       {polls.map(poll => {
         const isResponded = poll.user_has_responded;
-        const isExpanded = expandedPolls[poll._id] || !isResponded;
-        const selectedText = getSelectedOptionText(poll);
         
         return (
-          <div key={poll._id} className={`poll-widget ${isResponded ? 'poll-responded' : ''} ${!isExpanded ? 'poll-collapsed' : ''}`}>
-            {/* Collapsed View - Show summary when responded and not expanded */}
-            {isResponded && !isExpanded ? (
-              <div className="poll-collapsed-view" onClick={() => togglePollExpanded(poll._id)}>
-                <div className="poll-collapsed-left">
-                  <span className="poll-icon-small">📊</span>
-                  <div className="poll-collapsed-info">
-                    <span className="poll-collapsed-title">{poll.title}</span>
-                    <span className="poll-collapsed-response">
-                      <span className="poll-check">✓</span> {selectedText}
-                    </span>
-                  </div>
-                </div>
-                <button 
-                  className="poll-expand-btn"
-                  onClick={(e) => { e.stopPropagation(); togglePollExpanded(poll._id); }}
-                  title="Edit response"
-                >
-                  ✏️
-                </button>
+          <div key={poll._id} className={`poll-widget ${isResponded ? 'poll-responded' : ''}`}>
+            <div className="poll-header">
+              <div className="poll-icon">📊</div>
+              <div className="poll-header-content">
+                <h3 className="poll-title">{poll.title}</h3>
+                {isResponded && (
+                  <span className="poll-responded-badge">✓ Responded</span>
+                )}
               </div>
-            ) : (
-              /* Expanded View - Full poll form */
-              <>
-                <div className="poll-header">
-                  <div className="poll-icon">📊</div>
-                  <div className="poll-header-content">
-                    <h3 className="poll-title">{poll.title}</h3>
-                    {isResponded && (
-                      <span className="poll-responded-badge">✓ Responded</span>
-                    )}
-                  </div>
-                  {isResponded && (
-                    <button 
-                      className="poll-collapse-btn"
-                      onClick={() => togglePollExpanded(poll._id)}
-                      title="Collapse"
-                    >
-                      ▲
-                    </button>
-                  )}
-                </div>
-                
-                {poll.description && (
-                  <p className="poll-description">{poll.description}</p>
-                )}
-                
-                {/* Event Details for RSVP polls */}
-                {poll.poll_type === 'rsvp' && (poll.event_date || poll.event_time || poll.event_location) && (
-                  <div className="poll-event-details">
-                    {poll.event_date && (
-                      <div className="poll-event-item">
-                        <span className="poll-event-icon">📅</span>
-                        <span>{formatEventDate(poll.event_date)}</span>
-                      </div>
-                    )}
-                    {poll.event_time && (
-                      <div className="poll-event-item">
-                        <span className="poll-event-icon">🕐</span>
-                        <span>{poll.event_time}</span>
-                      </div>
-                    )}
-                    {poll.event_location && (
-                      <div className="poll-event-item">
-                        <span className="poll-event-icon">📍</span>
-                        <span>{poll.event_location}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {poll.event_details && (
-                  <div className="poll-event-extra">
-                    {poll.event_details}
-                  </div>
-                )}
-                
-                {/* Poll Options */}
-                <div className="poll-options">
-                  {poll.options.map(option => {
-                    const isSelected = (selectedOptions[poll._id] || []).includes(option.id);
-                    const wasSelected = poll.user_response?.selected_options?.includes(option.id);
-                    
-                    return (
-                      <button
-                        key={option.id}
-                        className={`poll-option ${isSelected ? 'poll-option-selected' : ''} ${wasSelected ? 'poll-option-was-selected' : ''}`}
-                        onClick={() => handleOptionSelect(poll._id, option.id, poll.poll_type)}
-                        disabled={submitting[poll._id]}
-                      >
-                        <span className="poll-option-indicator">
-                          {isSelected ? '●' : '○'}
-                        </span>
-                        <span className="poll-option-text">{option.text}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-                
-                {/* Comment field if allowed */}
-                {poll.allow_comments && (
-                  <div className="poll-comment-section">
-                    <textarea
-                      className="poll-comment-input"
-                      placeholder="Add a comment (optional)..."
-                      value={comments[poll._id] || ''}
-                      onChange={(e) => setComments(prev => ({ ...prev, [poll._id]: e.target.value }))}
-                      disabled={submitting[poll._id]}
-                      rows={2}
-                    />
-                  </div>
-                )}
-                
-                {/* Submit Button */}
-                <div className="poll-actions">
-                  <button
-                    className="poll-submit-btn"
-                    onClick={() => handleSubmitResponse(poll._id)}
-                    disabled={submitting[poll._id] || (selectedOptions[poll._id] || []).length === 0}
-                  >
-                    {submitting[poll._id] ? (
-                      <>
-                        <span className="poll-btn-spinner"></span>
-                        Submitting...
-                      </>
-                    ) : isResponded ? (
-                      'Update Response'
-                    ) : (
-                      'Submit Response'
-                    )}
-                  </button>
-                </div>
-                
-                {/* Info about contact collection */}
-                {poll.collect_contact_info && !isResponded && (
-                  <p className="poll-info-text">
-                    ℹ️ Your contact information will be shared with the organizer
-                  </p>
-                )}
-              </>
-            )}
+            </div>
+            {renderPollForm(poll)}
           </div>
         );
       })}
