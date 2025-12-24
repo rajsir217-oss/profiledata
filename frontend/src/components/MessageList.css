@@ -23,27 +23,32 @@
 /* Conversations Container */
 .conversations-container {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
 }
 
-/* Always show scrollbar */
+/* Always visible thin scrollbar */
 .conversations-container::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .conversations-container::-webkit-scrollbar-track {
-  background: var(--surface-color, #f1f1f1);
-  border-radius: 4px;
+  background: transparent;
 }
 
 .conversations-container::-webkit-scrollbar-thumb {
-  background: var(--text-muted, #888);
-  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
 }
 
 .conversations-container::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary, #555);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Firefox scrollbar */
+.conversations-container {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
 }
 
 .no-conversations {
