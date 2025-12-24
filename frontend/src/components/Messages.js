@@ -61,8 +61,17 @@ const Messages = () => {
 
     socketService.on('new_message', handleNewMessage);
 
+    // ESC key handler to close message window (deselect user)
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape' && selectedUser) {
+        setSelectedUser(null);
+      }
+    };
+    document.addEventListener('keydown', handleEscKey);
+
     return () => {
       socketService.off('new_message', handleNewMessage);
+      document.removeEventListener('keydown', handleEscKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location, selectedUser, currentUsername]);
