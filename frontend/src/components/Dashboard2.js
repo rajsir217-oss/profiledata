@@ -91,6 +91,10 @@ const Dashboard2 = () => {
   // Mobile PII modal state (for stat card clicks on mobile)
   const [showMobilePIIModal, setShowMobilePIIModal] = useState(false);
   const [mobilePIICategory, setMobilePIICategory] = useState('piiInbox');
+  
+  // Mobile Activity modal state (for Favorites/Shortlists stat card clicks on mobile)
+  const [showMobileActivityModal, setShowMobileActivityModal] = useState(false);
+  const [mobileActivityCategory, setMobileActivityCategory] = useState('myFavorites');
 
   // Active category pill state for My Activities section
   const [myActiveCategory, setMyActiveCategory] = useState(() => {
@@ -1308,6 +1312,56 @@ const Dashboard2 = () => {
               <span className="stat-label-compact">ACCESS RECEIVED</span>
             </div>
           </div>
+          
+          {/* My Favorites stat card (mobile-optimized) */}
+          <div 
+            className="stat-card-compact stat-card-favorites clickable-card"
+            onClick={() => {
+              if (window.innerWidth <= 640) {
+                setMobileActivityCategory('myFavorites');
+                setShowMobileActivityModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, myActivities: true }));
+                setMyActiveCategory('myFavorites');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-my')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
+            }}
+            title="Click to see your favorites"
+          >
+            <div className="stat-icon-compact">⭐</div>
+            <span className="stat-badge-mobile">{dashboardData.myFavorites.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.myFavorites.length}</span>
+              <span className="stat-label-compact">MY FAVORITES</span>
+            </div>
+          </div>
+          
+          {/* My Shortlists stat card (mobile-optimized) */}
+          <div 
+            className="stat-card-compact stat-card-shortlist clickable-card"
+            onClick={() => {
+              if (window.innerWidth <= 640) {
+                setMobileActivityCategory('myShortlists');
+                setShowMobileActivityModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, myActivities: true }));
+                setMyActiveCategory('myShortlists');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-my')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
+            }}
+            title="Click to see your shortlists"
+          >
+            <div className="stat-icon-compact">📋</div>
+            <span className="stat-badge-mobile">{dashboardData.myShortlists.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.myShortlists.length}</span>
+              <span className="stat-label-compact">MY SHORTLISTS</span>
+            </div>
+          </div>
         </div>
         
         {/* Inline Poll Widget or Placeholder */}
@@ -1470,7 +1524,7 @@ const Dashboard2 = () => {
       {/* My Activities Section - Collapsible with Horizontal Pills */}
       <div className="activity-group">
         <div 
-          className={`activity-group-header clickable ${expandedGroups.myActivities ? 'expanded' : ''}`}
+          className={`activity-group-header activity-group-header-my clickable ${expandedGroups.myActivities ? 'expanded' : ''}`}
           onClick={() => toggleGroup('myActivities')}
         >
           <div className="activity-group-title">
@@ -1736,6 +1790,67 @@ const Dashboard2 = () => {
                   }}
                   compact={true}
                 />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Mobile Activity Modal - for Favorites/Shortlists stat card clicks on mobile */}
+      {showMobileActivityModal && (
+        <div className="mobile-pii-modal-overlay" onClick={() => setShowMobileActivityModal(false)}>
+          <div className="mobile-pii-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-pii-modal-header mobile-activity-header">
+              <h2>
+                {mobileActivityCategory === 'myFavorites' && '⭐ My Favorites'}
+                {mobileActivityCategory === 'myShortlists' && '📋 My Shortlists'}
+              </h2>
+              <button className="mobile-pii-modal-close" onClick={() => setShowMobileActivityModal(false)}>✕</button>
+            </div>
+            <div className="mobile-pii-modal-body">
+              {mobileActivityCategory === 'myFavorites' && (
+                <div className="mobile-activity-list">
+                  {dashboardData.myFavorites.length === 0 ? (
+                    <div className="no-data-message">No favorites yet</div>
+                  ) : (
+                    dashboardData.myFavorites.map((user, index) => (
+                      <div 
+                        key={index} 
+                        className="mobile-activity-item"
+                        onClick={() => {
+                          setShowMobileActivityModal(false);
+                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
+                        }}
+                      >
+                        <span className="mobile-activity-icon">⭐</span>
+                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
+                        <span className="mobile-activity-arrow">→</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              {mobileActivityCategory === 'myShortlists' && (
+                <div className="mobile-activity-list">
+                  {dashboardData.myShortlists.length === 0 ? (
+                    <div className="no-data-message">No shortlists yet</div>
+                  ) : (
+                    dashboardData.myShortlists.map((user, index) => (
+                      <div 
+                        key={index} 
+                        className="mobile-activity-item"
+                        onClick={() => {
+                          setShowMobileActivityModal(false);
+                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
+                        }}
+                      >
+                        <span className="mobile-activity-icon">📋</span>
+                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
+                        <span className="mobile-activity-arrow">→</span>
+                      </div>
+                    ))
+                  )}
+                </div>
               )}
             </div>
           </div>

@@ -787,6 +787,14 @@
   border-left: 3px solid #8b5cf6;
 }
 
+.stat-card-compact.stat-card-favorites {
+  border-left: 3px solid #fbbf24;
+}
+
+.stat-card-compact.stat-card-shortlist {
+  border-left: 3px solid #06b6d4;
+}
+
 .stat-card-compact.stat-card-disabled {
   border-left: 3px solid var(--text-muted, #999);
   opacity: 0.5;
@@ -1034,6 +1042,63 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+}
+
+/* Activity modal header variant */
+.mobile-activity-header {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+
+/* Mobile activity list */
+.mobile-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobile-activity-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--surface-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-activity-item:hover {
+  background: var(--hover-background);
+  transform: translateX(4px);
+}
+
+.mobile-activity-icon {
+  font-size: 18px;
+}
+
+.mobile-activity-name {
+  flex: 1;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.mobile-activity-arrow {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.no-data-message {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* Hide My Activities section on mobile - use stat cards instead */
+@media (max-width: 640px) {
+  .activity-group:has(.activity-group-header-my) {
+    display: none;
+  }
 }
 
 /* Pill button styles for PII section */
