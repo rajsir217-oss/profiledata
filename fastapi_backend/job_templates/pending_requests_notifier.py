@@ -184,26 +184,26 @@ class PendingRequestsNotifierTemplate(JobTemplate):
                     
                     # Build notification message
                     if pending_count == 1:
-                        body = f"{requester_names[0]} is waiting for your response to their contact request"
+                        body = f"[L3V3LMATCHES] {requester_names[0]} is waiting for your response to their contact request"
                     elif len(requester_names) == 2:
-                        body = f"{requester_names[0]} and {requester_names[1]} are waiting for your response"
+                        body = f"[L3V3LMATCHES] {requester_names[0]} and {requester_names[1]} are waiting for your response"
                     else:
                         others_count = pending_count - 2
-                        body = f"{requester_names[0]}, {requester_names[1]} and {others_count} other{'s' if others_count > 1 else ''} are waiting for your response"
+                        body = f"[L3V3LMATCHES] {requester_names[0]}, {requester_names[1]} and {others_count} other{'s' if others_count > 1 else ''} are waiting for your response"
                     
                     # Queue push notification
                     try:
                         await notification_service.enqueue_notification(
                             NotificationQueueCreate(
                                 username=username,
-                                trigger=NotificationTrigger.PII_REQUEST,
+                                trigger=NotificationTrigger.PENDING_PII_REQUEST,
                                 channels=[NotificationChannel.PUSH, NotificationChannel.SMS],
                                 templateData={
                                     "pendingCount": pending_count,
                                     "requesters": requester_names,
                                     "message": body
                                 },
-                                title="🔔 Pending Contact Requests",
+                                title="[L3V3LMATCHES] 🔔 Pending Contact Requests",
                                 message=body
                             )
                         )
