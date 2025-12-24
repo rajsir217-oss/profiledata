@@ -318,9 +318,6 @@ class EmailNotifierTemplate(JobTemplate):
         template_data["pii_management_url"] = f"{backend_url}/api/email-tracking/click/{tracking_id}?url={pii_management_url_encoded}&link_type=pii_management"
         
         if not template:
-            # Fallback for when template is not found
-            trigger_name = notification.trigger.replace("_", " ").title()
-            
             # Get requester name from template_data
             requester_name = "Someone"
             if isinstance(template_data, dict):
@@ -333,13 +330,63 @@ class EmailNotifierTemplate(JobTemplate):
                     elif first:
                         requester_name = first
             
-            # Better fallback messages
-            if notification.trigger == "pii_request":
-                subject = "📧 New Photo / Contact Access Request"
-                body = f"You have a new photo/contact access request from {requester_name}. Please login to your account to review the request."
-            else:
-                subject = f"New {trigger_name} Notification"
-                body = f"You have a new {trigger_name.lower()} notification. Please login to view details."
+            # User-friendly fallback messages for each trigger type
+            trigger_messages = {
+                "pending_pii_request": {
+                    "subject": "📧 Someone requested your contact information",
+                    "body": f"{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request."
+                },
+                "pii_request": {
+                    "subject": "📧 New contact information request",
+                    "body": f"{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request."
+                },
+                "pii_granted": {
+                    "subject": "✅ Your contact request was approved!",
+                    "body": f"Great news! {requester_name} has approved your request to view their contact information. Login to L3V3LMATCHES.com to see their details."
+                },
+                "pii_denied": {
+                    "subject": "Contact request update",
+                    "body": f"{requester_name} has declined your contact information request. Don't worry - there are many other great matches waiting for you on L3V3LMATCHES.com!"
+                },
+                "new_message": {
+                    "subject": "💬 You have a new message!",
+                    "body": f"{requester_name} sent you a message. Login to L3V3LMATCHES.com to read and reply."
+                },
+                "unread_messages": {
+                    "subject": "📬 You have unread messages waiting",
+                    "body": "You have messages waiting for you! Login to L3V3LMATCHES.com to catch up on your conversations."
+                },
+                "profile_view": {
+                    "subject": "👁️ Someone viewed your profile!",
+                    "body": f"{requester_name} checked out your profile. Login to L3V3LMATCHES.com to see who's interested in you."
+                },
+                "new_match": {
+                    "subject": "💕 You have a new match!",
+                    "body": f"Exciting news! You matched with {requester_name}. Login to L3V3LMATCHES.com to start a conversation."
+                },
+                "mutual_favorite": {
+                    "subject": "💖 It's a match! You both favorited each other",
+                    "body": f"Great news! You and {requester_name} have both favorited each other. This could be the start of something special! Login to L3V3LMATCHES.com to connect."
+                },
+                "shortlist_added": {
+                    "subject": "⭐ Someone added you to their shortlist!",
+                    "body": f"{requester_name} added you to their shortlist. They're seriously interested! Login to L3V3LMATCHES.com to check them out."
+                },
+                "favorited": {
+                    "subject": "❤️ Someone favorited your profile!",
+                    "body": f"{requester_name} favorited your profile. Login to L3V3LMATCHES.com to see if you're interested too!"
+                },
+            }
+            
+            trigger_name = notification.trigger.replace("_", " ").title()
+            default_message = {
+                "subject": f"New {trigger_name} Notification",
+                "body": f"You have a new notification on L3V3LMATCHES.com. Login to view the details."
+            }
+            
+            message = trigger_messages.get(notification.trigger, default_message)
+            subject = message["subject"]
+            body = message["body"]
         else:
             # Support both flat and nested template structures
             if "channels" in template and "email" in template["channels"]:

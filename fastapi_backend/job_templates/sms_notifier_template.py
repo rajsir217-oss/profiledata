@@ -294,9 +294,26 @@ class SMSNotifierTemplate(JobTemplate):
         })
         
         if not template:
-            from utils.branding import get_app_name_short
-            app_name = get_app_name_short()
-            message = f"{PREFIX}New {notification.trigger}: Check your {app_name} app!"
+            # User-friendly fallback messages for each trigger type
+            trigger_messages = {
+                "pending_pii_request": "Someone requested your contact info! Login to L3V3LMATCHES.com to respond.",
+                "pii_request": "Someone requested your contact info! Login to L3V3LMATCHES.com to respond.",
+                "pii_granted": "Your contact info request was approved! Login to L3V3LMATCHES.com to view.",
+                "pii_denied": "Your contact info request was declined. Login to L3V3LMATCHES.com for details.",
+                "new_message": "You have a new message! Login to L3V3LMATCHES.com to read it.",
+                "unread_messages": "You have unread messages waiting! Login to L3V3LMATCHES.com",
+                "profile_view": "Someone viewed your profile! Login to L3V3LMATCHES.com to see who.",
+                "new_match": "You have a new match! Login to L3V3LMATCHES.com to connect.",
+                "mutual_favorite": "It's a match! You both favorited each other. Login to L3V3LMATCHES.com",
+                "shortlist_added": "Someone added you to their shortlist! Login to L3V3LMATCHES.com",
+                "favorited": "Someone favorited your profile! Login to L3V3LMATCHES.com to see who.",
+            }
+            
+            message = trigger_messages.get(
+                notification.trigger,
+                f"You have a new notification! Login to L3V3LMATCHES.com"
+            )
+            message = f"{PREFIX}{message}"
         else:
             message = service.render_template(
                 template.get("bodyTemplate", ""),
