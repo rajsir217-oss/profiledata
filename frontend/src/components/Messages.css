@@ -34,7 +34,8 @@
 .messages-container {
   display: grid;
   grid-template-columns: 350px 1fr;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   background: var(--card-background, white);
   box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
   border-radius: 8px;
