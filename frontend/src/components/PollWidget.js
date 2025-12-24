@@ -325,7 +325,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
           onClick={() => openPollModal(firstPoll._id)}
           title="Click to view/respond to poll"
         >
-          <div className="stat-icon-compact">📊</div>
+          <div className="stat-icon-compact">🔔</div>
           <div className="stat-content-compact">
             <span className="stat-label-compact" style={{ 
               maxWidth: '120px', 
