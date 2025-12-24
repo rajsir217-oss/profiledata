@@ -198,6 +198,7 @@ const UnifiedPreferences = () => {
     ],
     privacy: [
       { id: 'pii_request', label: 'PII Request', description: 'Someone requests access' },
+      { id: 'pending_pii_request', label: 'Pending Request Reminder', description: 'Reminder about unanswered PII requests' },
       { id: 'pii_granted', label: 'PII Granted', description: 'Access request approved' },
       { id: 'pii_denied', label: 'PII Denied', description: 'Access request denied' },
       { id: 'pii_expiring', label: 'PII Expiring', description: 'Access expiring in 24h' },

@@ -197,7 +197,7 @@ class PendingRequestsNotifierTemplate(JobTemplate):
                             NotificationQueueCreate(
                                 username=username,
                                 trigger=NotificationTrigger.PENDING_PII_REQUEST,
-                                channels=[NotificationChannel.PUSH, NotificationChannel.SMS],
+                                channels=[NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
                                 templateData={
                                     "pendingCount": pending_count,
                                     "requesters": requester_names,
