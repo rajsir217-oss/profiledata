@@ -1254,7 +1254,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
-              <span className="stat-label-compact">FAVORITED BY</span>
+              <span className="stat-label-compact">FAV BY</span>
             </div>
           </div>
           
@@ -1267,7 +1267,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.myMessages.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myMessages.length}</span>
-              <span className="stat-label-compact">CONVERSATIONS</span>
+              <span className="stat-label-compact">CONVERS..</span>
             </div>
           </div>
           
@@ -1293,7 +1293,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.incomingContactRequests.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.incomingContactRequests.length}</span>
-              <span className="stat-label-compact">REQUESTS INBOX</span>
+              <span className="stat-label-compact">REQS INBOX</span>
             </div>
           </div>
           
@@ -1319,7 +1319,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.receivedAccess.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.receivedAccess.length}</span>
-              <span className="stat-label-compact">ACCESS RECEIVED</span>
+              <span className="stat-label-compact">ACCESS RECVD</span>
             </div>
           </div>
           
@@ -1344,7 +1344,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.myFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myFavorites.length}</span>
-              <span className="stat-label-compact">MY FAVORITES</span>
+              <span className="stat-label-compact">MY FAVS</span>
             </div>
           </div>
           
@@ -1369,7 +1369,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.myShortlists.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myShortlists.length}</span>
-              <span className="stat-label-compact">MY SHORTLISTS</span>
+              <span className="stat-label-compact">MY SHORTLSTS</span>
             </div>
           </div>
           
@@ -1394,7 +1394,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
-              <span className="stat-label-compact">FAVORITED ME</span>
+              <span className="stat-label-compact">FAV ME</span>
             </div>
           </div>
           
@@ -1419,7 +1419,7 @@ const Dashboard2 = () => {
             <span className="stat-badge-mobile">{dashboardData.theirShortlists.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirShortlists.length}</span>
-              <span className="stat-label-compact">SHORTLISTED ME</span>
+              <span className="stat-label-compact">SHORTD ME</span>
             </div>
           </div>
         </div>
