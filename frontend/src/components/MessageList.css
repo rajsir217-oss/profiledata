@@ -24,6 +24,26 @@
 .conversations-container {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Always show scrollbar */
+.conversations-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.conversations-container::-webkit-scrollbar-track {
+  background: var(--surface-color, #f1f1f1);
+  border-radius: 4px;
+}
+
+.conversations-container::-webkit-scrollbar-thumb {
+  background: var(--text-muted, #888);
+  border-radius: 4px;
+}
+
+.conversations-container::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary, #555);
 }
 
 .no-conversations {
