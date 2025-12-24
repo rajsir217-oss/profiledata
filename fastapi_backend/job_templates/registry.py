@@ -159,6 +159,8 @@ def initialize_templates():
     from .retroactive_invitation_matcher import RetroactiveInvitationMatcherTemplate
     from .invitation_resend_template import InvitationResendTemplate
     from .pii_access_cleanup import PIIAccessCleanupTemplate
+    from .pending_messages_notifier import PendingMessagesNotifierTemplate
+    from .pending_requests_notifier import PendingRequestsNotifierTemplate
     
     registry = get_template_registry()
     
@@ -192,6 +194,8 @@ def initialize_templates():
     registry.register(ProfileCompletionReminderTemplate())
     registry.register(ConversationMonitorTemplate())
     registry.register(AnalyticsNotifierTemplate())
+    registry.register(PendingMessagesNotifierTemplate())
+    registry.register(PendingRequestsNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
