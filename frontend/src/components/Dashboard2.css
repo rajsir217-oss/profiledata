@@ -513,31 +513,9 @@
 }
 
 .poll-widget-inline {
-  flex: 0 0 170px;
-  width: 170px;
-  max-width: 170px;
+  flex: 0 0 auto;
   display: flex;
   align-items: stretch;
-  overflow: hidden;
-}
-
-.poll-widget-inline .stat-card-compact {
-  width: 100%;
-  max-width: 170px;
-  overflow: hidden;
-}
-
-.poll-widget-inline .stat-content-compact {
-  overflow: hidden;
-  min-width: 0;
-}
-
-.poll-widget-inline .stat-label-compact {
-  display: block;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 /* Responsive for stats with poll */
