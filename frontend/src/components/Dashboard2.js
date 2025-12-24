@@ -1405,7 +1405,7 @@ const Dashboard2 = () => {
             }}
             title="Click to see who shortlisted you"
           >
-            <div className="stat-icon-compact">📝</div>
+            <div className="stat-icon-compact">�</div>
             <span className="stat-badge-mobile">{dashboardData.theirShortlists.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirShortlists.length}</span>
@@ -1855,7 +1855,7 @@ const Dashboard2 = () => {
                 {mobileActivityCategory === 'myFavorites' && '⭐ My Favorites'}
                 {mobileActivityCategory === 'myShortlists' && '📋 My Shortlists'}
                 {mobileActivityCategory === 'theirFavorites' && '💕 Favorited Me'}
-                {mobileActivityCategory === 'theirShortlists' && '📝 Shortlisted Me'}
+                {mobileActivityCategory === 'theirShortlists' && '� Shortlisted Me'}
               </h2>
               <button className="mobile-pii-modal-close" onClick={() => setShowMobileActivityModal(false)}>✕</button>
             </div>
@@ -1940,7 +1940,7 @@ const Dashboard2 = () => {
                           navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
                         }}
                       >
-                        <span className="mobile-activity-icon">📝</span>
+                        <span className="mobile-activity-icon">�</span>
                         <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
                         <span className="mobile-activity-arrow">→</span>
                       </div>
