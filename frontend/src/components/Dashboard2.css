@@ -597,8 +597,12 @@
   }
   
   .poll-widget-inline {
+    flex: 0 0 48px;
     width: 48px;
     height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   
   .poll-widget-inline .stat-card-compact {
@@ -606,9 +610,15 @@
     height: 48px;
     min-width: 48px;
     max-width: 48px;
+    margin: 0;
   }
   
   .poll-widget-inline .stat-content-compact {
+    display: none;
+  }
+  
+  /* Hide poll badge on mobile */
+  .poll-widget-inline .poll-badge-new {
     display: none;
   }
 }
