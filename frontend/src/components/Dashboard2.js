@@ -87,6 +87,10 @@ const Dashboard2 = () => {
     const saved = localStorage.getItem('dashboard2PiiActiveCategory');
     return saved || 'piiInbox';
   });
+  
+  // Mobile PII modal state (for stat card clicks on mobile)
+  const [showMobilePIIModal, setShowMobilePIIModal] = useState(false);
+  const [mobilePIICategory, setMobilePIICategory] = useState('piiInbox');
 
   // Active category pill state for My Activities section
   const [myActiveCategory, setMyActiveCategory] = useState(() => {
@@ -1257,11 +1261,17 @@ const Dashboard2 = () => {
           <div 
             className="stat-card-compact stat-card-warning clickable-card"
             onClick={() => {
-              setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
-              setPiiActiveCategory('piiInbox');
-              setTimeout(() => {
-                document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
+              // On mobile, open modal; on desktop, expand section
+              if (window.innerWidth <= 640) {
+                setMobilePIICategory('piiInbox');
+                setShowMobilePIIModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
+                setPiiActiveCategory('piiInbox');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
             }}
             title="Click to see incoming data requests"
           >
@@ -1277,11 +1287,17 @@ const Dashboard2 = () => {
           <div 
             className="stat-card-compact stat-card-purple clickable-card"
             onClick={() => {
-              setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
-              setPiiActiveCategory('piiHistory');
-              setTimeout(() => {
-                document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
-              }, 100);
+              // On mobile, open modal; on desktop, expand section
+              if (window.innerWidth <= 640) {
+                setMobilePIICategory('piiHistory');
+                setShowMobilePIIModal(true);
+              } else {
+                setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
+                setPiiActiveCategory('piiHistory');
+                setTimeout(() => {
+                  document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }
             }}
             title="Click to see access you've received"
           >
@@ -1670,6 +1686,61 @@ const Dashboard2 = () => {
         onPause={handlePauseSuccess}
         currentStatus={pauseStatus}
       />
+
+      {/* Mobile PII Modal - for stat card clicks on mobile */}
+      {showMobilePIIModal && (
+        <div className="mobile-pii-modal-overlay" onClick={() => setShowMobilePIIModal(false)}>
+          <div className="mobile-pii-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="mobile-pii-modal-header">
+              <h2>
+                {mobilePIICategory === 'piiInbox' && '📬 Requests Inbox'}
+                {mobilePIICategory === 'piiHistory' && '🔓 Access Received'}
+              </h2>
+              <button className="mobile-pii-modal-close" onClick={() => setShowMobilePIIModal(false)}>✕</button>
+            </div>
+            <div className="mobile-pii-modal-body">
+              {mobilePIICategory === 'piiInbox' && (
+                <PIIRequestsTable
+                  requests={dashboardData.incomingContactRequests}
+                  type="inbox"
+                  onApprove={async (request, profile) => {
+                    try {
+                      await api.post(`/pii-requests/${request._id}/approve`);
+                      loadDashboardData(currentUser);
+                    } catch (error) {
+                      console.error('Error approving request:', error);
+                    }
+                  }}
+                  onReject={async (requestId) => {
+                    try {
+                      await api.post(`/pii-requests/${requestId}/reject`);
+                      loadDashboardData(currentUser);
+                    } catch (error) {
+                      console.error('Error rejecting request:', error);
+                    }
+                  }}
+                  onProfileClick={(username) => {
+                    setShowMobilePIIModal(false);
+                    navigate(`/profile/${username}`);
+                  }}
+                  compact={true}
+                />
+              )}
+              {mobilePIICategory === 'piiHistory' && (
+                <PIIRequestsTable
+                  requests={dashboardData.receivedAccess}
+                  type="history"
+                  onProfileClick={(username) => {
+                    setShowMobilePIIModal(false);
+                    navigate(`/profile/${username}`);
+                  }}
+                  compact={true}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Fixed Action Buttons */}
       <div className="dashboard-bottom-actions">
