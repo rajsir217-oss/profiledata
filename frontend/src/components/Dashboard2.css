@@ -537,9 +537,29 @@
 }
 
 @media (max-width: 640px) {
+  .dashboard-stats-overview.stats-with-poll {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .stats-cards-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
   .stats-cards-group .stat-card-large,
-  .stats-with-poll .stat-card-large {
-    flex: 1 1 100%;
+  .stats-with-poll .stat-card-large,
+  .stat-card-compact {
+    flex: none;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .poll-widget-inline {
+    width: 100%;
+    max-width: 100%;
   }
 }
 
