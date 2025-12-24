@@ -513,9 +513,9 @@
 }
 
 .poll-widget-inline {
-  flex: 0 1 280px;
-  min-width: 220px;
-  max-width: 320px;
+  flex: 0 1 auto;
+  min-width: 130px;
+  max-width: 200px;
   display: flex;
   align-items: stretch;
 }
