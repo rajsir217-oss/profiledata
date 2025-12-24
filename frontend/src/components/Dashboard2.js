@@ -217,10 +217,20 @@ const Dashboard2 = () => {
     socketService.on('user_online', handleUserOnline);
     socketService.on('user_offline', handleUserOffline);
     
+    // ESC key handler for closing modals
+    const handleEscKey = (e) => {
+      if (e.key === 'Escape') {
+        setShowMobilePIIModal(false);
+        setShowMobileActivityModal(false);
+      }
+    };
+    document.addEventListener('keydown', handleEscKey);
+    
     return () => {
       clearTimeout(timer);
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
+      document.removeEventListener('keydown', handleEscKey);
     };
   }, [navigate]);
 
