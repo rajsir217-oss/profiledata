@@ -206,7 +206,7 @@ class PendingMessagesNotifierTemplate(JobTemplate):
                             NotificationQueueCreate(
                                 username=username,
                                 trigger=NotificationTrigger.UNREAD_MESSAGES,
-                                channels=[NotificationChannel.PUSH, NotificationChannel.SMS],
+                                channels=[NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
                                 templateData={
                                     "unreadCount": unread_count,
                                     "senders": sender_names,

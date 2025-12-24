@@ -63,14 +63,14 @@ class NotificationService:
                 
                 # Messages
                 NotificationTrigger.NEW_MESSAGE: [NotificationChannel.SMS, NotificationChannel.PUSH],
-                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL],
+                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
                 
                 # Profile Activity
                 NotificationTrigger.PROFILE_VIEW: [NotificationChannel.PUSH],
                 
                 # PII/Privacy
                 NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
-                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.SMS, NotificationChannel.PUSH],
+                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
                 NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
             },
