@@ -5,7 +5,7 @@ import './NotificationManagement.css';
 import EventQueueManager from './EventQueueManager';
 import TemplateManager from './TemplateManager';
 import EventStatusLog from './EventStatusLog';
-import EmailDeliveryLog from './EmailDeliveryLog';
+import DeliveryLogTab from './DeliveryLogTab';
 
 const NotificationManagement = () => {
   const navigate = useNavigate();
@@ -59,7 +59,7 @@ const NotificationManagement = () => {
             id: 'delivery',
             icon: '📬',
             label: 'DeliveryLog',
-            content: <EmailDeliveryLog />
+            content: <DeliveryLogTab />
           },
           {
             id: 'templates',
