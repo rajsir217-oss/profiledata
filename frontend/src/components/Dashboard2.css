@@ -538,28 +538,80 @@
 
 @media (max-width: 640px) {
   .dashboard-stats-overview.stats-with-poll {
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
     align-items: stretch;
+    justify-content: center;
     gap: 8px;
   }
   
   .stats-cards-group {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
     gap: 8px;
   }
   
-  .stats-cards-group .stat-card-large,
-  .stats-with-poll .stat-card-large,
+  /* Icon-only stat cards on mobile */
   .stat-card-compact {
-    flex: none;
-    width: 100%;
-    max-width: 100%;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 50px;
+    max-width: 60px;
+    padding: 10px;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+  
+  /* Hide text content on mobile */
+  .stat-card-compact .stat-content-compact {
+    display: none;
+  }
+  
+  /* Show badge on mobile */
+  .stat-badge-mobile {
+    display: flex;
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--danger-color, #ef4444);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    min-width: 18px;
+    height: 18px;
+    border-radius: 9px;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+  }
+  
+  /* Hide badge if count is 0 */
+  .stat-badge-mobile:empty,
+  .stat-badge-mobile[data-count="0"] {
+    display: none;
+  }
+  
+  .stat-icon-compact {
+    font-size: 20px;
   }
   
   .poll-widget-inline {
-    width: 100%;
-    max-width: 100%;
+    flex: 0 0 auto;
+    width: auto;
+    max-width: 60px;
+  }
+  
+  .poll-widget-inline .stat-card-compact {
+    min-width: 50px;
+    max-width: 60px;
+  }
+  
+  .poll-widget-inline .stat-content-compact {
+    display: none;
   }
 }
 
@@ -729,10 +781,23 @@
   border-left: 3px solid var(--info-color, #3b82f6);
 }
 
+.stat-card-compact.stat-card-warning {
+  border-left: 3px solid var(--warning-color, #f59e0b);
+}
+
+.stat-card-compact.stat-card-purple {
+  border-left: 3px solid #8b5cf6;
+}
+
 .stat-card-compact.stat-card-disabled {
   border-left: 3px solid var(--text-muted, #999);
   opacity: 0.5;
   cursor: default;
+}
+
+/* Mobile badge - hidden on desktop, shown on mobile */
+.stat-badge-mobile {
+  display: none;
 }
 
 .stat-card-compact.stat-card-disabled:hover {

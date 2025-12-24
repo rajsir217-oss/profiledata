@@ -1219,6 +1219,7 @@ const Dashboard2 = () => {
             title="Click to see who viewed your profile"
           >
             <div className="stat-icon-compact">{STATS_ICONS.PROFILE_VIEWS}</div>
+            <span className="stat-badge-mobile">{viewMetrics.totalViews}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{viewMetrics.totalViews}</span>
               <span className="stat-label-compact">PROFILE VIEWS</span>
@@ -1232,6 +1233,7 @@ const Dashboard2 = () => {
             title="Click to see who favorited you"
           >
             <div className="stat-icon-compact">{STATS_ICONS.FAVORITED_BY}</div>
+            <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
               <span className="stat-label-compact">FAVORITED BY</span>
@@ -1244,9 +1246,50 @@ const Dashboard2 = () => {
             title="Click to see your conversations"
           >
             <div className="stat-icon-compact">{STATS_ICONS.CONVERSATIONS}</div>
+            <span className="stat-badge-mobile">{dashboardData.myMessages.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myMessages.length}</span>
               <span className="stat-label-compact">CONVERSATIONS</span>
+            </div>
+          </div>
+          
+          {/* Data Request Inbox stat card */}
+          <div 
+            className="stat-card-compact stat-card-warning clickable-card"
+            onClick={() => {
+              setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
+              setPiiActiveCategory('piiInbox');
+              setTimeout(() => {
+                document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }}
+            title="Click to see incoming data requests"
+          >
+            <div className="stat-icon-compact">📬</div>
+            <span className="stat-badge-mobile">{dashboardData.incomingContactRequests.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.incomingContactRequests.length}</span>
+              <span className="stat-label-compact">REQUESTS INBOX</span>
+            </div>
+          </div>
+          
+          {/* Access Received stat card */}
+          <div 
+            className="stat-card-compact stat-card-purple clickable-card"
+            onClick={() => {
+              setExpandedGroups(prev => ({ ...prev, piiRequests: true }));
+              setPiiActiveCategory('piiHistory');
+              setTimeout(() => {
+                document.querySelector('.activity-group-header-pii')?.scrollIntoView({ behavior: 'smooth' });
+              }, 100);
+            }}
+            title="Click to see access you've received"
+          >
+            <div className="stat-icon-compact">🔓</div>
+            <span className="stat-badge-mobile">{dashboardData.receivedAccess.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.receivedAccess.length}</span>
+              <span className="stat-label-compact">ACCESS RECEIVED</span>
             </div>
           </div>
         </div>
