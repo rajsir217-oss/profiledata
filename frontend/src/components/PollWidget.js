@@ -19,7 +19,7 @@ pollsApi.interceptors.request.use((config) => {
  * Shows on dashboard as a card widget or inline with stat cards
  * @param {boolean} inline - If true, renders in compact inline mode
  */
-const PollWidget = ({ onPollResponded, inline = false }) => {
+const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null }) => {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -179,7 +179,11 @@ const PollWidget = ({ onPollResponded, inline = false }) => {
   }
 
   if (polls.length === 0) {
-    return null; // Don't show widget if no active polls
+    // Show placeholder if provided, otherwise return null
+    if (renderPlaceholder) {
+      return renderPlaceholder();
+    }
+    return null;
   }
 
   return (

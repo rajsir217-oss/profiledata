@@ -709,6 +709,26 @@
   border-left: 3px solid var(--info-color, #3b82f6);
 }
 
+.stat-card-compact.stat-card-disabled {
+  border-left: 3px solid var(--text-muted, #999);
+  opacity: 0.5;
+  cursor: default;
+}
+
+.stat-card-compact.stat-card-disabled:hover {
+  transform: none;
+  box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
+  background: var(--card-background);
+}
+
+.stat-card-compact.stat-card-disabled .stat-icon-compact {
+  filter: grayscale(100%);
+}
+
+.stat-card-compact.stat-card-disabled .stat-label-compact {
+  color: var(--text-muted, #999);
+}
+
 .stat-icon-compact {
   font-size: 16px;
   line-height: 1;

@@ -1251,9 +1251,19 @@ const Dashboard2 = () => {
           </div>
         </div>
         
-        {/* Inline Poll Widget */}
+        {/* Inline Poll Widget or Placeholder */}
         <div className="poll-widget-inline">
-          <PollWidget inline={true} />
+          <PollWidget 
+            inline={true} 
+            renderPlaceholder={() => (
+              <div className="stat-card-compact stat-card-disabled">
+                <div className="stat-icon-compact">🔔</div>
+                <div className="stat-content-compact">
+                  <span className="stat-label-compact">NO ACTIVE POLLS</span>
+                </div>
+              </div>
+            )}
+          />
         </div>
       </div>
 
