@@ -295,13 +295,11 @@ const NotificationPreferences = () => {
                         key={channel}
                         className={`channel-btn ${triggerChannels.includes(channel) ? 'active' : ''}`}
                         onClick={() => handleChannelToggle(trigger.id, channel)}
-                        title={channel === 'push' ? 'Coming soon' : ''}
-                        disabled={channel === 'push'}
+                        title={channel === 'email' ? 'Email notifications' : channel === 'sms' ? 'SMS notifications' : 'Push notifications'}
                       >
                         {channel === 'email' && '📧'}
                         {channel === 'sms' && '📱'}
                         {channel === 'push' && '🔔'}
-                        <span>{channel.toUpperCase()}</span>
                       </button>
                     ))}
                   </div>

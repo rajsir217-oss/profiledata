@@ -673,7 +673,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="pii_request",
-                channels=["email", "sms"],
+                channels=["email", "sms", "push"],
                 template_data={
                     # Nested format for dot notation: {match.firstName}
                     "match": {
