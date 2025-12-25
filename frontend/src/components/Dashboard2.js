@@ -300,6 +300,19 @@ const Dashboard2 = () => {
         uniqueViewers: profileViewsRes.data.uniqueViewers || 0,
         totalViews: profileViewsRes.data.totalViews || 0
       });
+      
+      // Auto-collapse sections with zero items to save screen real estate
+      const piiCount = (incomingRequestsRes.data.requests?.length || 0) + (requestsRes.data.requests?.length || 0);
+      const myActivitiesCount = (messagesRes.data.conversations?.length || 0) + 
+                                (myFavoritesRes.data.favorites?.length || 0) + 
+                                (myShortlistsRes.data.shortlist?.length || 0) + 
+                                (myExclusionsRes.data.exclusions?.length || 0);
+      
+      setExpandedGroups(prev => ({
+        ...prev,
+        piiRequests: piiCount > 0,
+        myActivities: myActivitiesCount > 0
+      }));
     } catch (err) {
       logger.error('Error loading dashboard data:', err);
       logger.error('Error details:', err.response?.data || err.message);
