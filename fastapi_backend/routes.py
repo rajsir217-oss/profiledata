@@ -1169,7 +1169,11 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
     
     # Verify Cloudflare Turnstile CAPTCHA (human verification)
-    if login_data.captchaToken:
+    # Skip CAPTCHA validation if MFA code is provided (user already passed CAPTCHA on first login attempt)
+    # Turnstile tokens are single-use, so we can't re-verify on MFA submission
+    if login_data.mfa_code:
+        logger.info(f"🔐 MFA code provided - skipping CAPTCHA (already verified on first attempt)")
+    elif login_data.captchaToken:
         captcha_valid = await verify_turnstile(login_data.captchaToken)
         if not captcha_valid:
             logger.warning(f"❌ CAPTCHA verification failed for username: {login_data.username}")
