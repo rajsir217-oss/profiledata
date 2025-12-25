@@ -29,8 +29,9 @@ const AdminReports = () => {
 
   // Check admin access
   useEffect(() => {
-    const username = localStorage.getItem('username');
-    if (username !== 'admin') {
+    const userRole = localStorage.getItem('userRole');
+    if (userRole !== 'admin') {
+      console.warn('⚠️ Unauthorized access attempt to Admin Reports');
       navigate('/dashboard');
     }
   }, [navigate]);
