@@ -4862,12 +4862,32 @@ async def get_conversations_enhanced(
             except Exception as decrypt_err:
                 logger.warning(f"⚠️ Decryption skipped for {other_username}: {decrypt_err}")
             
-            # Only return public images for conversations
+            # Get profile picture visibility setting (same as favorites)
+            profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+            
+            # Image visibility logic (consistent with favorites endpoint)
             existing_images = user.get("images", [])
+            profile_image = user.get("profileImage")
+            
+            # If images array is empty but profileImage exists, use it
+            if not existing_images and profile_image:
+                existing_images = [profile_image]
+            
             normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
             full_public_urls = [get_full_image_url(p) for p in normalized_public]
             user["publicImages"] = full_public_urls
-            user["images"] = full_public_urls
+            
+            # Admin sees all images, profile_pic_always_visible shows avatar to all
+            if is_admin and existing_images:
+                user["images"] = [get_full_image_url(img) for img in existing_images]
+            elif profile_pic_always_visible and existing_images:
+                profile_pic_url = get_full_image_url(existing_images[0])
+                if profile_pic_url not in full_public_urls:
+                    user["images"] = [profile_pic_url] + full_public_urls
+                else:
+                    user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+            else:
+                user["images"] = full_public_urls
             
             # Serialize datetime
             last_msg_time = conv["lastMessage"]["createdAt"]
