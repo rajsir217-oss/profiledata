@@ -2064,9 +2064,9 @@ const SearchPage2 = () => {
         break;
       
       case 'age':
-        const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 999;
-        const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 999;
-        compareValue = ageA - ageB;
+        const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
+        const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
+        compareValue = ageB - ageA; // Higher age first (consistent with "High to Low")
         break;
       
       case 'height':
@@ -2078,27 +2078,28 @@ const SearchPage2 = () => {
       case 'location':
         const locA = (a.location || '').toLowerCase();
         const locB = (b.location || '').toLowerCase();
-        compareValue = locA.localeCompare(locB);
+        compareValue = locB.localeCompare(locA); // Z-A first (consistent with "High to Low")
         break;
       
       case 'occupation':
         const occA = (a.occupation || '').toLowerCase();
         const occB = (b.occupation || '').toLowerCase();
-        compareValue = occA.localeCompare(occB);
+        compareValue = occB.localeCompare(occA); // Z-A first (consistent with "High to Low")
         break;
       
       case 'newest':
-        const dateA = new Date(a.createdAt || 0).getTime();
-        const dateB = new Date(b.createdAt || 0).getTime();
-        compareValue = dateB - dateA; // Newest first
+        // Use admin approval date (when profile became visible) with fallback to createdAt
+        const dateA = new Date(a.adminApprovedAt || a.createdAt || 0).getTime();
+        const dateB = new Date(b.adminApprovedAt || b.createdAt || 0).getTime();
+        compareValue = dateB - dateA; // Newest approved first
         break;
       
       default:
         compareValue = 0;
     }
 
-    // Apply sort order
-    return sortOrder === 'asc' ? compareValue : -compareValue;
+    // Apply sort order (desc = default natural order, asc = reversed)
+    return sortOrder === 'desc' ? compareValue : -compareValue;
   });
 
   // Use displayedCount for incremental loading instead of pagination
