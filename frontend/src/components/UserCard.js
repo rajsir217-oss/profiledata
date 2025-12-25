@@ -132,6 +132,29 @@ const UserCard = ({
   const displayHeight = getDisplayHeight();
   const displayDOB = getDisplayDOB();
 
+  // Get current occupation from workExperience array
+  const getDisplayOccupation = () => {
+    // First check for direct occupation field
+    if (profileData?.occupation) return profileData.occupation;
+    
+    // Look for current position in workExperience array
+    const workExp = profileData?.workExperience;
+    if (workExp && Array.isArray(workExp) && workExp.length > 0) {
+      // Find current position first
+      const currentJob = workExp.find(job => job.isCurrent === true);
+      if (currentJob) {
+        // Use description field (e.g., "Marketing Manager in Health Care Sector")
+        return currentJob.description || currentJob.position || currentJob.title;
+      }
+      // Fallback to first job's description
+      const firstJob = workExp[0];
+      return firstJob.description || firstJob.position || firstJob.title;
+    }
+    return null;
+  };
+
+  const displayOccupation = getDisplayOccupation();
+
   const handleCardClick = () => {
     if (onClick) {
       onClick(user);
@@ -250,7 +273,7 @@ const UserCard = ({
         
         {/* Occupation/Experience */}
         <p className="user-occupation">
-          💼 {profileData?.occupation || profileData?.workExperience?.[0]?.position || <span className="placeholder-text">Occupation not specified</span>}
+          💼 {displayOccupation || <span className="placeholder-text">Occupation not specified</span>}
         </p>
 
         {/* Height & DOB Row */}
