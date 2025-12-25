@@ -1763,6 +1763,7 @@ const Profile = ({
             {isOwnProfile && user.username && <p><strong>Username:</strong> {user.username}</p>}
             {(user.gender || user.sex) && <p><strong>Gender:</strong> {user.gender || user.sex}</p>}
             {age && <p><strong>Age:</strong> {age} years</p>}
+            {(user.birthMonth && user.birthYear) && <p><strong>Date of Birth:</strong> {String(user.birthMonth).padStart(2, '0')}/{user.birthYear}</p>}
             {user.height && <p><strong>Height:</strong> {user.height}</p>}
             {user.profileCreatedBy && (
               <p>
