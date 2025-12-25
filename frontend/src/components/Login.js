@@ -186,13 +186,14 @@ const Login = () => {
     setError("");
     
     try {
-      // Login with MFA code
+      // Login with MFA code - use the same /login endpoint with mfa_code
       const credentials = {
         username: form.username.trim(),
+        password: form.password.trim(),
         mfa_code: mfaCode.trim(),
         captchaToken: captchaToken
       };
-      const res = await api.post("/verify-mfa", credentials);
+      const res = await api.post("/login", credentials);
       
       // Save login credentials
       localStorage.setItem('username', res.data.user.username);
