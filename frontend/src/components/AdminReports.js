@@ -174,7 +174,7 @@ const AdminReports = () => {
       {/* Gender by Age Report */}
       <div className="report-section">
         <div className="report-header">
-          <h2>👤 Users by Age Distribution</h2>
+          <h2>👤 Members by Age Distribution</h2>
           <div className="filter-controls">
             <label>Gender:</label>
             <select 
@@ -209,7 +209,7 @@ const AdminReports = () => {
                 Total: <strong>{reportData.totalCount}</strong> users
               </span>
               <span className="filter-info">
-                Filter: <strong>{genderFilter === 'all' ? 'All Genders' : genderFilter}</strong>
+                Filter: <strong>{genderFilter === 'all' ? 'All Genders' : genderFilter.charAt(0).toUpperCase() + genderFilter.slice(1)}</strong>
               </span>
             </div>
 
@@ -320,7 +320,7 @@ const AdminReports = () => {
             </svg>
 
             <p className="chart-hint">
-              💡 Click on any data point to see the list of users at that age
+              💡 Click on any data point to see the list of members at that age
             </p>
           </div>
         )}
@@ -332,8 +332,8 @@ const AdminReports = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                👥 Users Age {selectedAge.age}
-                <span className="user-count">({selectedAge.count} users)</span>
+                👥 Members Age {selectedAge.age}
+                <span className="user-count">({selectedAge.count} members)</span>
               </h3>
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
             </div>
@@ -350,7 +350,7 @@ const AdminReports = () => {
                       {user.firstName} {user.lastName}
                     </span>
                     <span className="user-gender">
-                      {user.gender === 'male' ? '👨' : '👩'}
+                      {user.gender?.toLowerCase() === 'male' ? '👨' : '👩'}
                     </span>
                     <span className="open-link">↗</span>
                   </div>
