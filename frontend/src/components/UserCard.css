@@ -273,10 +273,11 @@
   margin: 0;
   color: var(--text-color, #1f2937);
   line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: unset;
+  white-space: normal;
   min-height: auto;
+  text-align: center;
 }
 
 .user-location,
@@ -289,6 +290,24 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
+  text-align: center;
+}
+
+/* Height & DOB Row */
+.user-height-dob {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-secondary, #4b5563);
+  margin: 2px 0;
+  justify-content: center;
+}
+
+.user-height-dob .height-info,
+.user-height-dob .dob-info {
+  display: flex;
+  align-items: center;
+  gap: 2px;
 }
 
 /* Looking for section */
@@ -301,6 +320,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
+  text-align: center;
 }
 
 .user-location .icon,
@@ -324,6 +344,10 @@
   border-radius: 6px;
   margin-top: 6px;
   border: 1px solid var(--border-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
 }
 
 .view-count {
@@ -1143,10 +1167,10 @@ body.theme-ultra-black .user-action-btn {
 }
 
 .bottom-action-btn {
-  width: 48px !important;
-  height: 48px !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1154,7 +1178,7 @@ body.theme-ultra-black .user-action-btn {
   border: 2px solid var(--border-color);
   background: var(--card-background);
   color: var(--text-color);
-  font-size: 16px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
@@ -1163,7 +1187,7 @@ body.theme-ultra-black .user-action-btn {
 }
 
 .bottom-action-btn .btn-icon {
-  font-size: 20px;
+  font-size: 16px;
   line-height: 1;
   flex-shrink: 0;
 }
@@ -1263,12 +1287,14 @@ body.theme-ultra-black .user-action-btn {
   }
 
   .bottom-action-btn {
-    width: 48px !important;
-    height: 48px !important;
+    width: 36px !important;
+    height: 36px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
   }
 
   .bottom-action-btn .btn-icon {
-    font-size: 20px;
+    font-size: 15px;
   }
 }
 
@@ -1278,13 +1304,13 @@ body.theme-ultra-black .user-action-btn {
   }
 
   .bottom-action-btn {
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
   }
 
   .bottom-action-btn .btn-icon {
-    font-size: 18px;
+    font-size: 14px;
   }
 }
