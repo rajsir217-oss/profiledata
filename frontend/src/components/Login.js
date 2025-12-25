@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import api from "../api";
 import socketService from "../services/socketService";
+import sessionManager from "../services/sessionManager";
 import { getBackendUrl } from "../config/apiConfig";
 import SEO from "./SEO";
 import { getPageSEO } from "../utils/seo";
@@ -81,6 +82,11 @@ const Login = () => {
       localStorage.setItem('username', res.data.user.username);
       localStorage.setItem('token', res.data.access_token);
       
+      // Save refresh token for session management
+      if (res.data.refresh_token) {
+        localStorage.setItem('refreshToken', res.data.refresh_token);
+      }
+      
       // Save user status for menu access control
       // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status
       const userStatus = res.data.user.accountStatus || 'active';
@@ -90,6 +96,10 @@ const Login = () => {
       const userRole = res.data.user.role_name || 'free_user';
       localStorage.setItem('userRole', userRole);
       console.log('👤 User role saved:', userRole);
+      
+      // Initialize session manager for activity-based token refresh
+      sessionManager.init();
+      console.log('🔄 Session manager initialized');
       
       // Connect to WebSocket (automatically marks user as online)
       console.log('🔌 Connecting to WebSocket');
@@ -179,14 +189,23 @@ const Login = () => {
       // Login with MFA code
       const credentials = {
         username: form.username.trim(),
-        password: form.password.trim(),
-        mfa_code: mfaCode.trim()
+        mfa_code: mfaCode.trim(),
+        captchaToken: captchaToken
       };
-      const res = await api.post("/login", credentials);
+      const res = await api.post("/verify-mfa", credentials);
       
-      // Save login credentials to localStorage
+      // Save login credentials
       localStorage.setItem('username', res.data.user.username);
       localStorage.setItem('token', res.data.access_token);
+      
+      // Save refresh token for session management
+      if (res.data.refresh_token) {
+        localStorage.setItem('refreshToken', res.data.refresh_token);
+      }
+      
+      // Initialize session manager
+      sessionManager.init();
+      console.log('🔄 Session manager initialized (MFA)');
       
       // Save user status for menu access control
       // CRITICAL FIX: Use accountStatus (unified field) instead of legacy status.status

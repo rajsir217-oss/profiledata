@@ -496,6 +496,102 @@ async def login(
         logger.error(f"Login error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+# ===== TOKEN REFRESH =====
+
+@router.post("/refresh-token", response_model=dict)
+async def refresh_token(
+    request: RefreshTokenRequest,
+    http_request: Request,
+    db = Depends(get_database)
+):
+    """
+    Refresh access token using refresh token.
+    Extends session for active users up to 1-hour hard limit from initial login.
+    """
+    try:
+        # Verify refresh token and get user
+        user = await AuthenticationService.verify_refresh_token(request.refresh_token, db)
+        
+        # Get session to check initial login time
+        session = await db.sessions.find_one({
+            "refresh_token": request.refresh_token,
+            "revoked": False
+        })
+        
+        if not session:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Session not found or expired"
+            )
+        
+        # Check if session has exceeded 1-hour hard limit from initial login
+        created_at = session.get("created_at")
+        if created_at:
+            time_since_login = datetime.utcnow() - created_at
+            # Hard limit: 1 hour (3600 seconds)
+            if time_since_login.total_seconds() > 3600:
+                # Revoke session
+                await db.sessions.update_one(
+                    {"_id": session["_id"]},
+                    {"$set": {"revoked": True}}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Session exceeded maximum duration (1 hour). Please log in again."
+                )
+        
+        # Create new access token (extends session)
+        token_data = {
+            "sub": user["username"],
+            "role": user.get("role_name", "free_user"),
+            "permissions": user.get("custom_permissions", [])
+        }
+        
+        # New access token with 15-minute expiry (will be refreshed again if user is active)
+        access_token = JWTManager.create_access_token(
+            token_data,
+            expires_delta=timedelta(minutes=15)
+        )
+        
+        # Update session last_activity
+        await db.sessions.update_one(
+            {"_id": session["_id"]},
+            {
+                "$set": {
+                    "token": access_token,
+                    "last_activity": datetime.utcnow(),
+                    "ip_address": http_request.client.host
+                }
+            }
+        )
+        
+        # Update user last_seen
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {
+                "$set": {
+                    "status.last_seen": datetime.utcnow()
+                }
+            }
+        )
+        
+        logger.info(f"Token refreshed for user: {user['username']}")
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "expires_in": 900  # 15 minutes in seconds
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Token refresh error: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not refresh token"
+        )
+
 # ===== LOGOUT =====
 
 @router.post("/logout")
