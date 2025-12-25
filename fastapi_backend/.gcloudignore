@@ -38,3 +38,9 @@ temp/
 # Environment
 .env
 .env.local
+
+# Backups, admin tools, scripts, test results (not for production)
+backup_*/
+admin_tools/
+scripts/
+test_results/

@@ -16,8 +16,13 @@ router = APIRouter(prefix="/api/admin/reports", tags=["admin-reports"])
 
 
 def _is_admin(current_user: dict) -> bool:
-    """Check if user is admin"""
-    return current_user.get("username") == "admin" or current_user.get("role") == "admin"
+    """Check if user is admin - checks role, role_name, and username (case-insensitive)"""
+    if not current_user:
+        return False
+    role = (current_user.get("role") or "").lower()
+    role_name = (current_user.get("role_name") or "").lower()
+    username = (current_user.get("username") or "").lower()
+    return role == "admin" or role_name == "admin" or username == "admin"
 
 
 @router.get("/gender-by-age")

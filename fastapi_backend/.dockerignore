@@ -14,3 +14,7 @@ venv/
 README.md
 tests/
 .pytest_cache
+backup_*/
+admin_tools/
+scripts/
+test_results/
