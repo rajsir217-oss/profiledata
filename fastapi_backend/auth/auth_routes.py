@@ -506,7 +506,7 @@ async def refresh_token(
 ):
     """
     Refresh access token using refresh token.
-    Extends session for active users up to 1-hour hard limit from initial login.
+    Extends session for active users up to 8-hour hard limit from initial login.
     """
     try:
         # Verify refresh token and get user
@@ -524,12 +524,12 @@ async def refresh_token(
                 detail="Session not found or expired"
             )
         
-        # Check if session has exceeded 1-hour hard limit from initial login
+        # Check if session has exceeded 8-hour hard limit from initial login
         created_at = session.get("created_at")
         if created_at:
             time_since_login = datetime.utcnow() - created_at
-            # Hard limit: 1 hour (3600 seconds)
-            if time_since_login.total_seconds() > 3600:
+            # Hard limit: 8 hours (28800 seconds) - full work day
+            if time_since_login.total_seconds() > 28800:
                 # Revoke session
                 await db.sessions.update_one(
                     {"_id": session["_id"]},
@@ -537,7 +537,7 @@ async def refresh_token(
                 )
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Session exceeded maximum duration (1 hour). Please log in again."
+                    detail="Session exceeded maximum duration (8 hours). Please log in again."
                 )
         
         # Create new access token (extends session)

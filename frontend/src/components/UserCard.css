@@ -17,8 +17,8 @@
   container-name: usercard;
   
   /* FIXED DIMENSIONS for consistency */
-  min-height: 340px;
-  max-height: 380px;
+  min-height: 380px;
+  max-height: 440px;
   height: 100%;
   width: 100%;
 }
@@ -40,9 +40,9 @@
 .user-card-avatar {
   position: relative;
   width: 100%;
-  height: 180px; /* Fixed height instead of aspect-ratio */
-  min-height: 180px;
-  max-height: 180px;
+  height: 160px; /* Reduced to give more space for body content */
+  min-height: 160px;
+  max-height: 160px;
   border-radius: 12px 12px 0 0;
   overflow: hidden;
   background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
@@ -254,16 +254,16 @@
   flex-shrink: 0;
 }
 
-/* Body Section - FIXED HEIGHT for consistency */
+/* Body Section - Flexible height to fit content */
 .user-card-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 2px;
   padding: 8px 10px;
   padding-bottom: 6px;
-  min-height: 100px;
-  overflow: hidden;
+  min-height: 120px;
+  overflow: visible;
   background: var(--card-background, #ffffff);
 }
 
@@ -662,53 +662,113 @@
 
 /* View Modes */
 
-/* Row View Mode */
+/* Row View Mode - Horizontal layout */
 .user-card-view-rows {
-  flex-direction: row;
+  flex-direction: row !important;
   padding: 12px 16px;
   gap: 16px;
   align-items: center;
+  min-height: auto !important;
+  max-height: none !important;
+  height: auto !important;
 }
 
 .user-card-view-rows .user-card-avatar {
-  width: 60px;
-  height: 60px;
-  aspect-ratio: 1;
+  width: 70px !important;
+  height: 70px !important;
+  min-height: 70px !important;
+  max-height: 70px !important;
+  aspect-ratio: 1 !important;
   flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
 }
 
-.user-card-view-rows .avatar-placeholder {
-  font-size: 24px;
+.user-card-view-rows .user-card-avatar .avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-card-view-rows .user-card-avatar .default-avatar {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.user-card-view-rows .age-badge-overlay {
+  display: none; /* Hide age badge in row view - show in body instead */
 }
 
 .user-card-view-rows .user-card-body {
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
   flex: 1;
-  flex-wrap: wrap;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0;
+  min-height: auto;
+  background: transparent;
 }
 
 .user-card-view-rows .user-name {
-  min-width: 150px;
-  font-size: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
-.user-card-view-rows .user-age,
+.user-card-view-rows .user-name::after {
+  content: attr(data-age);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--surface-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
 .user-card-view-rows .user-location,
-.user-card-view-rows .user-occupation {
+.user-card-view-rows .user-education,
+.user-card-view-rows .user-occupation,
+.user-card-view-rows .user-looking-for {
   font-size: 13px;
   margin: 0;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 300px;
 }
 
-.user-card-view-rows .user-card-actions {
+/* Hide looking-for in row view to save space */
+.user-card-view-rows .user-looking-for {
+  display: none;
+}
+
+.user-card-view-rows .user-card-bottom-actions {
   border-top: none;
-  padding-top: 0;
+  padding: 0;
+  background: transparent;
   flex-shrink: 0;
+  gap: 8px;
+}
+
+.user-card-view-rows .bottom-action-btn {
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  min-height: 40px !important;
+}
+
+.user-card-view-rows .simple-kebab-container {
+  position: relative;
 }
 
 .user-card-view-rows:hover {
-  transform: translateY(-2px);
+  transform: translateX(4px);
+  box-shadow: var(--shadow-md);
 }
 
 /* Responsive */
@@ -748,23 +808,45 @@
   /* Container queries handle button sizing */
   /* Fallback only for very old browsers */
   
+  /* Row view stays horizontal on mobile but more compact */
   .user-card-view-rows {
-    flex-direction: column;
-    align-items: flex-start;
+    flex-direction: row !important;
+    padding: 10px 12px;
+    gap: 12px;
+  }
+  
+  .user-card-view-rows .user-card-avatar {
+    width: 56px !important;
+    height: 56px !important;
+    min-height: 56px !important;
+    max-height: 56px !important;
   }
   
   .user-card-view-rows .user-card-body {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-    padding: 12px;
+    gap: 2px;
   }
   
-  .user-card-view-rows .user-card-actions {
-    width: 100%;
-    justify-content: flex-end;
-    padding: 12px;
-    padding-top: 0;
+  .user-card-view-rows .user-name {
+    font-size: 14px;
+  }
+  
+  .user-card-view-rows .user-location,
+  .user-card-view-rows .user-education,
+  .user-card-view-rows .user-occupation {
+    font-size: 12px;
+    max-width: 180px;
+  }
+  
+  .user-card-view-rows .user-card-bottom-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .user-card-view-rows .bottom-action-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
   }
 }
 

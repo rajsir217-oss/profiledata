@@ -10,7 +10,7 @@ import logger from '../utils/logger';
  * Features:
  * - Tracks user activity (mouse, keyboard, API calls)
  * - Automatically refreshes token when user is active
- * - Hard limit: 1 hour from initial login
+ * - Hard limit: 8 hours from initial login
  * - Warns user before final logout
  */
 class SessionManager {
@@ -22,10 +22,10 @@ class SessionManager {
     this.isActive = false;
     
     // Configuration
-    this.ACTIVITY_THRESHOLD = 5 * 60 * 1000; // 5 minutes of inactivity before stopping refresh
-    this.REFRESH_INTERVAL = 10 * 60 * 1000; // Refresh token every 10 minutes if active
-    this.HARD_LIMIT = 60 * 60 * 1000; // 1 hour hard limit
-    this.WARNING_TIME = 55 * 60 * 1000; // Warn at 55 minutes
+    this.ACTIVITY_THRESHOLD = 25 * 60 * 1000; // 25 minutes of inactivity before stopping refresh
+    this.REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh token every 5 minutes if active
+    this.HARD_LIMIT = 8 * 60 * 60 * 1000; // 8 hour hard limit (full work day)
+    this.WARNING_TIME = 7.5 * 60 * 60 * 1000; // Warn at 7.5 hours
     this.warningShown = false;
   }
 
@@ -148,8 +148,8 @@ class SessionManager {
     try {
       // Check hard limit first
       if (this.hasExceededHardLimit()) {
-        logger.warn('Session exceeded 1-hour hard limit');
-        toastService.warning('Your session has expired (1 hour limit). Please log in again.', 5000);
+        logger.warn('Session exceeded 8-hour hard limit');
+        toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
         this.logout();
         return;
       }
