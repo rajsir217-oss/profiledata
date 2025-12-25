@@ -114,8 +114,17 @@ const NotificationConfigManager = () => {
       const response = await adminApi.get(`/api/notifications/templates/${trigger}`);
       setSelectedTemplate(response.data);
     } catch (err) {
-      console.error('Error loading template:', err);
-      showNotification('error', 'Template not found or failed to load');
+      // Don't log 404 errors as they're expected for unconfigured templates
+      if (err.response?.status !== 404) {
+        console.error('Error loading template:', err);
+      }
+      // Show placeholder template for unconfigured triggers
+      setSelectedTemplate({
+        trigger: trigger,
+        subject: `[Not Configured] ${trigger.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())}`,
+        body: `<p>Email template for <strong>${trigger}</strong> has not been configured yet.</p><p>Run the template seeding script to add this template.</p>`,
+        notConfigured: true
+      });
     }
   };
 
