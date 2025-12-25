@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
+import DefaultAvatar from './DefaultAvatar';
 import { getDisplayName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage.css';
@@ -363,12 +364,26 @@ const SearchResultCard = ({
     const token = localStorage.getItem('token');
     const imageWithToken = imageSrc ? `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}token=${token}` : null;
 
-    // If no image available, show placeholder
+    // Get initials for placeholder
+    const getInitials = () => {
+      const firstName = user.firstName || '';
+      const lastName = user.lastName || '';
+      if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
+      if (firstName) return firstName[0].toUpperCase();
+      if (user.username) return user.username[0].toUpperCase();
+      return '?';
+    };
+
+    // If no image available, show gender-based placeholder
     if (!currentImage) {
       return (
         <div className="profile-image-container">
           <div className="profile-thumbnail-placeholder">
-            <span className="no-image-icon">👤</span>
+            <DefaultAvatar 
+              gender={user.gender} 
+              initials={getInitials()} 
+              size="medium" 
+            />
           </div>
         </div>
       );
@@ -686,7 +701,18 @@ const SearchResultCard = ({
             className="card-image-placeholder"
             style={{ display: hasImages && imageUrlWithToken ? 'none' : 'flex' }}
           >
-            <span className="placeholder-icon">👤</span>
+            <DefaultAvatar 
+              gender={user.gender} 
+              initials={(() => {
+                const firstName = user.firstName || '';
+                const lastName = user.lastName || '';
+                if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
+                if (firstName) return firstName[0].toUpperCase();
+                if (user.username) return user.username[0].toUpperCase();
+                return '?';
+              })()}
+              size="medium" 
+            />
           </div>
           
           {/* Image Navigation */}

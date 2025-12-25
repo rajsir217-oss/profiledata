@@ -415,7 +415,8 @@ const Dashboard2 = () => {
   };
 
   const handleProfileClick = (username) => {
-    navigate(`/profile/${username}`);
+    // Open profile in new tab
+    window.open(`/profile/${username}`, '_blank');
   };
 
   const handleMessageUser = async (username, userProfile = null) => {
@@ -1237,6 +1238,7 @@ const Dashboard2 = () => {
             title="Click to see who viewed your profile"
           >
             <div className="stat-icon-compact">{STATS_ICONS.PROFILE_VIEWS}</div>
+            <span className="stat-label-mobile">Views</span>
             <span className="stat-badge-mobile">{viewMetrics.totalViews}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{viewMetrics.totalViews}</span>
@@ -1251,6 +1253,7 @@ const Dashboard2 = () => {
             title="Click to see who favorited you"
           >
             <div className="stat-icon-compact">{STATS_ICONS.FAVORITED_BY}</div>
+            <span className="stat-label-mobile">Fav'd By</span>
             <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
@@ -1264,6 +1267,7 @@ const Dashboard2 = () => {
             title="Click to see your conversations"
           >
             <div className="stat-icon-compact">{STATS_ICONS.CONVERSATIONS}</div>
+            <span className="stat-label-mobile">Messages</span>
             <span className="stat-badge-mobile">{dashboardData.myMessages.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myMessages.length}</span>
@@ -1290,6 +1294,7 @@ const Dashboard2 = () => {
             title="Click to see incoming data requests"
           >
             <div className="stat-icon-compact">📬</div>
+            <span className="stat-label-mobile">Requests</span>
             <span className="stat-badge-mobile">{dashboardData.incomingContactRequests.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.incomingContactRequests.length}</span>
@@ -1316,6 +1321,7 @@ const Dashboard2 = () => {
             title="Click to see access you've received"
           >
             <div className="stat-icon-compact">🔓</div>
+            <span className="stat-label-mobile">Access</span>
             <span className="stat-badge-mobile">{dashboardData.receivedAccess.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.receivedAccess.length}</span>
@@ -1341,6 +1347,7 @@ const Dashboard2 = () => {
             title="Click to see your favorites"
           >
             <div className="stat-icon-compact">⭐</div>
+            <span className="stat-label-mobile">My Favs</span>
             <span className="stat-badge-mobile">{dashboardData.myFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myFavorites.length}</span>
@@ -1366,6 +1373,7 @@ const Dashboard2 = () => {
             title="Click to see your shortlists"
           >
             <div className="stat-icon-compact">📋</div>
+            <span className="stat-label-mobile">Shortlist</span>
             <span className="stat-badge-mobile">{dashboardData.myShortlists.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.myShortlists.length}</span>
@@ -1391,6 +1399,7 @@ const Dashboard2 = () => {
             title="Click to see who favorited you"
           >
             <div className="stat-icon-compact">💕</div>
+            <span className="stat-label-mobile">Fav'd Me</span>
             <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
@@ -1416,6 +1425,7 @@ const Dashboard2 = () => {
             title="Click to see who shortlisted you"
           >
             <div className="stat-icon-compact">🔖</div>
+            <span className="stat-label-mobile">Shortd Me</span>
             <span className="stat-badge-mobile">{dashboardData.theirShortlists.length}</span>
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirShortlists.length}</span>
@@ -1431,6 +1441,7 @@ const Dashboard2 = () => {
             renderPlaceholder={() => (
               <div className="stat-card-compact stat-card-disabled">
                 <div className="stat-icon-compact">🔔</div>
+                <span className="stat-label-mobile">Poll</span>
                 <div className="stat-content-compact">
                   <span className="stat-label-compact">NO ACTIVE POLLS</span>
                 </div>

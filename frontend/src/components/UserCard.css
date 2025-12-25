@@ -1,36 +1,52 @@
 /* UserCard Component Styles - Unified Card Component */
 
 .user-card {
-  background: var(--card-bg, white);
+  background: var(--card-background, #ffffff);
   border-radius: 12px;
   padding: 0;
   cursor: pointer;
   transition: all 0.3s ease;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--border-color, #e5e7eb);
   display: flex;
   flex-direction: column;
   gap: 0;
   position: relative;
-  overflow: visible;
+  overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   container-type: inline-size;
   container-name: usercard;
+  
+  /* FIXED DIMENSIONS for consistency */
+  min-height: 340px;
+  max-height: 380px;
+  height: 100%;
+  width: 100%;
 }
 
 .user-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-  border-color: var(--primary-color, #667eea);
+  border-color: var(--primary-color, #6366f1);
 }
 
-/* Avatar Section */
+/* Placeholder text for missing data */
+.placeholder-text {
+  color: var(--text-muted, #9ca3af);
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* Avatar Section - FIXED HEIGHT for consistency */
 .user-card-avatar {
   position: relative;
   width: 100%;
-  aspect-ratio: 3/4;
-  border-radius: 0;
+  height: 180px; /* Fixed height instead of aspect-ratio */
+  min-height: 180px;
+  max-height: 180px;
+  border-radius: 12px 12px 0 0;
   overflow: hidden;
-  background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
+  background: linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%);
+  flex-shrink: 0;
 }
 
 .user-card-avatar .avatar-image {
@@ -67,6 +83,27 @@
   font-weight: 600;
   color: #616161;
   letter-spacing: 3px;
+}
+
+/* Age Badge - Top center of avatar */
+.age-badge-overlay {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+.age-badge-pill {
+  display: inline-block;
+  padding: 4px 12px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .status-badge-overlay {
@@ -217,47 +254,53 @@
   flex-shrink: 0;
 }
 
-/* Body Section */
+/* Body Section - FIXED HEIGHT for consistency */
 .user-card-body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  padding: 12px;
-  padding-bottom: 8px;
+  gap: 3px;
+  padding: 8px 10px;
+  padding-bottom: 6px;
+  min-height: 100px;
+  overflow: hidden;
+  background: var(--card-background, #ffffff);
 }
 
 .user-name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   margin: 0;
   color: var(--text-color, #1f2937);
-  line-height: 1.3;
+  line-height: 1.2;
   overflow: hidden;
   text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  min-height: 36px;
+  white-space: nowrap;
+  min-height: auto;
 }
 
-.user-age,
 .user-location,
 .user-occupation,
 .user-education {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary, #4b5563);
   margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.4;
 }
 
-.user-age {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary-color, #667eea);
+/* Looking for section */
+.user-looking-for {
+  font-size: 10px;
+  color: var(--text-muted, #9ca3af);
+  margin: 0;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.3;
 }
 
 .user-location .icon,
@@ -1014,7 +1057,7 @@ body.theme-ultra-black .user-action-btn {
   border-top: 1px solid var(--divider-color);
   justify-content: center;
   position: relative;
-  z-index: 100;
+  z-index: 1;
 }
 
 .bottom-action-btn {
@@ -1025,16 +1068,15 @@ body.theme-ultra-black .user-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 !important;
-  border-radius: 50% !important;
-  border: 2px solid transparent;
-  background: var(--surface-color);
+  border-radius: 50%;
+  border: 2px solid var(--border-color);
+  background: var(--card-background);
   color: var(--text-color);
-  font-size: 20px;
+  font-size: 16px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
-  z-index: 101;
+  z-index: 1;
   pointer-events: auto !important;
 }
 

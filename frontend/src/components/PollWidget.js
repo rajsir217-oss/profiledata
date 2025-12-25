@@ -326,6 +326,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
           title="Click to view/respond to poll"
         >
           <div className="stat-icon-compact">🔔</div>
+          <span className="stat-label-mobile">Poll</span>
           <div className="stat-content-compact">
             <span className="stat-label-compact">POLL</span>
             {firstPollResponded && (

@@ -1,0 +1,131 @@
+/* DefaultAvatar Component Styles */
+/* Gender-based placeholder avatar with silhouette */
+
+.default-avatar {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.default-avatar-bg {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    #f0f4f8 0%,
+    #e2e8f0 50%,
+    #cbd5e1 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* SVG Silhouette */
+.default-avatar-silhouette {
+  width: 80%;
+  height: 80%;
+  position: absolute;
+  bottom: -10%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0.25;
+}
+
+/* Male silhouette - blue tint */
+.silhouette-male {
+  fill: #4f46e5;
+}
+
+/* Female silhouette - pink/purple tint */
+.silhouette-female {
+  fill: #a855f7;
+}
+
+/* Neutral silhouette - gray */
+.silhouette-neutral {
+  fill: #64748b;
+}
+
+/* Initials overlay */
+.default-avatar-initials {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 3rem;
+  font-weight: 700;
+  color: #475569;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  opacity: 0.7;
+  z-index: 1;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Size variants */
+.default-avatar-small .default-avatar-initials {
+  font-size: 1.5rem;
+}
+
+.default-avatar-medium .default-avatar-initials {
+  font-size: 2.5rem;
+}
+
+.default-avatar-large .default-avatar-initials {
+  font-size: 3.5rem;
+}
+
+/* Subtle pattern overlay for texture */
+.default-avatar-bg::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: radial-gradient(
+    circle at 20% 80%,
+    rgba(99, 102, 241, 0.05) 0%,
+    transparent 50%
+  ),
+  radial-gradient(
+    circle at 80% 20%,
+    rgba(168, 85, 247, 0.05) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+/* Theme-aware adjustments */
+.theme-dark .default-avatar-bg {
+  background: linear-gradient(
+    135deg,
+    #374151 0%,
+    #4b5563 50%,
+    #6b7280 100%
+  );
+}
+
+.theme-dark .default-avatar-initials {
+  color: #d1d5db;
+  opacity: 0.6;
+}
+
+.theme-dark .default-avatar-silhouette {
+  opacity: 0.15;
+}
+
+.theme-dark .silhouette-male {
+  fill: #818cf8;
+}
+
+.theme-dark .silhouette-female {
+  fill: #c084fc;
+}
+
+.theme-dark .silhouette-neutral {
+  fill: #9ca3af;
+}
