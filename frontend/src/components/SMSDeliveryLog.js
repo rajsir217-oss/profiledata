@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import LoadMore from './LoadMore';
 import './SMSDeliveryLog.css';
 
 const SMSDeliveryLog = () => {
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState('all');
@@ -222,25 +224,50 @@ const SMSDeliveryLog = () => {
             <tbody>
               {filteredLogs.slice(0, displayCount).map((log, index) => {
                 const lineageToken = log.templateData?.lineage_token || log.metadata?.lineage_token;
+                const recipientUsername = log.username || log.recipient || 'N/A';
+                // Get profile name from templateData
+                const profileName = log.templateData?.recipient_firstName || 
+                                   log.templateData?.firstname ||
+                                   log.templateData?.full_name ||
+                                   log.templateData?.match?.firstName ||
+                                   '';
+                // Get full message content
+                const fullMessage = log.preview || log.subject || log.templateData?.message || 'N/A';
+                // Get status with fallback
+                const status = log.status || 'sent';
+                
                 return (
                   <tr key={log._id || index}>
                     <td className="time-cell">
                       {formatDate(log.sentAt || log.sent_at || log.createdAt)}
                     </td>
                     <td className="recipient-cell">
-                      {log.username || log.recipient || 'N/A'}
+                      <div className="recipient-info">
+                        <span 
+                          className="recipient-username clickable"
+                          onClick={() => navigate(`/profile/${recipientUsername}`)}
+                          title={`View ${recipientUsername}'s profile`}
+                        >
+                          {recipientUsername}
+                        </span>
+                        {profileName && (
+                          <span className="recipient-name">({profileName})</span>
+                        )}
+                      </div>
                     </td>
                     <td className="trigger-cell">
                       <span className="trigger-badge sms">
                         {log.trigger || log.type || 'N/A'}
                       </span>
                     </td>
-                    <td className="preview-cell">
-                      {log.preview || log.subject || 'N/A'}
+                    <td className="preview-cell" title={fullMessage}>
+                      <div className="message-preview">
+                        {fullMessage}
+                      </div>
                     </td>
                     <td className="status-cell">
-                      <span className={`status-badge ${getStatusClass(log.status)}`}>
-                        {log.status || 'unknown'}
+                      <span className={`status-badge ${getStatusClass(status)}`}>
+                        {status}
                       </span>
                     </td>
                     <td className="lineage-cell">
