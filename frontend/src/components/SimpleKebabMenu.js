@@ -20,6 +20,7 @@ const SimpleKebabMenu = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const buttonRef = useRef(null);
 
   // Close on escape
   useEffect(() => {
@@ -63,6 +64,7 @@ const SimpleKebabMenu = ({
   return (
     <div className="simple-kebab-container" ref={containerRef}>
       <button
+        ref={buttonRef}
         className="simple-kebab-button"
         onClick={(e) => {
           e.preventDefault();

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import MessageBadge from './MessageBadge';
+import DefaultAvatar from './DefaultAvatar';
 import { getDisplayName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
 import './UserCard.css';
@@ -73,6 +74,7 @@ const UserCard = ({
   const displayName = getDisplayName(profileData) || username;
   const avatarPath = profileData?.images?.[0] || profileData?.profileImage || user.profileImage;
   const avatar = avatarPath ? getImageUrl(avatarPath) : null;
+  const gender = profileData?.gender || user.gender;
   
   // Get initials from first and last name, fallback to username
   const getInitials = () => {
@@ -100,7 +102,8 @@ const UserCard = ({
     if (onClick) {
       onClick(user);
     } else {
-      navigate(`/profile/${username}`);
+      // Open profile in new tab
+      window.open(`/profile/${username}`, '_blank');
     }
   };
 
@@ -162,122 +165,118 @@ const UserCard = ({
       className={`user-card user-card-${variant} user-card-view-${viewMode}`}
       onClick={handleCardClick}
     >
-      {/* Avatar Section OR Bio Section */}
-      {avatar && !imageError ? (
-        <div className="user-card-avatar">
+      {/* Avatar Section - ALWAYS shown for consistent card height */}
+      <div className="user-card-avatar">
+        {avatar && !imageError ? (
           <img 
             src={avatar} 
             alt={displayName} 
             className="avatar-image"
             onError={() => setImageError(true)}
           />
-          
-          {/* Badges */}
-          {showOnlineStatus && (
-            <div className="status-badge-overlay">
-              <OnlineStatusBadge username={username} size="small" />
-            </div>
-          )}
-          {showMessageBadge && (
-            <MessageBadge username={username} size="small" showCount={true} />
-          )}
-        </div>
-      ) : (
-        <div className="user-card-bio-section">
-          {/* Header with small initials + name */}
-          <div className="user-card-bio-header">
-            <div className="bio-initials-circle" data-initials={initials}></div>
-            <div className="bio-header-info">
-              <h4 className="bio-name">{displayName}</h4>
-              {profileData?.age && (
-                <span className="bio-age-bubble">{profileData.age}yrs</span>
-              )}
-            </div>
+        ) : (
+          <DefaultAvatar 
+            gender={gender} 
+            initials={initials} 
+            size="medium" 
+          />
+        )}
+        
+        {/* Age Badge - Top of avatar */}
+        {profileData?.age && (
+          <div className="age-badge-overlay">
+            <span className="age-badge-pill">{profileData.age}yrs</span>
           </div>
-          
-          {/* Bio Text */}
-          <div className="user-card-bio-content">
-            {profileData?.bio || profileData?.aboutMe || profileData?.about || profileData?.description || profileData?.aboutYou ? (
-              <p className="bio-text">
-                "{profileData.bio || profileData.aboutMe || profileData.about || profileData.description || profileData.aboutYou}"
-              </p>
-            ) : (
-              <p className="bio-text bio-placeholder">
-                "No bio available. Click to view full profile..."
-              </p>
-            )}
+        )}
+        
+        {/* Badges */}
+        {showOnlineStatus && (
+          <div className="status-badge-overlay">
+            <OnlineStatusBadge username={username} size="small" />
           </div>
-          
-          {/* Footer with location, profession, education */}
-          <div className="user-card-bio-footer">
-            {profileData?.location && (
-              <span className="bio-detail">
-                <span className="icon">📍</span> {profileData.location}
-              </span>
-            )}
-            {profileData?.occupation && (
-              <span className="bio-detail">
-                <span className="icon">💼</span> {profileData.occupation}
-              </span>
-            )}
-            {profileData?.education && (
-              <span className="bio-detail">
-                <span className="icon">🎓</span> {profileData.education}
-              </span>
-            )}
+        )}
+        {showMessageBadge && (
+          <MessageBadge username={username} size="small" showCount={true} />
+        )}
+      </div>
+
+      {/* Body Section - ALWAYS shown for consistent card height */}
+      <div className="user-card-body">
+        <h4 className="user-name">{displayName}</h4>
+        
+        {/* Location */}
+        <p className="user-location">
+          📍 {profileData?.location || <span className="placeholder-text">Location not specified</span>}
+        </p>
+        
+        {/* Education */}
+        <p className="user-education">
+          🎓 {profileData?.education || profileData?.educationHistory?.[0]?.degree || <span className="placeholder-text">Education not specified</span>}
+        </p>
+        
+        {/* Occupation/Experience */}
+        <p className="user-occupation">
+          💼 {profileData?.occupation || profileData?.workExperience?.[0]?.position || <span className="placeholder-text">Occupation not specified</span>}
+        </p>
+        
+        {/* What I'm Looking For - from partnerPreferences */}
+        <p className="user-looking-for">
+          💕 {(() => {
+            const prefs = profileData?.partnerPreferences;
+            const lookingFor = profileData?.lookingFor;
+            
+            // Build condensed string from available data
+            const parts = [];
+            
+            // Add lookingFor if available (Marriage, Life Partner, etc.)
+            if (lookingFor) {
+              parts.push(lookingFor);
+            }
+            
+            if (prefs) {
+              // Get religion (can be string or array)
+              const religion = Array.isArray(prefs.religion) ? prefs.religion[0] : prefs.religion;
+              if (religion && religion !== 'Any' && religion !== 'Any Religion') {
+                parts.push(religion);
+              }
+              
+              // Get location (can be string or array)
+              const location = Array.isArray(prefs.location) ? prefs.location[0] : prefs.location;
+              if (location && location !== 'Any' && location !== 'Any location') {
+                parts.push(location);
+              }
+            }
+            
+            if (parts.length === 0) {
+              return <span className="placeholder-text">Looking for not specified</span>;
+            }
+            
+            const text = parts.join(' • ');
+            return text.length > 40 ? text.substring(0, 40) + '...' : text;
+          })()}
+        </p>
+
+        {/* Dashboard-specific info */}
+        {viewedAt && (
+          <p className="user-meta">
+            Viewed: {new Date(viewedAt).toLocaleString()}
+            {viewCount > 1 && <span className="view-count"> ({viewCount}x)</span>}
+          </p>
+        )}
+        
+        {lastMessage && (
+          <p className="user-meta last-message">
+            {lastMessage.length > 40 ? lastMessage.substring(0, 40) + '...' : lastMessage}
+          </p>
+        )}
+
+        {/* Additional custom info */}
+        {additionalInfo && (
+          <div className="user-additional-info">
+            {additionalInfo}
           </div>
-        </div>
-      )}
-
-      {/* Body Section - Only show when there's an image */}
-      {avatar && !imageError && (
-        <div className="user-card-body">
-          <h4 className="user-name">{displayName}</h4>
-          
-          {profileData?.age && (
-            <p className="user-age">{profileData.age}yrs</p>
-          )}
-          
-          {profileData?.location && (
-            <p className="user-location">
-              <span className="icon">📍</span> {profileData.location}
-            </p>
-          )}
-          
-          {profileData?.occupation && variant !== 'compact' && (
-            <p className="user-occupation">
-              <span className="icon">💼</span> {profileData.occupation}
-            </p>
-          )}
-          
-          {profileData?.education && variant === 'search' && (
-            <p className="user-education">
-              <span className="icon">🎓</span> {profileData.education}
-            </p>
-          )}
-
-          {/* Dashboard-specific info */}
-          {viewedAt && (
-            <p className="user-meta">
-              Viewed: {new Date(viewedAt).toLocaleString()}
-              {viewCount > 1 && <span className="view-count"> ({viewCount}x)</span>}
-            </p>
-          )}
-          
-          {lastMessage && (
-            <p className="user-meta last-message">
-              {lastMessage.length > 40 ? lastMessage.substring(0, 40) + '...' : lastMessage}
-            </p>
-          )}
-
-          {/* Additional custom info */}
-          {additionalInfo && (
-            <div className="user-additional-info">
-              {additionalInfo}
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Header Actions - Simple Kebab Menu */}
       {hasKebabMenu && (

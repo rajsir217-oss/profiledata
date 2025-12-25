@@ -161,6 +161,9 @@ DASHBOARD_USER_PROJECTION = {
     "bodyType": 1,
     "matchScore": 1,
     "compatibilityLevel": 1,
+    # Partner preferences for "Looking for" display
+    "partnerPreferences": 1,
+    "lookingFor": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
 }
 

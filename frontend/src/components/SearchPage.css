@@ -1057,12 +1057,13 @@
 .result-card {
   width: 100%;
   min-width: 0;
-  display: block !important;
+  display: flex !important;
   padding: 0 !important;
   margin: 0 !important;
   border: none !important;
   background: transparent !important;
   box-shadow: none !important;
+  height: 100%;
 }
 
 .result-card .card {
@@ -1071,7 +1072,9 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08) !important;
   transition: all 0.3s ease;
   height: 100%;
-  overflow: visible;
+  min-height: 420px; /* Fixed minimum height for consistency */
+  max-height: 480px; /* Maximum height to prevent overflow */
+  overflow: hidden;
   width: 100%;
   min-width: 0; /* Allow card to shrink */
   background: var(--card-background, white) !important; /* Force theme-aware background */
@@ -1079,6 +1082,8 @@
   margin: 0 !important; /* No margin */
   padding: 0 !important; /* No padding on card itself */
   position: relative; /* Context for absolutely positioned kebab menu */
+  display: flex;
+  flex-direction: column;
 }
 
 /* Override Bootstrap card default borders */
@@ -5219,10 +5224,13 @@ body.theme-rose .request-pics-btn-main:active {
 .card-image-section {
   position: relative;
   width: 100%;
-  height: 280px;
+  height: 200px; /* Fixed height for consistency */
+  min-height: 200px;
+  max-height: 200px;
   overflow: hidden;
   background: var(--surface-color);
   z-index: 1;
+  flex-shrink: 0;
 }
 
 .card-profile-image {
@@ -5239,6 +5247,12 @@ body.theme-rose .request-pics-btn-main:active {
   align-items: center;
   justify-content: center;
   background: linear-gradient(135deg, var(--surface-color) 0%, var(--background-color) 100%);
+}
+
+/* DefaultAvatar inside placeholder */
+.card-image-placeholder .default-avatar {
+  width: 100%;
+  height: 100%;
 }
 
 .card-image-placeholder .placeholder-icon {

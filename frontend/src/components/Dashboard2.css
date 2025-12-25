@@ -575,9 +575,24 @@
     border-radius: 16px;
   }
   
-  /* Hide text content on mobile */
+  /* Hide desktop text content on mobile */
   .stat-card-compact .stat-content-compact {
     display: none;
+  }
+  
+  /* Show mobile label below icon */
+  .stat-card-compact .stat-label-mobile {
+    display: block;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    max-width: 90%;
+    word-wrap: break-word;
   }
   
   /* Show badge on mobile */
@@ -605,7 +620,7 @@
   }
   
   .stat-icon-compact {
-    font-size: 28px;
+    font-size: 48px;
   }
   
   .poll-widget-inline {
@@ -834,6 +849,11 @@
 
 /* Mobile badge - hidden on desktop, shown on mobile */
 .stat-badge-mobile {
+  display: none;
+}
+
+/* Mobile label - hidden on desktop, shown on mobile */
+.stat-label-mobile {
   display: none;
 }
 
@@ -1361,14 +1381,17 @@
 /* Tab Content Grid - displays user cards */
 .tab-content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 16px;
   padding: 16px;
   background: var(--surface-color);
+  align-items: stretch; /* Ensure all cards stretch to same height */
 }
 
 .tab-content-item {
   width: 100%;
+  height: 100%;
+  display: flex;
 }
 
 /* Tab Empty State */
