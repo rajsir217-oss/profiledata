@@ -187,6 +187,34 @@
   font-weight: 500;
 }
 
+.sms-delivery-log .recipient-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sms-delivery-log .recipient-username {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+.sms-delivery-log .recipient-username.clickable {
+  cursor: pointer;
+  color: var(--primary-color);
+  transition: color 0.2s, text-decoration 0.2s;
+}
+
+.sms-delivery-log .recipient-username.clickable:hover {
+  color: #22c55e;
+  text-decoration: underline;
+}
+
+.sms-delivery-log .recipient-name {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
 .sms-delivery-log .trigger-badge {
   display: inline-block;
   padding: 4px 10px;
@@ -202,12 +230,19 @@
 }
 
 .sms-delivery-log .preview-cell {
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 300px;
   font-size: 0.85rem;
   color: var(--text-secondary);
+}
+
+.sms-delivery-log .message-preview {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+  cursor: help;
 }
 
 /* Status badges */
