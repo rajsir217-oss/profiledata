@@ -1043,7 +1043,7 @@ const Dashboard2 = () => {
             <p>No {title.toLowerCase()} yet</p>
           </div>
         ) : (
-          <div className="tab-content-grid">
+          <div className={`tab-content-grid ${viewMode === 'rows' ? 'view-rows' : ''}`}>
             {data.map((user, index) => (
               <div key={user.username || index} className="tab-content-item">
                 {renderUserCard(user, context, removeHandler)}

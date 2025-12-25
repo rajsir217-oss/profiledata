@@ -1388,6 +1388,12 @@
   align-items: stretch; /* Ensure all cards stretch to same height */
 }
 
+/* Row view - single column layout */
+.tab-content-grid.view-rows {
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
 .tab-content-item {
   width: 100%;
   height: 100%;

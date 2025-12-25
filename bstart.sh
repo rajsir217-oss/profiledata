@@ -1,6 +1,45 @@
 #!/bin/bash
 set -e  # Exit on error
 
+# Parse command line arguments
+LOG_LEVEL="info"
+QUIET_MODE=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -e|-q|--quiet|--errors-only)
+            LOG_LEVEL="error"
+            QUIET_MODE=true
+            shift
+            ;;
+        -w|--warnings)
+            LOG_LEVEL="warning"
+            shift
+            ;;
+        -d|--debug)
+            LOG_LEVEL="debug"
+            shift
+            ;;
+        -h|--help)
+            echo "Usage: bstart.sh [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -e, -q, --quiet              Show only errors (minimal output)"
+            echo "  -w, --warnings               Show warnings and errors"
+            echo "  -d, --debug                  Show debug output (verbose)"
+            echo "  -h, --help                   Show this help message"
+            echo ""
+            echo "Default: info level logging"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Use -h or --help for usage information"
+            exit 1
+            ;;
+    esac
+done
+
 clear
 
 echo "🚀 Starting FastAPI Backend..."
@@ -54,16 +93,27 @@ echo "📋 Configuration:"
 echo "   Environment: local"
 echo "   MongoDB: $(grep MONGODB_URL .env | cut -d'=' -f2)"
 echo "   Storage: Local (uploads/)"
+echo "   Log Level: $(echo $LOG_LEVEL | tr '[:lower:]' '[:upper:]')"
 echo ""
 
 # Start the server
 echo "✅ Starting server on http://localhost:8000"
 echo "📚 API Docs: http://localhost:8000/docs"
-echo "🔍 Log Level: INFO"
 echo ""
 echo "Press Ctrl+C to stop..."
 echo "================================"
 echo ""
 
-# Start with appropriate log level for development
-uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level info
+# Start with specified log level
+# Export LOG_LEVEL (uppercase) so Python app also respects it
+export LOG_LEVEL=$(echo $LOG_LEVEL | tr '[:lower:]' '[:upper:]')
+
+# uvicorn needs lowercase log level
+UVICORN_LOG_LEVEL=$(echo $LOG_LEVEL | tr '[:upper:]' '[:lower:]')
+
+if [ "$QUIET_MODE" = true ]; then
+    # In quiet mode, also suppress uvicorn access logs
+    uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level $UVICORN_LOG_LEVEL --no-access-log
+else
+    uvicorn main:socket_app --reload --port 8000 --host 0.0.0.0 --log-level $UVICORN_LOG_LEVEL
+fi
