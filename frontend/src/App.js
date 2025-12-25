@@ -7,7 +7,6 @@ import { HelmetProvider } from 'react-helmet-async';
 import Register from './components/Register';
 import Register2 from './components/Register2';
 import EmailVerificationSent from './components/EmailVerificationSent';
-import EditProfile from './components/EditProfile.js.toberemoved'; // DEPRECATED: Use Register2 with mode="edit" instead
 import Login from './components/Login';
 import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
@@ -338,7 +337,6 @@ function AppContent() {
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
-              <Route path="/edit-profile-old" element={<ProtectedRoute><EditProfile /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
               <Route path="/contact" element={<ProtectedRoute><ContactUs /></ProtectedRoute>} />
