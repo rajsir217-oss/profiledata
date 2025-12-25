@@ -70,6 +70,7 @@ import { getApiUrl } from './config/apiConfig';
 import { onMessageListener, requestNotificationPermission } from './services/pushNotificationService';
 import toastService from './services/toastService';
 import logger from './utils/logger';
+import sessionManager from './services/sessionManager';
 
 // Theme configuration
 const themes = {
@@ -133,7 +134,7 @@ function AppContent() {
     fetchCurrentUser();
   }, [location.pathname]); // Re-fetch when route changes
 
-  // Initialize theme on app load
+  // Initialize theme and session manager on app load
   useEffect(() => {
     const loadTheme = async () => {
       const token = localStorage.getItem('token');
@@ -160,6 +161,14 @@ function AppContent() {
     };
     
     loadTheme();
+    
+    // Initialize session manager if user is already logged in
+    const token = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (token && refreshToken) {
+      sessionManager.init();
+      logger.info('Session manager initialized on app load');
+    }
     
     // Listen for login events to reload theme
     const handleUserLogin = () => {

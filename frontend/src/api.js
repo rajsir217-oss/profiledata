@@ -2,6 +2,7 @@
 import axios from "axios";
 import { getApiUrl, getBackendUrl } from './config/apiConfig';
 import toastService from './services/toastService';
+import sessionManager from './services/sessionManager';
 
 // Use centralized API config
 const getAPIUrl = getApiUrl;
@@ -24,6 +25,12 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    // Track API activity for session management
+    if (sessionManager.isActive) {
+      sessionManager.handleActivity();
+    }
+    
     return config;
   },
   (error) => {
