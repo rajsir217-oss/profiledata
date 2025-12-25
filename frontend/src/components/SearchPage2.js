@@ -1286,6 +1286,10 @@ const SearchPage2 = () => {
       }
 
       if (page === 1) {
+        // Debug: log image data for first few users
+        filteredUsers.slice(0, 3).forEach(u => {
+          console.log(`🖼️ Search result ${u.username}: images=`, u.images);
+        });
         setUsers(filteredUsers);
           } else {
         setUsers(prev => [...prev, ...filteredUsers]);
@@ -2637,20 +2641,52 @@ const SearchPage2 = () => {
                     }}
                   >
                     {/* Profile Image Thumbnail */}
-                    <div style={{
-                      width: '50px',
-                      height: '50px',
-                      borderRadius: '50%',
-                      background: 'var(--surface-color)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '24px',
-                      flexShrink: 0,
-                      border: '2px solid ' + (selectedProfileForDetail?.username === user.username ? 'white' : 'var(--border-color)')
-                    }}>
-                      {user.firstName?.charAt(0) || user.username?.charAt(0) || '?'}
-                    </div>
+                    {(() => {
+                      // Use first image from images array
+                      const thumbnailImage = user.images?.[0];
+                      // Always convert to full URL using getImageUrl helper
+                      const thumbnailUrl = thumbnailImage ? getImageUrl(thumbnailImage) : null;
+                      return (
+                        <div style={{
+                          width: '50px',
+                          height: '50px',
+                          borderRadius: '50%',
+                          background: 'var(--surface-color)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '24px',
+                          flexShrink: 0,
+                          border: '2px solid ' + (selectedProfileForDetail?.username === user.username ? 'white' : 'var(--border-color)'),
+                          overflow: 'hidden'
+                        }}>
+                          {thumbnailUrl ? (
+                            <img 
+                              src={thumbnailUrl}
+                              alt={user.firstName || user.username}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                e.target.style.display = 'none';
+                                if (e.target.nextSibling) e.target.nextSibling.style.display = 'flex';
+                              }}
+                            />
+                          ) : null}
+                          <span style={{ 
+                            display: thumbnailUrl ? 'none' : 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '100%',
+                            height: '100%'
+                          }}>
+                            {user.firstName?.charAt(0) || user.username?.charAt(0) || '?'}
+                          </span>
+                        </div>
+                      );
+                    })()}
                     
                     {/* Profile Info */}
                     <div style={{ flex: 1, minWidth: 0 }}>

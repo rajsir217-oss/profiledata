@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
@@ -172,7 +173,8 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  // Use Portal to render modal at document body level to escape z-index stacking context
+  return createPortal(
     <div className="message-modal-overlay" onClick={handleOverlayClick}>
       <div className="message-modal">
         <div className="message-modal-header">
@@ -214,7 +216,8 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
