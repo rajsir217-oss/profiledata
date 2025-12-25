@@ -2672,6 +2672,19 @@ const SearchPage2 = () => {
                       }}>
                         {user.age ? `${user.age}yrs` : ''} {user.location ? `• ${user.location}` : ''}
                       </div>
+                      {/* DOB & Height - small font */}
+                      <div style={{
+                        fontSize: '10px',
+                        opacity: 0.7,
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        marginTop: '1px'
+                      }}>
+                        {user.birthMonth && user.birthYear && `🎂 ${String(user.birthMonth).padStart(2, '0')}/${user.birthYear}`}
+                        {user.birthMonth && user.birthYear && user.height && ' • '}
+                        {user.height && `📏 ${user.height}`}
+                      </div>
                       {user.matchScore && (
                         <div style={{
                           fontSize: '11px',
