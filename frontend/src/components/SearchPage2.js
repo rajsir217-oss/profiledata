@@ -2053,6 +2053,9 @@ const SearchPage2 = () => {
   });
   
   console.log(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
+  console.log(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
+  // Reset debug flag so we can see new comparisons
+  window._sortDebugLogged = false;
 
   // Apply sorting to filtered users
   const sortedUsers = [...filteredUsers].sort((a, b) => {
@@ -2092,6 +2095,13 @@ const SearchPage2 = () => {
         const dateA = new Date(a.adminApprovedAt || a.createdAt || 0).getTime();
         const dateB = new Date(b.adminApprovedAt || b.createdAt || 0).getTime();
         compareValue = dateB - dateA; // Newest approved first
+        // Debug: log first comparison only
+        if (!window._sortDebugLogged) {
+          console.log(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
+          console.log(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
+          console.log(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
+          window._sortDebugLogged = true;
+        }
         break;
       
       default:

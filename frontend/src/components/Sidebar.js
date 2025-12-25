@@ -259,6 +259,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
       
       items.push({
+        icon: '📈',
+        label: 'Admin Reports',
+        subLabel: 'User analytics & charts',
+        action: () => navigate('/admin-reports')
+      });
+      
+      items.push({
         icon: '⚙️',
         label: 'Notification Config',
         subLabel: 'Status change triggers',

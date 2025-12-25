@@ -164,6 +164,9 @@ DASHBOARD_USER_PROJECTION = {
     # Partner preferences for "Looking for" display
     "partnerPreferences": 1,
     "lookingFor": 1,
+    # Date fields for sorting
+    "createdAt": 1,
+    "adminApprovedAt": 1,
     # All other fields automatically excluded (MongoDB inclusion projection)
 }
 
