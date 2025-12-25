@@ -55,6 +55,7 @@ import BrandBanner from './components/BrandBanner';
 import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
+import AdminReports from './components/AdminReports';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import TooltipDemo from './components/TooltipDemo';
@@ -374,6 +375,7 @@ function AppContent() {
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
+              <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
               <Route path="/template-manager" element={<Navigate to="/notification-management" replace />} />
               <Route path="/event-queue-manager" element={<Navigate to="/notification-management" replace />} />

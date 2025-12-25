@@ -1,0 +1,472 @@
+/* Admin Reports Page Styles */
+/* Using theme-aware CSS variables */
+
+.admin-reports-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.admin-reports-header {
+  margin-bottom: 24px;
+}
+
+.admin-reports-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color);
+  margin: 0 0 8px 0;
+}
+
+.admin-reports-header .subtitle {
+  color: var(--text-secondary);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.summary-card {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.summary-card.pending {
+  border-color: var(--warning-color);
+  background: linear-gradient(135deg, var(--card-background) 0%, rgba(245, 158, 11, 0.05) 100%);
+}
+
+.summary-icon {
+  font-size: 32px;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-color);
+  border-radius: var(--radius-md, 8px);
+}
+
+.summary-content {
+  flex: 1;
+}
+
+.summary-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text-color);
+  line-height: 1.2;
+}
+
+.summary-label {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* Report Section */
+.report-section {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg, 12px);
+  padding: 24px;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.report-header h2 {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+}
+
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-controls label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.gender-select {
+  padding: 8px 16px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  background: var(--input-bg);
+  color: var(--text-color);
+  cursor: pointer;
+  min-width: 120px;
+}
+
+.gender-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+}
+
+/* Loading */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-secondary);
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Error */
+.error-message {
+  background: var(--danger-light, rgba(239, 68, 68, 0.1));
+  color: var(--danger-color);
+  padding: 16px;
+  border-radius: var(--radius-md, 8px);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Chart Container */
+.chart-container {
+  margin-top: 16px;
+}
+
+.chart-info {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.chart-info strong {
+  color: var(--text-color);
+}
+
+.line-chart {
+  width: 100%;
+  max-width: 800px;
+  height: auto;
+  margin: 0 auto;
+  display: block;
+}
+
+.grid-line {
+  stroke: var(--border-color);
+  stroke-width: 1;
+  stroke-dasharray: 4, 4;
+  opacity: 0.5;
+}
+
+.axis-line {
+  stroke: var(--text-secondary);
+  stroke-width: 2;
+}
+
+.axis-label {
+  font-size: 12px;
+  fill: var(--text-secondary);
+}
+
+.axis-label.y-label {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.axis-label.x-label {
+  text-anchor: middle;
+}
+
+.axis-title {
+  font-size: 14px;
+  font-weight: 600;
+  fill: var(--text-color);
+  text-anchor: middle;
+}
+
+.chart-line {
+  stroke: var(--primary-color);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.data-point-group {
+  cursor: pointer;
+}
+
+.data-point {
+  fill: var(--primary-color);
+  stroke: var(--card-background);
+  stroke-width: 3;
+  transition: r 0.2s ease, fill 0.2s ease;
+}
+
+.data-point:hover {
+  r: 12;
+  fill: var(--secondary-color);
+}
+
+.data-label {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text-color);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.chart-hint {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 16px;
+}
+
+/* Modal - Modal1 Style */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal-content {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 450px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.25s ease;
+  overflow: hidden;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  position: relative;
+}
+
+.modal-header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 24px;
+  right: 24px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  border-radius: 2px;
+}
+
+.modal-header h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-count {
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-muted);
+  margin-left: 4px;
+}
+
+.close-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  border-radius: 50%;
+  font-size: 18px;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: var(--hover-background);
+  color: var(--text-color);
+  transform: rotate(90deg);
+}
+
+.modal-body {
+  padding: 16px 0 24px;
+  overflow-y: auto;
+  max-height: 60vh;
+}
+
+.user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 0 16px;
+}
+
+.user-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  background: var(--surface-color);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-item:hover {
+  background: var(--hover-background);
+  transform: translateX(4px);
+}
+
+.profile-id {
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.15);
+  padding: 6px 10px;
+  border-radius: 6px;
+  min-width: 70px;
+  text-align: center;
+}
+
+.user-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-color);
+}
+
+.user-gender {
+  font-size: 20px;
+  opacity: 0.9;
+}
+
+.open-link {
+  font-size: 14px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.user-item:hover .open-link {
+  opacity: 1;
+  color: var(--primary-color);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .admin-reports-page {
+    padding: 16px;
+  }
+
+  .admin-reports-header h1 {
+    font-size: 24px;
+  }
+
+  .summary-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .chart-info {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .line-chart {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 480px) {
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card {
+    padding: 16px;
+  }
+
+  .summary-value {
+    font-size: 24px;
+  }
+}
