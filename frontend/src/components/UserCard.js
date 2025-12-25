@@ -259,7 +259,10 @@ const UserCard = ({
 
       {/* Body Section - ALWAYS shown for consistent card height */}
       <div className="user-card-body">
-        <h4 className="user-name">{displayName}</h4>
+        <h4 className="user-name">
+          {displayName}
+          {profileData?.age && <span className="user-age-badge">{profileData.age}y</span>}
+        </h4>
         
         {/* Location */}
         <p className="user-location">

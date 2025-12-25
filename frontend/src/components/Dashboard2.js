@@ -933,6 +933,11 @@ const Dashboard2 = () => {
       requestType: user.requestType,      // Add request type (photos, phone, etc)
       requestStatus: user.status,         // Add status (pending, approved, denied)
       requestedAt: user.requestedAt       // Add timestamp
+    } : user.userProfile ? {
+      ...user.userProfile,
+      lastMessage: user.lastMessage,      // Add last message for conversations
+      lastMessageTime: user.lastMessageTime,
+      unreadCount: user.unreadCount
     } : user;
 
     // Determine user state for kebab menu
