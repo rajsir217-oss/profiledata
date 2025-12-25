@@ -98,6 +98,40 @@ const UserCard = ({
   const lastMessage = user.lastMessage;
   const viewCount = user.viewCount;
 
+  // Format height for display (e.g., "5' 6\"")
+  const getDisplayHeight = () => {
+    if (profileData?.height) return profileData.height;
+    if (profileData?.heightInches) {
+      const feet = Math.floor(profileData.heightInches / 12);
+      const inches = profileData.heightInches % 12;
+      return `${feet}' ${inches}"`;
+    }
+    return null;
+  };
+
+  // Format DOB for display (MM/YYYY format)
+  const getDisplayDOB = () => {
+    // Try birthMonth and birthYear first
+    if (profileData?.birthMonth && profileData?.birthYear) {
+      const month = String(profileData.birthMonth).padStart(2, '0');
+      return `${month}/${profileData.birthYear}`;
+    }
+    // Try dateOfBirth field
+    if (profileData?.dateOfBirth) {
+      try {
+        const date = new Date(profileData.dateOfBirth);
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        return `${month}/${date.getFullYear()}`;
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const displayHeight = getDisplayHeight();
+  const displayDOB = getDisplayDOB();
+
   const handleCardClick = () => {
     if (onClick) {
       onClick(user);
@@ -218,6 +252,14 @@ const UserCard = ({
         <p className="user-occupation">
           💼 {profileData?.occupation || profileData?.workExperience?.[0]?.position || <span className="placeholder-text">Occupation not specified</span>}
         </p>
+
+        {/* Height & DOB Row */}
+        {(displayHeight || displayDOB) && (
+          <div className="user-height-dob">
+            {displayHeight && <span className="height-info">📏 {displayHeight}</span>}
+            {displayDOB && <span className="dob-info">🎂 {displayDOB}</span>}
+          </div>
+        )}
         
         {/* What I'm Looking For - from partnerPreferences */}
         <p className="user-looking-for">
