@@ -61,27 +61,12 @@ async def get_all_users(
         if role:
             query["role_name"] = role
         
-        # Handle dedicated email search - try both encrypted and plaintext
-        if email_search:
-            from crypto_utils import get_encryptor
-            encryptor = get_encryptor()
-            
-            email_conditions = [
-                # Search plaintext (in case some emails aren't encrypted)
-                {"contactEmail": {"$regex": email_search, "$options": "i"}},
-            ]
-            
-            # Also try encrypting the search term and searching for that
-            try:
-                encrypted_email = encryptor.encrypt(email_search.lower())
-                # For encrypted search, we need exact match since regex won't work on encrypted data
-                email_conditions.append({"contactEmail": encrypted_email})
-                logger.info(f"🔍 Email search: plaintext='{email_search}', encrypted prefix='{encrypted_email[:30]}...'")
-            except Exception as enc_err:
-                logger.warning(f"⚠️ Could not encrypt email search term: {enc_err}")
-            
-            query["$or"] = email_conditions
-        elif search:
+        # Handle dedicated email search
+        # NOTE: Since emails are encrypted, we can't do regex search on encrypted data.
+        # We'll fetch users and filter after decryption for email search.
+        email_search_term = email_search.lower().strip() if email_search else None
+        
+        if not email_search_term and search:
             query["$or"] = [
                 {"username": {"$regex": search, "$options": "i"}},
                 {"contactEmail": {"$regex": search, "$options": "i"}},  # Primary email field
@@ -89,44 +74,68 @@ async def get_all_users(
                 {"lastName": {"$regex": search, "$options": "i"}}
             ]
         
-        # Get total count
-        total = await db.users.count_documents(query)
-        
-        # Get users
-        skip = (page - 1) * limit
-        users_cursor = db.users.find(query).skip(skip).limit(limit).sort("created_at", -1)
-        users = await users_cursor.to_list(length=limit)
-        
         # Remove sensitive data and decrypt PII
         from crypto_utils import get_encryptor
         encryptor = get_encryptor()
         
-        for i, user in enumerate(users):
-            user["_id"] = str(user["_id"])
+        # For email search, we need to fetch ALL matching users first, decrypt, then filter
+        # because encrypted emails can't be searched with regex
+        if email_search_term:
+            # Fetch all users matching other filters (status, role)
+            users_cursor = db.users.find(query).sort("created_at", -1)
+            all_users = await users_cursor.to_list(length=10000)  # Reasonable max
             
-            # 🔓 DECRYPT PII fields
-            try:
-                raw_email = user.get('contactEmail', '')
-                is_encrypted = raw_email.startswith('gAAAAA') if raw_email else False
-                
-                decrypted_user = encryptor.decrypt_user_pii(user)
-                dec_email = decrypted_user.get('contactEmail', '')
-                
-                # Debug: verify decryption worked
-                if i == 0:
-                    logger.info(f"🔍 User {user.get('username')}: raw_encrypted={is_encrypted}, decrypted_email={dec_email[:30] if dec_email else 'None'}...")
-                
-                users[i] = decrypted_user
-            except Exception as decrypt_err:
-                logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
-                users[i] = user  # Keep original if decryption fails
+            # Decrypt and filter by email
+            filtered_users = []
+            for user in all_users:
+                user["_id"] = str(user["_id"])
+                try:
+                    decrypted_user = encryptor.decrypt_user_pii(user)
+                    dec_email = (decrypted_user.get('contactEmail') or '').lower()
+                    
+                    # Check if email contains search term (partial match)
+                    if email_search_term in dec_email:
+                        # Remove sensitive data
+                        if "security" in decrypted_user:
+                            decrypted_user["security"].pop("password_hash", None)
+                            decrypted_user["security"].pop("password_history", None)
+                        if "mfa" in decrypted_user:
+                            decrypted_user["mfa"].pop("mfa_secret", None)
+                            decrypted_user["mfa"].pop("mfa_backup_codes", None)
+                        filtered_users.append(decrypted_user)
+                except Exception as decrypt_err:
+                    logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
             
-            if "security" in users[i]:
-                users[i]["security"].pop("password_hash", None)
-                users[i]["security"].pop("password_history", None)
-            if "mfa" in users[i]:
-                users[i]["mfa"].pop("mfa_secret", None)
-                users[i]["mfa"].pop("mfa_backup_codes", None)
+            total = len(filtered_users)
+            # Apply pagination to filtered results
+            skip = (page - 1) * limit
+            users = filtered_users[skip:skip + limit]
+            
+            logger.info(f"🔍 Email search '{email_search_term}': found {total} matches")
+        else:
+            # Standard query without email search
+            total = await db.users.count_documents(query)
+            skip = (page - 1) * limit
+            users_cursor = db.users.find(query).skip(skip).limit(limit).sort("created_at", -1)
+            users = await users_cursor.to_list(length=limit)
+            
+            for i, user in enumerate(users):
+                user["_id"] = str(user["_id"])
+                
+                # 🔓 DECRYPT PII fields
+                try:
+                    decrypted_user = encryptor.decrypt_user_pii(user)
+                    users[i] = decrypted_user
+                except Exception as decrypt_err:
+                    logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
+                    users[i] = user  # Keep original if decryption fails
+                
+                if "security" in users[i]:
+                    users[i]["security"].pop("password_hash", None)
+                    users[i]["security"].pop("password_history", None)
+                if "mfa" in users[i]:
+                    users[i]["mfa"].pop("mfa_secret", None)
+                    users[i]["mfa"].pop("mfa_backup_codes", None)
         
         return {
             "users": users,
