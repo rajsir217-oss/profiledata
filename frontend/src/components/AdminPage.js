@@ -355,9 +355,9 @@ const AdminPage = () => {
           />
           
           <input
-            type="email"
+            type="text"
             className="form-control admin-filter-input"
-            placeholder="📧 Email (exact)..."
+            placeholder="📧 Email (partial)..."
             value={emailSearch}
             onChange={(e) => setEmailSearch(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}

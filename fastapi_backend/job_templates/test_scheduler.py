@@ -55,9 +55,9 @@ class TestSchedulerTemplate(JobTemplate):
         context.log("INFO", "Checking for scheduled tests...")
         
         try:
-            # Run the test scheduler (it's a sync function)
+            # Run the test scheduler (it's a sync function that takes no arguments)
             loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, check_and_run_scheduled_tests, context.db)
+            await loop.run_in_executor(None, check_and_run_scheduled_tests)
             
             duration = time.time() - start_time
             context.log("INFO", f"Test scheduler check completed in {duration:.2f}s")
