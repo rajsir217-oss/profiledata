@@ -4,6 +4,33 @@ import ProfileCreatorBadge from './ProfileCreatorBadge';
 import logger from '../utils/logger';
 import './ChatWindow.css';
 
+const QUICK_REPLY_TEMPLATES = [
+  { category: 'Introduction', icon: '👋', messages: [
+    "Hi, we came across your profile and found it interesting. Would you like to connect and discuss further?",
+    "Namaste! Your profile caught our attention. We'd love to know more about you."
+  ]},
+  { category: 'Interest', icon: '💝', messages: [
+    "We liked your profile and feel there could be a good match. Can we exchange more details?",
+    "Your profile aligns well with what we're looking for. Would you be open to a conversation?"
+  ]},
+  { category: 'More Info', icon: '📋', messages: [
+    "Could you please share more about your family background and expectations?",
+    "We'd like to know more about your education and career plans."
+  ]},
+  { category: 'Next Steps', icon: '📞', messages: [
+    "If you're interested, we can arrange a call to discuss further.",
+    "Would you be comfortable sharing contact details for a phone conversation?"
+  ]},
+  { category: 'Follow-up', icon: '🔔', messages: [
+    "Hi, just following up on our earlier message. Looking forward to hearing from you.",
+    "Hope you had a chance to review our profile. Let us know your thoughts."
+  ]},
+  { category: 'Decline', icon: '🙏', messages: [
+    "Thank you for your interest, but we don't feel this is the right match for us. Best wishes!",
+    "We appreciate you reaching out, but we're currently exploring other options."
+  ]}
+];
+
 const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
@@ -12,6 +39,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [deleteError, setDeleteError] = useState(null);
   const [headerImageError, setHeaderImageError] = useState(false);
   const [messageImageErrors, setMessageImageErrors] = useState({});
+  const [showQuickReplies, setShowQuickReplies] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -238,8 +267,60 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Quick Reply Templates */}
+      {showQuickReplies && (
+        <div className="quick-replies-panel">
+          <div className="quick-replies-header">
+            <span className="quick-replies-title">⚡ Quick Messages</span>
+            <button 
+              className="quick-replies-close"
+              onClick={() => { setShowQuickReplies(false); setSelectedCategory(null); }}
+            >
+              ✕
+            </button>
+          </div>
+          <div className="quick-replies-categories">
+            {QUICK_REPLY_TEMPLATES.map((cat, idx) => (
+              <button
+                key={idx}
+                className={`quick-category-btn ${selectedCategory === idx ? 'active' : ''}`}
+                onClick={() => setSelectedCategory(selectedCategory === idx ? null : idx)}
+              >
+                {cat.icon} {cat.category}
+              </button>
+            ))}
+          </div>
+          {selectedCategory !== null && (
+            <div className="quick-replies-messages">
+              {QUICK_REPLY_TEMPLATES[selectedCategory].messages.map((msg, idx) => (
+                <button
+                  key={idx}
+                  className="quick-message-btn"
+                  onClick={() => {
+                    setMessageText(msg);
+                    setShowQuickReplies(false);
+                    setSelectedCategory(null);
+                  }}
+                >
+                  {msg}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Message Input */}
       <div className="message-input-container">
+        <button
+          type="button"
+          className="quick-replies-toggle"
+          onClick={() => setShowQuickReplies(!showQuickReplies)}
+          title="Quick messages"
+          disabled={otherUser.accountStatus === 'paused'}
+        >
+          ⚡
+        </button>
         <form onSubmit={handleSend} className="message-input-form">
           <input
             type="text"

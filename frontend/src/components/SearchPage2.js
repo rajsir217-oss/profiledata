@@ -1286,10 +1286,6 @@ const SearchPage2 = () => {
       }
 
       if (page === 1) {
-        // Debug: log image data for first few users
-        filteredUsers.slice(0, 3).forEach(u => {
-          console.log(`🖼️ Search result ${u.username}: images=`, u.images);
-        });
         setUsers(filteredUsers);
           } else {
         setUsers(prev => [...prev, ...filteredUsers]);
