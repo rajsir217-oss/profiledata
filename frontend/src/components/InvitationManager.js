@@ -48,6 +48,10 @@ const InvitationManager = () => {
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
   
+  // Promo code state
+  const [promoCodes, setPromoCodes] = useState([]);
+  const [loadingPromoCodes, setLoadingPromoCodes] = useState(false);
+  
   // Form state for new invitation
   const [formData, setFormData] = useState({
     name: '',
@@ -56,7 +60,8 @@ const InvitationManager = () => {
     channel: 'email',
     customMessage: '',
     emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
-    sendImmediately: true
+    sendImmediately: true,
+    promoCode: 'USVEDIKA'
   });
   
   // Form state for editing invitation
@@ -76,10 +81,11 @@ const InvitationManager = () => {
     }
   }, [navigate]);
 
-  // Load invitations
+  // Load invitations and promo codes
   useEffect(() => {
     loadInvitations();
     loadStats();
+    loadPromoCodes();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [includeArchived]);
 
@@ -208,6 +214,32 @@ const InvitationManager = () => {
     }
   };
 
+  const loadPromoCodes = async () => {
+    try {
+      setLoadingPromoCodes(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/promo-codes/dropdown`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPromoCodes(data);
+      } else {
+        console.error('Failed to load promo codes');
+        // Set default promo code
+        setPromoCodes([{ code: 'USVEDIKA', name: 'USVedika Default', type: 'referral' }]);
+      }
+    } catch (err) {
+      console.error('Error loading promo codes:', err);
+      setPromoCodes([{ code: 'USVEDIKA', name: 'USVedika Default', type: 'referral' }]);
+    } finally {
+      setLoadingPromoCodes(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -232,7 +264,8 @@ const InvitationManager = () => {
           channel: 'email',
           customMessage: '',
           emailSubject: "You're Invited to Join USVedika for US Citizens & GC Holders",
-          sendImmediately: true
+          sendImmediately: true,
+          promoCode: 'USVEDIKA'
         });
         loadInvitations();
         loadStats();
@@ -1056,6 +1089,30 @@ const InvitationManager = () => {
                     <option value="sms">SMS Only</option>
                     <option value="both">Both Email & SMS</option>
                   </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Promo Code 🎫</label>
+                  <select
+                    value={formData.promoCode}
+                    onChange={(e) => setFormData({ ...formData, promoCode: e.target.value })}
+                    disabled={loadingPromoCodes}
+                  >
+                    {loadingPromoCodes ? (
+                      <option>Loading...</option>
+                    ) : (
+                      <>
+                        {promoCodes.map((promo) => (
+                          <option key={promo.code} value={promo.code}>
+                            {promo.code} - {promo.name} ({promo.type})
+                          </option>
+                        ))}
+                      </>
+                    )}
+                  </select>
+                  <small className="form-hint">
+                    Select a promo code to attach to this invitation
+                  </small>
                 </div>
 
                 <div className="form-group">

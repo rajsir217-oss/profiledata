@@ -599,6 +599,12 @@ const UserManagement = () => {
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
+              <th onClick={() => handleSort('promoCode')}>
+                Promo Code
+                {sortField === 'promoCode' && (
+                  <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
+                )}
+              </th>
               <th onClick={() => handleSort('created_at')}>
                 Created
                 {sortField === 'created_at' && (
@@ -764,6 +770,11 @@ const UserManagement = () => {
                 <td>
                   <span className={`status-badge ${getStatusBadgeClass(user.accountStatus)}`}>
                     {formatStatusDisplay(user.accountStatus)}
+                  </span>
+                </td>
+                <td>
+                  <span className="promo-code-badge">
+                    🎫 {user.promoCode || 'USVEDIKA'}
                   </span>
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>

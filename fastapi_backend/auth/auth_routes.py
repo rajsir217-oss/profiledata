@@ -87,6 +87,26 @@ async def register(
         if existing_email:
             raise HTTPException(status_code=400, detail="Email already registered")
         
+        # Validate promo code if provided
+        promo_validation = None
+        validated_promo_code = None
+        if request.promoCode:
+            from services.promo_code_service import PromoCodeService
+            promo_service = PromoCodeService(db)
+            promo_validation = await promo_service.validate_promo_code(request.promoCode)
+            
+            if not promo_validation.get("valid"):
+                # Return error with message - user can retry without promo code
+                raise HTTPException(
+                    status_code=400, 
+                    detail={
+                        "message": promo_validation.get("reason", "Invalid promo code"),
+                        "promoCodeError": True,
+                        "defaultToNormal": promo_validation.get("defaultToNormal", True)
+                    }
+                )
+            validated_promo_code = promo_validation.get("code")
+        
         # Hash password
         password_hash = PasswordManager.hash_password(request.password)
         
@@ -148,6 +168,10 @@ async def register(
             "marketing_consent": request.marketing_consent,
             "consent_date": datetime.utcnow(),
             
+            # Promo Code (default to NOPROMOCODE for organic registrations)
+            "promoCode": validated_promo_code if validated_promo_code else "NOPROMOCODE",
+            "promoCodeAppliedAt": datetime.utcnow() if validated_promo_code else None,
+            
             # Metadata
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
@@ -155,6 +179,12 @@ async def register(
         
         # Insert user
         result = await db.users.insert_one(user_doc)
+        
+        # Increment promo code usage if valid code was used
+        if validated_promo_code:
+            from services.promo_code_service import PromoCodeService
+            promo_service = PromoCodeService(db)
+            await promo_service.increment_usage(validated_promo_code)
         user_id = str(result.inserted_id)
         
         # Log audit event

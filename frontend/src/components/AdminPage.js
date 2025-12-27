@@ -435,6 +435,9 @@ const AdminPage = () => {
               <th onClick={() => handleSort('invitedBy')} style={{ cursor: 'pointer' }}>
                 INVITED BY {sortField === 'invitedBy' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
+              <th onClick={() => handleSort('promoCode')} style={{ cursor: 'pointer' }}>
+                PROMO CODE {sortField === 'promoCode' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </th>
               <th onClick={() => handleSort('accountStatus')} style={{ cursor: 'pointer' }}>
                 STATUS {sortField === 'accountStatus' && (sortOrder === 'asc' ? '↑' : '↓')}
               </th>
@@ -443,7 +446,7 @@ const AdminPage = () => {
           <tbody>
             {filteredUsers.length === 0 ? (
               <tr>
-                <td colSpan="12" className="text-center text-muted py-4">
+                <td colSpan="13" className="text-center text-muted py-4">
                   No users found
                 </td>
               </tr>
@@ -517,6 +520,11 @@ const AdminPage = () => {
                     ) : (
                       <span style={{ color: '#999', fontStyle: 'italic' }}>system</span>
                     )}
+                  </td>
+                  <td>
+                    <span className="badge bg-info" style={{ fontSize: '11px' }}>
+                      🎫 {user.promoCode || 'USVEDIKA'}
+                    </span>
                   </td>
                   <td>
                     {(() => {
