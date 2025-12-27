@@ -1335,6 +1335,255 @@
   color: var(--text-color);
 }
 
+.form-section .section-hint {
+  margin: 0 0 12px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Plan Pricing Grid */
+.plan-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.plan-price-input {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.plan-price-input label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.plan-price-input .input-with-prefix {
+  display: flex;
+  align-items: center;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.plan-price-input .input-with-prefix .prefix {
+  padding: 8px 10px;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  font-weight: 500;
+  border-right: 1px solid var(--border-color);
+}
+
+.plan-price-input .input-with-prefix input {
+  flex: 1;
+  border: none;
+  padding: 8px 10px;
+  font-size: 14px;
+  background: transparent;
+  color: var(--text-color);
+  width: 100%;
+}
+
+.plan-price-input .input-with-prefix input:focus {
+  outline: none;
+}
+
+.plan-price-input .input-with-prefix input::placeholder {
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+/* Plan Selector Grid (Default Plan) */
+.plan-selector-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.plan-selector-card {
+  background: var(--input-bg);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.plan-selector-card:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+}
+
+.plan-selector-card.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15) 0%, rgba(139, 92, 246, 0.15) 100%);
+}
+
+.plan-selector-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.plan-selector-price {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+.plan-selector-card.selected .plan-selector-name {
+  color: var(--primary-color);
+}
+
+@media (max-width: 480px) {
+  .plan-selector-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Effective Pricing Preview (Modal) */
+.effective-pricing-preview {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(5, 150, 105, 0.1) 100%);
+  border: 2px solid var(--success-color);
+  border-radius: 12px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.effective-pricing-preview h4 {
+  margin: 0 0 12px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--success-color);
+}
+
+.effective-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.effective-price-card {
+  background: var(--card-background);
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.effective-price-card.default {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+}
+
+.effective-price-card .plan-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.effective-price-card .custom-badge {
+  background: var(--warning-color);
+  color: white;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.effective-price-card .price-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.effective-price-card .original-price {
+  font-size: 14px;
+  color: var(--text-secondary);
+  text-decoration: line-through;
+}
+
+.effective-price-card .effective-price {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--success-color);
+}
+
+.effective-price-card .default-label {
+  display: block;
+  font-size: 10px;
+  color: var(--primary-color);
+  font-weight: 600;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+.discount-summary {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--success-color);
+  padding: 8px;
+  background: rgba(16, 185, 129, 0.15);
+  border-radius: 8px;
+}
+
+/* Effective Pricing Mini (Table) */
+.effective-pricing-mini {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.effective-pricing-mini .mini-price {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-color);
+  white-space: nowrap;
+}
+
+.effective-pricing-mini .mini-price.default {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+}
+
+.effective-pricing-mini .mini-price.custom {
+  border-color: var(--warning-color);
+  border-width: 2px;
+}
+
+.effective-pricing-mini .mini-price.custom.default {
+  box-shadow: 0 0 0 2px var(--warning-color);
+}
+
+@media (max-width: 768px) {
+  .effective-pricing-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .effective-pricing-mini {
+    flex-direction: column;
+  }
+}
+
 .checkbox-group {
   display: flex;
   align-items: center;

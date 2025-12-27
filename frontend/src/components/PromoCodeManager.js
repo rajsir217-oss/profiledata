@@ -46,6 +46,7 @@ const PromoCodeManager = () => {
     discountValue: 0,
     applicablePlans: [],
     defaultPlan: 'premium',
+    planPricing: {},
     validFrom: '',
     validUntil: '',
     maxUses: '',
@@ -236,6 +237,7 @@ const PromoCodeManager = () => {
         discountType: formData.discountType,
         discountValue: formData.discountType !== 'none' ? parseFloat(formData.discountValue) || 0 : 0,
         defaultPlan: formData.defaultPlan || 'premium',
+        planPricing: Object.keys(formData.planPricing || {}).length > 0 ? formData.planPricing : null,
         maxUses: formData.maxUses ? parseInt(formData.maxUses) : null,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()).filter(t => t) : [],
         validFrom: formData.validFrom ? new Date(formData.validFrom).toISOString() : null,
@@ -291,6 +293,9 @@ const PromoCodeManager = () => {
       }
       if (formData.defaultPlan) {
         updateData.defaultPlan = formData.defaultPlan;
+      }
+      if (formData.planPricing && Object.keys(formData.planPricing).length > 0) {
+        updateData.planPricing = formData.planPricing;
       }
       if (formData.validFrom) {
         updateData.validFrom = new Date(formData.validFrom).toISOString();
@@ -438,6 +443,7 @@ const PromoCodeManager = () => {
       discountValue: promoCode.discountValue || 0,
       applicablePlans: promoCode.applicablePlans || [],
       defaultPlan: promoCode.defaultPlan || 'premium',
+      planPricing: promoCode.planPricing || {},
       validFrom: promoCode.validFrom ? promoCode.validFrom.split('T')[0] : '',
       validUntil: promoCode.validUntil ? promoCode.validUntil.split('T')[0] : '',
       maxUses: promoCode.maxUses || '',
@@ -457,11 +463,43 @@ const PromoCodeManager = () => {
       discountValue: 0,
       applicablePlans: [],
       defaultPlan: 'premium',
+      planPricing: {},
       validFrom: '',
       validUntil: '',
       maxUses: '',
       isActive: true,
       tags: ''
+    });
+  };
+
+  // Calculate effective pricing (custom overrides default, then apply discount)
+  const getEffectivePricing = (customPricing = {}, discountType = 'none', discountValue = 0) => {
+    const defaultPlans = membershipPlans.length > 0 ? membershipPlans : [
+      { id: 'basic', name: 'Basic', price: 49 },
+      { id: 'premium', name: 'Premium', price: 99 },
+      { id: 'lifetime', name: 'Lifetime', price: 199 }
+    ];
+    
+    return defaultPlans.map(plan => {
+      // Custom price wins over default
+      const basePrice = customPricing?.[plan.id] ?? plan.price;
+      
+      // Apply discount
+      let effectivePrice = basePrice;
+      if (discountType === 'percentage' && discountValue > 0) {
+        effectivePrice = basePrice * (1 - discountValue / 100);
+      } else if (discountType === 'fixed' && discountValue > 0) {
+        effectivePrice = Math.max(0, basePrice - discountValue);
+      }
+      
+      return {
+        id: plan.id,
+        name: plan.name,
+        basePrice: basePrice,
+        effectivePrice: Math.round(effectivePrice * 100) / 100,
+        isCustom: customPricing?.[plan.id] !== undefined,
+        hasDiscount: discountType !== 'none' && discountValue > 0
+      };
     });
   };
 
@@ -769,7 +807,7 @@ const PromoCodeManager = () => {
                 TYPE {sortColumn === 'type' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
               <th>DISCOUNT</th>
-              <th>PLAN</th>
+              <th>EFFECTIVE PRICING</th>
               <th onClick={() => handleSort('currentUses')} className="sortable">
                 USES {sortColumn === 'currentUses' && (sortDirection === 'asc' ? '↑' : '↓')}
               </th>
@@ -809,9 +847,17 @@ const PromoCodeManager = () => {
                     )}
                   </td>
                   <td>
-                    <span className={`plan-badge plan-${code.defaultPlan || 'premium'}`}>
-                      {(code.defaultPlan || 'premium').charAt(0).toUpperCase() + (code.defaultPlan || 'premium').slice(1)}
-                    </span>
+                    <div className="effective-pricing-mini">
+                      {getEffectivePricing(code.planPricing, code.discountType, code.discountValue).map(plan => (
+                        <span 
+                          key={plan.id} 
+                          className={`mini-price ${code.defaultPlan === plan.id ? 'default' : ''} ${plan.isCustom ? 'custom' : ''}`}
+                          title={`${plan.name}: ${plan.isCustom ? 'Custom' : 'Default'} price${plan.hasDiscount ? ' with discount' : ''}`}
+                        >
+                          {plan.name.charAt(0)}: ${plan.effectivePrice}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td>
                     <span className="usage-badge">
@@ -1019,33 +1065,117 @@ const PromoCodeManager = () => {
                         )}
                       </div>
                     )}
-                    <div className="form-group">
-                      <label>Default Membership Plan</label>
-                      <select
-                        value={formData.defaultPlan}
-                        onChange={(e) => setFormData({ ...formData, defaultPlan: e.target.value })}
-                      >
-                        {membershipPlans.length > 0 ? (
-                          membershipPlans.map(plan => (
-                            <option key={plan.id} value={plan.id}>
-                              {plan.name} (${plan.price}{plan.duration ? `/${plan.duration} months` : ''})
-                            </option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="basic">Basic</option>
-                            <option value="premium">Premium</option>
-                            <option value="lifetime">Lifetime</option>
-                          </>
-                        )}
-                      </select>
-                      <small>Plan users will be enrolled in when using this code</small>
-                    </div>
                   </div>
                 </div>
 
                 <div className="form-section">
-                  <h4>📅 Validity Period</h4>
+                  <h4>💳 Default Membership Plan</h4>
+                  <p className="section-hint">Select which plan users will be enrolled in when using this code</p>
+                  <div className="plan-selector-grid">
+                    {(membershipPlans.length > 0 ? membershipPlans : [
+                      { id: 'basic', name: 'Basic', price: 49 },
+                      { id: 'premium', name: 'Premium', price: 99 },
+                      { id: 'lifetime', name: 'Lifetime', price: 199 }
+                    ]).map(plan => (
+                      <div 
+                        key={plan.id}
+                        className={`plan-selector-card ${formData.defaultPlan === plan.id ? 'selected' : ''}`}
+                        onClick={() => setFormData({ ...formData, defaultPlan: plan.id })}
+                      >
+                        <div className="plan-selector-name">{plan.name}</div>
+                        <div className="plan-selector-price">${plan.price}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h4>💰 Custom Plan Pricing (Optional)</h4>
+                  <p className="section-hint">Set custom prices for each plan. Leave empty to use global prices.</p>
+                  <div className="plan-pricing-grid">
+                    {membershipPlans.length > 0 ? (
+                      membershipPlans.map(plan => (
+                        <div key={plan.id} className="plan-price-input">
+                          <label>{plan.name}</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder={`Default: $${plan.price}`}
+                              value={formData.planPricing?.[plan.id] ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  planPricing: {
+                                    ...prev.planPricing,
+                                    [plan.id]: val === '' ? undefined : parseFloat(val)
+                                  }
+                                }));
+                              }}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="plan-price-input">
+                          <label>Basic</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 49"
+                              value={formData.planPricing?.basic ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, basic: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="plan-price-input">
+                          <label>Premium</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 99"
+                              value={formData.planPricing?.premium ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, premium: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="plan-price-input">
+                          <label>Lifetime</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 199"
+                              value={formData.planPricing?.lifetime ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, lifetime: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h4>� Validity Period</h4>
                   <div className="form-row">
                     <div className="form-group">
                       <label>Valid From</label>
@@ -1085,6 +1215,37 @@ const PromoCodeManager = () => {
                     />
                     Active (can be used immediately)
                   </label>
+                </div>
+
+                {/* Effective Pricing Preview */}
+                <div className="effective-pricing-preview">
+                  <h4>💵 Effective Pricing Preview</h4>
+                  <div className="effective-pricing-grid">
+                    {getEffectivePricing(formData.planPricing, formData.discountType, formData.discountValue).map(plan => (
+                      <div key={plan.id} className={`effective-price-card ${formData.defaultPlan === plan.id ? 'default' : ''}`}>
+                        <div className="plan-name">
+                          {plan.name}
+                          {plan.isCustom && <span className="custom-badge">Custom</span>}
+                        </div>
+                        <div className="price-display">
+                          {plan.hasDiscount ? (
+                            <>
+                              <span className="original-price">${plan.basePrice}</span>
+                              <span className="effective-price">${plan.effectivePrice}</span>
+                            </>
+                          ) : (
+                            <span className="effective-price">${plan.effectivePrice}</span>
+                          )}
+                        </div>
+                        {formData.defaultPlan === plan.id && <span className="default-label">Default</span>}
+                      </div>
+                    ))}
+                  </div>
+                  {formData.discountType !== 'none' && formData.discountValue > 0 && (
+                    <div className="discount-summary">
+                      💰 Discount: {formData.discountType === 'percentage' ? `${formData.discountValue}% OFF` : `$${formData.discountValue} OFF`}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
@@ -1185,28 +1346,112 @@ const PromoCodeManager = () => {
                         )}
                       </div>
                     )}
-                    <div className="form-group">
-                      <label>Default Membership Plan</label>
-                      <select
-                        value={formData.defaultPlan}
-                        onChange={(e) => setFormData({ ...formData, defaultPlan: e.target.value })}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h4>💳 Default Membership Plan</h4>
+                  <p className="section-hint">Select which plan users will be enrolled in when using this code</p>
+                  <div className="plan-selector-grid">
+                    {(membershipPlans.length > 0 ? membershipPlans : [
+                      { id: 'basic', name: 'Basic', price: 49 },
+                      { id: 'premium', name: 'Premium', price: 99 },
+                      { id: 'lifetime', name: 'Lifetime', price: 199 }
+                    ]).map(plan => (
+                      <div 
+                        key={plan.id}
+                        className={`plan-selector-card ${formData.defaultPlan === plan.id ? 'selected' : ''}`}
+                        onClick={() => setFormData({ ...formData, defaultPlan: plan.id })}
                       >
-                        {membershipPlans.length > 0 ? (
-                          membershipPlans.map(plan => (
-                            <option key={plan.id} value={plan.id}>
-                              {plan.name} (${plan.price}{plan.duration ? `/${plan.duration} months` : ''})
-                            </option>
-                          ))
-                        ) : (
-                          <>
-                            <option value="basic">Basic</option>
-                            <option value="premium">Premium</option>
-                            <option value="lifetime">Lifetime</option>
-                          </>
-                        )}
-                      </select>
-                      <small>Plan users will be enrolled in when using this code</small>
-                    </div>
+                        <div className="plan-selector-name">{plan.name}</div>
+                        <div className="plan-selector-price">${plan.price}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="form-section">
+                  <h4>💰 Custom Plan Pricing (Optional)</h4>
+                  <p className="section-hint">Set custom prices for each plan. Leave empty to use global prices.</p>
+                  <div className="plan-pricing-grid">
+                    {membershipPlans.length > 0 ? (
+                      membershipPlans.map(plan => (
+                        <div key={plan.id} className="plan-price-input">
+                          <label>{plan.name}</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder={`Default: $${plan.price}`}
+                              value={formData.planPricing?.[plan.id] ?? ''}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setFormData(prev => ({
+                                  ...prev,
+                                  planPricing: {
+                                    ...prev.planPricing,
+                                    [plan.id]: val === '' ? undefined : parseFloat(val)
+                                  }
+                                }));
+                              }}
+                              min="0"
+                              step="0.01"
+                            />
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <>
+                        <div className="plan-price-input">
+                          <label>Basic</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 49"
+                              value={formData.planPricing?.basic ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, basic: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="plan-price-input">
+                          <label>Premium</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 99"
+                              value={formData.planPricing?.premium ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, premium: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                        <div className="plan-price-input">
+                          <label>Lifetime</label>
+                          <div className="input-with-prefix">
+                            <span className="prefix">$</span>
+                            <input
+                              type="number"
+                              placeholder="e.g., 199"
+                              value={formData.planPricing?.lifetime ?? ''}
+                              onChange={(e) => setFormData(prev => ({
+                                ...prev,
+                                planPricing: { ...prev.planPricing, lifetime: parseFloat(e.target.value) || undefined }
+                              }))}
+                              min="0"
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1270,6 +1515,37 @@ const PromoCodeManager = () => {
                     />
                     Active
                   </label>
+                </div>
+
+                {/* Effective Pricing Preview */}
+                <div className="effective-pricing-preview">
+                  <h4>💵 Effective Pricing Preview</h4>
+                  <div className="effective-pricing-grid">
+                    {getEffectivePricing(formData.planPricing, formData.discountType, formData.discountValue).map(plan => (
+                      <div key={plan.id} className={`effective-price-card ${formData.defaultPlan === plan.id ? 'default' : ''}`}>
+                        <div className="plan-name">
+                          {plan.name}
+                          {plan.isCustom && <span className="custom-badge">Custom</span>}
+                        </div>
+                        <div className="price-display">
+                          {plan.hasDiscount ? (
+                            <>
+                              <span className="original-price">${plan.basePrice}</span>
+                              <span className="effective-price">${plan.effectivePrice}</span>
+                            </>
+                          ) : (
+                            <span className="effective-price">${plan.effectivePrice}</span>
+                          )}
+                        </div>
+                        {formData.defaultPlan === plan.id && <span className="default-label">Default</span>}
+                      </div>
+                    ))}
+                  </div>
+                  {formData.discountType !== 'none' && formData.discountValue > 0 && (
+                    <div className="discount-summary">
+                      💰 Discount: {formData.discountType === 'percentage' ? `${formData.discountValue}% OFF` : `$${formData.discountValue} OFF`}
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="modal-footer">
