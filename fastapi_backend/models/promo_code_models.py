@@ -5,7 +5,7 @@ Purpose: Manage promo codes for communities, events, referrals, and campaigns
 """
 
 from pydantic import BaseModel, Field
-from typing import Optional, List
+from typing import Optional, List, Dict
 from datetime import datetime
 from enum import Enum
 
@@ -38,6 +38,10 @@ class PromoCodeBase(BaseModel):
     applicablePlans: List[str] = Field(default=[], description="Membership plans this applies to")
     defaultPlan: Optional[str] = Field(default="premium", description="Default membership plan for this promo code")
     
+    # Per-plan custom pricing (overrides global plan prices)
+    # Format: {"basic": 70, "premium": 100, "lifetime": 150}
+    planPricing: Optional[Dict[str, float]] = Field(default=None, description="Custom pricing per plan for this promo code")
+    
     # Validity
     validFrom: Optional[datetime] = Field(None, description="Start date")
     validUntil: Optional[datetime] = Field(None, description="Expiry date")
@@ -60,6 +64,7 @@ class PromoCodeUpdate(BaseModel):
     discountValue: Optional[float] = Field(None, ge=0)
     applicablePlans: Optional[List[str]] = None
     defaultPlan: Optional[str] = None
+    planPricing: Optional[Dict[str, float]] = None
     validFrom: Optional[datetime] = None
     validUntil: Optional[datetime] = None
     maxUses: Optional[int] = Field(None, ge=1)

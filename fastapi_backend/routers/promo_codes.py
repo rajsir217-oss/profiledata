@@ -26,7 +26,8 @@ router = APIRouter(prefix="/api/promo-codes", tags=["promo-codes"])
 
 def check_admin(current_user: dict):
     """Check if user is admin"""
-    role = current_user.get("role_name", "free_user")
+    # Check both 'role' (from JWT) and 'role_name' (from DB) for compatibility
+    role = current_user.get("role") or current_user.get("role_name", "free_user")
     username = current_user.get("username", "")
     if role != "admin" and username != "admin":
         raise HTTPException(
