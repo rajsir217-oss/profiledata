@@ -576,27 +576,21 @@ const PromoCodeManager = () => {
         description="Manage promo codes, discounts, and referral campaigns"
       />
 
-      {/* Header */}
-      <div className="promo-header">
-        <div className="header-content">
-          <div className="header-title">
-            <h2>🎫 Promo Code Manager</h2>
-            <p>Manage promo codes, discounts, and referral campaigns</p>
-          </div>
-          <div className="header-buttons">
-            <button 
-              className="btn-analytics"
-              onClick={toggleAnalytics}
-            >
-              📊 {showAnalytics ? 'Hide' : 'View'} Analytics
-            </button>
-            <button 
-              className="btn-create"
-              onClick={() => { resetForm(); setShowAddModal(true); }}
-            >
-              ➕ Create Promo Code
-            </button>
-          </div>
+      {/* Action Bar */}
+      <div className="promo-action-bar">
+        <div className="action-buttons">
+          <button 
+            className="btn-analytics"
+            onClick={toggleAnalytics}
+          >
+            📊 {showAnalytics ? 'Hide' : 'View'} Analytics
+          </button>
+          <button 
+            className="btn-create"
+            onClick={() => { resetForm(); setShowAddModal(true); }}
+          >
+            ➕ Create Promo Code
+          </button>
         </div>
 
         {/* Stats Cards */}

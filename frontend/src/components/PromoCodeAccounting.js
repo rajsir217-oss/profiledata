@@ -229,27 +229,19 @@ const PromoCodeAccounting = () => {
 
   return (
     <div className="promo-accounting">
-      {/* Summary Header */}
-      <div className="accounting-header">
-        <div className="header-content">
-          <div className="header-title">
-            <h1>📊 Lead Generation</h1>
-            <p className="subtitle">Track member acquisition and revenue by promo code</p>
-          </div>
-          <div className="header-stats">
-            <div className="header-stat">
-              <span className="stat-value">{promoCodes.length}</span>
-              <span className="stat-label">Promo Codes</span>
-            </div>
-            <div className="header-stat">
-              <span className="stat-value">{totalMembers}</span>
-              <span className="stat-label">Total Members</span>
-            </div>
-            <div className="header-stat highlight">
-              <span className="stat-value">${totalRevenue.toFixed(2)}</span>
-              <span className="stat-label">Total Revenue</span>
-            </div>
-          </div>
+      {/* Stats Bar */}
+      <div className="stats-bar">
+        <div className="stat-item">
+          <span className="stat-value">{promoCodes.length}</span>
+          <span className="stat-label">Promo Codes</span>
+        </div>
+        <div className="stat-item">
+          <span className="stat-value">{totalMembers}</span>
+          <span className="stat-label">Total Members</span>
+        </div>
+        <div className="stat-item highlight">
+          <span className="stat-value">${totalRevenue.toFixed(2)}</span>
+          <span className="stat-label">Total Revenue</span>
         </div>
       </div>
 

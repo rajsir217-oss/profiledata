@@ -43,59 +43,48 @@
   to { transform: rotate(360deg); }
 }
 
-/* Header */
-.promo-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  padding: 24px;
-  border-radius: 16px;
-  color: white;
+/* Action Bar */
+.promo-action-bar {
   margin-bottom: 24px;
-  box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
 }
 
-.header-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.header-title h2 {
-  margin: 0 0 8px 0;
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.header-title p {
-  margin: 0;
-  opacity: 0.9;
-  font-size: 14px;
-}
-
-.header-buttons {
+.promo-action-bar .action-buttons {
   display: flex;
   gap: 12px;
-  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 16px;
 }
 
-.promo-header .btn-analytics,
-.promo-header .btn-create {
-  background: rgba(255, 255, 255, 0.2) !important;
-  color: white !important;
-  border: 2px solid rgba(255, 255, 255, 0.4) !important;
-  padding: 12px 24px !important;
-  border-radius: 50px !important;
-  font-weight: 600 !important;
+.promo-action-bar .btn-analytics {
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 14px !important;
 }
 
-.promo-header .btn-analytics:hover,
-.promo-header .btn-create:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-  border-color: white !important;
+.promo-action-bar .btn-analytics:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+.promo-action-bar .btn-create {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.promo-action-bar .btn-create:hover {
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
 /* Stats Grid */
