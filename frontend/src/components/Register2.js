@@ -186,6 +186,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  // Get promo code from URL query parameter (e.g., /register?promo=TELUGU2025)
+  const promoCodeFromUrl = searchParams.get('promo') || searchParams.get('promoCode') || null;
+  
   // Invitation state
   const [invitationToken, setInvitationToken] = useState(null);
   const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
@@ -1169,6 +1172,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     newImages.forEach((img, index) => {
       data.append("images", img);
     });
+    
+    // Add promo code from URL if present (hidden from user)
+    if (promoCodeFromUrl && !isEditMode) {
+      data.append('promoCode', promoCodeFromUrl);
+    }
 
     try {
       setIsSubmitting(true);

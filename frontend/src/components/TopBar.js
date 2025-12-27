@@ -68,6 +68,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     if (path === '/top-matches') return { icon: '🏆', title: 'Top Matches', subtitle: 'Your best compatibility matches' };
     if (path === '/edit-profile') return { icon: '✏️', title: 'Edit Profile', subtitle: 'Update your profile information' };
     if (path === '/help') return { icon: '❓', title: 'Help Center', subtitle: 'Find answers to common questions' };
+    if (path === '/promo-codes') return { icon: '🎫', title: 'Promo Code Manager', subtitle: 'Manage codes, discounts & QR' };
+    if (path === '/membership-plans') return { icon: '💳', title: 'Membership Plans', subtitle: 'Configure pricing and plans' };
+    if (path === '/lead-generation') return { icon: '📈', title: 'Lead Generation', subtitle: 'Track members & revenue' };
+    if (path === '/admin-reports') return { icon: '📊', title: 'Admin Reports', subtitle: 'View system reports and analytics' };
     return null;
   };
 

@@ -237,12 +237,39 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/poll-management')
       });
       
+      // === MEMBER ACQUIRE ===
+      items.push({ isHeader: true, label: 'MEMBER ACQUIRE' });
+      
       items.push({
         icon: '📧',
         label: 'Invitations Manager',
         subLabel: 'Manage user invitations',
         action: () => navigate('/invitations')
       });
+      
+      items.push({
+        icon: '🎫',
+        label: 'Promo Code Manager',
+        subLabel: 'Codes, discounts & QR',
+        action: () => navigate('/promo-codes')
+      });
+      
+      items.push({
+        icon: '💳',
+        label: 'Membership Plans',
+        subLabel: 'Pricing & plans',
+        action: () => navigate('/membership-plans')
+      });
+      
+      items.push({
+        icon: '📈',
+        label: 'Lead Generation',
+        subLabel: 'Track members & revenue',
+        action: () => navigate('/lead-generation')
+      });
+      
+      // === ANALYTICS & REPORTS ===
+      items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       
       items.push({
         icon: '📧',

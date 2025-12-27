@@ -2,9 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { HelmetProvider } from 'react-helmet-async';
-// Registration and Profile pages (both versions available)
-// eslint-disable-next-line no-unused-vars
-import Register from './components/Register';
+// Registration and Profile pages
 import Register2 from './components/Register2';
 import EmailVerificationSent from './components/EmailVerificationSent';
 import Login from './components/Login';
@@ -45,6 +43,9 @@ import ActivityLogs from './components/ActivityLogs';
 import ToastContainer from './components/ToastContainer';
 import InvitationManager from './components/InvitationManager';
 import InviteFriends from './components/InviteFriends';
+import PromoCodeManager from './components/PromoCodeManager';
+import PromoCodeAccounting from './components/PromoCodeAccounting';
+import MembershipPlans from './components/MembershipPlans';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -372,6 +373,9 @@ function AppContent() {
               <Route path="/pause-analytics" element={<ProtectedRoute><PauseAnalyticsDashboard /></ProtectedRoute>} />
               <Route path="/invitations" element={<ProtectedRoute><InvitationManager /></ProtectedRoute>} />
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
+              <Route path="/promo-codes" element={<ProtectedRoute><PromoCodeManager /></ProtectedRoute>} />
+              <Route path="/membership-plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
+              <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}

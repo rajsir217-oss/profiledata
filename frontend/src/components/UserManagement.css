@@ -318,6 +318,19 @@
   color: white;
 }
 
+/* Promo Code Badge */
+.promo-code-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--info-light);
+  color: var(--info-color);
+  border: 1px solid var(--info-color);
+  white-space: nowrap;
+}
+
 .status-banned {
   background: var(--danger-color);
   color: white;

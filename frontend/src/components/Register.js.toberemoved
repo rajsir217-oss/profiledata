@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import api from "../api";
 import { EducationHistory, WorkExperience, TextAreaWithSamples, GenderSelector, Autocomplete } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
@@ -7,6 +7,9 @@ import Logo from "./Logo";
 import "./Register.css";
 
 const Register = () => {
+  // Get promo code from URL query parameter (e.g., /register?promo=TELUGU2025)
+  const [searchParams] = useSearchParams();
+  const promoCodeFromUrl = searchParams.get('promo') || searchParams.get('promoCode') || null;
   // Helper function to calculate age from DOB
   const calculateAge = (dob) => {
     if (!dob) return null;
@@ -777,6 +780,11 @@ const Register = () => {
     }
     
     images.forEach((img) => data.append("images", img));
+    
+    // Add promo code from URL if present (hidden from user)
+    if (promoCodeFromUrl) {
+      data.append('promoCode', promoCodeFromUrl);
+    }
 
     try {
       setIsSubmitting(true);
@@ -802,15 +810,22 @@ const Register = () => {
       setIsSubmitting(false);
       const errorDetail = err.response?.data?.detail || err.response?.data?.error || "❌ Something went wrong.";
       
+      // Handle promo code errors - show message but allow retry without promo
+      if (typeof errorDetail === 'object' && errorDetail.promoCodeError) {
+        const promoMsg = errorDetail.message || "Invalid promo code";
+        setErrorMsg(`⚠️ ${promoMsg} You can continue with normal registration.`);
+        // Clear the promo code from URL so user can retry without it
+        window.history.replaceState({}, '', '/register');
+      }
       // Handle specific backend validation errors
-      if (errorDetail.includes("Username already exists")) {
+      else if (typeof errorDetail === 'string' && errorDetail.includes("Username already exists")) {
         setFieldErrors((prev) => ({ ...prev, username: "❌ " + errorDetail }));
         setErrorMsg("❌ Username already exists. Please choose a different username.");
-      } else if (errorDetail.includes("Email already registered")) {
+      } else if (typeof errorDetail === 'string' && errorDetail.includes("Email already registered")) {
         setFieldErrors((prev) => ({ ...prev, contactEmail: "❌ " + errorDetail }));
         setErrorMsg("❌ Email already registered. Please use a different email.");
       } else {
-        setErrorMsg(errorDetail);
+        setErrorMsg(typeof errorDetail === 'string' ? errorDetail : JSON.stringify(errorDetail));
       }
       
       window.scrollTo({ top: 0, behavior: 'smooth' });
