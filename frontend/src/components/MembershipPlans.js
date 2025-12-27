@@ -182,12 +182,8 @@ const MembershipPlans = () => {
 
   return (
     <div className="membership-plans">
-      {/* Header Section */}
-      <div className="mp-header">
-        <div className="mp-header-content">
-          <h1>💳 Membership Plans</h1>
-          <p className="subtitle">Configure pricing, plans, and trial periods</p>
-        </div>
+      {/* Action Bar */}
+      <div className="mp-action-bar">
         <button className="btn-add-plan" onClick={() => setShowAddPlan(true)}>
           ➕ Add Plan
         </button>
