@@ -1580,6 +1580,12 @@ async def get_user_profile(
         on_request_images = image_visibility.get("onRequest", [])
         user["hasOnRequestImages"] = len(on_request_images) > 0
         user["onRequestImageCount"] = len(on_request_images)
+        # Include full URLs for imageVisibility so TopBar can use profilePic
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+        }
     else:
         # Legacy: no imageVisibility means no on-request images
         user["hasOnRequestImages"] = False

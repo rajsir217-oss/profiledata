@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import api from '../api';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
 import logger from '../utils/logger';
+import { getProfilePicUrl } from '../utils/urlHelper';
 import './ChatWindow.css';
 
 const QUICK_REPLY_TEMPLATES = [
@@ -122,9 +123,9 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       {/* Chat Header */}
       <div className="chat-header">
         <div className="chat-user-info">
-          {otherUser.images?.[0] && !headerImageError ? (
+          {getProfilePicUrl(otherUser) && !headerImageError ? (
             <img 
-              src={otherUser.images[0]} 
+              src={getProfilePicUrl(otherUser)} 
               alt={otherUser.username} 
               className="chat-avatar"
               onError={() => setHeaderImageError(true)}
@@ -207,9 +208,9 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               >
                 {!isOwnMessage && showAvatar && (
                   <div className="message-avatar">
-                    {otherUser.images?.[0] && !messageImageErrors[index] ? (
+                    {getProfilePicUrl(otherUser) && !messageImageErrors[index] ? (
                       <img 
-                        src={otherUser.images[0]} 
+                        src={getProfilePicUrl(otherUser)} 
                         alt={otherUser.username}
                         onError={() => setMessageImageErrors(prev => ({ ...prev, [index]: true }))}
                       />

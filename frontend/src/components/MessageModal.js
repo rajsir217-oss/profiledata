@@ -4,6 +4,7 @@ import api from '../api';
 import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
+import { getProfilePicUrl } from '../utils/urlHelper';
 import './MessageModal.css';
 
 const MessageModal = ({ isOpen, profile, onClose }) => {
@@ -180,8 +181,8 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
         <div className="message-modal-header">
           <div className="modal-user-info">
             <div className="modal-avatar-container">
-              {profile?.images?.[0] ? (
-                <img src={getAuthenticatedImageUrl(profile.images[0])} alt={profile.username} className="modal-avatar" />
+              {getProfilePicUrl(profile) ? (
+                <img src={getProfilePicUrl(profile)} alt={profile.username} className="modal-avatar" />
               ) : (
                 <div className="modal-avatar-placeholder">
                   {profile?.firstName?.[0] || profile?.username?.[0]?.toUpperCase()}
