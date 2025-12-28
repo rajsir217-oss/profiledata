@@ -511,10 +511,13 @@ async def get_protected_media(
             "$or": [
                 {"images": {"$regex": safe_filename}},
                 {"publicImages": {"$regex": safe_filename}},
-                {"profileImage": {"$regex": safe_filename}}
+                {"profileImage": {"$regex": safe_filename}},
+                {"imageVisibility.profilePic": {"$regex": safe_filename}},
+                {"imageVisibility.memberVisible": {"$regex": safe_filename}},
+                {"imageVisibility.onRequest": {"$regex": safe_filename}}
             ]
         },
-        {"username": 1, "images": 1, "publicImages": 1, "profileImage": 1}
+        {"username": 1, "images": 1, "publicImages": 1, "profileImage": 1, "imageVisibility": 1}
     )
     if not owner:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
@@ -523,15 +526,38 @@ async def get_protected_media(
     if not owner_username:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
 
-    # Determine if this image is public
+    # =================================================================
+    # NEW IMAGE VISIBILITY SYSTEM (3-bucket)
+    # =================================================================
+    # Check imageVisibility first (new system), fallback to publicImages (legacy)
+    image_visibility = owner.get("imageVisibility")
+    
+    is_profile_pic_bucket = False
+    is_member_visible_bucket = False
+    is_on_request_bucket = False
+    
+    if image_visibility:
+        # New system: check which bucket the image belongs to
+        profile_pic = image_visibility.get("profilePic", "")
+        member_visible = image_visibility.get("memberVisible", [])
+        on_request = image_visibility.get("onRequest", [])
+        
+        if profile_pic and profile_pic.split('/')[-1] == filename:
+            is_profile_pic_bucket = True
+        elif any((img or "").split('/')[-1] == filename for img in member_visible):
+            is_member_visible_bucket = True
+        elif any((img or "").split('/')[-1] == filename for img in on_request):
+            is_on_request_bucket = True
+    
+    # Legacy fallback: determine if this image is public
     public_list = owner.get("publicImages", [])
     is_public = any((p or "").split('/')[-1] == filename for p in public_list)
     
     # =================================================================
-    # PROFILE PICTURE ALWAYS VISIBLE (index 0)
+    # PROFILE PICTURE ALWAYS VISIBLE
     # =================================================================
-    # When enabled, the first image (profile picture) is always served
-    # with full access to logged-in members, regardless of publicImages.
+    # When enabled, the profile picture (either from imageVisibility.profilePic
+    # or images[0]) is always served with full access to logged-in members.
     # 
     # This setting is controlled via:
     #   1. Admin UI: Preferences -> Config tab -> Profile Picture Visibility
@@ -549,28 +575,60 @@ async def get_protected_media(
     
     is_profile_picture = False
     owner_images = owner.get("images", [])
-    if owner_images and profile_pic_always_visible:
-        # Check if this filename matches the first image (profile picture)
-        first_image = owner_images[0] if owner_images else None
-        if first_image and first_image.split('/')[-1] == filename:
+    
+    # Check profile picture: new system (imageVisibility.profilePic) or legacy (images[0])
+    if profile_pic_always_visible:
+        if is_profile_pic_bucket:
+            # New system: explicitly in profilePic bucket
             is_profile_picture = True
+        elif not image_visibility and owner_images:
+            # Legacy fallback: first image is profile picture
+            first_image = owner_images[0] if owner_images else None
+            if first_image and first_image.split('/')[-1] == filename:
+                is_profile_picture = True
 
     is_one_time_view = False
     has_full_access = True
     
-    # Profile picture is always accessible when setting is enabled
+    # =================================================================
+    # ACCESS CONTROL LOGIC (NEW 3-BUCKET SYSTEM)
+    # =================================================================
+    # Priority order:
+    # 1. Profile picture bucket → always visible (if setting enabled)
+    # 2. Member visible bucket → visible to all logged-in members
+    # 3. On request bucket → requires pii_access grant
+    # 4. Legacy: publicImages → visible to all logged-in members
+    # 5. Legacy: other images → requires pii_access grant
+    # =================================================================
+    
     if is_profile_picture:
+        # Profile picture is always accessible when setting is enabled
         has_full_access = True
-    elif not is_public:
-        # Pass filename to check per-image access rules including one-time views
+    elif is_profile_pic_bucket:
+        # New system: profile pic bucket always visible
+        has_full_access = True
+    elif is_member_visible_bucket:
+        # New system: member visible bucket - all logged-in members can see
+        has_full_access = True
+    elif is_on_request_bucket:
+        # New system: on request bucket - requires pii_access grant
         has_access = await _has_images_access(db, requester_username, owner_username, filename)
         if not has_access:
-            # Instead of blocking, serve the image but mark as no-access for frontend to blur
+            has_full_access = False
+            logger.info(f"🔒 Serving blurred image {filename} to {requester_username} (on-request, no access)")
+        else:
+            is_one_time_view = True
+    elif is_public:
+        # Legacy: public images are visible to all
+        has_full_access = True
+    else:
+        # Legacy: non-public images require pii_access
+        has_access = await _has_images_access(db, requester_username, owner_username, filename)
+        if not has_access:
             has_full_access = False
             logger.info(f"🔒 Serving blurred image {filename} to {requester_username} (access expired/denied)")
         else:
-            # Check if this is a one-time view that needs to be marked as used
-            is_one_time_view = True  # Will be checked and marked after serving
+            is_one_time_view = True
 
     # Serve from GCS if enabled, else local filesystem
     if settings.use_gcs and settings.gcs_bucket_name:
@@ -1512,7 +1570,22 @@ async def get_user_profile(
     if profile_pic_always_visible and normalized_images:
         user["profilePicVisible"] = True
     
-    logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}")
+    # =================================================================
+    # IMAGE VISIBILITY (3-BUCKET SYSTEM)
+    # =================================================================
+    # Include imageVisibility info for frontend to determine if "Request Access" button is needed
+    # Only show button if onRequest bucket has images
+    image_visibility = user.get("imageVisibility")
+    if image_visibility:
+        on_request_images = image_visibility.get("onRequest", [])
+        user["hasOnRequestImages"] = len(on_request_images) > 0
+        user["onRequestImageCount"] = len(on_request_images)
+    else:
+        # Legacy: no imageVisibility means no on-request images
+        user["hasOnRequestImages"] = False
+        user["onRequestImageCount"] = 0
+    
+    logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}, hasOnRequestImages={user.get('hasOnRequestImages')}")
     
     # Include visible meta fields if enabled
     if user.get('metaFieldsVisibleToPublic', False):
@@ -2555,6 +2628,183 @@ async def update_public_images(
         "publicImages": [get_full_image_url(img) for img in normalized_public],
         "message": "Public photos updated"
     }
+
+# ===== IMAGE VISIBILITY ENDPOINTS =====
+
+@router.get("/profile/{username}/image-visibility")
+async def get_image_visibility(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user's image visibility settings.
+    Returns the 3-bucket structure: profilePic, memberVisible, onRequest
+    """
+    current_username = current_user.get("username") if isinstance(current_user, dict) else str(current_user)
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+
+    if not current_username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication error")
+    if current_username.lower() != username.lower() and user_role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    user = await db.users.find_one(get_username_query(username), {"images": 1, "imageVisibility": 1})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # If imageVisibility exists, return it
+    if user.get("imageVisibility"):
+        visibility = user["imageVisibility"]
+        return {
+            "profilePic": get_full_image_url(visibility.get("profilePic")) if visibility.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in visibility.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in visibility.get("onRequest", [])]
+        }
+    
+    # Fallback: compute from images array (for non-migrated users)
+    images = user.get("images", [])
+    if not images:
+        return {
+            "profilePic": None,
+            "memberVisible": [],
+            "onRequest": []
+        }
+    
+    # Default: first image = profilePic, rest = memberVisible
+    return {
+        "profilePic": get_full_image_url(images[0]) if images else None,
+        "memberVisible": [get_full_image_url(img) for img in images[1:]] if len(images) > 1 else [],
+        "onRequest": []
+    }
+
+
+@router.put("/profile/{username}/image-visibility")
+async def update_image_visibility(
+    username: str,
+    data: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Update user's image visibility settings.
+    
+    Request body:
+    {
+        "profilePic": "/uploads/img1.jpg",           // Single image (required if user has images)
+        "memberVisible": ["/uploads/img2.jpg", ...], // Array (max 4)
+        "onRequest": ["/uploads/img3.jpg", ...]      // Array (within total 5)
+    }
+    
+    Rules:
+    - Total images across all buckets must not exceed 5
+    - profilePic: max 1
+    - memberVisible: max 4
+    - All images must exist in user's images array
+    """
+    current_username = current_user.get("username") if isinstance(current_user, dict) else str(current_user)
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+
+    if not current_username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication error")
+    if current_username.lower() != username.lower() and user_role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    user = await db.users.find_one(get_username_query(username), {"images": 1})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    from urllib.parse import urlparse
+
+    def extract_path(url_or_path: str) -> str:
+        """Extract and normalize image path to /uploads/... format"""
+        if not url_or_path:
+            return ''
+        if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+            parsed = urlparse(url_or_path)
+            path = parsed.path
+            if '/api/users/media/' in path:
+                path = '/uploads/' + path.split('/api/users/media/')[-1]
+            return path
+        if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+            return '/' + url_or_path
+        if isinstance(url_or_path, str) and '/api/users/media/' in url_or_path:
+            return '/uploads/' + url_or_path.split('/api/users/media/')[-1]
+        return url_or_path
+
+    existing_images = user.get("images", [])
+    normalized_existing = {extract_path(img) for img in existing_images if img}
+
+    # Extract and validate input
+    profile_pic = data.get("profilePic")
+    member_visible = data.get("memberVisible", [])
+    on_request = data.get("onRequest", [])
+
+    if not isinstance(member_visible, list):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="memberVisible must be a list")
+    if not isinstance(on_request, list):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="onRequest must be a list")
+
+    # Normalize paths
+    normalized_profile_pic = extract_path(profile_pic) if profile_pic else None
+    normalized_member_visible = [extract_path(img) for img in member_visible if img]
+    normalized_on_request = [extract_path(img) for img in on_request if img]
+
+    # Validate: all images must exist in user's images
+    all_visibility_images = []
+    if normalized_profile_pic:
+        all_visibility_images.append(normalized_profile_pic)
+    all_visibility_images.extend(normalized_member_visible)
+    all_visibility_images.extend(normalized_on_request)
+
+    for img in all_visibility_images:
+        if img not in normalized_existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Image not found in user's images: {img}"
+            )
+
+    # Validate limits
+    if len(all_visibility_images) > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Total images cannot exceed 5"
+        )
+    if len(normalized_member_visible) > 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Member visible images cannot exceed 4"
+        )
+
+    # If user has images but no profile pic specified, use first image
+    if existing_images and not normalized_profile_pic:
+        normalized_profile_pic = extract_path(existing_images[0])
+
+    # Build the imageVisibility object
+    image_visibility = {
+        "profilePic": normalized_profile_pic,
+        "memberVisible": normalized_member_visible,
+        "onRequest": normalized_on_request
+    }
+
+    # Update database
+    await db.users.update_one(
+        {"username": username},
+        {"$set": {
+            "imageVisibility": image_visibility,
+            "updatedAt": datetime.utcnow().isoformat()
+        }}
+    )
+
+    logger.info(f"📸 Image visibility updated for {username}: profilePic={normalized_profile_pic}, memberVisible={len(normalized_member_visible)}, onRequest={len(normalized_on_request)}")
+
+    return {
+        "profilePic": get_full_image_url(normalized_profile_pic) if normalized_profile_pic else None,
+        "memberVisible": [get_full_image_url(img) for img in normalized_member_visible],
+        "onRequest": [get_full_image_url(img) for img in normalized_on_request],
+        "message": "Image visibility updated successfully"
+    }
+
 
 # ===== USER PREFERENCES ENDPOINTS =====
 
