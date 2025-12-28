@@ -6388,6 +6388,21 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
             
+            # Build imageVisibility for frontend avatar display
+            image_visibility = user_data.get("imageVisibility")
+            if image_visibility:
+                iv_data = {
+                    "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else profile_image,
+                    "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+                    "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+                }
+            else:
+                iv_data = {
+                    "profilePic": profile_image,
+                    "memberVisible": [],
+                    "onRequest": []
+                }
+            
             user_result = {
                 "username": fav["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -6399,6 +6414,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
+                "imageVisibility": iv_data,
                 "addedAt": safe_datetime_serialize(fav.get("createdAt"))
             }
             if profile_pic_always_visible and existing_images:
@@ -6460,6 +6476,21 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
             
+            # Build imageVisibility for frontend avatar display
+            image_visibility = user_data.get("imageVisibility")
+            if image_visibility:
+                iv_data = {
+                    "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else profile_image,
+                    "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+                    "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+                }
+            else:
+                iv_data = {
+                    "profilePic": profile_image,
+                    "memberVisible": [],
+                    "onRequest": []
+                }
+            
             user_result = {
                 "username": shortlist["userUsername"],
                 "firstName": user_data.get("firstName"),
@@ -6471,6 +6502,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
+                "imageVisibility": iv_data,
                 "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
             }
             if profile_pic_always_visible and existing_images:
@@ -6736,6 +6768,9 @@ async def get_profile_views(
                         elif field_name == "linkedinUrl" and decrypted:
                             # Keep LinkedIn URL as-is
                             viewer["linkedinUrl"] = decrypted
+                
+                # Enrich with imageVisibility for frontend avatar display
+                viewer = _enrich_user_with_image_visibility(viewer)
                 
                 view_count = view["viewCount"]
                 total_view_count += view_count
