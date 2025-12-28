@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
 import { getDisplayName } from '../utils/userDisplay';
+import { getProfilePicUrl } from '../utils/urlHelper';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
@@ -58,9 +59,9 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               onClick={() => onSelectUser(conv.username)}
             >
               <div className="conversation-avatar">
-                {conv.userProfile?.images?.[0] && !imageErrors[conv.username] ? (
+                {getProfilePicUrl(conv.userProfile) && !imageErrors[conv.username] ? (
                   <img 
-                    src={conv.userProfile.images[0]} 
+                    src={getProfilePicUrl(conv.userProfile)} 
                     alt={conv.username}
                     onError={() => handleImageError(conv.username)}
                   />

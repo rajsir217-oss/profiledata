@@ -5,6 +5,7 @@ import { getApiUrl } from '../config/apiConfig';
 import socketService from '../services/socketService';
 import { getShortName } from '../utils/userDisplay';
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
+import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
@@ -419,8 +420,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             >
               {item.profileImage ? (
                 <div className="menu-icon profile-icon">
-                  {userProfile?.images?.[0] ? (
-                    <img src={getAuthenticatedImageUrl(userProfile.images[0])} alt={currentUser} className="profile-avatar" />
+                  {getProfilePicUrl(userProfile) ? (
+                    <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="profile-avatar" />
                   ) : (
                     <div className="profile-avatar-placeholder">
                       {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}

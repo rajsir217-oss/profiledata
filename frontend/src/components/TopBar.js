@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
-import { getImageUrl } from '../utils/urlHelper';
+import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import OnlineUsersDropdown from './OnlineUsersDropdown';
@@ -391,8 +391,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           
           <div className="user-info" onClick={handleProfile}>
             <div className="user-icon">
-              {userProfile?.images?.[0] ? (
-                <img src={getImageUrl(userProfile.images[0])} alt={currentUser} className="topbar-profile-avatar" />
+              {getProfilePicUrl(userProfile) ? (
+                <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="topbar-profile-avatar" />
               ) : (
                 <div className="topbar-profile-placeholder">
                   {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}
