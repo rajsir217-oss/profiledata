@@ -6,6 +6,7 @@ import { getBackendUrl } from "../config/apiConfig";
 import logger from "../utils/logger";
 import TabContainer from "./TabContainer";
 import ImageManager from "./ImageManager";
+import PhotoVisibilityManager from "./PhotoVisibilityManager";
 // ProfileConfirmationModal removed - registration now submits directly
 import { EducationHistory, WorkExperience, TextAreaWithSamples, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
 import { US_STATES, US_CITIES_BY_STATE } from "../data/usLocations";
@@ -2963,70 +2964,42 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
-        {/* Profile Images - ImageManager Component */}
+        {/* Profile Images - Use PhotoVisibilityManager in edit mode, ImageManager for registration */}
         <div className="mt-4">
           <h5 className="mb-3 text-primary">📸 Profile Images</h5>
-          <p className="text-muted small mb-3">
-            Upload up to 6 photos (5MB each). Drag to reorder. First photo will be your profile picture.
-          </p>
-          <ImageManager
-            existingImages={existingImages}
-            setExistingImages={setExistingImages}
-            publicImages={publicImages}
-            setPublicImages={setPublicImages}
-            imagesToDelete={imagesToDelete}
-            setImagesToDelete={setImagesToDelete}
-            newImages={newImages}
-            setNewImages={setNewImages}
-            onError={(msg) => setErrorMsg(msg)}
-            username={editUsername || formData.username}
-            isEditMode={isEditMode}
-          />
-          {/* Quick Actions for All Images */}
-          <div className="d-flex gap-2 mt-3">
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-success"
-              onClick={async () => {
-                // Make all images public
-                const allPublic = [...existingImages];
-                setPublicImages(allPublic);
-                if (isEditMode && (editUsername || formData.username)) {
-                  try {
-                    await api.put(`/profile/${editUsername || formData.username}/public-images`, {
-                      publicImages: allPublic
-                    });
-                  } catch (error) {
-                    console.error('Failed to update public images:', error);
-                  }
-                }
-              }}
-            >
-              👁️ Make All Public
-            </button>
-            <button
-              type="button"
-              className="btn btn-sm btn-outline-secondary"
-              onClick={async () => {
-                // Make all images private
-                setPublicImages([]);
-                if (isEditMode && (editUsername || formData.username)) {
-                  try {
-                    await api.put(`/profile/${editUsername || formData.username}/public-images`, {
-                      publicImages: []
-                    });
-                  } catch (error) {
-                    console.error('Failed to update public images:', error);
-                  }
-                }
-              }}
-            >
-              🔒 Make All Private
-            </button>
-          </div>
-          <small className="text-muted d-block mt-1">
-            💡 Use the toggle switch on each photo to control individual visibility.
-          </small>
+          {isEditMode ? (
+            <>
+              <p className="text-muted small mb-3">
+                Drag photos between columns to control visibility. Profile Pic is always visible to members.
+              </p>
+              <PhotoVisibilityManager
+                existingImages={existingImages}
+                setExistingImages={setExistingImages}
+                onError={(msg) => setErrorMsg(msg)}
+                username={editUsername || formData.username}
+                isEditMode={isEditMode}
+              />
+            </>
+          ) : (
+            <>
+              <p className="text-muted small mb-3">
+                Upload up to 5 photos (5MB each). Drag to reorder. First photo will be your profile picture.
+              </p>
+              <ImageManager
+                existingImages={existingImages}
+                setExistingImages={setExistingImages}
+                publicImages={publicImages}
+                setPublicImages={setPublicImages}
+                imagesToDelete={imagesToDelete}
+                setImagesToDelete={setImagesToDelete}
+                newImages={newImages}
+                setNewImages={setNewImages}
+                onError={(msg) => setErrorMsg(msg)}
+                username={editUsername || formData.username}
+                isEditMode={isEditMode}
+              />
+            </>
+          )}
         </div>
 
         {/* Continue Button */}
