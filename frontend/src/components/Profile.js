@@ -2307,11 +2307,11 @@ const Profile = ({
                 />
               ))}
             </div>
-            {/* Show request access if some images don't have access */}
-            {accessibleImages.some(img => !img.hasAccess) && (
+            {/* Show request access if some images don't have access AND user has onRequest images */}
+            {accessibleImages.some(img => !img.hasAccess) && user.hasOnRequestImages && (
               <div className="pii-locked" style={{ marginTop: '16px' }}>
                 <div className="lock-icon">🔒</div>
-                <p>{accessibleImages.filter(img => img.hasAccess).length > 0 ? 'Some photos are private or expired' : 'Photos are private'}</p>
+                <p>{accessibleImages.filter(img => img.hasAccess).length > 0 ? `${user.onRequestImageCount || 'Some'} photos require approval` : 'Photos require approval'}</p>
                 <button
                   className="btn-request-small"
                   onClick={() => setShowPIIRequestModal(true)}
@@ -2349,16 +2349,16 @@ const Profile = ({
                 ))}
               </div>
             )}
-            {/* Only show request access if there are private photos not visible */}
-            {(user.images?.length || 0) > publicImageObjects.length && (
+            {/* Only show request access if user has onRequest images */}
+            {user.hasOnRequestImages && (
               <div className="pii-locked">
                 <div className="lock-icon">🔒</div>
-                <p>{publicImageObjects.length > 0 ? 'More photos are private' : 'Photos are private'}</p>
+                <p>{user.onRequestImageCount || 'Some'} photo{(user.onRequestImageCount || 0) !== 1 ? 's' : ''} require{(user.onRequestImageCount || 0) === 1 ? 's' : ''} approval</p>
                 <button
                   className="btn-request-small"
                   onClick={() => setShowPIIRequestModal(true)}
                 >
-                  {publicImageObjects.length > 0 ? 'Request More Photos' : 'Request Access'}
+                  Request Access
                 </button>
               </div>
             )}

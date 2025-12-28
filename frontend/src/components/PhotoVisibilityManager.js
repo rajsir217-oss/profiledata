@@ -5,17 +5,19 @@ import api from '../api';
 import './PhotoVisibilityManager.css';
 
 /**
- * PhotoVisibilityManager - 3-Column Drag-Drop Photo Management
+ * PhotoVisibilityManager - 5-Slot Horizontal Photo Management
  * 
- * Columns:
- * 1. Profile Pic (max 1) - Always visible to logged-in members
- * 2. Member Visible (max 4) - Visible to all logged-in members
- * 3. On Request (within total 5) - Requires PII access grant
+ * Layout: [1] [2] [3] [4] [5] - 5 horizontal slots
+ * 
+ * Each photo has a visibility dropdown:
+ * - 👤 Profile Pic (slot 1 only) - Always visible to logged-in members
+ * - 👥 Member Visible - Visible to all logged-in members  
+ * - 🔒 On Request - Requires PII access grant
  * 
  * Default behavior:
- * - 1st pic goes into Profile Pic bucket
- * - Remaining pics go into Member Visible bucket
- * - On Request bucket is empty by default
+ * - 1st pic = Profile Pic (always visible)
+ * - Remaining pics = Member Visible
+ * - On Request = empty by default
  */
 const PhotoVisibilityManager = ({ 
   existingImages, 
@@ -25,21 +27,20 @@ const PhotoVisibilityManager = ({
   isEditMode,
   onVisibilityChange 
 }) => {
-  // 3-bucket state
-  const [profilePic, setProfilePic] = useState(null);
-  const [memberVisible, setMemberVisible] = useState([]);
-  const [onRequest, setOnRequest] = useState([]);
+  // Photos array with visibility info
+  // Each item: { url: string, visibility: 'profilePic' | 'memberVisible' | 'onRequest' }
+  const [photos, setPhotos] = useState([]);
   
   // UI state
-  const [draggedImage, setDraggedImage] = useState(null);
-  const [dragOverBucket, setDragOverBucket] = useState(null);
   const [lightboxImage, setLightboxImage] = useState(null);
   const [showLightbox, setShowLightbox] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirmImage, setDeleteConfirmImage] = useState(null);
+  const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null);
   const [localStatus, setLocalStatus] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
 
   const showStatus = (type, message, duration = 4000) => {
     setLocalStatus({ type, message });
@@ -68,15 +69,30 @@ const PhotoVisibilityManager = ({
       const response = await api.get(`/profile/${username}/image-visibility`);
       const data = response.data;
       
-      setProfilePic(data.profilePic || null);
-      setMemberVisible(data.memberVisible || []);
-      setOnRequest(data.onRequest || []);
+      // Build photos array from visibility data
+      const photosArray = [];
+      
+      if (data.profilePic) {
+        photosArray.push({ url: data.profilePic, visibility: 'profilePic' });
+      }
+      
+      (data.memberVisible || []).forEach(url => {
+        photosArray.push({ url, visibility: 'memberVisible' });
+      });
+      
+      (data.onRequest || []).forEach(url => {
+        photosArray.push({ url, visibility: 'onRequest' });
+      });
+      
+      setPhotos(photosArray);
     } catch (error) {
       // Fallback: compute from existingImages
       if (existingImages && existingImages.length > 0) {
-        setProfilePic(existingImages[0]);
-        setMemberVisible(existingImages.slice(1));
-        setOnRequest([]);
+        const photosArray = existingImages.map((url, idx) => ({
+          url,
+          visibility: idx === 0 ? 'profilePic' : 'memberVisible'
+        }));
+        setPhotos(photosArray);
       }
     } finally {
       setIsLoading(false);
@@ -88,36 +104,68 @@ const PhotoVisibilityManager = ({
   }, [loadVisibility]);
 
   // Save visibility to backend
-  const saveVisibility = async (newProfilePic, newMemberVisible, newOnRequest) => {
+  const saveVisibility = async (photosArray) => {
     if (!username || !isEditMode) return;
+    
+    // Convert photos array to visibility structure
+    const profilePic = photosArray.find(p => p.visibility === 'profilePic')?.url || null;
+    const memberVisible = photosArray.filter(p => p.visibility === 'memberVisible').map(p => p.url);
+    const onRequest = photosArray.filter(p => p.visibility === 'onRequest').map(p => p.url);
     
     setSaving(true);
     try {
       await api.put(`/profile/${username}/image-visibility`, {
-        profilePic: newProfilePic,
-        memberVisible: newMemberVisible,
-        onRequest: newOnRequest
+        profilePic,
+        memberVisible,
+        onRequest
       });
       
-      showStatus('success', '✅ Photo visibility updated!');
+      showStatus('success', '✅ Visibility updated!');
       
       if (onVisibilityChange) {
-        onVisibilityChange({
-          profilePic: newProfilePic,
-          memberVisible: newMemberVisible,
-          onRequest: newOnRequest
-        });
+        onVisibilityChange({ profilePic, memberVisible, onRequest });
       }
     } catch (error) {
-      showStatus('error', '❌ Failed to update visibility: ' + (error.response?.data?.detail || error.message));
+      showStatus('error', '❌ Failed to save: ' + (error.response?.data?.detail || error.message));
     } finally {
       setSaving(false);
     }
   };
 
+  // Handle visibility change for a photo
+  const handleVisibilityChange = async (index, newVisibility) => {
+    const newPhotos = [...photos];
+    const oldVisibility = newPhotos[index].visibility;
+    
+    // If changing TO profilePic, remove profilePic from any other photo
+    if (newVisibility === 'profilePic') {
+      newPhotos.forEach((p, i) => {
+        if (p.visibility === 'profilePic' && i !== index) {
+          p.visibility = 'memberVisible';
+        }
+      });
+    }
+    
+    // If changing FROM profilePic and no other profilePic exists, make first photo profilePic
+    if (oldVisibility === 'profilePic' && newVisibility !== 'profilePic') {
+      const hasOtherProfilePic = newPhotos.some((p, i) => i !== index && p.visibility === 'profilePic');
+      if (!hasOtherProfilePic && newPhotos.length > 1) {
+        // Find first non-current photo and make it profilePic
+        const firstOther = newPhotos.findIndex((p, i) => i !== index);
+        if (firstOther !== -1) {
+          newPhotos[firstOther].visibility = 'profilePic';
+        }
+      }
+    }
+    
+    newPhotos[index].visibility = newVisibility;
+    setPhotos(newPhotos);
+    await saveVisibility(newPhotos);
+  };
+
   // Handle drag start
-  const handleDragStart = (e, imageUrl, sourceBucket) => {
-    setDraggedImage({ url: imageUrl, source: sourceBucket });
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
     e.currentTarget.style.opacity = '0.5';
   };
@@ -125,138 +173,82 @@ const PhotoVisibilityManager = ({
   // Handle drag end
   const handleDragEnd = (e) => {
     e.currentTarget.style.opacity = '1';
-    setDraggedImage(null);
-    setDragOverBucket(null);
+    setDraggedIndex(null);
+    setDragOverIndex(null);
   };
 
-  // Handle drag over bucket
-  const handleDragOverBucket = (e, bucketName) => {
+  // Handle drag over
+  const handleDragOver = (e, index) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverBucket(bucketName);
+    setDragOverIndex(index);
   };
 
-  // Handle drag leave bucket
-  const handleDragLeaveBucket = () => {
-    setDragOverBucket(null);
-  };
-
-  // Handle drop on bucket
-  const handleDropOnBucket = async (e, targetBucket) => {
+  // Handle drop - reorder photos
+  const handleDrop = async (e, dropIndex) => {
     e.preventDefault();
-    setDragOverBucket(null);
+    setDragOverIndex(null);
     
-    if (!draggedImage) return;
-    
-    const { url: imageUrl, source: sourceBucket } = draggedImage;
-    
-    // No change if dropping on same bucket
-    if (sourceBucket === targetBucket) {
-      setDraggedImage(null);
+    if (draggedIndex === null || draggedIndex === dropIndex) {
+      setDraggedIndex(null);
       return;
     }
     
-    // Calculate new state
-    let newProfilePic = profilePic;
-    let newMemberVisible = [...memberVisible];
-    let newOnRequest = [...onRequest];
+    const newPhotos = [...photos];
+    const [removed] = newPhotos.splice(draggedIndex, 1);
+    newPhotos.splice(dropIndex, 0, removed);
     
-    // Remove from source bucket
-    if (sourceBucket === 'profilePic') {
-      newProfilePic = null;
-    } else if (sourceBucket === 'memberVisible') {
-      newMemberVisible = newMemberVisible.filter(img => normalizeImagePath(img) !== normalizeImagePath(imageUrl));
-    } else if (sourceBucket === 'onRequest') {
-      newOnRequest = newOnRequest.filter(img => normalizeImagePath(img) !== normalizeImagePath(imageUrl));
+    // If first photo changed, update visibility
+    if (dropIndex === 0 || draggedIndex === 0) {
+      // Make first photo profilePic, demote old profilePic
+      newPhotos.forEach((p, i) => {
+        if (i === 0) {
+          p.visibility = 'profilePic';
+        } else if (p.visibility === 'profilePic') {
+          p.visibility = 'memberVisible';
+        }
+      });
     }
     
-    // Add to target bucket
-    if (targetBucket === 'profilePic') {
-      // If there's already a profile pic, move it to memberVisible
-      if (newProfilePic) {
-        newMemberVisible.unshift(newProfilePic);
-      }
-      newProfilePic = imageUrl;
-    } else if (targetBucket === 'memberVisible') {
-      // Check limit
-      if (newMemberVisible.length >= 4) {
-        showStatus('error', '❌ Member Visible can have max 4 photos');
-        setDraggedImage(null);
-        return;
-      }
-      newMemberVisible.push(imageUrl);
-    } else if (targetBucket === 'onRequest') {
-      newOnRequest.push(imageUrl);
-    }
-    
-    // Validate total
-    const total = (newProfilePic ? 1 : 0) + newMemberVisible.length + newOnRequest.length;
-    if (total > 5) {
-      showStatus('error', '❌ Maximum 5 photos allowed');
-      setDraggedImage(null);
-      return;
-    }
-    
-    // Update state
-    setProfilePic(newProfilePic);
-    setMemberVisible(newMemberVisible);
-    setOnRequest(newOnRequest);
-    setDraggedImage(null);
-    
-    // Auto-save
-    await saveVisibility(newProfilePic, newMemberVisible, newOnRequest);
+    setPhotos(newPhotos);
+    setDraggedIndex(null);
+    await saveVisibility(newPhotos);
   };
 
-  // Handle delete image
-  const handleDeleteImage = async (imageUrl, bucket) => {
+  // Handle delete photo
+  const handleDeletePhoto = async (index) => {
     // 2-click delete pattern
-    if (deleteConfirmImage !== imageUrl) {
-      setDeleteConfirmImage(imageUrl);
-      setTimeout(() => setDeleteConfirmImage(null), 3000);
+    if (deleteConfirmIndex !== index) {
+      setDeleteConfirmIndex(index);
+      setTimeout(() => setDeleteConfirmIndex(null), 3000);
       return;
     }
     
-    setDeleteConfirmImage(null);
+    setDeleteConfirmIndex(null);
     setSaving(true);
     
     try {
-      // Call delete API
-      const cleanImageUrl = imageUrl.split('?')[0];
-      const allImages = [profilePic, ...memberVisible, ...onRequest].filter(Boolean);
-      const remainingImages = allImages.filter(img => img.split('?')[0] !== cleanImageUrl);
+      const photoToDelete = photos[index];
+      const cleanImageUrl = photoToDelete.url.split('?')[0];
+      const remainingPhotos = photos.filter((_, i) => i !== index);
       
       await api.put(`/profile/${username}/delete-photo`, {
         imageToDelete: cleanImageUrl,
-        remainingImages: remainingImages.map(img => img.split('?')[0])
+        remainingImages: remainingPhotos.map(p => p.url.split('?')[0])
       });
       
-      // Update local state
-      let newProfilePic = profilePic;
-      let newMemberVisible = [...memberVisible];
-      let newOnRequest = [...onRequest];
-      
-      if (bucket === 'profilePic') {
-        // Move first memberVisible to profilePic
-        newProfilePic = newMemberVisible.length > 0 ? newMemberVisible.shift() : null;
-      } else if (bucket === 'memberVisible') {
-        newMemberVisible = newMemberVisible.filter(img => normalizeImagePath(img) !== normalizeImagePath(imageUrl));
-      } else if (bucket === 'onRequest') {
-        newOnRequest = newOnRequest.filter(img => normalizeImagePath(img) !== normalizeImagePath(imageUrl));
+      // If deleted photo was profilePic, promote first remaining
+      if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
+        remainingPhotos[0].visibility = 'profilePic';
       }
       
-      setProfilePic(newProfilePic);
-      setMemberVisible(newMemberVisible);
-      setOnRequest(newOnRequest);
+      setPhotos(remainingPhotos);
       
-      // Update parent
       if (setExistingImages) {
-        const newAll = [newProfilePic, ...newMemberVisible, ...newOnRequest].filter(Boolean);
-        setExistingImages(newAll);
+        setExistingImages(remainingPhotos.map(p => p.url));
       }
       
-      // Save visibility
-      await saveVisibility(newProfilePic, newMemberVisible, newOnRequest);
-      
+      await saveVisibility(remainingPhotos);
       showStatus('success', '✅ Photo deleted!');
     } catch (error) {
       showStatus('error', '❌ Failed to delete: ' + (error.response?.data?.detail || error.message));
@@ -268,9 +260,8 @@ const PhotoVisibilityManager = ({
   // Handle file upload
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files);
-    const currentTotal = (profilePic ? 1 : 0) + memberVisible.length + onRequest.length;
     
-    if (currentTotal + files.length > 5) {
+    if (photos.length + files.length > 5) {
       showStatus('error', '❌ Maximum 5 photos allowed');
       e.target.value = '';
       return;
@@ -295,37 +286,29 @@ const PhotoVisibilityManager = ({
       const formData = new FormData();
       files.forEach(file => formData.append('images', file));
       
-      const allExisting = [profilePic, ...memberVisible, ...onRequest].filter(Boolean);
-      formData.append('existingImages', JSON.stringify(allExisting));
+      const existingUrls = photos.map(p => p.url);
+      formData.append('existingImages', JSON.stringify(existingUrls));
       
       const response = await api.post(`/profile/${username}/upload-photos`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
-      // New images go to memberVisible by default
-      const newImages = response.data.images;
-      const newMemberVisible = [...memberVisible];
+      // Add new images as memberVisible (or profilePic if first)
+      const newImages = response.data.images.filter(img => !existingUrls.includes(img));
+      const newPhotos = [...photos];
       
-      // If no profile pic, first new image becomes profile pic
-      let newProfilePic = profilePic;
-      if (!newProfilePic && newImages.length > 0) {
-        newProfilePic = newImages[0];
-        newMemberVisible.push(...newImages.slice(1));
-      } else {
-        newMemberVisible.push(...newImages.filter(img => !allExisting.includes(img)));
-      }
+      newImages.forEach(url => {
+        const visibility = newPhotos.length === 0 ? 'profilePic' : 'memberVisible';
+        newPhotos.push({ url, visibility });
+      });
       
-      setProfilePic(newProfilePic);
-      setMemberVisible(newMemberVisible);
+      setPhotos(newPhotos);
       
-      // Update parent
       if (setExistingImages) {
-        setExistingImages([newProfilePic, ...newMemberVisible, ...onRequest].filter(Boolean));
+        setExistingImages(newPhotos.map(p => p.url));
       }
       
-      // Save visibility
-      await saveVisibility(newProfilePic, newMemberVisible, onRequest);
-      
+      await saveVisibility(newPhotos);
       showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded!`);
     } catch (error) {
       showStatus('error', '❌ Upload failed: ' + (error.response?.data?.detail || error.message));
@@ -335,94 +318,19 @@ const PhotoVisibilityManager = ({
     }
   };
 
-  // Render a single photo card
-  const renderPhotoCard = (imageUrl, bucket, index = 0) => {
-    if (!imageUrl) return null;
-    
-    const displayUrl = getImageUrl(imageUrl);
-    const isConfirmDelete = deleteConfirmImage === imageUrl;
-    
-    return (
-      <div
-        key={imageUrl}
-        className={`photo-card ${isConfirmDelete ? 'confirm-delete' : ''}`}
-        draggable
-        onDragStart={(e) => handleDragStart(e, imageUrl, bucket)}
-        onDragEnd={handleDragEnd}
-      >
-        <div 
-          className="photo-preview"
-          onClick={() => {
-            setLightboxImage(displayUrl);
-            setShowLightbox(true);
-          }}
-        >
-          <img src={displayUrl} alt={`Photo ${index + 1}`} loading="lazy" />
-          {bucket === 'onRequest' && (
-            <div className="lock-overlay">🔒</div>
-          )}
-        </div>
-        
-        <button
-          type="button"
-          className={`btn-delete ${isConfirmDelete ? 'confirm' : ''}`}
-          onClick={() => handleDeleteImage(imageUrl, bucket)}
-          title={isConfirmDelete ? 'Click again to confirm' : 'Delete photo'}
-        >
-          {isConfirmDelete ? '⚠️' : '🗑️'}
-        </button>
-        
-        <div className="drag-hint">⋮⋮</div>
-      </div>
-    );
+  // Get visibility icon and label
+  const getVisibilityInfo = (visibility) => {
+    switch (visibility) {
+      case 'profilePic':
+        return { icon: '👤', label: 'Profile Pic', color: 'var(--warning-color, #ffc107)' };
+      case 'memberVisible':
+        return { icon: '👥', label: 'Members', color: 'var(--success-color, #28a745)' };
+      case 'onRequest':
+        return { icon: '🔒', label: 'On Request', color: 'var(--primary-color, #6366f1)' };
+      default:
+        return { icon: '👥', label: 'Members', color: 'var(--success-color, #28a745)' };
+    }
   };
-
-  // Render a bucket column
-  const renderBucket = (bucketName, title, icon, images, maxCount = null) => {
-    const isOver = dragOverBucket === bucketName;
-    const count = Array.isArray(images) ? images.length : (images ? 1 : 0);
-    
-    return (
-      <div
-        className={`visibility-bucket ${bucketName} ${isOver ? 'drag-over' : ''}`}
-        onDragOver={(e) => handleDragOverBucket(e, bucketName)}
-        onDragLeave={handleDragLeaveBucket}
-        onDrop={(e) => handleDropOnBucket(e, bucketName)}
-      >
-        <div className="bucket-header">
-          <span className="bucket-icon">{icon}</span>
-          <span className="bucket-title">{title}</span>
-          {maxCount && <span className="bucket-count">({count}/{maxCount})</span>}
-        </div>
-        
-        <div className="bucket-content">
-          {bucketName === 'profilePic' ? (
-            images ? renderPhotoCard(images, bucketName) : (
-              <div className="empty-bucket">
-                <span>Drag a photo here</span>
-              </div>
-            )
-          ) : (
-            images.length > 0 ? (
-              images.map((img, idx) => renderPhotoCard(img, bucketName, idx))
-            ) : (
-              <div className="empty-bucket">
-                <span>{bucketName === 'onRequest' ? 'No private photos' : 'Drag photos here'}</span>
-              </div>
-            )
-          )}
-        </div>
-        
-        <div className="bucket-description">
-          {bucketName === 'profilePic' && 'Always visible to members'}
-          {bucketName === 'memberVisible' && 'Visible to all logged-in members'}
-          {bucketName === 'onRequest' && 'Requires access approval'}
-        </div>
-      </div>
-    );
-  };
-
-  const totalPhotos = (profilePic ? 1 : 0) + memberVisible.length + onRequest.length;
 
   if (isLoading) {
     return (
@@ -436,7 +344,7 @@ const PhotoVisibilityManager = ({
     <div className="photo-visibility-manager">
       <div className="manager-header">
         <h5>📸 Manage Your Photos</h5>
-        <p className="tip">💡 Drag photos between columns to change visibility</p>
+        <p className="tip">💡 Drag to reorder • Click visibility badge to change • First photo is your profile picture</p>
       </div>
       
       {/* Status Banners */}
@@ -456,36 +364,115 @@ const PhotoVisibilityManager = ({
         </div>
       )}
       
-      {/* Upload Button */}
-      <div className="upload-section">
-        <label htmlFor="photo-upload" className={`upload-button ${totalPhotos >= 5 ? 'disabled' : ''}`}>
-          <span>📤 Upload New Photos</span>
-          <small>({totalPhotos}/5)</small>
-        </label>
-        <input
-          id="photo-upload"
-          type="file"
-          accept="image/*"
-          multiple
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-          disabled={totalPhotos >= 5 || uploading}
-        />
+      {/* 5-Slot Horizontal Grid */}
+      <div className="photos-horizontal-grid">
+        {/* Render existing photos */}
+        {photos.map((photo, index) => {
+          const displayUrl = getImageUrl(photo.url);
+          const visInfo = getVisibilityInfo(photo.visibility);
+          const isConfirmDelete = deleteConfirmIndex === index;
+          const isDragOver = dragOverIndex === index;
+          
+          return (
+            <div
+              key={photo.url}
+              className={`photo-slot filled ${isConfirmDelete ? 'confirm-delete' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => handleDragOver(e, index)}
+              onDrop={(e) => handleDrop(e, index)}
+            >
+              {/* Slot number */}
+              <div className="slot-number">{index + 1}</div>
+              
+              {/* Photo */}
+              <div 
+                className="photo-preview"
+                onClick={() => {
+                  setLightboxImage(displayUrl);
+                  setShowLightbox(true);
+                }}
+              >
+                <img src={displayUrl} alt={`Photo ${index + 1}`} loading="lazy" />
+              </div>
+              
+              {/* Visibility Badge/Dropdown */}
+              <div className="visibility-control">
+                <select
+                  value={photo.visibility}
+                  onChange={(e) => handleVisibilityChange(index, e.target.value)}
+                  style={{ borderColor: visInfo.color }}
+                  className={`visibility-select ${photo.visibility}`}
+                >
+                  <option value="profilePic">👤 Profile Pic</option>
+                  <option value="memberVisible">👥 Members</option>
+                  <option value="onRequest">🔒 On Request</option>
+                </select>
+              </div>
+              
+              {/* Delete Button */}
+              <button
+                type="button"
+                className={`btn-delete ${isConfirmDelete ? 'confirm' : ''}`}
+                onClick={() => handleDeletePhoto(index)}
+                title={isConfirmDelete ? 'Click again to confirm' : 'Delete photo'}
+              >
+                {isConfirmDelete ? '⚠️' : '🗑️'}
+              </button>
+              
+              {/* Drag Handle */}
+              <div className="drag-handle">⋮⋮</div>
+            </div>
+          );
+        })}
+        
+        {/* Empty slots with upload button */}
+        {photos.length < 5 && (
+          <label className="photo-slot empty" htmlFor="photo-upload">
+            <div className="slot-number">{photos.length + 1}</div>
+            <div className="upload-placeholder">
+              <span className="upload-icon">➕</span>
+              <span className="upload-text">Add Photo</span>
+            </div>
+            <input
+              id="photo-upload"
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+              disabled={photos.length >= 5 || uploading}
+            />
+          </label>
+        )}
+        
+        {/* Remaining empty slots (visual only) */}
+        {Array.from({ length: Math.max(0, 4 - photos.length) }).map((_, idx) => (
+          <div key={`empty-${idx}`} className="photo-slot empty disabled">
+            <div className="slot-number">{photos.length + 2 + idx}</div>
+            <div className="empty-placeholder">
+              <span>📷</span>
+            </div>
+          </div>
+        ))}
       </div>
       
-      {/* 3-Column Grid */}
-      <div className="visibility-grid">
-        {renderBucket('profilePic', 'Profile Picture', '👤', profilePic, 1)}
-        {renderBucket('memberVisible', 'Member Visible', '👥', memberVisible, 4)}
-        {renderBucket('onRequest', 'On Request', '🔒', onRequest)}
-      </div>
-      
-      {/* Info Box */}
-      {onRequest.length === 0 && (
-        <div className="info-box">
-          ℹ️ <strong>Tip:</strong> Drag photos to "On Request" if you want members to request access before viewing.
+      {/* Legend */}
+      <div className="visibility-legend">
+        <div className="legend-item">
+          <span className="legend-badge profilePic">👤</span>
+          <span>Profile Pic - Always visible</span>
         </div>
-      )}
+        <div className="legend-item">
+          <span className="legend-badge memberVisible">👥</span>
+          <span>Members - All logged-in users</span>
+        </div>
+        <div className="legend-item">
+          <span className="legend-badge onRequest">🔒</span>
+          <span>On Request - Requires approval</span>
+        </div>
+      </div>
       
       {/* Lightbox */}
       {showLightbox && lightboxImage && ReactDOM.createPortal(
