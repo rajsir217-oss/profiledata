@@ -2966,22 +2966,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
         {/* Profile Images - Use PhotoVisibilityManager in edit mode, ImageManager for registration */}
         <div className="mt-4">
-          <h5 className="mb-3 text-primary">📸 Profile Images</h5>
           {isEditMode ? (
-            <>
-              <p className="text-muted small mb-3">
-                Drag photos between columns to control visibility. Profile Pic is always visible to members.
-              </p>
-              <PhotoVisibilityManager
-                existingImages={existingImages}
-                setExistingImages={setExistingImages}
-                onError={(msg) => setErrorMsg(msg)}
-                username={editUsername || formData.username}
-                isEditMode={isEditMode}
-              />
-            </>
+            <PhotoVisibilityManager
+              existingImages={existingImages}
+              setExistingImages={setExistingImages}
+              onError={(msg) => setErrorMsg(msg)}
+              username={editUsername || formData.username}
+              isEditMode={isEditMode}
+            />
           ) : (
             <>
+              <h5 className="mb-3 text-primary">📸 Profile Images</h5>
               <p className="text-muted small mb-3">
                 Upload up to 5 photos (5MB each). Drag to reorder. First photo will be your profile picture.
               </p>
