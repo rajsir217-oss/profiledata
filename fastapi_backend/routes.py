@@ -231,6 +231,37 @@ def _compute_public_image_paths(existing_images: List[str], public_images: List[
     normalized_public = [_extract_image_path(img) for img in (public_images or []) if img]
     return [p for p in normalized_public if p in normalized_images]
 
+def _enrich_user_with_image_visibility(user: dict) -> dict:
+    """
+    Enrich user dict with imageVisibility containing full URLs.
+    This ensures frontend components can use imageVisibility.profilePic for avatars.
+    
+    If imageVisibility exists in DB, converts paths to full URLs.
+    If not, creates imageVisibility from images array (legacy fallback).
+    """
+    if not user:
+        return user
+    
+    image_visibility = user.get("imageVisibility")
+    images = user.get("images", [])
+    
+    if image_visibility:
+        # Convert paths to full URLs
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+        }
+    elif images:
+        # Legacy fallback: create imageVisibility from images array
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(images[0]) if images else None,
+            "memberVisible": [get_full_image_url(img) for img in images[1:]] if len(images) > 1 else [],
+            "onRequest": []
+        }
+    
+    return user
+
 async def _get_profile_picture_always_visible(db) -> bool:
     """
     Get the profile_picture_always_visible setting from database or config fallback.
@@ -3805,6 +3836,9 @@ async def search_users(
                 users[i]["imagesMasked"] = len(full_public_urls) == 0
                 logger.info(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
             
+            # Enrich with imageVisibility for frontend avatar display
+            users[i] = _enrich_user_with_image_visibility(users[i])
+            
             # Calculate age dynamically from birthMonth and birthYear
             from datetime import datetime
             birth_month = users[i].get("birthMonth")
@@ -4526,6 +4560,9 @@ async def get_favorites(
                 else:
                     user["images"] = full_public_urls
                 
+                # Enrich with imageVisibility for frontend avatar display
+                user = _enrich_user_with_image_visibility(user)
+                
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
 
@@ -4724,6 +4761,9 @@ async def get_shortlist(
                     user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
+                
+                # Enrich with imageVisibility for frontend avatar display
+                user = _enrich_user_with_image_visibility(user)
                 
                 user["notes"] = item.get("notes")
                 user["addedToShortlistAt"] = item["createdAt"]
@@ -5144,6 +5184,9 @@ async def get_conversations_enhanced(
                     user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
             else:
                 user["images"] = full_public_urls
+            
+            # Enrich with imageVisibility for frontend avatar display
+            user = _enrich_user_with_image_visibility(user)
             
             # Serialize datetime
             last_msg_time = conv["lastMessage"]["createdAt"]
