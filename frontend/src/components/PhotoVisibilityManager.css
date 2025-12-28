@@ -21,20 +21,29 @@
 
 /* Header */
 .manager-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: var(--spacing-md, 16px);
-  text-align: center;
+  padding-bottom: var(--spacing-sm, 12px);
+  border-bottom: 1px solid var(--border-color, #e0e0e0);
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .manager-header h5 {
-  margin: 0 0 8px 0;
+  margin: 0;
   font-size: 1.25rem;
   color: var(--text-color, #333);
 }
 
 .manager-header .tip {
   margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-muted, #666);
+  font-size: 0.8rem;
+  color: var(--text-muted, #888);
+  background: var(--background-secondary, #f5f5f5);
+  padding: 6px 12px;
+  border-radius: 16px;
 }
 
 /* Status Banners */
@@ -430,26 +439,80 @@
   }
 }
 
-@media (max-width: 480px) {
-  .photo-slot {
-    width: 80px;
-    height: 120px;
-  }
-  
-  .photo-preview {
-    height: 70px;
-  }
-  
-  .visibility-control {
-    padding: 4px;
-  }
-  
-  .visibility-select {
-    font-size: 0.6rem;
-    padding: 2px;
+@media (max-width: 768px) {
+  .manager-header {
+    flex-direction: column;
+    text-align: center;
   }
   
   .manager-header .tip {
+    width: 100%;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .photo-visibility-manager {
+    padding: var(--spacing-md, 16px);
+  }
+  
+  .photo-slot {
+    width: 65px;
+    height: 110px;
+  }
+  
+  .photo-preview {
+    height: 60px;
+  }
+  
+  .visibility-control {
+    padding: 3px;
+  }
+  
+  .visibility-select {
+    font-size: 0.55rem;
+    padding: 2px;
+    padding-right: 14px;
+    background-size: 8px;
+  }
+  
+  .manager-header h5 {
+    font-size: 1rem;
+  }
+  
+  .manager-header .tip {
+    font-size: 0.7rem;
+    padding: 4px 8px;
+  }
+  
+  .slot-number {
+    width: 16px;
+    height: 16px;
+    font-size: 0.6rem;
+    top: 4px;
+    right: 4px;
+  }
+  
+  .btn-delete {
+    width: 20px;
+    height: 20px;
+    font-size: 0.7rem;
+    top: 4px;
+    left: 4px;
+  }
+  
+  .visibility-legend {
+    gap: 8px;
+    padding-top: var(--spacing-sm, 12px);
+  }
+  
+  .legend-item {
+    font-size: 0.65rem;
+  }
+  
+  .legend-badge {
+    width: 20px;
+    height: 20px;
     font-size: 0.75rem;
   }
 }
