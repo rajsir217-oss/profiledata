@@ -92,7 +92,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     contactNumberVisible: true,
     contactEmailVisible: true,
     linkedinUrlVisible: true,
-    imagesVisible: true,  // Default: all images visible to members
     birthMonth: "",  // Birth month (1-12)
     birthYear: "",   // Birth year
     gender: "",  // Renamed from sex
@@ -1587,7 +1586,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             contactNumberVisible: userData.contactNumberVisible !== false,
             contactEmailVisible: userData.contactEmailVisible !== false,
             linkedinUrlVisible: userData.linkedinUrlVisible !== false,
-            imagesVisible: userData.imagesVisible !== false,  // Default: true
             familyBackground: userData.familyBackground || '',
             aboutMe: userData.aboutMe || '',
             partnerPreference: userData.partnerPreference || '',

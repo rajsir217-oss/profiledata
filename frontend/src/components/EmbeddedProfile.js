@@ -191,13 +191,23 @@ const EmbeddedProfile = ({
     }
   };
   
-  // Listen for PII access changes
+  // Listen for PII access changes - reload profile to get updated images
   useEffect(() => {
-    const unsubscribe = onPIIAccessChange(() => {
+    const unsubscribe = onPIIAccessChange(async (detail) => {
+      // Check if this change affects the current profile
+      if (detail.ownerUsername === username || detail.targetUsername === currentUsername) {
+        // Reload profile to get updated images (filtered by access)
+        try {
+          const response = await api.get(`/profile/${username}?requester=${currentUsername}`);
+          setUser(response.data);
+        } catch (err) {
+          logger.error('Error reloading profile after PII change:', err);
+        }
+      }
       checkPIIAccess();
     });
     return () => unsubscribe();
-  }, [username]);
+  }, [username, currentUsername]);
   
   // Handle message
   const handleMessage = () => {
@@ -410,30 +420,60 @@ const EmbeddedProfile = ({
         paddingBottom: '8px'
       }}>
         {user.images && user.images.length > 0 ? (
-          user.images.slice(0, 5).map((img, i) => (
-            <div 
-              key={i} 
-              style={{
-                width: '80px',
-                height: '80px',
-                background: 'var(--surface-color)',
-                borderRadius: 'var(--radius-sm)',
-                overflow: 'hidden',
-                flexShrink: 0,
-                cursor: 'pointer'
-              }}
-              onClick={() => {
-                setLightboxImage(img);
-                setShowLightbox(true);
-              }}
-            >
-              <img 
-                src={getAuthenticatedImageUrl(img)} 
-                alt={`Photo ${i + 1}`}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            </div>
-          ))
+          user.images.slice(0, 5).map((img, i) => {
+            const reason = user.imageReasons?.[i] || 'unknown';
+            const reasonColors = {
+              'profilePic': { bg: '#ffc107', text: '#000' },
+              'memberVisible': { bg: '#28a745', text: '#fff' },
+              'onRequest (granted)': { bg: '#6366f1', text: '#fff' },
+              'unknown': { bg: '#6c757d', text: '#fff' }
+            };
+            const colors = reasonColors[reason] || reasonColors['unknown'];
+            
+            return (
+              <div 
+                key={i} 
+                style={{
+                  position: 'relative',
+                  width: '80px',
+                  height: '80px',
+                  background: 'var(--surface-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  setLightboxImage(img);
+                  setShowLightbox(true);
+                }}
+              >
+                <img 
+                  src={getAuthenticatedImageUrl(img)} 
+                  alt={`${i + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                {/* Debug: Show visibility reason */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  background: colors.bg,
+                  color: colors.text,
+                  fontSize: '8px',
+                  padding: '2px 4px',
+                  textAlign: 'center',
+                  fontWeight: 600,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {reason}
+                </div>
+              </div>
+            );
+          })
         ) : (
           [1, 2, 3, 4, 5].map(i => (
             <div key={i} style={{
@@ -723,8 +763,7 @@ const EmbeddedProfile = ({
           visibilitySettings={{
             contactNumberVisible: user.contactNumberVisible,
             contactEmailVisible: user.contactEmailVisible,
-            linkedinUrlVisible: user.linkedinUrlVisible,
-            imagesVisible: user.imagesVisible
+            linkedinUrlVisible: user.linkedinUrlVisible
           }}
           requesterProfile={currentUserProfile}
           targetProfile={user}

@@ -109,12 +109,12 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False, per_field_
     contact_email_visible = user_data.get('contactEmailVisible', False)  # Default: not visible
     contact_number_visible = user_data.get('contactNumberVisible', False)  # Default: not visible
     linkedin_visible = user_data.get('linkedinUrlVisible', False)  # Default: not visible
-    images_visible = user_data.get('imagesVisible', True)  # Default: VISIBLE (True)
+    # Note: Image visibility is now handled by imageVisibility 3-bucket system in routes.py
     
     # Debug logging for visibility settings
     import logging
     logger = logging.getLogger(__name__)
-    logger.info(f"👁️ PII Masking - contactEmailVisible: {contact_email_visible}, contactNumberVisible: {contact_number_visible}, linkedinUrlVisible: {linkedin_visible}, imagesVisible: {images_visible}, per_field_access: {per_field_access}")
+    logger.info(f"👁️ PII Masking - contactEmailVisible: {contact_email_visible}, contactNumberVisible: {contact_number_visible}, linkedinUrlVisible: {linkedin_visible}, per_field_access: {per_field_access}")
     
     # Contact Email - check visibility OR per-field access
     has_email_access = per_field_access.get('contact_email', False)
@@ -151,19 +151,8 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False, per_field_
         else:
             masked_data['linkedinUrlMasked'] = False
 
-    # Images - check visibility OR per-field access
-    # Note: imagesVisible defaults to True, so images are visible by default
-    has_images_access = per_field_access.get('images', False)
-    if 'images' in masked_data and masked_data['images']:
-        if not images_visible and not has_images_access:
-            # Mark images as masked - actual masking happens in routes.py
-            masked_data['imagesMasked'] = True
-            any_masked = True
-        else:
-            masked_data['imagesMasked'] = False
-    
-    # Preserve visibility flags in response for frontend
-    masked_data['imagesVisible'] = images_visible
+    # Images - now handled by imageVisibility 3-bucket system in routes.py
+    # This legacy code is kept for backward compatibility but routes.py overrides imagesMasked
 
     # Add flag indicating if any PII is masked
     masked_data['piiMasked'] = any_masked

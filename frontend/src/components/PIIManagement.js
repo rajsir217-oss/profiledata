@@ -208,29 +208,36 @@ const PIIManagement = () => {
       try {
         // Fetch owner's images
         const profileRes = await api.get(`/profile/${currentUsername}`);
-        const allImages = profileRes.data.images || [];
-        const publicImages = profileRes.data.publicImages || [];
+        const imageVisibility = profileRes.data.imageVisibility;
         
-        // Filter out images that are already public (member-visible)
-        // IMPORTANT: Keep track of original indices for proper access control
-        const privateImagesWithIndices = allImages
-          .map((img, originalIndex) => ({ img, originalIndex }))
-          .filter(({ img }) => {
+        // NEW 3-BUCKET SYSTEM: Only onRequest photos need approval
+        // profilePic and memberVisible are already visible to all members
+        let onRequestImages = [];
+        if (imageVisibility && imageVisibility.onRequest) {
+          onRequestImages = imageVisibility.onRequest;
+        } else {
+          // Legacy fallback: use old publicImages logic
+          const allImages = profileRes.data.images || [];
+          const publicImages = profileRes.data.publicImages || [];
+          onRequestImages = allImages.filter(img => {
             const imgFilename = img.split('/').pop();
             return !publicImages.some(pubImg => pubImg.split('/').pop() === imgFilename);
           });
+        }
         
-        if (privateImagesWithIndices.length === 0) {
+        console.log('📸 onRequest images to grant:', onRequestImages);
+        
+        if (onRequestImages.length === 0) {
           setError('All photos are already visible to members. No private photos to grant access to.');
           return;
         }
         
-        // Pass both the images and their original indices to the modal
-        setOwnerImages(privateImagesWithIndices.map(p => p.img));
+        // Pass the onRequest images to the modal
+        setOwnerImages(onRequestImages);
         setSelectedRequest({ 
           request, 
           requesterProfile,
-          originalIndices: privateImagesWithIndices.map(p => p.originalIndex)
+          originalIndices: onRequestImages.map((_, idx) => idx) // Simple indices for onRequest bucket
         });
         setShowImageManager(true);
       } catch (err) {
