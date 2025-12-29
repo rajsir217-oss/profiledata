@@ -73,10 +73,10 @@ const InvitationManager = () => {
     emailSubject: ''
   });
 
-  // Check admin access
+  // Check admin or moderator access
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'moderator') {
       navigate('/dashboard');
     }
   }, [navigate]);

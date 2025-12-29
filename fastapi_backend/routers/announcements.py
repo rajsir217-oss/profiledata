@@ -25,9 +25,10 @@ router = APIRouter(prefix="/announcements", tags=["announcements"])
 logger = logging.getLogger(__name__)
 
 
-def is_admin(current_user: dict) -> bool:
-    """Check if user is admin"""
-    return current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+def is_admin_or_moderator(current_user: dict) -> bool:
+    """Check if user is admin or moderator"""
+    role = current_user.get("role") or current_user.get("role_name")
+    return role in ["admin", "moderator"]
 
 
 @router.get("/active", response_model=List[AnnouncementResponse])
@@ -173,10 +174,10 @@ async def get_all_announcements(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Get all announcements (admin only)
+    Get all announcements (admin/moderator only)
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not is_admin_or_moderator(current_user):
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     
     try:
         query = {}
@@ -204,10 +205,10 @@ async def create_announcement(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Create a new announcement (admin only)
+    Create a new announcement (admin/moderator only)
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not is_admin_or_moderator(current_user):
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     
     try:
         now = datetime.utcnow()
@@ -243,10 +244,10 @@ async def update_announcement(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Update an announcement (admin only)
+    Update an announcement (admin/moderator only)
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not is_admin_or_moderator(current_user):
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     
     try:
         # Check if exists
@@ -288,10 +289,10 @@ async def delete_announcement(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Delete an announcement (admin only)
+    Delete an announcement (admin/moderator only)
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not is_admin_or_moderator(current_user):
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     
     try:
         result = await db.announcements.delete_one({"_id": ObjectId(announcement_id)})
@@ -317,10 +318,10 @@ async def get_announcement_stats(
     db: AsyncIOMotorClient = Depends(get_database)
 ):
     """
-    Get announcement statistics (admin only)
+    Get announcement statistics (admin/moderator only)
     """
-    if not is_admin(current_user):
-        raise HTTPException(status_code=403, detail="Admin access required")
+    if not is_admin_or_moderator(current_user):
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     
     try:
         now = datetime.utcnow()

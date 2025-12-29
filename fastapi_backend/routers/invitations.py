@@ -29,13 +29,13 @@ from services.invitation_service import InvitationService
 router = APIRouter(prefix="/api/invitations", tags=["invitations"])
 
 
-def check_admin(current_user: dict):
-    """Check if user is admin"""
-    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
-    if not is_admin:
+def check_admin_or_moderator(current_user: dict):
+    """Check if user is admin or moderator"""
+    role = current_user.get("role") or current_user.get("role_name")
+    if role not in ["admin", "moderator"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only administrators can manage invitations"
+            detail="Only administrators or moderators can manage invitations"
         )
 
 
@@ -46,7 +46,7 @@ async def create_invitation(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Create new invitation (Admin only)
+    Create new invitation (Admin/Moderator only)
     
     - **name**: Invitee name
     - **email**: Invitee email address
@@ -55,7 +55,7 @@ async def create_invitation(
     - **customMessage**: Optional custom message
     - **sendImmediately**: Send invitation right away
     """
-    check_admin(current_user)
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     
@@ -104,14 +104,14 @@ async def list_invitations(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    List all invitations with pagination and filters (Admin only)
+    List all invitations with pagination and filters (Admin/Moderator only)
     
     - **skip**: Number of items to skip
     - **limit**: Maximum number of items to return (default: 10000)
     - **include_archived**: Include archived invitations
     - **status**: Filter by status (PENDING, SENT, ACCEPTED, etc.)
     """
-    check_admin(current_user)
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     invitations = await service.list_invitations(
@@ -149,9 +149,9 @@ async def get_invitation_stats(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Get invitation system statistics (Admin only)"""
+    """Get invitation system statistics (Admin/Moderator only)"""
     logger.info(f"📊 Stats endpoint called by user: {current_user.get('username')}")
-    check_admin(current_user)
+    check_admin_or_moderator(current_user)
     
     try:
         service = InvitationService(db)
@@ -173,8 +173,8 @@ async def get_invitation(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Get specific invitation by ID (Admin only)"""
-    check_admin(current_user)
+    """Get specific invitation by ID (Admin/Moderator only)"""
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     invitation = await service.get_invitation(invitation_id)
@@ -203,8 +203,8 @@ async def update_invitation(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Update invitation (Admin only) - supports both PATCH and PUT"""
-    check_admin(current_user)
+    """Update invitation (Admin/Moderator only) - supports both PATCH and PUT"""
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     invitation = await service.get_invitation(invitation_id)
@@ -251,8 +251,8 @@ async def resend_invitation(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Resend invitation via email/SMS (Admin only)"""
-    check_admin(current_user)
+    """Resend invitation via email/SMS (Admin/Moderator only)"""
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     invitation = await service.get_invitation(invitation_id)
@@ -308,8 +308,8 @@ async def archive_invitation(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Archive an invitation (Admin only)"""
-    check_admin(current_user)
+    """Archive an invitation (Admin/Moderator only)"""
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     success = await service.archive_invitation(invitation_id)
@@ -329,8 +329,8 @@ async def delete_invitation(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Permanently delete an invitation (Admin only)"""
-    check_admin(current_user)
+    """Permanently delete an invitation (Admin/Moderator only)"""
+    check_admin_or_moderator(current_user)
     
     service = InvitationService(db)
     success = await service.delete_invitation(invitation_id)
@@ -351,7 +351,7 @@ async def bulk_send_invitations(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
-    Send multiple invitations in bulk (Admin only)
+    Send multiple invitations in bulk (Admin/Moderator only)
     
     Request body:
     {
@@ -360,7 +360,7 @@ async def bulk_send_invitations(
         "emailSubject": "Optional custom subject"
     }
     """
-    check_admin(current_user)
+    check_admin_or_moderator(current_user)
     
     invitation_ids = data.get("invitationIds", [])
     channel = data.get("channel", "email")

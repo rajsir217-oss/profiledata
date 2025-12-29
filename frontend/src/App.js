@@ -97,6 +97,21 @@ const applyTheme = (themeId) => {
   }
 };
 
+// Auth Guard Component - checks token before rendering protected content
+function AuthGuard({ children }) {
+  const location = useLocation();
+  const publicRoutes = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+  const isPublicRoute = publicRoutes.some(route => location.pathname === route || location.pathname.startsWith(route + '/'));
+  const token = localStorage.getItem('token');
+  
+  if (!isPublicRoute && !token) {
+    console.warn('🔒 AuthGuard: No token on protected route - redirecting to login');
+    return <Navigate to="/login" replace />;
+  }
+  
+  return children;
+}
+
 // App Content Component (inside Router to use useLocation)
 function AppContent() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -112,6 +127,23 @@ function AppContent() {
       const username = localStorage.getItem('username');
       const token = localStorage.getItem('token');
       
+      // Check if user should be logged in but has no token
+      const isProtectedRoute = !hideNavigation && !location.pathname.startsWith('/terms') && 
+                               !location.pathname.startsWith('/privacy') && 
+                               !location.pathname.startsWith('/community-guidelines') &&
+                               !location.pathname.startsWith('/cookie-policy') &&
+                               !location.pathname.startsWith('/forgot-password');
+      
+      if (isProtectedRoute && !token) {
+        // No token on protected route - redirect to login
+        logger.warn('No token found on protected route, redirecting to login');
+        sessionManager.showSessionExpiredOverlay();
+        setTimeout(() => {
+          window.location.href = '/login';
+        }, 1500);
+        return;
+      }
+      
       if (username && token) {
         try {
           const response = await fetch(`${getApiUrl()}/profile/${username}`, {
@@ -123,6 +155,10 @@ function AppContent() {
           if (response.ok) {
             const userData = await response.json();
             setCurrentUser(userData);
+          } else if (response.status === 401) {
+            // Token expired - trigger session expiry
+            logger.warn('Token expired (401 from profile fetch)');
+            sessionManager.logout();
           }
         } catch (error) {
           logger.error('Failed to fetch current user profile:', error);
@@ -133,7 +169,7 @@ function AppContent() {
     };
     
     fetchCurrentUser();
-  }, [location.pathname]); // Re-fetch when route changes
+  }, [location.pathname, hideNavigation]); // Re-fetch when route changes
 
   // Initialize theme and session manager on app load
   useEffect(() => {
@@ -394,7 +430,9 @@ function App() {
   return (
     <HelmetProvider>
       <Router>
-        <AppContent />
+        <AuthGuard>
+          <AppContent />
+        </AuthGuard>
         <ToastContainer />
         <PIIAccessRefreshNotification />
       </Router>

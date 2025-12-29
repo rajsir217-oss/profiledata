@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_database
 from .jwt_auth import get_current_user_dependency
-from .authorization import require_admin, PermissionChecker, RoleChecker
+from .authorization import require_admin, require_moderator_or_admin, PermissionChecker, RoleChecker
 from .security_models import (
     UserManagementRequest, RoleAssignmentRequest, PermissionGrantRequest,
     UserSecurityStatus, UserRole, Permission
@@ -34,7 +34,7 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
 # ===== USER MANAGEMENT =====
 
-@router.get("/users", dependencies=[Depends(require_admin)])
+@router.get("/users", dependencies=[Depends(require_moderator_or_admin)])
 async def get_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=10000),
@@ -149,7 +149,7 @@ async def get_all_users(
         logger.error(f"Error getting users: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/users/{username}", dependencies=[Depends(require_admin)])
+@router.get("/users/{username}", dependencies=[Depends(require_moderator_or_admin)])
 async def get_user_details(
     username: str,
     db = Depends(get_database)
@@ -207,16 +207,16 @@ async def get_user_details(
         logger.error(f"Error getting user details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/users/{username}/manage", dependencies=[Depends(require_admin)])
+@router.post("/users/{username}/manage", dependencies=[Depends(require_moderator_or_admin)])
 async def manage_user(
     username: str,
     request: UserManagementRequest,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
     """
     Manage user account (activate, deactivate, suspend, ban, unlock, verify_email)
-    Admin only
+    Admin or Moderator only
     """
     try:
         user = await db.users.find_one({"username": username})
@@ -404,11 +404,11 @@ class StatusUpdateRequest(BaseModel):
     status: str
     reason: Optional[str] = None  # Admin's reason for status change
 
-@router.patch("/users/{username}/status", dependencies=[Depends(require_admin)])
+@router.patch("/users/{username}/status", dependencies=[Depends(require_moderator_or_admin)])
 async def update_user_status(
     username: str,
     request: StatusUpdateRequest,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
     """

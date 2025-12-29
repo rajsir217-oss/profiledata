@@ -6,6 +6,16 @@ import reportWebVitals from './reportWebVitals';
 // frontend/src/index.js
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// CRITICAL: Check for token on protected routes BEFORE React mounts
+const publicPaths = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help', '/logo-showcase', '/tooltip-demo'];
+const currentPath = window.location.pathname;
+const isPublicPath = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
+const token = localStorage.getItem('token');
+
+if (!isPublicPath && !token) {
+  console.warn('🔒 index.js: No token on protected route - redirecting to login');
+  window.location.replace('/login');
+}
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
