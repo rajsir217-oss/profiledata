@@ -6,13 +6,8 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
   const [message, setMessage] = useState('');
   const [granting, setGranting] = useState(false);
   
-  // Individual duration for each picture (default: one-time view)
-  const [pictureDurations, setPictureDurations] = useState(
-    ownerImages?.reduce((acc, img, idx) => {
-      acc[idx] = 'onetime'; // default to one-time view
-      return acc;
-    }, {}) || {}
-  );
+  // Fixed 7-day access for all onRequest photos (same as pending request expiry)
+  const ACCESS_DURATION_DAYS = 7;
 
   // ESC key to close modal
   useEffect(() => {
@@ -30,28 +25,15 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
     }
   }, [isOpen, onClose, granting]);
 
-  const durationOptions = [
-    { value: 'onetime', label: 'One-time view only' },
-    { value: 1, label: '1 day' },
-    { value: 2, label: '2 days' },
-    { value: 3, label: '3 days (Recommended)' },
-    { value: 4, label: '4 days' },
-    { value: 5, label: '5 days' },
-    { value: 10, label: '10 days' },
-    { value: 30, label: '30 days' },
-    { value: 'permanent', label: 'No expiration' },
-  ];
-
-  const handleDurationChange = (pictureIndex, value) => {
-    setPictureDurations(prev => ({
-      ...prev,
-      [pictureIndex]: value
-    }));
-  };
-
   const handleGrant = async () => {
     setGranting(true);
     try {
+      // All photos get fixed 7-day access
+      const pictureDurations = ownerImages?.reduce((acc, img, idx) => {
+        acc[idx] = ACCESS_DURATION_DAYS;
+        return acc;
+      }, {}) || {};
+      
       await onGrant({
         pictureDurations,
         responseMessage: message
@@ -65,12 +47,6 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
   };
 
   const handleCancel = () => {
-    setPictureDurations(
-      ownerImages?.reduce((acc, img, idx) => {
-        acc[idx] = 'onetime';
-        return acc;
-      }, {}) || {}
-    );
     setMessage('');
     onClose();
   };
@@ -110,47 +86,26 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
           </div>
 
           <div className="picture-access-selector">
-            <h4>📸 Select Access Duration for Each Photo</h4>
-            <p className="section-description">Choose how long they can view each photo individually</p>
+            <h4>📸 Photos to Share</h4>
+            <p className="section-description">
+              Access will be granted for <strong>7 days</strong> (same as request expiry)
+            </p>
 
-            <div className="picture-table">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Photo</th>
-                    <th>Access Duration</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {ownerImages && ownerImages.map((image, index) => (
-                    <tr key={index}>
-                      <td className="picture-label">
-                        <img 
-                          src={getAuthenticatedImageUrl(image)} 
-                          alt={`${requester?.firstName || 'User'}'s profile ${index + 1}`} 
-                          className="picture-thumbnail"
-                        />
-                        <div className="picture-text">
-                          <span className="picture-name">Picture {index + 1}</span>
-                        </div>
-                      </td>
-                      <td className="picture-dropdown">
-                        <select
-                          value={pictureDurations[index] || 'onetime'}
-                          onChange={(e) => handleDurationChange(index, e.target.value)}
-                          className="duration-select"
-                        >
-                          {durationOptions.map(option => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="picture-grid">
+              {ownerImages && ownerImages.map((image, index) => (
+                <div key={index} className="picture-item">
+                  <img 
+                    src={getAuthenticatedImageUrl(image)} 
+                    alt={`Photo ${index + 1}`} 
+                    className="picture-thumbnail"
+                  />
+                  <span className="picture-label">Photo {index + 1}</span>
+                </div>
+              ))}
+            </div>
+            
+            <div className="access-duration-info">
+              <span className="duration-badge">⏱️ 7 days access</span>
             </div>
           </div>
 

@@ -294,19 +294,8 @@ const PIIManagement = () => {
       // Reload data
       await loadAllData();
       
-      // Create success message
-      const hasOnetime = Object.values(pictureDurations).some(d => d === 'onetime');
-      const hasPermanent = Object.values(pictureDurations).some(d => d === 'permanent');
-      const hasTimed = Object.values(pictureDurations).some(d => typeof d === 'number');
-      
-      let accessMsg = 'Image access granted to ' + requesterProfile.firstName;
-      if (hasOnetime && !hasTimed && !hasPermanent) {
-        accessMsg += ' (one-time view only)';
-      } else if (hasPermanent && !hasTimed && !hasOnetime) {
-        accessMsg += ' (permanent access)';
-      } else {
-        accessMsg += ' with custom durations';
-      }
+      // Create success message (fixed 7-day access)
+      const accessMsg = `Image access granted to ${requesterProfile.firstName} for 7 days`;
       
       setSuccessMessage(accessMsg);
       setTimeout(() => setSuccessMessage(''), 5000);

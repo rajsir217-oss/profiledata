@@ -22,26 +22,25 @@ const PIIRequestModal = ({
   const [successMessage, setSuccessMessage] = useState('');
   const currentUsername = localStorage.getItem('username');
 
-  // Map PII type values to visibility setting keys
+  // Map PII type values to visibility setting keys (for non-image PII types)
   const visibilityKeyMap = {
     'contact_number': 'contactNumberVisible',
     'contact_email': 'contactEmailVisible',
-    'linkedin_url': 'linkedinUrlVisible',
-    'images': 'imagesVisible'  // Legacy - now use imageVisibility.onRequest for new system
+    'linkedin_url': 'linkedinUrlVisible'
+    // 'images' removed - now uses imageVisibility.onRequest bucket system
   };
   
-  // Check if images need request using new 3-bucket visibility system
+  // Check if images need request using 3-bucket visibility system
   // Returns true if ALL photos are already visible (no onRequest photos)
   const areAllImagesVisible = () => {
     if (!targetProfile) return false;
     const imageVisibility = targetProfile.imageVisibility;
     if (imageVisibility) {
-      // New system: check if there are any onRequest photos
       const onRequestPhotos = imageVisibility.onRequest || [];
       return onRequestPhotos.length === 0;
     }
-    // Legacy fallback: use imagesVisible boolean
-    return visibilitySettings.imagesVisible === true;
+    // No imageVisibility = no private photos (legacy profiles)
+    return true;
   };
 
   // Map PII type values to requester's data fields
@@ -476,8 +475,8 @@ const PIIRequestModal = ({
                       {isMemberVisible && (
                         <div className="pii-type-note note-muted">
                           {type.value === 'images' 
-                            ? "All photos are already visible to members (no private photos)"
-                            : `You don't have to request since member made the ${type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} visible to members`
+                            ? "All photos are already visible (no private 🔒 On Request photos)"
+                            : `No request needed - ${type.label.replace(/[📷📞📧🔗]\s*/g, '')} is visible to all members`
                           }
                         </div>
                       )}
