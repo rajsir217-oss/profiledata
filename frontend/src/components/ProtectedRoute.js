@@ -4,14 +4,38 @@ import { Navigate, useLocation } from 'react-router-dom';
 import api from '../api';
 
 const ProtectedRoute = ({ children }) => {
+  // Check token synchronously on initial render - BEFORE any hooks
+  const initialToken = localStorage.getItem('token');
+  
+  // DEBUG: Log token check
+  console.log('🔒 ProtectedRoute RENDER - initialToken:', initialToken ? 'EXISTS' : 'NULL');
+  
+  // IMMEDIATE REDIRECT: If no token, redirect using window.location (most reliable)
+  if (!initialToken) {
+    console.warn('🔒 ProtectedRoute: No token found - forcing redirect to login');
+    window.location.href = '/login';
+    return null; // Return null while redirecting
+  }
+  
   const [loading, setLoading] = useState(true);
   const [userStatus, setUserStatus] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const location = useLocation();
+  
+  // DEBUG: Log state
+  console.log('🔒 ProtectedRoute STATE - loading:', loading);
 
   useEffect(() => {
     const checkUserStatus = async () => {
       const username = localStorage.getItem('username');
+      const token = localStorage.getItem('token');
+      
+      // Check for missing token - redirect to login
+      if (!token) {
+        console.warn('🔒 ProtectedRoute useEffect: No token - redirecting to login');
+        window.location.href = '/login';
+        return;
+      }
       
       if (!username) {
         setLoading(false);
@@ -55,6 +79,7 @@ const ProtectedRoute = ({ children }) => {
     checkUserStatus();
   }, [location.pathname]); // Re-check on route change
 
+  
   if (loading) {
     return (
       <div style={{ 

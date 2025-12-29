@@ -112,8 +112,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
-    // Check if user is activated (admin role is always active)
-    const isActive = userRole === 'admin' || userStatus === 'active';
+    // Check if user is activated (admin and moderator roles are always active)
+    const isAdmin = userRole === 'admin';
+    const isModerator = userRole === 'moderator';
+    const isActive = isAdmin || isModerator || userStatus === 'active';
     // Debug logging removed - uncomment if needed for debugging
     // console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus, isActive });
     
@@ -181,7 +183,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     ];
 
     // Add Admin section for admin user (check role, not username)
-    const isAdmin = userRole === 'admin';
     if (isAdmin) {
       // === CORE ADMIN SECTION ===
       items.push({ isHeader: true, label: 'ADMIN SECTION' });
@@ -354,6 +355,53 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         label: 'Contact Support',
         subLabel: 'Manage user inquiries',
         action: () => navigate('/admin/contact')
+      });
+    }
+
+    // Add Moderator section for moderator user
+    if (isModerator) {
+      items.push({ isHeader: true, label: 'MODERATOR SECTION' });
+      
+      items.push({
+        icon: '🔐',
+        label: 'Admin Dashboard',
+        subLabel: 'Manage all users',
+        action: () => navigate('/admin')
+      });
+      
+      items.push({ isHeader: true, label: 'MONITORING' });
+      
+      items.push({
+        icon: '📢',
+        label: 'Announcement Management',
+        subLabel: 'Site-wide announcements',
+        action: () => navigate('/announcement-management')
+      });
+      
+      items.push({
+        icon: '📊',
+        label: 'Poll Management',
+        subLabel: 'Create & manage polls',
+        action: () => navigate('/poll-management')
+      });
+      
+      items.push({ isHeader: true, label: 'GROWTH' });
+      
+      items.push({
+        icon: '📧',
+        label: 'Invitations Manager',
+        subLabel: 'Manage user invitations',
+        action: () => navigate('/invitations')
+      });
+      
+      items.push({ isHeader: true, label: 'CONFIGURATION' });
+      
+      items.push({ 
+        icon: '⚙️', 
+        label: 'Settings', 
+        subLabel: 'App preferences',
+        action: () => navigate('/preferences'),
+        disabled: !isActive
       });
     }
 
