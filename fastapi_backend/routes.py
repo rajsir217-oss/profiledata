@@ -8078,13 +8078,19 @@ async def check_images_access(
         - Change default in config.py -> profile_picture_always_visible
     """
     try:
-        # Get owner's images
-        owner = await db.users.find_one(get_username_query(profile_owner), {"images": 1, "publicImages": 1})
+        # Get owner's images and visibility settings
+        owner = await db.users.find_one(get_username_query(profile_owner), {"images": 1, "publicImages": 1, "imageVisibility": 1})
         if not owner:
             return {"images": [], "error": "User not found"}
         
         all_images = owner.get("images", [])
         public_images = owner.get("publicImages", [])
+        image_visibility = owner.get("imageVisibility", {})
+        
+        # Extract filenames for visibility buckets
+        profile_pic_filename = (image_visibility.get("profilePic") or "").split("/")[-1] if image_visibility.get("profilePic") else None
+        member_visible_filenames = set((img or "").split("/")[-1] for img in image_visibility.get("memberVisible", []))
+        on_request_filenames = set((img or "").split("/")[-1] for img in image_visibility.get("onRequest", []))
         
         # Check if requester is owner or admin
         if requester.lower() == profile_owner.lower():
@@ -8128,6 +8134,42 @@ async def check_images_access(
         for idx, img in enumerate(all_images):
             filename = img.split('/')[-1] if img else None
             
+            # =================================================================
+            # NEW VISIBILITY SYSTEM: Check imageVisibility buckets first
+            # =================================================================
+            
+            # 1. Profile Pic bucket - always visible to logged-in members
+            if profile_pic_filename and filename == profile_pic_filename:
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": True, 
+                    "reason": "profile_picture"
+                })
+                continue
+            
+            # 2. Member Visible bucket - visible to all logged-in members
+            if filename in member_visible_filenames:
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": True, 
+                    "reason": "member_visible"
+                })
+                continue
+            
+            # 3. On Request bucket - requires PII access grant
+            if filename in on_request_filenames:
+                has_access = await _has_images_access(db, requester, profile_owner, filename)
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": has_access, 
+                    "reason": "granted" if has_access else "on_request"
+                })
+                continue
+            
+            # =================================================================
+            # LEGACY FALLBACK: For users without imageVisibility set
+            # =================================================================
+            
             # Profile picture (index 0) is always visible when setting is enabled
             if idx == 0 and profile_pic_always_visible:
                 image_access_list.append({
@@ -8137,7 +8179,7 @@ async def check_images_access(
                 })
                 continue
             
-            # Check if public
+            # Check if public (legacy publicImages field)
             is_public = any((p or "").split('/')[-1] == filename for p in public_images)
             if is_public:
                 image_access_list.append({"index": idx, "hasAccess": True, "reason": "public"})

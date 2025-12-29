@@ -5,12 +5,16 @@ import api from '../api';
 import './PhotoVisibilityManager.css';
 
 /**
- * PhotoVisibilityManager - 5-Slot Horizontal Photo Management
+ * PhotoVisibilityManager - Unified Photo Management Component
+ * 
+ * Handles BOTH:
+ * 1. Registration mode (!isEditMode): Collect files locally, return via getFilesForUpload()
+ * 2. Edit mode (isEditMode): Manage visibility of existing images via API
  * 
  * Layout: [1] [2] [3] [4] [5] - 5 horizontal slots
  * 
- * Each photo has a visibility dropdown:
- * - 👤 Profile Pic (slot 1 only) - Always visible to logged-in members
+ * Visibility options per photo:
+ * - 👤 Profile Pic - Always visible to logged-in members (max 1)
  * - 👥 Member Visible - Visible to all logged-in members  
  * - 🔒 On Request - Requires PII access grant
  * 
@@ -20,15 +24,18 @@ import './PhotoVisibilityManager.css';
  * - On Request = empty by default
  */
 const PhotoVisibilityManager = ({ 
-  existingImages, 
-  setExistingImages, 
+  existingImages = [],
+  setExistingImages,
+  newImages = [],
+  setNewImages,
   onError, 
   username, 
-  isEditMode,
-  onVisibilityChange 
+  isEditMode = false,
+  onVisibilityChange,
+  getFilesForUploadRef
 }) => {
   // Photos array with visibility info
-  // Each item: { url: string, visibility: 'profilePic' | 'memberVisible' | 'onRequest' }
+  // Each item: { url: string, visibility: string, file?: File, isNew?: boolean }
   const [photos, setPhotos] = useState([]);
   
   // UI state
@@ -38,7 +45,7 @@ const PhotoVisibilityManager = ({
   const [saving, setSaving] = useState(false);
   const [deleteConfirmIndex, setDeleteConfirmIndex] = useState(null);
   const [localStatus, setLocalStatus] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
@@ -47,29 +54,27 @@ const PhotoVisibilityManager = ({
     setTimeout(() => setLocalStatus(null), duration);
   };
 
-  const normalizeImagePath = (urlOrPath) => {
-    if (!urlOrPath || typeof urlOrPath !== 'string') return '';
-    try {
-      if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) {
-        const u = new URL(urlOrPath);
-        return u.pathname || '';
-      }
-      return urlOrPath;
-    } catch (e) {
-      return urlOrPath;
+  // Expose method to get files for upload (used by Register2.js in registration mode)
+  useEffect(() => {
+    if (getFilesForUploadRef) {
+      getFilesForUploadRef.current = () => {
+        return photos.filter(p => p.isNew && p.file).map(p => p.file);
+      };
     }
-  };
+  }, [photos, getFilesForUploadRef]);
 
-  // Load visibility settings from backend
+  // Load visibility settings from backend (edit mode only)
   const loadVisibility = useCallback(async () => {
-    if (!username) return;
+    if (!username || !isEditMode) {
+      setIsLoading(false);
+      return;
+    }
     
     setIsLoading(true);
     try {
       const response = await api.get(`/profile/${username}/image-visibility`);
       const data = response.data;
       
-      // Build photos array from visibility data
       const photosArray = [];
       
       if (data.profilePic) {
@@ -97,17 +102,53 @@ const PhotoVisibilityManager = ({
     } finally {
       setIsLoading(false);
     }
-  }, [username, existingImages]);
+  }, [username, isEditMode, existingImages]);
 
+  // Initialize photos from props (registration mode) or load from API (edit mode)
   useEffect(() => {
-    loadVisibility();
-  }, [loadVisibility]);
+    if (isEditMode) {
+      loadVisibility();
+    } else {
+      // Registration mode: build from existingImages + newImages
+      const photosArray = [];
+      
+      existingImages.forEach((url, idx) => {
+        photosArray.push({
+          url,
+          visibility: idx === 0 ? 'profilePic' : 'memberVisible',
+          isNew: false
+        });
+      });
+      
+      newImages.forEach((file, idx) => {
+        photosArray.push({
+          url: URL.createObjectURL(file),
+          visibility: photosArray.length === 0 ? 'profilePic' : 'memberVisible',
+          file,
+          isNew: true
+        });
+      });
+      
+      setPhotos(photosArray);
+      setIsLoading(false);
+    }
+  }, [isEditMode, loadVisibility, existingImages, newImages]);
 
-  // Save visibility to backend
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      photos.forEach(p => {
+        if (p.isNew && p.url.startsWith('blob:')) {
+          URL.revokeObjectURL(p.url);
+        }
+      });
+    };
+  }, []);
+
+  // Save visibility to backend (edit mode only)
   const saveVisibility = async (photosArray) => {
     if (!username || !isEditMode) return;
     
-    // Convert photos array to visibility structure
     const profilePic = photosArray.find(p => p.visibility === 'profilePic')?.url || null;
     const memberVisible = photosArray.filter(p => p.visibility === 'memberVisible').map(p => p.url);
     const onRequest = photosArray.filter(p => p.visibility === 'onRequest').map(p => p.url);
@@ -146,11 +187,10 @@ const PhotoVisibilityManager = ({
       });
     }
     
-    // If changing FROM profilePic and no other profilePic exists, make first photo profilePic
+    // If changing FROM profilePic, make first other photo profilePic
     if (oldVisibility === 'profilePic' && newVisibility !== 'profilePic') {
       const hasOtherProfilePic = newPhotos.some((p, i) => i !== index && p.visibility === 'profilePic');
       if (!hasOtherProfilePic && newPhotos.length > 1) {
-        // Find first non-current photo and make it profilePic
         const firstOther = newPhotos.findIndex((p, i) => i !== index);
         if (firstOther !== -1) {
           newPhotos[firstOther].visibility = 'profilePic';
@@ -160,7 +200,10 @@ const PhotoVisibilityManager = ({
     
     newPhotos[index].visibility = newVisibility;
     setPhotos(newPhotos);
-    await saveVisibility(newPhotos);
+    
+    if (isEditMode) {
+      await saveVisibility(newPhotos);
+    }
   };
 
   // Handle drag start
@@ -200,7 +243,6 @@ const PhotoVisibilityManager = ({
     
     // If first photo changed, update visibility
     if (dropIndex === 0 || draggedIndex === 0) {
-      // Make first photo profilePic, demote old profilePic
       newPhotos.forEach((p, i) => {
         if (i === 0) {
           p.visibility = 'profilePic';
@@ -212,7 +254,16 @@ const PhotoVisibilityManager = ({
     
     setPhotos(newPhotos);
     setDraggedIndex(null);
-    await saveVisibility(newPhotos);
+    
+    // Update parent state for registration mode
+    if (!isEditMode && setNewImages) {
+      const newFiles = newPhotos.filter(p => p.isNew && p.file).map(p => p.file);
+      setNewImages(newFiles);
+    }
+    
+    if (isEditMode) {
+      await saveVisibility(newPhotos);
+    }
   };
 
   // Handle delete photo
@@ -225,54 +276,77 @@ const PhotoVisibilityManager = ({
     }
     
     setDeleteConfirmIndex(null);
-    setSaving(true);
+    const photoToDelete = photos[index];
     
-    try {
-      const photoToDelete = photos[index];
-      const cleanImageUrl = photoToDelete.url.split('?')[0];
+    if (isEditMode) {
+      // Edit mode: delete via API
+      setSaving(true);
+      try {
+        const cleanImageUrl = photoToDelete.url.split('?')[0];
+        const remainingPhotos = photos.filter((_, i) => i !== index);
+        
+        const response = await api.put(`/profile/${username}/delete-photo`, {
+          imageToDelete: cleanImageUrl,
+          remainingImages: remainingPhotos.map(p => p.url.split('?')[0])
+        });
+        
+        const newVisibility = response.data.imageVisibility;
+        if (newVisibility) {
+          const updatedPhotos = [];
+          if (newVisibility.profilePic) {
+            updatedPhotos.push({ url: newVisibility.profilePic, visibility: 'profilePic' });
+          }
+          (newVisibility.memberVisible || []).forEach(url => {
+            updatedPhotos.push({ url, visibility: 'memberVisible' });
+          });
+          (newVisibility.onRequest || []).forEach(url => {
+            updatedPhotos.push({ url, visibility: 'onRequest' });
+          });
+          setPhotos(updatedPhotos);
+          
+          if (setExistingImages) {
+            setExistingImages(updatedPhotos.map(p => p.url));
+          }
+        } else {
+          if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
+            remainingPhotos[0].visibility = 'profilePic';
+          }
+          setPhotos(remainingPhotos);
+          
+          if (setExistingImages) {
+            setExistingImages(remainingPhotos.map(p => p.url));
+          }
+        }
+        
+        showStatus('success', '✅ Photo deleted!');
+      } catch (error) {
+        showStatus('error', '❌ Failed to delete: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        setSaving(false);
+      }
+    } else {
+      // Registration mode: remove locally
       const remainingPhotos = photos.filter((_, i) => i !== index);
       
-      const response = await api.put(`/profile/${username}/delete-photo`, {
-        imageToDelete: cleanImageUrl,
-        remainingImages: remainingPhotos.map(p => p.url.split('?')[0])
-      });
-      
-      // Backend now returns updated imageVisibility - use it to rebuild photos array
-      const newVisibility = response.data.imageVisibility;
-      if (newVisibility) {
-        const updatedPhotos = [];
-        if (newVisibility.profilePic) {
-          updatedPhotos.push({ url: newVisibility.profilePic, visibility: 'profilePic' });
-        }
-        (newVisibility.memberVisible || []).forEach(url => {
-          updatedPhotos.push({ url, visibility: 'memberVisible' });
-        });
-        (newVisibility.onRequest || []).forEach(url => {
-          updatedPhotos.push({ url, visibility: 'onRequest' });
-        });
-        setPhotos(updatedPhotos);
-        
-        if (setExistingImages) {
-          setExistingImages(updatedPhotos.map(p => p.url));
-        }
-      } else {
-        // Fallback: If deleted photo was profilePic, promote first remaining
-        if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
-          remainingPhotos[0].visibility = 'profilePic';
-        }
-        setPhotos(remainingPhotos);
-        
-        if (setExistingImages) {
-          setExistingImages(remainingPhotos.map(p => p.url));
-        }
+      // Revoke object URL if it's a new file
+      if (photoToDelete.isNew && photoToDelete.url.startsWith('blob:')) {
+        URL.revokeObjectURL(photoToDelete.url);
       }
       
-      // No need to call saveVisibility - backend already updated it
-      showStatus('success', '✅ Photo deleted!');
-    } catch (error) {
-      showStatus('error', '❌ Failed to delete: ' + (error.response?.data?.detail || error.message));
-    } finally {
-      setSaving(false);
+      // Promote first remaining to profilePic if needed
+      if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
+        remainingPhotos[0].visibility = 'profilePic';
+      }
+      
+      setPhotos(remainingPhotos);
+      
+      // Update parent state
+      if (setNewImages) {
+        const newFiles = remainingPhotos.filter(p => p.isNew && p.file).map(p => p.file);
+        setNewImages(newFiles);
+      }
+      
+      showStatus('success', '✅ Photo removed!');
     }
   };
 
@@ -294,45 +368,64 @@ const PhotoVisibilityManager = ({
       }
     }
     
-    if (!isEditMode || !username) {
-      showStatus('error', '❌ Please save your profile first');
-      e.target.value = '';
-      return;
-    }
-    
-    setUploading(true);
-    try {
-      const formData = new FormData();
-      files.forEach(file => formData.append('images', file));
-      
-      const existingUrls = photos.map(p => p.url);
-      formData.append('existingImages', JSON.stringify(existingUrls));
-      
-      const response = await api.post(`/profile/${username}/upload-photos`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      // Add new images as memberVisible (or profilePic if first)
-      const newImages = response.data.images.filter(img => !existingUrls.includes(img));
+    if (isEditMode && username) {
+      // Edit mode: upload immediately
+      setUploading(true);
+      try {
+        const formData = new FormData();
+        files.forEach(file => formData.append('images', file));
+        
+        const existingUrls = photos.map(p => p.url);
+        formData.append('existingImages', JSON.stringify(existingUrls));
+        
+        const response = await api.post(`/profile/${username}/upload-photos`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        
+        const newImageUrls = response.data.images.filter(img => !existingUrls.includes(img));
+        const newPhotos = [...photos];
+        
+        newImageUrls.forEach(url => {
+          const visibility = newPhotos.length === 0 ? 'profilePic' : 'memberVisible';
+          newPhotos.push({ url, visibility });
+        });
+        
+        setPhotos(newPhotos);
+        
+        if (setExistingImages) {
+          setExistingImages(newPhotos.map(p => p.url));
+        }
+        
+        await saveVisibility(newPhotos);
+        showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded!`);
+      } catch (error) {
+        showStatus('error', '❌ Upload failed: ' + (error.response?.data?.detail || error.message));
+      } finally {
+        setUploading(false);
+        e.target.value = '';
+      }
+    } else {
+      // Registration mode: collect files locally
       const newPhotos = [...photos];
       
-      newImages.forEach(url => {
-        const visibility = newPhotos.length === 0 ? 'profilePic' : 'memberVisible';
-        newPhotos.push({ url, visibility });
+      files.forEach(file => {
+        newPhotos.push({
+          url: URL.createObjectURL(file),
+          visibility: newPhotos.length === 0 ? 'profilePic' : 'memberVisible',
+          file,
+          isNew: true
+        });
       });
       
       setPhotos(newPhotos);
       
-      if (setExistingImages) {
-        setExistingImages(newPhotos.map(p => p.url));
+      // Update parent state
+      if (setNewImages) {
+        const allNewFiles = newPhotos.filter(p => p.isNew && p.file).map(p => p.file);
+        setNewImages(allNewFiles);
       }
       
-      await saveVisibility(newPhotos);
-      showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded!`);
-    } catch (error) {
-      showStatus('error', '❌ Upload failed: ' + (error.response?.data?.detail || error.message));
-    } finally {
-      setUploading(false);
+      showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} added!`);
       e.target.value = '';
     }
   };
@@ -387,7 +480,7 @@ const PhotoVisibilityManager = ({
       <div className="photos-horizontal-grid">
         {/* Render existing photos */}
         {photos.map((photo, index) => {
-          const displayUrl = getImageUrl(photo.url);
+          const displayUrl = photo.isNew ? photo.url : getImageUrl(photo.url);
           const visInfo = getVisibilityInfo(photo.visibility);
           const isConfirmDelete = deleteConfirmIndex === index;
           const isDragOver = dragOverIndex === index;
@@ -395,7 +488,7 @@ const PhotoVisibilityManager = ({
           return (
             <div
               key={photo.url}
-              className={`photo-slot filled ${isConfirmDelete ? 'confirm-delete' : ''} ${isDragOver ? 'drag-over' : ''}`}
+              className={`photo-slot filled ${isConfirmDelete ? 'confirm-delete' : ''} ${isDragOver ? 'drag-over' : ''} ${photo.isNew ? 'new-upload' : ''}`}
               draggable
               onDragStart={(e) => handleDragStart(e, index)}
               onDragEnd={handleDragEnd}
@@ -404,6 +497,9 @@ const PhotoVisibilityManager = ({
             >
               {/* Slot number */}
               <div className="slot-number">{index + 1}</div>
+              
+              {/* New badge */}
+              {photo.isNew && <div className="new-badge">🆕</div>}
               
               {/* Photo */}
               <div 

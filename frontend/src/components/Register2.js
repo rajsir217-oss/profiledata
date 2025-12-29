@@ -5,7 +5,6 @@ import api from "../api";
 import { getBackendUrl } from "../config/apiConfig";
 import logger from "../utils/logger";
 import TabContainer from "./TabContainer";
-import ImageManager from "./ImageManager";
 import PhotoVisibilityManager from "./PhotoVisibilityManager";
 // ProfileConfirmationModal removed - registration now submits directly
 import { EducationHistory, WorkExperience, TextAreaWithSamples, Autocomplete, ButtonGroup, ErrorModal } from "./shared";
@@ -2964,37 +2963,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
-        {/* Profile Images - Use PhotoVisibilityManager in edit mode, ImageManager for registration */}
+        {/* Profile Images - Unified PhotoVisibilityManager for both registration and edit */}
         <div className="mt-4">
-          {isEditMode ? (
-            <PhotoVisibilityManager
-              existingImages={existingImages}
-              setExistingImages={setExistingImages}
-              onError={(msg) => setErrorMsg(msg)}
-              username={editUsername || formData.username}
-              isEditMode={isEditMode}
-            />
-          ) : (
-            <>
-              <h5 className="mb-3 text-primary">📸 Profile Images</h5>
-              <p className="text-muted small mb-3">
-                Upload up to 5 photos (5MB each). Drag to reorder. First photo will be your profile picture.
-              </p>
-              <ImageManager
-                existingImages={existingImages}
-                setExistingImages={setExistingImages}
-                publicImages={publicImages}
-                setPublicImages={setPublicImages}
-                imagesToDelete={imagesToDelete}
-                setImagesToDelete={setImagesToDelete}
-                newImages={newImages}
-                setNewImages={setNewImages}
-                onError={(msg) => setErrorMsg(msg)}
-                username={editUsername || formData.username}
-                isEditMode={isEditMode}
-              />
-            </>
-          )}
+          <PhotoVisibilityManager
+            existingImages={existingImages}
+            setExistingImages={setExistingImages}
+            newImages={newImages}
+            setNewImages={setNewImages}
+            onError={(msg) => setErrorMsg(msg)}
+            username={editUsername || formData.username}
+            isEditMode={isEditMode}
+          />
         </div>
 
         {/* Continue Button */}
