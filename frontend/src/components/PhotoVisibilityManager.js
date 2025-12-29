@@ -232,23 +232,42 @@ const PhotoVisibilityManager = ({
       const cleanImageUrl = photoToDelete.url.split('?')[0];
       const remainingPhotos = photos.filter((_, i) => i !== index);
       
-      await api.put(`/profile/${username}/delete-photo`, {
+      const response = await api.put(`/profile/${username}/delete-photo`, {
         imageToDelete: cleanImageUrl,
         remainingImages: remainingPhotos.map(p => p.url.split('?')[0])
       });
       
-      // If deleted photo was profilePic, promote first remaining
-      if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
-        remainingPhotos[0].visibility = 'profilePic';
+      // Backend now returns updated imageVisibility - use it to rebuild photos array
+      const newVisibility = response.data.imageVisibility;
+      if (newVisibility) {
+        const updatedPhotos = [];
+        if (newVisibility.profilePic) {
+          updatedPhotos.push({ url: newVisibility.profilePic, visibility: 'profilePic' });
+        }
+        (newVisibility.memberVisible || []).forEach(url => {
+          updatedPhotos.push({ url, visibility: 'memberVisible' });
+        });
+        (newVisibility.onRequest || []).forEach(url => {
+          updatedPhotos.push({ url, visibility: 'onRequest' });
+        });
+        setPhotos(updatedPhotos);
+        
+        if (setExistingImages) {
+          setExistingImages(updatedPhotos.map(p => p.url));
+        }
+      } else {
+        // Fallback: If deleted photo was profilePic, promote first remaining
+        if (photoToDelete.visibility === 'profilePic' && remainingPhotos.length > 0) {
+          remainingPhotos[0].visibility = 'profilePic';
+        }
+        setPhotos(remainingPhotos);
+        
+        if (setExistingImages) {
+          setExistingImages(remainingPhotos.map(p => p.url));
+        }
       }
       
-      setPhotos(remainingPhotos);
-      
-      if (setExistingImages) {
-        setExistingImages(remainingPhotos.map(p => p.url));
-      }
-      
-      await saveVisibility(remainingPhotos);
+      // No need to call saveVisibility - backend already updated it
       showStatus('success', '✅ Photo deleted!');
     } catch (error) {
       showStatus('error', '❌ Failed to delete: ' + (error.response?.data?.detail || error.message));

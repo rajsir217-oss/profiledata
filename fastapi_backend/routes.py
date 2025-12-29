@@ -2562,13 +2562,50 @@ async def delete_photo(
     normalized_public = [extract_filename(img) for img in current_public]
     normalized_public = [p for p in normalized_public if p and p in normalized_remaining]
     
+    # Also update imageVisibility - remove deleted image from all buckets
+    current_visibility = user.get("imageVisibility", {})
+    new_visibility = {
+        "profilePic": None,
+        "memberVisible": [],
+        "onRequest": []
+    }
+    
+    # Keep only images that are in remaining list
+    remaining_set = set(normalized_remaining)
+    
+    profile_pic = current_visibility.get("profilePic")
+    if profile_pic and extract_filename(profile_pic) in remaining_set:
+        new_visibility["profilePic"] = f"/uploads/{extract_filename(profile_pic)}"
+    
+    for img in current_visibility.get("memberVisible", []):
+        fn = extract_filename(img)
+        if fn in remaining_set:
+            new_visibility["memberVisible"].append(f"/uploads/{fn}")
+    
+    for img in current_visibility.get("onRequest", []):
+        fn = extract_filename(img)
+        if fn in remaining_set:
+            new_visibility["onRequest"].append(f"/uploads/{fn}")
+    
+    # If profile pic was deleted, promote first remaining image
+    if not new_visibility["profilePic"] and normalized_remaining:
+        new_visibility["profilePic"] = f"/uploads/{normalized_remaining[0]}"
+        # Remove from memberVisible if it was there
+        if f"/uploads/{normalized_remaining[0]}" in new_visibility["memberVisible"]:
+            new_visibility["memberVisible"].remove(f"/uploads/{normalized_remaining[0]}")
+    
+    # Normalize remaining images to /uploads/ format for storage
+    normalized_remaining_paths = [f"/uploads/{fn}" for fn in normalized_remaining]
+    normalized_public_paths = [f"/uploads/{fn}" for fn in normalized_public]
+    
     # Update user's images in database
     try:
         result = await db.users.update_one(
             {"username": username},
             {"$set": {
-                "images": normalized_remaining,
-                "publicImages": normalized_public,
+                "images": normalized_remaining_paths,
+                "publicImages": normalized_public_paths,
+                "imageVisibility": new_visibility,
                 "updatedAt": datetime.utcnow().isoformat()
             }}
         )
@@ -2578,14 +2615,20 @@ async def delete_photo(
         
         logger.info(f"✅ Photo deleted successfully for user '{username}'")
         logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
+        logger.info(f"📸 New visibility: profilePic={new_visibility['profilePic']}, memberVisible={len(new_visibility['memberVisible'])}, onRequest={len(new_visibility['onRequest'])}")
         
         # Return full URLs
-        full_urls = [get_full_image_url(img) for img in normalized_remaining]
-        full_public_urls = [get_full_image_url(img) for img in normalized_public]
+        full_urls = [get_full_image_url(img) for img in normalized_remaining_paths]
+        full_public_urls = [get_full_image_url(img) for img in normalized_public_paths]
         
         return {
             "images": full_urls,
             "publicImages": full_public_urls,
+            "imageVisibility": {
+                "profilePic": get_full_image_url(new_visibility["profilePic"]) if new_visibility["profilePic"] else None,
+                "memberVisible": [get_full_image_url(img) for img in new_visibility["memberVisible"]],
+                "onRequest": [get_full_image_url(img) for img in new_visibility["onRequest"]]
+            },
             "message": "Photo deleted successfully"
         }
         
@@ -2753,24 +2796,50 @@ async def update_image_visibility(
 
     from urllib.parse import urlparse
 
-    def extract_path(url_or_path: str) -> str:
-        """Extract and normalize image path to /uploads/... format"""
+    def extract_filename(url_or_path: str) -> str:
+        """Extract just the filename from any URL or path format for comparison"""
         if not url_or_path:
             return ''
+        # Handle full URLs
         if isinstance(url_or_path, str) and url_or_path.startswith('http'):
             parsed = urlparse(url_or_path)
             path = parsed.path
+            # Extract filename from /api/users/media/filename.jpg
             if '/api/users/media/' in path:
-                path = '/uploads/' + path.split('/api/users/media/')[-1]
-            return path
+                return path.split('/api/users/media/')[-1]
+            # Extract filename from /uploads/filename.jpg
+            if '/uploads/' in path:
+                return path.split('/uploads/')[-1]
+            return path.split('/')[-1]
+        # Handle /uploads/filename.jpg
+        if isinstance(url_or_path, str) and '/uploads/' in url_or_path:
+            return url_or_path.split('/uploads/')[-1]
+        # Handle uploads/filename.jpg (no leading slash)
         if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
-            return '/' + url_or_path
+            return url_or_path[8:]  # Remove 'uploads/'
+        # Handle /api/users/media/filename.jpg
         if isinstance(url_or_path, str) and '/api/users/media/' in url_or_path:
-            return '/uploads/' + url_or_path.split('/api/users/media/')[-1]
+            return url_or_path.split('/api/users/media/')[-1]
+        # Handle just filename or /filename
+        if isinstance(url_or_path, str):
+            return url_or_path.lstrip('/')
         return url_or_path
+    
+    def normalize_to_uploads_path(filename: str) -> str:
+        """Convert filename to /uploads/filename format for storage"""
+        if not filename:
+            return ''
+        # Already in correct format
+        if filename.startswith('/uploads/'):
+            return filename
+        # Extract just the filename and prepend /uploads/
+        clean_filename = extract_filename(filename)
+        return f'/uploads/{clean_filename}' if clean_filename else ''
 
     existing_images = user.get("images", [])
-    normalized_existing = {extract_path(img) for img in existing_images if img}
+    # Create a set of just filenames for comparison
+    existing_filenames = {extract_filename(img) for img in existing_images if img}
+    logger.info(f"📸 Existing filenames for {username}: {existing_filenames}")
 
     # Extract and validate input
     profile_pic = data.get("profilePic")
@@ -2782,40 +2851,47 @@ async def update_image_visibility(
     if not isinstance(on_request, list):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="onRequest must be a list")
 
-    # Normalize paths
-    normalized_profile_pic = extract_path(profile_pic) if profile_pic else None
-    normalized_member_visible = [extract_path(img) for img in member_visible if img]
-    normalized_on_request = [extract_path(img) for img in on_request if img]
+    # Extract filenames from input and normalize to /uploads/ paths
+    profile_pic_filename = extract_filename(profile_pic) if profile_pic else None
+    member_visible_filenames = [extract_filename(img) for img in member_visible if img]
+    on_request_filenames = [extract_filename(img) for img in on_request if img]
+    
+    logger.info(f"📸 Input filenames - profilePic: {profile_pic_filename}, memberVisible: {member_visible_filenames}, onRequest: {on_request_filenames}")
 
-    # Validate: all images must exist in user's images
-    all_visibility_images = []
-    if normalized_profile_pic:
-        all_visibility_images.append(normalized_profile_pic)
-    all_visibility_images.extend(normalized_member_visible)
-    all_visibility_images.extend(normalized_on_request)
+    # Validate: all images must exist in user's images (compare by filename)
+    all_input_filenames = []
+    if profile_pic_filename:
+        all_input_filenames.append(profile_pic_filename)
+    all_input_filenames.extend(member_visible_filenames)
+    all_input_filenames.extend(on_request_filenames)
 
-    for img in all_visibility_images:
-        if img not in normalized_existing:
+    for filename in all_input_filenames:
+        if filename not in existing_filenames:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=f"Image not found in user's images: {img}"
+                detail=f"Image not found in user's images: {filename}"
             )
 
     # Validate limits
-    if len(all_visibility_images) > 5:
+    if len(all_input_filenames) > 5:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Total images cannot exceed 5"
         )
-    if len(normalized_member_visible) > 4:
+    if len(member_visible_filenames) > 4:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
             detail="Member visible images cannot exceed 4"
         )
 
+    # Normalize to /uploads/ paths for storage
+    normalized_profile_pic = normalize_to_uploads_path(profile_pic_filename) if profile_pic_filename else None
+    normalized_member_visible = [normalize_to_uploads_path(f) for f in member_visible_filenames]
+    normalized_on_request = [normalize_to_uploads_path(f) for f in on_request_filenames]
+
     # If user has images but no profile pic specified, use first image
     if existing_images and not normalized_profile_pic:
-        normalized_profile_pic = extract_path(existing_images[0])
+        normalized_profile_pic = normalize_to_uploads_path(extract_filename(existing_images[0]))
 
     # Build the imageVisibility object
     image_visibility = {
