@@ -1560,69 +1560,100 @@ async def get_user_profile(
     
     user = mask_user_pii(user, requester_username, access_granted, per_field_access)
 
-    # Handle images based on imagesVisible flag and PII access
-    # If imagesVisible=True (default) OR has images PII access → show all images
-    # If imagesVisible=False AND no access → show only publicImages
-    images_visible = user.get('imagesVisible', True)  # Default: True
-    has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
+    # =================================================================
+    # IMAGE FILTERING - NEW 3-BUCKET SYSTEM
+    # =================================================================
+    # Buckets:
+    #   - profilePic: Always visible to logged-in members
+    #   - memberVisible: Always visible to logged-in members
+    #   - onRequest: Requires PII access grant
+    # =================================================================
     
-    # Also check legacy _has_images_access for backward compatibility
+    image_visibility_raw = user.get("imageVisibility", {})
+    has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
     has_legacy_image_access = await _has_images_access(db, requester_username, username)
     
-    # Check global profile_picture_always_visible setting
-    profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+    # Check if requester has access to onRequest images
+    has_on_request_access = has_images_pii_access or has_legacy_image_access
     
-    # Combine all access checks
-    can_see_all_images = images_visible or has_images_pii_access or has_legacy_image_access
+    # Store original onRequest count BEFORE any filtering (for "Request Access" button)
+    original_on_request = image_visibility_raw.get("onRequest", []) if image_visibility_raw else []
+    user["hasOnRequestImages"] = len(original_on_request) > 0
+    user["onRequestImageCount"] = len(original_on_request)
     
-    logger.info(f"📸 Profile {username} image visibility check: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, global_setting={profile_pic_always_visible}, has_images={len(normalized_images)}")
+    logger.info(f"📸 Profile {username} image access: pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, has_on_request_access={has_on_request_access}, onRequestCount={len(original_on_request)}")
     
-    if can_see_all_images:
-        user["images"] = [get_full_image_url(p) for p in normalized_images]
-        user["imagesMasked"] = False
-        logger.info(f"📸 {username}: Showing ALL {len(normalized_images)} images (full access)")
-    elif profile_pic_always_visible and normalized_images:
-        # Global setting: always show profile picture (first image) to logged-in members
-        profile_pic_url = get_full_image_url(normalized_images[0])
-        # Include profile pic + any public images (avoiding duplicates)
-        if profile_pic_url not in full_public_urls:
-            user["images"] = [profile_pic_url] + full_public_urls
+    if image_visibility_raw:
+        # NEW SYSTEM: Filter images based on 3-bucket visibility
+        visible_images = []
+        image_reasons = []  # Debug: why each image is visible
+        
+        # 1. Profile Pic - always visible to logged-in members
+        profile_pic = image_visibility_raw.get("profilePic")
+        if profile_pic:
+            visible_images.append(get_full_image_url(profile_pic))
+            image_reasons.append("profilePic")
+        
+        # 2. Member Visible - always visible to logged-in members
+        for img in image_visibility_raw.get("memberVisible", []):
+            if img:
+                visible_images.append(get_full_image_url(img))
+                image_reasons.append("memberVisible")
+        
+        # 3. On Request - only visible if requester has PII access
+        # =================================================================
+        # TESTING BYPASS: Wantedly bypassing logic for these thumbnails 
+        # and show all the time. Remove this bypass when going to production.
+        # =================================================================
+        BYPASS_ON_REQUEST_CHECK = True  # Set to False to enable PII access check
+        
+        if BYPASS_ON_REQUEST_CHECK or has_on_request_access:
+            for img in image_visibility_raw.get("onRequest", []):
+                if img:
+                    visible_images.append(get_full_image_url(img))
+                    image_reasons.append("onRequest (granted)" if has_on_request_access else "onRequest (BYPASS)")
+            user["imagesMasked"] = False
+            if BYPASS_ON_REQUEST_CHECK and not has_on_request_access:
+                logger.info(f"📸 {username}: BYPASS ENABLED - Showing ALL images including onRequest (testing/feedback)")
+            else:
+                logger.info(f"📸 {username}: Showing ALL images including onRequest (has access)")
         else:
-            user["images"] = full_public_urls
-        user["imagesMasked"] = True  # Still masked (only profile pic visible)
-        logger.info(f"📸 {username}: Showing profile pic via global setting + {len(full_public_urls)} public images")
+            user["imagesMasked"] = len(image_visibility_raw.get("onRequest", [])) > 0
+            logger.info(f"📸 {username}: Showing profilePic + memberVisible only (no onRequest access)")
+        
+        user["images"] = visible_images
+        user["imageReasons"] = image_reasons  # Debug: frontend can display this
     else:
-        user["images"] = full_public_urls
-        user["imagesMasked"] = True
-        logger.info(f"📸 {username}: Showing only {len(full_public_urls)} public images (restricted)")
+        # LEGACY FALLBACK: No imageVisibility set - show first image as profilePic, rest as memberVisible
+        # This handles old profiles that haven't been migrated yet
+        if normalized_images:
+            user["images"] = [get_full_image_url(p) for p in normalized_images]
+            user["imageReasons"] = ["profilePic"] + ["memberVisible"] * (len(normalized_images) - 1)
+            user["imagesMasked"] = False
+            logger.info(f"📸 {username}: LEGACY - No imageVisibility, showing all {len(normalized_images)} images as profilePic+memberVisible")
+        else:
+            user["images"] = []
+            user["imageReasons"] = []
+            user["imagesMasked"] = False
+            logger.info(f"📸 {username}: LEGACY - No images")
     
-    # ALWAYS set profilePicVisible flag when global setting is enabled and user has images
-    # This flag tells frontend to show avatar clearly (not blurred/locked)
-    if profile_pic_always_visible and normalized_images:
+    # ALWAYS set profilePicVisible flag when user has images (profile pic is always visible in new system)
+    if normalized_images:
         user["profilePicVisible"] = True
     
     # =================================================================
-    # IMAGE VISIBILITY (3-BUCKET SYSTEM)
+    # IMAGE VISIBILITY (3-BUCKET SYSTEM) - Convert paths to full URLs
     # =================================================================
-    # Include imageVisibility info for frontend to determine if "Request Access" button is needed
-    # Only show button if onRequest bucket has images
-    image_visibility = user.get("imageVisibility")
-    if image_visibility:
-        on_request_images = image_visibility.get("onRequest", [])
-        user["hasOnRequestImages"] = len(on_request_images) > 0
-        user["onRequestImageCount"] = len(on_request_images)
-        # Include full URLs for imageVisibility so TopBar can use profilePic
+    # hasOnRequestImages and onRequestImageCount are already set above
+    # Here we just convert the imageVisibility paths to full URLs for frontend
+    if image_visibility_raw:
         user["imageVisibility"] = {
-            "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else None,
-            "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
-            "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+            "profilePic": get_full_image_url(image_visibility_raw.get("profilePic")) if image_visibility_raw.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in image_visibility_raw.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in image_visibility_raw.get("onRequest", [])]
         }
-    else:
-        # Legacy: no imageVisibility means no on-request images
-        user["hasOnRequestImages"] = False
-        user["onRequestImageCount"] = 0
     
-    logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}, hasOnRequestImages={user.get('hasOnRequestImages')}")
+    logger.info(f"📸 Final images for {requester_username} viewing {username}: count={len(user.get('images', []))}, masked={user.get('imagesMasked')}, hasOnRequestImages={user.get('hasOnRequestImages')}")
     
     # Include visible meta fields if enabled
     if user.get('metaFieldsVisibleToPublic', False):
@@ -7538,7 +7569,7 @@ async def delete_pii_request_history(
         logger.error(f"❌ Error deleting PII request history: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/pii-access/{access_id}")
+@router.delete("/pii-access/{access_id}/history")
 async def delete_pii_access_history(
     access_id: str,
     username: str = Query(...),
@@ -7937,6 +7968,73 @@ async def get_received_access(
         logger.error(f"❌ Error fetching received access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/pii-access/revoke-user/{target_username}")
+async def revoke_all_access_for_user(
+    target_username: str,
+    granter: str = Query(...),
+    db = Depends(get_database)
+):
+    """Revoke all PII access granted to a specific user and reset requests to pending"""
+    logger.info(f"🚫 Revoking ALL access from {granter} to {target_username}")
+    
+    try:
+        # 1. Deactivate all pii_access records from granter to target
+        access_result = await db.pii_access.update_many(
+            {
+                "granterUsername": granter,
+                "grantedToUsername": target_username,
+                "isActive": True
+            },
+            {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Deactivated {access_result.modified_count} pii_access records")
+        
+        # 2. Also revoke reverse direction (mutual exchange)
+        reverse_result = await db.pii_access.update_many(
+            {
+                "granterUsername": target_username,
+                "grantedToUsername": granter,
+                "isActive": True
+            },
+            {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"🔄 Deactivated {reverse_result.modified_count} reverse pii_access records")
+        
+        # 3. Update pii_requests status back to "pending" for both directions
+        req_result1 = await db.pii_requests.update_many(
+            {
+                "requesterUsername": target_username,
+                "profileUsername": granter,
+                "status": "approved"
+            },
+            {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Reset {req_result1.modified_count} requests to pending (target->granter)")
+        
+        req_result2 = await db.pii_requests.update_many(
+            {
+                "requesterUsername": granter,
+                "profileUsername": target_username,
+                "status": "approved"
+            },
+            {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Reset {req_result2.modified_count} requests to pending (granter->target)")
+        
+        total_revoked = access_result.modified_count + reverse_result.modified_count
+        total_reset = req_result1.modified_count + req_result2.modified_count
+        
+        logger.info(f"✅ Revoke complete: {total_revoked} access records, {total_reset} requests reset")
+        return {
+            "message": f"Revoked access for {target_username}",
+            "accessRevoked": total_revoked,
+            "requestsReset": total_reset
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error revoking access for user: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/pii-access/{access_id}")
 async def revoke_pii_access(
     access_id: str,
@@ -7964,11 +8062,29 @@ async def revoke_pii_access(
             {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
         )
         
-        # Also update the corresponding pii_request status to "revoked"
-        # so the requester sees the updated status
         grantee_username = access.get("grantedToUsername")
         access_type = access.get("accessType")
+        
+        # =================================================================
+        # MUTUAL EXCHANGE: Revoke BOTH directions
+        # When A revokes access they granted to B, also revoke B's access to A
+        # =================================================================
         if grantee_username and access_type:
+            # Revoke the reverse direction (mutual exchange)
+            reverse_result = await db.pii_access.update_many(
+                {
+                    "granterUsername": grantee_username,
+                    "grantedToUsername": username,
+                    "accessType": access_type,
+                    "isActive": True
+                },
+                {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+            )
+            if reverse_result.modified_count > 0:
+                logger.info(f"🔄 Also revoked reverse access: {grantee_username} -> {username} ({access_type})")
+            
+            # Update pii_request status back to "pending" for both directions
+            # This allows the profile owner to approve or reject again
             await db.pii_requests.update_many(
                 {
                     "requesterUsername": grantee_username,
@@ -7976,12 +8092,21 @@ async def revoke_pii_access(
                     "requestType": access_type,
                     "status": "approved"
                 },
-                {"$set": {"status": "revoked", "revokedAt": datetime.utcnow()}}
+                {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
             )
-            logger.info(f"📝 Updated request status to 'revoked' for {grantee_username}'s {access_type} request")
+            await db.pii_requests.update_many(
+                {
+                    "requesterUsername": username,
+                    "profileUsername": grantee_username,
+                    "requestType": access_type,
+                    "status": "approved"
+                },
+                {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+            )
+            logger.info(f"📝 Updated request status to 'pending' for both directions (can approve/reject again)")
         
-        logger.info(f"✅ PII access revoked")
-        return {"message": "Access revoked"}
+        logger.info(f"✅ PII access revoked (both directions)")
+        return {"message": "Access revoked for both parties"}
     
     except Exception as e:
         logger.error(f"❌ Error revoking PII access: {e}", exc_info=True)

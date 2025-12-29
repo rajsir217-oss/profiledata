@@ -734,7 +734,7 @@ const Dashboard2 = () => {
         contactNumberVisible: targetProfile.contactNumberVisible,
         contactEmailVisible: targetProfile.contactEmailVisible,
         linkedinUrlVisible: targetProfile.linkedinUrlVisible,
-        imagesVisible: targetProfile.imagesVisible
+        imageVisibility: targetProfile.imageVisibility
       });
       
       // Build current access map for this specific user
@@ -1575,6 +1575,29 @@ const Dashboard2 = () => {
                       toast.error('Failed to reject requests');
                     }
                   }}
+                  onRevokeAll={async (username, requests) => {
+                    try {
+                      logger.info(`🚫 Revoking access for ${username}, requests:`, requests);
+                      
+                      // Revoke approved requests - update their status back to pending
+                      const approvedRequests = requests.filter(r => r.status === 'approved');
+                      logger.info(`📋 Approved requests to revoke: ${approvedRequests.length}`);
+                      
+                      if (approvedRequests.length === 0) {
+                        toast.info('No approved access to revoke');
+                        return;
+                      }
+                      
+                      // Use the revoke-by-user endpoint which handles both pii_access and pii_requests
+                      await api.delete(`/pii-access/revoke-user/${username}?granter=${currentUser}`);
+                      
+                      toast.success(`Revoked all access for ${username}`);
+                      loadDashboardData(currentUser);
+                    } catch (err) {
+                      logger.error('Failed to revoke access:', err);
+                      toast.error('Failed to revoke access');
+                    }
+                  }}
                   onProfileClick={(username) => navigate(`/profile/${username}`)}
                   showMutualExchange={true}
                   compact={true}
@@ -1770,9 +1793,9 @@ const Dashboard2 = () => {
         visibilitySettings={{
           contactNumberVisible: selectedUserForPII?.contactNumberVisible,
           contactEmailVisible: selectedUserForPII?.contactEmailVisible,
-          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible,
-          imagesVisible: selectedUserForPII?.imagesVisible
+          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible
         }}
+        targetProfile={selectedUserForPII}
         requesterProfile={userProfile}
         onClose={() => {
           setShowPIIRequestModal(false);

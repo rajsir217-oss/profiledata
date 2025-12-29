@@ -158,7 +158,7 @@ const Favorites = () => {
         contactNumberVisible: targetProfile.contactNumberVisible,
         contactEmailVisible: targetProfile.contactEmailVisible,
         linkedinUrlVisible: targetProfile.linkedinUrlVisible,
-        imagesVisible: targetProfile.imagesVisible
+        imageVisibility: targetProfile.imageVisibility  // New 3-bucket system
       });
       setShowPIIRequestModal(true);
     } catch (err) {
@@ -308,9 +308,9 @@ const Favorites = () => {
           visibilitySettings={{
             contactNumberVisible: selectedUserForPII.contactNumberVisible,
             contactEmailVisible: selectedUserForPII.contactEmailVisible,
-            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible,
-            imagesVisible: selectedUserForPII.imagesVisible
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
           }}
+          targetProfile={selectedUserForPII}
           requesterProfile={currentUserProfile}
           onClose={() => {
             setShowPIIRequestModal(false);
