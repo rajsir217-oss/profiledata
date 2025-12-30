@@ -163,12 +163,15 @@ async def get_incoming_requests(
         for request in requests:
             requester_username = request.get("requesterUsername")
             
-            # Fetch requester profile
+            # Fetch requester profile - Only show if requester is still active
             requester_profile = await db.users.find_one(
-                {"username": requester_username},
+                {"username": requester_username, "accountStatus": "active"},
                 {"_id": 0, "username": 1, "firstName": 1, "lastName": 1, "images": 1}
             )
             
+            if not requester_profile:
+                continue
+                
             enriched_requests.append({
                 "id": str(request.get("_id")),
                 "requesterUsername": requester_username,

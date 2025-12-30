@@ -1517,6 +1517,17 @@ async def get_user_profile(
             detail="User not found"
         )
     
+    # Non-active profiles (except own) are not viewable by regular users
+    is_target_active = user.get("accountStatus") == "active"
+    is_privileged_requester = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
+    if not is_own_profile and not is_target_active and not is_privileged_requester:
+        logger.warning(f"⚠️ User {requester_username} tried to view non-active profile {username} (status: {user.get('accountStatus')})")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This profile is no longer active or available."
+        )
+    
     # Remove password and _id from response
     user.pop("password", None)
     user.pop("_id", None)
@@ -3355,11 +3366,29 @@ async def get_access_requests(
     
     try:
         if type == "received":
+            # Only show requests from active users
             requests_cursor = db.access_requests.find({"requestedUserId": username})
+            requests = await requests_cursor.to_list(100)
+            
+            # Filter for active requesters
+            active_requests = []
+            for req in requests:
+                requester = await db.users.find_one({"username": req["requesterId"], "accountStatus": "active"})
+                if requester:
+                    active_requests.append(req)
+            requests = active_requests
         else:
+            # Only show requests to active profile owners
             requests_cursor = db.access_requests.find({"requesterId": username})
-        
-        requests = await requests_cursor.to_list(100)
+            requests = await requests_cursor.to_list(100)
+            
+            # Filter for active target users
+            active_requests = []
+            for req in requests:
+                target = await db.users.find_one({"username": req["requestedUserId"], "accountStatus": "active"})
+                if target:
+                    active_requests.append(req)
+            requests = active_requests
         
         for req in requests:
             req['_id'] = str(req['_id'])
@@ -3645,22 +3674,24 @@ async def search_users(
     # Build query
     query = {}
     
-    # Profile ID direct lookup - bypasses other filters except status
+    # Status filter - use accountStatus (unified field)
+    # Only allow admins/moderators to search for non-active users
+    is_privileged = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
     if profileId:
         logger.info(f"🔍 Direct Profile ID lookup: '{profileId}'")
-        # Use partial match (case-insensitive) for profileId - allows finding profiles even with typos
-        # This searches for profileIds that contain the search term
         query["profileId"] = {"$regex": profileId, "$options": "i"}
-        # For Profile ID lookup, search ALL statuses (not just active) to find the profile
-        # Admin can see any status, regular users will see the profile but may have limited access
+        # If not admin/moderator, still restrict profileId lookup to active users
+        if not is_privileged:
+            query["accountStatus"] = "active"
         logger.info(f"🔍 Profile ID query: {query}")
-    
-    # Status filter - use accountStatus (unified field)
-    if not profileId:  # Only apply default status filter if not doing Profile ID lookup
-        if status_filter:
+    else:
+        if status_filter and is_privileged:
+            # Only privileged users can use status_filter
             query["accountStatus"] = {"$regex": f"^{status_filter}$", "$options": "i"}
         else:
-            # Default to active users only (exclude paused, suspended, deactivated, pending)
+            # Default to active users only for everyone else
+            # (including if a regular user tries to pass status_filter)
             query["accountStatus"] = "active"
 
     # Skip all other filters if profileId is provided (direct lookup)
@@ -4629,7 +4660,7 @@ async def get_favorites(
             user = await db.users.find_one(
                 {
                     "username": fav["favoriteUsername"],
-                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                    "accountStatus": "active"  # Strictly active users only
                 },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
@@ -4831,7 +4862,7 @@ async def get_shortlist(
             user = await db.users.find_one(
                 {
                     "username": item["shortlistedUsername"],
-                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                    "accountStatus": "active"  # Strictly active users only
                 },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
@@ -5021,7 +5052,10 @@ async def get_exclusions(
         excluded_users = []
         for exc in exclusions:
             user = await db.users.find_one(
-                {"username": exc["excludedUsername"]},
+                {
+                    "username": exc["excludedUsername"],
+                    "accountStatus": "active"  # Strictly active users only
+                },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
             if user:
@@ -5249,9 +5283,14 @@ async def get_conversations_enhanced(
                 logger.info(f"⚠️ Skipping conversation with {other_username} - not visible")
                 continue
             
-            user = await db.users.find_one({"username": other_username})
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if not is_admin:
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             if not user:
-                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found in database")
+                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found or not active")
                 continue
             
             # Build user profile
@@ -5630,7 +5669,13 @@ async def get_conversations(
         # Get user details for each conversation
         for conv in conversations:
             other_username = conv["_id"]
-            user = await db.users.find_one({"username": other_username})
+            
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if current_user.get("role") != "admin":
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
@@ -5723,7 +5768,13 @@ async def get_recent_conversations(
         result = []
         for conv in conversations:
             other_username = conv["_id"]
-            user = await db.users.find_one({"username": other_username})
+            
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if current_user.get("role") != "admin":
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             
             if user:
                 # 🔓 DECRYPT PII fields
@@ -6032,13 +6083,17 @@ async def get_conversation(
         for msg in messages:
             msg['id'] = str(msg.pop('_id', ''))
             msg['createdAt'] = msg['createdAt'].isoformat() if isinstance(msg['createdAt'], datetime) else msg['createdAt']
-        
+
         # Get other user's profile
-        other_user = await db.users.find_one({"username": other_username})
+        other_user_query = {"username": other_username}
+        if not is_admin:
+            other_user_query["accountStatus"] = "active"
+
+        other_user = await db.users.find_one(other_user_query)
         if other_user:
             other_user.pop("password", None)
             other_user["_id"] = str(other_user["_id"])
-            
+
             # 🔓 DECRYPT PII fields
             try:
                 encryptor = get_encryptor()
@@ -6396,8 +6451,13 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         
         # Get viewer details
         viewer_usernames = [v["viewerUsername"] for v in viewers]
+        
+        # Only show active users in the viewers list
         viewer_users = await db.users.find(
-            {"username": {"$in": viewer_usernames}}
+            {
+                "username": {"$in": viewer_usernames},
+                "accountStatus": "active"
+            }
         ).to_list(100)
         
         viewer_dict = {u["username"]: u for u in viewer_users}
@@ -6413,7 +6473,10 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         
         result = []
         for viewer in viewers:
-            user_data = viewer_dict.get(viewer["viewerUsername"], {})
+            user_data = viewer_dict.get(viewer["viewerUsername"])
+            if not user_data:
+                continue
+                
             # Use first public image for profileImage
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
@@ -6466,7 +6529,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         users = await db.users.find(
             {
                 "username": {"$in": user_usernames},
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
@@ -6484,7 +6547,10 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         
         result = []
         for fav in favorites:
-            user_data = user_dict.get(fav["userUsername"], {})
+            user_data = user_dict.get(fav["userUsername"])
+            if not user_data:
+                continue
+                
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
             
@@ -6554,7 +6620,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         users = await db.users.find(
             {
                 "username": {"$in": user_usernames},
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
@@ -6572,7 +6638,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         
         result = []
         for shortlist in shortlists:
-            user_data = user_dict.get(shortlist["userUsername"], {})
+            user_data = user_dict.get(shortlist["userUsername"])
+            if not user_data:
+                continue
+                
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
             
@@ -6823,7 +6892,7 @@ async def get_profile_views(
         for view in consolidated_views:
             viewer = await db.users.find_one({
                 "username": view["viewedByUsername"],
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             })
             if viewer:
                 viewer.pop("password", None)
@@ -7095,7 +7164,11 @@ async def get_incoming_pii_requests(
         # Get requester details for each request
         result = []
         for req in requests:
-            requester = await db.users.find_one({"username": req["requesterUsername"]})
+            # Only show requests from active users
+            requester = await db.users.find_one({
+                "username": req["requesterUsername"],
+                "accountStatus": "active"
+            })
             if requester:
                 requester.pop("password", None)
                 requester["_id"] = str(requester["_id"])
@@ -7156,7 +7229,11 @@ async def get_outgoing_pii_requests(
             
             # Use cached profile or fetch from DB
             if target_username not in profile_cache:
-                profile_owner = await db.users.find_one({"username": target_username})
+                # Only show requests to active profile owners
+                profile_owner = await db.users.find_one({
+                    "username": target_username,
+                    "accountStatus": "active"
+                })
                 if profile_owner:
                     profile_owner.pop("password", None)
                     profile_owner["_id"] = str(profile_owner["_id"])
@@ -8355,8 +8432,13 @@ async def get_online_users(
     is_admin = current_user and _is_admin_user(current_user)
     
     # Fetch all user details in a SINGLE query using $in (much faster!)
+    # Only show active users unless requester is admin
+    query = {"username": {"$in": usernames}}
+    if not is_admin:
+        query["accountStatus"] = "active"
+        
     cursor = db.users.find(
-        {"username": {"$in": usernames}},
+        query,
         {"username": 1, "firstName": 1, "lastName": 1, "images": 1, "publicImages": 1, "role": 1, "_id": 0}
     )
     
