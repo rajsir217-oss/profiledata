@@ -1,5 +1,5 @@
-
-import React from 'react';
+import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './SearchFiltersModal.css';
 import UniversalTabContainer from './UniversalTabContainer';
 import SearchFilters from './SearchFilters';
@@ -32,10 +32,27 @@ const SearchFiltersModal = ({
   handleSetDefaultSearch,
   generateSearchDescription
 }) => {
+  // ESC key handler
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="search-modal-overlay" onClick={onClose}>
+  const handleOverlayClick = (e) => {
+    if (e.target.classList.contains('search-modal-overlay')) {
+      onClose();
+    }
+  };
+
+  return createPortal(
+    <div className="search-modal-overlay" onClick={handleOverlayClick}>
       <div className="search-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="search-modal-header">
           <h3><span className="modal-icon">🔍</span> Search Profiles</h3>
@@ -66,7 +83,10 @@ const SearchFiltersModal = ({
                       onClose();
                     }}
                     onClear={onClear}
-                    onSave={onSave}
+                    onSave={() => {
+                      // Don't close search modal, just open save modal on top
+                      onSave();
+                    }}
                     systemConfig={systemConfig}
                     isPremiumUser={isPremiumUser}
                     currentUserProfile={currentUserProfile}
@@ -125,7 +145,8 @@ const SearchFiltersModal = ({
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

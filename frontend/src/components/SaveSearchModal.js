@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import useToast from '../hooks/useToast';
 import './SaveSearchModal.css';
 
@@ -169,102 +170,14 @@ const SaveSearchModal = ({
 
   if (!show) return null;
 
-  const handleSave = async () => {
-    if (!searchName.trim()) {
-      toast.error('Please enter a search name');
-      return;
+  const handleOverlayClick = (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+      onClose();
     }
-
-    const saveData = {
-      name: searchName,
-      notifications: {
-        enabled: enableNotifications,
-        frequency: notificationFrequency,
-        time: notificationTime,
-        dayOfWeek: notificationDay // Only used for weekly
-      }
-    };
-
-    // If editing schedule for existing search, update it
-    if (editingScheduleFor) {
-      try {
-        const username = localStorage.getItem('username');
-        const api = require('../api').default;
-        const { setDefaultSavedSearch } = require('../api');
-        
-        // Update the existing saved search with new notification settings
-        await api.put(`/${username}/saved-searches/${editingScheduleFor.id}`, {
-          ...editingScheduleFor,
-          name: searchName,
-          notifications: saveData.notifications
-        });
-        
-        // Set as default if requested
-        if (setAsDefault) {
-          try {
-            await setDefaultSavedSearch(editingScheduleFor.id);
-            toast.success(`⭐ "${searchName}" set as default search`);
-          } catch (err) {
-            console.error('Error setting default:', err);
-            toast.error('Failed to set as default');
-          }
-        }
-        
-        toast.success(`✅ Notification schedule updated for "${searchName}"`);
-        
-        // Reload saved searches (if there's a callback)
-        if (onUpdate) {
-          // Trigger reload by calling onUpdate with dummy data (SearchPage2 will reload)
-          setTimeout(() => window.location.reload(), 500);
-        }
-      } catch (error) {
-        console.error('Error updating notification schedule:', error);
-        toast.error('Failed to update notification schedule');
-        return;
-      }
-    } else {
-      // Creating new search
-      onSave(saveData);
-    }
-
-    // Reset form
-    setSearchName('');
-    setEnableNotifications(false);
-    setNotificationFrequency('daily');
-    setNotificationTime('09:00');
-    setNotificationDay('monday');
-    setSetAsDefault(false);
-    onClose();
   };
 
-  const handleUpdate = (id) => {
-    if (!editingName.trim()) {
-      toast.warning('Please enter a search name');
-      return;
-    }
-    onUpdate(id, editingName);
-    setEditingId(null);
-    setEditingName('');
-  };
-
-  const handleDelete = (id) => {
-    // Use the parent's onDelete handler directly
-    // The parent (SearchPage2) will show a toast notification
-    onDelete(id);
-  };
-
-  const startEditing = (search) => {
-    setEditingId(search.id);
-    setEditingName(search.name);
-  };
-
-  const cancelEditing = () => {
-    setEditingId(null);
-    setEditingName('');
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
+  return createPortal(
+    <div className="modal-overlay" onClick={handleOverlayClick}>
       <div className="save-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>
@@ -612,7 +525,8 @@ const SaveSearchModal = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

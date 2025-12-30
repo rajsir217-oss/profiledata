@@ -16,6 +16,7 @@ import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
 import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
+import toastService from '../services/toastService';
 import './SearchPage.css';
 import './SearchPage2.css';
 
@@ -181,7 +182,7 @@ const SearchPage2 = () => {
         timestamp: Date.now()
       };
       sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
-      console.log('💾 Saved search state to sessionStorage');
+      logger.info('💾 Saved search state to sessionStorage');
     }
   }, [users, searchCriteria, sortBy, sortOrder, viewMode, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
@@ -191,7 +192,7 @@ const SearchPage2 = () => {
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
         sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
-        console.log('💾 Saved scroll position:', scrollPosition);
+        logger.info('💾 Saved scroll position:', scrollPosition);
       }
     };
     
@@ -203,7 +204,7 @@ const SearchPage2 = () => {
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
         sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
-        console.log('💾 Saved scroll position on unmount:', scrollPosition);
+        logger.info('💾 Saved scroll position on unmount:', scrollPosition);
       }
     };
   }, []);
@@ -221,7 +222,7 @@ const SearchPage2 = () => {
           const maxAge = 30 * 60 * 1000; // 30 minutes
           
           if (stateAge < maxAge) {
-            console.log('🔄 Restoring search state from sessionStorage');
+            logger.info('🔄 Restoring search state from sessionStorage');
             
             // Restore all state
             setUsers(state.users || []);
@@ -246,20 +247,20 @@ const SearchPage2 = () => {
               if (savedScrollPosition) {
                 const scrollPos = parseInt(savedScrollPosition, 10);
                 window.scrollTo(0, scrollPos);
-                console.log('🔄 Restored scroll position:', scrollPos);
+                logger.info('🔄 Restored scroll position:', scrollPos);
               }
             }, 100);
             
-            console.log('✅ Search state restored successfully');
+            logger.info('✅ Search state restored successfully');
             return true;
           } else {
-            console.log('⏰ Saved state is too old, clearing...');
+            logger.info('⏰ Saved state is too old, clearing...');
             sessionStorage.removeItem('searchPageState');
             sessionStorage.removeItem('searchPageScrollPosition');
           }
         }
       } catch (error) {
-        console.error('❌ Error restoring search state:', error);
+        logger.error('❌ Error restoring search state:', error);
         sessionStorage.removeItem('searchPageState');
         sessionStorage.removeItem('searchPageScrollPosition');
       }
@@ -304,7 +305,7 @@ const SearchPage2 = () => {
           oppositeGender = 'male';
         }
         
-        console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
+        logger.info('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
         
         // Calculate user's age from birthMonth and birthYear
         let userAge = null;
@@ -335,8 +336,8 @@ const SearchPage2 = () => {
         const partnerCriteria = response.data.partnerCriteria;
         
         // Debug: Log the full partnerCriteria object
-        console.log('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
-        console.log('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
+        logger.info('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
+        logger.info('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
         
         if (partnerCriteria?.ageRangeRelative && userAge) {
           // Use relative age offsets from partner criteria
@@ -344,12 +345,12 @@ const SearchPage2 = () => {
           const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
           defaultAgeMin = Math.max(19, userAge + minOffset).toString();
           defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-          console.log('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
         } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
           // Fallback to absolute age range if set
           defaultAgeMin = partnerCriteria.ageRange.min.toString();
           defaultAgeMax = partnerCriteria.ageRange.max.toString();
-          console.log('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
         } else if (userAge && userGender) {
           // Final fallback: gender-based defaults
           if (userGender === 'male') {
@@ -361,7 +362,7 @@ const SearchPage2 = () => {
             defaultAgeMin = Math.max(19, userAge - 1).toString();
             defaultAgeMax = Math.min(100, userAge + 5).toString();
           }
-          console.log('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
         }
         
         // Set default height range from partnerCriteria (user's saved preferences)
@@ -381,14 +382,14 @@ const SearchPage2 = () => {
           defaultHeightMinInches = (minTotalInches % 12).toString();
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          console.log('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
+          logger.info('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
         } else if (partnerCriteria?.heightRange?.minFeet) {
           // Fallback to absolute height range if set
           defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
           defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
           defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
           defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-          console.log('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
+          logger.info('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
         } else if (userHeightTotalInches && userGender) {
           // Final fallback: gender-based defaults
           if (userGender === 'male') {
@@ -408,10 +409,10 @@ const SearchPage2 = () => {
             defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
             defaultHeightMaxInches = (maxTotalInches % 12).toString();
           }
-          console.log('🎯 Using gender-based height defaults');
+          logger.info('🎯 Using gender-based height defaults');
         }
         
-        console.log('📊 Default search criteria:', {
+        logger.info('📊 Default search criteria:', {
           age: userAge,
           ageMin: defaultAgeMin,
           ageMax: defaultAgeMax,
@@ -433,7 +434,7 @@ const SearchPage2 = () => {
           heightMaxInches: defaultHeightMaxInches
         }));
       } catch (err) {
-        console.error('❌ Error loading current user profile:', err);
+        logger.error('❌ Error loading current user profile:', err);
         // Set profile anyway to trigger search
         setCurrentUserProfile({});
       }
@@ -457,13 +458,13 @@ const SearchPage2 = () => {
         setShortlistedUsers(new Set(shortlistUsernames));
         setExcludedUsers(new Set(exclusionUsernames));
         
-        console.log('✅ Loaded user interactions:', {
+        logger.info('✅ Loaded user interactions:', {
           favorites: favoriteUsernames.length,
           shortlist: shortlistUsernames.length,
           exclusions: exclusionUsernames.length
         });
       } catch (err) {
-        console.error('Error loading user data:', err);
+        logger.error('Error loading user data:', err);
       }
     };
     
@@ -503,7 +504,7 @@ const SearchPage2 = () => {
     };
     
     const handleUserOffline = (data) => {
-      console.log('User went offline:', data.username);
+      logger.info('User went offline:', data.username);
       setOnlineUsers(prev => {
         const newSet = new Set(prev);
         newSet.delete(data.username);
@@ -536,58 +537,50 @@ const SearchPage2 = () => {
   // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
     const loadAndExecuteDefaultSearch = async () => {
-      if (!currentUserProfile) {
-        console.log('⚠️ currentUserProfile is null/undefined, waiting...');
+      if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
+        logger.info('⚠️ currentUserProfile is empty or null, waiting...');
         return;
       }
 
       // Prevent multiple auto-executions (or if state was restored)
       if (hasAutoExecutedRef.current) {
-        console.log('⏭️ Already auto-executed default search or state restored, skipping');
+        logger.info('⏭️ Already auto-executed default search or state restored, skipping');
         return;
       }
 
       try {
         // Check if there's a default saved search
-        const defaultSearch = await getDefaultSavedSearch();
+        logger.info('⭐ Checking for default saved search for user:', localStorage.getItem('username'));
+        const response = await getDefaultSavedSearch();
+        const defaultSearch = response?.savedSearch || response;
         
         if (defaultSearch && defaultSearch.criteria) {
-          console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Default search criteria:', defaultSearch.criteria);
+          logger.info('⭐ Found default saved search:', defaultSearch.name);
+          logger.info('📋 Default search criteria:', defaultSearch.criteria);
           
-          // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
+          // Extract minMatchScore from saved search
           const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
-          console.log('🎯 Min match score:', loadedMinScore);
           
-          // Find matching search from savedSearches array (to ensure ID format matches)
-          const defaultSearchId = defaultSearch.id || defaultSearch._id;
-          const matchingSearch = savedSearches.find(s => s.id === defaultSearchId || s._id === defaultSearchId);
-          console.log('🔍 Matching search in savedSearches:', matchingSearch?.name);
-          
-          // Load criteria and set selected search (use matching object for badge to work)
+          // Load criteria and set selected search
           setSearchCriteria(defaultSearch.criteria);
           setMinMatchScore(loadedMinScore);
-          setSelectedSearch(matchingSearch || defaultSearch);
+          setSelectedSearch(defaultSearch);
           
           // Mark as executed
           hasAutoExecutedRef.current = true;
           
           // Execute the search with explicit criteria AND minMatchScore
+          // Delay slightly to ensure state is processed by React
           setTimeout(() => {
-            console.log('🔍 Auto-executing default saved search');
-            console.log('   - Criteria:', defaultSearch.criteria);
-            console.log('   - Min match score:', loadedMinScore);
-            handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass criteria and minMatchScore
-            // Show status message to inform user
-            setStatusMessage(`⭐ Default search "${defaultSearch.name}" executed`);
-            setTimeout(() => setStatusMessage(''), 4000); // Clear after 4 seconds
-          }, 500);
+            logger.info('🔍 Auto-executing default saved search');
+            handleSearch(1, loadedMinScore, defaultSearch.criteria);
+            toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
+          }, 100);
         } else {
-          // No default saved search - just show empty search page
-          console.log('🔍 No default search - waiting for user to initiate search');
+          logger.info('🔍 No default search found - waiting for user to initiate search');
         }
       } catch (err) {
-        console.error('Error loading default saved search:', err);
+        logger.error('Error loading default saved search:', err);
       }
     };
 
@@ -599,7 +592,7 @@ const SearchPage2 = () => {
   // User must manually click "Search" button
   // useEffect(() => {
   //   if (currentUserProfile && searchCriteria.gender && users.length === 0) {
-  //     console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
+  //     logger.info('🔄 Gender changed, triggering search:', searchCriteria.gender);
   //     handleSearch(1);
   //   }
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -620,9 +613,9 @@ const SearchPage2 = () => {
       const receivedAccess = accessResponse.data.receivedAccess || [];
       const requestStatus = {};
       
-      console.log('🔍 PII API Responses:');
-      console.log('  Requests:', requests);
-      console.log('  Received Access:', receivedAccess);
+      logger.info('🔍 PII API Responses:');
+      logger.info('  Requests:', requests);
+      logger.info('  Received Access:', receivedAccess);
 
       // First, add ONLY pending requests (not approved ones - those must be in receivedAccess)
       requests.forEach(req => {
@@ -644,17 +637,17 @@ const SearchPage2 = () => {
         }
       });
 
-      console.log('📊 PII Access Status:', requestStatus);
+      logger.info('📊 PII Access Status:', requestStatus);
       setPiiRequests(requestStatus);
     } catch (err) {
-      console.error('Error loading PII requests:', err);
+      logger.error('Error loading PII requests:', err);
     }
   };
 
   // Listen for PII access changes (grant/revoke)
   useEffect(() => {
     const cleanup = onPIIAccessChange((detail) => {
-      console.log('🔔 PII Access changed in search page:', detail);
+      logger.info('🔔 PII Access changed in search page:', detail);
       // Reload PII requests to update badges
       loadPiiRequests();
     });
@@ -738,13 +731,13 @@ const SearchPage2 = () => {
             alt={`${user.firstName}'s profile`}
             className="profile-thumbnail"
             onError={(e) => {
-              console.error(`Failed to load image: ${currentImage}`, e);
+              logger.error(`Failed to load image: ${currentImage}`, e);
               setImageErrors(prev => ({ ...prev, [user.username]: true }));
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
             }}
             onLoad={(e) => {
-              console.log(`Successfully loaded image: ${currentImage}`);
+              logger.info(`Successfully loaded image: ${currentImage}`);
               setImageErrors(prev => ({ ...prev, [user.username]: false }));
               e.target.style.display = 'block';
               e.target.nextSibling.style.display = 'none';
@@ -813,10 +806,10 @@ const SearchPage2 = () => {
       const favorites = response.data.favorites || [];
       const favoritedUsernames = new Set(favorites.map(fav => fav.username));
       setFavoritedUsers(favoritedUsernames);
-      console.log('Loaded favorites:', favoritedUsernames);
+      logger.info('Loaded favorites:', favoritedUsernames);
     } catch (err) {
       // Silently handle error - favorites might not exist yet for new users
-      console.debug('No favorites found or error loading favorites:', err);
+      logger.debug('No favorites found or error loading favorites:', err);
       setFavoritedUsers(new Set());
     }
   };
@@ -834,10 +827,10 @@ const SearchPage2 = () => {
       const shortlist = response.data.shortlist || [];
       const shortlistedUsernames = new Set(shortlist.map(item => item.username));
       setShortlistedUsers(shortlistedUsernames);
-      console.log('Loaded shortlist:', shortlistedUsernames);
+      logger.info('Loaded shortlist:', shortlistedUsernames);
     } catch (err) {
       // Silently handle error - shortlist might not exist yet for new users
-      console.debug('No shortlist found or error loading shortlist:', err);
+      logger.debug('No shortlist found or error loading shortlist:', err);
       setShortlistedUsers(new Set());
     }
   };
@@ -851,15 +844,15 @@ const SearchPage2 = () => {
         return;
       }
 
-      console.log(`Loading exclusions for user: ${username}`);
+      logger.info(`Loading exclusions for user: ${username}`);
       const response = await api.get(`/exclusions/${username}`);
       const exclusions = response.data.exclusions || [];
       const excludedUsernames = new Set(exclusions);
       setExcludedUsers(excludedUsernames);
-      console.log('Loaded exclusions:', excludedUsernames);
+      logger.info('Loaded exclusions:', excludedUsernames);
     } catch (err) {
       // Silently handle error - exclusions might not exist yet for new users
-      console.debug('No exclusions found or error loading exclusions:', err);
+      logger.debug('No exclusions found or error loading exclusions:', err);
       setExcludedUsers(new Set());
     }
   };
@@ -873,10 +866,10 @@ const SearchPage2 = () => {
       }
     } catch (err) {
       if (err.response?.status === 404 || err.response?.data?.savedSearches?.length === 0) {
-        console.info('No saved searches found for user (this is normal for new users)');
+        logger.info('No saved searches found for user (this is normal for new users)');
         setSavedSearches([]);
       } else {
-        console.error('Error loading saved searches:', err);
+        logger.error('Error loading saved searches:', err);
         setSavedSearches([]);
       }
     }
@@ -884,7 +877,7 @@ const SearchPage2 = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    console.log(`🔧 Input changed: ${name} = ${value}`);
+    logger.info(`🔧 Input changed: ${name} = ${value}`);
     setSearchCriteria(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -943,12 +936,12 @@ const SearchPage2 = () => {
         const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
         defaultAgeMin = Math.max(19, userAge + minOffset).toString();
         defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-        console.log('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
+        logger.info('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
       } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
         // Fallback to absolute age range if set
         defaultAgeMin = partnerCriteria.ageRange.min.toString();
         defaultAgeMax = partnerCriteria.ageRange.max.toString();
-        console.log('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
+        logger.info('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
       } else if (userAge && userGender) {
         // Final fallback: gender-based defaults
         if (userGender === 'male') {
@@ -958,7 +951,7 @@ const SearchPage2 = () => {
           defaultAgeMin = Math.max(19, userAge - 1).toString();
           defaultAgeMax = Math.min(100, userAge + 5).toString();
         }
-        console.log('🔄 Reset: Using gender-based age defaults');
+        logger.info('🔄 Reset: Using gender-based age defaults');
       }
 
       // Set default height range from partnerCriteria (priority) or gender-based fallback
@@ -973,14 +966,14 @@ const SearchPage2 = () => {
         defaultHeightMinInches = (minTotalInches % 12).toString();
         defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
         defaultHeightMaxInches = (maxTotalInches % 12).toString();
-        console.log('🔄 Reset: Using partnerCriteria.heightRangeRelative');
+        logger.info('🔄 Reset: Using partnerCriteria.heightRangeRelative');
       } else if (partnerCriteria?.heightRange?.minFeet) {
         // Fallback to absolute height range if set
         defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
         defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
         defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
         defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-        console.log('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
+        logger.info('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
       } else if (userHeightTotalInches && userGender) {
         // Final fallback: gender-based defaults
         if (userGender === 'male') {
@@ -998,7 +991,7 @@ const SearchPage2 = () => {
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
         }
-        console.log('🔄 Reset: Using gender-based height defaults');
+        logger.info('🔄 Reset: Using gender-based height defaults');
       }
     }
 
@@ -1067,7 +1060,7 @@ const SearchPage2 = () => {
         sortBy: 'age',
         sortOrder: 'asc'
       });
-      console.log('🧹 Admin: Cleared all search filters');
+      logger.info('🧹 Admin: Cleared all search filters');
     } else {
       // NON-ADMIN: Reset to partner criteria defaults (smart defaults)
       setSearchCriteria({
@@ -1096,7 +1089,7 @@ const SearchPage2 = () => {
         sortBy: 'age',
         sortOrder: 'asc'
       });
-      console.log('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
+      logger.info('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
     }
     
     setUsers([]);
@@ -1120,7 +1113,7 @@ const SearchPage2 = () => {
       const criteriaToUse = overrideCriteria !== null ? overrideCriteria : searchCriteria;
       
       // Log profileId for debugging
-      console.log('🔍 Profile ID in criteria:', criteriaToUse.profileId);
+      logger.info('🔍 Profile ID in criteria:', criteriaToUse.profileId);
       
       // If profileId is provided, ONLY send profileId (bypass all other filters)
       let params;
@@ -1130,7 +1123,7 @@ const SearchPage2 = () => {
           page: page,
           limit: 500
         };
-        console.log('🔍 Profile ID search - bypassing other filters');
+        logger.info('🔍 Profile ID search - bypassing other filters');
       } else {
         params = {
           ...criteriaToUse,
@@ -1188,20 +1181,20 @@ const SearchPage2 = () => {
         }
       });
       
-      console.log('🔍 Search params after validation:', params);
-      console.log('🔍 profileId in params:', params.profileId);
-      console.log('🔍 Full params object:', JSON.stringify(params, null, 2));
+      logger.info('🔍 Search params after validation:', params);
+      logger.info('🔍 profileId in params:', params.profileId);
+      logger.info('🔍 Full params object:', JSON.stringify(params, null, 2));
 
       const response = await api.get('/search', { params });
-      console.log('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
+      logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
       
-      console.log('🔍 Raw API response:', response);
-      console.log('🔍 response.data:', response.data);
-      console.log('🔍 response.data.users:', response.data.users);
-      console.log('🔍 response.data.users length:', response.data.users?.length);
+      logger.info('🔍 Raw API response:', response);
+      logger.info('🔍 response.data:', response.data);
+      logger.info('🔍 response.data.users:', response.data.users);
+      logger.info('🔍 response.data.users length:', response.data.users?.length);
       // Debug: Log images for first 3 users
       if (response.data.users?.length > 0) {
-        console.log('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
+        logger.info('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
           username: u.username,
           images: u.images,
           imageCount: u.images?.length || 0,
@@ -1225,11 +1218,11 @@ const SearchPage2 = () => {
 
       // STEP 2: Fetch and attach L3V3L match scores (if enabled)
       // Always fetch scores so they're available for client-side filtering
-      console.log(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
+      logger.info(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
       const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      console.log(`🔍 canUseL3V3L=${canUseL3V3L}`);
+      logger.info(`🔍 canUseL3V3L=${canUseL3V3L}`);
       if (canUseL3V3L) {
-        console.log(`🦋 L3V3L enabled: Fetching compatibility scores`);
+        logger.info(`🦋 L3V3L enabled: Fetching compatibility scores`);
         
         // Get L3V3L scores for filtered users
         try {
@@ -1248,18 +1241,18 @@ const SearchPage2 = () => {
             scoresMap[match.username] = match.matchScore;
           });
           
-          console.log(`🦋 L3V3L API returned ${matchesWithScores.length} matches`);
-          console.log(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
-          console.log(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
+          logger.info(`🦋 L3V3L API returned ${matchesWithScores.length} matches`);
+          logger.info(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
+          logger.info(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
           
           // Attach scores to all users (don't filter here - let client-side handle it)
           filteredUsers = filteredUsers
             .map(user => {
               const score = scoresMap[user.username];
               if (score !== undefined) {
-                console.log(`✅ Mapped ${user.username} → ${score}%`);
+                logger.info(`✅ Mapped ${user.username} → ${score}%`);
               } else {
-                console.log(`❌ No score for ${user.username}`);
+                logger.info(`❌ No score for ${user.username}`);
               }
               return {
                 ...user,
@@ -1269,10 +1262,10 @@ const SearchPage2 = () => {
             })
             .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
           
-          console.log(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
-          console.log(`🎯 Sample user with score:`, filteredUsers[0]);
+          logger.info(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
+          logger.info(`🎯 Sample user with score:`, filteredUsers[0]);
         } catch (err) {
-          console.error('❌ Error fetching L3V3L scores:', err);
+          logger.error('❌ Error fetching L3V3L scores:', err);
           // Continue without L3V3L filtering if API fails
         }
       }
@@ -1286,7 +1279,7 @@ const SearchPage2 = () => {
       // setTotalResults(filteredUsers.length);
 
     } catch (err) {
-      console.error('Error searching users:', err);
+      logger.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
       
@@ -1393,12 +1386,12 @@ const SearchPage2 = () => {
     
     // L3V3L Match Score
     const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
-    console.log('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
+    logger.info('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
     if (effectiveScore > 0) {
       parts.push(`L3V3L match score ≥${effectiveScore}%`);
-      console.log('✅ Added L3V3L to description');
+      logger.info('✅ Added L3V3L to description');
     } else {
-      console.log('❌ L3V3L score is 0, skipping');
+      logger.info('❌ L3V3L score is 0, skipping');
     }
     
     // Keyword
@@ -1420,135 +1413,175 @@ const SearchPage2 = () => {
     return parts.join(', ') + ' and ' + lastPart;
   };
 
-  const handleSaveSearch = async (saveData) => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        setError('Please login to save searches');
-        return;
-      }
+if (page === 1) {
+  setUsers(filteredUsers);
+} else {
+  setUsers(prev => [...prev, ...filteredUsers]);
+}
 
-      // Generate human-readable description (pass minMatchScore)
-      console.log('🔍 Saving search with minMatchScore:', minMatchScore);
-      const description = generateSearchDescription(searchCriteria, minMatchScore);
-      console.log('📝 Generated description:', description);
+// setTotalResults(filteredUsers.length);
 
-      // Handle both old format (string) and new format (object with notifications)
-      const searchName = typeof saveData === 'string' ? saveData : saveData.name;
-      const notifications = typeof saveData === 'object' ? saveData.notifications : null;
+} catch (err) {
+  logger.error('Error searching users:', err);
+  const errorDetail = err.response?.data?.detail;
+  let errorMsg = 'Failed to search users.';
+  
+  if (typeof errorDetail === 'string') {
+    errorMsg += ' ' + errorDetail;
+  } else if (Array.isArray(errorDetail)) {
+    errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
+  } else if (errorDetail) {
+    errorMsg += ' ' + JSON.stringify(errorDetail);
+  } else {
+    errorMsg += ' ' + err.message;
+  }
+  
+  setError(errorMsg);
+} finally {
+  setLoading(false);
+  // No longer auto-collapse filters - user controls visibility via Hide Filters button
+}
 
-      const searchData = {
-        name: searchName.trim(),
-        description: description,
-        criteria: searchCriteria,
-        minMatchScore: minMatchScore, // Save L3V3L match score
-        created_at: new Date().toISOString(),
-        ...(notifications && { notifications }) // Add notifications if provided
-      };
-      
-      console.log('💾 Search data to save:', searchData);
+};
 
-      await api.post(`/${username}/saved-searches`, searchData);
+// Handle load more for incremental loading
+const handleLoadMore = () => {
+  setLoadingMore(true);
+  // Simulate a small delay for better UX (can be removed if not needed)
+  setTimeout(() => {
+    setDisplayedCount(prev => prev + 20); // Let render clamp to actual length
+    setLoadingMore(false);
+    // Smooth scroll to show newly loaded items
+    window.scrollTo({ 
+      top: document.documentElement.scrollHeight - 800, 
+      behavior: 'smooth' 
+    });
+  }, 300);
+};
 
-      const notificationMsg = notifications?.enabled 
-        ? ` with ${notifications.frequency} notifications`
-        : '';
-      setStatusMessage(`✅ Search saved: "${searchName}"${notificationMsg}`);
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches();
-    } catch (err) {
-      console.error('Error saving search:', err);
-      setError('Failed to save search. ' + (err.response?.data?.detail || err.message));
-    }
-  };
+// Generate human-readable description from search criteria
+const generateSearchDescription = (criteria, matchScore = null) => {
+  const parts = [];
+  
+  // Start with "I'm looking for"
+  let intro = "I'm looking for";
+  
+  // Gender
+  if (criteria.gender) {
+    const genderMap = {
+      'male': 'a guy',
+      'female': 'a girl',
+      'other': 'someone'
+    };
+    intro += ` ${genderMap[criteria.gender.toLowerCase()] || 'someone'}`;
+  } else {
+    intro += ' someone';
+  }
+  
+  parts.push(intro);
+  
+  // Age range
+  if (criteria.ageMin || criteria.ageMax) {
+    const ageMin = criteria.ageMin || '?';
+    const ageMax = criteria.ageMax || '?';
+    parts.push(`age ranges from ${ageMin} to ${ageMax} years old`);
+  }
+  
+  // Height range
+  if (criteria.heightMinFeet || criteria.heightMaxFeet) {
+    const heightMin = criteria.heightMinFeet 
+      ? `${criteria.heightMinFeet}ft${criteria.heightMinInches ? ' ' + criteria.heightMinInches + 'in' : ''}`
+      : '?';
+    const heightMax = criteria.heightMaxFeet 
+      ? `${criteria.heightMaxFeet}ft${criteria.heightMaxInches ? ' ' + criteria.heightMaxInches + 'in' : ''}`
+      : '?';
+    parts.push(`height from ${heightMin} to ${heightMax}`);
+  }
+  
+  // Location
+  if (criteria.location) {
+    parts.push(`living around ${criteria.location}`);
+  }
+  
+  // Religion
+  if (criteria.religion && criteria.religion !== '') {
+    parts.push(`religion ${criteria.religion}`);
+  }
+  
+  // Education
+  if (criteria.education && criteria.education !== '') {
+    parts.push(`education ${criteria.education}`);
+  }
+  
+  // Occupation
+  if (criteria.occupation && criteria.occupation !== '') {
+    parts.push(`working as ${criteria.occupation}`);
+  }
+  
+  // Body Type
+  if (criteria.bodyType && criteria.bodyType !== '') {
+    parts.push(`body type ${criteria.bodyType.toLowerCase()}`);
+  }
+  
+  // Eating Preference
+  if (criteria.eatingPreference && criteria.eatingPreference !== '') {
+    parts.push(`eating preference ${criteria.eatingPreference.toLowerCase()}`);
+  }
+  
+  // L3V3L Match Score
+  const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
+  logger.info('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
+  if (effectiveScore > 0) {
+    parts.push(`L3V3L match score ≥${effectiveScore}%`);
+    logger.info('✅ Added L3V3L to description');
+  } else {
+    logger.info('❌ L3V3L score is 0, skipping');
+  }
+  
+  // Keyword
+  if (criteria.keyword) {
+    parts.push(`with keywords "${criteria.keyword}"`);
+  }
+  
+  // Join all parts with commas and "and" before the last item
+  if (parts.length === 0) {
+    return "Search with no specific criteria";
+  }
+  
+  if (parts.length === 1) {
+    return parts[0];
+  }
+  
+  // Join with commas and add "and" before last item
+  const lastPart = parts.pop();
+  return parts.join(', ') + ' and ' + lastPart;
+};
 
-  const handleUpdateSavedSearch = async (searchId, newName) => {
-    try {
-      const username = localStorage.getItem('username');
-      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
-      setStatusMessage(`✅ Search renamed to: "${newName}"`);
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches();
-    } catch (err) {
-      console.error('Error updating saved search:', err);
-      setError('Failed to update saved search');
-    }
-  };
-
-  // Handler to open modal for editing notification schedule
-  const handleEditSchedule = (search) => {
-    setEditingScheduleFor(search);
-    setShowSaveModal(true);
-  };
-
-  const handleLoadSavedSearch = (savedSearch) => {
-    // Restore L3V3L match score if saved
-    const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
-    const loadedCriteria = savedSearch.criteria;
-    
-    // Update state for UI display
-    setSearchCriteria(loadedCriteria);
-    setMinMatchScore(loadedMinScore);
-    setSelectedSearch(savedSearch);
-    setShowSavedSearches(false);
-    setFiltersCollapsed(false); // Expand filters to show loaded search
-    
-    // Automatically perform search with loaded criteria
-    // Pass both criteria and minMatchScore directly to avoid React state timing issues
-    handleSearch(1, loadedMinScore, loadedCriteria);
-  };
-
-  const handleDeleteSavedSearch = async (searchId) => {
-    console.log('🗑️ Deleting search with ID:', searchId);
-    
-    if (!searchId) {
-      console.error('❌ No search ID provided');
-      setError('Cannot delete: Invalid search ID');
-      setTimeout(() => setError(''), 3000);
+const handleSaveSearch = async (saveData) => {
+  try {
+    const username = localStorage.getItem('username');
+    if (!username) {
+      toastService.error('Please login to save searches');
       return;
     }
-    
-    try {
-      const username = localStorage.getItem('username');
-      await api.delete(`/${username}/saved-searches/${searchId}`);
-      setStatusMessage('✅ Search deleted successfully');
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches();
-      // Clear selected search if it was deleted
-      if (selectedSearch && selectedSearch.id === searchId) {
-        setSelectedSearch(null);
-      }
-    } catch (err) {
-      console.error('❌ Error deleting saved search:', err);
-      setError('Failed to delete saved search. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
 
-  const handleSetDefaultSearch = async (searchId, searchName) => {
-    console.log('⭐ Setting default search:', searchId, searchName);
-    
-    if (!searchId) {
-      console.error('❌ No search ID provided');
-      setError('Cannot set default: Invalid search ID');
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
-    
-    try {
-      await setDefaultSavedSearch(searchId);
-      setStatusMessage(`⭐ "${searchName}" set as default search`);
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches(); // Reload to update UI
-    } catch (err) {
-      console.error('❌ Error setting default search:', err);
-      setError('Failed to set default search. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
+    // Generate human-readable description (pass minMatchScore)
+    logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
+    const description = generateSearchDescription(searchCriteria, minMatchScore);
+    logger.info('📝 Generated description:', description);
 
-  const handleClearSelectedSearch = async () => {
-    setSelectedSearch(null);
+    // Handle both old format (string) and new format (object with notifications)
+    const searchName = typeof saveData === 'string' ? saveData : saveData.name;
+    const notifications = typeof saveData === 'object' ? saveData.notifications : null;
+
+    const searchData = {
+      name: searchName.trim(),
+      description: description,
+      criteria: searchCriteria,
+      minMatchScore: minMatchScore, // Save L3V3L match score
+      created_at: new Date().toISOString(),
+      ...(notifications && { notifications }) // Add notifications if provided
+    };
     setDisplayedCount(20); // Reset to initial display count
     
     // Get default search criteria from user profile
@@ -1639,7 +1672,7 @@ const SearchPage2 = () => {
         }
       });
 
-      console.log('🔍 Clear saved search params:', params);
+      logger.info('🔍 Clear saved search params:', params);
 
       const response = await api.get('/search', { params });
       const fetchedUsers = response.data.users || [];
@@ -1648,9 +1681,9 @@ const SearchPage2 = () => {
       // setTotalResults(fetchedUsers.length);
       setFiltersCollapsed(true); // Auto-collapse filters after search
       
-      console.log(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);
+      logger.info(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);
     } catch (err) {
-      console.error('Error searching users:', err);
+      logger.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
       
@@ -1726,7 +1759,7 @@ const SearchPage2 = () => {
       });
       setShowPIIRequestModal(true);
     } catch (err) {
-      console.error('Failed to fetch profile for PII modal:', err);
+      logger.error('Failed to fetch profile for PII modal:', err);
       // Fallback to user data from search results
       setSelectedUserForPII(user);
       setShowPIIRequestModal(true);
@@ -1792,7 +1825,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
+            logger.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
             
             // Handle 409 Conflict (already exists)
             if (err.response?.status === 409) {
@@ -1831,7 +1864,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
+            logger.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
             
             // Handle 409 Conflict (already exists)
             if (err.response?.status === 409) {
@@ -1857,11 +1890,11 @@ const SearchPage2 = () => {
               return;
             }
 
-            console.log(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
+            logger.info(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
 
             if (isCurrentlyExcluded) {
               // Remove from exclusions
-              console.log(`DELETE /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+              logger.info(`DELETE /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               await api.delete(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               setExcludedUsers(prev => {
                 const newSet = new Set(prev);
@@ -1872,7 +1905,7 @@ const SearchPage2 = () => {
               setTimeout(() => setStatusMessage(''), 3000);
             } else {
               // Add to exclusions
-              console.log(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+              logger.info(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               setExcludedUsers(prev => new Set([...prev, targetUsername]));
               
@@ -1888,9 +1921,9 @@ const SearchPage2 = () => {
                     newSet.delete(targetUsername);
                     return newSet;
                   });
-                  console.log(`Auto-removed ${targetUsername} from favorites when excluding`);
+                  logger.info(`Auto-removed ${targetUsername} from favorites when excluding`);
                 } catch (err) {
-                  console.error('Error removing from favorites during exclude:', err);
+                  logger.error('Error removing from favorites during exclude:', err);
                 }
               }
               
@@ -1902,9 +1935,9 @@ const SearchPage2 = () => {
                     newSet.delete(targetUsername);
                     return newSet;
                   });
-                  console.log(`Auto-removed ${targetUsername} from shortlist when excluding`);
+                  logger.info(`Auto-removed ${targetUsername} from shortlist when excluding`);
                 } catch (err) {
-                  console.error('Error removing from shortlist during exclude:', err);
+                  logger.error('Error removing from shortlist during exclude:', err);
                 }
               }
               
@@ -1913,7 +1946,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
+            logger.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
             const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'mark as'} not interested. ` + (err.response?.data?.detail || err.message);
             setError(errorMsg);
             setStatusMessage(`❌ ${errorMsg}`);
@@ -1929,10 +1962,10 @@ const SearchPage2 = () => {
           break;
 
         default:
-          console.warn('Unknown action:', action);
+          logger.warn('Unknown action:', action);
       }
     } catch (err) {
-      console.error(`Error performing ${action}:`, err);
+      logger.error(`Error performing ${action}:`, err);
       const errorMsg = `Failed to ${action}. ` + (err.response?.data?.detail || err.message);
       setError(errorMsg);
       setStatusMessage(`❌ ${errorMsg}`);
@@ -1949,7 +1982,7 @@ const SearchPage2 = () => {
         const response = await api.get(`/profile/${user.username}?requester=${currentUser}`);
         setSelectedUserForMessage(response.data);
       } catch (err) {
-        console.error('Error loading user profile:', err);
+        logger.error('Error loading user profile:', err);
         // Fallback to existing user object
         setSelectedUserForMessage(user);
       }
@@ -1959,9 +1992,9 @@ const SearchPage2 = () => {
     setShowMessageModal(true);
   };
 
-  console.log(`🔍 Starting client-side filter with ${users.length} users from backend`);
-  console.log(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
-  console.log(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
+  logger.info(`🔍 Starting client-side filter with ${users.length} users from backend`);
+  logger.info(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
+  logger.info(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
   
   // Check if this is a Profile ID search - bypass most filters if so
   const isProfileIdSearch = searchCriteria.profileId?.trim();
@@ -1969,13 +2002,13 @@ const SearchPage2 = () => {
   const filteredUsers = users.filter(user => {
     // Exclude users who have been excluded by current user (always apply)
     if (excludedUsers.has(user.username)) {
-      console.log(`🚫 Filtered out ${user.username} - excluded`);
+      logger.info(`🚫 Filtered out ${user.username} - excluded`);
       return false;
     }
 
     // Profile ID search bypasses all other client-side filters
     if (isProfileIdSearch) {
-      console.log(`✅ ${user.username} - Profile ID search, bypassing filters`);
+      logger.info(`✅ ${user.username} - Profile ID search, bypassing filters`);
       return true;
     }
 
@@ -1984,48 +2017,48 @@ const SearchPage2 = () => {
       // If user has no match score (0 or undefined), hide them when filter is active
       const userScore = user.matchScore || 0;
       if (userScore < minMatchScore) {
-        console.log(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
+        logger.info(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
         return false;
       }
     }
 
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
       const age = user.age || calculateAge(user.birthMonth, user.birthYear);
-      console.log(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
+      logger.info(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
       
       // Only apply age filter if user has valid age data
       // Users without age data will be included in results
       if (age !== null) {
         if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) {
-          console.log(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
+          logger.info(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
           return false;
         }
         if (searchCriteria.ageMax && age > parseInt(searchCriteria.ageMax)) {
-          console.log(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
+          logger.info(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
           return false;
         }
       } else {
-        console.log(`⚠️ ${user.username} has no age data - including in results`);
+        logger.info(`⚠️ ${user.username} has no age data - including in results`);
       }
     }
 
     if (searchCriteria.heightMin || searchCriteria.heightMax) {
       const heightInches = parseHeight(user.height);
-      console.log(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
+      logger.info(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
       
       // Only apply height filter if user has valid height data
       // Users without height data will be included in results
       if (heightInches !== null) {
         if (searchCriteria.heightMin && heightInches < parseInt(searchCriteria.heightMin)) {
-          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
+          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
           return false;
         }
         if (searchCriteria.heightMax && heightInches > parseInt(searchCriteria.heightMax)) {
-          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
+          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
           return false;
         }
       } else {
-        console.log(`⚠️ ${user.username} has no height data - including in results`);
+        logger.info(`⚠️ ${user.username} has no height data - including in results`);
       }
     }
 
@@ -2040,12 +2073,12 @@ const SearchPage2 = () => {
       if (!searchableText.includes(keyword)) return false;
     }
 
-    console.log(`✅ ${user.username} passed all filters`);
+    logger.info(`✅ ${user.username} passed all filters`);
     return true;
   });
   
-  console.log(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
-  console.log(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
+  logger.info(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
+  logger.info(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
   // Reset debug flag so we can see new comparisons
   window._sortDebugLogged = false;
 
@@ -2089,9 +2122,9 @@ const SearchPage2 = () => {
         compareValue = dateB - dateA; // Newest approved first
         // Debug: log first comparison only
         if (!window._sortDebugLogged) {
-          console.log(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
-          console.log(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
-          console.log(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
+          logger.info(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
+          logger.info(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
+          logger.info(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
           window._sortDebugLogged = true;
         }
         break;
@@ -2718,7 +2751,7 @@ const SearchPage2 = () => {
             setSelectedUserForPII(null);
           }}
           onRefresh={() => {
-            console.log('🔄 PIIRequestModal requested refresh in SearchPage');
+            logger.info('🔄 PIIRequestModal requested refresh in SearchPage');
             loadPiiRequests(); // Refresh PII status when modal opens
           }}
           onSuccess={handlePIIRequestSuccess}
