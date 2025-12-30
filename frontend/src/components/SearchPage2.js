@@ -14,6 +14,7 @@ import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
+import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import './SearchPage.css';
 import './SearchPage2.css';
@@ -28,6 +29,7 @@ const SearchPage2 = () => {
 
   // Main application state
   const [loading, setLoading] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [error, setError] = useState('');
   // const [totalResults, setTotalResults] = useState(0); // Unused - kept for future pagination
   // currentPage removed - using LoadMore incremental loading instead
@@ -478,27 +480,13 @@ const SearchPage2 = () => {
       }
     };
 
-    // Load system configuration
-    const loadSystemConfig = async () => {
-      console.log('🔧 Loading system config...');
-      try {
-        const response = await api.get('/system-settings');
-        console.log('🔧 System config API response:', response.data);
-        setSystemConfig(response.data);
-        console.log('🔧 System config state updated:', response.data);
-      } catch (error) {
-        console.error('❌ Error loading system config:', error);
-        console.error('❌ Using default config: enable_l3v3l_for_all=true');
-      }
-    };
-    
+    // Load all initial data
     loadCurrentUserProfile();
     loadUserData();
     loadSavedSearches();
     loadPiiRequests();
-    loadSystemConfig();
-    
-    // Setup socket listeners users initially with a small delay to let polling service mark user online
+
+    // Setup online users initially with a small delay
     setTimeout(() => {
       loadOnlineUsers();
     }, 1000);
@@ -526,9 +514,6 @@ const SearchPage2 = () => {
     socketService.on('user_online', handleUserOnline);
     socketService.on('user_offline', handleUserOffline);
     
-    // Load initial search results after profile is loaded
-    // This will be triggered by useEffect dependency on currentUserProfile
-    
     return () => {
       socketService.off('user_online', handleUserOnline);
       socketService.off('user_offline', handleUserOffline);
@@ -539,6 +524,13 @@ const SearchPage2 = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Listen for external "open search modal" events (e.g. from TopBar)
+  useEffect(() => {
+    const handleOpenModal = () => setIsSearchModalOpen(true);
+    window.addEventListener('openSearchModal', handleOpenModal);
+    return () => window.removeEventListener('openSearchModal', handleOpenModal);
   }, []);
 
   // Trigger initial search after user profile is loaded - check for default saved search first
@@ -2112,11 +2104,69 @@ const SearchPage2 = () => {
     return sortOrder === 'desc' ? compareValue : -compareValue;
   });
 
-  // Use displayedCount for incremental loading instead of pagination
+  // Calculate current records based on display count
   const currentRecords = sortedUsers.slice(0, displayedCount);
+
+  const getActiveCriteriaSummary = () => {
+    const summary = [];
+    if (searchCriteria.profileId) return `Profile ID: ${searchCriteria.profileId}`;
+    
+    if (searchCriteria.gender) summary.push(searchCriteria.gender.charAt(0).toUpperCase() + searchCriteria.gender.slice(1));
+    if (searchCriteria.ageMin && searchCriteria.ageMax) summary.push(`${searchCriteria.ageMin}-${searchCriteria.ageMax} yrs`);
+    else if (searchCriteria.ageMin) summary.push(`${searchCriteria.ageMin}+ yrs`);
+    else if (searchCriteria.ageMax) summary.push(`Up to ${searchCriteria.ageMax} yrs`);
+    
+    if (searchCriteria.location) summary.push(searchCriteria.location);
+    if (minMatchScore > 0) summary.push(`${minMatchScore}%+ Match`);
+    
+    if (searchCriteria.occupation) summary.push(searchCriteria.occupation);
+    if (searchCriteria.religion) summary.push(searchCriteria.religion);
+    
+    return summary.length > 0 ? summary.join(' • ') : 'Showing all matches';
+  };
 
   return (
     <div className="search-page">
+      
+      {/* Floating Search Trigger Button */}
+      <button 
+        className="floating-search-trigger"
+        onClick={() => setIsSearchModalOpen(true)}
+        title="Open Search Filters"
+      >
+        <span className="trigger-icon">🔍</span>
+        <span className="trigger-text">Search Filters</span>
+      </button>
+
+      {/* Search Filters Modal */}
+      <SearchFiltersModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        searchCriteria={searchCriteria}
+        minMatchScore={minMatchScore}
+        setMinMatchScore={handleMinMatchScoreChange}
+        handleInputChange={handleInputChange}
+        showAdvancedFilters={showAdvancedFilters}
+        setShowAdvancedFilters={setShowAdvancedFilters}
+        onSearch={() => handleSearch(1)}
+        onClear={handleClearFilters}
+        onSave={() => setShowSaveModal(true)}
+        systemConfig={systemConfig}
+        isPremiumUser={isPremiumUser}
+        currentUserProfile={currentUserProfile}
+        bodyTypeOptions={bodyTypeOptions}
+        occupationOptions={occupationOptions}
+        eatingOptions={eatingOptions}
+        lifestyleOptions={lifestyleOptions}
+        isAdmin={isAdmin}
+        savedSearches={savedSearches}
+        selectedSearch={selectedSearch}
+        handleLoadSavedSearch={handleLoadSavedSearch}
+        handleDeleteSavedSearch={handleDeleteSavedSearch}
+        handleEditSchedule={handleEditSchedule}
+        handleSetDefaultSearch={handleSetDefaultSearch}
+        generateSearchDescription={generateSearchDescription}
+      />
 
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>
@@ -2134,294 +2184,18 @@ const SearchPage2 = () => {
       )}
 
       <div className="search-container">
-        {/* Search Filters - Always visible */}
-        <div className="search-filters">
-          {showSavedSearches && (
-            <div className="saved-searches mb-3">
-              <h6>Saved Searches</h6>
-              {savedSearches.length === 0 ? (
-                <p className="text-muted">No saved searches yet</p>
-              ) : (
-                <div className="saved-searches-list">
-                  {savedSearches.map(search => (
-                    <div key={search.id} className="saved-search-item">
-                      <span onClick={() => handleLoadSavedSearch(search)}>
-                        {search.name}
-                      </span>
-                      <button
-                        className="btn btn-sm btn-outline-danger ms-2"
-                        onClick={() => handleDeleteSavedSearch(search.id)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-
-            {/* Collapsible Filters Container */}
-            <div className={`filters-container ${filtersCollapsed ? 'collapsed' : 'expanded'}`}>
-              
-              {/* Collapsed Header - Minimal Tab Bar */}
-              {filtersCollapsed && (
-                <div className="filters-collapsed-header" style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  background: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '16px',
-                  cursor: 'pointer'
-                }} onClick={() => setFiltersCollapsed(false)}>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
-                      🔍 Search
-                    </span>
-                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>|</span>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
-                      💾 Saved {savedSearches.length > 0 && `(${savedSearches.length})`}
-                    </span>
-                    {minMatchScore > 0 && (
-                      <span className="badge bg-primary" style={{ fontSize: '11px' }}>
-                        {minMatchScore}%
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFiltersCollapsed(false);
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <span>▼ Show Filters</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Expanded Content - Full Tabs */}
-              {!filtersCollapsed && (
-                <>
-                  {/* Collapse Button at Top Right */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    marginBottom: '8px' 
-                  }}>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => setFiltersCollapsed(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <span>▲ Hide Filters</span>
-                    </button>
-                  </div>
-
-                  {/* Search Tabs */}
-                  <UniversalTabContainer
-                    key={`search-tabs-${savedSearches.length}`}
-                    variant="pills"
-                    defaultTab={savedSearches.length > 0 ? "saved" : "search"}
-                    tabs={[
-                {
-                  id: 'search',
-                  icon: '🔍',
-                  label: 'Search',
-                  badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
-                  content: (
-                    <SearchFilters
-                      searchCriteria={searchCriteria}
-                      minMatchScore={minMatchScore}
-                      setMinMatchScore={handleMinMatchScoreChange}
-                      handleInputChange={handleInputChange}
-                      showAdvancedFilters={showAdvancedFilters}
-                      setShowAdvancedFilters={setShowAdvancedFilters}
-                      onSearch={() => handleSearch(1)}
-                      onClear={handleClearFilters}
-                      onSave={() => setShowSaveModal(true)}
-                      systemConfig={systemConfig}
-                      isPremiumUser={isPremiumUser}
-                      currentUserProfile={currentUserProfile}
-                      bodyTypeOptions={bodyTypeOptions}
-                      occupationOptions={occupationOptions}
-                      eatingOptions={eatingOptions}
-                      lifestyleOptions={lifestyleOptions}
-                      isAdmin={isAdmin}
-                    />
-                  )
-                },
-                {
-                  id: 'saved',
-                  icon: '💾',
-                  label: 'Saved',
-                  badge: savedSearches.length > 0 ? savedSearches.length : null,
-                  content: (
-                    <div className="saved-searches-tab">
-                      {savedSearches.length === 0 ? (
-                        <div className="empty-saved-searches">
-                          <div className="empty-icon">📋</div>
-                          <h4>No Saved Searches Yet</h4>
-                          <p>Save your search criteria to quickly access them later.</p>
-                          <p className="text-muted">
-                            Use the "💾 Save" button above to save your current search filters.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="saved-searches-grid">
-                          {savedSearches.map(search => (
-                            <div key={search.id} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${selectedSearch?.id === search.id ? 'is-active' : ''}`}>
-                              {/* Row 1: Name + action buttons */}
-                              <div className="saved-search-header">
-                                <h5 className="saved-search-name">
-                                  {search.isDefault && <span className="default-badge" title="Default Search">⭐ </span>}
-                                  {search.name}
-                                  {selectedSearch?.id === search.id && (
-                                    <span className="active-badge" title="Currently loaded search">✓</span>
-                                  )}
-                                </h5>
-                                <div className="saved-search-actions">
-                                  <button
-                                    type="button"
-                                    className="btn-schedule-saved"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleEditSchedule(search);
-                                    }}
-                                    title="Edit notification schedule"
-                                  >
-                                    ⏰
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-delete-saved"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleDeleteSavedSearch(search.id);
-                                    }}
-                                    title="Delete this saved search"
-                                  >
-                                    🗑️
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              {/* Row 2: Description */}
-                              <div className="saved-search-description">
-                                <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
-                              </div>
-
-                              {/* Row 3: Default + Date + Load in a row */}
-                              <div className="saved-search-footer">
-                                {!search.isDefault && (
-                                  <button
-                                    type="button"
-                                    className="btn-set-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleSetDefaultSearch(search.id, search.name);
-                                    }}
-                                    title="Set as default search"
-                                  >
-                                    ⭐ Default
-                                  </button>
-                                )}
-                                {search.isDefault && (
-                                  <span className="default-indicator" title="This search runs automatically on page load">
-                                    ⭐ Default
-                                  </span>
-                                )}
-                                <span className="saved-date">
-                                  {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="btn-load-saved"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleLoadSavedSearch(search);
-                                  }}
-                                >
-                                  📂 Load Search
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                }
-              ]}
-            />
-                </>
-              )}
-            </div>
-
-            {/* Additional filters (hidden) */}
-            <div className="filter-section" style={{display: 'none'}}>
-              <div className="row">
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Gender</label>
-                    <select
-                      className="form-control"
-                      name="gender"
-                      value={searchCriteria.gender}
-                      onChange={handleInputChange}
-                    >
-                      {genderOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Religion</label>
-                    <select
-                      className="form-control"
-                      name="religion"
-                      value={searchCriteria.religion}
-                      onChange={handleInputChange}
-                    >
-                      {religionOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Relationship Status</label>
-                    <select
-                      className="form-control"
-                      name="relationshipStatus"
-                      value={searchCriteria.relationshipStatus}
-                      onChange={handleInputChange}
-                    >
-                      {relationshipOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </form>
+        {/* Active Criteria Summary Bar */}
+        <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
+          <div className="criteria-info">
+            <span className="criteria-label">Active Filters:</span>
+            <span className="criteria-value">{getActiveCriteriaSummary()}</span>
+          </div>
+          <div className="criteria-actions">
+            <span className="results-count">{filteredUsers.length} profiles found</span>
+            <button className="btn-modify-search">
+              Modify ⚙️
+            </button>
+          </div>
         </div>
 
         <div className="search-results" ref={searchResultsRef}>

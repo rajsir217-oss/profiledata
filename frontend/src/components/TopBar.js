@@ -360,7 +360,13 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Search Button */}
           <button 
             className="btn-refer-friend" 
-            onClick={() => navigate('/search')}
+            onClick={() => {
+              if (location.pathname === '/search') {
+                window.dispatchEvent(new Event('openSearchModal'));
+              } else {
+                navigate('/search');
+              }
+            }}
             title="Search Profiles"
           >
             <span className="refer-icon">🔍</span>

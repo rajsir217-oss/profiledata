@@ -1688,54 +1688,75 @@ async def get_user_profile(
     include_context = request.query_params.get("include_context", "false").lower() == "true"
     
     if include_context and requester_username and not is_own_profile:
-        # 1. Relationship status
-        favorites = await db.favorites.find_one({"username": requester_username})
-        user["isFavorited"] = username in (favorites.get("favorites", []) if favorites else [])
-        
-        shortlist = await db.shortlist.find_one({"username": requester_username})
-        user["isShortlisted"] = username in (shortlist.get("shortlist", []) if shortlist else [])
-        
-        exclusions = await db.exclusions.find_one({"username": requester_username})
-        user["isExcluded"] = username in (exclusions.get("exclusions", []) if exclusions else [])
+        try:
+            # 1. Relationship status
+            favorites = await db.favorites.find_one({"username": requester_username})
+            fav_list = favorites.get("favorites", []) if favorites else []
+            user["isFavorited"] = username in fav_list
+            
+            shortlist = await db.shortlist.find_one({"username": requester_username})
+            sl_list = shortlist.get("shortlist", []) if shortlist else []
+            user["isShortlisted"] = username in sl_list
+            
+            exclusions = await db.exclusions.find_one({"username": requester_username})
+            ex_list = exclusions.get("exclusions", []) if exclusions else []
+            user["isExcluded"] = username in ex_list
 
-        # 2. KPI Stats (counts)
-        # Profile views
-        views_count = await db.profile_views.count_documents({"profileUsername": username})
-        # Their favorites (who favorited THIS user)
-        fav_by_count = await db.favorites.count_documents({"favorites": username})
-        # Their shortlists (who shortlisted THIS user)
-        short_by_count = await db.shortlist.count_documents({"shortlist": username})
-        
-        user["kpiStats"] = {
-            "profileViews": views_count,
-            "favoritedBy": fav_by_count,
-            "shortlistedBy": short_by_count
-        }
+            # 2. KPI Stats (counts)
+            # Profile views
+            views_count = await db.profile_views.count_documents({"profileUsername": username})
+            # Their favorites (who favorited THIS user)
+            fav_by_count = await db.favorites.count_documents({"favorites": username})
+            # Their shortlists (who shortlisted THIS user)
+            short_by_count = await db.shortlist.count_documents({"shortlist": username})
+            
+            user["kpiStats"] = {
+                "profileViews": views_count,
+                "favoritedBy": fav_by_count,
+                "shortlistedBy": short_by_count
+            }
 
-        # 3. PII Request Status (pending requests)
-        pii_request_status = {}
-        outgoing_cursor = db.pii_requests.find({
-            "requesterId": requester_username,
-            "requestedUserId": username,
-            "status": "pending"
-        })
-        async for req in outgoing_cursor:
-            rtype = req.get("requestType")
-            if rtype:
-                pii_request_status[rtype] = "pending"
-        
-        # Add approved status from per_field_access
-        if per_field_access:
-            for field, granted in per_field_access.items():
-                if granted and pii_request_status.get(field) != "pending":
-                    pii_request_status[field] = "approved"
-        
-        user["piiRequestStatus"] = pii_request_status
-        user["piiAccess"] = per_field_access
+            # 3. PII Request Status (pending requests)
+            pii_request_status = {}
+            # Use correct field names: requesterUsername and requestedUsername
+            outgoing_cursor = db.pii_requests.find({
+                "requesterUsername": requester_username,
+                "requestedUsername": username,
+                "status": "pending"
+            })
+            async for req in outgoing_cursor:
+                rtype = req.get("requestType")
+                if rtype:
+                    pii_request_status[rtype] = "pending"
+            
+            # Also check profileUsername/requesterUsername format used in some places
+            outgoing_cursor2 = db.pii_requests.find({
+                "requesterUsername": requester_username,
+                "profileUsername": username,
+                "status": "pending"
+            })
+            async for req in outgoing_cursor2:
+                rtype = req.get("requestType")
+                if rtype:
+                    pii_request_status[rtype] = "pending"
+            
+            # Add approved status from per_field_access
+            if per_field_access:
+                for field, granted in per_field_access.items():
+                    if granted and pii_request_status.get(field) != "pending":
+                        pii_request_status[field] = "approved"
+            
+            user["piiRequestStatus"] = pii_request_status
+            user["piiAccess"] = per_field_access
 
-        # 4. Online Status
-        online_status = await db.online_status.find_one({"username": username})
-        user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+            # 4. Online Status
+            online_status = await db.online_status.find_one({"username": username})
+            user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+            
+        except Exception as context_err:
+            logger.error(f"⚠️ Error fetching profile context: {context_err}")
+            # Don't fail the whole request if context fetching fails
+            user["contextError"] = str(context_err)
 
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     return user
