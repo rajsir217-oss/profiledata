@@ -21,10 +21,24 @@ async def get_received_pii_access(
         logger.info(f"📥 Fetching received PII access for {username}")
         
         # Find all PII access grants where this user is the grantedTo
+        # Only show grants from active users
         access_grants = await db.pii_access.find({
             "grantedToUsername": username,
             "isActive": True
         }).to_list(length=None)
+        
+        # Filter grants to ensure granter is still active
+        active_grants = []
+        for grant in access_grants:
+            granter_username = grant.get("granterUsername")
+            granter = await db.users.find_one(
+                {"username": granter_username, "accountStatus": "active"},
+                {"_id": 1}
+            )
+            if granter:
+                active_grants.append(grant)
+        
+        access_grants = active_grants
         
         logger.info(f"✅ Found {len(access_grants)} ACTIVE received PII access grants for {username}")
         for grant in access_grants:
@@ -73,12 +87,26 @@ async def get_granted_pii_access(
         logger.info(f"📤 Fetching granted PII access by {username}")
         
         # Find all PII access grants where this user is the owner
+        # Only show grants to users who are still active
         access_grants = await db.pii_access.find({
             "granterUsername": username,
             "isActive": True
         }).to_list(length=None)
         
-        logger.info(f"✅ Found {len(access_grants)} granted PII access")
+        # Filter grants to ensure recipient is still active
+        active_grants = []
+        for grant in access_grants:
+            recipient_username = grant.get("grantedToUsername")
+            recipient = await db.users.find_one(
+                {"username": recipient_username, "accountStatus": "active"},
+                {"_id": 1}
+            )
+            if recipient:
+                active_grants.append(grant)
+        
+        access_grants = active_grants
+        
+        logger.info(f"✅ Found {len(access_grants)} granted PII access to active users")
         
         return {
             "success": True,

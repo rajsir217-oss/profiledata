@@ -31,6 +31,10 @@ async def get_active_polls(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get all active polls for the current user"""
+    # Non-active users cannot see/respond to polls
+    if current_user.get("accountStatus") != "active":
+        return {"success": True, "polls": [], "count": 0}
+        
     service = PollService(db)
     t0 = time.perf_counter()
     polls = await service.get_active_polls_for_user(current_user["username"])

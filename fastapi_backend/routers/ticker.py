@@ -143,7 +143,8 @@ async def get_ticker_items(
         pending_requests = []
     
     for req in pending_requests:
-        requester = await db.users.find_one({"username": req["requesterUsername"]})
+        # Only show requests from active users
+        requester = await db.users.find_one({"username": req["requesterUsername"], "accountStatus": "active"})
         if requester:
             requester_name = f"{requester.get('firstName', '')} {requester.get('lastName', '')}".strip() or req["requesterUsername"]
             request_type_label = {
@@ -179,7 +180,8 @@ async def get_ticker_items(
         expiring_grants = []
     
     for grant in expiring_grants:
-        granter = await db.users.find_one({"username": grant["granterUsername"]})
+        # Only show access to active users
+        granter = await db.users.find_one({"username": grant["granterUsername"], "accountStatus": "active"})
         if granter:
             granter_name = f"{granter.get('firstName', '')} {granter.get('lastName', '')}".strip() or grant["granterUsername"]
             days_left = (grant["expiresAt"] - now).days
@@ -208,7 +210,8 @@ async def get_ticker_items(
         unread_msgs = []
     
     for msg in unread_msgs:
-        sender = await db.users.find_one({"username": msg["senderUsername"]})
+        # Only show messages from active users
+        sender = await db.users.find_one({"username": msg["senderUsername"], "accountStatus": "active"})
         if sender:
             sender_name = f"{sender.get('firstName', '')} {sender.get('lastName', '')}".strip() or msg["senderUsername"]
             # Truncate message preview to 40 chars
@@ -242,7 +245,8 @@ async def get_ticker_items(
         recent_views = []
     
     for view in recent_views:
-        viewer = await db.users.find_one({"username": view["viewedByUsername"]})
+        # Only show views from active users
+        viewer = await db.users.find_one({"username": view["viewedByUsername"], "accountStatus": "active"})
         if viewer:
             viewer_name = f"{viewer.get('firstName', '')} {viewer.get('lastName', '')}".strip() or view["viewedByUsername"]
             
@@ -281,7 +285,8 @@ async def get_ticker_items(
         new_favs = []
     
     for fav in new_favs:
-        favoriter = await db.users.find_one({"username": fav["userUsername"]})
+        # Only show favorites from active users
+        favoriter = await db.users.find_one({"username": fav["userUsername"], "accountStatus": "active"})
         if favoriter:
             favoriter_name = f"{favoriter.get('firstName', '')} {favoriter.get('lastName', '')}".strip() or fav["userUsername"]
             
@@ -309,7 +314,8 @@ async def get_ticker_items(
         new_shortlists = []
     
     for shortlist in new_shortlists:
-        shortlister = await db.users.find_one({"username": shortlist["userUsername"]})
+        # Only show shortlists from active users
+        shortlister = await db.users.find_one({"username": shortlist["userUsername"], "accountStatus": "active"})
         if shortlister:
             shortlister_name = f"{shortlister.get('firstName', '')} {shortlister.get('lastName', '')}".strip() or shortlist["userUsername"]
             
