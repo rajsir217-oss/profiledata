@@ -1488,6 +1488,7 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
 @router.get("/profile/{username}")
 async def get_user_profile(
     username: str,
+    request: Request,
     requester: str = None,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
