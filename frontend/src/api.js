@@ -203,6 +203,21 @@ export const changePassword = async (passwordData) => {
     if (token) {
       authApi.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     }
+
+    // Add response interceptor for 401 handling
+    authApi.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 401) {
+          const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+          if (!hasLoggedOut) {
+            sessionStorage.setItem('hasLoggedOut', 'true');
+            sessionManager.logout();
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
     
     const response = await authApi.post('/change-password', passwordData);
     return response.data;
@@ -239,15 +254,9 @@ imageAccessApi.interceptors.response.use(
       if (!hasLoggedOut) {
         console.warn('🔒 Image Access API: Session expired - redirecting to login');
         sessionStorage.setItem('hasLoggedOut', 'true');
-        toastService.warning('Your session has expired. Please log in again.', 4000);
-      }
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userRole');
-      if (!window.location.pathname.includes('/login')) {
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
+        
+        // Use session manager for consistent logout experience
+        sessionManager.logout();
       }
     }
     return Promise.reject(error);
@@ -456,15 +465,9 @@ notificationsApi.interceptors.response.use(
       if (!hasLoggedOut) {
         console.warn('🔒 Notifications API: Session expired - redirecting to login');
         sessionStorage.setItem('hasLoggedOut', 'true');
-        toastService.warning('Your session has expired. Please log in again.', 4000);
-      }
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userRole');
-      if (!window.location.pathname.includes('/login')) {
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 2000);
+        
+        // Use session manager for consistent logout experience
+        sessionManager.logout();
       }
     }
     return Promise.reject(error);
