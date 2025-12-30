@@ -2743,6 +2743,7 @@ const SearchPage2 = () => {
                   <Profile
                     key={selectedProfileForDetail.username}
                     usernameFromProp={selectedProfileForDetail.username}
+                    initialUserData={selectedProfileForDetail}
                     embedded={true}
                   />
                 ) : (

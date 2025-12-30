@@ -28,14 +28,15 @@ const verificationApi = axios.create({
 
 const Profile = ({ 
   usernameFromProp = null,  // Optional: username passed as prop for embedded mode
-  embedded = false          // Flag for embedded mode (hides header/navigation)
+  embedded = false,         // Flag for embedded mode (hides header/navigation)
+  initialUserData = null    // Optional: Pre-loaded user data to show immediately
 }) => {
   const { username: usernameFromParams } = useParams();
   const username = usernameFromProp || usernameFromParams;
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(initialUserData);
+  const [loading, setLoading] = useState(!initialUserData);
   const [error, setError] = useState("");
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
@@ -190,28 +191,49 @@ const Profile = ({
         const adminStatus = currentUsername === 'admin' || userRole === 'admin';
         setIsAdmin(adminStatus);
         
-        // Pass requester to properly handle PII masking
-        const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
+        // Pass requester to properly handle PII masking, and include context to avoid waterfall
+        const res = await api.get(`/profile/${username}?requester=${currentUsername}&include_context=true`);
         logger.debug('API Response:', res);
         
+        const profileData = res.data;
+        setUser(profileData);
         
+        // Populate consolidated context data
+        if (profileData.kpiStats) {
+          setKpiStats(profileData.kpiStats);
+        }
         
+        if (profileData.piiAccess) {
+          setPiiAccess(profileData.piiAccess);
+        }
         
+        if (profileData.piiRequestStatus) {
+          setPiiRequestStatus(profileData.piiRequestStatus);
+        }
         
+        if (profileData.isOnline !== undefined) {
+          setIsOnline(profileData.isOnline);
+        }
         
+        if (profileData.isFavorited !== undefined) {
+          setIsFavorited(profileData.isFavorited);
+        }
         
+        if (profileData.isShortlisted !== undefined) {
+          setIsShortlisted(profileData.isShortlisted);
+        }
         
-        
-        
-        setUser(res.data);
+        if (profileData.isExcluded !== undefined) {
+          setIsExcluded(profileData.isExcluded);
+        }
         
         // Debug: Log visibility settings
         logger.debug('Profile data received - visibility settings:', {
-          contactEmailVisible: res.data.contactEmailVisible,
-          contactNumberVisible: res.data.contactNumberVisible,
-          linkedinUrlVisible: res.data.linkedinUrlVisible,
-          contactEmailMasked: res.data.contactEmailMasked,
-          contactNumberMasked: res.data.contactNumberMasked
+          contactEmailVisible: profileData.contactEmailVisible,
+          contactNumberVisible: profileData.contactNumberVisible,
+          linkedinUrlVisible: profileData.linkedinUrlVisible,
+          contactEmailMasked: profileData.contactEmailMasked,
+          contactNumberMasked: profileData.contactNumberMasked
         });
         
         // Check if this is the current user's profile
@@ -230,31 +252,21 @@ const Profile = ({
           }
           
           // Fetch current user's profile for PII request validation
-          try {
-            const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
-            setCurrentUserProfile(myProfileRes.data);
-          } catch (profileErr) {
-            console.error("Error fetching current user profile:", profileErr);
+          // (Still needed if not already cached, but could be optimized later)
+          if (!currentUserProfile) {
+            try {
+              const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
+              setCurrentUserProfile(myProfileRes.data);
+            } catch (profileErr) {
+              console.error("Error fetching current user profile:", profileErr);
+            }
           }
           
-          // Check PII access
-          await checkPIIAccess();
-          
-          // Load accessible images with privacy settings
+          // Load accessible images with privacy settings (Legacy system check)
           await loadAccessibleImages();
-          
-          // Check user relationship (favorites/shortlist)
-          await checkUserRelationship();
-          
-          // Check initial online status using service
-          const online = await onlineStatusService.isUserOnline(username);
-          setIsOnline(online);
         }
         
-        // Fetch KPI stats for all profiles
-        await fetchKPIStats();
-        
-        // Fetch activation status if viewing own profile
+        // Activation status if viewing own profile
         if (currentUsername === username) {
           await fetchActivationStatus();
         }
