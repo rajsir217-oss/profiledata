@@ -1683,6 +1683,59 @@ async def get_user_profile(
             'trustScore': user.get('trustScore', 50),
         }
     
+    # Include extra context if requested (to reduce waterfall API calls)
+    include_context = request.query_params.get("include_context", "false").lower() == "true"
+    
+    if include_context and requester_username and not is_own_profile:
+        # 1. Relationship status
+        favorites = await db.favorites.find_one({"username": requester_username})
+        user["isFavorited"] = username in (favorites.get("favorites", []) if favorites else [])
+        
+        shortlist = await db.shortlist.find_one({"username": requester_username})
+        user["isShortlisted"] = username in (shortlist.get("shortlist", []) if shortlist else [])
+        
+        exclusions = await db.exclusions.find_one({"username": requester_username})
+        user["isExcluded"] = username in (exclusions.get("exclusions", []) if exclusions else [])
+
+        # 2. KPI Stats (counts)
+        # Profile views
+        views_count = await db.profile_views.count_documents({"profileUsername": username})
+        # Their favorites (who favorited THIS user)
+        fav_by_count = await db.favorites.count_documents({"favorites": username})
+        # Their shortlists (who shortlisted THIS user)
+        short_by_count = await db.shortlist.count_documents({"shortlist": username})
+        
+        user["kpiStats"] = {
+            "profileViews": views_count,
+            "favoritedBy": fav_by_count,
+            "shortlistedBy": short_by_count
+        }
+
+        # 3. PII Request Status (pending requests)
+        pii_request_status = {}
+        outgoing_cursor = db.pii_requests.find({
+            "requesterId": requester_username,
+            "requestedUserId": username,
+            "status": "pending"
+        })
+        async for req in outgoing_cursor:
+            rtype = req.get("requestType")
+            if rtype:
+                pii_request_status[rtype] = "pending"
+        
+        # Add approved status from per_field_access
+        if per_field_access:
+            for field, granted in per_field_access.items():
+                if granted and pii_request_status.get(field) != "pending":
+                    pii_request_status[field] = "approved"
+        
+        user["piiRequestStatus"] = pii_request_status
+        user["piiAccess"] = per_field_access
+
+        # 4. Online Status
+        online_status = await db.online_status.find_one({"username": username})
+        user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     return user
 

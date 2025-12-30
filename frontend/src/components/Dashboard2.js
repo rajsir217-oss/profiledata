@@ -136,6 +136,7 @@ const Dashboard2 = () => {
 
   // Track overall expand/collapse state for toggle button
   const [isAllExpanded, setIsAllExpanded] = useState(true);
+  const [refreshing, setRefreshing] = useState({});
 
   // MFA notification state
   const [showMfaNotification, setShowMfaNotification] = useState(false);
@@ -235,78 +236,39 @@ const Dashboard2 = () => {
   }, [navigate]);
 
   const loadDashboardData = async (username) => {
-    // Use passed username or get from localStorage
     const user = username || localStorage.getItem('username');
-    
     if (!user) {
       setError('No user logged in');
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
     setError('');
-    
     logger.info('Loading dashboard for user:', user);
-    
-    try {
-      // Load all dashboard data including user profile
-      const [
-        profileRes,
-        messagesRes,
-        myFavoritesRes,
-        myShortlistsRes,
-        profileViewsRes,
-        myExclusionsRes,
-        requestsRes,
-        incomingRequestsRes,
-        theirFavoritesRes,
-        theirShortlistsRes,
-        receivedAccessRes
-      ] = await Promise.all([
-        api.get(`/profile/${user}?requester=${user}`),
-        api.get(`/messages/conversations?username=${user}`),
-        api.get(`/favorites/${user}`),
-        api.get(`/shortlist/${user}`),
-        api.get(`/profile-views/${user}`),
-        api.get(`/exclusions/${user}`),
-        api.get(`/pii-requests/${user}/outgoing`),  // Fetch ALL outgoing requests to show approved/rejected status
-        api.get(`/pii-requests/${user}/incoming`),  // Fetch ALL incoming requests to show approved/rejected status
-        api.get(`/their-favorites/${user}`),
-        api.get(`/their-shortlists/${user}`),
-        api.get(`/pii-access/${user}/received`)  // Fetch active PII access grants received
-      ]);
-      
-      // Extract last login time from profile
-      const profile = profileRes.data;
-      const lastLogin = profile?.security?.last_login_at;
-      setLastLoginAt(lastLogin);
 
-      setDashboardData({
-        myMessages: messagesRes.data.conversations || [],
-        myFavorites: myFavoritesRes.data.favorites || [],
-        myShortlists: myShortlistsRes.data.shortlist || [],
-        myViews: profileViewsRes.data.views || [],
-        myExclusions: myExclusionsRes.data.exclusions || [],
-        myRequests: requestsRes.data.requests || [],
-        incomingContactRequests: incomingRequestsRes.data.requests || [],
-        theirFavorites: theirFavoritesRes.data.users || [],
-        theirShortlists: theirShortlistsRes.data.users || [],
-        receivedAccess: receivedAccessRes.data.receivedAccess || []
-      });
-      
-      // Set view metrics
-      setViewMetrics({
-        uniqueViewers: profileViewsRes.data.uniqueViewers || 0,
-        totalViews: profileViewsRes.data.totalViews || 0
-      });
-      
-      // Auto-collapse sections with zero items to save screen real estate
-      const piiCount = (incomingRequestsRes.data.requests?.length || 0) + (requestsRes.data.requests?.length || 0);
-      const myActivitiesCount = (messagesRes.data.conversations?.length || 0) + 
-                                (myFavoritesRes.data.favorites?.length || 0) + 
-                                (myShortlistsRes.data.shortlist?.length || 0) + 
-                                (myExclusionsRes.data.exclusions?.length || 0);
+    try {
+      // Use the new granular fetch functions but in parallel for initial load
+      await Promise.all([
+        refreshProfile(user, true),
+        refreshMessages(user, true),
+        refreshFavorites(user, true),
+        refreshShortlists(user, true),
+        refreshViews(user, true),
+        refreshExclusions(user, true),
+        refreshPiiRequests(user, true),
+        refreshIncomingRequests(user, true),
+        refreshTheirFavorites(user, true),
+        refreshTheirShortlists(user, true),
+        refreshReceivedAccess(user, true)
+      ]);
+
+      // Auto-collapse sections with zero items
+      const piiCount = (dashboardData.incomingContactRequests?.length || 0) + (dashboardData.myRequests?.length || 0);
+      const myActivitiesCount = (dashboardData.myMessages?.length || 0) + 
+                                (dashboardData.myFavorites?.length || 0) + 
+                                (dashboardData.myShortlists?.length || 0) + 
+                                (dashboardData.myExclusions?.length || 0);
       
       setExpandedGroups(prev => ({
         ...prev,
@@ -315,17 +277,207 @@ const Dashboard2 = () => {
       }));
     } catch (err) {
       logger.error('Error loading dashboard data:', err);
-      logger.error('Error details:', err.response?.data || err.message);
-      
       const errorMessage = err.response?.data?.detail || 
                           err.response?.data?.message || 
                           err.message || 
                           'Failed to load dashboard data';
-      
       setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Granular refresh functions
+  const refreshProfile = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, profile: true }));
+      const res = await api.get(`/profile/${user}?requester=${user}`);
+      setUserProfile(res.data);
+      setLastLoginAt(res.data?.security?.last_login_at);
+      
+      const photoReminderDismissed = sessionStorage.getItem('photoReminderDismissed');
+      const userImages = res.data?.images || [];
+      if (userImages.length === 0 && !photoReminderDismissed) {
+        setShowPhotoReminder(true);
+      }
+    } catch (err) {
+      logger.error('Error refreshing profile:', err);
+      if (!silent) toast.error('Failed to refresh profile');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, profile: false }));
+    }
+  };
+
+  const refreshMessages = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myMessages: true }));
+      const res = await api.get(`/messages/conversations?username=${user}`);
+      setDashboardData(prev => ({ ...prev, myMessages: res.data.conversations || [] }));
+    } catch (err) {
+      logger.error('Error refreshing messages:', err);
+      if (!silent) toast.error('Failed to refresh messages');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myMessages: false }));
+    }
+  };
+
+  const refreshFavorites = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myFavorites: true }));
+      const res = await api.get(`/favorites/${user}`);
+      setDashboardData(prev => ({ ...prev, myFavorites: res.data.favorites || [] }));
+    } catch (err) {
+      logger.error('Error refreshing favorites:', err);
+      if (!silent) toast.error('Failed to refresh favorites');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myFavorites: false }));
+    }
+  };
+
+  const refreshShortlists = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myShortlists: true }));
+      const res = await api.get(`/shortlist/${user}`);
+      setDashboardData(prev => ({ ...prev, myShortlists: res.data.shortlist || [] }));
+    } catch (err) {
+      logger.error('Error refreshing shortlists:', err);
+      if (!silent) toast.error('Failed to refresh shortlists');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myShortlists: false }));
+    }
+  };
+
+  const refreshViews = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myViews: true }));
+      const res = await api.get(`/profile-views/${user}`);
+      setDashboardData(prev => ({ ...prev, myViews: res.data.views || [] }));
+      setViewMetrics({
+        uniqueViewers: res.data.uniqueViewers || 0,
+        totalViews: res.data.totalViews || 0
+      });
+    } catch (err) {
+      logger.error('Error refreshing views:', err);
+      if (!silent) toast.error('Failed to refresh views');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myViews: false }));
+    }
+  };
+
+  const refreshExclusions = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myExclusions: true }));
+      const res = await api.get(`/exclusions/${user}`);
+      setDashboardData(prev => ({ ...prev, myExclusions: res.data.exclusions || [] }));
+    } catch (err) {
+      logger.error('Error refreshing exclusions:', err);
+      if (!silent) toast.error('Failed to refresh exclusions');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myExclusions: false }));
+    }
+  };
+
+  const refreshPiiRequests = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, myRequests: true }));
+      const res = await api.get(`/pii-requests/${user}/outgoing`);
+      setDashboardData(prev => ({ ...prev, myRequests: res.data.requests || [] }));
+    } catch (err) {
+      logger.error('Error refreshing sent requests:', err);
+      if (!silent) toast.error('Failed to refresh sent requests');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, myRequests: false }));
+    }
+  };
+
+  const refreshIncomingRequests = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, piiInbox: true }));
+      const res = await api.get(`/pii-requests/${user}/incoming`);
+      setDashboardData(prev => ({ ...prev, incomingContactRequests: res.data.requests || [] }));
+    } catch (err) {
+      logger.error('Error refreshing incoming requests:', err);
+      if (!silent) toast.error('Failed to refresh incoming requests');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, piiInbox: false }));
+    }
+  };
+
+  const refreshTheirFavorites = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, theirFavorites: true }));
+      const res = await api.get(`/their-favorites/${user}`);
+      setDashboardData(prev => ({ ...prev, theirFavorites: res.data.users || [] }));
+    } catch (err) {
+      logger.error('Error refreshing favorited-me:', err);
+      if (!silent) toast.error('Failed to refresh favorited-me list');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, theirFavorites: false }));
+    }
+  };
+
+  const refreshTheirShortlists = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, theirShortlists: true }));
+      const res = await api.get(`/their-shortlists/${user}`);
+      setDashboardData(prev => ({ ...prev, theirShortlists: res.data.users || [] }));
+    } catch (err) {
+      logger.error('Error refreshing shortlisted-me:', err);
+      if (!silent) toast.error('Failed to refresh shortlisted-me list');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, theirShortlists: false }));
+    }
+  };
+
+  const refreshReceivedAccess = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, piiHistory: true }));
+      const res = await api.get(`/pii-access/${user}/received`);
+      setDashboardData(prev => ({ ...prev, receivedAccess: res.data.receivedAccess || [] }));
+    } catch (err) {
+      logger.error('Error refreshing access history:', err);
+      if (!silent) toast.error('Failed to refresh access history');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, piiHistory: false }));
+    }
+  };
+
+  // Group refresh functions
+  const refreshPiiGroup = async () => {
+    const user = currentUser || localStorage.getItem('username');
+    setRefreshing(prev => ({ ...prev, piiGroup: true }));
+    await Promise.all([
+      refreshIncomingRequests(user, true),
+      refreshPiiRequests(user, true),
+      refreshReceivedAccess(user, true)
+    ]);
+    setRefreshing(prev => ({ ...prev, piiGroup: false }));
+    toast.success('Data Requests refreshed');
+  };
+
+  const refreshMyActivitiesGroup = async () => {
+    const user = currentUser || localStorage.getItem('username');
+    setRefreshing(prev => ({ ...prev, myActivitiesGroup: true }));
+    await Promise.all([
+      refreshMessages(user, true),
+      refreshFavorites(user, true),
+      refreshShortlists(user, true),
+      refreshExclusions(user, true)
+    ]);
+    setRefreshing(prev => ({ ...prev, myActivitiesGroup: false }));
+    toast.success('My Activities refreshed');
+  };
+
+  const refreshAdmirersGroup = async () => {
+    const user = currentUser || localStorage.getItem('username');
+    setRefreshing(prev => ({ ...prev, admirersGroup: true }));
+    await Promise.all([
+      refreshViews(user, true),
+      refreshTheirFavorites(user, true),
+      refreshTheirShortlists(user, true)
+    ]);
+    setRefreshing(prev => ({ ...prev, admirersGroup: false }));
+    toast.success('Admirers refreshed');
   };
 
   const checkMfaStatus = async (username) => {
@@ -1005,6 +1157,18 @@ const Dashboard2 = () => {
     const context = contextMap[sectionKey] || 'default';
     const tooltip = tooltipMap[sectionKey];
     
+    // Map section keys to refresh functions
+    const refreshMap = {
+      'myMessages': () => refreshMessages(currentUser),
+      'myFavorites': () => refreshFavorites(currentUser),
+      'myShortlists': () => refreshShortlists(currentUser),
+      'myExclusions': () => refreshExclusions(currentUser),
+      'myViews': () => refreshViews(currentUser),
+      'theirFavorites': () => refreshTheirFavorites(currentUser),
+      'theirShortlists': () => refreshTheirShortlists(currentUser),
+      'myRequests': () => refreshPiiRequests(currentUser)
+    };
+    
     return (
       <CategorySection
         title={title}
@@ -1019,6 +1183,8 @@ const Dashboard2 = () => {
         viewMode={viewMode}
         emptyMessage={`No ${title.toLowerCase()} yet`}
         tooltip={tooltip}
+        onRefresh={refreshMap[sectionKey]}
+        isRefreshing={refreshing[sectionKey]}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
@@ -1044,14 +1210,45 @@ const Dashboard2 = () => {
     };
     
     const context = contextMap[sectionKey] || 'default';
+
+    // Map section keys to refresh functions
+    const refreshMap = {
+      'myMessages': () => refreshMessages(currentUser),
+      'myFavorites': () => refreshFavorites(currentUser),
+      'myShortlists': () => refreshShortlists(currentUser),
+      'myExclusions': () => refreshExclusions(currentUser),
+      'myViews': () => refreshViews(currentUser),
+      'theirFavorites': () => refreshTheirFavorites(currentUser),
+      'theirShortlists': () => refreshTheirShortlists(currentUser),
+      'myRequests': () => refreshPiiRequests(currentUser),
+      'piiInbox': () => refreshIncomingRequests(currentUser),
+      'piiSent': () => refreshPiiRequests(currentUser),
+      'piiHistory': () => refreshReceivedAccess(currentUser)
+    };
     
     return (
       <div className="tab-content-wrapper" style={{ '--tab-color': color }}>
         {/* Category header with color indicator */}
         <div className="tab-content-header" style={{ background: color }}>
-          <span className="tab-content-icon">{icon}</span>
-          <span className="tab-content-title">{title}</span>
-          <span className="tab-content-count">{data?.length || 0}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span className="tab-content-icon">{icon}</span>
+            <span className="tab-content-title">{title}</span>
+            <span className="tab-content-count">{data?.length || 0}</span>
+            {refreshMap[sectionKey] && (
+              <button 
+                className={`section-refresh-btn ${refreshing[sectionKey] ? 'spinning' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  refreshMap[sectionKey]();
+                }}
+                title={`Refresh ${title}`}
+                disabled={refreshing[sectionKey]}
+                style={{ width: '22px', height: '22px', fontSize: '14px' }}
+              >
+                ⟳
+              </button>
+            )}
+          </div>
         </div>
         
         {/* Content area */}
@@ -1481,6 +1678,17 @@ const Dashboard2 = () => {
             <span className="activity-group-count">
               {dashboardData.incomingContactRequests.length + dashboardData.myRequests.length}
             </span>
+            <button 
+              className={`section-refresh-btn ${refreshing.piiGroup ? 'spinning' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                refreshPiiGroup();
+              }}
+              title="Refresh all data requests"
+              disabled={refreshing.piiGroup}
+            >
+              ⟳
+            </button>
           </div>
           <span className="activity-group-toggle">{expandedGroups.piiRequests ? '▼' : '▶'}</span>
         </div>
@@ -1643,6 +1851,17 @@ const Dashboard2 = () => {
             <span className="activity-group-icon">📊</span>
             <h2>My Activities</h2>
             <span className="activity-group-count">{getGroupCount('myActivities')}</span>
+            <button 
+              className={`section-refresh-btn ${refreshing.myActivitiesGroup ? 'spinning' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                refreshMyActivitiesGroup();
+              }}
+              title="Refresh all activities"
+              disabled={refreshing.myActivitiesGroup}
+            >
+              ⟳
+            </button>
           </div>
           <span className="activity-group-toggle">{expandedGroups.myActivities ? '▼' : '▶'}</span>
         </div>
@@ -1706,6 +1925,17 @@ const Dashboard2 = () => {
             <span className="activity-group-icon">💕</span>
             <h2>Admirers</h2>
             <span className="activity-group-count">{getGroupCount('othersActivities')}</span>
+            <button 
+              className={`section-refresh-btn ${refreshing.admirersGroup ? 'spinning' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                refreshAdmirersGroup();
+              }}
+              title="Refresh all admirers"
+              disabled={refreshing.admirersGroup}
+            >
+              ⟳
+            </button>
           </div>
           <span className="activity-group-toggle">{expandedGroups.othersActivities ? '▼' : '▶'}</span>
         </div>

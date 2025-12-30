@@ -42,6 +42,8 @@ const CategorySection = ({
   onDrop,
   draggedIndex,
   dragOverIndex,
+  onRefresh, // Function to refresh this section's data
+  isRefreshing = false, // Loading state for refresh
   children // Support for custom content instead of data-driven rendering
 }) => {
   
@@ -142,6 +144,19 @@ const CategorySection = ({
           <span className="category-icon">{icon}</span>
           <h3>{title}</h3>
           <span className="category-count">{count}</span>
+          {onRefresh && (
+            <button 
+              className={`section-refresh-btn ${isRefreshing ? 'spinning' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                onRefresh();
+              }}
+              title="Refresh this section"
+              disabled={isRefreshing}
+            >
+              ⟳
+            </button>
+          )}
           {tooltip && (
             <span className="category-tooltip" title={tooltip}>ℹ️</span>
           )}
