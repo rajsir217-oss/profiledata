@@ -4,26 +4,25 @@ import { Navigate, useLocation } from 'react-router-dom';
 import api from '../api';
 
 const ProtectedRoute = ({ children }) => {
-  // Check token synchronously on initial render - BEFORE any hooks
-  const initialToken = localStorage.getItem('token');
-  
-  // DEBUG: Log token check
-  console.log('🔒 ProtectedRoute RENDER - initialToken:', initialToken ? 'EXISTS' : 'NULL');
-  
-  // IMMEDIATE REDIRECT: If no token, redirect using window.location (most reliable)
-  if (!initialToken) {
-    console.warn('🔒 ProtectedRoute: No token found - forcing redirect to login');
-    window.location.href = '/login';
-    return null; // Return null while redirecting
-  }
-  
+  // All hooks MUST be called before any conditional returns
   const [loading, setLoading] = useState(true);
   const [userStatus, setUserStatus] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
+  const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
   const location = useLocation();
   
-  // DEBUG: Log state
-  console.log('🔒 ProtectedRoute STATE - loading:', loading);
+  // Check token synchronously on initial render
+  const initialToken = localStorage.getItem('token');
+
+  useEffect(() => {
+    // Check for missing token - redirect to login
+    if (!initialToken) {
+      console.warn('🔒 ProtectedRoute: No token found - redirecting to login');
+      setShouldRedirectToLogin(true);
+      setLoading(false);
+      return;
+    }
+  }, [initialToken]);
 
   useEffect(() => {
     const checkUserStatus = async () => {
@@ -33,7 +32,8 @@ const ProtectedRoute = ({ children }) => {
       // Check for missing token - redirect to login
       if (!token) {
         console.warn('🔒 ProtectedRoute useEffect: No token - redirecting to login');
-        window.location.href = '/login';
+        setShouldRedirectToLogin(true);
+        setLoading(false);
         return;
       }
       
@@ -47,15 +47,12 @@ const ProtectedRoute = ({ children }) => {
       try {
         // Fetch user profile to get status (pass requester to avoid PII masking)
         const response = await api.get(`/profile/${username}?requester=${username}`);
-        console.log('🔍 Full profile response:', response.data);
         
         // CRITICAL FIX: Use accountStatus (unified field), not legacy status.status
         const status = response.data.accountStatus || 'pending';
-        console.log('🔍 accountStatus value:', status);
         
         // Normalize status to lowercase for comparison
         const normalizedStatus = status.toLowerCase();
-        console.log('🔍 Normalized status:', normalizedStatus);
         setUserStatus(normalizedStatus);
       } catch (error) {
         console.error('Error fetching user status:', error);
@@ -66,7 +63,7 @@ const ProtectedRoute = ({ children }) => {
           localStorage.removeItem('token');
           localStorage.removeItem('username');
           localStorage.removeItem('userRole');
-          setCurrentUsername(null); // This will trigger redirect to login
+          setShouldRedirectToLogin(true);
         } else {
           // For other errors, default to pending
           setUserStatus('pending');
@@ -79,6 +76,10 @@ const ProtectedRoute = ({ children }) => {
     checkUserStatus();
   }, [location.pathname]); // Re-check on route change
 
+  // Handle redirect to login
+  if (shouldRedirectToLogin) {
+    return <Navigate to="/login" replace />;
+  }
   
   if (loading) {
     return (
