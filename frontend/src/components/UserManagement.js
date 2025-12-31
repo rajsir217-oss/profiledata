@@ -24,6 +24,7 @@ adminApi.interceptors.request.use(
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false); // For infinite scroll
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -63,14 +64,21 @@ const UserManagement = () => {
     setImageValidationStatus(statusMap);
   }, []);
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
+  // Use ref to always have latest loadUsers function
+  const loadUsersRef = useRef(null);
+
+  const loadUsers = useCallback(async (pageNum, isLoadMore = false) => {
+    if (isLoadMore) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError('');
     
     try {
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: '20'
+        page: pageNum.toString(),
+        limit: '10'
       });
       
       if (statusFilter) params.append('status_filter', statusFilter);
@@ -80,7 +88,14 @@ const UserManagement = () => {
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       
       const loadedUsers = response.data.users || [];
-      setUsers(loadedUsers);
+      
+      // Append users for infinite scroll, replace for initial load or filter change
+      if (isLoadMore && pageNum > 1) {
+        setUsers(prev => [...prev, ...loadedUsers]);
+      } else {
+        setUsers(loadedUsers);
+      }
+      
       setTotalPages(response.data.pages || 1);
       setTotalUsers(response.data.total || loadedUsers.length);
       
@@ -104,20 +119,84 @@ const UserManagement = () => {
         }
       }
       
-      setError('Failed to load users: ' + (err.response?.data?.detail || err.message));
+      const errorDetail = err.response?.data?.detail;
+      const errorMsg = typeof errorDetail === 'string' 
+        ? errorDetail 
+        : (errorDetail?.message || err.message || 'Unknown error');
+      setError('Failed to load users: ' + errorMsg);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
-  }, [page, statusFilter, roleFilter, searchTerm, navigate, loadImageValidationStatus]);
+  }, [statusFilter, roleFilter, searchTerm, navigate, loadImageValidationStatus]);
+
+  // Keep ref updated with latest loadUsers
+  useEffect(() => {
+    loadUsersRef.current = loadUsers;
+  }, [loadUsers]);
 
   // Check if user is admin
   useEffect(() => {
     if (userRole !== 'admin') {
       navigate('/dashboard');
-      return;
     }
-    loadUsers();
-  }, [userRole, navigate, loadUsers, page, statusFilter, roleFilter, searchTerm]);
+  }, [userRole, navigate]);
+
+  // Initial load and reload when filters change
+  useEffect(() => {
+    if (userRole === 'admin') {
+      setPage(1);
+      setUsers([]); // Clear existing users when filters change
+      loadUsers(1, false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userRole, statusFilter, roleFilter, searchTerm]);
+
+  // Ref for tracking if we can load more (debounce)
+  const loadMoreRef = useRef(null);
+  const isLoadingRef = useRef(false);
+
+  // Sync loading state to ref for scroll handler
+  useEffect(() => {
+    isLoadingRef.current = loading || loadingMore;
+  }, [loading, loadingMore]);
+
+  // Scroll-based infinite loading - listens on .users-table-container
+  useEffect(() => {
+    let timeoutId = null;
+    
+    // Find the scrollable container (.users-table-container has overflow-y: auto)
+    const scrollContainer = document.querySelector('.users-table-container');
+    if (!scrollContainer) return;
+    
+    const handleScroll = () => {
+      // Skip if already loading or no more pages
+      if (isLoadingRef.current || page >= totalPages) return;
+      
+      const { scrollTop, scrollHeight, clientHeight } = scrollContainer;
+      
+      // Trigger when within 400px of bottom
+      if (scrollTop + clientHeight >= scrollHeight - 400) {
+        // Debounce
+        if (timeoutId) return;
+        
+        timeoutId = setTimeout(() => {
+          if (!isLoadingRef.current && page < totalPages && loadUsersRef.current) {
+            const nextPage = page + 1;
+            setPage(nextPage);
+            loadUsersRef.current(nextPage, true);
+          }
+          timeoutId = null;
+        }, 100);
+      }
+    };
+
+    scrollContainer.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      scrollContainer.removeEventListener('scroll', handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [page, totalPages]);
 
   // Close dropdown when clicking outside or scrolling
   useEffect(() => {
@@ -516,7 +595,7 @@ const UserManagement = () => {
           <option value="free_user">Free User</option>
         </select>
 
-        <button onClick={loadUsers} className="btn-refresh">
+        <button onClick={() => { setPage(1); setUsers([]); loadUsers(1, false); }} className="btn-refresh">
           🔄 Refresh
         </button>
       </div>
@@ -524,7 +603,7 @@ const UserManagement = () => {
       {error && (
         <div className="error-message">
           <p>{error}</p>
-          <button onClick={loadUsers}>Retry</button>
+          <button onClick={() => { setPage(1); setUsers([]); loadUsers(1, false); }}>Retry</button>
         </div>
       )}
 
@@ -643,7 +722,7 @@ const UserManagement = () => {
                         }
                       }}
                     >
-                      ⋮ Actions
+                      ⋮
                     </button>
                     
                     {openDropdown === user.username && (
@@ -784,24 +863,28 @@ const UserManagement = () => {
         </table>
       </div>
 
-      {/* View More Pagination */}
-      <div className="pagination-container">
-        <div className="pagination-info">
-          Viewing {users.length} of {totalUsers} profiles
+      {/* Load Status Button */}
+      {users.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 0' }}>
+          <button 
+            className="all-loaded-message"
+            onClick={() => {
+              if (page < totalPages && !loadingMore) {
+                const nextPage = page + 1;
+                setPage(nextPage);
+                loadUsers(nextPage, true);
+              }
+            }}
+            disabled={loadingMore || page >= totalPages}
+          >
+            {loadingMore ? (
+              <>Loading...</>
+            ) : (
+              <>✓ {users.length} of {totalUsers} profiles loaded</>
+            )}
+          </button>
         </div>
-        
-        {page < totalPages && (
-          <div className="pagination-controls">
-            <button
-              className="view-more-btn"
-              onClick={() => setPage(page + 1)}
-            >
-              <span className="view-more-text">View more</span>
-              <span className="view-more-count">({Math.min(20, totalUsers - users.length)} more)</span>
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Role Assignment Modal */}
       {showRoleModal && selectedUser && (
