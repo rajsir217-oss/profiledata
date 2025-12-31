@@ -2185,8 +2185,8 @@ const SearchPage2 = () => {
                 </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span className="sort-by-label" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+                <span className="sort-by-label" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                   Sort by:
                 </span>
                 <select
@@ -2194,7 +2194,7 @@ const SearchPage2 = () => {
                   onChange={handleSortChange}
                   className="form-select form-select-sm"
                   style={{
-                    width: 'auto',
+                    minWidth: '180px',
                     fontSize: '14px',
                     padding: '6px 12px',
                     borderRadius: 'var(--radius-sm)',
@@ -2213,19 +2213,27 @@ const SearchPage2 = () => {
                 </select>
                 <button
                   onClick={toggleSortOrder}
-                  className="btn btn-sm btn-outline-secondary"
+                  className="layout-toggle-btn"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
                     padding: '6px 12px',
                     fontSize: '14px',
-                    borderRadius: 'var(--radius-sm)'
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--surface-color)',
+                    color: 'var(--text-color)',
+                    cursor: 'pointer',
+                    fontWeight: 400,
+                    transition: 'all 0.2s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    width: 'auto',
+                    whiteSpace: 'nowrap'
                   }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
                 >
-                  {sortOrder === 'desc' ? '↓' : '↑'}
-                  <span>{sortOrder === 'desc' ? 'High to Low' : 'Low to High'}</span>
+                  <span className="layout-toggle-btn-icon">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                  <span className="layout-toggle-btn-text">{sortOrder === 'desc' ? 'Desc' : 'Asc'}</span>
                 </button>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>

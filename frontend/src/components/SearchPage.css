@@ -41,13 +41,35 @@
 /* Sort Controls Responsive Styles */
 .sort-controls-top {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   padding: 12px 16px;
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   margin-bottom: 16px;
+  flex-wrap: nowrap;
+  gap: 24px;
+}
+
+/* Ensure child groups don't break apart */
+.sort-controls-top > div {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap !important;
+  gap: 12px;
+}
+
+/* Sort by label should stay on same line */
+.sort-by-label {
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* Push Profiles count to the right */
+.sort-controls-top > div:last-child {
+  margin-left: auto;
 }
 
 /* Mobile-specific styles for sort controls */
@@ -5428,41 +5450,15 @@ body.theme-rose .request-pics-btn-main:active {
   padding: 12px 0;
 }
 
-.card-request-pics-btn {
-  padding: 10px 24px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-
-.card-request-pics-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-}
-
-.card-request-pending {
-  padding: 10px 24px;
-  border-radius: 20px;
-  background: var(--surface-color);
-  color: var(--text-secondary);
-  font-size: 14px;
-  font-weight: 500;
-  border: 1px solid var(--border-color);
-}
-
-/* Message Button - Floating */
-.card-message-btn-container {
+/* Action Buttons Row - Request Pics & Message */
+.card-action-buttons-row {
   display: flex;
   justify-content: center;
+  gap: 16px;
   padding: 12px 0 8px 0;
 }
 
-.card-message-btn {
+.card-action-icon-btn {
   width: 48px;
   height: 48px;
   border-radius: 50%;
@@ -5473,12 +5469,23 @@ body.theme-rose .request-pics-btn-main:active {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s, border-color 0.2s;
+  transition: transform 0.2s, border-color 0.2s, background 0.2s;
 }
 
-.card-message-btn:hover {
+.card-action-icon-btn:hover:not(:disabled) {
   transform: scale(1.1);
   border-color: var(--primary-color);
+}
+
+.card-action-icon-btn.pending {
+  background: var(--success-light);
+  border-color: var(--success-color);
+  color: var(--success-color);
+  cursor: default;
+}
+
+.card-action-icon-btn:disabled {
+  opacity: 0.8;
 }
 
 /* Profile Thumbnail Placeholder */
