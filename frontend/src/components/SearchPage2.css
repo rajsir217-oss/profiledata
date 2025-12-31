@@ -216,7 +216,7 @@
   }
 }
 
-/* Search Modal Trigger and Active Criteria Bar */
+/* Search Modal Trigger - Matches TopBar search button style */
 .floating-search-trigger {
   position: fixed;
   bottom: 30px;
@@ -224,30 +224,31 @@
   background: var(--primary-color);
   color: white;
   border: none;
-  border-radius: 50px;
-  padding: 12px 24px;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
   display: flex;
   align-items: center;
-  gap: 10px;
-  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
   cursor: pointer;
   z-index: 1000;
-  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.2s ease;
 }
 
 .floating-search-trigger:hover {
-  transform: translateY(-5px) scale(1.05);
-  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
   background: var(--secondary-color);
 }
 
 .trigger-icon {
-  font-size: 20px;
+  font-size: 22px;
 }
 
 .trigger-text {
-  font-weight: 600;
-  font-size: 15px;
+  display: none; /* Hide text to match TopBar icon-only style */
 }
 
 .active-criteria-bar {
@@ -332,24 +333,63 @@
   .floating-search-trigger {
     bottom: 20px;
     right: 20px;
-    padding: 12px;
-    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
   }
   
-  .trigger-text {
-    display: none;
+  .trigger-icon {
+    font-size: 20px;
   }
   
   .active-criteria-bar {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  
+  .criteria-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .criteria-label {
+    font-size: 11px !important;
+  }
+  
+  .criteria-value {
+    font-size: 12px !important;
+    max-width: 150px;
   }
   
   .criteria-actions {
-    width: 100%;
-    justify-content: space-between;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* Hide "profiles found" text on mobile, show only number */
+  .results-count-text {
+    display: none !important;
+  }
+  
+  .results-count {
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Hide "Modify" text on mobile, show only icon */
+  .modify-text {
+    display: none !important;
+  }
+  
+  .btn-modify-search {
+    padding: 6px 10px !important;
+    font-size: 16px !important;
+    min-width: 36px;
   }
 }
 

@@ -171,13 +171,69 @@ const SaveSearchModal = ({
   if (!show) return null;
 
   const handleOverlayClick = (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
+    if (e.target.classList.contains('save-search-modal-overlay')) {
       onClose();
     }
   };
 
+  const handleSave = () => {
+    if (!searchName.trim()) {
+      toast.error('Please enter a search name');
+      return;
+    }
+
+    // Build save data with notification settings
+    const saveData = {
+      name: searchName.trim(),
+      criteria: editingScheduleFor ? editingScheduleFor.criteria : currentCriteria,
+      minMatchScore: editingScheduleFor ? editingScheduleFor.minMatchScore : minMatchScore,
+      notifications: {
+        enabled: enableNotifications,
+        frequency: notificationFrequency,
+        time: notificationTime,
+        dayOfWeek: notificationFrequency === 'weekly' ? notificationDay : null
+      },
+      isDefault: setAsDefault
+    };
+
+    // If editing an existing search's schedule, include the ID
+    if (editingScheduleFor) {
+      saveData.id = editingScheduleFor.id || editingScheduleFor._id;
+      saveData.isUpdate = true;
+    }
+
+    onSave(saveData);
+  };
+
+  const startEditing = (search) => {
+    setEditingId(search.id || search._id);
+    setEditingName(search.name);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingName('');
+  };
+
+  const handleUpdate = (searchId) => {
+    if (!editingName.trim()) {
+      toast.error('Search name cannot be empty');
+      return;
+    }
+    if (onUpdate) {
+      onUpdate(searchId, editingName.trim());
+    }
+    cancelEditing();
+  };
+
+  const handleDelete = (searchId) => {
+    if (onDelete) {
+      onDelete(searchId);
+    }
+  };
+
   return createPortal(
-    <div className="modal-overlay" onClick={handleOverlayClick}>
+    <div className="save-search-modal-overlay" onClick={handleOverlayClick}>
       <div className="save-search-modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>

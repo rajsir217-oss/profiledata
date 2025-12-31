@@ -1272,7 +1272,7 @@ const SearchPage2 = () => {
 
       if (page === 1) {
         setUsers(filteredUsers);
-          } else {
+      } else {
         setUsers(prev => [...prev, ...filteredUsers]);
       }
 
@@ -1300,7 +1300,6 @@ const SearchPage2 = () => {
     }
   };
 
-  // Handle load more for incremental loading
   const handleLoadMore = () => {
     setLoadingMore(true);
     // Simulate a small delay for better UX (can be removed if not needed)
@@ -1315,7 +1314,6 @@ const SearchPage2 = () => {
     }, 300);
   };
 
-  // Generate human-readable description from search criteria
   const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
     
@@ -1413,293 +1411,118 @@ const SearchPage2 = () => {
     return parts.join(', ') + ' and ' + lastPart;
   };
 
-if (page === 1) {
-  setUsers(filteredUsers);
-} else {
-  setUsers(prev => [...prev, ...filteredUsers]);
-}
+  const handleUpdateSavedSearch = async (searchId, newName) => {
+    try {
+      const username = localStorage.getItem('username');
+      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
+      toastService.success(`✅ Search renamed to: "${newName}"`);
+      loadSavedSearches();
+    } catch (err) {
+      logger.error('Error updating saved search:', err);
+      toastService.error('Failed to update saved search');
+    }
+  };
 
-// setTotalResults(filteredUsers.length);
+  const handleLoadSavedSearch = (savedSearch) => {
+    // Expand filters if they were collapsed so user can see what was loaded
+    setFiltersCollapsed(false);
+    
+    setSearchCriteria(savedSearch.criteria);
+    // Restore L3V3L match score if saved
+    const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
+    setMinMatchScore(loadedMinScore);
+    setSelectedSearch(savedSearch);
+    setShowSavedSearches(false);
+    toastService.info(`📂 Loaded saved search: "${savedSearch.name}"`);
+    
+    // Automatically perform search with loaded criteria
+    // Pass the criteria directly to handleSearch to ensure immediate execution with correct values
+    setTimeout(() => {
+      handleSearch(1, loadedMinScore, savedSearch.criteria);
+    }, 100);
+  };
 
-} catch (err) {
-  logger.error('Error searching users:', err);
-  const errorDetail = err.response?.data?.detail;
-  let errorMsg = 'Failed to search users.';
-  
-  if (typeof errorDetail === 'string') {
-    errorMsg += ' ' + errorDetail;
-  } else if (Array.isArray(errorDetail)) {
-    errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-  } else if (errorDetail) {
-    errorMsg += ' ' + JSON.stringify(errorDetail);
-  } else {
-    errorMsg += ' ' + err.message;
-  }
-  
-  setError(errorMsg);
-} finally {
-  setLoading(false);
-  // No longer auto-collapse filters - user controls visibility via Hide Filters button
-}
-
-};
-
-// Handle load more for incremental loading
-const handleLoadMore = () => {
-  setLoadingMore(true);
-  // Simulate a small delay for better UX (can be removed if not needed)
-  setTimeout(() => {
-    setDisplayedCount(prev => prev + 20); // Let render clamp to actual length
-    setLoadingMore(false);
-    // Smooth scroll to show newly loaded items
-    window.scrollTo({ 
-      top: document.documentElement.scrollHeight - 800, 
-      behavior: 'smooth' 
-    });
-  }, 300);
-};
-
-// Generate human-readable description from search criteria
-const generateSearchDescription = (criteria, matchScore = null) => {
-  const parts = [];
-  
-  // Start with "I'm looking for"
-  let intro = "I'm looking for";
-  
-  // Gender
-  if (criteria.gender) {
-    const genderMap = {
-      'male': 'a guy',
-      'female': 'a girl',
-      'other': 'someone'
-    };
-    intro += ` ${genderMap[criteria.gender.toLowerCase()] || 'someone'}`;
-  } else {
-    intro += ' someone';
-  }
-  
-  parts.push(intro);
-  
-  // Age range
-  if (criteria.ageMin || criteria.ageMax) {
-    const ageMin = criteria.ageMin || '?';
-    const ageMax = criteria.ageMax || '?';
-    parts.push(`age ranges from ${ageMin} to ${ageMax} years old`);
-  }
-  
-  // Height range
-  if (criteria.heightMinFeet || criteria.heightMaxFeet) {
-    const heightMin = criteria.heightMinFeet 
-      ? `${criteria.heightMinFeet}ft${criteria.heightMinInches ? ' ' + criteria.heightMinInches + 'in' : ''}`
-      : '?';
-    const heightMax = criteria.heightMaxFeet 
-      ? `${criteria.heightMaxFeet}ft${criteria.heightMaxInches ? ' ' + criteria.heightMaxInches + 'in' : ''}`
-      : '?';
-    parts.push(`height from ${heightMin} to ${heightMax}`);
-  }
-  
-  // Location
-  if (criteria.location) {
-    parts.push(`living around ${criteria.location}`);
-  }
-  
-  // Religion
-  if (criteria.religion && criteria.religion !== '') {
-    parts.push(`religion ${criteria.religion}`);
-  }
-  
-  // Education
-  if (criteria.education && criteria.education !== '') {
-    parts.push(`education ${criteria.education}`);
-  }
-  
-  // Occupation
-  if (criteria.occupation && criteria.occupation !== '') {
-    parts.push(`working as ${criteria.occupation}`);
-  }
-  
-  // Body Type
-  if (criteria.bodyType && criteria.bodyType !== '') {
-    parts.push(`body type ${criteria.bodyType.toLowerCase()}`);
-  }
-  
-  // Eating Preference
-  if (criteria.eatingPreference && criteria.eatingPreference !== '') {
-    parts.push(`eating preference ${criteria.eatingPreference.toLowerCase()}`);
-  }
-  
-  // L3V3L Match Score
-  const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
-  logger.info('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
-  if (effectiveScore > 0) {
-    parts.push(`L3V3L match score ≥${effectiveScore}%`);
-    logger.info('✅ Added L3V3L to description');
-  } else {
-    logger.info('❌ L3V3L score is 0, skipping');
-  }
-  
-  // Keyword
-  if (criteria.keyword) {
-    parts.push(`with keywords "${criteria.keyword}"`);
-  }
-  
-  // Join all parts with commas and "and" before the last item
-  if (parts.length === 0) {
-    return "Search with no specific criteria";
-  }
-  
-  if (parts.length === 1) {
-    return parts[0];
-  }
-  
-  // Join with commas and add "and" before last item
-  const lastPart = parts.pop();
-  return parts.join(', ') + ' and ' + lastPart;
-};
-
-const handleSaveSearch = async (saveData) => {
-  try {
-    const username = localStorage.getItem('username');
-    if (!username) {
-      toastService.error('Please login to save searches');
+  const handleDeleteSavedSearch = async (searchId) => {
+    if (!searchId) {
+      toastService.error('Cannot delete: Invalid search ID');
       return;
     }
-
-    // Generate human-readable description (pass minMatchScore)
-    logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
-    const description = generateSearchDescription(searchCriteria, minMatchScore);
-    logger.info('📝 Generated description:', description);
-
-    // Handle both old format (string) and new format (object with notifications)
-    const searchName = typeof saveData === 'string' ? saveData : saveData.name;
-    const notifications = typeof saveData === 'object' ? saveData.notifications : null;
-
-    const searchData = {
-      name: searchName.trim(),
-      description: description,
-      criteria: searchCriteria,
-      minMatchScore: minMatchScore, // Save L3V3L match score
-      created_at: new Date().toISOString(),
-      ...(notifications && { notifications }) // Add notifications if provided
-    };
-    setDisplayedCount(20); // Reset to initial display count
     
-    // Get default search criteria from user profile
-    const defaults = getDefaultSearchCriteria();
-    
-    const clearedCriteria = {
-      keyword: '',
-      gender: defaults.gender,
-      ageMin: defaults.ageMin,
-      ageMax: defaults.ageMax,
-      heightMin: '',
-      heightMax: '',
-      heightMinFeet: defaults.heightMinFeet,
-      heightMinInches: defaults.heightMinInches,
-      heightMaxFeet: defaults.heightMaxFeet,
-      heightMaxInches: defaults.heightMaxInches,
-      location: '',
-      education: '',
-      occupation: '',
-      religion: '',
-      caste: '',
-      eatingPreference: '',
-      drinking: '',
-      smoking: '',
-      relationshipStatus: '',
-      bodyType: '',
-      newlyAdded: false,
-      sortBy: 'age',
-      sortOrder: 'asc'
-    };
-    
-    // Update criteria and clear results
-    setSearchCriteria(clearedCriteria);
-    setMinMatchScore(0); // Reset L3V3L compatibility score
-    setUsers([]);
-    // setTotalResults(0);
-    setStatusMessage('✅ Returning to default search criteria');
-    setTimeout(() => setStatusMessage(''), 3000);
-    
-    // Perform search directly with cleared criteria instead of relying on state update
     try {
-      setLoading(true);
-      setError('');
-
-      // Build params object
-      const params = {
-        gender: defaults.gender,
-        ageMin: defaults.ageMin,
-        ageMax: defaults.ageMax,
-        status: 'active',
-        page: 1,
-        limit: 500
-      };
-
-      // Convert height feet+inches to total inches (like handleSearch does)
-      if (defaults.heightMinFeet && defaults.heightMinInches) {
-        const feet = parseInt(defaults.heightMinFeet);
-        const inches = parseInt(defaults.heightMinInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMin = feet * 12 + inches;
-        }
+      const username = localStorage.getItem('username');
+      await api.delete(`/${username}/saved-searches/${searchId}`);
+      toastService.success('✅ Search deleted successfully');
+      loadSavedSearches();
+      // Clear selected search if it was deleted
+      if (selectedSearch && (selectedSearch.id === searchId || selectedSearch._id === searchId)) {
+        setSelectedSearch(null);
       }
-
-      if (defaults.heightMaxFeet && defaults.heightMaxInches) {
-        const feet = parseInt(defaults.heightMaxFeet);
-        const inches = parseInt(defaults.heightMaxInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMax = feet * 12 + inches;
-        }
-      }
-
-      // Clean up empty strings
-      Object.keys(params).forEach(key => {
-        if (params[key] === '' || params[key] === null || params[key] === undefined) {
-          delete params[key];
-        }
-      });
-
-      // Ensure integer fields are numbers
-      ['ageMin', 'ageMax', 'heightMin', 'heightMax'].forEach(field => {
-        if (params[field] !== undefined) {
-          const num = parseInt(params[field]);
-          if (!isNaN(num)) {
-            params[field] = num;
-          } else {
-            delete params[field];
-          }
-        }
-      });
-
-      logger.info('🔍 Clear saved search params:', params);
-
-      const response = await api.get('/search', { params });
-      const fetchedUsers = response.data.users || [];
-      
-      setUsers(fetchedUsers);
-      // setTotalResults(fetchedUsers.length);
-      setFiltersCollapsed(true); // Auto-collapse filters after search
-      
-      logger.info(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);
     } catch (err) {
-      logger.error('Error searching users:', err);
-      const errorDetail = err.response?.data?.detail;
-      let errorMsg = 'Failed to search users.';
-      
-      if (typeof errorDetail === 'string') {
-        errorMsg += ' ' + errorDetail;
-      } else if (Array.isArray(errorDetail)) {
-        errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-      } else if (errorDetail) {
-        errorMsg += ' ' + JSON.stringify(errorDetail);
-      } else {
-        errorMsg += ' ' + err.message;
+      logger.error('❌ Error deleting saved search:', err);
+      toastService.error('Failed to delete saved search');
+    }
+  };
+
+  const handleSetDefaultSearch = async (searchId, searchName) => {
+    try {
+      await setDefaultSavedSearch(searchId);
+      toastService.success(`⭐ "${searchName}" set as default search`);
+      loadSavedSearches();
+    } catch (err) {
+      logger.error('Error setting default search:', err);
+      toastService.error('Failed to set default search');
+    }
+  };
+
+  const handleEditSchedule = (search) => {
+    setEditingScheduleFor(search);
+    setShowSaveModal(true);
+  };
+
+  const handleSaveSearch = async (saveData) => {
+    try {
+      const username = localStorage.getItem('username');
+      if (!username) {
+        toastService.error('Please login to save searches');
+        return;
       }
+
+      // Generate human-readable description (pass minMatchScore)
+      logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
+      const description = generateSearchDescription(searchCriteria, minMatchScore);
+      logger.info('📝 Generated description:', description);
+
+      // Handle both old format (string) and new format (object with notifications)
+      const searchName = typeof saveData === 'string' ? saveData : saveData.name;
+      const notifications = typeof saveData === 'object' ? saveData.notifications : null;
+
+      const searchData = {
+        name: searchName.trim(),
+        description: description,
+        criteria: searchCriteria,
+        minMatchScore: minMatchScore, // Save L3V3L match score
+        created_at: new Date().toISOString(),
+        ...(notifications && { notifications }) // Add notifications if provided
+      };
       
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
+      logger.info('💾 Search data to save:', searchData);
+
+      await api.post(`/${username}/saved-searches`, searchData);
+
+      const notificationMsg = notifications?.enabled 
+        ? ` with ${notifications.frequency} notifications`
+        : '';
+      toastService.success(`✅ Search saved: "${searchName}"${notificationMsg}`);
+      
+      // Close both modals after successful save
+      setShowSaveModal(false);
+      setIsSearchModalOpen(false);
+      setEditingScheduleFor(null);
+      
+      loadSavedSearches();
+    } catch (err) {
+      logger.error('Error saving search:', err);
+      toastService.error('Failed to save search. ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -2142,18 +1965,63 @@ const handleSaveSearch = async (saveData) => {
 
   const getActiveCriteriaSummary = () => {
     const summary = [];
-    if (searchCriteria.profileId) return `Profile ID: ${searchCriteria.profileId}`;
     
+    // Show saved search name if loaded
+    if (selectedSearch?.name) {
+      summary.push(`📂 ${selectedSearch.name}`);
+    }
+    
+    if (searchCriteria.profileId) {
+      summary.push(`Profile ID: ${searchCriteria.profileId}`);
+      return summary.join(' • ');
+    }
+    
+    // Gender
     if (searchCriteria.gender) summary.push(searchCriteria.gender.charAt(0).toUpperCase() + searchCriteria.gender.slice(1));
+    
+    // Age range
     if (searchCriteria.ageMin && searchCriteria.ageMax) summary.push(`${searchCriteria.ageMin}-${searchCriteria.ageMax} yrs`);
     else if (searchCriteria.ageMin) summary.push(`${searchCriteria.ageMin}+ yrs`);
     else if (searchCriteria.ageMax) summary.push(`Up to ${searchCriteria.ageMax} yrs`);
     
-    if (searchCriteria.location) summary.push(searchCriteria.location);
-    if (minMatchScore > 0) summary.push(`${minMatchScore}%+ Match`);
+    // Height range
+    if (searchCriteria.heightMin || searchCriteria.heightMax) {
+      const heightMin = searchCriteria.heightMin || 'Any';
+      const heightMax = searchCriteria.heightMax || 'Any';
+      if (heightMin !== 'Any' || heightMax !== 'Any') {
+        summary.push(`Height: ${heightMin}-${heightMax}`);
+      }
+    }
     
-    if (searchCriteria.occupation) summary.push(searchCriteria.occupation);
+    // Location
+    if (searchCriteria.location) summary.push(`📍 ${searchCriteria.location}`);
+    if (searchCriteria.state) summary.push(searchCriteria.state);
+    if (searchCriteria.country) summary.push(searchCriteria.country);
+    
+    // L3V3L Match Score
+    if (minMatchScore > 0) summary.push(`🦋 ${minMatchScore}%+ Match`);
+    
+    // Education & Occupation
+    if (searchCriteria.education) summary.push(`🎓 ${searchCriteria.education}`);
+    if (searchCriteria.occupation) summary.push(`💼 ${searchCriteria.occupation}`);
+    
+    // Religion & Caste
     if (searchCriteria.religion) summary.push(searchCriteria.religion);
+    if (searchCriteria.caste) summary.push(searchCriteria.caste);
+    
+    // Marital Status
+    if (searchCriteria.maritalStatus) summary.push(searchCriteria.maritalStatus);
+    
+    // Diet & Lifestyle
+    if (searchCriteria.diet) summary.push(`🍽️ ${searchCriteria.diet}`);
+    if (searchCriteria.smoking) summary.push(`🚬 ${searchCriteria.smoking}`);
+    if (searchCriteria.drinking) summary.push(`🍷 ${searchCriteria.drinking}`);
+    
+    // Online status
+    if (searchCriteria.onlineOnly) summary.push('🟢 Online');
+    
+    // With photos only
+    if (searchCriteria.withPhotosOnly) summary.push('📷 With Photos');
     
     return summary.length > 0 ? summary.join(' • ') : 'Showing all matches';
   };
@@ -2199,6 +2067,7 @@ const handleSaveSearch = async (saveData) => {
         handleEditSchedule={handleEditSchedule}
         handleSetDefaultSearch={handleSetDefaultSearch}
         generateSearchDescription={generateSearchDescription}
+        loadSavedSearches={loadSavedSearches}
       />
 
       {error && (
@@ -2220,13 +2089,16 @@ const handleSaveSearch = async (saveData) => {
         {/* Active Criteria Summary Bar */}
         <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
           <div className="criteria-info">
-            <span className="criteria-label">Active Filters:</span>
+            <span className="criteria-label">ACTIVE FILTERS:</span>
             <span className="criteria-value">{getActiveCriteriaSummary()}</span>
           </div>
           <div className="criteria-actions">
-            <span className="results-count">{filteredUsers.length} profiles found</span>
+            <span className="results-count">
+              <span className="results-count-number">{filteredUsers.length}</span>
+              <span className="results-count-text"> profiles found</span>
+            </span>
             <button className="btn-modify-search">
-              Modify ⚙️
+              <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
             </button>
           </div>
         </div>
@@ -2272,7 +2144,7 @@ const handleSaveSearch = async (saveData) => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ⚏ Split
+                    <span className="layout-toggle-btn-icon">⚏</span><span className="layout-toggle-btn-text"> Split</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('cards')}
@@ -2290,7 +2162,7 @@ const handleSaveSearch = async (saveData) => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ▦ Cards
+                    <span className="layout-toggle-btn-icon">▦</span><span className="layout-toggle-btn-text"> Cards</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('rows')}
@@ -2308,13 +2180,13 @@ const handleSaveSearch = async (saveData) => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ☰ Rows
+                    <span className="layout-toggle-btn-icon">☰</span><span className="layout-toggle-btn-text"> Rows</span>
                   </button>
                 </div>
               </div>
               
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                <span className="sort-by-label" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
                   Sort by:
                 </span>
                 <select
