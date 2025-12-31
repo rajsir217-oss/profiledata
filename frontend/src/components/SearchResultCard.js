@@ -774,31 +774,35 @@ const SearchResultCard = ({
             {user.eatingPreference && <span className="card-badge">{user.eatingPreference}</span>}
           </div>
 
-          {/* Request Pics Button - Only show if no full image access */}
-          {!hasImageAccess && currentUsername !== user.username && (
-            <div className="card-action-section">
-              {!isImageRequestPending ? (
+          {/* Action Buttons Row - Request Pics & Message */}
+          <div className="card-action-buttons-row">
+            {/* Request Pics Button - Only show if no full image access */}
+            {!hasImageAccess && currentUsername !== user.username && (
+              !isImageRequestPending ? (
                 <button
-                  className="card-request-pics-btn"
+                  className="card-action-icon-btn"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (onPIIRequest) onPIIRequest(user);
                   }}
+                  title="Request Photos"
                 >
-                  Request Pics
+                  📷
                 </button>
               ) : (
-                <div className="card-request-pending">
-                  Request Pics Sent
-                </div>
-              )}
-            </div>
-          )}
+                <button
+                  className="card-action-icon-btn pending"
+                  disabled
+                  title="Photo Request Sent"
+                >
+                  ✓
+                </button>
+              )
+            )}
 
-          {/* Message Button - Floating */}
-          <div className="card-message-btn-container">
+            {/* Message Button */}
             <button
-              className="card-message-btn"
+              className="card-action-icon-btn"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onMessage) onMessage(user);

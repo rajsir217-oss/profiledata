@@ -402,6 +402,24 @@
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
+/* Layout toggle button hover effect */
+.layout-toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateY(-1px);
+}
+
+/* Hide text on mobile for layout toggle buttons */
+@media (max-width: 576px) {
+  .layout-toggle-btn-text {
+    display: none;
+  }
+  
+  .layout-toggle-btn {
+    padding: 6px 10px !important;
+  }
+}
+
 /* Floating Action Buttons - Same style as Profile page */
 .fab-btn {
   padding: 8px 16px;
