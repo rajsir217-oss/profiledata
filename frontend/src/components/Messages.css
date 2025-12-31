@@ -64,32 +64,26 @@
     grid-template-columns: 1fr;
     position: relative;
   }
-  /* On mobile, show only one panel at a time */
-  .message-list {
-    display: block;
+  
+  /* On mobile: Show only conversation list by default */
+  .messages-container .message-list {
+    display: flex;
+    flex-direction: column;
   }
   
-  .message-list-mobile {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: var(--card-background, white);
-    z-index: 10;
+  /* On mobile: Hide chat window when no user selected */
+  .messages-container .chat-window {
     display: none;
   }
   
-  /* Show chat window when user is selected */
-  .message-list-mobile.active {
-    display: flex;
+  /* On mobile: When chat is active, hide list and show chat */
+  .messages-container.chat-active .message-list {
+    display: none;
   }
   
-  /* Add back button on mobile */
-  .chat-header::before {
-    content: '← ';
-    cursor: pointer;
-    margin-right: 10px;
+  .messages-container.chat-active .chat-window {
+    display: flex;
+    flex-direction: column;
   }
 }
 

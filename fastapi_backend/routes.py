@@ -5862,16 +5862,29 @@ async def get_recent_conversations(
                 # Check online status
                 is_online = redis.is_user_online(other_username)
                 
-                # Use first public image for avatar
+                # Use first public image for avatar, fallback to profileImage or first image
                 existing_images = user.get("images", [])
+                profile_image = user.get("profileImage")
+                if not existing_images and profile_image:
+                    existing_images = [profile_image]
+                
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-                first_public = normalized_public[0] if normalized_public else None
+                
+                # Fallback: if no public images, use profileImage or first image
+                if normalized_public:
+                    avatar_path = normalized_public[0]
+                elif profile_image:
+                    avatar_path = _extract_image_path(profile_image)
+                elif existing_images:
+                    avatar_path = _extract_image_path(existing_images[0])
+                else:
+                    avatar_path = None
                 
                 result.append({
                     "username": other_username,
                     "firstName": user.get("firstName", ""),
                     "lastName": user.get("lastName", ""),
-                    "avatar": get_full_image_url(first_public) if first_public else None,
+                    "avatar": get_full_image_url(avatar_path) if avatar_path else None,
                     "lastMessage": conv["lastMessage"].get("content", ""),
                     "timestamp": conv["lastMessage"].get("createdAt", ""),
                     "unreadCount": conv.get("unreadCount", 0),

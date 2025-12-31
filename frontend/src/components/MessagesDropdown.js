@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getDisplayName } from '../utils/userDisplay';
 import OnlineStatusBadge from './OnlineStatusBadge';
@@ -9,6 +10,7 @@ import './MessagesDropdown.css';
  * Shows recent conversations with unread counts and online status
  */
 const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
+  const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
   const currentUsername = localStorage.getItem('username');
@@ -69,6 +71,12 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
     onClose();
   };
 
+  const handleViewProfile = (e, username) => {
+    e.stopPropagation();
+    navigate(`/profile/${username}`);
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -104,9 +112,9 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
                   onClick={() => handleConversationClick(conv)}
                 >
                   <div className="conversation-avatar-container">
-                    {conv.avatar ? (
+                    {(conv.avatar || conv.profilePic || conv.images?.[0]) ? (
                       <img 
-                        src={conv.avatar} 
+                        src={conv.avatar || conv.profilePic || conv.images?.[0]} 
                         alt={getDisplayName(conv)} 
                         className="conversation-avatar"
                       />
@@ -129,17 +137,23 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
                       <span className="conversation-name">
                         {getDisplayName(conv)}
                       </span>
-                      {conv.unreadCount > 0 && (
-                        <span className="unread-badge">{conv.unreadCount}</span>
-                      )}
+                      <span className="conversation-time">
+                        {formatTimestamp(conv.timestamp)}
+                      </span>
                     </div>
                     <p className="conversation-message">
                       {truncateMessage(conv.lastMessage)}
                     </p>
-                    <span className="conversation-time">
-                      {formatTimestamp(conv.timestamp)}
-                    </span>
                   </div>
+                  
+                  {/* View Profile Button */}
+                  <button 
+                    className="view-profile-btn"
+                    onClick={(e) => handleViewProfile(e, conv.username)}
+                    title="View Profile"
+                  >
+                    👁️
+                  </button>
                 </div>
               ))}
             </div>

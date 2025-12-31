@@ -32,7 +32,7 @@ const QUICK_REPLY_TEMPLATES = [
   ]}
 ];
 
-const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted }) => {
+const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
   const [deletingMessage, setDeletingMessage] = useState(null);
@@ -122,6 +122,12 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
     <div className="chat-window">
       {/* Chat Header */}
       <div className="chat-header">
+        {/* Back button for mobile */}
+        {onBack && (
+          <button className="chat-back-btn" onClick={onBack} title="Back to conversations">
+            ←
+          </button>
+        )}
         <div className="chat-user-info">
           {getProfilePicUrl(otherUser) && !headerImageError ? (
             <img 
