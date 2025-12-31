@@ -109,6 +109,8 @@
 .conversation-avatar {
   position: relative;
   flex-shrink: 0;
+  width: 50px;
+  height: 50px;
 }
 
 .conversation-avatar img {
@@ -116,6 +118,7 @@
   height: 50px;
   border-radius: 50%;
   object-fit: cover;
+  border: 3px solid var(--primary-color);
 }
 
 .avatar-placeholder {
@@ -160,6 +163,9 @@
   border-radius: 8px;
   width: 36px;
   height: 36px;
+  min-width: 36px;
+  max-width: 36px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -167,6 +173,7 @@
   cursor: pointer;
   transition: all 0.2s ease;
   flex-shrink: 0;
+  flex-grow: 0;
   margin-left: 8px;
 }
 
@@ -221,7 +228,7 @@
   color: var(--text-muted, #999);
 }
 
-.conversation-preview p {
+p.conversation-preview {
   margin: 0;
   color: var(--text-secondary, #666);
   font-size: 14px;
@@ -230,7 +237,7 @@
   text-overflow: ellipsis;
 }
 
-.conversation-preview p.unread {
+p.conversation-preview.unread {
   font-weight: 600;
   color: var(--text-color, #333);
 }
@@ -253,23 +260,78 @@
   background: var(--text-secondary, #555);
 }
 
-/* Responsive */
+/* Responsive - Scoped to .message-list to avoid conflicts */
 @media (max-width: 768px) {
-  .conversation-item {
-    padding: 12px 15px;
+  .message-list .message-list-header {
+    padding: 15px;
   }
   
-  .conversation-avatar img,
-  .avatar-placeholder {
-    width: 45px;
-    height: 45px;
+  .message-list .message-list-header h3 {
+    font-size: 16px;
   }
   
-  .conversation-name {
+  /* Force horizontal row layout on mobile */
+  .message-list .conversation-item {
+    padding: 12px !important;
+    margin: 0 6px 6px 6px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 12px !important;
+  }
+  
+  .message-list .conversation-avatar {
+    flex-shrink: 0;
+  }
+  
+  .message-list .conversation-avatar img,
+  .message-list .avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    font-size: 18px;
+  }
+  
+  .message-list .conversation-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+  
+  .message-list .conversation-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+  
+  .message-list .conversation-name {
     font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
   }
   
-  .conversation-preview p {
+  .message-list .conversation-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  
+  .message-list p.conversation-preview {
     font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  .message-list .view-profile-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+    margin-left: 0;
+    flex-shrink: 0;
   }
 }

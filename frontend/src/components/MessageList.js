@@ -58,6 +58,7 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               className={`conversation-item ${selectedUser === conv.username ? 'active' : ''}`}
               onClick={() => onSelectUser(conv.username)}
             >
+              {/* Avatar */}
               <div className="conversation-avatar">
                 {getProfilePicUrl(conv.userProfile) && !imageErrors[conv.username] ? (
                   <img 
@@ -70,7 +71,6 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                     {conv.userProfile?.firstName?.[0] || conv.username[0].toUpperCase()}
                   </div>
                 )}
-                {/* Online Status Badge */}
                 <div className="status-badge-absolute">
                   <OnlineStatusBadge username={conv.username} size="small" />
                 </div>
@@ -79,11 +79,11 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                 )}
               </div>
               
+              {/* Info - Name, Date, Message Preview */}
               <div className="conversation-info">
                 <div className="conversation-header">
                   <span className="conversation-name">
                     {getDisplayName(conv.userProfile) || conv.username}
-                    {/* Profile Creator Badge */}
                     {conv.userProfile?.profileCreatedBy && (
                       <ProfileCreatorBadge 
                         creatorType={conv.userProfile.profileCreatedBy}
@@ -92,22 +92,15 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                         showIcon={true}
                       />
                     )}
-                    {/* Pause Status Badge */}
                     {conv.userProfile?.accountStatus === 'paused' && (
-                      <span className="pause-badge" title="User is on a break">
-                        ⏸️
-                      </span>
+                      <span className="pause-badge" title="User is on a break">⏸️</span>
                     )}
                   </span>
-                  <span className="conversation-time">
-                    {formatTime(conv.lastMessageTime)}
-                  </span>
+                  <span className="conversation-time">{formatTime(conv.lastMessageTime)}</span>
                 </div>
-                <div className="conversation-preview">
-                  <p className={conv.unreadCount > 0 ? 'unread' : ''}>
-                    {truncateMessage(conv.lastMessage)}
-                  </p>
-                </div>
+                <p className={`conversation-preview ${conv.unreadCount > 0 ? 'unread' : ''}`}>
+                  {truncateMessage(conv.lastMessage)}
+                </p>
               </div>
               
               {/* View Profile Button */}
