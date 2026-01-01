@@ -262,13 +262,23 @@ def _enrich_user_with_image_visibility(user: dict) -> dict:
     
     return user
 
+# Cache for profile_picture_always_visible setting (TTL: 60 seconds)
+_profile_pic_cache = {"value": None, "expires_at": 0}
+
 async def _get_profile_picture_always_visible(db) -> bool:
     """
     Get the profile_picture_always_visible setting from database or config fallback.
+    Uses in-memory cache with 60-second TTL to avoid repeated DB calls.
     
     When True: Profile picture (first image) is always visible to logged-in members
     When False: Profile picture follows same privacy rules as other images
     """
+    import time
+    
+    # Check cache first
+    if _profile_pic_cache["value"] is not None and time.time() < _profile_pic_cache["expires_at"]:
+        return _profile_pic_cache["value"]
+    
     try:
         # Try with _id: "global" first (standard format)
         system_settings = await db.system_settings.find_one({"_id": "global"})
@@ -276,8 +286,15 @@ async def _get_profile_picture_always_visible(db) -> bool:
             # Fallback: try without filter (some deployments use different format)
             system_settings = await db.system_settings.find_one({})
         if system_settings:
-            return system_settings.get("profile_picture_always_visible", True)
-        return settings.profile_picture_always_visible
+            value = system_settings.get("profile_picture_always_visible", True)
+        else:
+            value = settings.profile_picture_always_visible
+        
+        # Cache for 60 seconds
+        _profile_pic_cache["value"] = value
+        _profile_pic_cache["expires_at"] = time.time() + 60
+        
+        return value
     except Exception:
         return True  # Default to True (industry standard)
 
@@ -3992,7 +4009,7 @@ async def search_users(
         
         # Check if current user is admin (admins see ALL images)
         is_admin = _is_admin_user(current_user)
-        logger.info(f"🔍 Search by user {current_user.get('username')}: is_admin={is_admin}, profile_pic_always_visible={profile_pic_always_visible}")
+        # logger.debug(f"🔍 Search by user {current_user.get('username')}: is_admin={is_admin}, profile_pic_always_visible={profile_pic_always_visible}")
         
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):
@@ -4013,13 +4030,13 @@ async def search_users(
             existing_images = users[i].get("images", [])
             profile_image = users[i].get("profileImage")
             
-            # Debug: Log raw image data from database
-            logger.info(f"🖼️ Search {users[i].get('username')}: raw images={existing_images}, profileImage={profile_image}")
+            # Debug: Log raw image data from database (disabled for performance)
+            # logger.debug(f"🖼️ Search {users[i].get('username')}: raw images={existing_images}, profileImage={profile_image}")
             
             # If images array is empty but profileImage exists, use it
             if not existing_images and profile_image:
                 existing_images = [profile_image]
-                logger.info(f"🖼️ Search {users[i].get('username')}: Using profileImage fallback")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: Using profileImage fallback")
             
             normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
             full_public_urls = [get_full_image_url(p) for p in normalized_public]
@@ -4035,7 +4052,7 @@ async def search_users(
                 users[i]["images"] = [get_full_image_url(img) for img in existing_images]
                 users[i]["profilePicVisible"] = True
                 users[i]["imagesMasked"] = False
-                logger.info(f"🖼️ Search {users[i].get('username')}: ADMIN - showing {len(users[i]['images'])} images")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: ADMIN - showing {len(users[i]['images'])} images")
             elif profile_pic_always_visible and existing_images:
                 # Global setting: show profile picture (first image) to all logged-in users
                 profile_pic_url = get_full_image_url(existing_images[0])
@@ -4045,12 +4062,12 @@ async def search_users(
                     users[i]["images"] = full_public_urls if full_public_urls else [profile_pic_url]
                 users[i]["profilePicVisible"] = True
                 users[i]["imagesMasked"] = False
-                logger.info(f"🖼️ Search {users[i].get('username')}: GLOBAL SETTING - showing {len(users[i]['images'])} images: {users[i]['images'][:1]}")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: GLOBAL SETTING - showing {len(users[i]['images'])} images")
             else:
                 # Only public images
                 users[i]["images"] = full_public_urls
                 users[i]["imagesMasked"] = len(full_public_urls) == 0
-                logger.info(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
             
             # Enrich with imageVisibility for frontend avatar display
             users[i] = _enrich_user_with_image_visibility(users[i])

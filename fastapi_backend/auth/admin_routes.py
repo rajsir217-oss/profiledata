@@ -34,6 +34,30 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
 # ===== USER MANAGEMENT =====
 
+# Projection for admin user list - only fetch needed fields for performance
+ADMIN_USER_LIST_PROJECTION = {
+    "_id": 1,
+    "username": 1,
+    "firstName": 1,
+    "lastName": 1,
+    "contactEmail": 1,
+    "contactNumber": 1,
+    "gender": 1,
+    "accountStatus": 1,
+    "role_name": 1,
+    "created_at": 1,
+    "createdAt": 1,
+    "lastLogin": 1,
+    "birthMonth": 1,
+    "birthYear": 1,
+    "region": 1,
+    "city": 1,
+    "profileId": 1,
+    "images": 1,
+    "profileImage": 1,
+    "imageValidation": 1,
+}
+
 @router.get("/users", dependencies=[Depends(require_moderator_or_admin)])
 async def get_all_users(
     page: int = Query(1, ge=1),
@@ -49,6 +73,8 @@ async def get_all_users(
     
     - search: General search across username, firstName, lastName, contactEmail
     - email_search: Dedicated email search that tries both encrypted and plaintext formats
+    
+    Performance optimized: Uses projection to fetch only needed fields.
     """
     try:
         # Build query
@@ -81,8 +107,8 @@ async def get_all_users(
         # For email search, we need to fetch ALL matching users first, decrypt, then filter
         # because encrypted emails can't be searched with regex
         if email_search_term:
-            # Fetch all users matching other filters (status, role)
-            users_cursor = db.users.find(query).sort("created_at", -1)
+            # Fetch all users matching other filters (status, role) - use projection for performance
+            users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).sort("created_at", -1)
             all_users = await users_cursor.to_list(length=10000)  # Reasonable max
             
             # Decrypt and filter by email
@@ -113,10 +139,10 @@ async def get_all_users(
             
             logger.info(f"🔍 Email search '{email_search_term}': found {total} matches")
         else:
-            # Standard query without email search
+            # Standard query without email search - use projection for performance
             total = await db.users.count_documents(query)
             skip = (page - 1) * limit
-            users_cursor = db.users.find(query).skip(skip).limit(limit).sort("created_at", -1)
+            users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).skip(skip).limit(limit).sort("created_at", -1)
             users = await users_cursor.to_list(length=limit)
             
             for i, user in enumerate(users):
