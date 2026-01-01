@@ -87,7 +87,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     lastName: "",
     contactNumber: "",
     contactEmail: "",
-    smsOptIn: false,  // SMS notifications opt-in
+    smsOptIn: true,  // SMS notifications opt-in (default: opted in)
     // Visibility settings for contact info (default: visible to members)
     contactNumberVisible: true,
     contactEmailVisible: true,
@@ -2132,42 +2132,46 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         <div className="row mb-3">
           <div className="col-md-6">
             <label className="form-label">Contact Number <span className="text-danger">*</span></label>
-            <input 
-              type="text" 
-              className={`form-control ${getFieldClass('contactNumber', formData.contactNumber)} ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
-              name="contactNumber" 
-              value={formData.contactNumber} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              placeholder={isEditMode && !formData.contactNumber ? "Enter your phone number" : ""}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input 
+                type="text" 
+                className={`form-control ${getFieldClass('contactNumber', formData.contactNumber)} ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
+                name="contactNumber" 
+                value={formData.contactNumber} 
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                placeholder={isEditMode && !formData.contactNumber ? "Enter your phone number" : ""}
+                style={{ flex: 1 }}
+              />
+              {/* Visibility Checkbox for Contact Number - inline */}
+              <div className="form-check visibility-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}>
+                <input 
+                  type="checkbox" 
+                  className="form-check-input" 
+                  id="contactNumberVisible"
+                  name="contactNumberVisible"
+                  checked={formData.contactNumberVisible !== false}
+                  onChange={(e) => {
+                    const value = e.target.checked;
+                    setFormData(prev => ({ ...prev, contactNumberVisible: value }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('contactNumberVisible', value, { ...formData, contactNumberVisible: value });
+                      }, 500);
+                    }
+                  }}
+                  style={{ margin: 0 }}
+                />
+                <label className="form-check-label" htmlFor="contactNumberVisible" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  👁️ Visible to members
+                </label>
+              </div>
+            </div>
             {fieldErrors.contactNumber && touchedFields.contactNumber && (
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
-            {/* Visibility Checkbox for Contact Number */}
-            <div className="form-check mt-2 visibility-checkbox">
-              <input 
-                type="checkbox" 
-                className="form-check-input" 
-                id="contactNumberVisible"
-                name="contactNumberVisible"
-                checked={formData.contactNumberVisible !== false}
-                onChange={(e) => {
-                  const value = e.target.checked;
-                  setFormData(prev => ({ ...prev, contactNumberVisible: value }));
-                  if (isEditMode) {
-                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                    autoSaveTimerRef.current = setTimeout(() => {
-                      autoSaveField('contactNumberVisible', value, { ...formData, contactNumberVisible: value });
-                    }, 500);
-                  }
-                }}
-              />
-              <label className="form-check-label" htmlFor="contactNumberVisible">
-                👁️ Visible to members (uncheck to require access request)
-              </label>
-            </div>
             {/* SMS Opt-in Checkbox */}
             <div className="form-check mt-2 sms-optin-checkbox">
               <input 
@@ -2217,42 +2221,46 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
           <div className="col-md-6">
             <label className="form-label">Contact Email <span className="text-danger">*</span></label>
-            <input 
-              type="email" 
-              className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
-              name="contactEmail" 
-              value={formData.contactEmail} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              required
-              placeholder={isEditMode && !formData.contactEmail ? "Enter your email address" : ""}
-            />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <input 
+                type="email" 
+                className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
+                name="contactEmail" 
+                value={formData.contactEmail} 
+                onChange={handleChange}
+                onBlur={handleBlur}
+                required
+                placeholder={isEditMode && !formData.contactEmail ? "Enter your email address" : ""}
+                style={{ flex: 1 }}
+              />
+              {/* Visibility Checkbox for Contact Email - inline */}
+              <div className="form-check visibility-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}>
+                <input 
+                  type="checkbox" 
+                  className="form-check-input" 
+                  id="contactEmailVisible"
+                  name="contactEmailVisible"
+                  checked={formData.contactEmailVisible !== false}
+                  onChange={(e) => {
+                    const value = e.target.checked;
+                    setFormData(prev => ({ ...prev, contactEmailVisible: value }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('contactEmailVisible', value, { ...formData, contactEmailVisible: value });
+                      }, 500);
+                    }
+                  }}
+                  style={{ margin: 0 }}
+                />
+                <label className="form-check-label" htmlFor="contactEmailVisible" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  👁️ Visible to members
+                </label>
+              </div>
+            </div>
             {fieldErrors.contactEmail && touchedFields.contactEmail && (
               <div className="invalid-feedback d-block">{fieldErrors.contactEmail}</div>
             )}
-            {/* Visibility Checkbox for Contact Email */}
-            <div className="form-check mt-2 visibility-checkbox">
-              <input 
-                type="checkbox" 
-                className="form-check-input" 
-                id="contactEmailVisible"
-                name="contactEmailVisible"
-                checked={formData.contactEmailVisible !== false}
-                onChange={(e) => {
-                  const value = e.target.checked;
-                  setFormData(prev => ({ ...prev, contactEmailVisible: value }));
-                  if (isEditMode) {
-                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                    autoSaveTimerRef.current = setTimeout(() => {
-                      autoSaveField('contactEmailVisible', value, { ...formData, contactEmailVisible: value });
-                    }, 500);
-                  }
-                }}
-              />
-              <label className="form-check-label" htmlFor="contactEmailVisible">
-                👁️ Visible to members (uncheck to require access request)
-              </label>
-            </div>
           </div>
         </div>
         
@@ -2408,6 +2416,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               onChange={(e) => {
                 const selected = Array.from(e.target.selectedOptions, option => option.value);
                 setFormData(prev => ({ ...prev, languagesSpoken: selected }));
+                if (isEditMode) {
+                  if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                  autoSaveTimerRef.current = setTimeout(() => {
+                    autoSaveField('languagesSpoken', selected, { ...formData, languagesSpoken: selected });
+                  }, 1000);
+                }
               }}
               style={{ minHeight: '100px' }}
             >
@@ -2637,9 +2651,16 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 name="state"
                 value={formData.state}
                 onChange={(e) => {
-                  setFormData({ ...formData, state: e.target.value, location: '' });
+                  const value = e.target.value;
+                  setFormData({ ...formData, state: value, location: '' });
                   setFieldErrors({ ...fieldErrors, state: '' });
                   setTouchedFields({ ...touchedFields, state: true });
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('state', value, { ...formData, state: value, location: '' });
+                    }, 1000);
+                  }
                 }}
                 onBlur={handleBlur}
                 required
@@ -3286,13 +3307,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <select
                 className={`form-control ${formData.partnerCriteria.ageRangeRelative.minOffset === 0 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.ageRangeRelative.minOffset}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, minOffset: parseInt(e.target.value) }
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  const newPartnerCriteria = {
+                    ...formData.partnerCriteria,
+                    ageRangeRelative: { ...formData.partnerCriteria.ageRangeRelative, minOffset: value }
+                  };
+                  setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                    }, 1000);
                   }
-                }))}
+                }}
               >
                 <option value="0">Same age</option>
                 <option value="-1">1 year younger</option>
@@ -3308,13 +3336,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <select
                 className={`form-control ${formData.partnerCriteria.ageRangeRelative.maxOffset === 5 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.ageRangeRelative.maxOffset}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    ageRangeRelative: { ...prev.partnerCriteria.ageRangeRelative, maxOffset: parseInt(e.target.value) }
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  const newPartnerCriteria = {
+                    ...formData.partnerCriteria,
+                    ageRangeRelative: { ...formData.partnerCriteria.ageRangeRelative, maxOffset: value }
+                  };
+                  setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                    }, 1000);
                   }
-                }))}
+                }}
               >
                 <option value="-4">4 years younger</option>
                 <option value="-3">3 years younger</option>
@@ -3355,13 +3390,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <select
                 className={`form-control ${formData.partnerCriteria.heightRangeRelative.minInches === 0 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.minInches}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, minInches: parseInt(e.target.value) }
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  const newPartnerCriteria = {
+                    ...formData.partnerCriteria,
+                    heightRangeRelative: { ...formData.partnerCriteria.heightRangeRelative, minInches: value }
+                  };
+                  setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                    }, 1000);
                   }
-                }))}
+                }}
               >
                 <option value="-24">2 feet shorter</option>
                 <option value="-12">1 foot shorter</option>
@@ -3385,13 +3427,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <select
                 className={`form-control ${formData.partnerCriteria.heightRangeRelative.maxInches === 6 ? 'field-default' : 'field-filled'}`}
                 value={formData.partnerCriteria.heightRangeRelative.maxInches}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: {
-                    ...prev.partnerCriteria,
-                    heightRangeRelative: { ...prev.partnerCriteria.heightRangeRelative, maxInches: parseInt(e.target.value) }
+                onChange={(e) => {
+                  const value = parseInt(e.target.value);
+                  const newPartnerCriteria = {
+                    ...formData.partnerCriteria,
+                    heightRangeRelative: { ...formData.partnerCriteria.heightRangeRelative, maxInches: value }
+                  };
+                  setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                    }, 1000);
                   }
-                }))}
+                }}
               >
                 <option value="-24">2 feet shorter</option>
                 <option value="-12">1 foot shorter</option>
@@ -3435,13 +3484,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 <select
                   className="form-control"
                   value={formData.partnerCriteria.heightRange.minFeet}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      heightRange: { ...prev.partnerCriteria.heightRange, minFeet: e.target.value }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const newPartnerCriteria = {
+                      ...formData.partnerCriteria,
+                      heightRange: { ...formData.partnerCriteria.heightRange, minFeet: value }
+                    };
+                    setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                      }, 1000);
                     }
-                  }))}
+                  }}
                 >
                   <option value="">Feet</option>
                   <option value="4">4 ft</option>
@@ -3454,13 +3510,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 <select
                   className="form-control"
                   value={formData.partnerCriteria.heightRange.minInches}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      heightRange: { ...prev.partnerCriteria.heightRange, minInches: e.target.value }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const newPartnerCriteria = {
+                      ...formData.partnerCriteria,
+                      heightRange: { ...formData.partnerCriteria.heightRange, minInches: value }
+                    };
+                    setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                      }, 1000);
                     }
-                  }))}
+                  }}
                 >
                   <option value="">Inches</option>
                   <option value="0">0 in</option>
@@ -3486,13 +3549,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 <select
                   className="form-control"
                   value={formData.partnerCriteria.heightRange.maxFeet}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      heightRange: { ...prev.partnerCriteria.heightRange, maxFeet: e.target.value }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const newPartnerCriteria = {
+                      ...formData.partnerCriteria,
+                      heightRange: { ...formData.partnerCriteria.heightRange, maxFeet: value }
+                    };
+                    setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                      }, 1000);
                     }
-                  }))}
+                  }}
                 >
                   <option value="">Feet</option>
                   <option value="4">4 ft</option>
@@ -3505,13 +3575,20 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 <select
                   className="form-control"
                   value={formData.partnerCriteria.heightRange.maxInches}
-                  onChange={(e) => setFormData(prev => ({
-                    ...prev,
-                    partnerCriteria: {
-                      ...prev.partnerCriteria,
-                      heightRange: { ...prev.partnerCriteria.heightRange, maxInches: e.target.value }
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    const newPartnerCriteria = {
+                      ...formData.partnerCriteria,
+                      heightRange: { ...formData.partnerCriteria.heightRange, maxInches: value }
+                    };
+                    setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                      }, 1000);
                     }
-                  }))}
+                  }}
                 >
                   <option value="">Inches</option>
                   <option value="0">0 in</option>
@@ -3677,10 +3754,17 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 className="form-control"
                 placeholder="e.g., Any, Brahmin, Kshatriya, etc."
                 value={formData.partnerCriteria.caste}
-                onChange={(e) => setFormData(prev => ({
-                  ...prev,
-                  partnerCriteria: { ...prev.partnerCriteria, caste: e.target.value }
-                }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const newPartnerCriteria = { ...formData.partnerCriteria, caste: value };
+                  setFormData(prev => ({ ...prev, partnerCriteria: newPartnerCriteria }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('partnerCriteria', newPartnerCriteria, { ...formData, partnerCriteria: newPartnerCriteria });
+                    }, 1000);
+                  }
+                }}
               />
               <small className="text-muted">For India users. Enter "Any" if no preference.</small>
             </div>

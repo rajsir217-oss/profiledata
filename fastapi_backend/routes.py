@@ -1571,6 +1571,9 @@ async def get_user_profile(
         logger.info(f"🔐 PII access for {requester_username} viewing {username}: general={access_granted}, per_field={per_field_access}")
     
     user = mask_user_pii(user, requester_username, access_granted, per_field_access)
+    
+    # Debug: Log visibility flags after masking
+    logger.info(f"👁️ After mask_user_pii - contactNumberVisible: {user.get('contactNumberVisible')}, contactEmailVisible: {user.get('contactEmailVisible')}, contactNumberMasked: {user.get('contactNumberMasked')}, contactEmailMasked: {user.get('contactEmailMasked')}")
 
     # =================================================================
     # IMAGE FILTERING - NEW 3-BUCKET SYSTEM
