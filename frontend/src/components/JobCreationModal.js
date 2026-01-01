@@ -4,6 +4,7 @@ import './JobCreationModal.css';
 const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
   const isEditMode = !!editJob;
   const [step, setStep] = useState(isEditMode ? 2 : 1); // Skip template selection in edit mode
+  const [categoryFilter, setCategoryFilter] = useState('all'); // Category filter for Step 1
   const [formData, setFormData] = useState(() => {
     const initialData = editJob || {
       name: '',
@@ -77,6 +78,7 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
   useEffect(() => {
     if (formData.template_type) {
       const template = templates.find(t => t.type === formData.template_type);
+      console.log('🔍 Selected template:', template?.type, 'parameters_schema:', template?.parameters_schema);
       setSelectedTemplate(template);
       
       // Initialize parameters and job name with defaults ONLY in create mode
@@ -373,13 +375,48 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
     );
   };
 
+  // Get unique categories from templates
+  const categories = ['all', ...new Set(templates.map(t => t.category).filter(Boolean))];
+  
+  // Filter templates by category
+  const filteredTemplates = categoryFilter === 'all' 
+    ? templates 
+    : templates.filter(t => t.category === categoryFilter);
+
   const renderStep1 = () => (
     <div className="modal-step">
       <h3>Step 1: Choose Template</h3>
       <p className="step-description">Select a job template to get started</p>
       
+      {/* Category Filter */}
+      <div className="category-filter" style={{ marginBottom: '16px' }}>
+        <label style={{ marginRight: '10px', fontWeight: 500, color: 'var(--text-secondary)' }}>Filter by Category:</label>
+        <select 
+          value={categoryFilter} 
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          style={{
+            padding: '8px 12px',
+            borderRadius: 'var(--radius-sm)',
+            border: '1px solid var(--border-color)',
+            background: 'var(--input-bg)',
+            color: 'var(--text-color)',
+            fontSize: '14px',
+            minWidth: '150px'
+          }}
+        >
+          {categories.map(cat => (
+            <option key={cat} value={cat}>
+              {cat === 'all' ? '📋 All Categories' : `${cat.charAt(0).toUpperCase() + cat.slice(1)}`}
+            </option>
+          ))}
+        </select>
+        <span style={{ marginLeft: '12px', fontSize: '13px', color: 'var(--text-muted)' }}>
+          {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''}
+        </span>
+      </div>
+      
       <div className="template-grid">
-        {templates.map((template, index) => (
+        {filteredTemplates.map((template, index) => (
           <div
             key={template.type}
             className={`template-card ${formData.template_type === template.type ? 'selected' : ''}`}
