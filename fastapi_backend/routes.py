@@ -4072,13 +4072,12 @@ async def search_users(
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
         
-        # Log search activity (non-blocking)
+        # Log search activity (direct insert to bypass batch queue)
         try:
-            from services.activity_logger import get_activity_logger
             from models.activity_models import ActivityType
-            activity_logger = get_activity_logger()
             
             # Build search criteria metadata (exclude empty values)
+            # Use actual parameter names from the endpoint
             search_criteria = {}
             if keyword: search_criteria["keyword"] = keyword
             if profileId: search_criteria["profileId"] = profileId
@@ -4089,24 +4088,37 @@ async def search_users(
             if heightMax > 0: search_criteria["heightMax"] = heightMax
             if location: search_criteria["location"] = location
             if religion: search_criteria["religion"] = religion
-            if maritalStatus: search_criteria["maritalStatus"] = maritalStatus
-            if education: search_criteria["education"] = education
+            if relationshipStatus: search_criteria["relationshipStatus"] = relationshipStatus
             if occupation: search_criteria["occupation"] = occupation
-            if eating: search_criteria["eating"] = eating
+            if eatingPreference: search_criteria["eatingPreference"] = eatingPreference
             if drinking: search_criteria["drinking"] = drinking
             if smoking: search_criteria["smoking"] = smoking
-            if minMatchScore > 0: search_criteria["minMatchScore"] = minMatchScore
+            if caste: search_criteria["caste"] = caste
+            if bodyType: search_criteria["bodyType"] = bodyType
+            if newlyAdded: search_criteria["newlyAdded"] = newlyAdded
             
-            await activity_logger.log_activity(
-                username=current_user.get("username"),
-                action_type=ActivityType.SEARCH_PERFORMED,
-                metadata={
+            # Direct insert to activity_logs collection (bypass batch queue)
+            activity_doc = {
+                "username": current_user.get("username"),
+                "action_type": ActivityType.SEARCH_PERFORMED.value,
+                "target_username": None,
+                "metadata": {
                     "criteria": search_criteria,
                     "results_count": len(users),
                     "total_matches": total,
                     "page": page
-                }
-            )
+                },
+                "ip_address": None,
+                "user_agent": None,
+                "page_url": "/search",
+                "referrer_url": None,
+                "session_id": None,
+                "timestamp": datetime.utcnow(),
+                "duration_ms": None,
+                "pii_logged": False
+            }
+            await db.activity_logs.insert_one(activity_doc)
+            logger.info(f"📊 Logged search activity for {current_user.get('username')}")
         except Exception as log_err:
             logger.warning(f"⚠️ Failed to log search activity: {log_err}")
         
