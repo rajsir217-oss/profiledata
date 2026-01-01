@@ -106,10 +106,17 @@ def mask_user_pii(user_data, requester_id=None, access_granted=False, per_field_
     # If visible=True, show to all members; if visible=False or not set, require access grant
     
     # Get visibility flags with appropriate defaults
-    contact_email_visible = user_data.get('contactEmailVisible', False)  # Default: not visible
-    contact_number_visible = user_data.get('contactNumberVisible', False)  # Default: not visible
-    linkedin_visible = user_data.get('linkedinUrlVisible', False)  # Default: not visible
+    # Default: True (visible to members) - matches frontend Register2.js defaults
+    contact_email_visible = user_data.get('contactEmailVisible', True)  # Default: visible to members
+    contact_number_visible = user_data.get('contactNumberVisible', True)  # Default: visible to members
+    linkedin_visible = user_data.get('linkedinUrlVisible', True)  # Default: visible to members
     # Note: Image visibility is now handled by imageVisibility 3-bucket system in routes.py
+    
+    # IMPORTANT: Always include visibility flags in response (frontend needs these)
+    # If missing from DB, use defaults so frontend can correctly show/hide contact info
+    masked_data['contactEmailVisible'] = contact_email_visible
+    masked_data['contactNumberVisible'] = contact_number_visible
+    masked_data['linkedinUrlVisible'] = linkedin_visible
     
     # Debug logging for visibility settings
     import logging

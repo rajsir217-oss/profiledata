@@ -228,12 +228,14 @@ const Profile = ({
         }
         
         // Debug: Log visibility settings
-        logger.debug('Profile data received - visibility settings:', {
+        console.log('👁️ Profile data received - visibility settings:', {
           contactEmailVisible: profileData.contactEmailVisible,
           contactNumberVisible: profileData.contactNumberVisible,
           linkedinUrlVisible: profileData.linkedinUrlVisible,
           contactEmailMasked: profileData.contactEmailMasked,
-          contactNumberMasked: profileData.contactNumberMasked
+          contactNumberMasked: profileData.contactNumberMasked,
+          contactNumber: profileData.contactNumber ? 'present' : 'missing',
+          contactEmail: profileData.contactEmail ? 'present' : 'missing'
         });
         
         // Check if this is the current user's profile

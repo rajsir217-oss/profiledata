@@ -2227,8 +2227,10 @@ const SearchPage2 = () => {
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: '6px',
-                    width: 'auto',
-                    whiteSpace: 'nowrap'
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap',
+                    overflow: 'visible',
+                    flexShrink: 0
                   }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
                 >
