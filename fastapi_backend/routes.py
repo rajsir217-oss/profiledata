@@ -4071,6 +4071,45 @@ async def search_users(
                 users[i]["age"] = users[i]["calculatedAge"]
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
+        
+        # Log search activity (non-blocking)
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            
+            # Build search criteria metadata (exclude empty values)
+            search_criteria = {}
+            if keyword: search_criteria["keyword"] = keyword
+            if profileId: search_criteria["profileId"] = profileId
+            if gender: search_criteria["gender"] = gender
+            if ageMin > 0: search_criteria["ageMin"] = ageMin
+            if ageMax > 0: search_criteria["ageMax"] = ageMax
+            if heightMin > 0: search_criteria["heightMin"] = heightMin
+            if heightMax > 0: search_criteria["heightMax"] = heightMax
+            if location: search_criteria["location"] = location
+            if religion: search_criteria["religion"] = religion
+            if maritalStatus: search_criteria["maritalStatus"] = maritalStatus
+            if education: search_criteria["education"] = education
+            if occupation: search_criteria["occupation"] = occupation
+            if eating: search_criteria["eating"] = eating
+            if drinking: search_criteria["drinking"] = drinking
+            if smoking: search_criteria["smoking"] = smoking
+            if minMatchScore > 0: search_criteria["minMatchScore"] = minMatchScore
+            
+            await activity_logger.log_activity(
+                username=current_user.get("username"),
+                action_type=ActivityType.SEARCH_PERFORMED,
+                metadata={
+                    "criteria": search_criteria,
+                    "results_count": len(users),
+                    "total_matches": total,
+                    "page": page
+                }
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log search activity: {log_err}")
+        
         return {
             "users": users,
             "total": total,
@@ -4143,6 +4182,23 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         saved_search.pop("_id", None)
 
         logger.info(f"✅ Saved search '{search_data.get('name')}' for user '{username}'")
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.SEARCH_SAVED,
+                metadata={
+                    "search_name": search_data.get("name"),
+                    "search_id": saved_search["id"],
+                    "criteria": search_data.get("criteria", {})
+                }
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log save search activity: {log_err}")
         return {
             "message": "Search saved successfully",
             "savedSearch": saved_search
@@ -4225,6 +4281,20 @@ async def delete_saved_search(username: str, search_id: str, db = Depends(get_da
             raise HTTPException(status_code=404, detail="Saved search not found")
 
         logger.info(f"✅ Deleted saved search {search_id} for user '{username}'")
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.SEARCH_DELETED,
+                metadata={"search_id": search_id}
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log delete search activity: {log_err}")
+        
         return {
             "message": "Saved search deleted successfully"
         }
