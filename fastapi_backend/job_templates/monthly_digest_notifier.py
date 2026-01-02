@@ -381,13 +381,123 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             duration_seconds=duration
         )
     
+    def _build_svg_line_chart(
+        self,
+        values: List[int],
+        color: str,
+        width: int = 200,
+        height: int = 60
+    ) -> str:
+        """Generate an inline SVG line chart with area fill"""
+        if not values or all(v == 0 for v in values):
+            # Return empty state chart
+            return f'''
+            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
+                <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
+                <text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#a0aec0" font-size="11" font-family="Arial, sans-serif">No data yet</text>
+            </svg>
+            '''
+        
+        max_val = max(values) if max(values) > 0 else 1
+        padding = 10
+        chart_width = width - (padding * 2)
+        chart_height = height - (padding * 2)
+        
+        # Calculate points for the line
+        points = []
+        for i, val in enumerate(values):
+            x = padding + (i * chart_width / (len(values) - 1)) if len(values) > 1 else padding + chart_width / 2
+            y = padding + chart_height - (val / max_val * chart_height)
+            points.append((x, y))
+        
+        # Create path for line
+        line_path = f"M {points[0][0]},{points[0][1]}"
+        for x, y in points[1:]:
+            line_path += f" L {x},{y}"
+        
+        # Create path for area fill (closed polygon)
+        area_path = line_path + f" L {points[-1][0]},{padding + chart_height} L {points[0][0]},{padding + chart_height} Z"
+        
+        # Generate SVG
+        svg = f'''
+        <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+            <defs>
+                <linearGradient id="grad_{color[1:]}" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" style="stop-color:{color};stop-opacity:0.3"/>
+                    <stop offset="100%" style="stop-color:{color};stop-opacity:0.05"/>
+                </linearGradient>
+            </defs>
+            
+            <!-- Background -->
+            <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
+            
+            <!-- Grid lines -->
+            <line x1="{padding}" y1="{padding + chart_height/2}" x2="{width - padding}" y2="{padding + chart_height/2}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
+            
+            <!-- Area fill -->
+            <path d="{area_path}" fill="url(#grad_{color[1:]})" />
+            
+            <!-- Line -->
+            <path d="{line_path}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            
+            <!-- Data points -->
+            {''.join([f'<circle cx="{x}" cy="{y}" r="4" fill="white" stroke="{color}" stroke-width="2"/>' for x, y in points])}
+            
+            <!-- Week labels -->
+            {''.join([f'<text x="{points[i][0]}" y="{height - 2}" text-anchor="middle" fill="#718096" font-size="9" font-family="Arial, sans-serif">W{i+1}</text>' for i in range(len(points))])}
+        </svg>
+        '''
+        return svg
+    
+    def _build_svg_bar_chart(
+        self,
+        values: List[int],
+        color: str,
+        width: int = 200,
+        height: int = 60
+    ) -> str:
+        """Generate an inline SVG bar chart"""
+        if not values or all(v == 0 for v in values):
+            return f'''
+            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
+                <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
+                <text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#a0aec0" font-size="11" font-family="Arial, sans-serif">No data yet</text>
+            </svg>
+            '''
+        
+        max_val = max(values) if max(values) > 0 else 1
+        padding = 10
+        bar_width = (width - padding * 2 - (len(values) - 1) * 8) / len(values)
+        chart_height = height - padding * 2 - 12  # Leave space for labels
+        
+        bars_svg = ""
+        for i, val in enumerate(values):
+            bar_height = max(4, (val / max_val) * chart_height)  # Min height for visibility
+            x = padding + i * (bar_width + 8)
+            y = padding + chart_height - bar_height
+            
+            # Bar with rounded top
+            bars_svg += f'''
+            <rect x="{x}" y="{y}" width="{bar_width}" height="{bar_height}" fill="{color}" rx="3" ry="3"/>
+            <text x="{x + bar_width/2}" y="{y - 4}" text-anchor="middle" fill="{color}" font-size="10" font-weight="600" font-family="Arial, sans-serif">{val}</text>
+            <text x="{x + bar_width/2}" y="{height - 2}" text-anchor="middle" fill="#718096" font-size="9" font-family="Arial, sans-serif">W{i+1}</text>
+            '''
+        
+        svg = f'''
+        <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="display: block;">
+            <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
+            {bars_svg}
+        </svg>
+        '''
+        return svg
+    
     def _build_digest_email(
         self, 
         first_name: str, 
         month_name: str, 
         weeks_data: List[Dict]
     ) -> str:
-        """Build the monthly digest email HTML with inline bar charts"""
+        """Build the monthly digest email HTML with inline SVG charts"""
         
         # Calculate totals and trends for each metric
         metrics_summary = {}
@@ -403,15 +513,19 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 if change > 10:
                     trend = "📈"
                     trend_text = f"+{change:.0f}%"
+                    trend_color = "#38a169"
                 elif change < -10:
                     trend = "📉"
                     trend_text = f"{change:.0f}%"
+                    trend_color = "#e53e3e"
                 else:
                     trend = "➡️"
                     trend_text = "stable"
+                    trend_color = "#718096"
             else:
                 trend = "➡️"
                 trend_text = "stable"
+                trend_color = "#718096"
             
             metrics_summary[key] = {
                 "values": values,
@@ -419,39 +533,38 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 "max": max_val,
                 "trend": trend,
                 "trend_text": trend_text,
+                "trend_color": trend_color,
                 **metric
             }
         
-        # Build metric rows with bar charts
+        # Build metric cards with SVG charts
+        # Alternate between line and bar charts for visual variety
         metrics_html = ""
-        for key, data in metrics_summary.items():
-            bars_html = ""
-            for i, val in enumerate(data["values"]):
-                # Calculate bar width (percentage of max, min 5% for visibility)
-                width = max(5, (val / data["max"] * 100)) if data["max"] > 0 else 5
-                bars_html += f'''
-                <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                    <span style="width: 50px; font-size: 11px; color: #718096;">Wk {i+1}</span>
-                    <div style="flex: 1; background: #e2e8f0; border-radius: 4px; height: 16px; margin-right: 8px;">
-                        <div style="width: {width}%; background: {data["color"]}; height: 100%; border-radius: 4px;"></div>
-                    </div>
-                    <span style="width: 30px; font-size: 12px; font-weight: 600; color: #2d3748;">{val}</span>
-                </div>
-                '''
+        chart_types = ["line", "bar", "line", "bar", "line", "bar", "line"]
+        
+        for idx, (key, data) in enumerate(metrics_summary.items()):
+            chart_type = chart_types[idx % len(chart_types)]
+            
+            if chart_type == "line":
+                chart_svg = self._build_svg_line_chart(data["values"], data["color"], width=220, height=70)
+            else:
+                chart_svg = self._build_svg_bar_chart(data["values"], data["color"], width=220, height=70)
             
             metrics_html += f'''
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                    <div style="font-size: 16px; font-weight: 600; color: #2d3748;">
-                        {data["icon"]} {data["label"]}
+            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                    <div>
+                        <div style="font-size: 14px; color: #718096; margin-bottom: 4px;">{data["icon"]} {data["label"]}</div>
+                        <div style="font-size: 28px; font-weight: 700; color: {data["color"]};">{data["total"]}</div>
                     </div>
-                    <div style="font-size: 14px;">
-                        <span style="font-weight: 700; color: {data["color"]};">{data["total"]}</span>
-                        <span style="color: #718096;"> total</span>
-                        <span style="margin-left: 8px;">{data["trend"]} {data["trend_text"]}</span>
+                    <div style="text-align: right;">
+                        <span style="font-size: 13px; color: {data["trend_color"]}; font-weight: 600;">{data["trend"]} {data["trend_text"]}</span>
+                        <div style="font-size: 11px; color: #a0aec0; margin-top: 2px;">vs last week</div>
                     </div>
                 </div>
-                {bars_html}
+                <div style="margin-top: 8px;">
+                    {chart_svg}
+                </div>
             </div>
             '''
         
