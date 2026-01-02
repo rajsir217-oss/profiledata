@@ -700,10 +700,11 @@ async def send_matches_email(
         # Initialize PII encryption for decryption
         pii_encryptor = PIIEncryption()
         
-        # Build match cards HTML
+        # Build match cards HTML - limit to 5 profiles to keep email concise
         matches_html_parts = []
+        display_matches = matches[:5]  # Show only first 5 matches
         
-        for match in matches:
+        for match in display_matches:
             # Decrypt PII fields
             decrypted_match = pii_encryptor.decrypt_user_pii(match)
             
@@ -794,10 +795,19 @@ async def send_matches_email(
             matches_html_parts.append(match_html)
         
         # Build complete email HTML
-        plural = 'es' if len(matches) != 1 else ''
+        total_matches = len(matches)
+        displayed_count = len(display_matches)
+        plural = 'es' if total_matches != 1 else ''
+        
+        # Show "more matches" note if there are more than 5
+        more_note = ''
+        if total_matches > 5:
+            more_note = f'<p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">Showing top {displayed_count} of {total_matches} matches. Click below to see all.</p>'
+        
         matches_container = f'''
         <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">{len(matches)}</strong> new match{plural} for you!</p>
+            <p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">{total_matches}</strong> new match{plural} for you!</p>
+            {more_note}
         </div>
         <div style="margin-top: 20px;">
             {''.join(matches_html_parts)}

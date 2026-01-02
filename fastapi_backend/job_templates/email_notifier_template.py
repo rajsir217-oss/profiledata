@@ -376,6 +376,10 @@ class EmailNotifierTemplate(JobTemplate):
                     "subject": "❤️ Someone favorited your profile!",
                     "body": f"{requester_name} favorited your profile. Login to L3V3LMATCHES.com to see if you're interested too!"
                 },
+                "saved_search_matches": {
+                    "subject": "🔍 New matches for your saved search!",
+                    "body": self._build_saved_search_fallback_body(template_data)
+                },
             }
             
             trigger_name = notification.trigger.replace("_", " ").title()
@@ -403,6 +407,75 @@ class EmailNotifierTemplate(JobTemplate):
             body = service.render_template(body_template, template_data)
         
         return subject, body
+    
+    def _build_saved_search_fallback_body(self, template_data: dict) -> str:
+        """Build a rich HTML body for saved search matches when no template exists"""
+        from config import settings
+        
+        user_first_name = "there"
+        if isinstance(template_data, dict):
+            user_data = template_data.get("user", {})
+            if isinstance(user_data, dict):
+                user_first_name = user_data.get("firstName", "there")
+        
+        match_count = template_data.get("matchCount", 0) if isinstance(template_data, dict) else 0
+        plural = template_data.get("plural", "es") if isinstance(template_data, dict) else "es"
+        search_name = template_data.get("searchName", "Your Saved Search") if isinstance(template_data, dict) else "Your Saved Search"
+        search_description = template_data.get("searchDescription", "") if isinstance(template_data, dict) else ""
+        matches_html = template_data.get("matchesHtml", "") if isinstance(template_data, dict) else ""
+        app_url = template_data.get("appUrl", settings.frontend_url) if isinstance(template_data, dict) else settings.frontend_url
+        
+        # Build the email HTML
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">💜 L3V3L MATCHES</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">🦋 L3V3L</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 30px;">
+            <h2 style="margin: 0 0 15px 0; color: #2d3748;">Hi {user_first_name}! 👋</h2>
+            <p style="color: #4a5568; font-size: 16px; margin: 0 0 20px 0;">
+                Great news! We found <strong style="color: #667eea;">{match_count} new profile{plural}</strong> matching your saved search:
+            </p>
+            
+            <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
+                <strong style="color: #667eea; font-size: 18px;">🔍 {search_name}</strong>
+                {"<p style='margin: 8px 0 0 0; color: #666; font-size: 14px;'>" + search_description + "</p>" if search_description else ""}
+            </div>
+            
+            {matches_html}
+            
+            <div style="text-align: center; margin: 30px 0 20px 0;">
+                <a href="{app_url}/search" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                    View All Matches →
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 10px 0;">You're receiving this because you have saved searches on L3V3L MATCHES.</p>
+            <p style="margin: 0;">
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Manage Notifications</a> | 
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+            </p>
+            <p style="margin: 10px 0 0 0; color: #999;">© 2025 L3V3L MATCHES. All rights reserved.</p>
+        </div>
+        
+    </div>
+</body>
+</html>"""
+        return html
     
     async def _send_email(self, to_email: str, subject: str, body: str, notification) -> None:
         """Send email via SMTP"""
