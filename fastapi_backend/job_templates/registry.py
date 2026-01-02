@@ -162,6 +162,7 @@ def initialize_templates():
     from .pending_messages_notifier import PendingMessagesNotifierTemplate
     from .pending_requests_notifier import PendingRequestsNotifierTemplate
     from .monthly_digest_notifier import MonthlyDigestNotifierTemplate
+    from .pending_approvals_sms_notifier import PendingApprovalsSMSNotifierTemplate
     
     registry = get_template_registry()
     
@@ -198,6 +199,7 @@ def initialize_templates():
     registry.register(PendingMessagesNotifierTemplate())
     registry.register(PendingRequestsNotifierTemplate())
     registry.register(MonthlyDigestNotifierTemplate())
+    registry.register(PendingApprovalsSMSNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

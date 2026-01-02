@@ -41,6 +41,11 @@ const NotificationPreferences = () => {
       { id: 'new_users_matching', label: 'New Users', description: 'New users match your criteria' },
       { id: 'profile_incomplete', label: 'Complete Profile', description: 'Profile completion reminder' },
       { id: 'upload_photos', label: 'Upload Photos', description: 'Photo upload reminder' }
+    ],
+    digests: [
+      { id: 'weekly_digest', label: 'Weekly Digest', description: 'Weekly activity summary email' },
+      { id: 'monthly_digest', label: 'Monthly Digest', description: 'Monthly activity report with charts' },
+      { id: 'saved_search_matches', label: 'Saved Search Matches', description: 'New profiles matching your saved searches' }
     ]
   };
 
@@ -278,6 +283,7 @@ const NotificationPreferences = () => {
             {category === 'messages' && '💬 Messages'}
             {category === 'privacy' && '🔐 Privacy & Security'}
             {category === 'engagement' && '⭐ Engagement'}
+            {category === 'digests' && '📊 Digests & Reports'}
           </h2>
 
           <div className="triggers-list">
