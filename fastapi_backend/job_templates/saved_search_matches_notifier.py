@@ -753,13 +753,32 @@ async def send_matches_email(
                 </div>
                 '''
             
-            # Occupation (optional)
+            # Occupation - check occupation field first, then workExperience array for current job
+            occupation = decrypted_match.get('occupation')
+            if not occupation:
+                work_exp = decrypted_match.get('workExperience', [])
+                if isinstance(work_exp, list) and len(work_exp) > 0:
+                    # Find current job (isCurrent=True) or use the first entry
+                    current_job = None
+                    for job in work_exp:
+                        if isinstance(job, dict) and job.get('isCurrent'):
+                            current_job = job
+                            break
+                    if not current_job and work_exp:
+                        current_job = work_exp[0] if isinstance(work_exp[0], dict) else None
+                    
+                    if current_job:
+                        job_title = current_job.get('jobTitle') or current_job.get('title') or current_job.get('position')
+                        company = current_job.get('company') or current_job.get('employer')
+                        if job_title:
+                            occupation = f"{job_title}" + (f" at {company}" if company else "")
+            
             occupation_detail = ''
-            if decrypted_match.get('occupation'):
+            if occupation:
                 occupation_detail = f'''
                 <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
                     <span style="margin-right: 8px;">💼</span>
-                    <span>{decrypted_match['occupation']}</span>
+                    <span>{occupation}</span>
                 </div>
                 '''
             
