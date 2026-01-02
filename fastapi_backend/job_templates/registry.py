@@ -161,6 +161,7 @@ def initialize_templates():
     from .pii_access_cleanup import PIIAccessCleanupTemplate
     from .pending_messages_notifier import PendingMessagesNotifierTemplate
     from .pending_requests_notifier import PendingRequestsNotifierTemplate
+    from .monthly_digest_notifier import MonthlyDigestNotifierTemplate
     
     registry = get_template_registry()
     
@@ -196,6 +197,7 @@ def initialize_templates():
     registry.register(AnalyticsNotifierTemplate())
     registry.register(PendingMessagesNotifierTemplate())
     registry.register(PendingRequestsNotifierTemplate())
+    registry.register(MonthlyDigestNotifierTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
