@@ -150,8 +150,10 @@ const SearchPage2 = () => {
   // Ref for scroll position
   const searchResultsRef = useRef(null);
 
-  // Load more state (for incremental loading instead of pagination)
-  const [displayedCount, setDisplayedCount] = useState(10); // Reduced from 20 for faster initial load
+  // Server-side pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalResults, setTotalResults] = useState(0);
+  const [hasMoreResults, setHasMoreResults] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
   // Ref for infinite scroll observer
@@ -175,7 +177,8 @@ const SearchPage2 = () => {
         sortBy,
         sortOrder,
         viewMode,
-        displayedCount,
+        currentPage,
+        totalResults,
         minMatchScore,
         favoritedUsers: Array.from(favoritedUsers),
         shortlistedUsers: Array.from(shortlistedUsers),
@@ -187,7 +190,7 @@ const SearchPage2 = () => {
       sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
       logger.info('💾 Saved search state to sessionStorage');
     }
-  }, [users, searchCriteria, sortBy, sortOrder, viewMode, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
+  }, [users, searchCriteria, sortBy, sortOrder, viewMode, currentPage, totalResults, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
   // Save scroll position before navigating away
   useEffect(() => {
@@ -233,7 +236,8 @@ const SearchPage2 = () => {
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) setViewMode(state.viewMode);
-            setDisplayedCount(state.displayedCount || 20);
+            setCurrentPage(state.currentPage || 1);
+            setTotalResults(state.totalResults || 0);
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
@@ -1012,24 +1016,27 @@ const SearchPage2 = () => {
     };
   };
 
-  // Wrapper for minMatchScore changes to reset display count
+  // Wrapper for minMatchScore changes - triggers new search
   const handleMinMatchScoreChange = (newScore) => {
     setMinMatchScore(newScore);
-    setDisplayedCount(20); // Reset to show first 20 of filtered results
+    // Note: L3V3L filtering is done client-side after server results
   };
 
-  // Handle sort changes
+  // Handle sort changes - triggers new server search
   const handleSortChange = (e) => {
     const newSortBy = e.target.value;
     setSortBy(newSortBy);
-    setDisplayedCount(20); // Reset to show first 20 of sorted results
+    // Trigger new search with updated sort
+    handleSearch(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Toggle sort order
+  // Toggle sort order - triggers new server search
   const toggleSortOrder = () => {
-    setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
-    setDisplayedCount(20); // Reset to show first 20
+    const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    setSortOrder(newOrder);
+    // Trigger new search with updated sort order
+    handleSearch(1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1102,7 +1109,9 @@ const SearchPage2 = () => {
     setSaveSearchName('');
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
-    setDisplayedCount(20); // Reset to initial display count
+    setCurrentPage(1); // Reset pagination
+    setTotalResults(0);
+    setHasMoreResults(true);
     setFiltersCollapsed(false); // Expand filters when clearing
   };
 
@@ -1112,7 +1121,9 @@ const SearchPage2 = () => {
     try {
       setLoading(true);
       setError('');
-      setDisplayedCount(20); // Reset to show first 20 results
+      if (page === 1) {
+        setHasMoreResults(true); // Reset for new search
+      }
 
       // STEP 1: Apply traditional search filters
       // Use overrideCriteria if provided (for immediate load), otherwise use state
@@ -1127,7 +1138,7 @@ const SearchPage2 = () => {
         params = {
           profileId: criteriaToUse.profileId.trim(),
           page: page,
-          limit: 500
+          limit: 20  // Server-side pagination - fetch 20 at a time
         };
         logger.info('🔍 Profile ID search - bypassing other filters');
       } else {
@@ -1135,7 +1146,9 @@ const SearchPage2 = () => {
           ...criteriaToUse,
           status: 'active',  // Only search for active users
           page: page,
-          limit: 500  // Get more results from backend
+          limit: 20,  // Server-side pagination - fetch 20 at a time
+          sortBy: sortBy,  // Pass sort to backend
+          sortOrder: sortOrder  // Pass sort order to backend
         };
       }
       
@@ -1276,13 +1289,19 @@ const SearchPage2 = () => {
         }
       }
 
+      // Update pagination state
+      const total = response.data.total || 0;
+      setTotalResults(total);
+      setHasMoreResults(users.length + filteredUsers.length < total);
+      
       if (page === 1) {
         setUsers(filteredUsers);
+        setCurrentPage(1);
       } else {
         setUsers(prev => [...prev, ...filteredUsers]);
       }
-
-      // setTotalResults(filteredUsers.length);
+      
+      logger.info(`📊 Pagination: page=${page}, fetched=${filteredUsers.length}, total=${total}, hasMore=${users.length + filteredUsers.length < total}`);
 
     } catch (err) {
       logger.error('Error searching users:', err);
@@ -1306,24 +1325,30 @@ const SearchPage2 = () => {
     }
   };
 
-  const handleLoadMore = useCallback(() => {
-    if (loadingMore) return; // Prevent multiple triggers
+  // Server-side pagination: fetch next page
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore || !hasMoreResults) return;
+    
     setLoadingMore(true);
-    // Small delay for better UX
-    setTimeout(() => {
-      setDisplayedCount(prev => prev + 10); // Load 10 more (reduced from 20)
+    const nextPage = currentPage + 1;
+    
+    try {
+      await handleSearch(nextPage);
+      setCurrentPage(nextPage);
+    } catch (err) {
+      logger.error('Error loading more results:', err);
+    } finally {
       setLoadingMore(false);
-    }, 150); // Reduced delay from 300ms
-  }, [loadingMore]);
+    }
+  }, [loadingMore, hasMoreResults, currentPage]);
 
-  // IntersectionObserver for infinite scroll
-  // Note: We use users.length here since sortedUsers is computed later in render
+  // IntersectionObserver for infinite scroll (server-side pagination)
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        // Check if there are more items to load (users.length is the total fetched)
-        if (entry.isIntersecting && !loadingMore && displayedCount < users.length) {
+        // Check if there are more results to fetch from server
+        if (entry.isIntersecting && !loadingMore && hasMoreResults) {
           handleLoadMore();
         }
       },
@@ -1340,7 +1365,7 @@ const SearchPage2 = () => {
         observer.unobserve(currentRef);
       }
     };
-  }, [loadingMore, displayedCount, users.length, handleLoadMore]);
+  }, [loadingMore, hasMoreResults, handleLoadMore]);
 
   const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
@@ -1988,8 +2013,8 @@ const SearchPage2 = () => {
     return sortOrder === 'desc' ? compareValue : -compareValue;
   });
 
-  // Calculate current records based on display count
-  const currentRecords = sortedUsers.slice(0, displayedCount);
+  // With server-side pagination, all fetched users are displayed
+  const currentRecords = sortedUsers;
 
   const getActiveCriteriaSummary = () => {
     const summary = [];
@@ -2532,7 +2557,7 @@ const SearchPage2 = () => {
           )}
 
           {/* Infinite Scroll Trigger - invisible element that triggers load more */}
-          {displayedCount < sortedUsers.length && (
+          {hasMoreResults && (
             <div 
               ref={loadMoreTriggerRef}
               style={{ height: '20px', margin: '20px 0' }}
@@ -2542,13 +2567,13 @@ const SearchPage2 = () => {
           {/* LoadMore - shows count and manual button */}
           {sortedUsers.length > 0 && (
             <LoadMore
-              currentCount={Math.min(displayedCount, sortedUsers.length)}
-              totalCount={sortedUsers.length}
+              currentCount={users.length}
+              totalCount={totalResults}
               onLoadMore={handleLoadMore}
               loading={loadingMore}
-              itemsPerLoad={10}
+              itemsPerLoad={20}
               itemLabel="profiles"
-              buttonText="View more"
+              buttonText={hasMoreResults ? "Load more" : "All loaded"}
             />
           )}
 
