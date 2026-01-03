@@ -179,6 +179,7 @@ const SearchPage2 = () => {
         viewMode,
         currentPage,
         totalResults,
+        hasMoreResults,
         minMatchScore,
         favoritedUsers: Array.from(favoritedUsers),
         shortlistedUsers: Array.from(shortlistedUsers),
@@ -190,7 +191,7 @@ const SearchPage2 = () => {
       sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
       logger.info('💾 Saved search state to sessionStorage');
     }
-  }, [users, searchCriteria, sortBy, sortOrder, viewMode, currentPage, totalResults, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
+  }, [users, searchCriteria, sortBy, sortOrder, viewMode, currentPage, totalResults, hasMoreResults, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
   // Save scroll position before navigating away
   useEffect(() => {
@@ -227,29 +228,28 @@ const SearchPage2 = () => {
           const stateAge = Date.now() - (state.timestamp || 0);
           const maxAge = 30 * 60 * 1000; // 30 minutes
           
-          if (stateAge < maxAge) {
-            logger.info('🔄 Restoring search state from sessionStorage');
+          if (stateAge < maxAge && state.users && state.users.length > 0) {
+            logger.info('🔄 Restoring search state from sessionStorage with', state.users.length, 'users');
+            
+            // IMPORTANT: Set refs FIRST before any state updates to prevent race conditions
+            hasRestoredStateRef.current = true;
+            hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
             
             // Restore all state
-            setUsers(state.users || []);
+            setUsers(state.users);
             setSearchCriteria(state.searchCriteria || {});
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) setViewMode(state.viewMode);
             setCurrentPage(state.currentPage || 1);
-            setTotalResults(state.totalResults || 0);
+            setTotalResults(state.totalResults || state.users.length);
+            setHasMoreResults(state.hasMoreResults !== undefined ? state.hasMoreResults : (state.users.length >= 20));
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
             setExcludedUsers(new Set(state.excludedUsers || []));
             setSelectedSearch(state.selectedSearch || null);
             if (state.selectedProfileForDetail) setSelectedProfileForDetail(state.selectedProfileForDetail);
-            
-            hasRestoredStateRef.current = true;
-            // Only prevent auto-search if we actually have results to display
-            if (state.users && state.users.length > 0) {
-              hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
-            }
             
             // Restore scroll position after a short delay to let DOM render
             setTimeout(() => {
@@ -263,10 +263,12 @@ const SearchPage2 = () => {
             
             logger.info('✅ Search state restored successfully');
             return true;
-          } else {
+          } else if (stateAge >= maxAge) {
             logger.info('⏰ Saved state is too old, clearing...');
             sessionStorage.removeItem('searchPageState');
             sessionStorage.removeItem('searchPageScrollPosition');
+          } else {
+            logger.info('📭 Saved state has no users, not restoring');
           }
         }
       } catch (error) {
