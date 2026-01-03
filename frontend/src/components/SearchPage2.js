@@ -162,6 +162,9 @@ const SearchPage2 = () => {
   
   // Ref for infinite scroll observer
   const loadMoreTriggerRef = useRef(null);
+  
+  // Ref to track which page is currently being loaded (prevents duplicate fetches)
+  const loadingPageRef = useRef(0);
 
   // Sort state
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
@@ -1130,6 +1133,7 @@ const SearchPage2 = () => {
       setError('');
       if (page === 1) {
         setHasMoreResults(true); // Reset for new search
+        loadingPageRef.current = 1; // Reset page tracking ref for new search
       }
 
       // STEP 1: Apply traditional search filters
@@ -1209,7 +1213,7 @@ const SearchPage2 = () => {
       
       logger.info('🔍 Search params after validation:', params);
       logger.info('🔍 profileId in params:', params.profileId);
-      logger.info('🔍 Full params object:', JSON.stringify(params, null, 2));
+      logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
 
       const response = await api.get('/search', { params });
       logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
@@ -1229,18 +1233,9 @@ const SearchPage2 = () => {
         })));
       }
       
-      // Filter out own profile, admin, and moderators (unless doing Profile ID search)
-      const isProfileIdSearch = criteriaToUse.profileId?.trim();
-      let filteredUsers = (response.data.users || []).filter(user => {
-        // Don't filter out own profile when doing Profile ID search (admin lookup)
-        if (!isProfileIdSearch && user.username === currentUser) return false;
-        // Don't filter out admin/moderator when doing direct Profile ID lookup
-        if (!isProfileIdSearch) {
-          const userRole = user.role?.toLowerCase();
-          if (userRole === 'admin' || userRole === 'moderator') return false;
-        }
-        return true;
-      });
+      // Server now handles filtering of: self, blocked users, admins, moderators
+      // No client-side filtering needed here - trust server results
+      let filteredUsers = response.data.users || [];
 
       // STEP 2: Fetch and attach L3V3L match scores (if enabled)
       // Always fetch scores so they're available for client-side filtering
@@ -1298,20 +1293,37 @@ const SearchPage2 = () => {
 
       // Update pagination state
       const total = response.data.total || 0;
-      setTotalResults(total);
+      const serverReturnedCount = response.data.users?.length || 0;
+      const pageSize = 20;
       
       if (page === 1) {
-        // First page: hasMore if we fetched less than total
-        setHasMoreResults(filteredUsers.length < total);
+        // First page: set total and hasMore
+        setTotalResults(total);
+        // hasMore = we haven't loaded all records yet
+        const hasMore = filteredUsers.length < total;
+        setHasMoreResults(hasMore);
         setUsers(filteredUsers);
         setCurrentPage(1);
-        logger.info(`📊 Pagination: page=1, fetched=${filteredUsers.length}, total=${total}, hasMore=${filteredUsers.length < total}`);
+        logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, hasMore=${hasMore}`);
       } else {
-        // Subsequent pages: hasMore if current + new < total
-        const newTotal = users.length + filteredUsers.length;
-        setHasMoreResults(newTotal < total);
-        setUsers(prev => [...prev, ...filteredUsers]);
-        logger.info(`📊 Pagination: page=${page}, fetched=${filteredUsers.length}, total=${total}, accumulated=${newTotal}, hasMore=${newTotal < total}`);
+        // Subsequent pages: calculate hasMore based on accumulated count
+        // Deduplicate: only add users not already in the list
+        setUsers(prev => {
+          const existingUsernames = new Set(prev.map(u => u.username));
+          const newUsers = filteredUsers.filter(u => !existingUsernames.has(u.username));
+          const newTotal = prev.length + newUsers.length;
+          
+          // hasMore = we haven't loaded all records yet
+          // Only stop if: (1) we've loaded all records, OR (2) server returned 0 records (not just duplicates)
+          const serverReturnedNothing = filteredUsers.length === 0;
+          const hasMore = newTotal < total && !serverReturnedNothing;
+          setHasMoreResults(hasMore);
+          
+          logger.info(`📊 Dedup: ${filteredUsers.length} fetched, ${newUsers.length} new, ${filteredUsers.length - newUsers.length} duplicates skipped`);
+          logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}, hasMore=${hasMore}`);
+          
+          return [...prev, ...newUsers];
+        });
       }
 
     } catch (err) {
@@ -1352,20 +1364,32 @@ const SearchPage2 = () => {
 
   // Server-side pagination: fetch next page
   const handleLoadMore = useCallback(async () => {
-    if (loadingMore || !hasMoreResults) return;
+    logger.info(`📄 handleLoadMore called: loadingMore=${loadingMore}, currentPage=${currentPage}, loadingPageRef=${loadingPageRef.current}`);
+    
+    if (loadingMore) {
+      logger.info(`📄 handleLoadMore: Skipping - already loading`);
+      return;
+    }
+    
+    const nextPage = currentPage + 1;
+    
+    logger.info(`📄 handleLoadMore: Will load page ${nextPage}`);
     
     setLoadingMore(true);
-    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    loadingPageRef.current = nextPage;
     
     try {
       await handleSearch(nextPage);
-      setCurrentPage(nextPage);
+      logger.info(`📄 handleLoadMore: Successfully loaded page ${nextPage}`);
     } catch (err) {
       logger.error('Error loading more results:', err);
+      setCurrentPage(currentPage);
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, hasMoreResults, currentPage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadingMore, currentPage]);
 
   // IntersectionObserver for infinite scroll (server-side pagination)
   useEffect(() => {
@@ -1374,6 +1398,7 @@ const SearchPage2 = () => {
         const [entry] = entries;
         // Check if there are more results to fetch from server
         if (entry.isIntersecting && !loadingMore && hasMoreResults) {
+          logger.info(`🔄 IntersectionObserver triggered - loading more`);
           handleLoadMore();
         }
       },
@@ -1900,81 +1925,32 @@ const SearchPage2 = () => {
   // Check if this is a Profile ID search - bypass most filters if so
   const isProfileIdSearch = searchCriteria.profileId?.trim();
   
+  // Client-side filtering - only apply filters NOT handled by server
+  // Server already handles: gender, age, height, location, keyword, exclusions
+  // Client handles: L3V3L score (fetched separately), additional exclusions
   const filteredUsers = users.filter(user => {
-    // Exclude users who have been excluded by current user (always apply)
+    // Exclude users who have been excluded by current user
+    // (Server also does this, but we double-check in case of race conditions)
     if (excludedUsers.has(user.username)) {
-      logger.info(`🚫 Filtered out ${user.username} - excluded`);
       return false;
     }
 
     // Profile ID search bypasses all other client-side filters
     if (isProfileIdSearch) {
-      logger.info(`✅ ${user.username} - Profile ID search, bypassing filters`);
       return true;
     }
 
-    // Filter by minimum compatibility score (L3V3L)
+    // Filter by minimum compatibility score (L3V3L) - client-only filter
     if (minMatchScore > 0) {
-      // If user has no match score (0 or undefined), hide them when filter is active
       const userScore = user.matchScore || 0;
       if (userScore < minMatchScore) {
-        logger.info(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
         return false;
       }
     }
 
-    if (searchCriteria.ageMin || searchCriteria.ageMax) {
-      const age = user.age || calculateAge(user.birthMonth, user.birthYear);
-      logger.info(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
-      
-      // Only apply age filter if user has valid age data
-      // Users without age data will be included in results
-      if (age !== null) {
-        if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) {
-          logger.info(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
-          return false;
-        }
-        if (searchCriteria.ageMax && age > parseInt(searchCriteria.ageMax)) {
-          logger.info(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
-          return false;
-        }
-      } else {
-        logger.info(`⚠️ ${user.username} has no age data - including in results`);
-      }
-    }
+    // NOTE: Age, height, keyword filters are now handled by server
+    // No need to re-filter here - trust server results
 
-    if (searchCriteria.heightMin || searchCriteria.heightMax) {
-      const heightInches = parseHeight(user.height);
-      logger.info(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
-      
-      // Only apply height filter if user has valid height data
-      // Users without height data will be included in results
-      if (heightInches !== null) {
-        if (searchCriteria.heightMin && heightInches < parseInt(searchCriteria.heightMin)) {
-          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
-          return false;
-        }
-        if (searchCriteria.heightMax && heightInches > parseInt(searchCriteria.heightMax)) {
-          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
-          return false;
-        }
-      } else {
-        logger.info(`⚠️ ${user.username} has no height data - including in results`);
-      }
-    }
-
-    if (searchCriteria.keyword) {
-      const keyword = searchCriteria.keyword.toLowerCase();
-      const searchableText = [
-        user.firstName, user.lastName, user.username,
-        user.location, user.education, user.occupation,
-        user.aboutYou, user.bio, user.interests
-      ].join(' ').toLowerCase();
-
-      if (!searchableText.includes(keyword)) return false;
-    }
-
-    logger.info(`✅ ${user.username} passed all filters`);
     return true;
   });
   
@@ -2039,7 +2015,10 @@ const SearchPage2 = () => {
   });
 
   // With server-side pagination, all fetched users are displayed
-  const currentRecords = sortedUsers;
+  // Deduplicate by username to prevent any duplicates from showing
+  const currentRecords = sortedUsers.filter((user, index, self) => 
+    index === self.findIndex(u => u.username === user.username)
+  );
 
   const getActiveCriteriaSummary = () => {
     const summary = [];
@@ -2172,7 +2151,7 @@ const SearchPage2 = () => {
           </div>
           <div className="criteria-actions">
             <span className="results-count">
-              <span className="results-count-number">{filteredUsers.length}</span>
+              <span className="results-count-number">{totalResults}</span>
               <span className="results-count-text"> profiles found</span>
             </span>
             <button className="btn-modify-search">
@@ -2352,7 +2331,7 @@ const SearchPage2 = () => {
                   }}
                   title="Total matches found by search"
                 >
-                  {users.length}
+                  {totalResults}
                 </span>
                 <span>|</span>
                 <span 
@@ -2365,9 +2344,9 @@ const SearchPage2 = () => {
                     fontSize: '12px',
                     cursor: 'help'
                   }}
-                  title="Profiles currently displayed (after filtering)"
+                  title="Profiles currently loaded (unique)"
                 >
-                  {sortedUsers.length}
+                  {currentRecords.length}
                 </span>
                 <span>|</span>
                 <span 
@@ -2388,6 +2367,8 @@ const SearchPage2 = () => {
             </div>
           )}
 
+          {/* Layout Container - isolates view modes */}
+          <div key={`layout-${viewMode}`} style={{ width: '100%' }}>
           {/* Split-Screen Layout */}
           {viewMode === 'split' ? (
             <div className="split-screen-layout" style={{
@@ -2553,6 +2534,7 @@ const SearchPage2 = () => {
           ) : (
             /* Cards/Rows Layout */
             <div 
+              key={`${viewMode}-layout`}
               className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
               style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
             >
@@ -2561,6 +2543,7 @@ const SearchPage2 = () => {
                 <SearchResultCard
                   key={user.username}
                   user={user}
+                  debugIndex={index + 1}
                   currentUsername={localStorage.getItem('username')}
                   // Context for kebab menu
                   context="search-results"
@@ -2604,6 +2587,7 @@ const SearchPage2 = () => {
               })}
             </div>
           )}
+          </div> {/* Close Layout Container */}
 
           {/* Infinite Scroll Trigger - invisible element that triggers load more */}
           {hasMoreResults && (
@@ -2616,7 +2600,7 @@ const SearchPage2 = () => {
           {/* LoadMore - shows count and manual button */}
           {sortedUsers.length > 0 && (
             <LoadMore
-              currentCount={users.length}
+              currentCount={Math.min(currentRecords.length, totalResults)}
               totalCount={totalResults}
               onLoadMore={handleLoadMore}
               loading={loadingMore}
@@ -2654,6 +2638,13 @@ const SearchPage2 = () => {
 
               {/* Right: View Toggle Buttons */}
               <div className="view-toggle-selector">
+                <button
+                  className={`view-toggle-btn ${viewMode === 'split' ? 'active' : ''}`}
+                  onClick={() => setViewMode('split')}
+                  title="Split view"
+                >
+                  ⚏
+                </button>
                 <button
                   className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
                   onClick={() => setViewMode('cards')}

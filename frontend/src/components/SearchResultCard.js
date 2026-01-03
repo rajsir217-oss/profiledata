@@ -23,6 +23,7 @@ import { ACTION_ICONS } from '../constants/icons';
 const SearchResultCard = ({
   user,
   currentUsername,
+  debugIndex = null, // Debug index for troubleshooting
   // Context-based props (NEW)
   context = 'default',
   onViewProfile,
@@ -460,6 +461,7 @@ const SearchResultCard = ({
             {/* Column 2: Basic Info */}
             <div className="row-info-column-1">
               <h6 className="row-name">
+                {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
                 {getDisplayName(user)}
                 {displayAge && displayAge !== 'N/A' && <span className="age-badge-inline">{displayAge}y</span>}
               </h6>
@@ -653,6 +655,7 @@ const SearchResultCard = ({
           title="View Full Profile"
         >
           <h6 className="card-title">
+            {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
             {getDisplayName(user)}
           </h6>
           <div className="card-title-badges">
