@@ -156,6 +156,10 @@ const SearchPage2 = () => {
   const [hasMoreResults, setHasMoreResults] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // Loading timer state
+  const [loadingStartTime, setLoadingStartTime] = useState(null);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  
   // Ref for infinite scroll observer
   const loadMoreTriggerRef = useRef(null);
 
@@ -1122,6 +1126,7 @@ const SearchPage2 = () => {
     
     try {
       setLoading(true);
+      setLoadingStartTime(Date.now()); // Start timer
       setError('');
       if (page === 1) {
         setHasMoreResults(true); // Reset for new search
@@ -1323,9 +1328,23 @@ const SearchPage2 = () => {
       setError(errorMsg);
     } finally {
       setLoading(false);
+      setLoadingStartTime(null); // Stop timer
       // No longer auto-collapse filters - user controls visibility via Hide Filters button
     }
   };
+
+  // Update elapsed time while loading
+  useEffect(() => {
+    let interval;
+    if (loadingStartTime) {
+      interval = setInterval(() => {
+        setElapsedTime(((Date.now() - loadingStartTime) / 1000).toFixed(1));
+      }, 100);
+    } else {
+      setElapsedTime(0);
+    }
+    return () => clearInterval(interval);
+  }, [loadingStartTime]);
 
   // Server-side pagination: fetch next page
   const handleLoadMore = useCallback(async () => {
@@ -2161,8 +2180,32 @@ const SearchPage2 = () => {
         <div className="search-results" ref={searchResultsRef}>
           {loading && (
             <div className="text-center py-4">
-              <div className="spinner-border text-primary" role="status">
-                <span className="visually-hidden">Loading...</span>
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                <div style={{
+                  fontSize: '32px',
+                  animation: 'pulse 1s ease-in-out infinite'
+                }}>
+                  ⏱️
+                </div>
+                <div style={{
+                  fontSize: '18px',
+                  fontWeight: 600,
+                  color: 'var(--primary-color)',
+                  fontFamily: 'monospace'
+                }}>
+                  {elapsedTime}s
+                </div>
+                <div style={{
+                  fontSize: '13px',
+                  color: 'var(--text-muted)'
+                }}>
+                  Loading profiles...
+                </div>
               </div>
             </div>
           )}
