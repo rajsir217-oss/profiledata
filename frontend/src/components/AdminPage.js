@@ -77,28 +77,45 @@ const AdminPage = () => {
       return true;
     };
 
-    if (checkAdminAccess()) {
-      loadAllUsers();
-    }
+    // Just check access - the useEffect with filters will handle loading
+    checkAdminAccess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
-  const loadAllUsers = useCallback(async (emailSearchParam = '') => {
+  // Server-side filtered user loading
+  const loadUsers = useCallback(async (filters = {}) => {
     try {
       setLoading(true);
       setError('');
 
-      // Build query params
+      // Build query params for server-side filtering
       const params = new URLSearchParams({ limit: '1000' });
-      if (emailSearchParam) {
-        params.append('email_search', emailSearchParam);
+      
+      // Apply status filter (server-side)
+      if (filters.status) {
+        params.append('status', filters.status);
+      }
+      
+      // Apply gender filter (server-side)
+      if (filters.gender) {
+        params.append('gender', filters.gender);
+      }
+      
+      // Apply search filter (server-side)
+      if (filters.search) {
+        params.append('search', filters.search);
+      }
+      
+      // Apply email search filter (server-side)
+      if (filters.emailSearch) {
+        params.append('email_search', filters.emailSearch);
       }
 
-      // Fetch users (with optional email search)
+      // Fetch users with server-side filtering
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       setUsers(response.data.users || []);
       
-      console.log(`✅ Loaded ${response.data.users?.length || 0} users`);
+      console.log(`✅ Loaded ${response.data.users?.length || 0} users with filters:`, filters);
     } catch (err) {
       console.error('Error loading users:', err);
       setError('Failed to load users. ' + (err.response?.data?.detail || err.message));
@@ -112,13 +129,31 @@ const AdminPage = () => {
     }
   }, [navigate]);
 
-  // Handle email search
-  const handleEmailSearch = () => {
-    if (emailSearch.trim()) {
-      loadAllUsers(emailSearch.trim());
-    } else {
-      loadAllUsers(); // Load all if empty
+  // Reload users when filters change (server-side filtering)
+  useEffect(() => {
+    // Skip if not authenticated yet
+    const token = localStorage.getItem('token');
+    const userRole = localStorage.getItem('userRole');
+    if (!token || (userRole !== 'admin' && userRole !== 'moderator')) {
+      return;
     }
+    
+    loadUsers({
+      status: statusFilter,
+      gender: genderFilter,
+      search: searchTerm,
+      emailSearch: emailSearch
+    });
+  }, [statusFilter, genderFilter, searchTerm, emailSearch, loadUsers]);
+
+  // Handle manual search button click (for email search)
+  const handleEmailSearch = () => {
+    loadUsers({
+      status: statusFilter,
+      gender: genderFilter,
+      search: searchTerm,
+      emailSearch: emailSearch.trim()
+    });
   };
 
   const handleEditStatus = (user) => {
@@ -148,8 +183,13 @@ const AdminPage = () => {
       setSelectedStatus('');
       setStatusChangeReason('');
       
-      // Reload users list
-      loadAllUsers();
+      // Reload users list with current filters
+      loadUsers({
+        status: statusFilter,
+        gender: genderFilter,
+        search: searchTerm,
+        emailSearch: emailSearch
+      });
       
       // Auto-hide success message
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -177,8 +217,13 @@ const AdminPage = () => {
       setShowDeletionSummary(true);
       setDeleteConfirm(null);
       
-      // Reload users list
-      loadAllUsers();
+      // Reload users list with current filters
+      loadUsers({
+        status: statusFilter,
+        gender: genderFilter,
+        search: searchTerm,
+        emailSearch: emailSearch
+      });
     } catch (err) {
       console.error('Error deleting user:', err);
       setError('Failed to delete user. ' + (err.response?.data?.detail || err.message));
@@ -226,34 +271,12 @@ const AdminPage = () => {
     };
   };
 
-  // Filter and sort users
-  const getFilteredAndSortedUsers = () => {
-    let filtered = users.map(calculateComputedFields).filter(user => {
-      const searchLower = searchTerm.toLowerCase();
-      
-      // Apply search filter - username and name only (email search is server-side)
-      if (!searchTerm) {
-        var matchesSearch = true;
-      } else {
-        matchesSearch = (
-          user.username?.toLowerCase().includes(searchLower) ||
-          user.firstName?.toLowerCase().includes(searchLower) ||
-          user.lastName?.toLowerCase().includes(searchLower)
-        );
-      }
-      
-      // Apply status filter - use accountStatus (unified field)
-      const userStatus = user.accountStatus || 'active';
-      const matchesStatus = !statusFilter || userStatus === statusFilter;
-      
-      // Apply gender filter (case-insensitive, check multiple field names)
-      const userGender = user.sex || user.gender || user.Sex || '';
-      const matchesGender = !genderFilter || userGender.toLowerCase() === genderFilter.toLowerCase();
-      
-      return matchesSearch && matchesStatus && matchesGender;
-    });
+  // Sort users (filtering is now done server-side)
+  const getSortedUsers = () => {
+    // Add computed fields and sort
+    let sorted = users.map(calculateComputedFields);
 
-    filtered.sort((a, b) => {
+    sorted.sort((a, b) => {
       let aVal = a[sortField] || '';
       let bVal = b[sortField] || '';
       
@@ -267,10 +290,10 @@ const AdminPage = () => {
       }
     });
 
-    return filtered;
+    return sorted;
   };
 
-  const filteredUsers = getFilteredAndSortedUsers();
+  const filteredUsers = getSortedUsers();
 
   // Load more pattern calculations
   const currentRecords = filteredUsers.slice(0, displayCount);
@@ -782,7 +805,12 @@ const AdminPage = () => {
           username={selectedUserForMeta}
           onClose={() => {
             setSelectedUserForMeta(null);
-            loadAllUsers(); // Refresh user list when modal closes
+            loadUsers({
+              status: statusFilter,
+              gender: genderFilter,
+              search: searchTerm,
+              emailSearch: emailSearch
+            }); // Refresh user list when modal closes
           }}
         />
       )}
