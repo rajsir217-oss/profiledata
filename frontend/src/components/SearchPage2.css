@@ -235,6 +235,7 @@
   cursor: pointer;
   z-index: 1000;
   transition: all 0.2s ease;
+  overflow: hidden; /* Ensure icon doesn't overflow */
 }
 
 .floating-search-trigger:hover {
@@ -244,7 +245,8 @@
 }
 
 .trigger-icon {
-  font-size: 22px;
+  font-size: 18px; /* Reduced from 22px to fit better */
+  line-height: 1;
 }
 
 .trigger-text {

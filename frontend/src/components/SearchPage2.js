@@ -2241,9 +2241,9 @@ const SearchPage2 = () => {
                 </select>
                 <button
                   onClick={toggleSortOrder}
-                  className="layout-toggle-btn"
+                  className="layout-toggle-btn sort-order-btn"
                   style={{
-                    padding: '6px 12px',
+                    padding: '6px 10px',
                     fontSize: '14px',
                     borderRadius: 'var(--radius-sm)',
                     border: '1px solid var(--border-color)',
@@ -2254,16 +2254,14 @@ const SearchPage2 = () => {
                     transition: 'all 0.2s ease',
                     display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '6px',
-                    minWidth: 'fit-content',
-                    whiteSpace: 'nowrap',
-                    overflow: 'visible',
+                    justifyContent: 'center',
+                    width: '36px',
+                    height: '36px',
                     flexShrink: 0
                   }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
                 >
                   <span className="layout-toggle-btn-icon">{sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  <span className="layout-toggle-btn-text">{sortOrder === 'desc' ? 'Desc' : 'Asc'}</span>
                 </button>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
