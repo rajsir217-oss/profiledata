@@ -225,8 +225,8 @@
   color: white;
   border: none;
   border-radius: 12px;
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   display: flex;
   align-items: center;
@@ -235,7 +235,7 @@
   cursor: pointer;
   z-index: 1000;
   transition: all 0.2s ease;
-  overflow: hidden; /* Ensure icon doesn't overflow */
+  overflow: hidden;
 }
 
 .floating-search-trigger:hover {
@@ -245,8 +245,9 @@
 }
 
 .trigger-icon {
-  font-size: 18px; /* Reduced from 22px to fit better */
+  font-size: 16px;
   line-height: 1;
+  transform: scale(0.9);
 }
 
 .trigger-text {
