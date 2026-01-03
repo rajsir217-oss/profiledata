@@ -245,9 +245,7 @@
 }
 
 .trigger-icon {
-  font-size: 16px;
-  line-height: 1;
-  transform: scale(0.9);
+  font-size: 20px;
 }
 
 .trigger-text {
