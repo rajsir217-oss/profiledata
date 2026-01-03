@@ -22,12 +22,25 @@ const PIIRequestModal = ({
   const [successMessage, setSuccessMessage] = useState('');
   const currentUsername = localStorage.getItem('username');
 
-  // Map PII type values to visibility setting keys
+  // Map PII type values to visibility setting keys (for non-image PII types)
   const visibilityKeyMap = {
     'contact_number': 'contactNumberVisible',
     'contact_email': 'contactEmailVisible',
-    'linkedin_url': 'linkedinUrlVisible',
-    'images': 'imagesVisible'
+    'linkedin_url': 'linkedinUrlVisible'
+    // 'images' removed - now uses imageVisibility.onRequest bucket system
+  };
+  
+  // Check if images need request using 3-bucket visibility system
+  // Returns true if ALL photos are already visible (no onRequest photos)
+  const areAllImagesVisible = () => {
+    if (!targetProfile) return false;
+    const imageVisibility = targetProfile.imageVisibility;
+    if (imageVisibility) {
+      const onRequestPhotos = imageVisibility.onRequest || [];
+      return onRequestPhotos.length === 0;
+    }
+    // No imageVisibility = no private photos (legacy profiles)
+    return true;
   };
 
   // Map PII type values to requester's data fields
@@ -400,8 +413,17 @@ const PIIRequestModal = ({
                 // Check if this field is already visible to members (no request needed)
                 // BUT also check if target actually HAS the data (e.g., photos exist)
                 const visibilityKey = visibilityKeyMap[type.value];
-                const visibilitySetting = visibilityKey && visibilitySettings[visibilityKey] === true;
                 const targetHasThisData = targetHasData(type.value);
+                
+                // For images: use new 3-bucket system (check if no onRequest photos)
+                // For other fields: use legacy visibility boolean
+                let visibilitySetting;
+                if (type.value === 'images') {
+                  visibilitySetting = areAllImagesVisible();
+                } else {
+                  visibilitySetting = visibilityKey && visibilitySettings[visibilityKey] === true;
+                }
+                
                 // Only show "Already Member Visible" if BOTH setting is true AND data exists
                 const isMemberVisible = visibilitySetting && targetHasThisData;
                 
@@ -452,7 +474,10 @@ const PIIRequestModal = ({
                       )}
                       {isMemberVisible && (
                         <div className="pii-type-note note-muted">
-                          You don't have to request since member made the {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} as member visible true
+                          {type.value === 'images' 
+                            ? "All photos are already visible (no private 🔒 On Request photos)"
+                            : `No request needed - ${type.label.replace(/[📷📞📧🔗]\s*/g, '')} is visible to all members`
+                          }
                         </div>
                       )}
                       {visibilitySetting && !targetHasThisData && canShare && (

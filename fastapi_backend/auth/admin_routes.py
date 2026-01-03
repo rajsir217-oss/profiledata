@@ -18,7 +18,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from database import get_database
 from .jwt_auth import get_current_user_dependency
-from .authorization import require_admin, PermissionChecker, RoleChecker
+from .authorization import require_admin, require_moderator_or_admin, PermissionChecker, RoleChecker
 from .security_models import (
     UserManagementRequest, RoleAssignmentRequest, PermissionGrantRequest,
     UserSecurityStatus, UserRole, Permission
@@ -34,7 +34,31 @@ router = APIRouter(prefix="/api/admin", tags=["Admin Management"])
 
 # ===== USER MANAGEMENT =====
 
-@router.get("/users", dependencies=[Depends(require_admin)])
+# Projection for admin user list - only fetch needed fields for performance
+ADMIN_USER_LIST_PROJECTION = {
+    "_id": 1,
+    "username": 1,
+    "firstName": 1,
+    "lastName": 1,
+    "contactEmail": 1,
+    "contactNumber": 1,
+    "gender": 1,
+    "accountStatus": 1,
+    "role_name": 1,
+    "created_at": 1,
+    "createdAt": 1,
+    "lastLogin": 1,
+    "birthMonth": 1,
+    "birthYear": 1,
+    "region": 1,
+    "city": 1,
+    "profileId": 1,
+    "images": 1,
+    "profileImage": 1,
+    "imageValidation": 1,
+}
+
+@router.get("/users", dependencies=[Depends(require_moderator_or_admin)])
 async def get_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=10000),
@@ -49,6 +73,8 @@ async def get_all_users(
     
     - search: General search across username, firstName, lastName, contactEmail
     - email_search: Dedicated email search that tries both encrypted and plaintext formats
+    
+    Performance optimized: Uses projection to fetch only needed fields.
     """
     try:
         # Build query
@@ -81,8 +107,8 @@ async def get_all_users(
         # For email search, we need to fetch ALL matching users first, decrypt, then filter
         # because encrypted emails can't be searched with regex
         if email_search_term:
-            # Fetch all users matching other filters (status, role)
-            users_cursor = db.users.find(query).sort("created_at", -1)
+            # Fetch all users matching other filters (status, role) - use projection for performance
+            users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).sort("created_at", -1)
             all_users = await users_cursor.to_list(length=10000)  # Reasonable max
             
             # Decrypt and filter by email
@@ -113,10 +139,10 @@ async def get_all_users(
             
             logger.info(f"🔍 Email search '{email_search_term}': found {total} matches")
         else:
-            # Standard query without email search
+            # Standard query without email search - use projection for performance
             total = await db.users.count_documents(query)
             skip = (page - 1) * limit
-            users_cursor = db.users.find(query).skip(skip).limit(limit).sort("created_at", -1)
+            users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).skip(skip).limit(limit).sort("created_at", -1)
             users = await users_cursor.to_list(length=limit)
             
             for i, user in enumerate(users):
@@ -149,7 +175,7 @@ async def get_all_users(
         logger.error(f"Error getting users: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/users/{username}", dependencies=[Depends(require_admin)])
+@router.get("/users/{username}", dependencies=[Depends(require_moderator_or_admin)])
 async def get_user_details(
     username: str,
     db = Depends(get_database)
@@ -207,16 +233,16 @@ async def get_user_details(
         logger.error(f"Error getting user details: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/users/{username}/manage", dependencies=[Depends(require_admin)])
+@router.post("/users/{username}/manage", dependencies=[Depends(require_moderator_or_admin)])
 async def manage_user(
     username: str,
     request: UserManagementRequest,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
     """
     Manage user account (activate, deactivate, suspend, ban, unlock, verify_email)
-    Admin only
+    Admin or Moderator only
     """
     try:
         user = await db.users.find_one({"username": username})
@@ -404,11 +430,11 @@ class StatusUpdateRequest(BaseModel):
     status: str
     reason: Optional[str] = None  # Admin's reason for status change
 
-@router.patch("/users/{username}/status", dependencies=[Depends(require_admin)])
+@router.patch("/users/{username}/status", dependencies=[Depends(require_moderator_or_admin)])
 async def update_user_status(
     username: str,
     request: StatusUpdateRequest,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
     """

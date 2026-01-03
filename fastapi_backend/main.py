@@ -42,6 +42,9 @@ from routers.ai_router import router as ai_router
 from routers.polls import router as polls_router
 from routers.ticker import router as ticker_router
 from routers.admin_reports import router as admin_reports_router
+from routers.promo_codes import router as promo_codes_router
+from routers.payments import router as payments_router
+from routers.site_settings import router as site_settings_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -285,6 +288,9 @@ app.include_router(ai_router)  # AI routes (already has /api/ai prefix)
 app.include_router(polls_router)  # Polls routes (already has /api/polls prefix)
 app.include_router(ticker_router, prefix="/api/ticker")  # Scrolling info ticker routes
 app.include_router(admin_reports_router)  # Admin reports routes (already has /api/admin/reports prefix)
+app.include_router(promo_codes_router)  # Promo codes routes (already has /api/promo-codes prefix)
+app.include_router(payments_router)  # Payment history routes (already has /api/payments prefix)
+app.include_router(site_settings_router)  # Site settings routes (already has /api/site-settings prefix)
 
 # Health check endpoint
 @app.get("/health")

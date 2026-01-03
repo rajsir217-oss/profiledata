@@ -239,14 +239,23 @@
   text-align: center;
 }
 
+/* ACTIONS column - 2nd column - compact */
 .users-table th:nth-child(2),
 .users-table td:nth-child(2) {
-  min-width: 120px;
+  width: 60px;
+  max-width: 60px;
+  text-align: center;
 }
 
 .users-table th:nth-child(3),
 .users-table td:nth-child(3) {
   min-width: 150px;
+}
+
+/* NAME column - 4th column - no wrap */
+.users-table th:nth-child(4),
+.users-table td:nth-child(4) {
+  white-space: nowrap;
 }
 
 .users-table th:nth-child(5),
@@ -316,6 +325,19 @@
 .status-suspended {
   background: var(--warning-color);
   color: white;
+}
+
+/* Promo Code Badge */
+.promo-code-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  background: var(--info-light);
+  color: var(--info-color);
+  border: 1px solid var(--info-color);
+  white-space: nowrap;
 }
 
 .status-banned {
@@ -1529,24 +1551,25 @@
 }
 
 .btn-actions-menu {
-  padding: 8px 16px;
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 6px 10px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 18px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
 }
 
 .btn-actions-menu:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  background: var(--hover-background);
+  border-color: var(--primary-color);
 }
 
 .actions-dropdown-menu {
@@ -1749,6 +1772,71 @@
 .view-more-count {
   color: var(--text-secondary);
   font-weight: 400;
+}
+
+/* Loading More Indicator (Infinite Scroll) */
+.loading-more-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  color: var(--text-secondary);
+  font-size: 15px;
+}
+
+.loading-more-indicator .spinner-border-sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+/* All Loaded Message / Load More Button */
+.all-loaded-message {
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  padding: 12px 24px;
+  background: var(--success-color);
+  border-radius: var(--radius-lg);
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.all-loaded-message:not(:disabled):hover {
+  background: var(--success-hover);
+  transform: scale(1.02);
+}
+
+.all-loaded-message:disabled {
+  cursor: default;
+}
+
+/* Load More Sentinel (for IntersectionObserver) */
+.load-more-sentinel {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+/* Load More Button */
+.load-more-btn {
+  padding: 12px 24px;
+  background: var(--surface-color);
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.load-more-btn:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
 }
 
 /* Mobile Responsiveness */

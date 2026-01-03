@@ -16,6 +16,9 @@ const InviteFriends = () => {
   const [displayedCount, setDisplayedCount] = useState(20);
   const [loadingMore, setLoadingMore] = useState(false);
   
+  // User's promo code (auto-applied, hidden from UI)
+  const [userPromoCode, setUserPromoCode] = useState('USVEDIKA');
+  
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -68,8 +71,29 @@ const InviteFriends = () => {
     }
   };
 
+  const loadUserPromoCode = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/promo-codes/my-code`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.promoCode) {
+          setUserPromoCode(data.promoCode);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading user promo code:', err);
+      // Keep default USVEDIKA
+    }
+  };
+
   const loadData = async () => {
-    await Promise.all([loadInvitations(), loadStats()]);
+    await Promise.all([loadInvitations(), loadStats(), loadUserPromoCode()]);
     setLoading(false);
   };
 
@@ -106,14 +130,19 @@ const InviteFriends = () => {
 
     try {
       const token = localStorage.getItem('token');
-      console.log('📤 Sending invitation:', formData);
+      // Auto-apply user's promo code to the invitation
+      const invitationData = {
+        ...formData,
+        promoCode: userPromoCode
+      };
+      console.log('📤 Sending invitation with promo code:', invitationData);
       const response = await fetch(`${getBackendUrl()}/api/user-invitations`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(invitationData)
       });
 
       console.log('📥 Response status:', response.status);

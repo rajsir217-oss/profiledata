@@ -50,9 +50,9 @@ const PollManagement = () => {
   const [formSubmitting, setFormSubmitting] = useState(false);
 
   useEffect(() => {
-    // Check if user is admin
+    // Check if user is admin or moderator
     const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'moderator') {
       navigate('/dashboard');
       return;
     }

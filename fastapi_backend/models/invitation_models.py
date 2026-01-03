@@ -40,6 +40,7 @@ class InvitationCreate(InvitationBase):
     """Model for creating new invitation"""
     emailSubject: Optional[str] = Field(None, max_length=200, description="Custom email subject line")
     sendImmediately: bool = Field(default=True, description="Send invitation immediately after creation")
+    promoCode: Optional[str] = Field(None, max_length=50, description="Promo code to attach to invitation")
 
 
 class InvitationUpdate(BaseModel):
@@ -61,6 +62,9 @@ class InvitationDB(InvitationBase):
     # Optional fields for bulk import support
     emailSubject: Optional[str] = Field(None, description="Custom email subject line")
     comments: Optional[str] = Field(None, description="Additional comments (e.g., gender, notes)")
+    
+    # Promo code tracking
+    promoCode: Optional[str] = Field(None, description="Promo code attached to this invitation")
     
     # Email tracking
     emailStatus: InvitationStatus = Field(default=InvitationStatus.PENDING)
@@ -105,6 +109,7 @@ class InvitationResponse(BaseModel):
     phone: Optional[str]
     channel: InvitationChannel
     invitedBy: str
+    promoCode: Optional[str] = Field(None, description="Promo code attached to this invitation")
     
     emailStatus: InvitationStatus
     emailSentAt: Optional[datetime]

@@ -149,7 +149,10 @@ DEFAULT_PERMISSIONS = {
         "messages.read",
         "messages.delete",
         "pii.read",
-        "audit.read"
+        "audit.read",
+        "announcements.*",
+        "polls.*",
+        "invitations.*"
     ],
     "premium_user": [
         "profiles.read",

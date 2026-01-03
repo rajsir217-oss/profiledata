@@ -216,14 +216,208 @@
   }
 }
 
-/* Layout Toggle Buttons */
-.layout-toggle-buttons button:hover {
+/* Search Modal Trigger - Matches TopBar search button style */
+.floating-search-trigger {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.2s ease;
+}
+
+.floating-search-trigger:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+  background: var(--secondary-color);
+}
+
+.trigger-icon {
+  font-size: 22px;
+}
+
+.trigger-text {
+  display: none; /* Hide text to match TopBar icon-only style */
+}
+
+.active-criteria-bar {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.active-criteria-bar:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateY(-2px);
+}
+
+.criteria-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.criteria-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.criteria-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.criteria-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.results-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.btn-modify-search {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modify-search:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .floating-search-trigger {
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  
+  .trigger-icon {
+    font-size: 20px;
+  }
+  
+  .active-criteria-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  
+  .criteria-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .criteria-label {
+    font-size: 11px !important;
+  }
+  
+  .criteria-value {
+    font-size: 12px !important;
+    max-width: 150px;
+  }
+  
+  .criteria-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* Hide "profiles found" text on mobile, show only number */
+  .results-count-text {
+    display: none !important;
+  }
+  
+  .results-count {
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Hide "Modify" text on mobile, show only icon */
+  .modify-text {
+    display: none !important;
+  }
+  
+  .btn-modify-search {
+    padding: 6px 10px !important;
+    font-size: 16px !important;
+    min-width: 36px;
+  }
+}
+
+/* Cleanup old search filter styles if needed */
+.search-filters {
+  display: none; /* Hide old inline filters container if any remaining refs */
 }
 
 .layout-toggle-buttons button.active {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Layout toggle button hover effect */
+.layout-toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateY(-1px);
+}
+
+/* Hide text on mobile for layout toggle buttons */
+@media (max-width: 576px) {
+  .layout-toggle-btn-text {
+    display: none;
+  }
+  
+  .layout-toggle-btn {
+    padding: 6px 10px !important;
+  }
 }
 
 /* Floating Action Buttons - Same style as Profile page */

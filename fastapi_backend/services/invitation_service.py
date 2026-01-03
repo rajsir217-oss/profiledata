@@ -84,6 +84,7 @@ class InvitationService:
             "customMessage": invitation_data.customMessage,
             "emailSubject": invitation_data.emailSubject or "You're Invited to Join USVedika for US Citizens & GC Holders",
             "invitedBy": invited_by,
+            "promoCode": invitation_data.promoCode,
             
             # Email tracking
             "emailStatus": InvitationStatus.PENDING,

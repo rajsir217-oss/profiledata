@@ -28,6 +28,7 @@ const PIIRequestsTable = ({
   onCancel,
   onApproveAll,
   onRejectAll,
+  onRevokeAll,  // New: for revoking approved access
   onClearAll,
   onProfileClick,
   showMutualExchange = true,
@@ -81,11 +82,23 @@ const PIIRequestsTable = ({
   // Helper: Check if PII type is member visible (no request needed)
   const isPiiMemberVisible = (profile, piiType) => {
     if (!profile) return false;
+    
+    // For images: use new 3-bucket system - check if onRequest bucket is empty
+    if (piiType === 'images') {
+      const imageVisibility = profile.imageVisibility;
+      if (imageVisibility) {
+        // If no onRequest photos, all images are already visible
+        return (imageVisibility.onRequest || []).length === 0;
+      }
+      // Legacy fallback - assume no onRequest photos if no imageVisibility
+      return true;
+    }
+    
+    // For other PII types: use legacy visibility flags
     const visibilityMap = {
       'contact_number': 'contactNumberVisible',
       'contact_email': 'contactEmailVisible',
-      'linkedin_url': 'linkedinUrlVisible',
-      'images': 'imagesVisible'
+      'linkedin_url': 'linkedinUrlVisible'
     };
     const visibilityKey = visibilityMap[piiType];
     return visibilityKey ? profile[visibilityKey] === true : false;
@@ -282,6 +295,16 @@ const PIIRequestsTable = ({
                 
                 const exchangeIcons = getMutualExchangeIcons(profile, requestedTypes);
                 
+                // Check request states for button logic
+                // State machine: Pending → Approve/Reject, Approved → Revoke → back to Pending
+                const hasPendingRequests = userRequests.some(req => req.status === 'pending');
+                const hasApprovedRequests = userRequests.some(req => req.status === 'approved');
+                
+                // Button states:
+                // - If APPROVED: Show disabled ✓All + enabled Revoke
+                // - If PENDING: Show enabled ✓All + enabled ✗All
+                // - After Revoke: Goes back to PENDING state
+                
                 return (
                   <tr key={username} className={isExpiringSoon ? 'expiring-soon' : ''}>
                     <td className="col-profile">
@@ -370,19 +393,31 @@ const PIIRequestsTable = ({
                     <td className="col-actions">
                       <div className="row-actions">
                         <button
-                          className="btn-row-approve"
-                          onClick={() => onApproveAll && onApproveAll(username, userRequests)}
-                          title={`Approve all ${userRequests.length} requests`}
+                          className={`btn-row-approve ${!hasPendingRequests ? 'disabled' : ''}`}
+                          onClick={() => hasPendingRequests && onApproveAll && onApproveAll(username, userRequests)}
+                          title={hasPendingRequests ? `Approve all pending requests` : 'Already approved'}
+                          disabled={!hasPendingRequests}
                         >
                           ✓ All
                         </button>
-                        <button
-                          className="btn-row-reject"
-                          onClick={() => onRejectAll && onRejectAll(username, userRequests)}
-                          title={`Reject all ${userRequests.length} requests`}
-                        >
-                          ✗ All
-                        </button>
+                        {hasApprovedRequests ? (
+                          <button
+                            className="btn-row-revoke"
+                            onClick={() => onRevokeAll && onRevokeAll(username, userRequests)}
+                            title="Revoke all granted access"
+                          >
+                            Revoke
+                          </button>
+                        ) : (
+                          <button
+                            className={`btn-row-reject ${!hasPendingRequests ? 'disabled' : ''}`}
+                            onClick={() => hasPendingRequests && onRejectAll && onRejectAll(username, userRequests)}
+                            title={hasPendingRequests ? `Reject all pending requests` : 'No pending requests'}
+                            disabled={!hasPendingRequests}
+                          >
+                            ✗ All
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

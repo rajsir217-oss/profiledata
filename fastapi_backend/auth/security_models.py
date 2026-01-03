@@ -151,6 +151,7 @@ class RegisterRequest(BaseModel):
     confirm_password: str
     firstName: str = Field(..., min_length=1, max_length=50)
     lastName: str = Field(..., min_length=1, max_length=50)
+    promoCode: Optional[str] = Field(None, description="Optional promo code for registration")
     data_processing_consent: bool = True
     marketing_consent: bool = False
     
