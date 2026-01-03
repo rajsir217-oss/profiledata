@@ -151,8 +151,11 @@ const SearchPage2 = () => {
   const searchResultsRef = useRef(null);
 
   // Load more state (for incremental loading instead of pagination)
-  const [displayedCount, setDisplayedCount] = useState(20);
+  const [displayedCount, setDisplayedCount] = useState(10); // Reduced from 20 for faster initial load
   const [loadingMore, setLoadingMore] = useState(false);
+  
+  // Ref for infinite scroll observer
+  const loadMoreTriggerRef = useRef(null);
 
   // Sort state
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
@@ -1231,7 +1234,7 @@ const SearchPage2 = () => {
         try {
           const l3v3lResponse = await api.get(`/l3v3l-matches/${currentUser}`, {
             params: {
-              limit: 500,
+              limit: 100, // Reduced from 500 for faster load
               min_score: 0  // Get all scores, we'll filter client-side
             }
           });
@@ -1303,19 +1306,39 @@ const SearchPage2 = () => {
     }
   };
 
-  const handleLoadMore = () => {
+  const handleLoadMore = useCallback(() => {
+    if (loadingMore) return; // Prevent multiple triggers
     setLoadingMore(true);
-    // Simulate a small delay for better UX (can be removed if not needed)
+    // Small delay for better UX
     setTimeout(() => {
-      setDisplayedCount(prev => prev + 20); // Let render clamp to actual length
+      setDisplayedCount(prev => prev + 10); // Load 10 more (reduced from 20)
       setLoadingMore(false);
-      // Smooth scroll to show newly loaded items
-      window.scrollTo({ 
-        top: document.documentElement.scrollHeight - 800, 
-        behavior: 'smooth' 
-      });
-    }, 300);
-  };
+    }, 150); // Reduced delay from 300ms
+  }, [loadingMore]);
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !loadingMore && displayedCount < sortedUsers.length) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' } // Trigger 100px before element is visible
+    );
+
+    const currentRef = loadMoreTriggerRef.current;
+    if (currentRef) {
+      observer.observe(currentRef);
+    }
+
+    return () => {
+      if (currentRef) {
+        observer.unobserve(currentRef);
+      }
+    };
+  }, [loadingMore, displayedCount, sortedUsers.length, handleLoadMore]);
 
   const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
@@ -2352,6 +2375,7 @@ const SearchPage2 = () => {
                             <img 
                               src={thumbnailUrl}
                               alt={user.firstName || user.username}
+                              loading="lazy"
                               style={{
                                 width: '100%',
                                 height: '100%',
@@ -2507,14 +2531,22 @@ const SearchPage2 = () => {
             </div>
           )}
 
-          {/* LoadMore at Top */}
+          {/* Infinite Scroll Trigger - invisible element that triggers load more */}
+          {displayedCount < sortedUsers.length && (
+            <div 
+              ref={loadMoreTriggerRef}
+              style={{ height: '20px', margin: '20px 0' }}
+            />
+          )}
+
+          {/* LoadMore - shows count and manual button */}
           {sortedUsers.length > 0 && (
             <LoadMore
               currentCount={Math.min(displayedCount, sortedUsers.length)}
               totalCount={sortedUsers.length}
               onLoadMore={handleLoadMore}
               loading={loadingMore}
-              itemsPerLoad={20}
+              itemsPerLoad={10}
               itemLabel="profiles"
               buttonText="View more"
             />

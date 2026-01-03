@@ -691,6 +691,7 @@ const SearchResultCard = ({
               src={imageUrlWithToken}
               alt={`${user.firstName}'s profile`}
               className="card-profile-image"
+              loading="lazy"
               onError={(e) => {
                 e.target.style.display = 'none';
                 e.target.nextSibling.style.display = 'flex';
