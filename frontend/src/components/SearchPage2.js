@@ -1299,16 +1299,20 @@ const SearchPage2 = () => {
       // Update pagination state
       const total = response.data.total || 0;
       setTotalResults(total);
-      setHasMoreResults(users.length + filteredUsers.length < total);
       
       if (page === 1) {
+        // First page: hasMore if we fetched less than total
+        setHasMoreResults(filteredUsers.length < total);
         setUsers(filteredUsers);
         setCurrentPage(1);
+        logger.info(`📊 Pagination: page=1, fetched=${filteredUsers.length}, total=${total}, hasMore=${filteredUsers.length < total}`);
       } else {
+        // Subsequent pages: hasMore if current + new < total
+        const newTotal = users.length + filteredUsers.length;
+        setHasMoreResults(newTotal < total);
         setUsers(prev => [...prev, ...filteredUsers]);
+        logger.info(`📊 Pagination: page=${page}, fetched=${filteredUsers.length}, total=${total}, accumulated=${newTotal}, hasMore=${newTotal < total}`);
       }
-      
-      logger.info(`📊 Pagination: page=${page}, fetched=${filteredUsers.length}, total=${total}, hasMore=${users.length + filteredUsers.length < total}`);
 
     } catch (err) {
       logger.error('Error searching users:', err);
