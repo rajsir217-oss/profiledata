@@ -239,7 +239,10 @@ const SearchPage2 = () => {
             if (state.selectedProfileForDetail) setSelectedProfileForDetail(state.selectedProfileForDetail);
             
             hasRestoredStateRef.current = true;
-            hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
+            // Only prevent auto-search if we actually have results to display
+            if (state.users && state.users.length > 0) {
+              hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
+            }
             
             // Restore scroll position after a short delay to let DOM render
             setTimeout(() => {
