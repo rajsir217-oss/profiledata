@@ -3757,7 +3757,7 @@ async def search_users(
     db = Depends(get_database)
 ):
     """Advanced search for users with filters"""
-    logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}")
+    logger.info(f"🔍 Search request - keyword: '{keyword}', profileId: '{profileId}', status_filter: '{status_filter}', page: {page}, limit: {limit}, gender: '{gender}', ageMin: {ageMin}, ageMax: {ageMax}")
     
     # Non-active users cannot search for other profiles
     if current_user.get("accountStatus") != "active":
@@ -3811,9 +3811,10 @@ async def search_users(
                 {"interests": {"$regex": keyword, "$options": "i"}}
             ]
 
-        # Gender filter
+        # Gender filter - case-insensitive match
         if gender:
-            query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}  # Case-insensitive match
+            # Capitalize first letter to match DB format (Male, Female)
+            query["gender"] = gender.capitalize()
 
         # Age filter - Calculate dynamically from birthMonth and birthYear
         # This ensures age is always accurate and never stale
@@ -3881,13 +3882,13 @@ async def search_users(
             seven_days_ago = datetime.now() - timedelta(days=7)
             query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
 
-    # Sort options
+    # Sort options - always add _id as secondary sort for stable pagination
     sort_options = {
-        "newest": [("createdAt", -1)],
-        "oldest": [("createdAt", 1)],
-        "name": [("firstName", 1)],
-        "age": [("birthYear", -1), ("birthMonth", -1)],
-        "location": [("location", 1)]
+        "newest": [("createdAt", -1), ("_id", -1)],
+        "oldest": [("createdAt", 1), ("_id", 1)],
+        "name": [("firstName", 1), ("_id", 1)],
+        "age": [("birthYear", -1), ("birthMonth", -1), ("_id", -1)],
+        "location": [("location", 1), ("_id", 1)]
     }
 
     sort = sort_options.get(sortBy, sort_options["newest"])
@@ -3896,19 +3897,22 @@ async def search_users(
 
     # Calculate skip for pagination
     skip = (page - 1) * limit
+    logger.info(f"📄 Pagination: page={page}, limit={limit}, skip={skip}")
 
     # Get user's exclusions and filter them out from search results
     current_username = current_user.get("username")
     exclusions = await db.exclusions.find({"userUsername": current_username}).to_list(100)
     excluded_usernames = [exc["excludedUsername"] for exc in exclusions]
     
-    if excluded_usernames:
-        # Add exclusion filter to query - exclude self and excluded users
-        query["username"] = {"$nin": excluded_usernames + [current_username]}
-        logger.info(f"🚫 Excluding {len(excluded_usernames)} users from search results for {current_username}")
-    else:
-        # Just exclude self from results
-        query["username"] = {"$ne": current_username}
+    # Build list of usernames to exclude: self + blocked users
+    usernames_to_exclude = excluded_usernames + [current_username]
+    query["username"] = {"$nin": usernames_to_exclude}
+    
+    # Exclude admin and moderator roles from search results (unless doing profileId lookup)
+    if not profileId:
+        query["role"] = {"$nin": ["admin", "Admin", "moderator", "Moderator"]}
+    
+    logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
 
     try:
         # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
@@ -3985,13 +3989,16 @@ async def search_users(
             ]
             
             # Execute aggregation
-            logger.info(f"🔍 Executing search with aggregation (dynamic age calculation)")
+            logger.info(f"🔍 Executing search with aggregation (dynamic age calculation), skip={skip}, limit={limit}")
             result = await db.users.aggregate(pipeline).to_list(1)
             
             if result and len(result) > 0:
                 users = result[0].get("users", [])
                 total_count = result[0].get("totalCount", [])
                 total = total_count[0]["count"] if total_count else 0
+                logger.info(f"📊 Aggregation result: returned {len(users)} users, total={total}")
+                if users:
+                    logger.info(f"📊 First user: {users[0].get('username')}, Last user: {users[-1].get('username') if len(users) > 1 else 'N/A'}")
             else:
                 users = []
                 total = 0

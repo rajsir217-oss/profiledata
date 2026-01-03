@@ -6,10 +6,13 @@
 
 /* Split-Screen Layout Styles */
 .split-screen-layout {
-  display: flex;
+  display: flex !important;
+  flex-direction: row !important;
   gap: 20px;
   height: calc(100vh - 350px);
   min-height: 600px;
+  /* Reset any grid styles that might bleed in */
+  grid-template-columns: unset !important;
 }
 
 .thumbnail-navigation {
