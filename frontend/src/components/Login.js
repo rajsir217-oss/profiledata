@@ -18,6 +18,8 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaError, setCaptchaError] = useState(false);
+  const [captchaRetryCount, setCaptchaRetryCount] = useState(0);
   const turnstileRef = useRef();
   const navigate = useNavigate();
   const pageSEO = getPageSEO('login');
@@ -62,8 +64,8 @@ const Login = () => {
     setLoading(true);
     setError("");
     
-    // Verify CAPTCHA
-    if (!captchaToken) {
+    // Verify CAPTCHA (allow bypass if Cloudflare is having issues after 3 retries)
+    if (!captchaToken && !canBypassCaptcha) {
       setError("Please complete the CAPTCHA verification");
       setLoading(false);
       return;
@@ -155,8 +157,30 @@ const Login = () => {
   const handleCaptchaChange = (token) => {
     console.log("CAPTCHA verified:", token ? "✓" : "✗");
     setCaptchaToken(token);
+    setCaptchaError(false);
     setError(""); // Clear error when CAPTCHA is completed
   };
+
+  const handleCaptchaError = () => {
+    console.error("CAPTCHA error - Cloudflare Turnstile failed to load");
+    setCaptchaError(true);
+    setCaptchaRetryCount(prev => prev + 1);
+  };
+
+  const handleCaptchaExpire = () => {
+    console.log("CAPTCHA expired - resetting");
+    setCaptchaToken(null);
+  };
+
+  const retryCaptcha = () => {
+    setCaptchaError(false);
+    if (turnstileRef.current) {
+      turnstileRef.current.reset();
+    }
+  };
+
+  // Allow bypass after 3 failed captcha attempts (Cloudflare issues)
+  const canBypassCaptcha = captchaRetryCount >= 3;
 
   const sendMfaCode = async () => {
     try {
@@ -319,23 +343,62 @@ const Login = () => {
             <Link to="/forgot-password" className="login-forgot-link">Forgot Password?</Link>
           </div>
           
-          {/* Cloudflare Turnstile CAPTCHA (100% Free) */}
+          {/* Cloudflare Turnstile CAPTCHA with error handling */}
           <div className="login-captcha-container">
-            <Turnstile
-              ref={turnstileRef}
-              sitekey={
-                window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-                  ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
-                  : "0x4AAAAAACAeADZnXAaS1tep"   // Production key (6 A's - matches rotated secret key)
-              }
-              onVerify={handleCaptchaChange}
-              theme="light"
-            />
+            {captchaError ? (
+              <div style={{
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '8px',
+                padding: '12px 16px',
+                textAlign: 'center',
+                width: '100%',
+                maxWidth: '300px'
+              }}>
+                <p style={{ color: '#ef4444', fontSize: '13px', margin: '0 0 8px 0' }}>
+                  ⚠️ Security check unavailable
+                </p>
+                {captchaRetryCount < 3 ? (
+                  <button
+                    type="button"
+                    onClick={retryCaptcha}
+                    style={{
+                      background: 'transparent',
+                      border: '1px solid #ef4444',
+                      color: '#ef4444',
+                      padding: '6px 16px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    Retry ({3 - captchaRetryCount} attempts left)
+                  </button>
+                ) : (
+                  <p style={{ color: '#6b7280', fontSize: '12px', margin: '0' }}>
+                    ✓ Cloudflare issue detected - proceeding without captcha
+                  </p>
+                )}
+              </div>
+            ) : (
+              <Turnstile
+                ref={turnstileRef}
+                sitekey={
+                  window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+                    ? "1x00000000000000000000AA"  // Test key for localhost (always passes)
+                    : "0x4AAAAAACAeADZnXAaS1tep"   // Production key
+                }
+                onVerify={handleCaptchaChange}
+                onError={handleCaptchaError}
+                onExpire={handleCaptchaExpire}
+                theme="light"
+              />
+            )}
           </div>
           
           <button 
             type="submit" 
-            disabled={loading || !captchaToken}
+            disabled={loading || (!captchaToken && !canBypassCaptcha)}
             className="login-button"
           >
             {loading ? "Signing in..." : "Sign In"}
