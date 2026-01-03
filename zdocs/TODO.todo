@@ -2,54 +2,55 @@
 
 ## UI/UX Improvements
 
-### Layout Issues
-- [x] **Fix row format overflow on L3V3L matches page** - Fixed by adding proper width constraints and overflow handling to `.results-rows`, `.result-row`, and `.row-content` (Oct 26, 2025)
-  - File: `/frontend/src/components/SearchPage.css`
+1. ✅ **Profile Pictures - 3-Column Visibility System** (Dec 28, 2025)
+   - Design: `zdocs/PHOTO_VISIBILITY_DESIGN.md`
+   - Backend: `routes.py` - GET/PUT `/profile/{username}/image-visibility`
+   - Frontend: `PhotoVisibilityManager.js` + CSS
+   - Migration: `migrations/migrate_image_visibility.py`
+   - **Buckets:** Profile Pic (1) | Member Visible (4) | On Request (within 5)
+   - **Status:** Core implementation complete, needs integration testing
+   - **Next:** Replace ImageManager with PhotoVisibilityManager in Dashboard, run migration
 
-### Mobile Responsiveness
-- [ ] **Fix "+Add" button styling for mobile** - Button should be rounded/circular on mobile view for Education and Work Experience sections (change was lost during environment configuration updates)
-  - Files: `/frontend/src/components/shared/EducationHistory.js`, `/frontend/src/components/shared/WorkExperience.js`
-  - CSS: Button should be circular with just "+" icon on mobile, full text "Add" on desktop
+2. membership fee - payment - gateway integeration - wikipedia style -- link to "promocode"(implmented)
+3. on profile page -- from search - navigate to profile by clicking left|right the profile images are not refreshing as per the profile
+4. moderator role - free user permissions plus below
+   1. admin Dashboard
+   2. Invitation Management
+   3. http://localhost:3000/announcement-management
+   4. http://localhost:3000/poll-management
+   5. http://localhost:3000/admin-reports
+5. in profile search query should always pick only active accountstatus members only (i think it does)
+6. in dashboard -- if a profile is in shortlisted or in favorites and the profile accountstatus is changed to other than the "active" the dashboard should remove that profile from shortlist/favorites - it is not happening
+---
 
-## Environment Configuration
+## Promo Code System (feature/promo-code branch)
 
-### Completed ✅
-- [x] Set up environment detection (local vs GCP)
-- [x] Create `.env.local` and `.env.production` files
-- [x] Fix boolean parsing in Pydantic (False vs false)
-- [x] Fix `public/config.js` runtime config override issue
-- [x] Add environment switcher script (`switch-env.sh`)
-- [x] Create deployment scripts (`deploy-gcp.sh`, `set-gcp-secrets.sh`)
+### ✅ Phase 1: Complete
+- Promo code models, service, router
+- User promo codes (USVEDIKA default)
+- Invitation integration
+- User Management promo column
 
-### Pending
-- [ ] Test GCP deployment with new environment configuration
-- [ ] Set up CI/CD pipeline for automatic deployments
-- [ ] Create staging environment configuration
+### ✅ Phase 2: Complete
+- PromoCodeManager - Full CRUD for promo codes
+- Custom per-plan pricing (planPricing field)
+- Discount configuration
+- Usage tracking
 
-## Image Storage
+### 🔲 Phase 3: QR Code Generation (Planned)
+- Generate QR codes for promo codes
+- Download as PNG/SVG
+- Printable cards for events
 
-### Issue
-- Database stores full GCP URLs instead of relative paths
-- When running locally, images still reference GCP
+### 🔲 Phase 4: Membership Integration (Planned)
+- Validate promo at checkout
+- Apply discounts to membership fees
+- Track conversions (registration → paid member)
 
-### Solutions to Implement
-- [ ] **Option 1 (Quick)**: Keep hybrid approach - local API, GCP images
-- [ ] **Option 2 (Clean)**: Database migration to store only relative paths
-  - Update all image URLs in MongoDB to relative paths
-  - Update upload service to save relative paths
-  - Create migration script
-- [ ] **Option 3**: Image sync script to download GCP images locally for development
-
-## Testing
-- [ ] Test image upload in local environment (after storage solution chosen)
-- [ ] Test all notification triggers
-- [ ] Test SMS notifications
-- [ ] Verify all API endpoints work with new environment detection
-
-## Documentation
-- [ ] Update README with new environment setup instructions
-- [ ] Document deployment process
-- [ ] Add troubleshooting guide for common environment issues
+### 🔲 Phase 5: Analytics Dashboard (Planned)
+- Overall metrics (codes, registrations, conversions, revenue)
+- Code performance charts
+- Revenue attribution by promo code
 
 ---
-**Last Updated:** October 26, 2025
+**Last Updated:** Dec 28, 2025

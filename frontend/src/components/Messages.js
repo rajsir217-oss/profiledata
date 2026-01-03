@@ -156,6 +156,12 @@ const Messages = () => {
     );
   }
 
+  const handleBackToList = () => {
+    setSelectedUser(null);
+    setOtherUser(null);
+    setMessages([]);
+  };
+
   return (
     <div className="messages-page">
       {error && (
@@ -165,7 +171,7 @@ const Messages = () => {
         </div>
       )}
       
-      <div className="messages-container">
+      <div className={`messages-container ${selectedUser ? 'chat-active' : ''}`}>
         <MessageList
           conversations={conversations}
           selectedUser={selectedUser}
@@ -178,6 +184,7 @@ const Messages = () => {
           otherUser={otherUser}
           onSendMessage={handleSendMessage}
           onMessageDeleted={handleMessageDeleted}
+          onBack={handleBackToList}
         />
       </div>
     </div>

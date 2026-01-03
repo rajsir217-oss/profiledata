@@ -5,6 +5,7 @@ import { getApiUrl } from '../config/apiConfig';
 import socketService from '../services/socketService';
 import { getShortName } from '../utils/userDisplay';
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
+import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
 
 const Sidebar = ({ isCollapsed, onToggle }) => {
@@ -111,8 +112,10 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
 
   // Build menu items based on user role
   const buildMenuItems = () => {
-    // Check if user is activated (admin role is always active)
-    const isActive = userRole === 'admin' || userStatus === 'active';
+    // Check if user is activated (admin and moderator roles are always active)
+    const isAdmin = userRole === 'admin';
+    const isModerator = userRole === 'moderator';
+    const isActive = isAdmin || isModerator || userStatus === 'active';
     // Debug logging removed - uncomment if needed for debugging
     // console.log('🔍 Sidebar Debug:', { isLoggedIn, currentUser, userStatus, isActive });
     
@@ -180,7 +183,6 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
     ];
 
     // Add Admin section for admin user (check role, not username)
-    const isAdmin = userRole === 'admin';
     if (isAdmin) {
       // === CORE ADMIN SECTION ===
       items.push({ isHeader: true, label: 'ADMIN SECTION' });
@@ -237,12 +239,39 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/poll-management')
       });
       
+      // === MEMBER ACQUIRE ===
+      items.push({ isHeader: true, label: 'MEMBER ACQUIRE' });
+      
       items.push({
         icon: '📧',
         label: 'Invitations Manager',
         subLabel: 'Manage user invitations',
         action: () => navigate('/invitations')
       });
+      
+      items.push({
+        icon: '🎫',
+        label: 'Promo Code Manager',
+        subLabel: 'Codes, discounts & QR',
+        action: () => navigate('/promo-codes')
+      });
+      
+      items.push({
+        icon: '💳',
+        label: 'Membership Plans',
+        subLabel: 'Pricing & plans',
+        action: () => navigate('/membership-plans')
+      });
+      
+      items.push({
+        icon: '📈',
+        label: 'Lead Generation',
+        subLabel: 'Track members & revenue',
+        action: () => navigate('/lead-generation')
+      });
+      
+      // === ANALYTICS & REPORTS ===
+      items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       
       items.push({
         icon: '📧',
@@ -329,6 +358,53 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       });
     }
 
+    // Add Moderator section for moderator user
+    if (isModerator) {
+      items.push({ isHeader: true, label: 'MODERATOR SECTION' });
+      
+      items.push({
+        icon: '🔐',
+        label: 'Admin Dashboard',
+        subLabel: 'Manage all users',
+        action: () => navigate('/admin')
+      });
+      
+      items.push({ isHeader: true, label: 'MONITORING' });
+      
+      items.push({
+        icon: '📢',
+        label: 'Announcement Management',
+        subLabel: 'Site-wide announcements',
+        action: () => navigate('/announcement-management')
+      });
+      
+      items.push({
+        icon: '📊',
+        label: 'Poll Management',
+        subLabel: 'Create & manage polls',
+        action: () => navigate('/poll-management')
+      });
+      
+      items.push({ isHeader: true, label: 'GROWTH' });
+      
+      items.push({
+        icon: '📧',
+        label: 'Invitations Manager',
+        subLabel: 'Manage user invitations',
+        action: () => navigate('/invitations')
+      });
+      
+      items.push({ isHeader: true, label: 'CONFIGURATION' });
+      
+      items.push({ 
+        icon: '⚙️', 
+        label: 'Settings', 
+        subLabel: 'App preferences',
+        action: () => navigate('/preferences'),
+        disabled: !isActive
+      });
+    }
+
     // Show Settings for non-admin users (admins have it in their sections)
     if (isLoggedIn && userRole !== 'admin' && userRole !== 'moderator') {
       items.push({ 
@@ -392,8 +468,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
             >
               {item.profileImage ? (
                 <div className="menu-icon profile-icon">
-                  {userProfile?.images?.[0] ? (
-                    <img src={getAuthenticatedImageUrl(userProfile.images[0])} alt={currentUser} className="profile-avatar" />
+                  {getProfilePicUrl(userProfile) ? (
+                    <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="profile-avatar" />
                   ) : (
                     <div className="profile-avatar-placeholder">
                       {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}

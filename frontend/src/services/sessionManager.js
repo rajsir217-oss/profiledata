@@ -228,6 +228,12 @@ class SessionManager {
    * Logout and cleanup
    */
   logout() {
+    // Prevent multiple logout calls
+    if (this.isLoggingOut) {
+      return;
+    }
+    this.isLoggingOut = true;
+    
     // Clear intervals
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
@@ -254,13 +260,68 @@ class SessionManager {
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
+    
+    // Mark as logged out to prevent duplicate handling
+    sessionStorage.setItem('hasLoggedOut', 'true');
 
-    // Redirect to login
+    // Show session expired overlay immediately to prevent broken UI
+    this.showSessionExpiredOverlay();
+
+    // Redirect to login after brief delay for user to see message
     setTimeout(() => {
+      this.isLoggingOut = false;
+      sessionStorage.removeItem('hasLoggedOut');
       window.location.href = '/login';
-    }, 2000);
+    }, 1500);
 
-    logger.info('Session manager cleaned up');
+    logger.info('Session manager cleaned up - redirecting to login');
+  }
+  
+  /**
+   * Show a full-screen overlay when session expires
+   * This prevents the broken UI state
+   */
+  showSessionExpiredOverlay() {
+    // Remove any existing overlay
+    const existing = document.getElementById('session-expired-overlay');
+    if (existing) {
+      existing.remove();
+    }
+    
+    // Create overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'session-expired-overlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 999999;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    `;
+    
+    overlay.innerHTML = `
+      <div style="text-align: center; padding: 40px;">
+        <div style="font-size: 64px; margin-bottom: 20px;">🔒</div>
+        <h2 style="font-size: 28px; margin-bottom: 16px; color: white;">Session Expired</h2>
+        <p style="font-size: 16px; color: #ccc; margin-bottom: 24px;">Your session has ended. Redirecting to login...</p>
+        <div style="width: 40px; height: 40px; border: 3px solid #666; border-top-color: #fff; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+      </div>
+      <style>
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      </style>
+    `;
+    
+    document.body.appendChild(overlay);
   }
 
   /**

@@ -31,6 +31,10 @@ async def get_active_polls(
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get all active polls for the current user"""
+    # Non-active users cannot see/respond to polls
+    if current_user.get("accountStatus") != "active":
+        return {"success": True, "polls": [], "count": 0}
+        
     service = PollService(db)
     t0 = time.perf_counter()
     polls = await service.get_active_polls_for_user(current_user["username"])
@@ -117,19 +121,19 @@ async def update_poll_response(
 
 # ==================== ADMIN ENDPOINTS ====================
 
-def require_admin(current_user: dict = Depends(get_current_user)):
-    """Dependency to require admin role"""
-    # Check both role and role_name fields for admin status
-    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Admin access required")
+def require_admin_or_moderator(current_user: dict = Depends(get_current_user)):
+    """Dependency to require admin or moderator role"""
+    # Check both role and role_name fields for status
+    role = current_user.get("role") or current_user.get("role_name")
+    if role not in ["admin", "moderator"]:
+        raise HTTPException(status_code=403, detail="Admin or Moderator access required")
     return current_user
 
 
 @router.post("/admin/create")
 async def create_poll(
     poll_data: PollCreate,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Create a new poll (admin only)"""
@@ -147,7 +151,7 @@ async def list_polls(
     status: Optional[str] = Query(None, description="Filter by status"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """List all polls with optional filtering (admin only)"""
@@ -177,7 +181,7 @@ async def list_polls(
 async def update_poll(
     poll_id: str,
     poll_data: PollUpdate,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Update a poll (admin only)"""
@@ -193,7 +197,7 @@ async def update_poll(
 @router.delete("/admin/{poll_id}")
 async def delete_poll(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Delete a poll and all its responses (admin only)"""
@@ -209,7 +213,7 @@ async def delete_poll(
 @router.post("/admin/{poll_id}/activate")
 async def activate_poll(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Activate a poll (admin only)"""
@@ -225,7 +229,7 @@ async def activate_poll(
 @router.post("/admin/{poll_id}/close")
 async def close_poll(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Close a poll (admin only)"""
@@ -241,7 +245,7 @@ async def close_poll(
 @router.post("/admin/{poll_id}/archive")
 async def archive_poll(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Archive a poll (admin only)"""
@@ -257,7 +261,7 @@ async def archive_poll(
 @router.get("/admin/{poll_id}/results")
 async def get_poll_results(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Get detailed poll results (admin only)"""
@@ -273,7 +277,7 @@ async def get_poll_results(
 @router.get("/admin/{poll_id}/export")
 async def export_poll_responses(
     poll_id: str,
-    current_user: dict = Depends(require_admin),
+    current_user: dict = Depends(require_admin_or_moderator),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """Export poll responses for download (admin only)"""

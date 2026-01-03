@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
-import { getImageUrl } from '../utils/urlHelper';
+import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';
 import OnlineUsersDropdown from './OnlineUsersDropdown';
@@ -68,6 +68,10 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     if (path === '/top-matches') return { icon: '🏆', title: 'Top Matches', subtitle: 'Your best compatibility matches' };
     if (path === '/edit-profile') return { icon: '✏️', title: 'Edit Profile', subtitle: 'Update your profile information' };
     if (path === '/help') return { icon: '❓', title: 'Help Center', subtitle: 'Find answers to common questions' };
+    if (path === '/promo-codes') return { icon: '🎫', title: 'Promo Code Manager', subtitle: 'Manage codes, discounts & QR' };
+    if (path === '/membership-plans') return { icon: '💳', title: 'Membership Plans', subtitle: 'Configure pricing and plans' };
+    if (path === '/lead-generation') return { icon: '📈', title: 'Lead Generation', subtitle: 'Track members & revenue' };
+    if (path === '/admin-reports') return { icon: '📊', title: 'Admin Reports', subtitle: 'View system reports and analytics' };
     return null;
   };
 
@@ -356,7 +360,13 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           {/* Search Button */}
           <button 
             className="btn-refer-friend" 
-            onClick={() => navigate('/search')}
+            onClick={() => {
+              if (location.pathname === '/search') {
+                window.dispatchEvent(new Event('openSearchModal'));
+              } else {
+                navigate('/search');
+              }
+            }}
             title="Search Profiles"
           >
             <span className="refer-icon">🔍</span>
@@ -387,8 +397,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
           
           <div className="user-info" onClick={handleProfile}>
             <div className="user-icon">
-              {userProfile?.images?.[0] ? (
-                <img src={getImageUrl(userProfile.images[0])} alt={currentUser} className="topbar-profile-avatar" />
+              {getProfilePicUrl(userProfile) ? (
+                <img src={getProfilePicUrl(userProfile)} alt={currentUser} className="topbar-profile-avatar" />
               ) : (
                 <div className="topbar-profile-placeholder">
                   {userProfile?.firstName?.[0] || currentUser?.[0]?.toUpperCase() || '?'}

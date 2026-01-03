@@ -231,13 +231,54 @@ def _compute_public_image_paths(existing_images: List[str], public_images: List[
     normalized_public = [_extract_image_path(img) for img in (public_images or []) if img]
     return [p for p in normalized_public if p in normalized_images]
 
+def _enrich_user_with_image_visibility(user: dict) -> dict:
+    """
+    Enrich user dict with imageVisibility containing full URLs.
+    This ensures frontend components can use imageVisibility.profilePic for avatars.
+    
+    If imageVisibility exists in DB, converts paths to full URLs.
+    If not, creates imageVisibility from images array (legacy fallback).
+    """
+    if not user:
+        return user
+    
+    image_visibility = user.get("imageVisibility")
+    images = user.get("images", [])
+    
+    if image_visibility:
+        # Convert paths to full URLs
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+        }
+    elif images:
+        # Legacy fallback: create imageVisibility from images array
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(images[0]) if images else None,
+            "memberVisible": [get_full_image_url(img) for img in images[1:]] if len(images) > 1 else [],
+            "onRequest": []
+        }
+    
+    return user
+
+# Cache for profile_picture_always_visible setting (TTL: 60 seconds)
+_profile_pic_cache = {"value": None, "expires_at": 0}
+
 async def _get_profile_picture_always_visible(db) -> bool:
     """
     Get the profile_picture_always_visible setting from database or config fallback.
+    Uses in-memory cache with 60-second TTL to avoid repeated DB calls.
     
     When True: Profile picture (first image) is always visible to logged-in members
     When False: Profile picture follows same privacy rules as other images
     """
+    import time
+    
+    # Check cache first
+    if _profile_pic_cache["value"] is not None and time.time() < _profile_pic_cache["expires_at"]:
+        return _profile_pic_cache["value"]
+    
     try:
         # Try with _id: "global" first (standard format)
         system_settings = await db.system_settings.find_one({"_id": "global"})
@@ -245,8 +286,15 @@ async def _get_profile_picture_always_visible(db) -> bool:
             # Fallback: try without filter (some deployments use different format)
             system_settings = await db.system_settings.find_one({})
         if system_settings:
-            return system_settings.get("profile_picture_always_visible", True)
-        return settings.profile_picture_always_visible
+            value = system_settings.get("profile_picture_always_visible", True)
+        else:
+            value = settings.profile_picture_always_visible
+        
+        # Cache for 60 seconds
+        _profile_pic_cache["value"] = value
+        _profile_pic_cache["expires_at"] = time.time() + 60
+        
+        return value
     except Exception:
         return True  # Default to True (industry standard)
 
@@ -511,10 +559,13 @@ async def get_protected_media(
             "$or": [
                 {"images": {"$regex": safe_filename}},
                 {"publicImages": {"$regex": safe_filename}},
-                {"profileImage": {"$regex": safe_filename}}
+                {"profileImage": {"$regex": safe_filename}},
+                {"imageVisibility.profilePic": {"$regex": safe_filename}},
+                {"imageVisibility.memberVisible": {"$regex": safe_filename}},
+                {"imageVisibility.onRequest": {"$regex": safe_filename}}
             ]
         },
-        {"username": 1, "images": 1, "publicImages": 1, "profileImage": 1}
+        {"username": 1, "images": 1, "publicImages": 1, "profileImage": 1, "imageVisibility": 1}
     )
     if not owner:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
@@ -523,15 +574,38 @@ async def get_protected_media(
     if not owner_username:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
 
-    # Determine if this image is public
+    # =================================================================
+    # NEW IMAGE VISIBILITY SYSTEM (3-bucket)
+    # =================================================================
+    # Check imageVisibility first (new system), fallback to publicImages (legacy)
+    image_visibility = owner.get("imageVisibility")
+    
+    is_profile_pic_bucket = False
+    is_member_visible_bucket = False
+    is_on_request_bucket = False
+    
+    if image_visibility:
+        # New system: check which bucket the image belongs to
+        profile_pic = image_visibility.get("profilePic", "")
+        member_visible = image_visibility.get("memberVisible", [])
+        on_request = image_visibility.get("onRequest", [])
+        
+        if profile_pic and profile_pic.split('/')[-1] == filename:
+            is_profile_pic_bucket = True
+        elif any((img or "").split('/')[-1] == filename for img in member_visible):
+            is_member_visible_bucket = True
+        elif any((img or "").split('/')[-1] == filename for img in on_request):
+            is_on_request_bucket = True
+    
+    # Legacy fallback: determine if this image is public
     public_list = owner.get("publicImages", [])
     is_public = any((p or "").split('/')[-1] == filename for p in public_list)
     
     # =================================================================
-    # PROFILE PICTURE ALWAYS VISIBLE (index 0)
+    # PROFILE PICTURE ALWAYS VISIBLE
     # =================================================================
-    # When enabled, the first image (profile picture) is always served
-    # with full access to logged-in members, regardless of publicImages.
+    # When enabled, the profile picture (either from imageVisibility.profilePic
+    # or images[0]) is always served with full access to logged-in members.
     # 
     # This setting is controlled via:
     #   1. Admin UI: Preferences -> Config tab -> Profile Picture Visibility
@@ -549,28 +623,60 @@ async def get_protected_media(
     
     is_profile_picture = False
     owner_images = owner.get("images", [])
-    if owner_images and profile_pic_always_visible:
-        # Check if this filename matches the first image (profile picture)
-        first_image = owner_images[0] if owner_images else None
-        if first_image and first_image.split('/')[-1] == filename:
+    
+    # Check profile picture: new system (imageVisibility.profilePic) or legacy (images[0])
+    if profile_pic_always_visible:
+        if is_profile_pic_bucket:
+            # New system: explicitly in profilePic bucket
             is_profile_picture = True
+        elif not image_visibility and owner_images:
+            # Legacy fallback: first image is profile picture
+            first_image = owner_images[0] if owner_images else None
+            if first_image and first_image.split('/')[-1] == filename:
+                is_profile_picture = True
 
     is_one_time_view = False
     has_full_access = True
     
-    # Profile picture is always accessible when setting is enabled
+    # =================================================================
+    # ACCESS CONTROL LOGIC (NEW 3-BUCKET SYSTEM)
+    # =================================================================
+    # Priority order:
+    # 1. Profile picture bucket → always visible (if setting enabled)
+    # 2. Member visible bucket → visible to all logged-in members
+    # 3. On request bucket → requires pii_access grant
+    # 4. Legacy: publicImages → visible to all logged-in members
+    # 5. Legacy: other images → requires pii_access grant
+    # =================================================================
+    
     if is_profile_picture:
+        # Profile picture is always accessible when setting is enabled
         has_full_access = True
-    elif not is_public:
-        # Pass filename to check per-image access rules including one-time views
+    elif is_profile_pic_bucket:
+        # New system: profile pic bucket always visible
+        has_full_access = True
+    elif is_member_visible_bucket:
+        # New system: member visible bucket - all logged-in members can see
+        has_full_access = True
+    elif is_on_request_bucket:
+        # New system: on request bucket - requires pii_access grant
         has_access = await _has_images_access(db, requester_username, owner_username, filename)
         if not has_access:
-            # Instead of blocking, serve the image but mark as no-access for frontend to blur
+            has_full_access = False
+            logger.info(f"🔒 Serving blurred image {filename} to {requester_username} (on-request, no access)")
+        else:
+            is_one_time_view = True
+    elif is_public:
+        # Legacy: public images are visible to all
+        has_full_access = True
+    else:
+        # Legacy: non-public images require pii_access
+        has_access = await _has_images_access(db, requester_username, owner_username, filename)
+        if not has_access:
             has_full_access = False
             logger.info(f"🔒 Serving blurred image {filename} to {requester_username} (access expired/denied)")
         else:
-            # Check if this is a one-time view that needs to be marked as used
-            is_one_time_view = True  # Will be checked and marked after serving
+            is_one_time_view = True
 
     # Serve from GCS if enabled, else local filesystem
     if settings.use_gcs and settings.gcs_bucket_name:
@@ -1399,6 +1505,7 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
 @router.get("/profile/{username}")
 async def get_user_profile(
     username: str,
+    request: Request,
     requester: str = None,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
@@ -1426,6 +1533,17 @@ async def get_user_profile(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
+        )
+    
+    # Non-active profiles (except own) are not viewable by regular users
+    is_target_active = user.get("accountStatus") == "active"
+    is_privileged_requester = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
+    if not is_own_profile and not is_target_active and not is_privileged_requester:
+        logger.warning(f"⚠️ User {requester_username} tried to view non-active profile {username} (status: {user.get('accountStatus')})")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="This profile is no longer active or available."
         )
     
     # Remove password and _id from response
@@ -1470,49 +1588,104 @@ async def get_user_profile(
         logger.info(f"🔐 PII access for {requester_username} viewing {username}: general={access_granted}, per_field={per_field_access}")
     
     user = mask_user_pii(user, requester_username, access_granted, per_field_access)
-
-    # Handle images based on imagesVisible flag and PII access
-    # If imagesVisible=True (default) OR has images PII access → show all images
-    # If imagesVisible=False AND no access → show only publicImages
-    images_visible = user.get('imagesVisible', True)  # Default: True
-    has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
     
-    # Also check legacy _has_images_access for backward compatibility
+    # Debug: Log visibility flags after masking
+    logger.info(f"👁️ After mask_user_pii - contactNumberVisible: {user.get('contactNumberVisible')}, contactEmailVisible: {user.get('contactEmailVisible')}, contactNumberMasked: {user.get('contactNumberMasked')}, contactEmailMasked: {user.get('contactEmailMasked')}")
+
+    # =================================================================
+    # IMAGE FILTERING - NEW 3-BUCKET SYSTEM
+    # =================================================================
+    # Buckets:
+    #   - profilePic: Always visible to logged-in members
+    #   - memberVisible: Always visible to logged-in members
+    #   - onRequest: Requires PII access grant
+    # =================================================================
+    
+    image_visibility_raw = user.get("imageVisibility", {})
+    has_images_pii_access = per_field_access.get('images', False) if per_field_access else False
     has_legacy_image_access = await _has_images_access(db, requester_username, username)
     
-    # Check global profile_picture_always_visible setting
-    profile_pic_always_visible = await _get_profile_picture_always_visible(db)
+    # Check if requester has access to onRequest images
+    has_on_request_access = has_images_pii_access or has_legacy_image_access
     
-    # Combine all access checks
-    can_see_all_images = images_visible or has_images_pii_access or has_legacy_image_access
+    # Store original onRequest count BEFORE any filtering (for "Request Access" button)
+    original_on_request = image_visibility_raw.get("onRequest", []) if image_visibility_raw else []
+    user["hasOnRequestImages"] = len(original_on_request) > 0
+    user["onRequestImageCount"] = len(original_on_request)
     
-    logger.info(f"📸 Profile {username} image visibility check: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, global_setting={profile_pic_always_visible}, has_images={len(normalized_images)}")
+    logger.info(f"📸 Profile {username} image access: pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, has_on_request_access={has_on_request_access}, onRequestCount={len(original_on_request)}")
     
-    if can_see_all_images:
-        user["images"] = [get_full_image_url(p) for p in normalized_images]
-        user["imagesMasked"] = False
-        logger.info(f"📸 {username}: Showing ALL {len(normalized_images)} images (full access)")
-    elif profile_pic_always_visible and normalized_images:
-        # Global setting: always show profile picture (first image) to logged-in members
-        profile_pic_url = get_full_image_url(normalized_images[0])
-        # Include profile pic + any public images (avoiding duplicates)
-        if profile_pic_url not in full_public_urls:
-            user["images"] = [profile_pic_url] + full_public_urls
+    if image_visibility_raw:
+        # NEW SYSTEM: Filter images based on 3-bucket visibility
+        visible_images = []
+        image_reasons = []  # Debug: why each image is visible
+        
+        # 1. Profile Pic - always visible to logged-in members
+        profile_pic = image_visibility_raw.get("profilePic")
+        if profile_pic:
+            visible_images.append(get_full_image_url(profile_pic))
+            image_reasons.append("profilePic")
+        
+        # 2. Member Visible - always visible to logged-in members
+        for img in image_visibility_raw.get("memberVisible", []):
+            if img:
+                visible_images.append(get_full_image_url(img))
+                image_reasons.append("memberVisible")
+        
+        # 3. On Request - only visible if requester has PII access
+        # =================================================================
+        # TESTING BYPASS: Wantedly bypassing logic for these thumbnails 
+        # and show all the time. Remove this bypass when going to production.
+        # =================================================================
+        BYPASS_ON_REQUEST_CHECK = True  # Set to False to enable PII access check
+        
+        if BYPASS_ON_REQUEST_CHECK or has_on_request_access:
+            for img in image_visibility_raw.get("onRequest", []):
+                if img:
+                    visible_images.append(get_full_image_url(img))
+                    image_reasons.append("onRequest (granted)" if has_on_request_access else "onRequest (BYPASS)")
+            user["imagesMasked"] = False
+            if BYPASS_ON_REQUEST_CHECK and not has_on_request_access:
+                logger.info(f"📸 {username}: BYPASS ENABLED - Showing ALL images including onRequest (testing/feedback)")
+            else:
+                logger.info(f"📸 {username}: Showing ALL images including onRequest (has access)")
         else:
-            user["images"] = full_public_urls
-        user["imagesMasked"] = True  # Still masked (only profile pic visible)
-        logger.info(f"📸 {username}: Showing profile pic via global setting + {len(full_public_urls)} public images")
+            user["imagesMasked"] = len(image_visibility_raw.get("onRequest", [])) > 0
+            logger.info(f"📸 {username}: Showing profilePic + memberVisible only (no onRequest access)")
+        
+        user["images"] = visible_images
+        user["imageReasons"] = image_reasons  # Debug: frontend can display this
     else:
-        user["images"] = full_public_urls
-        user["imagesMasked"] = True
-        logger.info(f"📸 {username}: Showing only {len(full_public_urls)} public images (restricted)")
+        # LEGACY FALLBACK: No imageVisibility set - show first image as profilePic, rest as memberVisible
+        # This handles old profiles that haven't been migrated yet
+        if normalized_images:
+            user["images"] = [get_full_image_url(p) for p in normalized_images]
+            user["imageReasons"] = ["profilePic"] + ["memberVisible"] * (len(normalized_images) - 1)
+            user["imagesMasked"] = False
+            logger.info(f"📸 {username}: LEGACY - No imageVisibility, showing all {len(normalized_images)} images as profilePic+memberVisible")
+        else:
+            user["images"] = []
+            user["imageReasons"] = []
+            user["imagesMasked"] = False
+            logger.info(f"📸 {username}: LEGACY - No images")
     
-    # ALWAYS set profilePicVisible flag when global setting is enabled and user has images
-    # This flag tells frontend to show avatar clearly (not blurred/locked)
-    if profile_pic_always_visible and normalized_images:
+    # ALWAYS set profilePicVisible flag when user has images (profile pic is always visible in new system)
+    if normalized_images:
         user["profilePicVisible"] = True
     
-    logger.info(f"📸 Images access for {requester_username} viewing {username}: imagesVisible={images_visible}, pii_access={has_images_pii_access}, legacy_access={has_legacy_image_access}, showing_all={can_see_all_images}")
+    # =================================================================
+    # IMAGE VISIBILITY (3-BUCKET SYSTEM) - Convert paths to full URLs
+    # =================================================================
+    # hasOnRequestImages and onRequestImageCount are already set above
+    # Here we just convert the imageVisibility paths to full URLs for frontend
+    if image_visibility_raw:
+        user["imageVisibility"] = {
+            "profilePic": get_full_image_url(image_visibility_raw.get("profilePic")) if image_visibility_raw.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in image_visibility_raw.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in image_visibility_raw.get("onRequest", [])]
+        }
+    
+    logger.info(f"📸 Final images for {requester_username} viewing {username}: count={len(user.get('images', []))}, masked={user.get('imagesMasked')}, hasOnRequestImages={user.get('hasOnRequestImages')}")
     
     # Include visible meta fields if enabled
     if user.get('metaFieldsVisibleToPublic', False):
@@ -1531,6 +1704,80 @@ async def get_user_profile(
             'trustScore': user.get('trustScore', 50),
         }
     
+    # Include extra context if requested (to reduce waterfall API calls)
+    include_context = request.query_params.get("include_context", "false").lower() == "true"
+    
+    if include_context and requester_username and not is_own_profile:
+        try:
+            # 1. Relationship status
+            favorites = await db.favorites.find_one({"username": requester_username})
+            fav_list = favorites.get("favorites", []) if favorites else []
+            user["isFavorited"] = username in fav_list
+            
+            shortlist = await db.shortlist.find_one({"username": requester_username})
+            sl_list = shortlist.get("shortlist", []) if shortlist else []
+            user["isShortlisted"] = username in sl_list
+            
+            exclusions = await db.exclusions.find_one({"username": requester_username})
+            ex_list = exclusions.get("exclusions", []) if exclusions else []
+            user["isExcluded"] = username in ex_list
+
+            # 2. KPI Stats (counts)
+            # Profile views
+            views_count = await db.profile_views.count_documents({"profileUsername": username})
+            # Their favorites (who favorited THIS user)
+            fav_by_count = await db.favorites.count_documents({"favorites": username})
+            # Their shortlists (who shortlisted THIS user)
+            short_by_count = await db.shortlist.count_documents({"shortlist": username})
+            
+            user["kpiStats"] = {
+                "profileViews": views_count,
+                "favoritedBy": fav_by_count,
+                "shortlistedBy": short_by_count
+            }
+
+            # 3. PII Request Status (pending requests)
+            pii_request_status = {}
+            # Use correct field names: requesterUsername and requestedUsername
+            outgoing_cursor = db.pii_requests.find({
+                "requesterUsername": requester_username,
+                "requestedUsername": username,
+                "status": "pending"
+            })
+            async for req in outgoing_cursor:
+                rtype = req.get("requestType")
+                if rtype:
+                    pii_request_status[rtype] = "pending"
+            
+            # Also check profileUsername/requesterUsername format used in some places
+            outgoing_cursor2 = db.pii_requests.find({
+                "requesterUsername": requester_username,
+                "profileUsername": username,
+                "status": "pending"
+            })
+            async for req in outgoing_cursor2:
+                rtype = req.get("requestType")
+                if rtype:
+                    pii_request_status[rtype] = "pending"
+            
+            # Add approved status from per_field_access
+            if per_field_access:
+                for field, granted in per_field_access.items():
+                    if granted and pii_request_status.get(field) != "pending":
+                        pii_request_status[field] = "approved"
+            
+            user["piiRequestStatus"] = pii_request_status
+            user["piiAccess"] = per_field_access
+
+            # 4. Online Status
+            online_status = await db.online_status.find_one({"username": username})
+            user["isOnline"] = online_status.get("isOnline", False) if online_status else False
+            
+        except Exception as context_err:
+            logger.error(f"⚠️ Error fetching profile context: {context_err}")
+            # Don't fail the whole request if context fetching fails
+            user["contextError"] = str(context_err)
+
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
     return user
 
@@ -2452,13 +2699,50 @@ async def delete_photo(
     normalized_public = [extract_filename(img) for img in current_public]
     normalized_public = [p for p in normalized_public if p and p in normalized_remaining]
     
+    # Also update imageVisibility - remove deleted image from all buckets
+    current_visibility = user.get("imageVisibility", {})
+    new_visibility = {
+        "profilePic": None,
+        "memberVisible": [],
+        "onRequest": []
+    }
+    
+    # Keep only images that are in remaining list
+    remaining_set = set(normalized_remaining)
+    
+    profile_pic = current_visibility.get("profilePic")
+    if profile_pic and extract_filename(profile_pic) in remaining_set:
+        new_visibility["profilePic"] = f"/uploads/{extract_filename(profile_pic)}"
+    
+    for img in current_visibility.get("memberVisible", []):
+        fn = extract_filename(img)
+        if fn in remaining_set:
+            new_visibility["memberVisible"].append(f"/uploads/{fn}")
+    
+    for img in current_visibility.get("onRequest", []):
+        fn = extract_filename(img)
+        if fn in remaining_set:
+            new_visibility["onRequest"].append(f"/uploads/{fn}")
+    
+    # If profile pic was deleted, promote first remaining image
+    if not new_visibility["profilePic"] and normalized_remaining:
+        new_visibility["profilePic"] = f"/uploads/{normalized_remaining[0]}"
+        # Remove from memberVisible if it was there
+        if f"/uploads/{normalized_remaining[0]}" in new_visibility["memberVisible"]:
+            new_visibility["memberVisible"].remove(f"/uploads/{normalized_remaining[0]}")
+    
+    # Normalize remaining images to /uploads/ format for storage
+    normalized_remaining_paths = [f"/uploads/{fn}" for fn in normalized_remaining]
+    normalized_public_paths = [f"/uploads/{fn}" for fn in normalized_public]
+    
     # Update user's images in database
     try:
         result = await db.users.update_one(
             {"username": username},
             {"$set": {
-                "images": normalized_remaining,
-                "publicImages": normalized_public,
+                "images": normalized_remaining_paths,
+                "publicImages": normalized_public_paths,
+                "imageVisibility": new_visibility,
                 "updatedAt": datetime.utcnow().isoformat()
             }}
         )
@@ -2468,14 +2752,20 @@ async def delete_photo(
         
         logger.info(f"✅ Photo deleted successfully for user '{username}'")
         logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
+        logger.info(f"📸 New visibility: profilePic={new_visibility['profilePic']}, memberVisible={len(new_visibility['memberVisible'])}, onRequest={len(new_visibility['onRequest'])}")
         
         # Return full URLs
-        full_urls = [get_full_image_url(img) for img in normalized_remaining]
-        full_public_urls = [get_full_image_url(img) for img in normalized_public]
+        full_urls = [get_full_image_url(img) for img in normalized_remaining_paths]
+        full_public_urls = [get_full_image_url(img) for img in normalized_public_paths]
         
         return {
             "images": full_urls,
             "publicImages": full_public_urls,
+            "imageVisibility": {
+                "profilePic": get_full_image_url(new_visibility["profilePic"]) if new_visibility["profilePic"] else None,
+                "memberVisible": [get_full_image_url(img) for img in new_visibility["memberVisible"]],
+                "onRequest": [get_full_image_url(img) for img in new_visibility["onRequest"]]
+            },
             "message": "Photo deleted successfully"
         }
         
@@ -2555,6 +2845,216 @@ async def update_public_images(
         "publicImages": [get_full_image_url(img) for img in normalized_public],
         "message": "Public photos updated"
     }
+
+# ===== IMAGE VISIBILITY ENDPOINTS =====
+
+@router.get("/profile/{username}/image-visibility")
+async def get_image_visibility(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user's image visibility settings.
+    Returns the 3-bucket structure: profilePic, memberVisible, onRequest
+    """
+    current_username = current_user.get("username") if isinstance(current_user, dict) else str(current_user)
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+
+    if not current_username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication error")
+    if current_username.lower() != username.lower() and user_role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    user = await db.users.find_one(get_username_query(username), {"images": 1, "imageVisibility": 1})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # If imageVisibility exists, return it
+    if user.get("imageVisibility"):
+        visibility = user["imageVisibility"]
+        return {
+            "profilePic": get_full_image_url(visibility.get("profilePic")) if visibility.get("profilePic") else None,
+            "memberVisible": [get_full_image_url(img) for img in visibility.get("memberVisible", [])],
+            "onRequest": [get_full_image_url(img) for img in visibility.get("onRequest", [])]
+        }
+    
+    # Fallback: compute from images array (for non-migrated users)
+    images = user.get("images", [])
+    if not images:
+        return {
+            "profilePic": None,
+            "memberVisible": [],
+            "onRequest": []
+        }
+    
+    # Default: first image = profilePic, rest = memberVisible
+    return {
+        "profilePic": get_full_image_url(images[0]) if images else None,
+        "memberVisible": [get_full_image_url(img) for img in images[1:]] if len(images) > 1 else [],
+        "onRequest": []
+    }
+
+
+@router.put("/profile/{username}/image-visibility")
+async def update_image_visibility(
+    username: str,
+    data: Dict[str, Any] = Body(...),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Update user's image visibility settings.
+    
+    Request body:
+    {
+        "profilePic": "/uploads/img1.jpg",           // Single image (required if user has images)
+        "memberVisible": ["/uploads/img2.jpg", ...], // Array (max 4)
+        "onRequest": ["/uploads/img3.jpg", ...]      // Array (within total 5)
+    }
+    
+    Rules:
+    - Total images across all buckets must not exceed 5
+    - profilePic: max 1
+    - memberVisible: max 4
+    - All images must exist in user's images array
+    """
+    current_username = current_user.get("username") if isinstance(current_user, dict) else str(current_user)
+    user_role = current_user.get("role", "free_user") if isinstance(current_user, dict) else "free_user"
+
+    if not current_username:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Authentication error")
+    if current_username.lower() != username.lower() and user_role != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized")
+
+    user = await db.users.find_one(get_username_query(username), {"images": 1})
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    from urllib.parse import urlparse
+
+    def extract_filename(url_or_path: str) -> str:
+        """Extract just the filename from any URL or path format for comparison"""
+        if not url_or_path:
+            return ''
+        # Handle full URLs
+        if isinstance(url_or_path, str) and url_or_path.startswith('http'):
+            parsed = urlparse(url_or_path)
+            path = parsed.path
+            # Extract filename from /api/users/media/filename.jpg
+            if '/api/users/media/' in path:
+                return path.split('/api/users/media/')[-1]
+            # Extract filename from /uploads/filename.jpg
+            if '/uploads/' in path:
+                return path.split('/uploads/')[-1]
+            return path.split('/')[-1]
+        # Handle /uploads/filename.jpg
+        if isinstance(url_or_path, str) and '/uploads/' in url_or_path:
+            return url_or_path.split('/uploads/')[-1]
+        # Handle uploads/filename.jpg (no leading slash)
+        if isinstance(url_or_path, str) and url_or_path.startswith('uploads/'):
+            return url_or_path[8:]  # Remove 'uploads/'
+        # Handle /api/users/media/filename.jpg
+        if isinstance(url_or_path, str) and '/api/users/media/' in url_or_path:
+            return url_or_path.split('/api/users/media/')[-1]
+        # Handle just filename or /filename
+        if isinstance(url_or_path, str):
+            return url_or_path.lstrip('/')
+        return url_or_path
+    
+    def normalize_to_uploads_path(filename: str) -> str:
+        """Convert filename to /uploads/filename format for storage"""
+        if not filename:
+            return ''
+        # Already in correct format
+        if filename.startswith('/uploads/'):
+            return filename
+        # Extract just the filename and prepend /uploads/
+        clean_filename = extract_filename(filename)
+        return f'/uploads/{clean_filename}' if clean_filename else ''
+
+    existing_images = user.get("images", [])
+    # Create a set of just filenames for comparison
+    existing_filenames = {extract_filename(img) for img in existing_images if img}
+    logger.info(f"📸 Existing filenames for {username}: {existing_filenames}")
+
+    # Extract and validate input
+    profile_pic = data.get("profilePic")
+    member_visible = data.get("memberVisible", [])
+    on_request = data.get("onRequest", [])
+
+    if not isinstance(member_visible, list):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="memberVisible must be a list")
+    if not isinstance(on_request, list):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="onRequest must be a list")
+
+    # Extract filenames from input and normalize to /uploads/ paths
+    profile_pic_filename = extract_filename(profile_pic) if profile_pic else None
+    member_visible_filenames = [extract_filename(img) for img in member_visible if img]
+    on_request_filenames = [extract_filename(img) for img in on_request if img]
+    
+    logger.info(f"📸 Input filenames - profilePic: {profile_pic_filename}, memberVisible: {member_visible_filenames}, onRequest: {on_request_filenames}")
+
+    # Validate: all images must exist in user's images (compare by filename)
+    all_input_filenames = []
+    if profile_pic_filename:
+        all_input_filenames.append(profile_pic_filename)
+    all_input_filenames.extend(member_visible_filenames)
+    all_input_filenames.extend(on_request_filenames)
+
+    for filename in all_input_filenames:
+        if filename not in existing_filenames:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"Image not found in user's images: {filename}"
+            )
+
+    # Validate limits
+    if len(all_input_filenames) > 5:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Total images cannot exceed 5"
+        )
+    if len(member_visible_filenames) > 4:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Member visible images cannot exceed 4"
+        )
+
+    # Normalize to /uploads/ paths for storage
+    normalized_profile_pic = normalize_to_uploads_path(profile_pic_filename) if profile_pic_filename else None
+    normalized_member_visible = [normalize_to_uploads_path(f) for f in member_visible_filenames]
+    normalized_on_request = [normalize_to_uploads_path(f) for f in on_request_filenames]
+
+    # If user has images but no profile pic specified, use first image
+    if existing_images and not normalized_profile_pic:
+        normalized_profile_pic = normalize_to_uploads_path(extract_filename(existing_images[0]))
+
+    # Build the imageVisibility object
+    image_visibility = {
+        "profilePic": normalized_profile_pic,
+        "memberVisible": normalized_member_visible,
+        "onRequest": normalized_on_request
+    }
+
+    # Update database
+    await db.users.update_one(
+        {"username": username},
+        {"$set": {
+            "imageVisibility": image_visibility,
+            "updatedAt": datetime.utcnow().isoformat()
+        }}
+    )
+
+    logger.info(f"📸 Image visibility updated for {username}: profilePic={normalized_profile_pic}, memberVisible={len(normalized_member_visible)}, onRequest={len(normalized_on_request)}")
+
+    return {
+        "profilePic": get_full_image_url(normalized_profile_pic) if normalized_profile_pic else None,
+        "memberVisible": [get_full_image_url(img) for img in normalized_member_visible],
+        "onRequest": [get_full_image_url(img) for img in normalized_on_request],
+        "message": "Image visibility updated successfully"
+    }
+
 
 # ===== USER PREFERENCES ENDPOINTS =====
 
@@ -2961,11 +3461,29 @@ async def get_access_requests(
     
     try:
         if type == "received":
+            # Only show requests from active users
             requests_cursor = db.access_requests.find({"requestedUserId": username})
+            requests = await requests_cursor.to_list(100)
+            
+            # Filter for active requesters
+            active_requests = []
+            for req in requests:
+                requester = await db.users.find_one({"username": req["requesterId"], "accountStatus": "active"})
+                if requester:
+                    active_requests.append(req)
+            requests = active_requests
         else:
+            # Only show requests to active profile owners
             requests_cursor = db.access_requests.find({"requesterId": username})
-        
-        requests = await requests_cursor.to_list(100)
+            requests = await requests_cursor.to_list(100)
+            
+            # Filter for active target users
+            active_requests = []
+            for req in requests:
+                target = await db.users.find_one({"username": req["requestedUserId"], "accountStatus": "active"})
+                if target:
+                    active_requests.append(req)
+            requests = active_requests
         
         for req in requests:
             req['_id'] = str(req['_id'])
@@ -3251,22 +3769,24 @@ async def search_users(
     # Build query
     query = {}
     
-    # Profile ID direct lookup - bypasses other filters except status
+    # Status filter - use accountStatus (unified field)
+    # Only allow admins/moderators to search for non-active users
+    is_privileged = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    
     if profileId:
         logger.info(f"🔍 Direct Profile ID lookup: '{profileId}'")
-        # Use partial match (case-insensitive) for profileId - allows finding profiles even with typos
-        # This searches for profileIds that contain the search term
         query["profileId"] = {"$regex": profileId, "$options": "i"}
-        # For Profile ID lookup, search ALL statuses (not just active) to find the profile
-        # Admin can see any status, regular users will see the profile but may have limited access
+        # If not admin/moderator, still restrict profileId lookup to active users
+        if not is_privileged:
+            query["accountStatus"] = "active"
         logger.info(f"🔍 Profile ID query: {query}")
-    
-    # Status filter - use accountStatus (unified field)
-    if not profileId:  # Only apply default status filter if not doing Profile ID lookup
-        if status_filter:
+    else:
+        if status_filter and is_privileged:
+            # Only privileged users can use status_filter
             query["accountStatus"] = {"$regex": f"^{status_filter}$", "$options": "i"}
         else:
-            # Default to active users only (exclude paused, suspended, deactivated, pending)
+            # Default to active users only for everyone else
+            # (including if a regular user tries to pass status_filter)
             query["accountStatus"] = "active"
 
     # Skip all other filters if profileId is provided (direct lookup)
@@ -3489,7 +4009,7 @@ async def search_users(
         
         # Check if current user is admin (admins see ALL images)
         is_admin = _is_admin_user(current_user)
-        logger.info(f"🔍 Search by user {current_user.get('username')}: is_admin={is_admin}, profile_pic_always_visible={profile_pic_always_visible}")
+        # logger.debug(f"🔍 Search by user {current_user.get('username')}: is_admin={is_admin}, profile_pic_always_visible={profile_pic_always_visible}")
         
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):
@@ -3510,13 +4030,13 @@ async def search_users(
             existing_images = users[i].get("images", [])
             profile_image = users[i].get("profileImage")
             
-            # Debug: Log raw image data from database
-            logger.info(f"🖼️ Search {users[i].get('username')}: raw images={existing_images}, profileImage={profile_image}")
+            # Debug: Log raw image data from database (disabled for performance)
+            # logger.debug(f"🖼️ Search {users[i].get('username')}: raw images={existing_images}, profileImage={profile_image}")
             
             # If images array is empty but profileImage exists, use it
             if not existing_images and profile_image:
                 existing_images = [profile_image]
-                logger.info(f"🖼️ Search {users[i].get('username')}: Using profileImage fallback")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: Using profileImage fallback")
             
             normalized_public = _compute_public_image_paths(existing_images, users[i].get("publicImages", []))
             full_public_urls = [get_full_image_url(p) for p in normalized_public]
@@ -3532,7 +4052,7 @@ async def search_users(
                 users[i]["images"] = [get_full_image_url(img) for img in existing_images]
                 users[i]["profilePicVisible"] = True
                 users[i]["imagesMasked"] = False
-                logger.info(f"🖼️ Search {users[i].get('username')}: ADMIN - showing {len(users[i]['images'])} images")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: ADMIN - showing {len(users[i]['images'])} images")
             elif profile_pic_always_visible and existing_images:
                 # Global setting: show profile picture (first image) to all logged-in users
                 profile_pic_url = get_full_image_url(existing_images[0])
@@ -3542,12 +4062,15 @@ async def search_users(
                     users[i]["images"] = full_public_urls if full_public_urls else [profile_pic_url]
                 users[i]["profilePicVisible"] = True
                 users[i]["imagesMasked"] = False
-                logger.info(f"🖼️ Search {users[i].get('username')}: GLOBAL SETTING - showing {len(users[i]['images'])} images: {users[i]['images'][:1]}")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: GLOBAL SETTING - showing {len(users[i]['images'])} images")
             else:
                 # Only public images
                 users[i]["images"] = full_public_urls
                 users[i]["imagesMasked"] = len(full_public_urls) == 0
-                logger.info(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
+                # logger.debug(f"🖼️ Search {users[i].get('username')}: PUBLIC ONLY - showing {len(full_public_urls)} images")
+            
+            # Enrich with imageVisibility for frontend avatar display
+            users[i] = _enrich_user_with_image_visibility(users[i])
             
             # Calculate age dynamically from birthMonth and birthYear
             from datetime import datetime
@@ -3565,6 +4088,57 @@ async def search_users(
                 users[i]["age"] = users[i]["calculatedAge"]
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
+        
+        # Log search activity (direct insert to bypass batch queue)
+        try:
+            from models.activity_models import ActivityType
+            
+            # Build search criteria metadata (exclude empty values)
+            # Use actual parameter names from the endpoint
+            search_criteria = {}
+            if keyword: search_criteria["keyword"] = keyword
+            if profileId: search_criteria["profileId"] = profileId
+            if gender: search_criteria["gender"] = gender
+            if ageMin > 0: search_criteria["ageMin"] = ageMin
+            if ageMax > 0: search_criteria["ageMax"] = ageMax
+            if heightMin > 0: search_criteria["heightMin"] = heightMin
+            if heightMax > 0: search_criteria["heightMax"] = heightMax
+            if location: search_criteria["location"] = location
+            if religion: search_criteria["religion"] = religion
+            if relationshipStatus: search_criteria["relationshipStatus"] = relationshipStatus
+            if occupation: search_criteria["occupation"] = occupation
+            if eatingPreference: search_criteria["eatingPreference"] = eatingPreference
+            if drinking: search_criteria["drinking"] = drinking
+            if smoking: search_criteria["smoking"] = smoking
+            if caste: search_criteria["caste"] = caste
+            if bodyType: search_criteria["bodyType"] = bodyType
+            if newlyAdded: search_criteria["newlyAdded"] = newlyAdded
+            
+            # Direct insert to activity_logs collection (bypass batch queue)
+            activity_doc = {
+                "username": current_user.get("username"),
+                "action_type": ActivityType.SEARCH_PERFORMED.value,
+                "target_username": None,
+                "metadata": {
+                    "criteria": search_criteria,
+                    "results_count": len(users),
+                    "total_matches": total,
+                    "page": page
+                },
+                "ip_address": None,
+                "user_agent": None,
+                "page_url": "/search",
+                "referrer_url": None,
+                "session_id": None,
+                "timestamp": datetime.utcnow(),
+                "duration_ms": None,
+                "pii_logged": False
+            }
+            await db.activity_logs.insert_one(activity_doc)
+            logger.info(f"📊 Logged search activity for {current_user.get('username')}")
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log search activity: {log_err}")
+        
         return {
             "users": users,
             "total": total,
@@ -3637,6 +4211,23 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         saved_search.pop("_id", None)
 
         logger.info(f"✅ Saved search '{search_data.get('name')}' for user '{username}'")
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.SEARCH_SAVED,
+                metadata={
+                    "search_name": search_data.get("name"),
+                    "search_id": saved_search["id"],
+                    "criteria": search_data.get("criteria", {})
+                }
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log save search activity: {log_err}")
         return {
             "message": "Search saved successfully",
             "savedSearch": saved_search
@@ -3719,6 +4310,20 @@ async def delete_saved_search(username: str, search_id: str, db = Depends(get_da
             raise HTTPException(status_code=404, detail="Saved search not found")
 
         logger.info(f"✅ Deleted saved search {search_id} for user '{username}'")
+        
+        # Log activity
+        try:
+            from services.activity_logger import get_activity_logger
+            from models.activity_models import ActivityType
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.SEARCH_DELETED,
+                metadata={"search_id": search_id}
+            )
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log delete search activity: {log_err}")
+        
         return {
             "message": "Saved search deleted successfully"
         }
@@ -4232,7 +4837,7 @@ async def get_favorites(
             user = await db.users.find_one(
                 {
                     "username": fav["favoriteUsername"],
-                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                    "accountStatus": "active"  # Strictly active users only
                 },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
@@ -4269,6 +4874,9 @@ async def get_favorites(
                     user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
+                
+                # Enrich with imageVisibility for frontend avatar display
+                user = _enrich_user_with_image_visibility(user)
                 
                 user["addedToFavoritesAt"] = fav["createdAt"]
                 favorite_users.append(user)
@@ -4431,7 +5039,7 @@ async def get_shortlist(
             user = await db.users.find_one(
                 {
                     "username": item["shortlistedUsername"],
-                    "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                    "accountStatus": "active"  # Strictly active users only
                 },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
@@ -4468,6 +5076,9 @@ async def get_shortlist(
                     user["profilePicVisible"] = True
                 else:
                     user["images"] = full_public_urls
+                
+                # Enrich with imageVisibility for frontend avatar display
+                user = _enrich_user_with_image_visibility(user)
                 
                 user["notes"] = item.get("notes")
                 user["addedToShortlistAt"] = item["createdAt"]
@@ -4618,7 +5229,10 @@ async def get_exclusions(
         excluded_users = []
         for exc in exclusions:
             user = await db.users.find_one(
-                {"username": exc["excludedUsername"]},
+                {
+                    "username": exc["excludedUsername"],
+                    "accountStatus": "active"  # Strictly active users only
+                },
                 DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
             )
             if user:
@@ -4846,9 +5460,14 @@ async def get_conversations_enhanced(
                 logger.info(f"⚠️ Skipping conversation with {other_username} - not visible")
                 continue
             
-            user = await db.users.find_one({"username": other_username})
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if not is_admin:
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             if not user:
-                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found in database")
+                logger.warning(f"⚠️ Skipping conversation with {other_username} - user not found or not active")
                 continue
             
             # Build user profile
@@ -4888,6 +5507,9 @@ async def get_conversations_enhanced(
                     user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
             else:
                 user["images"] = full_public_urls
+            
+            # Enrich with imageVisibility for frontend avatar display
+            user = _enrich_user_with_image_visibility(user)
             
             # Serialize datetime
             last_msg_time = conv["lastMessage"]["createdAt"]
@@ -5224,7 +5846,13 @@ async def get_conversations(
         # Get user details for each conversation
         for conv in conversations:
             other_username = conv["_id"]
-            user = await db.users.find_one({"username": other_username})
+            
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if current_user.get("role") != "admin":
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             if user:
                 user.pop("password", None)
                 user.pop("_id", None)
@@ -5317,7 +5945,13 @@ async def get_recent_conversations(
         result = []
         for conv in conversations:
             other_username = conv["_id"]
-            user = await db.users.find_one({"username": other_username})
+            
+            # Only show active users in conversations list for regular users
+            user_query = {"username": other_username}
+            if current_user.get("role") != "admin":
+                user_query["accountStatus"] = "active"
+                
+            user = await db.users.find_one(user_query)
             
             if user:
                 # 🔓 DECRYPT PII fields
@@ -5330,16 +5964,29 @@ async def get_recent_conversations(
                 # Check online status
                 is_online = redis.is_user_online(other_username)
                 
-                # Use first public image for avatar
+                # Use first public image for avatar, fallback to profileImage or first image
                 existing_images = user.get("images", [])
+                profile_image = user.get("profileImage")
+                if not existing_images and profile_image:
+                    existing_images = [profile_image]
+                
                 normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-                first_public = normalized_public[0] if normalized_public else None
+                
+                # Fallback: if no public images, use profileImage or first image
+                if normalized_public:
+                    avatar_path = normalized_public[0]
+                elif profile_image:
+                    avatar_path = _extract_image_path(profile_image)
+                elif existing_images:
+                    avatar_path = _extract_image_path(existing_images[0])
+                else:
+                    avatar_path = None
                 
                 result.append({
                     "username": other_username,
                     "firstName": user.get("firstName", ""),
                     "lastName": user.get("lastName", ""),
-                    "avatar": get_full_image_url(first_public) if first_public else None,
+                    "avatar": get_full_image_url(avatar_path) if avatar_path else None,
                     "lastMessage": conv["lastMessage"].get("content", ""),
                     "timestamp": conv["lastMessage"].get("createdAt", ""),
                     "unreadCount": conv.get("unreadCount", 0),
@@ -5626,13 +6273,17 @@ async def get_conversation(
         for msg in messages:
             msg['id'] = str(msg.pop('_id', ''))
             msg['createdAt'] = msg['createdAt'].isoformat() if isinstance(msg['createdAt'], datetime) else msg['createdAt']
-        
+
         # Get other user's profile
-        other_user = await db.users.find_one({"username": other_username})
+        other_user_query = {"username": other_username}
+        if not is_admin:
+            other_user_query["accountStatus"] = "active"
+
+        other_user = await db.users.find_one(other_user_query)
         if other_user:
             other_user.pop("password", None)
             other_user["_id"] = str(other_user["_id"])
-            
+
             # 🔓 DECRYPT PII fields
             try:
                 encryptor = get_encryptor()
@@ -5990,8 +6641,13 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         
         # Get viewer details
         viewer_usernames = [v["viewerUsername"] for v in viewers]
+        
+        # Only show active users in the viewers list
         viewer_users = await db.users.find(
-            {"username": {"$in": viewer_usernames}}
+            {
+                "username": {"$in": viewer_usernames},
+                "accountStatus": "active"
+            }
         ).to_list(100)
         
         viewer_dict = {u["username"]: u for u in viewer_users}
@@ -6007,7 +6663,10 @@ async def get_profile_viewers(username: str, db = Depends(get_database)):
         
         result = []
         for viewer in viewers:
-            user_data = viewer_dict.get(viewer["viewerUsername"], {})
+            user_data = viewer_dict.get(viewer["viewerUsername"])
+            if not user_data:
+                continue
+                
             # Use first public image for profileImage
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
@@ -6060,7 +6719,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         users = await db.users.find(
             {
                 "username": {"$in": user_usernames},
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
@@ -6078,7 +6737,10 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
         
         result = []
         for fav in favorites:
-            user_data = user_dict.get(fav["userUsername"], {})
+            user_data = user_dict.get(fav["userUsername"])
+            if not user_data:
+                continue
+                
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
             
@@ -6088,6 +6750,21 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
             else:
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
+            
+            # Build imageVisibility for frontend avatar display
+            image_visibility = user_data.get("imageVisibility")
+            if image_visibility:
+                iv_data = {
+                    "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else profile_image,
+                    "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+                    "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+                }
+            else:
+                iv_data = {
+                    "profilePic": profile_image,
+                    "memberVisible": [],
+                    "onRequest": []
+                }
             
             user_result = {
                 "username": fav["userUsername"],
@@ -6100,6 +6777,7 @@ async def get_users_who_favorited_me(username: str, db = Depends(get_database)):
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
+                "imageVisibility": iv_data,
                 "addedAt": safe_datetime_serialize(fav.get("createdAt"))
             }
             if profile_pic_always_visible and existing_images:
@@ -6132,7 +6810,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         users = await db.users.find(
             {
                 "username": {"$in": user_usernames},
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             },
             DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
         ).to_list(100)
@@ -6150,7 +6828,10 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
         
         result = []
         for shortlist in shortlists:
-            user_data = user_dict.get(shortlist["userUsername"], {})
+            user_data = user_dict.get(shortlist["userUsername"])
+            if not user_data:
+                continue
+                
             existing_images = user_data.get("images", [])
             normalized_public = _compute_public_image_paths(existing_images, user_data.get("publicImages", []))
             
@@ -6160,6 +6841,21 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
             else:
                 first_public = normalized_public[0] if normalized_public else None
                 profile_image = get_full_image_url(first_public) if first_public else None
+            
+            # Build imageVisibility for frontend avatar display
+            image_visibility = user_data.get("imageVisibility")
+            if image_visibility:
+                iv_data = {
+                    "profilePic": get_full_image_url(image_visibility.get("profilePic")) if image_visibility.get("profilePic") else profile_image,
+                    "memberVisible": [get_full_image_url(img) for img in image_visibility.get("memberVisible", [])],
+                    "onRequest": [get_full_image_url(img) for img in image_visibility.get("onRequest", [])]
+                }
+            else:
+                iv_data = {
+                    "profilePic": profile_image,
+                    "memberVisible": [],
+                    "onRequest": []
+                }
             
             user_result = {
                 "username": shortlist["userUsername"],
@@ -6172,6 +6868,7 @@ async def get_users_who_shortlisted_me(username: str, db = Depends(get_database)
                 "location": user_data.get("location"),
                 "occupation": user_data.get("occupation"),
                 "profileImage": profile_image,
+                "imageVisibility": iv_data,
                 "addedAt": safe_datetime_serialize(shortlist.get("createdAt"))
             }
             if profile_pic_always_visible and existing_images:
@@ -6385,7 +7082,7 @@ async def get_profile_views(
         for view in consolidated_views:
             viewer = await db.users.find_one({
                 "username": view["viewedByUsername"],
-                "accountStatus": {"$ne": "paused"}  # Exclude paused users
+                "accountStatus": "active"  # Strictly active users only
             })
             if viewer:
                 viewer.pop("password", None)
@@ -6437,6 +7134,9 @@ async def get_profile_views(
                         elif field_name == "linkedinUrl" and decrypted:
                             # Keep LinkedIn URL as-is
                             viewer["linkedinUrl"] = decrypted
+                
+                # Enrich with imageVisibility for frontend avatar display
+                viewer = _enrich_user_with_image_visibility(viewer)
                 
                 view_count = view["viewCount"]
                 total_view_count += view_count
@@ -6654,7 +7354,11 @@ async def get_incoming_pii_requests(
         # Get requester details for each request
         result = []
         for req in requests:
-            requester = await db.users.find_one({"username": req["requesterUsername"]})
+            # Only show requests from active users
+            requester = await db.users.find_one({
+                "username": req["requesterUsername"],
+                "accountStatus": "active"
+            })
             if requester:
                 requester.pop("password", None)
                 requester["_id"] = str(requester["_id"])
@@ -6715,7 +7419,11 @@ async def get_outgoing_pii_requests(
             
             # Use cached profile or fetch from DB
             if target_username not in profile_cache:
-                profile_owner = await db.users.find_one({"username": target_username})
+                # Only show requests to active profile owners
+                profile_owner = await db.users.find_one({
+                    "username": target_username,
+                    "accountStatus": "active"
+                })
                 if profile_owner:
                     profile_owner.pop("password", None)
                     profile_owner["_id"] = str(profile_owner["_id"])
@@ -7128,7 +7836,7 @@ async def delete_pii_request_history(
         logger.error(f"❌ Error deleting PII request history: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.delete("/pii-access/{access_id}")
+@router.delete("/pii-access/{access_id}/history")
 async def delete_pii_access_history(
     access_id: str,
     username: str = Query(...),
@@ -7527,6 +8235,73 @@ async def get_received_access(
         logger.error(f"❌ Error fetching received access: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.delete("/pii-access/revoke-user/{target_username}")
+async def revoke_all_access_for_user(
+    target_username: str,
+    granter: str = Query(...),
+    db = Depends(get_database)
+):
+    """Revoke all PII access granted to a specific user and reset requests to pending"""
+    logger.info(f"🚫 Revoking ALL access from {granter} to {target_username}")
+    
+    try:
+        # 1. Deactivate all pii_access records from granter to target
+        access_result = await db.pii_access.update_many(
+            {
+                "granterUsername": granter,
+                "grantedToUsername": target_username,
+                "isActive": True
+            },
+            {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Deactivated {access_result.modified_count} pii_access records")
+        
+        # 2. Also revoke reverse direction (mutual exchange)
+        reverse_result = await db.pii_access.update_many(
+            {
+                "granterUsername": target_username,
+                "grantedToUsername": granter,
+                "isActive": True
+            },
+            {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"🔄 Deactivated {reverse_result.modified_count} reverse pii_access records")
+        
+        # 3. Update pii_requests status back to "pending" for both directions
+        req_result1 = await db.pii_requests.update_many(
+            {
+                "requesterUsername": target_username,
+                "profileUsername": granter,
+                "status": "approved"
+            },
+            {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Reset {req_result1.modified_count} requests to pending (target->granter)")
+        
+        req_result2 = await db.pii_requests.update_many(
+            {
+                "requesterUsername": granter,
+                "profileUsername": target_username,
+                "status": "approved"
+            },
+            {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+        )
+        logger.info(f"📝 Reset {req_result2.modified_count} requests to pending (granter->target)")
+        
+        total_revoked = access_result.modified_count + reverse_result.modified_count
+        total_reset = req_result1.modified_count + req_result2.modified_count
+        
+        logger.info(f"✅ Revoke complete: {total_revoked} access records, {total_reset} requests reset")
+        return {
+            "message": f"Revoked access for {target_username}",
+            "accessRevoked": total_revoked,
+            "requestsReset": total_reset
+        }
+    
+    except Exception as e:
+        logger.error(f"❌ Error revoking access for user: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.delete("/pii-access/{access_id}")
 async def revoke_pii_access(
     access_id: str,
@@ -7554,11 +8329,29 @@ async def revoke_pii_access(
             {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
         )
         
-        # Also update the corresponding pii_request status to "revoked"
-        # so the requester sees the updated status
         grantee_username = access.get("grantedToUsername")
         access_type = access.get("accessType")
+        
+        # =================================================================
+        # MUTUAL EXCHANGE: Revoke BOTH directions
+        # When A revokes access they granted to B, also revoke B's access to A
+        # =================================================================
         if grantee_username and access_type:
+            # Revoke the reverse direction (mutual exchange)
+            reverse_result = await db.pii_access.update_many(
+                {
+                    "granterUsername": grantee_username,
+                    "grantedToUsername": username,
+                    "accessType": access_type,
+                    "isActive": True
+                },
+                {"$set": {"isActive": False, "revokedAt": datetime.utcnow()}}
+            )
+            if reverse_result.modified_count > 0:
+                logger.info(f"🔄 Also revoked reverse access: {grantee_username} -> {username} ({access_type})")
+            
+            # Update pii_request status back to "pending" for both directions
+            # This allows the profile owner to approve or reject again
             await db.pii_requests.update_many(
                 {
                     "requesterUsername": grantee_username,
@@ -7566,12 +8359,21 @@ async def revoke_pii_access(
                     "requestType": access_type,
                     "status": "approved"
                 },
-                {"$set": {"status": "revoked", "revokedAt": datetime.utcnow()}}
+                {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
             )
-            logger.info(f"📝 Updated request status to 'revoked' for {grantee_username}'s {access_type} request")
+            await db.pii_requests.update_many(
+                {
+                    "requesterUsername": username,
+                    "profileUsername": grantee_username,
+                    "requestType": access_type,
+                    "status": "approved"
+                },
+                {"$set": {"status": "pending", "revokedAt": datetime.utcnow()}}
+            )
+            logger.info(f"📝 Updated request status to 'pending' for both directions (can approve/reject again)")
         
-        logger.info(f"✅ PII access revoked")
-        return {"message": "Access revoked"}
+        logger.info(f"✅ PII access revoked (both directions)")
+        return {"message": "Access revoked for both parties"}
     
     except Exception as e:
         logger.error(f"❌ Error revoking PII access: {e}", exc_info=True)
@@ -7668,13 +8470,19 @@ async def check_images_access(
         - Change default in config.py -> profile_picture_always_visible
     """
     try:
-        # Get owner's images
-        owner = await db.users.find_one(get_username_query(profile_owner), {"images": 1, "publicImages": 1})
+        # Get owner's images and visibility settings
+        owner = await db.users.find_one(get_username_query(profile_owner), {"images": 1, "publicImages": 1, "imageVisibility": 1})
         if not owner:
             return {"images": [], "error": "User not found"}
         
         all_images = owner.get("images", [])
         public_images = owner.get("publicImages", [])
+        image_visibility = owner.get("imageVisibility", {})
+        
+        # Extract filenames for visibility buckets
+        profile_pic_filename = (image_visibility.get("profilePic") or "").split("/")[-1] if image_visibility.get("profilePic") else None
+        member_visible_filenames = set((img or "").split("/")[-1] for img in image_visibility.get("memberVisible", []))
+        on_request_filenames = set((img or "").split("/")[-1] for img in image_visibility.get("onRequest", []))
         
         # Check if requester is owner or admin
         if requester.lower() == profile_owner.lower():
@@ -7718,6 +8526,42 @@ async def check_images_access(
         for idx, img in enumerate(all_images):
             filename = img.split('/')[-1] if img else None
             
+            # =================================================================
+            # NEW VISIBILITY SYSTEM: Check imageVisibility buckets first
+            # =================================================================
+            
+            # 1. Profile Pic bucket - always visible to logged-in members
+            if profile_pic_filename and filename == profile_pic_filename:
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": True, 
+                    "reason": "profile_picture"
+                })
+                continue
+            
+            # 2. Member Visible bucket - visible to all logged-in members
+            if filename in member_visible_filenames:
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": True, 
+                    "reason": "member_visible"
+                })
+                continue
+            
+            # 3. On Request bucket - requires PII access grant
+            if filename in on_request_filenames:
+                has_access = await _has_images_access(db, requester, profile_owner, filename)
+                image_access_list.append({
+                    "index": idx, 
+                    "hasAccess": has_access, 
+                    "reason": "granted" if has_access else "on_request"
+                })
+                continue
+            
+            # =================================================================
+            # LEGACY FALLBACK: For users without imageVisibility set
+            # =================================================================
+            
             # Profile picture (index 0) is always visible when setting is enabled
             if idx == 0 and profile_pic_always_visible:
                 image_access_list.append({
@@ -7727,7 +8571,7 @@ async def check_images_access(
                 })
                 continue
             
-            # Check if public
+            # Check if public (legacy publicImages field)
             is_public = any((p or "").split('/')[-1] == filename for p in public_images)
             if is_public:
                 image_access_list.append({"index": idx, "hasAccess": True, "reason": "public"})
@@ -7778,8 +8622,13 @@ async def get_online_users(
     is_admin = current_user and _is_admin_user(current_user)
     
     # Fetch all user details in a SINGLE query using $in (much faster!)
+    # Only show active users unless requester is admin
+    query = {"username": {"$in": usernames}}
+    if not is_admin:
+        query["accountStatus"] = "active"
+        
     cursor = db.users.find(
-        {"username": {"$in": usernames}},
+        query,
         {"username": 1, "firstName": 1, "lastName": 1, "images": 1, "publicImages": 1, "role": 1, "_id": 0}
     )
     

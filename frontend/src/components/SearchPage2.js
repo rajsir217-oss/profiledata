@@ -14,7 +14,9 @@ import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
+import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
+import toastService from '../services/toastService';
 import './SearchPage.css';
 import './SearchPage2.css';
 
@@ -28,6 +30,7 @@ const SearchPage2 = () => {
 
   // Main application state
   const [loading, setLoading] = useState(false);
+  const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [error, setError] = useState('');
   // const [totalResults, setTotalResults] = useState(0); // Unused - kept for future pagination
   // currentPage removed - using LoadMore incremental loading instead
@@ -179,7 +182,7 @@ const SearchPage2 = () => {
         timestamp: Date.now()
       };
       sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
-      console.log('💾 Saved search state to sessionStorage');
+      logger.info('💾 Saved search state to sessionStorage');
     }
   }, [users, searchCriteria, sortBy, sortOrder, viewMode, displayedCount, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
@@ -189,7 +192,7 @@ const SearchPage2 = () => {
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
         sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
-        console.log('💾 Saved scroll position:', scrollPosition);
+        logger.info('💾 Saved scroll position:', scrollPosition);
       }
     };
     
@@ -201,7 +204,7 @@ const SearchPage2 = () => {
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
         sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
-        console.log('💾 Saved scroll position on unmount:', scrollPosition);
+        logger.info('💾 Saved scroll position on unmount:', scrollPosition);
       }
     };
   }, []);
@@ -219,7 +222,7 @@ const SearchPage2 = () => {
           const maxAge = 30 * 60 * 1000; // 30 minutes
           
           if (stateAge < maxAge) {
-            console.log('🔄 Restoring search state from sessionStorage');
+            logger.info('🔄 Restoring search state from sessionStorage');
             
             // Restore all state
             setUsers(state.users || []);
@@ -244,20 +247,20 @@ const SearchPage2 = () => {
               if (savedScrollPosition) {
                 const scrollPos = parseInt(savedScrollPosition, 10);
                 window.scrollTo(0, scrollPos);
-                console.log('🔄 Restored scroll position:', scrollPos);
+                logger.info('🔄 Restored scroll position:', scrollPos);
               }
             }, 100);
             
-            console.log('✅ Search state restored successfully');
+            logger.info('✅ Search state restored successfully');
             return true;
           } else {
-            console.log('⏰ Saved state is too old, clearing...');
+            logger.info('⏰ Saved state is too old, clearing...');
             sessionStorage.removeItem('searchPageState');
             sessionStorage.removeItem('searchPageScrollPosition');
           }
         }
       } catch (error) {
-        console.error('❌ Error restoring search state:', error);
+        logger.error('❌ Error restoring search state:', error);
         sessionStorage.removeItem('searchPageState');
         sessionStorage.removeItem('searchPageScrollPosition');
       }
@@ -302,7 +305,7 @@ const SearchPage2 = () => {
           oppositeGender = 'male';
         }
         
-        console.log('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
+        logger.info('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
         
         // Calculate user's age from birthMonth and birthYear
         let userAge = null;
@@ -333,8 +336,8 @@ const SearchPage2 = () => {
         const partnerCriteria = response.data.partnerCriteria;
         
         // Debug: Log the full partnerCriteria object
-        console.log('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
-        console.log('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
+        logger.info('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
+        logger.info('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
         
         if (partnerCriteria?.ageRangeRelative && userAge) {
           // Use relative age offsets from partner criteria
@@ -342,12 +345,12 @@ const SearchPage2 = () => {
           const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
           defaultAgeMin = Math.max(19, userAge + minOffset).toString();
           defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-          console.log('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
         } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
           // Fallback to absolute age range if set
           defaultAgeMin = partnerCriteria.ageRange.min.toString();
           defaultAgeMax = partnerCriteria.ageRange.max.toString();
-          console.log('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
         } else if (userAge && userGender) {
           // Final fallback: gender-based defaults
           if (userGender === 'male') {
@@ -359,7 +362,7 @@ const SearchPage2 = () => {
             defaultAgeMin = Math.max(19, userAge - 1).toString();
             defaultAgeMax = Math.min(100, userAge + 5).toString();
           }
-          console.log('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
+          logger.info('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
         }
         
         // Set default height range from partnerCriteria (user's saved preferences)
@@ -379,14 +382,14 @@ const SearchPage2 = () => {
           defaultHeightMinInches = (minTotalInches % 12).toString();
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          console.log('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
+          logger.info('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
         } else if (partnerCriteria?.heightRange?.minFeet) {
           // Fallback to absolute height range if set
           defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
           defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
           defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
           defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-          console.log('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
+          logger.info('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
         } else if (userHeightTotalInches && userGender) {
           // Final fallback: gender-based defaults
           if (userGender === 'male') {
@@ -406,10 +409,10 @@ const SearchPage2 = () => {
             defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
             defaultHeightMaxInches = (maxTotalInches % 12).toString();
           }
-          console.log('🎯 Using gender-based height defaults');
+          logger.info('🎯 Using gender-based height defaults');
         }
         
-        console.log('📊 Default search criteria:', {
+        logger.info('📊 Default search criteria:', {
           age: userAge,
           ageMin: defaultAgeMin,
           ageMax: defaultAgeMax,
@@ -431,7 +434,7 @@ const SearchPage2 = () => {
           heightMaxInches: defaultHeightMaxInches
         }));
       } catch (err) {
-        console.error('❌ Error loading current user profile:', err);
+        logger.error('❌ Error loading current user profile:', err);
         // Set profile anyway to trigger search
         setCurrentUserProfile({});
       }
@@ -455,13 +458,13 @@ const SearchPage2 = () => {
         setShortlistedUsers(new Set(shortlistUsernames));
         setExcludedUsers(new Set(exclusionUsernames));
         
-        console.log('✅ Loaded user interactions:', {
+        logger.info('✅ Loaded user interactions:', {
           favorites: favoriteUsernames.length,
           shortlist: shortlistUsernames.length,
           exclusions: exclusionUsernames.length
         });
       } catch (err) {
-        console.error('Error loading user data:', err);
+        logger.error('Error loading user data:', err);
       }
     };
     
@@ -478,27 +481,13 @@ const SearchPage2 = () => {
       }
     };
 
-    // Load system configuration
-    const loadSystemConfig = async () => {
-      console.log('🔧 Loading system config...');
-      try {
-        const response = await api.get('/system-settings');
-        console.log('🔧 System config API response:', response.data);
-        setSystemConfig(response.data);
-        console.log('🔧 System config state updated:', response.data);
-      } catch (error) {
-        console.error('❌ Error loading system config:', error);
-        console.error('❌ Using default config: enable_l3v3l_for_all=true');
-      }
-    };
-    
+    // Load all initial data
     loadCurrentUserProfile();
     loadUserData();
     loadSavedSearches();
     loadPiiRequests();
-    loadSystemConfig();
-    
-    // Setup socket listeners users initially with a small delay to let polling service mark user online
+
+    // Setup online users initially with a small delay
     setTimeout(() => {
       loadOnlineUsers();
     }, 1000);
@@ -515,7 +504,7 @@ const SearchPage2 = () => {
     };
     
     const handleUserOffline = (data) => {
-      console.log('User went offline:', data.username);
+      logger.info('User went offline:', data.username);
       setOnlineUsers(prev => {
         const newSet = new Set(prev);
         newSet.delete(data.username);
@@ -525,9 +514,6 @@ const SearchPage2 = () => {
     
     socketService.on('user_online', handleUserOnline);
     socketService.on('user_offline', handleUserOffline);
-    
-    // Load initial search results after profile is loaded
-    // This will be triggered by useEffect dependency on currentUserProfile
     
     return () => {
       socketService.off('user_online', handleUserOnline);
@@ -541,61 +527,60 @@ const SearchPage2 = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Listen for external "open search modal" events (e.g. from TopBar)
+  useEffect(() => {
+    const handleOpenModal = () => setIsSearchModalOpen(true);
+    window.addEventListener('openSearchModal', handleOpenModal);
+    return () => window.removeEventListener('openSearchModal', handleOpenModal);
+  }, []);
+
   // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
     const loadAndExecuteDefaultSearch = async () => {
-      if (!currentUserProfile) {
-        console.log('⚠️ currentUserProfile is null/undefined, waiting...');
+      if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
+        logger.info('⚠️ currentUserProfile is empty or null, waiting...');
         return;
       }
 
       // Prevent multiple auto-executions (or if state was restored)
       if (hasAutoExecutedRef.current) {
-        console.log('⏭️ Already auto-executed default search or state restored, skipping');
+        logger.info('⏭️ Already auto-executed default search or state restored, skipping');
         return;
       }
 
       try {
         // Check if there's a default saved search
-        const defaultSearch = await getDefaultSavedSearch();
+        logger.info('⭐ Checking for default saved search for user:', localStorage.getItem('username'));
+        const response = await getDefaultSavedSearch();
+        const defaultSearch = response?.savedSearch || response;
         
         if (defaultSearch && defaultSearch.criteria) {
-          console.log('⭐ Found default saved search:', defaultSearch.name);
-          console.log('📋 Default search criteria:', defaultSearch.criteria);
+          logger.info('⭐ Found default saved search:', defaultSearch.name);
+          logger.info('📋 Default search criteria:', defaultSearch.criteria);
           
-          // Extract minMatchScore from saved search (same as handleLoadSavedSearch)
+          // Extract minMatchScore from saved search
           const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
-          console.log('🎯 Min match score:', loadedMinScore);
           
-          // Find matching search from savedSearches array (to ensure ID format matches)
-          const defaultSearchId = defaultSearch.id || defaultSearch._id;
-          const matchingSearch = savedSearches.find(s => s.id === defaultSearchId || s._id === defaultSearchId);
-          console.log('🔍 Matching search in savedSearches:', matchingSearch?.name);
-          
-          // Load criteria and set selected search (use matching object for badge to work)
+          // Load criteria and set selected search
           setSearchCriteria(defaultSearch.criteria);
           setMinMatchScore(loadedMinScore);
-          setSelectedSearch(matchingSearch || defaultSearch);
+          setSelectedSearch(defaultSearch);
           
           // Mark as executed
           hasAutoExecutedRef.current = true;
           
           // Execute the search with explicit criteria AND minMatchScore
+          // Delay slightly to ensure state is processed by React
           setTimeout(() => {
-            console.log('🔍 Auto-executing default saved search');
-            console.log('   - Criteria:', defaultSearch.criteria);
-            console.log('   - Min match score:', loadedMinScore);
-            handleSearch(1, loadedMinScore, defaultSearch.criteria);  // Pass criteria and minMatchScore
-            // Show status message to inform user
-            setStatusMessage(`⭐ Default search "${defaultSearch.name}" executed`);
-            setTimeout(() => setStatusMessage(''), 4000); // Clear after 4 seconds
-          }, 500);
+            logger.info('🔍 Auto-executing default saved search');
+            handleSearch(1, loadedMinScore, defaultSearch.criteria);
+            toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
+          }, 100);
         } else {
-          // No default saved search - just show empty search page
-          console.log('🔍 No default search - waiting for user to initiate search');
+          logger.info('🔍 No default search found - waiting for user to initiate search');
         }
       } catch (err) {
-        console.error('Error loading default saved search:', err);
+        logger.error('Error loading default saved search:', err);
       }
     };
 
@@ -607,7 +592,7 @@ const SearchPage2 = () => {
   // User must manually click "Search" button
   // useEffect(() => {
   //   if (currentUserProfile && searchCriteria.gender && users.length === 0) {
-  //     console.log('🔄 Gender changed, triggering search:', searchCriteria.gender);
+  //     logger.info('🔄 Gender changed, triggering search:', searchCriteria.gender);
   //     handleSearch(1);
   //   }
   //   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -628,9 +613,9 @@ const SearchPage2 = () => {
       const receivedAccess = accessResponse.data.receivedAccess || [];
       const requestStatus = {};
       
-      console.log('🔍 PII API Responses:');
-      console.log('  Requests:', requests);
-      console.log('  Received Access:', receivedAccess);
+      logger.info('🔍 PII API Responses:');
+      logger.info('  Requests:', requests);
+      logger.info('  Received Access:', receivedAccess);
 
       // First, add ONLY pending requests (not approved ones - those must be in receivedAccess)
       requests.forEach(req => {
@@ -652,17 +637,17 @@ const SearchPage2 = () => {
         }
       });
 
-      console.log('📊 PII Access Status:', requestStatus);
+      logger.info('📊 PII Access Status:', requestStatus);
       setPiiRequests(requestStatus);
     } catch (err) {
-      console.error('Error loading PII requests:', err);
+      logger.error('Error loading PII requests:', err);
     }
   };
 
   // Listen for PII access changes (grant/revoke)
   useEffect(() => {
     const cleanup = onPIIAccessChange((detail) => {
-      console.log('🔔 PII Access changed in search page:', detail);
+      logger.info('🔔 PII Access changed in search page:', detail);
       // Reload PII requests to update badges
       loadPiiRequests();
     });
@@ -746,13 +731,13 @@ const SearchPage2 = () => {
             alt={`${user.firstName}'s profile`}
             className="profile-thumbnail"
             onError={(e) => {
-              console.error(`Failed to load image: ${currentImage}`, e);
+              logger.error(`Failed to load image: ${currentImage}`, e);
               setImageErrors(prev => ({ ...prev, [user.username]: true }));
               e.target.style.display = 'none';
               e.target.nextSibling.style.display = 'flex';
             }}
             onLoad={(e) => {
-              console.log(`Successfully loaded image: ${currentImage}`);
+              logger.info(`Successfully loaded image: ${currentImage}`);
               setImageErrors(prev => ({ ...prev, [user.username]: false }));
               e.target.style.display = 'block';
               e.target.nextSibling.style.display = 'none';
@@ -821,10 +806,10 @@ const SearchPage2 = () => {
       const favorites = response.data.favorites || [];
       const favoritedUsernames = new Set(favorites.map(fav => fav.username));
       setFavoritedUsers(favoritedUsernames);
-      console.log('Loaded favorites:', favoritedUsernames);
+      logger.info('Loaded favorites:', favoritedUsernames);
     } catch (err) {
       // Silently handle error - favorites might not exist yet for new users
-      console.debug('No favorites found or error loading favorites:', err);
+      logger.debug('No favorites found or error loading favorites:', err);
       setFavoritedUsers(new Set());
     }
   };
@@ -842,10 +827,10 @@ const SearchPage2 = () => {
       const shortlist = response.data.shortlist || [];
       const shortlistedUsernames = new Set(shortlist.map(item => item.username));
       setShortlistedUsers(shortlistedUsernames);
-      console.log('Loaded shortlist:', shortlistedUsernames);
+      logger.info('Loaded shortlist:', shortlistedUsernames);
     } catch (err) {
       // Silently handle error - shortlist might not exist yet for new users
-      console.debug('No shortlist found or error loading shortlist:', err);
+      logger.debug('No shortlist found or error loading shortlist:', err);
       setShortlistedUsers(new Set());
     }
   };
@@ -859,15 +844,15 @@ const SearchPage2 = () => {
         return;
       }
 
-      console.log(`Loading exclusions for user: ${username}`);
+      logger.info(`Loading exclusions for user: ${username}`);
       const response = await api.get(`/exclusions/${username}`);
       const exclusions = response.data.exclusions || [];
       const excludedUsernames = new Set(exclusions);
       setExcludedUsers(excludedUsernames);
-      console.log('Loaded exclusions:', excludedUsernames);
+      logger.info('Loaded exclusions:', excludedUsernames);
     } catch (err) {
       // Silently handle error - exclusions might not exist yet for new users
-      console.debug('No exclusions found or error loading exclusions:', err);
+      logger.debug('No exclusions found or error loading exclusions:', err);
       setExcludedUsers(new Set());
     }
   };
@@ -881,10 +866,10 @@ const SearchPage2 = () => {
       }
     } catch (err) {
       if (err.response?.status === 404 || err.response?.data?.savedSearches?.length === 0) {
-        console.info('No saved searches found for user (this is normal for new users)');
+        logger.info('No saved searches found for user (this is normal for new users)');
         setSavedSearches([]);
       } else {
-        console.error('Error loading saved searches:', err);
+        logger.error('Error loading saved searches:', err);
         setSavedSearches([]);
       }
     }
@@ -892,7 +877,7 @@ const SearchPage2 = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    console.log(`🔧 Input changed: ${name} = ${value}`);
+    logger.info(`🔧 Input changed: ${name} = ${value}`);
     setSearchCriteria(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
@@ -951,12 +936,12 @@ const SearchPage2 = () => {
         const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
         defaultAgeMin = Math.max(19, userAge + minOffset).toString();
         defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-        console.log('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
+        logger.info('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
       } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
         // Fallback to absolute age range if set
         defaultAgeMin = partnerCriteria.ageRange.min.toString();
         defaultAgeMax = partnerCriteria.ageRange.max.toString();
-        console.log('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
+        logger.info('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
       } else if (userAge && userGender) {
         // Final fallback: gender-based defaults
         if (userGender === 'male') {
@@ -966,7 +951,7 @@ const SearchPage2 = () => {
           defaultAgeMin = Math.max(19, userAge - 1).toString();
           defaultAgeMax = Math.min(100, userAge + 5).toString();
         }
-        console.log('🔄 Reset: Using gender-based age defaults');
+        logger.info('🔄 Reset: Using gender-based age defaults');
       }
 
       // Set default height range from partnerCriteria (priority) or gender-based fallback
@@ -981,14 +966,14 @@ const SearchPage2 = () => {
         defaultHeightMinInches = (minTotalInches % 12).toString();
         defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
         defaultHeightMaxInches = (maxTotalInches % 12).toString();
-        console.log('🔄 Reset: Using partnerCriteria.heightRangeRelative');
+        logger.info('🔄 Reset: Using partnerCriteria.heightRangeRelative');
       } else if (partnerCriteria?.heightRange?.minFeet) {
         // Fallback to absolute height range if set
         defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
         defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
         defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
         defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-        console.log('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
+        logger.info('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
       } else if (userHeightTotalInches && userGender) {
         // Final fallback: gender-based defaults
         if (userGender === 'male') {
@@ -1006,7 +991,7 @@ const SearchPage2 = () => {
           defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
           defaultHeightMaxInches = (maxTotalInches % 12).toString();
         }
-        console.log('🔄 Reset: Using gender-based height defaults');
+        logger.info('🔄 Reset: Using gender-based height defaults');
       }
     }
 
@@ -1075,7 +1060,7 @@ const SearchPage2 = () => {
         sortBy: 'age',
         sortOrder: 'asc'
       });
-      console.log('🧹 Admin: Cleared all search filters');
+      logger.info('🧹 Admin: Cleared all search filters');
     } else {
       // NON-ADMIN: Reset to partner criteria defaults (smart defaults)
       setSearchCriteria({
@@ -1104,7 +1089,7 @@ const SearchPage2 = () => {
         sortBy: 'age',
         sortOrder: 'asc'
       });
-      console.log('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
+      logger.info('🔄 Non-admin: Reset to partner criteria defaults:', defaults);
     }
     
     setUsers([]);
@@ -1128,7 +1113,7 @@ const SearchPage2 = () => {
       const criteriaToUse = overrideCriteria !== null ? overrideCriteria : searchCriteria;
       
       // Log profileId for debugging
-      console.log('🔍 Profile ID in criteria:', criteriaToUse.profileId);
+      logger.info('🔍 Profile ID in criteria:', criteriaToUse.profileId);
       
       // If profileId is provided, ONLY send profileId (bypass all other filters)
       let params;
@@ -1138,7 +1123,7 @@ const SearchPage2 = () => {
           page: page,
           limit: 500
         };
-        console.log('🔍 Profile ID search - bypassing other filters');
+        logger.info('🔍 Profile ID search - bypassing other filters');
       } else {
         params = {
           ...criteriaToUse,
@@ -1196,20 +1181,20 @@ const SearchPage2 = () => {
         }
       });
       
-      console.log('🔍 Search params after validation:', params);
-      console.log('🔍 profileId in params:', params.profileId);
-      console.log('🔍 Full params object:', JSON.stringify(params, null, 2));
+      logger.info('🔍 Search params after validation:', params);
+      logger.info('🔍 profileId in params:', params.profileId);
+      logger.info('🔍 Full params object:', JSON.stringify(params, null, 2));
 
       const response = await api.get('/search', { params });
-      console.log('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
+      logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
       
-      console.log('🔍 Raw API response:', response);
-      console.log('🔍 response.data:', response.data);
-      console.log('🔍 response.data.users:', response.data.users);
-      console.log('🔍 response.data.users length:', response.data.users?.length);
+      logger.info('🔍 Raw API response:', response);
+      logger.info('🔍 response.data:', response.data);
+      logger.info('🔍 response.data.users:', response.data.users);
+      logger.info('🔍 response.data.users length:', response.data.users?.length);
       // Debug: Log images for first 3 users
       if (response.data.users?.length > 0) {
-        console.log('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
+        logger.info('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
           username: u.username,
           images: u.images,
           imageCount: u.images?.length || 0,
@@ -1233,11 +1218,11 @@ const SearchPage2 = () => {
 
       // STEP 2: Fetch and attach L3V3L match scores (if enabled)
       // Always fetch scores so they're available for client-side filtering
-      console.log(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
+      logger.info(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
       const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      console.log(`🔍 canUseL3V3L=${canUseL3V3L}`);
+      logger.info(`🔍 canUseL3V3L=${canUseL3V3L}`);
       if (canUseL3V3L) {
-        console.log(`🦋 L3V3L enabled: Fetching compatibility scores`);
+        logger.info(`🦋 L3V3L enabled: Fetching compatibility scores`);
         
         // Get L3V3L scores for filtered users
         try {
@@ -1256,18 +1241,18 @@ const SearchPage2 = () => {
             scoresMap[match.username] = match.matchScore;
           });
           
-          console.log(`🦋 L3V3L API returned ${matchesWithScores.length} matches`);
-          console.log(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
-          console.log(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
+          logger.info(`🦋 L3V3L API returned ${matchesWithScores.length} matches`);
+          logger.info(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
+          logger.info(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
           
           // Attach scores to all users (don't filter here - let client-side handle it)
           filteredUsers = filteredUsers
             .map(user => {
               const score = scoresMap[user.username];
               if (score !== undefined) {
-                console.log(`✅ Mapped ${user.username} → ${score}%`);
+                logger.info(`✅ Mapped ${user.username} → ${score}%`);
               } else {
-                console.log(`❌ No score for ${user.username}`);
+                logger.info(`❌ No score for ${user.username}`);
               }
               return {
                 ...user,
@@ -1277,24 +1262,24 @@ const SearchPage2 = () => {
             })
             .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
           
-          console.log(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
-          console.log(`🎯 Sample user with score:`, filteredUsers[0]);
+          logger.info(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
+          logger.info(`🎯 Sample user with score:`, filteredUsers[0]);
         } catch (err) {
-          console.error('❌ Error fetching L3V3L scores:', err);
+          logger.error('❌ Error fetching L3V3L scores:', err);
           // Continue without L3V3L filtering if API fails
         }
       }
 
       if (page === 1) {
         setUsers(filteredUsers);
-          } else {
+      } else {
         setUsers(prev => [...prev, ...filteredUsers]);
       }
 
       // setTotalResults(filteredUsers.length);
 
     } catch (err) {
-      console.error('Error searching users:', err);
+      logger.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
       
@@ -1315,7 +1300,6 @@ const SearchPage2 = () => {
     }
   };
 
-  // Handle load more for incremental loading
   const handleLoadMore = () => {
     setLoadingMore(true);
     // Simulate a small delay for better UX (can be removed if not needed)
@@ -1330,7 +1314,6 @@ const SearchPage2 = () => {
     }, 300);
   };
 
-  // Generate human-readable description from search criteria
   const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
     
@@ -1401,12 +1384,12 @@ const SearchPage2 = () => {
     
     // L3V3L Match Score
     const effectiveScore = matchScore !== null ? matchScore : minMatchScore;
-    console.log('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
+    logger.info('🦋 L3V3L Score check - matchScore:', matchScore, 'minMatchScore:', minMatchScore, 'effectiveScore:', effectiveScore);
     if (effectiveScore > 0) {
       parts.push(`L3V3L match score ≥${effectiveScore}%`);
-      console.log('✅ Added L3V3L to description');
+      logger.info('✅ Added L3V3L to description');
     } else {
-      console.log('❌ L3V3L score is 0, skipping');
+      logger.info('❌ L3V3L score is 0, skipping');
     }
     
     // Keyword
@@ -1428,18 +1411,86 @@ const SearchPage2 = () => {
     return parts.join(', ') + ' and ' + lastPart;
   };
 
+  const handleUpdateSavedSearch = async (searchId, newName) => {
+    try {
+      const username = localStorage.getItem('username');
+      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
+      toastService.success(`✅ Search renamed to: "${newName}"`);
+      loadSavedSearches();
+    } catch (err) {
+      logger.error('Error updating saved search:', err);
+      toastService.error('Failed to update saved search');
+    }
+  };
+
+  const handleLoadSavedSearch = (savedSearch) => {
+    // Expand filters if they were collapsed so user can see what was loaded
+    setFiltersCollapsed(false);
+    
+    setSearchCriteria(savedSearch.criteria);
+    // Restore L3V3L match score if saved
+    const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
+    setMinMatchScore(loadedMinScore);
+    setSelectedSearch(savedSearch);
+    setShowSavedSearches(false);
+    toastService.info(`📂 Loaded saved search: "${savedSearch.name}"`);
+    
+    // Automatically perform search with loaded criteria
+    // Pass the criteria directly to handleSearch to ensure immediate execution with correct values
+    setTimeout(() => {
+      handleSearch(1, loadedMinScore, savedSearch.criteria);
+    }, 100);
+  };
+
+  const handleDeleteSavedSearch = async (searchId) => {
+    if (!searchId) {
+      toastService.error('Cannot delete: Invalid search ID');
+      return;
+    }
+    
+    try {
+      const username = localStorage.getItem('username');
+      await api.delete(`/${username}/saved-searches/${searchId}`);
+      toastService.success('✅ Search deleted successfully');
+      loadSavedSearches();
+      // Clear selected search if it was deleted
+      if (selectedSearch && (selectedSearch.id === searchId || selectedSearch._id === searchId)) {
+        setSelectedSearch(null);
+      }
+    } catch (err) {
+      logger.error('❌ Error deleting saved search:', err);
+      toastService.error('Failed to delete saved search');
+    }
+  };
+
+  const handleSetDefaultSearch = async (searchId, searchName) => {
+    try {
+      await setDefaultSavedSearch(searchId);
+      toastService.success(`⭐ "${searchName}" set as default search`);
+      loadSavedSearches();
+    } catch (err) {
+      logger.error('Error setting default search:', err);
+      toastService.error('Failed to set default search');
+    }
+  };
+
+  const handleEditSchedule = (search) => {
+    setEditingScheduleFor(search);
+    setShowSaveModal(true);
+  };
+
   const handleSaveSearch = async (saveData) => {
     try {
       const username = localStorage.getItem('username');
       if (!username) {
-        setError('Please login to save searches');
+        toastService.error('Please login to save searches');
         return;
       }
 
       // Generate human-readable description (pass minMatchScore)
-      console.log('🔍 Saving search with minMatchScore:', minMatchScore);
+      logger.info('🔍 Saving search with minMatchScore:', minMatchScore);
       const description = generateSearchDescription(searchCriteria, minMatchScore);
-      console.log('📝 Generated description:', description);
+      logger.info('📝 Generated description:', description);
 
       // Handle both old format (string) and new format (object with notifications)
       const searchName = typeof saveData === 'string' ? saveData : saveData.name;
@@ -1454,227 +1505,24 @@ const SearchPage2 = () => {
         ...(notifications && { notifications }) // Add notifications if provided
       };
       
-      console.log('💾 Search data to save:', searchData);
+      logger.info('💾 Search data to save:', searchData);
 
       await api.post(`/${username}/saved-searches`, searchData);
 
       const notificationMsg = notifications?.enabled 
         ? ` with ${notifications.frequency} notifications`
         : '';
-      setStatusMessage(`✅ Search saved: "${searchName}"${notificationMsg}`);
-      setTimeout(() => setStatusMessage(''), 3000);
+      toastService.success(`✅ Search saved: "${searchName}"${notificationMsg}`);
+      
+      // Close both modals after successful save
+      setShowSaveModal(false);
+      setIsSearchModalOpen(false);
+      setEditingScheduleFor(null);
+      
       loadSavedSearches();
     } catch (err) {
-      console.error('Error saving search:', err);
-      setError('Failed to save search. ' + (err.response?.data?.detail || err.message));
-    }
-  };
-
-  const handleUpdateSavedSearch = async (searchId, newName) => {
-    try {
-      const username = localStorage.getItem('username');
-      await api.put(`/${username}/saved-searches/${searchId}`, { name: newName });
-      setStatusMessage(`✅ Search renamed to: "${newName}"`);
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches();
-    } catch (err) {
-      console.error('Error updating saved search:', err);
-      setError('Failed to update saved search');
-    }
-  };
-
-  // Handler to open modal for editing notification schedule
-  const handleEditSchedule = (search) => {
-    setEditingScheduleFor(search);
-    setShowSaveModal(true);
-  };
-
-  const handleLoadSavedSearch = (savedSearch) => {
-    // Restore L3V3L match score if saved
-    const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
-    const loadedCriteria = savedSearch.criteria;
-    
-    // Update state for UI display
-    setSearchCriteria(loadedCriteria);
-    setMinMatchScore(loadedMinScore);
-    setSelectedSearch(savedSearch);
-    setShowSavedSearches(false);
-    setFiltersCollapsed(false); // Expand filters to show loaded search
-    
-    // Automatically perform search with loaded criteria
-    // Pass both criteria and minMatchScore directly to avoid React state timing issues
-    handleSearch(1, loadedMinScore, loadedCriteria);
-  };
-
-  const handleDeleteSavedSearch = async (searchId) => {
-    console.log('🗑️ Deleting search with ID:', searchId);
-    
-    if (!searchId) {
-      console.error('❌ No search ID provided');
-      setError('Cannot delete: Invalid search ID');
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
-    
-    try {
-      const username = localStorage.getItem('username');
-      await api.delete(`/${username}/saved-searches/${searchId}`);
-      setStatusMessage('✅ Search deleted successfully');
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches();
-      // Clear selected search if it was deleted
-      if (selectedSearch && selectedSearch.id === searchId) {
-        setSelectedSearch(null);
-      }
-    } catch (err) {
-      console.error('❌ Error deleting saved search:', err);
-      setError('Failed to delete saved search. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const handleSetDefaultSearch = async (searchId, searchName) => {
-    console.log('⭐ Setting default search:', searchId, searchName);
-    
-    if (!searchId) {
-      console.error('❌ No search ID provided');
-      setError('Cannot set default: Invalid search ID');
-      setTimeout(() => setError(''), 3000);
-      return;
-    }
-    
-    try {
-      await setDefaultSavedSearch(searchId);
-      setStatusMessage(`⭐ "${searchName}" set as default search`);
-      setTimeout(() => setStatusMessage(''), 3000);
-      loadSavedSearches(); // Reload to update UI
-    } catch (err) {
-      console.error('❌ Error setting default search:', err);
-      setError('Failed to set default search. Please try again.');
-      setTimeout(() => setError(''), 3000);
-    }
-  };
-
-  const handleClearSelectedSearch = async () => {
-    setSelectedSearch(null);
-    setDisplayedCount(20); // Reset to initial display count
-    
-    // Get default search criteria from user profile
-    const defaults = getDefaultSearchCriteria();
-    
-    const clearedCriteria = {
-      keyword: '',
-      gender: defaults.gender,
-      ageMin: defaults.ageMin,
-      ageMax: defaults.ageMax,
-      heightMin: '',
-      heightMax: '',
-      heightMinFeet: defaults.heightMinFeet,
-      heightMinInches: defaults.heightMinInches,
-      heightMaxFeet: defaults.heightMaxFeet,
-      heightMaxInches: defaults.heightMaxInches,
-      location: '',
-      education: '',
-      occupation: '',
-      religion: '',
-      caste: '',
-      eatingPreference: '',
-      drinking: '',
-      smoking: '',
-      relationshipStatus: '',
-      bodyType: '',
-      newlyAdded: false,
-      sortBy: 'age',
-      sortOrder: 'asc'
-    };
-    
-    // Update criteria and clear results
-    setSearchCriteria(clearedCriteria);
-    setMinMatchScore(0); // Reset L3V3L compatibility score
-    setUsers([]);
-    // setTotalResults(0);
-    setStatusMessage('✅ Returning to default search criteria');
-    setTimeout(() => setStatusMessage(''), 3000);
-    
-    // Perform search directly with cleared criteria instead of relying on state update
-    try {
-      setLoading(true);
-      setError('');
-
-      // Build params object
-      const params = {
-        gender: defaults.gender,
-        ageMin: defaults.ageMin,
-        ageMax: defaults.ageMax,
-        status: 'active',
-        page: 1,
-        limit: 500
-      };
-
-      // Convert height feet+inches to total inches (like handleSearch does)
-      if (defaults.heightMinFeet && defaults.heightMinInches) {
-        const feet = parseInt(defaults.heightMinFeet);
-        const inches = parseInt(defaults.heightMinInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMin = feet * 12 + inches;
-        }
-      }
-
-      if (defaults.heightMaxFeet && defaults.heightMaxInches) {
-        const feet = parseInt(defaults.heightMaxFeet);
-        const inches = parseInt(defaults.heightMaxInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMax = feet * 12 + inches;
-        }
-      }
-
-      // Clean up empty strings
-      Object.keys(params).forEach(key => {
-        if (params[key] === '' || params[key] === null || params[key] === undefined) {
-          delete params[key];
-        }
-      });
-
-      // Ensure integer fields are numbers
-      ['ageMin', 'ageMax', 'heightMin', 'heightMax'].forEach(field => {
-        if (params[field] !== undefined) {
-          const num = parseInt(params[field]);
-          if (!isNaN(num)) {
-            params[field] = num;
-          } else {
-            delete params[field];
-          }
-        }
-      });
-
-      console.log('🔍 Clear saved search params:', params);
-
-      const response = await api.get('/search', { params });
-      const fetchedUsers = response.data.users || [];
-      
-      setUsers(fetchedUsers);
-      // setTotalResults(fetchedUsers.length);
-      setFiltersCollapsed(true); // Auto-collapse filters after search
-      
-      console.log(`✅ Retrieved ${fetchedUsers.length} profiles with default criteria`);
-    } catch (err) {
-      console.error('Error searching users:', err);
-      const errorDetail = err.response?.data?.detail;
-      let errorMsg = 'Failed to search users.';
-      
-      if (typeof errorDetail === 'string') {
-        errorMsg += ' ' + errorDetail;
-      } else if (Array.isArray(errorDetail)) {
-        errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-      } else if (errorDetail) {
-        errorMsg += ' ' + JSON.stringify(errorDetail);
-      } else {
-        errorMsg += ' ' + err.message;
-      }
-      
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
+      logger.error('Error saving search:', err);
+      toastService.error('Failed to save search. ' + (err.response?.data?.detail || err.message));
     }
   };
 
@@ -1730,11 +1578,11 @@ const SearchPage2 = () => {
         contactNumberVisible: targetProfile.contactNumberVisible,
         contactEmailVisible: targetProfile.contactEmailVisible,
         linkedinUrlVisible: targetProfile.linkedinUrlVisible,
-        imagesVisible: targetProfile.imagesVisible
+        imageVisibility: targetProfile.imageVisibility
       });
       setShowPIIRequestModal(true);
     } catch (err) {
-      console.error('Failed to fetch profile for PII modal:', err);
+      logger.error('Failed to fetch profile for PII modal:', err);
       // Fallback to user data from search results
       setSelectedUserForPII(user);
       setShowPIIRequestModal(true);
@@ -1800,7 +1648,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
+            logger.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
             
             // Handle 409 Conflict (already exists)
             if (err.response?.status === 409) {
@@ -1839,7 +1687,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
+            logger.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
             
             // Handle 409 Conflict (already exists)
             if (err.response?.status === 409) {
@@ -1865,11 +1713,11 @@ const SearchPage2 = () => {
               return;
             }
 
-            console.log(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
+            logger.info(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
 
             if (isCurrentlyExcluded) {
               // Remove from exclusions
-              console.log(`DELETE /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+              logger.info(`DELETE /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               await api.delete(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               setExcludedUsers(prev => {
                 const newSet = new Set(prev);
@@ -1880,7 +1728,7 @@ const SearchPage2 = () => {
               setTimeout(() => setStatusMessage(''), 3000);
             } else {
               // Add to exclusions
-              console.log(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+              logger.info(`POST /exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
               setExcludedUsers(prev => new Set([...prev, targetUsername]));
               
@@ -1896,9 +1744,9 @@ const SearchPage2 = () => {
                     newSet.delete(targetUsername);
                     return newSet;
                   });
-                  console.log(`Auto-removed ${targetUsername} from favorites when excluding`);
+                  logger.info(`Auto-removed ${targetUsername} from favorites when excluding`);
                 } catch (err) {
-                  console.error('Error removing from favorites during exclude:', err);
+                  logger.error('Error removing from favorites during exclude:', err);
                 }
               }
               
@@ -1910,9 +1758,9 @@ const SearchPage2 = () => {
                     newSet.delete(targetUsername);
                     return newSet;
                   });
-                  console.log(`Auto-removed ${targetUsername} from shortlist when excluding`);
+                  logger.info(`Auto-removed ${targetUsername} from shortlist when excluding`);
                 } catch (err) {
-                  console.error('Error removing from shortlist during exclude:', err);
+                  logger.error('Error removing from shortlist during exclude:', err);
                 }
               }
               
@@ -1921,7 +1769,7 @@ const SearchPage2 = () => {
             }
             setError(''); // Clear any previous errors
           } catch (err) {
-            console.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
+            logger.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
             const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'mark as'} not interested. ` + (err.response?.data?.detail || err.message);
             setError(errorMsg);
             setStatusMessage(`❌ ${errorMsg}`);
@@ -1937,10 +1785,10 @@ const SearchPage2 = () => {
           break;
 
         default:
-          console.warn('Unknown action:', action);
+          logger.warn('Unknown action:', action);
       }
     } catch (err) {
-      console.error(`Error performing ${action}:`, err);
+      logger.error(`Error performing ${action}:`, err);
       const errorMsg = `Failed to ${action}. ` + (err.response?.data?.detail || err.message);
       setError(errorMsg);
       setStatusMessage(`❌ ${errorMsg}`);
@@ -1957,7 +1805,7 @@ const SearchPage2 = () => {
         const response = await api.get(`/profile/${user.username}?requester=${currentUser}`);
         setSelectedUserForMessage(response.data);
       } catch (err) {
-        console.error('Error loading user profile:', err);
+        logger.error('Error loading user profile:', err);
         // Fallback to existing user object
         setSelectedUserForMessage(user);
       }
@@ -1967,9 +1815,9 @@ const SearchPage2 = () => {
     setShowMessageModal(true);
   };
 
-  console.log(`🔍 Starting client-side filter with ${users.length} users from backend`);
-  console.log(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
-  console.log(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
+  logger.info(`🔍 Starting client-side filter with ${users.length} users from backend`);
+  logger.info(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
+  logger.info(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
   
   // Check if this is a Profile ID search - bypass most filters if so
   const isProfileIdSearch = searchCriteria.profileId?.trim();
@@ -1977,13 +1825,13 @@ const SearchPage2 = () => {
   const filteredUsers = users.filter(user => {
     // Exclude users who have been excluded by current user (always apply)
     if (excludedUsers.has(user.username)) {
-      console.log(`🚫 Filtered out ${user.username} - excluded`);
+      logger.info(`🚫 Filtered out ${user.username} - excluded`);
       return false;
     }
 
     // Profile ID search bypasses all other client-side filters
     if (isProfileIdSearch) {
-      console.log(`✅ ${user.username} - Profile ID search, bypassing filters`);
+      logger.info(`✅ ${user.username} - Profile ID search, bypassing filters`);
       return true;
     }
 
@@ -1992,48 +1840,48 @@ const SearchPage2 = () => {
       // If user has no match score (0 or undefined), hide them when filter is active
       const userScore = user.matchScore || 0;
       if (userScore < minMatchScore) {
-        console.log(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
+        logger.info(`🚫 Filtered out ${user.username} - score ${userScore} < ${minMatchScore}`);
         return false;
       }
     }
 
     if (searchCriteria.ageMin || searchCriteria.ageMax) {
       const age = user.age || calculateAge(user.birthMonth, user.birthYear);
-      console.log(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
+      logger.info(`👤 ${user.username}: age=${age}, ageMin=${searchCriteria.ageMin}, ageMax=${searchCriteria.ageMax}`);
       
       // Only apply age filter if user has valid age data
       // Users without age data will be included in results
       if (age !== null) {
         if (searchCriteria.ageMin && age < parseInt(searchCriteria.ageMin)) {
-          console.log(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
+          logger.info(`🚫 Filtered out ${user.username} - age ${age} < ${searchCriteria.ageMin}`);
           return false;
         }
         if (searchCriteria.ageMax && age > parseInt(searchCriteria.ageMax)) {
-          console.log(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
+          logger.info(`🚫 Filtered out ${user.username} - age ${age} > ${searchCriteria.ageMax}`);
           return false;
         }
       } else {
-        console.log(`⚠️ ${user.username} has no age data - including in results`);
+        logger.info(`⚠️ ${user.username} has no age data - including in results`);
       }
     }
 
     if (searchCriteria.heightMin || searchCriteria.heightMax) {
       const heightInches = parseHeight(user.height);
-      console.log(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
+      logger.info(`👤 ${user.username}: height=${heightInches}, heightMin=${searchCriteria.heightMin}, heightMax=${searchCriteria.heightMax}`);
       
       // Only apply height filter if user has valid height data
       // Users without height data will be included in results
       if (heightInches !== null) {
         if (searchCriteria.heightMin && heightInches < parseInt(searchCriteria.heightMin)) {
-          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
+          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" < ${searchCriteria.heightMin}"`);
           return false;
         }
         if (searchCriteria.heightMax && heightInches > parseInt(searchCriteria.heightMax)) {
-          console.log(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
+          logger.info(`🚫 Filtered out ${user.username} - height ${heightInches}" > ${searchCriteria.heightMax}"`);
           return false;
         }
       } else {
-        console.log(`⚠️ ${user.username} has no height data - including in results`);
+        logger.info(`⚠️ ${user.username} has no height data - including in results`);
       }
     }
 
@@ -2048,12 +1896,12 @@ const SearchPage2 = () => {
       if (!searchableText.includes(keyword)) return false;
     }
 
-    console.log(`✅ ${user.username} passed all filters`);
+    logger.info(`✅ ${user.username} passed all filters`);
     return true;
   });
   
-  console.log(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
-  console.log(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
+  logger.info(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
+  logger.info(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
   // Reset debug flag so we can see new comparisons
   window._sortDebugLogged = false;
 
@@ -2097,9 +1945,9 @@ const SearchPage2 = () => {
         compareValue = dateB - dateA; // Newest approved first
         // Debug: log first comparison only
         if (!window._sortDebugLogged) {
-          console.log(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
-          console.log(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
-          console.log(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
+          logger.info(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
+          logger.info(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
+          logger.info(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
           window._sortDebugLogged = true;
         }
         break;
@@ -2112,11 +1960,115 @@ const SearchPage2 = () => {
     return sortOrder === 'desc' ? compareValue : -compareValue;
   });
 
-  // Use displayedCount for incremental loading instead of pagination
+  // Calculate current records based on display count
   const currentRecords = sortedUsers.slice(0, displayedCount);
+
+  const getActiveCriteriaSummary = () => {
+    const summary = [];
+    
+    // Show saved search name if loaded
+    if (selectedSearch?.name) {
+      summary.push(`📂 ${selectedSearch.name}`);
+    }
+    
+    if (searchCriteria.profileId) {
+      summary.push(`Profile ID: ${searchCriteria.profileId}`);
+      return summary.join(' • ');
+    }
+    
+    // Gender
+    if (searchCriteria.gender) summary.push(searchCriteria.gender.charAt(0).toUpperCase() + searchCriteria.gender.slice(1));
+    
+    // Age range
+    if (searchCriteria.ageMin && searchCriteria.ageMax) summary.push(`${searchCriteria.ageMin}-${searchCriteria.ageMax} yrs`);
+    else if (searchCriteria.ageMin) summary.push(`${searchCriteria.ageMin}+ yrs`);
+    else if (searchCriteria.ageMax) summary.push(`Up to ${searchCriteria.ageMax} yrs`);
+    
+    // Height range
+    if (searchCriteria.heightMin || searchCriteria.heightMax) {
+      const heightMin = searchCriteria.heightMin || 'Any';
+      const heightMax = searchCriteria.heightMax || 'Any';
+      if (heightMin !== 'Any' || heightMax !== 'Any') {
+        summary.push(`Height: ${heightMin}-${heightMax}`);
+      }
+    }
+    
+    // Location
+    if (searchCriteria.location) summary.push(`📍 ${searchCriteria.location}`);
+    if (searchCriteria.state) summary.push(searchCriteria.state);
+    if (searchCriteria.country) summary.push(searchCriteria.country);
+    
+    // L3V3L Match Score
+    if (minMatchScore > 0) summary.push(`🦋 ${minMatchScore}%+ Match`);
+    
+    // Education & Occupation
+    if (searchCriteria.education) summary.push(`🎓 ${searchCriteria.education}`);
+    if (searchCriteria.occupation) summary.push(`💼 ${searchCriteria.occupation}`);
+    
+    // Religion & Caste
+    if (searchCriteria.religion) summary.push(searchCriteria.religion);
+    if (searchCriteria.caste) summary.push(searchCriteria.caste);
+    
+    // Marital Status
+    if (searchCriteria.maritalStatus) summary.push(searchCriteria.maritalStatus);
+    
+    // Diet & Lifestyle
+    if (searchCriteria.diet) summary.push(`🍽️ ${searchCriteria.diet}`);
+    if (searchCriteria.smoking) summary.push(`🚬 ${searchCriteria.smoking}`);
+    if (searchCriteria.drinking) summary.push(`🍷 ${searchCriteria.drinking}`);
+    
+    // Online status
+    if (searchCriteria.onlineOnly) summary.push('🟢 Online');
+    
+    // With photos only
+    if (searchCriteria.withPhotosOnly) summary.push('📷 With Photos');
+    
+    return summary.length > 0 ? summary.join(' • ') : 'Showing all matches';
+  };
 
   return (
     <div className="search-page">
+      
+      {/* Floating Search Trigger Button */}
+      <button 
+        className="floating-search-trigger"
+        onClick={() => setIsSearchModalOpen(true)}
+        title="Open Search Filters"
+      >
+        <span className="trigger-icon">🔍</span>
+        <span className="trigger-text">Search Filters</span>
+      </button>
+
+      {/* Search Filters Modal */}
+      <SearchFiltersModal
+        isOpen={isSearchModalOpen}
+        onClose={() => setIsSearchModalOpen(false)}
+        searchCriteria={searchCriteria}
+        minMatchScore={minMatchScore}
+        setMinMatchScore={handleMinMatchScoreChange}
+        handleInputChange={handleInputChange}
+        showAdvancedFilters={showAdvancedFilters}
+        setShowAdvancedFilters={setShowAdvancedFilters}
+        onSearch={() => handleSearch(1)}
+        onClear={handleClearFilters}
+        onSave={() => setShowSaveModal(true)}
+        systemConfig={systemConfig}
+        isPremiumUser={isPremiumUser}
+        currentUserProfile={currentUserProfile}
+        bodyTypeOptions={bodyTypeOptions}
+        occupationOptions={occupationOptions}
+        eatingOptions={eatingOptions}
+        lifestyleOptions={lifestyleOptions}
+        isAdmin={isAdmin}
+        savedSearches={savedSearches}
+        selectedSearch={selectedSearch}
+        handleLoadSavedSearch={handleLoadSavedSearch}
+        handleDeleteSavedSearch={handleDeleteSavedSearch}
+        handleEditSchedule={handleEditSchedule}
+        handleSetDefaultSearch={handleSetDefaultSearch}
+        generateSearchDescription={generateSearchDescription}
+        loadSavedSearches={loadSavedSearches}
+      />
 
       {error && (
         <div style={{ maxWidth: '600px', margin: '10px auto' }}>
@@ -2134,294 +2086,21 @@ const SearchPage2 = () => {
       )}
 
       <div className="search-container">
-        {/* Search Filters - Always visible */}
-        <div className="search-filters">
-          {showSavedSearches && (
-            <div className="saved-searches mb-3">
-              <h6>Saved Searches</h6>
-              {savedSearches.length === 0 ? (
-                <p className="text-muted">No saved searches yet</p>
-              ) : (
-                <div className="saved-searches-list">
-                  {savedSearches.map(search => (
-                    <div key={search.id} className="saved-search-item">
-                      <span onClick={() => handleLoadSavedSearch(search)}>
-                        {search.name}
-                      </span>
-                      <button
-                        className="btn btn-sm btn-outline-danger ms-2"
-                        onClick={() => handleDeleteSavedSearch(search.id)}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          <form onSubmit={(e) => { e.preventDefault(); handleSearch(1); }}>
-
-            {/* Collapsible Filters Container */}
-            <div className={`filters-container ${filtersCollapsed ? 'collapsed' : 'expanded'}`}>
-              
-              {/* Collapsed Header - Minimal Tab Bar */}
-              {filtersCollapsed && (
-                <div className="filters-collapsed-header" style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  padding: '12px 16px',
-                  background: 'var(--surface-color)',
-                  border: '1px solid var(--border-color)',
-                  borderRadius: 'var(--radius-md)',
-                  marginBottom: '16px',
-                  cursor: 'pointer'
-                }} onClick={() => setFiltersCollapsed(false)}>
-                  <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
-                      🔍 Search
-                    </span>
-                    <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>|</span>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-color)' }}>
-                      💾 Saved {savedSearches.length > 0 && `(${savedSearches.length})`}
-                    </span>
-                    {minMatchScore > 0 && (
-                      <span className="badge bg-primary" style={{ fontSize: '11px' }}>
-                        {minMatchScore}%
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-outline-secondary"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setFiltersCollapsed(false);
-                    }}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                  >
-                    <span>▼ Show Filters</span>
-                  </button>
-                </div>
-              )}
-
-              {/* Expanded Content - Full Tabs */}
-              {!filtersCollapsed && (
-                <>
-                  {/* Collapse Button at Top Right */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'flex-end', 
-                    marginBottom: '8px' 
-                  }}>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => setFiltersCollapsed(true)}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                      <span>▲ Hide Filters</span>
-                    </button>
-                  </div>
-
-                  {/* Search Tabs */}
-                  <UniversalTabContainer
-                    key={`search-tabs-${savedSearches.length}`}
-                    variant="pills"
-                    defaultTab={savedSearches.length > 0 ? "saved" : "search"}
-                    tabs={[
-                {
-                  id: 'search',
-                  icon: '🔍',
-                  label: 'Search',
-                  badge: minMatchScore > 0 ? `${minMatchScore}%` : null,
-                  content: (
-                    <SearchFilters
-                      searchCriteria={searchCriteria}
-                      minMatchScore={minMatchScore}
-                      setMinMatchScore={handleMinMatchScoreChange}
-                      handleInputChange={handleInputChange}
-                      showAdvancedFilters={showAdvancedFilters}
-                      setShowAdvancedFilters={setShowAdvancedFilters}
-                      onSearch={() => handleSearch(1)}
-                      onClear={handleClearFilters}
-                      onSave={() => setShowSaveModal(true)}
-                      systemConfig={systemConfig}
-                      isPremiumUser={isPremiumUser}
-                      currentUserProfile={currentUserProfile}
-                      bodyTypeOptions={bodyTypeOptions}
-                      occupationOptions={occupationOptions}
-                      eatingOptions={eatingOptions}
-                      lifestyleOptions={lifestyleOptions}
-                      isAdmin={isAdmin}
-                    />
-                  )
-                },
-                {
-                  id: 'saved',
-                  icon: '💾',
-                  label: 'Saved',
-                  badge: savedSearches.length > 0 ? savedSearches.length : null,
-                  content: (
-                    <div className="saved-searches-tab">
-                      {savedSearches.length === 0 ? (
-                        <div className="empty-saved-searches">
-                          <div className="empty-icon">📋</div>
-                          <h4>No Saved Searches Yet</h4>
-                          <p>Save your search criteria to quickly access them later.</p>
-                          <p className="text-muted">
-                            Use the "💾 Save" button above to save your current search filters.
-                          </p>
-                        </div>
-                      ) : (
-                        <div className="saved-searches-grid">
-                          {savedSearches.map(search => (
-                            <div key={search.id} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${selectedSearch?.id === search.id ? 'is-active' : ''}`}>
-                              {/* Row 1: Name + action buttons */}
-                              <div className="saved-search-header">
-                                <h5 className="saved-search-name">
-                                  {search.isDefault && <span className="default-badge" title="Default Search">⭐ </span>}
-                                  {search.name}
-                                  {selectedSearch?.id === search.id && (
-                                    <span className="active-badge" title="Currently loaded search">✓</span>
-                                  )}
-                                </h5>
-                                <div className="saved-search-actions">
-                                  <button
-                                    type="button"
-                                    className="btn-schedule-saved"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleEditSchedule(search);
-                                    }}
-                                    title="Edit notification schedule"
-                                  >
-                                    ⏰
-                                  </button>
-                                  <button
-                                    type="button"
-                                    className="btn-delete-saved"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleDeleteSavedSearch(search.id);
-                                    }}
-                                    title="Delete this saved search"
-                                  >
-                                    🗑️
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              {/* Row 2: Description */}
-                              <div className="saved-search-description">
-                                <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
-                              </div>
-
-                              {/* Row 3: Default + Date + Load in a row */}
-                              <div className="saved-search-footer">
-                                {!search.isDefault && (
-                                  <button
-                                    type="button"
-                                    className="btn-set-default"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      handleSetDefaultSearch(search.id, search.name);
-                                    }}
-                                    title="Set as default search"
-                                  >
-                                    ⭐ Default
-                                  </button>
-                                )}
-                                {search.isDefault && (
-                                  <span className="default-indicator" title="This search runs automatically on page load">
-                                    ⭐ Default
-                                  </span>
-                                )}
-                                <span className="saved-date">
-                                  {search.createdAt ? new Date(search.createdAt).toLocaleDateString() : ''}
-                                </span>
-                                <button
-                                  type="button"
-                                  className="btn-load-saved"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    handleLoadSavedSearch(search);
-                                  }}
-                                >
-                                  📂 Load Search
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )
-                }
-              ]}
-            />
-                </>
-              )}
-            </div>
-
-            {/* Additional filters (hidden) */}
-            <div className="filter-section" style={{display: 'none'}}>
-              <div className="row">
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Gender</label>
-                    <select
-                      className="form-control"
-                      name="gender"
-                      value={searchCriteria.gender}
-                      onChange={handleInputChange}
-                    >
-                      {genderOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Religion</label>
-                    <select
-                      className="form-control"
-                      name="religion"
-                      value={searchCriteria.religion}
-                      onChange={handleInputChange}
-                    >
-                      {religionOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-                <div className="col-md-6">
-                  <div className="form-group">
-                    <label>Relationship Status</label>
-                    <select
-                      className="form-control"
-                      name="relationshipStatus"
-                      value={searchCriteria.relationshipStatus}
-                      onChange={handleInputChange}
-                    >
-                      {relationshipOptions.map(option => (
-                        <option key={option} value={option}>{option || 'Any'}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-          </form>
+        {/* Active Criteria Summary Bar */}
+        <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
+          <div className="criteria-info">
+            <span className="criteria-label">ACTIVE FILTERS:</span>
+            <span className="criteria-value">{getActiveCriteriaSummary()}</span>
+          </div>
+          <div className="criteria-actions">
+            <span className="results-count">
+              <span className="results-count-number">{filteredUsers.length}</span>
+              <span className="results-count-text"> profiles found</span>
+            </span>
+            <button className="btn-modify-search">
+              <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
+            </button>
+          </div>
         </div>
 
         <div className="search-results" ref={searchResultsRef}>
@@ -2465,7 +2144,7 @@ const SearchPage2 = () => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ⚏ Split
+                    <span className="layout-toggle-btn-icon">⚏</span><span className="layout-toggle-btn-text"> Split</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('cards')}
@@ -2483,7 +2162,7 @@ const SearchPage2 = () => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ▦ Cards
+                    <span className="layout-toggle-btn-icon">▦</span><span className="layout-toggle-btn-text"> Cards</span>
                   </button>
                   <button
                     onClick={() => handleViewModeChange('rows')}
@@ -2501,13 +2180,13 @@ const SearchPage2 = () => {
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    ☰ Rows
+                    <span className="layout-toggle-btn-icon">☰</span><span className="layout-toggle-btn-text"> Rows</span>
                   </button>
                 </div>
               </div>
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'nowrap' }}>
+                <span className="sort-by-label" style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
                   Sort by:
                 </span>
                 <select
@@ -2515,7 +2194,7 @@ const SearchPage2 = () => {
                   onChange={handleSortChange}
                   className="form-select form-select-sm"
                   style={{
-                    width: 'auto',
+                    minWidth: '180px',
                     fontSize: '14px',
                     padding: '6px 12px',
                     borderRadius: 'var(--radius-sm)',
@@ -2534,19 +2213,29 @@ const SearchPage2 = () => {
                 </select>
                 <button
                   onClick={toggleSortOrder}
-                  className="btn btn-sm btn-outline-secondary"
+                  className="layout-toggle-btn"
                   style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
                     padding: '6px 12px',
                     fontSize: '14px',
-                    borderRadius: 'var(--radius-sm)'
+                    borderRadius: 'var(--radius-sm)',
+                    border: '1px solid var(--border-color)',
+                    background: 'var(--surface-color)',
+                    color: 'var(--text-color)',
+                    cursor: 'pointer',
+                    fontWeight: 400,
+                    transition: 'all 0.2s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    minWidth: 'fit-content',
+                    whiteSpace: 'nowrap',
+                    overflow: 'visible',
+                    flexShrink: 0
                   }}
                   title={`Sort order: ${sortOrder === 'desc' ? 'Descending' : 'Ascending'}`}
                 >
-                  {sortOrder === 'desc' ? '↓' : '↑'}
-                  <span>{sortOrder === 'desc' ? 'High to Low' : 'Low to High'}</span>
+                  <span className="layout-toggle-btn-icon">{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                  <span className="layout-toggle-btn-text">{sortOrder === 'desc' ? 'Desc' : 'Asc'}</span>
                 </button>
               </div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2743,6 +2432,7 @@ const SearchPage2 = () => {
                   <Profile
                     key={selectedProfileForDetail.username}
                     usernameFromProp={selectedProfileForDetail.username}
+                    initialUserData={selectedProfileForDetail}
                     embedded={true}
                   />
                 ) : (
@@ -2934,16 +2624,16 @@ const SearchPage2 = () => {
           visibilitySettings={{
             contactNumberVisible: selectedUserForPII.contactNumberVisible,
             contactEmailVisible: selectedUserForPII.contactEmailVisible,
-            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible,
-            imagesVisible: selectedUserForPII.imagesVisible
+            linkedinUrlVisible: selectedUserForPII.linkedinUrlVisible
           }}
+          targetProfile={selectedUserForPII}
           requesterProfile={currentUserProfile}
           onClose={() => {
             setShowPIIRequestModal(false);
             setSelectedUserForPII(null);
           }}
           onRefresh={() => {
-            console.log('🔄 PIIRequestModal requested refresh in SearchPage');
+            logger.info('🔄 PIIRequestModal requested refresh in SearchPage');
             loadPiiRequests(); // Refresh PII status when modal opens
           }}
           onSuccess={handlePIIRequestSuccess}

@@ -28,14 +28,15 @@ const verificationApi = axios.create({
 
 const Profile = ({ 
   usernameFromProp = null,  // Optional: username passed as prop for embedded mode
-  embedded = false          // Flag for embedded mode (hides header/navigation)
+  embedded = false,         // Flag for embedded mode (hides header/navigation)
+  initialUserData = null    // Optional: Pre-loaded user data to show immediately
 }) => {
   const { username: usernameFromParams } = useParams();
   const username = usernameFromProp || usernameFromParams;
   const navigate = useNavigate();
   const location = useLocation();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(initialUserData);
+  const [loading, setLoading] = useState(!initialUserData);
   const [error, setError] = useState("");
   const [isOwnProfile, setIsOwnProfile] = useState(false);
   const [isOnline, setIsOnline] = useState(false);
@@ -190,28 +191,51 @@ const Profile = ({
         const adminStatus = currentUsername === 'admin' || userRole === 'admin';
         setIsAdmin(adminStatus);
         
-        // Pass requester to properly handle PII masking
-        const res = await api.get(`/profile/${username}?requester=${currentUsername}`);
+        // Pass requester to properly handle PII masking, and include context to avoid waterfall
+        const res = await api.get(`/profile/${username}?requester=${currentUsername}&include_context=true`);
         logger.debug('API Response:', res);
         
+        const profileData = res.data;
+        setUser(profileData);
         
+        // Populate consolidated context data
+        if (profileData.kpiStats) {
+          setKpiStats(profileData.kpiStats);
+        }
         
+        if (profileData.piiAccess) {
+          setPiiAccess(profileData.piiAccess);
+        }
         
+        if (profileData.piiRequestStatus) {
+          setPiiRequestStatus(profileData.piiRequestStatus);
+        }
         
+        if (profileData.isOnline !== undefined) {
+          setIsOnline(profileData.isOnline);
+        }
         
+        if (profileData.isFavorited !== undefined) {
+          setIsFavorited(profileData.isFavorited);
+        }
         
+        if (profileData.isShortlisted !== undefined) {
+          setIsShortlisted(profileData.isShortlisted);
+        }
         
-        
-        
-        setUser(res.data);
+        if (profileData.isExcluded !== undefined) {
+          setIsExcluded(profileData.isExcluded);
+        }
         
         // Debug: Log visibility settings
-        logger.debug('Profile data received - visibility settings:', {
-          contactEmailVisible: res.data.contactEmailVisible,
-          contactNumberVisible: res.data.contactNumberVisible,
-          linkedinUrlVisible: res.data.linkedinUrlVisible,
-          contactEmailMasked: res.data.contactEmailMasked,
-          contactNumberMasked: res.data.contactNumberMasked
+        console.log('👁️ Profile data received - visibility settings:', {
+          contactEmailVisible: profileData.contactEmailVisible,
+          contactNumberVisible: profileData.contactNumberVisible,
+          linkedinUrlVisible: profileData.linkedinUrlVisible,
+          contactEmailMasked: profileData.contactEmailMasked,
+          contactNumberMasked: profileData.contactNumberMasked,
+          contactNumber: profileData.contactNumber ? 'present' : 'missing',
+          contactEmail: profileData.contactEmail ? 'present' : 'missing'
         });
         
         // Check if this is the current user's profile
@@ -230,31 +254,21 @@ const Profile = ({
           }
           
           // Fetch current user's profile for PII request validation
-          try {
-            const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
-            setCurrentUserProfile(myProfileRes.data);
-          } catch (profileErr) {
-            console.error("Error fetching current user profile:", profileErr);
+          // (Still needed if not already cached, but could be optimized later)
+          if (!currentUserProfile) {
+            try {
+              const myProfileRes = await api.get(`/profile/${currentUsername}?requester=${currentUsername}`);
+              setCurrentUserProfile(myProfileRes.data);
+            } catch (profileErr) {
+              console.error("Error fetching current user profile:", profileErr);
+            }
           }
           
-          // Check PII access
-          await checkPIIAccess();
-          
-          // Load accessible images with privacy settings
+          // Load accessible images with privacy settings (Legacy system check)
           await loadAccessibleImages();
-          
-          // Check user relationship (favorites/shortlist)
-          await checkUserRelationship();
-          
-          // Check initial online status using service
-          const online = await onlineStatusService.isUserOnline(username);
-          setIsOnline(online);
         }
         
-        // Fetch KPI stats for all profiles
-        await fetchKPIStats();
-        
-        // Fetch activation status if viewing own profile
+        // Activation status if viewing own profile
         if (currentUsername === username) {
           await fetchActivationStatus();
         }
@@ -435,10 +449,34 @@ const Profile = ({
       // Check pending request status for each type
       const requestStatus = {};
       
-      // For images, we need to check per-image access to determine if access is truly active
-      // The general hasAccess might be true but all one-time views could be expired
-      if (imagesRes.data.hasAccess) {
-        // Check per-image access to see if any images are still accessible
+      // Fetch pending outgoing requests to this profile
+      try {
+        const outgoingRes = await api.get(`/pii-requests/${currentUsername}/outgoing`);
+        const outgoingRequests = outgoingRes.data.requests || [];
+        
+        // Find pending requests to this specific profile
+        outgoingRequests.forEach(req => {
+          if (req.profileUsername === username && req.status === 'pending') {
+            // Map requestType to our status keys
+            const typeMap = {
+              'images': 'images',
+              'contact_number': 'contact_number',
+              'contact_email': 'contact_email',
+              'date_of_birth': 'date_of_birth',
+              'linkedin_url': 'linkedin_url'
+            };
+            const statusKey = typeMap[req.requestType];
+            if (statusKey) {
+              requestStatus[statusKey] = 'pending';
+            }
+          }
+        });
+      } catch (err) {
+        logger.error('Error fetching outgoing requests:', err);
+      }
+      
+      // For images, check per-image access if not pending
+      if (!requestStatus['images'] && imagesRes.data.hasAccess) {
         try {
           const perImageRes = await api.get(`/pii-access/check-images`, {
             params: { requester: currentUsername, profile_owner: username }
@@ -449,26 +487,24 @@ const Profile = ({
           if (hasAnyActiveAccess) {
             requestStatus['images'] = 'approved';
           } else {
-            // All granted access has expired - user can request again
             requestStatus['images'] = 'expired';
           }
         } catch (err) {
-          // Fallback to general access check
           requestStatus['images'] = 'approved';
         }
       }
       
-      // Other PII types use simple hasAccess check
-      if (contactNumberRes.data.hasAccess) {
+      // Other PII types - set approved if has access and not pending
+      if (!requestStatus['contact_number'] && contactNumberRes.data.hasAccess) {
         requestStatus['contact_number'] = 'approved';
       }
-      if (contactEmailRes.data.hasAccess) {
+      if (!requestStatus['contact_email'] && contactEmailRes.data.hasAccess) {
         requestStatus['contact_email'] = 'approved';
       }
-      if (dobRes.data.hasAccess) {
+      if (!requestStatus['date_of_birth'] && dobRes.data.hasAccess) {
         requestStatus['date_of_birth'] = 'approved';
       }
-      if (linkedinRes.data.hasAccess) {
+      if (!requestStatus['linkedin_url'] && linkedinRes.data.hasAccess) {
         requestStatus['linkedin_url'] = 'approved';
       }
       
@@ -1181,7 +1217,6 @@ const Profile = ({
               const profilePicVisibleGlobal = user.profilePicVisible === true;
               
               // ALSO check if images array has content - if backend sent images, they should be visible
-              // This handles the case where imagesVisible=true (default) means all images are accessible
               const hasImagesFromBackend = user.images && user.images.length > 0 && !user.imagesMasked;
               
               // Avatar should ALWAYS be image[0] (the profile picture)
@@ -1481,10 +1516,9 @@ const Profile = ({
                     alt="Profile"
                     className="gallery-image"
                     onClick={() => {
-                      if (piiAccess.images || user.imagesVisible) {
-                        setLightboxImage(user.images[0]);
-                        setShowLightbox(true);
-                      }
+                      // Profile pic is always clickable (it's in the profilePic bucket)
+                      setLightboxImage(user.images[0]);
+                      setShowLightbox(true);
                     }}
                   />
                 ) : (
@@ -1495,10 +1529,12 @@ const Profile = ({
                 <span className="slot-label">Profile</span>
               </div>
               
-              {/* Slots 2-5: Additional Photos (PII access required) */}
+              {/* Slots 2-5: Additional Photos (visible if in user.images array from backend) */}
               {[1, 2, 3, 4].map((index) => {
-                const hasAccess = piiAccess.images || user.imagesVisible;
+                // Backend already filters images based on 3-bucket visibility + PII access
+                // If image exists in user.images, it's accessible
                 const image = user.images?.[index];
+                const hasAccess = !!image; // If backend returned it, user has access
                 
                 return (
                   <div key={index} className={`gallery-slot ${hasAccess ? 'accessible' : 'locked'}`}>
@@ -2178,11 +2214,11 @@ const Profile = ({
                 onClick={async () => {
                   logger.debug('Manual refresh triggered');
                   try {
-                    // Reload profile to get updated publicImages
-                    const response = await api.get(`/profile/${username}`);
+                    // Reload profile with requester param to get proper image filtering
+                    const response = await api.get(`/profile/${username}?requester=${currentUsername}`);
                     if (response.data) {
                       setUser(response.data);
-                      logger.debug('Profile refreshed, publicImages:', response.data.publicImages);
+                      logger.debug('Profile refreshed, hasOnRequestImages:', response.data.hasOnRequestImages);
                     }
                     // Also refresh PII access status
                     await checkPIIAccess();
@@ -2283,6 +2319,11 @@ const Profile = ({
         ) : accessibleImages.length > 0 ? (
           /* Use per-image access status - respects one-time views and expiry */
           <>
+            {/* Debug: Show imageReasons and hasOnRequestImages from backend */}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              🔍 Debug: {user.images?.length || 0} images, reasons: [{user.imageReasons?.join(', ')}], 
+              hasOnRequest: {String(user.hasOnRequestImages)}, count: {user.onRequestImageCount}
+            </div>
             <div className="images-grid" style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
@@ -2307,22 +2348,34 @@ const Profile = ({
                 />
               ))}
             </div>
-            {/* Show request access if some images don't have access */}
-            {accessibleImages.some(img => !img.hasAccess) && (
+            {/* Show request access if user has onRequest images (regardless of accessibleImages status) */}
+            {user.hasOnRequestImages && !piiAccess.images && (
               <div className="pii-locked" style={{ marginTop: '16px' }}>
-                <div className="lock-icon">🔒</div>
-                <p>{accessibleImages.filter(img => img.hasAccess).length > 0 ? 'Some photos are private or expired' : 'Photos are private'}</p>
-                <button
-                  className="btn-request-small"
-                  onClick={() => setShowPIIRequestModal(true)}
-                >
-                  Request Access
-                </button>
+                <div className="lock-icon">{piiRequestStatus.images === 'pending' ? '⏳' : '🔒'}</div>
+                <p>
+                  {piiRequestStatus.images === 'pending' 
+                    ? 'Request pending approval' 
+                    : `${user.onRequestImageCount || 'Some'} photo${(user.onRequestImageCount || 0) !== 1 ? 's' : ''} require${(user.onRequestImageCount || 0) === 1 ? 's' : ''} approval`
+                  }
+                </p>
+                {piiRequestStatus.images !== 'pending' && (
+                  <button
+                    className="btn-request-small"
+                    onClick={() => setShowPIIRequestModal(true)}
+                  >
+                    Request Access
+                  </button>
+                )}
               </div>
             )}
           </>
         ) : (
           <>
+            {/* Debug: Show imageReasons and hasOnRequestImages from backend */}
+            <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>
+              🔍 Debug: {user.images?.length || 0} images, reasons: [{user.imageReasons?.join(', ')}], 
+              hasOnRequest: {String(user.hasOnRequestImages)}, count: {user.onRequestImageCount}
+            </div>
             {publicImageObjects.length > 0 && (
               <div className="images-grid" style={{
                 display: 'grid',
@@ -2349,17 +2402,24 @@ const Profile = ({
                 ))}
               </div>
             )}
-            {/* Only show request access if there are private photos not visible */}
-            {(user.images?.length || 0) > publicImageObjects.length && (
+            {/* Only show request access if user has onRequest images and no access yet */}
+            {user.hasOnRequestImages && !piiAccess.images && (
               <div className="pii-locked">
-                <div className="lock-icon">🔒</div>
-                <p>{publicImageObjects.length > 0 ? 'More photos are private' : 'Photos are private'}</p>
-                <button
-                  className="btn-request-small"
-                  onClick={() => setShowPIIRequestModal(true)}
-                >
-                  {publicImageObjects.length > 0 ? 'Request More Photos' : 'Request Access'}
-                </button>
+                <div className="lock-icon">{piiRequestStatus.images === 'pending' ? '⏳' : '🔒'}</div>
+                <p>
+                  {piiRequestStatus.images === 'pending' 
+                    ? 'Request pending approval' 
+                    : `${user.onRequestImageCount || 'Some'} photo${(user.onRequestImageCount || 0) !== 1 ? 's' : ''} require${(user.onRequestImageCount || 0) === 1 ? 's' : ''} approval`
+                  }
+                </p>
+                {piiRequestStatus.images !== 'pending' && (
+                  <button
+                    className="btn-request-small"
+                    onClick={() => setShowPIIRequestModal(true)}
+                  >
+                    Request Access
+                  </button>
+                )}
               </div>
             )}
           </>
@@ -2675,8 +2735,7 @@ const Profile = ({
         visibilitySettings={{
           contactNumberVisible: user.contactNumberVisible,
           contactEmailVisible: user.contactEmailVisible,
-          linkedinUrlVisible: user.linkedinUrlVisible,
-          imagesVisible: user.imagesVisible
+          linkedinUrlVisible: user.linkedinUrlVisible
         }}
         requesterProfile={currentUserProfile}
         targetProfile={user}

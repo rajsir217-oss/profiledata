@@ -70,9 +70,9 @@ const AnnouncementManagement = () => {
   });
 
   useEffect(() => {
-    // Check admin access
+    // Check admin or moderator access
     const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'moderator') {
       navigate('/dashboard');
       return;
     }

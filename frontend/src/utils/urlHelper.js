@@ -104,11 +104,39 @@ export const getSocketUrl = () => {
   return getBackendUrl();
 };
 
+/**
+ * Get profile picture URL from user object
+ * Handles both new imageVisibility system and legacy images[0]
+ * @param {object} user - User object with imageVisibility or images
+ * @returns {string} Profile picture URL or empty string
+ */
+export const getProfilePicUrl = (user) => {
+  if (!user) return '';
+  
+  // New system: imageVisibility.profilePic
+  if (user.imageVisibility?.profilePic) {
+    return getImageUrl(user.imageVisibility.profilePic);
+  }
+  
+  // Legacy fallback: first image in images array
+  if (user.images?.[0]) {
+    return getImageUrl(user.images[0]);
+  }
+  
+  // Alternative: profileImage field
+  if (user.profileImage) {
+    return getImageUrl(user.profileImage);
+  }
+  
+  return '';
+};
+
 const urlHelper = {
   getBackendApiUrl,
   getFrontendUrl,
   getImageUrl,
-  getSocketUrl
+  getSocketUrl,
+  getProfilePicUrl
 };
 
 export default urlHelper;

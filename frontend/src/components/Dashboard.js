@@ -616,7 +616,7 @@ const Dashboard = () => {
         contactNumberVisible: targetProfile.contactNumberVisible,
         contactEmailVisible: targetProfile.contactEmailVisible,
         linkedinUrlVisible: targetProfile.linkedinUrlVisible,
-        imagesVisible: targetProfile.imagesVisible
+        imageVisibility: targetProfile.imageVisibility
       });
       setShowPIIRequestModal(true);
     } catch (err) {
@@ -1231,9 +1231,9 @@ const Dashboard = () => {
         visibilitySettings={{
           contactNumberVisible: selectedUserForPII?.contactNumberVisible,
           contactEmailVisible: selectedUserForPII?.contactEmailVisible,
-          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible,
-          imagesVisible: selectedUserForPII?.imagesVisible
+          linkedinUrlVisible: selectedUserForPII?.linkedinUrlVisible
         }}
+        targetProfile={selectedUserForPII}
         requesterProfile={userProfile}
         onClose={() => {
           setShowPIIRequestModal(false);
