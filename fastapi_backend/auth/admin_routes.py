@@ -64,6 +64,7 @@ async def get_all_users(
     limit: int = Query(20, ge=1, le=10000),
     status: Optional[str] = None,
     role: Optional[str] = None,
+    gender: Optional[str] = Query(None, description="Filter by gender (Male/Female)"),
     search: Optional[str] = None,
     email_search: Optional[str] = Query(None, description="Search by email (searches both encrypted and plaintext)"),
     db = Depends(get_database)
@@ -71,6 +72,8 @@ async def get_all_users(
     """
     Get all users with pagination and filtering (Admin only)
     
+    - status: Filter by accountStatus (pending_admin_approval, active, etc.)
+    - gender: Filter by gender (Male/Female)
     - search: General search across username, firstName, lastName, contactEmail
     - email_search: Dedicated email search that tries both encrypted and plaintext formats
     
@@ -86,6 +89,20 @@ async def get_all_users(
         
         if role:
             query["role_name"] = role
+        
+        if gender:
+            # Gender field can be 'sex', 'gender', or 'Sex' - use $or for compatibility
+            query["$or"] = query.get("$or", [])
+            gender_query = {"$or": [
+                {"sex": {"$regex": f"^{gender}$", "$options": "i"}},
+                {"gender": {"$regex": f"^{gender}$", "$options": "i"}},
+                {"Sex": {"$regex": f"^{gender}$", "$options": "i"}}
+            ]}
+            # If we already have $or from search, we need to use $and
+            if "$or" in query:
+                query = {"$and": [{"$or": query["$or"]}, gender_query]}
+            else:
+                query.update(gender_query)
         
         # Handle dedicated email search
         # NOTE: Since emails are encrypted, we can't do regex search on encrypted data.
