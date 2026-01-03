@@ -1317,11 +1317,13 @@ const SearchPage2 = () => {
   }, [loadingMore]);
 
   // IntersectionObserver for infinite scroll
+  // Note: We use users.length here since sortedUsers is computed later in render
   useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && !loadingMore && displayedCount < sortedUsers.length) {
+        // Check if there are more items to load (users.length is the total fetched)
+        if (entry.isIntersecting && !loadingMore && displayedCount < users.length) {
           handleLoadMore();
         }
       },
@@ -1338,7 +1340,7 @@ const SearchPage2 = () => {
         observer.unobserve(currentRef);
       }
     };
-  }, [loadingMore, displayedCount, sortedUsers.length, handleLoadMore]);
+  }, [loadingMore, displayedCount, users.length, handleLoadMore]);
 
   const generateSearchDescription = (criteria, matchScore = null) => {
     const parts = [];
