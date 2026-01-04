@@ -165,6 +165,9 @@ const SearchPage2 = () => {
   
   // Ref to track which page is currently being loaded (prevents duplicate fetches)
   const loadingPageRef = useRef(0);
+  
+  // Cache L3V3L scores to avoid re-fetching on subsequent pages
+  const l3v3lScoresCacheRef = useRef({});
 
   // Sort state
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
@@ -1215,13 +1218,36 @@ const SearchPage2 = () => {
       logger.info('🔍 profileId in params:', params.profileId);
       logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
 
-      const response = await api.get('/search', { params });
-      logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
+      // PARALLEL FETCH: Run search and L3V3L APIs simultaneously for faster load
+      // Only fetch L3V3L on page 1 - use cached scores for subsequent pages
+      const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
+      const shouldFetchL3V3L = canUseL3V3L && page === 1;
+      logger.info(`🔍 L3V3L Check: canUseL3V3L=${canUseL3V3L}, page=${page}, shouldFetchL3V3L=${shouldFetchL3V3L}`);
       
-      logger.info('🔍 Raw API response:', response);
-      logger.info('🔍 response.data:', response.data);
-      logger.info('🔍 response.data.users:', response.data.users);
+      // Clear cache on new search (page 1)
+      if (page === 1) {
+        l3v3lScoresCacheRef.current = {};
+      }
+      
+      // Build promises array
+      const searchPromise = api.get('/search', { params });
+      const l3v3lPromise = shouldFetchL3V3L 
+        ? api.get(`/l3v3l-matches/${currentUser}`, {
+            params: { limit: 100, min_score: 0 }
+          }).catch(err => {
+            logger.error('❌ Error fetching L3V3L scores:', err);
+            return { data: { matches: [] } }; // Return empty on error
+          })
+        : Promise.resolve(null); // Skip L3V3L fetch for subsequent pages
+      
+      // Execute in parallel (or just search for subsequent pages)
+      logger.info(`🚀 Starting fetch: Search${shouldFetchL3V3L ? ' + L3V3L' : ' only (using cached L3V3L)'}`);
+      const [response, l3v3lResponse] = await Promise.all([searchPromise, l3v3lPromise]);
+      logger.info('✅ Fetch complete');
+      
+      logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
       logger.info('🔍 response.data.users length:', response.data.users?.length);
+      
       // Debug: Log images for first 3 users
       if (response.data.users?.length > 0) {
         logger.info('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
@@ -1234,61 +1260,37 @@ const SearchPage2 = () => {
       }
       
       // Server now handles filtering of: self, blocked users, admins, moderators
-      // No client-side filtering needed here - trust server results
       let filteredUsers = response.data.users || [];
 
-      // STEP 2: Fetch and attach L3V3L match scores (if enabled)
-      // Always fetch scores so they're available for client-side filtering
-      logger.info(`🔍 L3V3L Check: systemConfig=${JSON.stringify(systemConfig)}, isPremiumUser=${isPremiumUser}`);
-      const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      logger.info(`🔍 canUseL3V3L=${canUseL3V3L}`);
+      // Attach L3V3L scores - use fresh data on page 1, cached data on subsequent pages
       if (canUseL3V3L) {
-        logger.info(`🦋 L3V3L enabled: Fetching compatibility scores`);
-        
-        // Get L3V3L scores for filtered users
-        try {
-          const l3v3lResponse = await api.get(`/l3v3l-matches/${currentUser}`, {
-            params: {
-              limit: 100, // Reduced from 500 for faster load
-              min_score: 0  // Get all scores, we'll filter client-side
-            }
-          });
-          
-          const matchesWithScores = l3v3lResponse.data.matches || [];
-          const scoresMap = {};
-          
-          // Create a map of username -> match score
+        // Update cache with fresh L3V3L data on page 1
+        if (l3v3lResponse?.data?.matches) {
+          const matchesWithScores = l3v3lResponse.data.matches;
           matchesWithScores.forEach(match => {
-            scoresMap[match.username] = match.matchScore;
+            l3v3lScoresCacheRef.current[match.username] = {
+              score: match.matchScore,
+              level: match.compatibilityLevel
+            };
           });
-          
-          logger.info(`🦋 L3V3L API returned ${matchesWithScores.length} matches`);
-          logger.info(`🗺️ ScoresMap sample:`, Object.fromEntries(Object.entries(scoresMap).slice(0, 3)));
-          logger.info(`👥 FilteredUsers count before L3V3L: ${filteredUsers.length}`);
-          
-          // Attach scores to all users (don't filter here - let client-side handle it)
-          filteredUsers = filteredUsers
-            .map(user => {
-              const score = scoresMap[user.username];
-              if (score !== undefined) {
-                logger.info(`✅ Mapped ${user.username} → ${score}%`);
-              } else {
-                logger.info(`❌ No score for ${user.username}`);
-              }
-              return {
-                ...user,
-                matchScore: score || 0,
-                compatibilityLevel: matchesWithScores.find(m => m.username === user.username)?.compatibilityLevel
-              };
-            })
-            .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
-          
-          logger.info(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
-          logger.info(`🎯 Sample user with score:`, filteredUsers[0]);
-        } catch (err) {
-          logger.error('❌ Error fetching L3V3L scores:', err);
-          // Continue without L3V3L filtering if API fails
+          logger.info(`🦋 L3V3L API returned ${matchesWithScores.length} matches, cached`);
+        } else {
+          logger.info(`🦋 Using cached L3V3L scores (${Object.keys(l3v3lScoresCacheRef.current).length} entries)`);
         }
+        
+        // Attach scores from cache to all users
+        filteredUsers = filteredUsers
+          .map(user => {
+            const matchData = l3v3lScoresCacheRef.current[user.username];
+            return {
+              ...user,
+              matchScore: matchData?.score || 0,
+              compatibilityLevel: matchData?.level
+            };
+          })
+          .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
+        
+        logger.info(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
       }
 
       // Update pagination state
@@ -1927,15 +1929,10 @@ const SearchPage2 = () => {
   
   // Client-side filtering - only apply filters NOT handled by server
   // Server already handles: gender, age, height, location, keyword, exclusions
-  // Client handles: L3V3L score (fetched separately), additional exclusions
+  // Client handles: L3V3L score filter only (fetched separately after search)
+  // Note: excludedUsers state is kept for UI display (blocked count badge) only
   const filteredUsers = users.filter(user => {
-    // Exclude users who have been excluded by current user
-    // (Server also does this, but we double-check in case of race conditions)
-    if (excludedUsers.has(user.username)) {
-      return false;
-    }
-
-    // Profile ID search bypasses all other client-side filters
+    // Profile ID search bypasses all client-side filters
     if (isProfileIdSearch) {
       return true;
     }
@@ -1947,9 +1944,6 @@ const SearchPage2 = () => {
         return false;
       }
     }
-
-    // NOTE: Age, height, keyword filters are now handled by server
-    // No need to re-filter here - trust server results
 
     return true;
   });
