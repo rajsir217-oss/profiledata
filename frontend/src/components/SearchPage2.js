@@ -1310,19 +1310,23 @@ const SearchPage2 = () => {
       } else {
         // Subsequent pages: calculate hasMore based on accumulated count
         // Deduplicate: only add users not already in the list
+        // Note: We need to calculate hasMore OUTSIDE setUsers to avoid state update issues
+        const serverReturnedNothing = filteredUsers.length === 0;
+        
         setUsers(prev => {
           const existingUsernames = new Set(prev.map(u => u.username));
           const newUsers = filteredUsers.filter(u => !existingUsernames.has(u.username));
           const newTotal = prev.length + newUsers.length;
           
           // hasMore = we haven't loaded all records yet
-          // Only stop if: (1) we've loaded all records, OR (2) server returned 0 records (not just duplicates)
-          const serverReturnedNothing = filteredUsers.length === 0;
+          // Only stop if: (1) we've loaded all records, OR (2) server returned 0 records
           const hasMore = newTotal < total && !serverReturnedNothing;
-          setHasMoreResults(hasMore);
           
           logger.info(`📊 Dedup: ${filteredUsers.length} fetched, ${newUsers.length} new, ${filteredUsers.length - newUsers.length} duplicates skipped`);
           logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}, hasMore=${hasMore}`);
+          
+          // Schedule hasMoreResults update after this state update completes
+          setTimeout(() => setHasMoreResults(hasMore), 0);
           
           return [...prev, ...newUsers];
         });
