@@ -168,6 +168,9 @@ const SearchPage2 = () => {
   
   // Cache L3V3L scores to avoid re-fetching on subsequent pages
   const l3v3lScoresCacheRef = useRef({});
+  
+  // Track accumulated user count for hasMore calculation (avoids stale closure issues)
+  const accumulatedCountRef = useRef(0);
 
   // Sort state
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
@@ -1301,6 +1304,7 @@ const SearchPage2 = () => {
       if (page === 1) {
         // First page: set total and hasMore
         setTotalResults(total);
+        accumulatedCountRef.current = filteredUsers.length;
         // hasMore = we haven't loaded all records yet
         const hasMore = filteredUsers.length < total;
         setHasMoreResults(hasMore);
@@ -1308,28 +1312,32 @@ const SearchPage2 = () => {
         setCurrentPage(1);
         logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, hasMore=${hasMore}`);
       } else {
-        // Subsequent pages: calculate hasMore based on accumulated count
-        // Deduplicate: only add users not already in the list
-        // Note: We need to calculate hasMore OUTSIDE setUsers to avoid state update issues
+        // Subsequent pages: append new users and calculate hasMore
         const serverReturnedNothing = filteredUsers.length === 0;
         
+        // Get current users synchronously to calculate hasMore BEFORE state update
+        // This avoids all closure/timing issues
         setUsers(prev => {
           const existingUsernames = new Set(prev.map(u => u.username));
           const newUsers = filteredUsers.filter(u => !existingUsernames.has(u.username));
           const newTotal = prev.length + newUsers.length;
           
-          // hasMore = we haven't loaded all records yet
-          // Only stop if: (1) we've loaded all records, OR (2) server returned 0 records
-          const hasMore = newTotal < total && !serverReturnedNothing;
+          // Update ref for tracking
+          accumulatedCountRef.current = newTotal;
           
           logger.info(`📊 Dedup: ${filteredUsers.length} fetched, ${newUsers.length} new, ${filteredUsers.length - newUsers.length} duplicates skipped`);
-          logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}, hasMore=${hasMore}`);
-          
-          // Schedule hasMoreResults update after this state update completes
-          setTimeout(() => setHasMoreResults(hasMore), 0);
+          logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}`);
           
           return [...prev, ...newUsers];
         });
+        
+        // hasMore: Simply check if server returned a full page (20 items)
+        // If server returns < 20, we've reached the end regardless of total count
+        // This is more reliable than comparing accumulated vs total
+        const serverReturnedFullPage = filteredUsers.length >= 20;
+        const hasMore = serverReturnedFullPage && !serverReturnedNothing;
+        logger.info(`📊 Setting hasMoreResults: serverReturned=${filteredUsers.length}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
+        setHasMoreResults(hasMore);
       }
 
     } catch (err) {
