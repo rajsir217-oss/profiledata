@@ -1038,8 +1038,8 @@ const SearchPage2 = () => {
   const handleSortChange = (e) => {
     const newSortBy = e.target.value;
     setSortBy(newSortBy);
-    // Trigger new search with updated sort
-    handleSearch(1);
+    // Pass new sort value directly to avoid async state issue
+    handleSearch(1, null, null, { sortBy: newSortBy, sortOrder });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1047,8 +1047,8 @@ const SearchPage2 = () => {
   const toggleSortOrder = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
     setSortOrder(newOrder);
-    // Trigger new search with updated sort order
-    handleSearch(1);
+    // Pass new sort order directly to avoid async state issue
+    handleSearch(1, null, null, { sortBy, sortOrder: newOrder });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1127,7 +1127,7 @@ const SearchPage2 = () => {
     setFiltersCollapsed(false); // Expand filters when clearing
   };
 
-  const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null) => {
+  const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null, overrideSort = null) => {
     const currentUser = localStorage.getItem('username');
     
     try {
@@ -1161,8 +1161,8 @@ const SearchPage2 = () => {
           status: 'active',  // Only search for active users
           page: page,
           limit: 20,  // Server-side pagination - fetch 20 at a time
-          sortBy: sortBy,  // Pass sort to backend
-          sortOrder: sortOrder  // Pass sort order to backend
+          sortBy: overrideSort?.sortBy || sortBy,  // Use override if provided
+          sortOrder: overrideSort?.sortOrder || sortOrder  // Use override if provided
         };
       }
       
