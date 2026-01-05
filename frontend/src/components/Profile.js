@@ -1000,7 +1000,7 @@ const Profile = ({
 
   return (
     <div 
-      className={`container ${embedded ? 'profile-embedded' : 'mt-4'}`}
+      className={`container profile-page-wide ${embedded ? 'profile-embedded' : 'mt-4'}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}

@@ -1,26 +1,25 @@
 /* Profile Page Styles */
 
-/* Profile Page Container - Full width layout (98%) */
-.container.mt-4 {
+/* Profile Page Container - Wide layout like Dynamic Scheduler */
+.profile-page-wide {
   width: 98% !important;
-  max-width: 98% !important;
+  max-width: none !important;
   margin: 0 auto !important;
-  padding: 20px;
+  padding: 20px 30px;
 }
 
 /* Responsive container widths */
 @media (max-width: 1024px) {
-  .container.mt-4 {
+  .profile-page-wide {
     width: 95% !important;
-    max-width: 95% !important;
+    padding: 15px 20px;
   }
 }
 
 @media (max-width: 768px) {
-  .container.mt-4 {
+  .profile-page-wide {
     width: 100% !important;
-    max-width: 100% !important;
-    padding: 10px;
+    padding: 10px 15px;
   }
 }
 
