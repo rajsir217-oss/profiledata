@@ -3986,10 +3986,37 @@ async def search_users(
                     ]
                 }},
                 
-                # Stage 4: Sort
+                # Stage 4: Lookup L3V3L scores from pre-computed collection
+                {"$lookup": {
+                    "from": "l3v3l_scores",
+                    "let": {"targetUsername": "$username"},
+                    "pipeline": [
+                        {"$match": {
+                            "$expr": {
+                                "$and": [
+                                    {"$eq": ["$fromUsername", current_username]},
+                                    {"$eq": ["$toUsername", "$$targetUsername"]}
+                                ]
+                            }
+                        }},
+                        {"$project": {"score": 1, "level": 1, "_id": 0}}
+                    ],
+                    "as": "l3v3lMatch"
+                }},
+                
+                # Stage 5: Add matchScore field from lookup result
+                {"$addFields": {
+                    "matchScore": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.score", 0]}, 0]},
+                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]}
+                }},
+                
+                # Stage 6: Remove the lookup array (cleanup)
+                {"$project": {"l3v3lMatch": 0}},
+                
+                # Stage 7: Sort (by matchScore if sorting by that, otherwise original sort)
                 {"$sort": dict(sort)},
                 
-                # Stage 5: Facet for pagination and count
+                # Stage 8: Facet for pagination and count
                 {"$facet": {
                     "users": [
                         {"$skip": skip},
@@ -4021,13 +4048,49 @@ async def search_users(
                 users = []
                 total = 0
         else:
-            # No age filtering - use simple find for better performance
-            logger.info(f"🔍 Executing search with query: {query}")
-            users_cursor = db.users.find(query, DASHBOARD_USER_PROJECTION).sort(sort).skip(skip).limit(limit)
-            users = await users_cursor.to_list(length=limit)
+            # No age filtering - use aggregation with L3V3L lookup
+            logger.info(f"🔍 Executing search with L3V3L lookup, query: {query}")
             
-            # Get total count for pagination
-            total = await db.users.count_documents(query)
+            pipeline = [
+                {"$match": query},
+                {"$project": DASHBOARD_USER_PROJECTION},
+                # Lookup L3V3L scores
+                {"$lookup": {
+                    "from": "l3v3l_scores",
+                    "let": {"targetUsername": "$username"},
+                    "pipeline": [
+                        {"$match": {
+                            "$expr": {
+                                "$and": [
+                                    {"$eq": ["$fromUsername", current_username]},
+                                    {"$eq": ["$toUsername", "$$targetUsername"]}
+                                ]
+                            }
+                        }},
+                        {"$project": {"score": 1, "level": 1, "_id": 0}}
+                    ],
+                    "as": "l3v3lMatch"
+                }},
+                {"$addFields": {
+                    "matchScore": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.score", 0]}, 0]},
+                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]}
+                }},
+                {"$project": {"l3v3lMatch": 0}},
+                {"$sort": dict(sort)},
+                {"$facet": {
+                    "users": [{"$skip": skip}, {"$limit": limit}],
+                    "totalCount": [{"$count": "count"}]
+                }}
+            ]
+            
+            result = await db.users.aggregate(pipeline).to_list(1)
+            if result and len(result) > 0:
+                users = result[0].get("users", [])
+                total_count = result[0].get("totalCount", [])
+                total = total_count[0]["count"] if total_count else 0
+            else:
+                users = []
+                total = 0
 
         # Get profile picture visibility setting (once, outside loop)
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
@@ -9155,6 +9218,11 @@ async def refresh_l3v3l_scores(
     """
     On-demand refresh of L3V3L scores for a specific user.
     User can click a "Refresh Match Scores" button to recalculate their scores.
+    
+    TODO: Add "Refresh Match Scores" button to frontend (Search page or Dashboard)
+          - Call POST /api/users/l3v3l-refresh/{username}
+          - Show toast notification on success
+          - Disable button while refreshing
     """
     # Security: Only allow users to refresh their own scores (or admin)
     if current_user["username"] != username and current_user.get("role") != "admin":
@@ -9164,16 +9232,27 @@ async def refresh_l3v3l_scores(
     
     try:
         from job_templates.l3v3l_score_calculator_template import L3V3LScoreCalculatorTemplate
+        from job_templates.base import JobExecutionContext
         
         calculator = L3V3LScoreCalculatorTemplate()
-        result = await calculator.execute({"username": username}, db)
         
-        logger.info(f"✅ L3V3L scores refreshed for {username}: {result.get('calculated', 0)} scores")
+        # Create execution context
+        context = JobExecutionContext(
+            job_id="on-demand",
+            job_name=f"L3V3L Refresh for {username}",
+            parameters={"username": username},
+            db=db,
+            triggered_by="user"
+        )
+        
+        result = await calculator.execute(context)
+        
+        logger.info(f"✅ L3V3L scores refreshed for {username}: {result.records_affected} scores")
         
         return {
-            "status": "success",
-            "message": f"Refreshed {result.get('calculated', 0)} match scores",
-            "details": result
+            "status": result.status,
+            "message": result.message,
+            "details": result.details
         }
         
     except Exception as e:

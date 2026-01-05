@@ -1243,80 +1243,28 @@ const SearchPage2 = () => {
       logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
       logger.info(`🚻 GENDER PARAM BEING SENT: '${params.gender}'`);
 
-      // PARALLEL FETCH: Run search and L3V3L APIs simultaneously for faster load
-      // Only fetch L3V3L on page 1 - use cached scores for subsequent pages
-      const canUseL3V3L = systemConfig.enable_l3v3l_for_all || isPremiumUser;
-      const shouldFetchL3V3L = canUseL3V3L && page === 1;
-      logger.info(`🔍 L3V3L Check: canUseL3V3L=${canUseL3V3L}, page=${page}, shouldFetchL3V3L=${shouldFetchL3V3L}`);
+      // SINGLE API CALL: Search now includes L3V3L scores via MongoDB $lookup
+      // No separate L3V3L API call needed - scores come with search results
+      logger.info(`🚀 Starting search (L3V3L scores included via $lookup)`);
       
-      // Clear cache on new search (page 1)
-      if (page === 1) {
-        l3v3lScoresCacheRef.current = {};
-      }
-      
-      // Build promises array
-      const searchPromise = api.get('/search', { params });
-      const l3v3lPromise = shouldFetchL3V3L 
-        ? api.get(`/l3v3l-matches/${currentUser}`, {
-            params: { limit: 100, min_score: 0 }
-          }).catch(err => {
-            logger.error('❌ Error fetching L3V3L scores:', err);
-            return { data: { matches: [] } }; // Return empty on error
-          })
-        : Promise.resolve(null); // Skip L3V3L fetch for subsequent pages
-      
-      // Execute in parallel (or just search for subsequent pages)
-      logger.info(`🚀 Starting fetch: Search${shouldFetchL3V3L ? ' + L3V3L' : ' only (using cached L3V3L)'}`);
-      const [response, l3v3lResponse] = await Promise.all([searchPromise, l3v3lPromise]);
-      logger.info('✅ Fetch complete');
+      const response = await api.get('/search', { params });
+      logger.info('✅ Search complete');
       
       logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
       logger.info('🔍 response.data.users length:', response.data.users?.length);
       
-      // Debug: Log images for first 3 users
+      // Debug: Log first 3 users with their L3V3L scores
       if (response.data.users?.length > 0) {
-        logger.info('🖼️ First 3 users images:', response.data.users.slice(0, 3).map(u => ({
+        logger.info('🦋 First 3 users with scores:', response.data.users.slice(0, 3).map(u => ({
           username: u.username,
-          images: u.images,
-          imageCount: u.images?.length || 0,
-          profilePicVisible: u.profilePicVisible,
-          imagesMasked: u.imagesMasked
+          matchScore: u.matchScore,
+          compatibilityLevel: u.compatibilityLevel,
+          imageCount: u.images?.length || 0
         })));
       }
       
-      // Server now handles filtering of: self, blocked users, admins, moderators
+      // Server now handles: filtering, L3V3L scores via $lookup
       let filteredUsers = response.data.users || [];
-
-      // Attach L3V3L scores - use fresh data on page 1, cached data on subsequent pages
-      if (canUseL3V3L) {
-        // Update cache with fresh L3V3L data on page 1
-        if (l3v3lResponse?.data?.matches) {
-          const matchesWithScores = l3v3lResponse.data.matches;
-          matchesWithScores.forEach(match => {
-            l3v3lScoresCacheRef.current[match.username] = {
-              score: match.matchScore,
-              level: match.compatibilityLevel
-            };
-          });
-          logger.info(`🦋 L3V3L API returned ${matchesWithScores.length} matches, cached`);
-        } else {
-          logger.info(`🦋 Using cached L3V3L scores (${Object.keys(l3v3lScoresCacheRef.current).length} entries)`);
-        }
-        
-        // Attach scores from cache to all users
-        filteredUsers = filteredUsers
-          .map(user => {
-            const matchData = l3v3lScoresCacheRef.current[user.username];
-            return {
-              ...user,
-              matchScore: matchData?.score || 0,
-              compatibilityLevel: matchData?.level
-            };
-          })
-          .sort((a, b) => b.matchScore - a.matchScore); // Sort by score desc
-        
-        logger.info(`✅ Attached L3V3L scores to ${filteredUsers.length} users`);
-      }
 
       // Update pagination state
       const total = response.data.total || 0;
@@ -1338,7 +1286,6 @@ const SearchPage2 = () => {
       } else {
         // Subsequent pages: append new users and calculate hasMore
         const serverReturnedNothing = serverReturnedCount === 0;
-        const serverReturnedFullPage = serverReturnedCount >= pageSize;
         
         // Get current users synchronously to calculate hasMore BEFORE state update
         // This avoids all closure/timing issues
@@ -1354,12 +1301,18 @@ const SearchPage2 = () => {
           logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}`);
           
           // Calculate hasMore INSIDE the callback to use accurate newTotal
-          // hasMore = we haven't loaded all records yet
-          const hasMoreNow = newTotal < total;
-          logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, accumulated=${newTotal}, total=${total}, hasMore=${hasMoreNow}`);
+          // hasMore = false if:
+          // 1. We've loaded all records (newTotal >= total)
+          // 2. Server returned nothing (no more data on server)
+          // 3. All returned users were duplicates (prevents infinite loop)
+          const hasMoreNow = newTotal < total && serverReturnedCount > 0 && newUsers.length > 0;
+          logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, newUsers=${newUsers.length}, accumulated=${newTotal}, total=${total}, hasMore=${hasMoreNow}`);
           
           // Use setTimeout to update hasMoreResults after state update completes
-          setTimeout(() => setHasMoreResults(hasMoreNow), 0);
+          setTimeout(() => {
+            setHasMoreResults(hasMoreNow);
+            setLoadingMore(false); // Ensure loading state is cleared
+          }, 0);
           
           return [...prev, ...newUsers];
         });
@@ -2054,8 +2007,8 @@ const SearchPage2 = () => {
   const getActiveCriteriaSummary = () => {
     const summary = [];
     
-    // Show saved search name if loaded
-    if (selectedSearch?.name) {
+    // Show saved search name if loaded (skip if it looks like raw criteria data)
+    if (selectedSearch?.name && !selectedSearch.name.includes('|')) {
       summary.push(`📂 ${selectedSearch.name}`);
     }
     
@@ -2072,12 +2025,24 @@ const SearchPage2 = () => {
     else if (searchCriteria.ageMin) summary.push(`${searchCriteria.ageMin}+ yrs`);
     else if (searchCriteria.ageMax) summary.push(`Up to ${searchCriteria.ageMax} yrs`);
     
-    // Height range
-    if (searchCriteria.heightMin || searchCriteria.heightMax) {
-      const heightMin = searchCriteria.heightMin || 'Any';
-      const heightMax = searchCriteria.heightMax || 'Any';
-      if (heightMin !== 'Any' || heightMax !== 'Any') {
-        summary.push(`Height: ${heightMin}-${heightMax}`);
+    // Height range - format as feet'inches"
+    const formatHeight = (feet, inches) => {
+      if (!feet && !inches) return null;
+      const f = parseInt(feet) || 0;
+      const i = parseInt(inches) || 0;
+      return `${f}'${i}"`;
+    };
+    
+    const minHeight = formatHeight(searchCriteria.heightMinFeet, searchCriteria.heightMinInches);
+    const maxHeight = formatHeight(searchCriteria.heightMaxFeet, searchCriteria.heightMaxInches);
+    
+    if (minHeight || maxHeight) {
+      if (minHeight && maxHeight) {
+        summary.push(`📏 ${minHeight}-${maxHeight}`);
+      } else if (minHeight) {
+        summary.push(`📏 ${minHeight}+`);
+      } else if (maxHeight) {
+        summary.push(`📏 Up to ${maxHeight}`);
       }
     }
     

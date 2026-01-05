@@ -85,17 +85,40 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
         await db.l3v3l_scores.create_index([("fromUsername", 1)])
         await db.l3v3l_scores.create_index([("toUsername", 1)])
         
-        if username:
-            # Calculate for specific user
-            result = await self._calculate_for_user(db, username)
-        else:
-            # Calculate for all users
-            result = await self._calculate_all(db, batch_size)
-        
-        end_time = datetime.utcnow()
-        result['durationSeconds'] = (end_time - start_time).total_seconds()
-        
-        return result
+        try:
+            if username:
+                # Calculate for specific user
+                result = await self._calculate_for_user(db, username)
+            else:
+                # Calculate for all users
+                result = await self._calculate_all(db, batch_size)
+            
+            end_time = datetime.utcnow()
+            duration = (end_time - start_time).total_seconds()
+            
+            if result.get('error'):
+                return JobResult(
+                    status="failed",
+                    message=result['error'],
+                    details=result,
+                    duration_seconds=duration
+                )
+            
+            return JobResult(
+                status="success",
+                message=f"Calculated {result.get('calculated', 0)} L3V3L scores",
+                details=result,
+                records_processed=result.get('usersProcessed', 1),
+                records_affected=result.get('calculated', 0),
+                duration_seconds=duration
+            )
+        except Exception as e:
+            logger.error(f"❌ L3V3L calculation failed: {e}", exc_info=True)
+            return JobResult(
+                status="failed",
+                message=f"L3V3L calculation failed: {str(e)}",
+                errors=[str(e)]
+            )
     
     async def _calculate_for_user(self, db, username: str) -> Dict[str, Any]:
         """Calculate scores for a single user"""
@@ -174,23 +197,25 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
         }
     
     async def _calculate_and_store_scores(self, db, user: dict, matches: list) -> int:
-        """Calculate and store scores for a user against matches"""
+        """Calculate and store scores for a user against matches using the SAME algorithm as profile page"""
         from pymongo import UpdateOne
+        from l3v3l_matching_engine import matching_engine  # Use the same engine as profile page
         
         now = datetime.utcnow()
         bulk_ops = []
         
         for match in matches:
-            result = self._calculate_score(user, match)
+            # Use the SAME matching_engine as the profile page for consistent scores
+            match_result = matching_engine.calculate_match_score(user, match)
             
             bulk_ops.append(UpdateOne(
                 {"fromUsername": user['username'], "toUsername": match['username']},
                 {"$set": {
                     "fromUsername": user['username'],
                     "toUsername": match['username'],
-                    "score": result['score'],
-                    "level": result['level'],
-                    "breakdown": result['breakdown'],
+                    "score": match_result['total_score'],
+                    "level": match_result['compatibility_level'],
+                    "breakdown": match_result.get('component_scores', {}),
                     "calculatedAt": now
                 }},
                 upsert=True
@@ -280,21 +305,36 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
         
         matches = checks = 0
         
-        # Age
-        if 'ageMin' in prefs and 'ageMax' in prefs:
-            age = self._get_age(u2)
-            if age:
-                checks += 1
-                if prefs['ageMin'] <= age <= prefs['ageMax']:
-                    matches += 1
+        # Age - ensure numeric comparison
+        try:
+            age_min = prefs.get('ageMin')
+            age_max = prefs.get('ageMax')
+            if age_min is not None and age_max is not None:
+                age_min = int(age_min) if age_min else 0
+                age_max = int(age_max) if age_max else 100
+                age = self._get_age(u2)
+                if age:
+                    checks += 1
+                    if age_min <= age <= age_max:
+                        matches += 1
+        except (ValueError, TypeError):
+            pass  # Skip if conversion fails
         
-        # Height
-        if 'heightMin' in prefs and 'heightMax' in prefs:
-            height = u2.get('heightInches')
-            if height:
-                checks += 1
-                if prefs['heightMin'] <= height <= prefs['heightMax']:
-                    matches += 1
+        # Height - ensure numeric comparison
+        try:
+            height_min = prefs.get('heightMin')
+            height_max = prefs.get('heightMax')
+            if height_min is not None and height_max is not None:
+                height_min = int(height_min) if height_min else 0
+                height_max = int(height_max) if height_max else 100
+                height = u2.get('heightInches')
+                if height:
+                    height = int(height) if isinstance(height, str) else height
+                    checks += 1
+                    if height_min <= height <= height_max:
+                        matches += 1
+        except (ValueError, TypeError):
+            pass  # Skip if conversion fails
         
         return (matches / checks * 100) if checks > 0 else 50
     
