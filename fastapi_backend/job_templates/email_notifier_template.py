@@ -332,9 +332,30 @@ class EmailNotifierTemplate(JobTemplate):
             
             # User-friendly fallback messages for each trigger type
             trigger_messages = {
+                # Status change notifications (with username)
+                "status_approved": {
+                    "subject": "🎉 Your Profile is Now Active!",
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Great news! Your profile has been approved and is now active. You can now browse matches, send messages, and use all features.</p>"
+                },
+                "status_reactivated": {
+                    "subject": "✅ Your Account Has Been Reactivated!",
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Good news! Your account has been reactivated. You can now access all features again.</p>"
+                },
+                "status_suspended": {
+                    "subject": "⚠️ Your Account Has Been Suspended",
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been temporarily suspended. Please contact support if you have questions.</p>"
+                },
+                "status_banned": {
+                    "subject": "⛔ Your Account Has Been Banned",
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been permanently banned. Please contact support if you believe this is an error.</p>"
+                },
+                "status_paused": {
+                    "subject": "⏸️ Your Account Has Been Paused",
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been paused by an administrator. Your profile is hidden from searches. Please contact support for more information.</p>"
+                },
                 "pending_pii_request": {
                     "subject": "📧 Someone requested your contact information",
-                    "body": f"{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request."
+                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request.</p>"
                 },
                 "pii_request": {
                     "subject": "📧 New contact information request",
@@ -385,7 +406,7 @@ class EmailNotifierTemplate(JobTemplate):
             trigger_name = notification.trigger.replace("_", " ").title()
             default_message = {
                 "subject": f"New {trigger_name} Notification",
-                "body": f"You have a new notification on L3V3LMATCHES.com. Login to view the details."
+                "body": f"<p><strong>Username:</strong> {notification.username}</p><p>You have a new notification on L3V3LMATCHES.com. Login to view the details.</p>"
             }
             
             message = trigger_messages.get(notification.trigger, default_message)
@@ -450,10 +471,10 @@ class EmailNotifierTemplate(JobTemplate):
             
             <div style="background: #f8f9fa; border-left: 4px solid #667eea; padding: 15px 20px; margin: 20px 0; border-radius: 0 8px 8px 0;">
                 <strong style="color: #667eea; font-size: 18px;">🔍 {search_name}</strong>
-                {"<p style='margin: 8px 0 0 0; color: #666; font-size: 14px;'>" + search_description + "</p>" if search_description else ""}
+                {f"<p style='margin: 8px 0 0 0; color: #666; font-size: 14px;'>{search_description}</p>" if search_description else ""}
             </div>
             
-            {matches_html}
+            {matches_html if matches_html else ""}
             
             <div style="text-align: center; margin: 30px 0 20px 0;">
                 <a href="{app_url}/search" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">

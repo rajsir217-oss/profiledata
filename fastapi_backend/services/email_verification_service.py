@@ -193,6 +193,7 @@ class EmailVerificationService:
                     </div>
                     <div class="content">
                         <h2>Hello {first_name or username}!</h2>
+                        <p><strong>Username:</strong> {username}</p>
                         <p>Thank you for registering! To activate your profile and start using all features, please verify your email address.</p>
                         
                         <div style="text-align: center;">
@@ -233,6 +234,8 @@ class EmailVerificationService:
             # Plain text fallback
             text_content = f"""
             Hello {first_name or username}!
+            
+            Username: {username}
             
             Thank you for registering! To activate your profile, please verify your email address.
             
