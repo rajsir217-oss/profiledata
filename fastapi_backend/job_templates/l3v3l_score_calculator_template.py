@@ -10,9 +10,9 @@ Benefits:
 - Scores are always ready, no waiting
 """
 
-from .base import JobTemplate
+from .base import JobTemplate, JobExecutionContext, JobResult
 from datetime import datetime
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, Optional
 import logging
 
 logger = logging.getLogger(__name__)
@@ -35,29 +35,45 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
     template_type = "l3v3l_score_calculator"
     template_name = "L3V3L Score Calculator"
     template_description = "Pre-computes L3V3L match scores for all user pairs for instant search lookup"
+    category = "matching"
+    icon = "🦋"
+    estimated_duration = "5-30 minutes"
+    resource_usage = "high"
+    risk_level = "low"
     
-    default_params = {
-        "username": "",  # Empty = all users, specific username = single user
-        "batch_size": 50
-    }
+    def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
+        """Validate parameters before execution"""
+        # username is optional, batch_size should be positive if provided
+        batch_size = params.get('batch_size', 50)
+        if batch_size is not None and (not isinstance(batch_size, int) or batch_size < 1):
+            return False, "batch_size must be a positive integer"
+        return True, None
     
-    param_schema = {
-        "username": {
-            "type": "string",
-            "description": "Username to calculate scores for (empty = all users)",
-            "required": False
-        },
-        "batch_size": {
-            "type": "integer",
-            "description": "Number of users to process in each batch",
-            "required": False,
-            "default": 50
+    def get_schema(self) -> Dict[str, Any]:
+        """Return JSON schema for parameters"""
+        return {
+            "type": "object",
+            "properties": {
+                "username": {
+                    "type": "string",
+                    "description": "Username to calculate scores for (empty = all users)",
+                    "default": ""
+                },
+                "batch_size": {
+                    "type": "integer",
+                    "description": "Number of users to process in each batch",
+                    "default": 50,
+                    "minimum": 1
+                }
+            },
+            "required": []
         }
-    }
     
-    async def execute(self, params: Dict[str, Any], db) -> Dict[str, Any]:
+    async def execute(self, context: JobExecutionContext) -> JobResult:
         """Execute the L3V3L score calculation job"""
         start_time = datetime.utcnow()
+        params = context.parameters
+        db = context.db
         
         username = params.get('username', '')
         batch_size = params.get('batch_size', 50)
