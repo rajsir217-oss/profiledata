@@ -198,10 +198,10 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         """Gather all metrics for a user within date range"""
         stats = {}
         
-        # Profile views received
+        # Profile views received (uses viewedAt, not createdAt)
         stats["profile_views_received"] = await db.profile_views.count_documents({
             "viewedUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "viewedAt": {"$gte": start_date, "$lte": end_date}
         })
         
         # Interests received (favorites/shortlists where user is the target)
@@ -213,25 +213,32 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             "createdAt": {"$gte": start_date, "$lte": end_date}
         })
         
-        # Interests sent
+        # Interests sent (uses userUsername, not username)
         stats["interests_sent"] = await db.favorites.count_documents({
-            "username": username,
+            "userUsername": username,
             "createdAt": {"$gte": start_date, "$lte": end_date}
         }) + await db.shortlists.count_documents({
-            "username": username,
+            "userUsername": username,
             "createdAt": {"$gte": start_date, "$lte": end_date}
         })
         
-        # Messages received
+        # Messages received (uses toUsername, not recipientUsername)
+        # Note: createdAt is stored as ISO string, need to handle both formats
         stats["messages_received"] = await db.messages.count_documents({
-            "recipientUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "toUsername": username,
+            "$or": [
+                {"createdAt": {"$gte": start_date, "$lte": end_date}},
+                {"createdAt": {"$gte": start_date.isoformat(), "$lte": end_date.isoformat()}}
+            ]
         })
         
-        # Messages sent
+        # Messages sent (uses fromUsername, not senderUsername)
         stats["messages_sent"] = await db.messages.count_documents({
-            "senderUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "fromUsername": username,
+            "$or": [
+                {"createdAt": {"$gte": start_date, "$lte": end_date}},
+                {"createdAt": {"$gte": start_date.isoformat(), "$lte": end_date.isoformat()}}
+            ]
         })
         
         # Connection requests (PII requests received)
