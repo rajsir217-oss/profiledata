@@ -163,6 +163,7 @@ def initialize_templates():
     from .pending_requests_notifier import PendingRequestsNotifierTemplate
     from .monthly_digest_notifier import MonthlyDigestNotifierTemplate
     from .pending_approvals_sms_notifier import PendingApprovalsSMSNotifierTemplate
+    from .l3v3l_score_calculator_template import L3V3LScoreCalculatorTemplate
     
     registry = get_template_registry()
     
@@ -200,6 +201,9 @@ def initialize_templates():
     registry.register(PendingRequestsNotifierTemplate())
     registry.register(MonthlyDigestNotifierTemplate())
     registry.register(PendingApprovalsSMSNotifierTemplate())
+    
+    # Register L3V3L score calculator template
+    registry.register(L3V3LScoreCalculatorTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

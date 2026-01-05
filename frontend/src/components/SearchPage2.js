@@ -181,9 +181,16 @@ const SearchPage2 = () => {
 
   const navigate = useNavigate();
   
+  // Get user-specific sessionStorage key to prevent cross-user session contamination
+  const getSessionStorageKey = (baseKey) => {
+    const currentUser = localStorage.getItem('username');
+    return currentUser ? `${baseKey}_${currentUser}` : baseKey;
+  };
+
   // Save search state to sessionStorage whenever it changes
   useEffect(() => {
     if (users.length > 0 && hasRestoredStateRef.current) {
+      const currentUser = localStorage.getItem('username');
       const searchState = {
         users,
         searchCriteria,
@@ -199,10 +206,11 @@ const SearchPage2 = () => {
         excludedUsers: Array.from(excludedUsers),
         selectedSearch,
         selectedProfileForDetail,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        savedByUser: currentUser // Track which user saved this state
       };
-      sessionStorage.setItem('searchPageState', JSON.stringify(searchState));
-      logger.info('💾 Saved search state to sessionStorage');
+      sessionStorage.setItem(getSessionStorageKey('searchPageState'), JSON.stringify(searchState));
+      logger.info('💾 Saved search state to sessionStorage for user:', currentUser);
     }
   }, [users, searchCriteria, sortBy, sortOrder, viewMode, currentPage, totalResults, hasMoreResults, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
   
@@ -211,7 +219,7 @@ const SearchPage2 = () => {
     const handleBeforeUnload = () => {
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-        sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
+        sessionStorage.setItem(getSessionStorageKey('searchPageScrollPosition'), scrollPosition.toString());
         logger.info('💾 Saved scroll position:', scrollPosition);
       }
     };
@@ -223,7 +231,7 @@ const SearchPage2 = () => {
       // Save scroll position when component unmounts (navigating to profile)
       if (searchResultsRef.current) {
         const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-        sessionStorage.setItem('searchPageScrollPosition', scrollPosition.toString());
+        sessionStorage.setItem(getSessionStorageKey('searchPageScrollPosition'), scrollPosition.toString());
         logger.info('💾 Saved scroll position on unmount:', scrollPosition);
       }
     };
@@ -232,17 +240,30 @@ const SearchPage2 = () => {
   // Restore search state from sessionStorage on mount
   useEffect(() => {
     const restoreSearchState = () => {
+      const currentUser = localStorage.getItem('username');
+      // Use user-specific key to prevent cross-user session contamination
+      const storageKey = currentUser ? `searchPageState_${currentUser}` : 'searchPageState';
+      const scrollKey = currentUser ? `searchPageScrollPosition_${currentUser}` : 'searchPageScrollPosition';
+      
       try {
-        const savedState = sessionStorage.getItem('searchPageState');
+        const savedState = sessionStorage.getItem(storageKey);
         if (savedState) {
           const state = JSON.parse(savedState);
+          
+          // SECURITY: Verify the saved state belongs to the current user
+          if (state.savedByUser && state.savedByUser !== currentUser) {
+            logger.warn('⚠️ Saved state belongs to different user, clearing...');
+            sessionStorage.removeItem(storageKey);
+            sessionStorage.removeItem(scrollKey);
+            return false;
+          }
           
           // Check if state is recent (within last 30 minutes)
           const stateAge = Date.now() - (state.timestamp || 0);
           const maxAge = 30 * 60 * 1000; // 30 minutes
           
           if (stateAge < maxAge && state.users && state.users.length > 0) {
-            logger.info('🔄 Restoring search state from sessionStorage with', state.users.length, 'users');
+            logger.info('🔄 Restoring search state from sessionStorage with', state.users.length, 'users for user:', currentUser);
             
             // IMPORTANT: Set refs FIRST before any state updates to prevent race conditions
             hasRestoredStateRef.current = true;
@@ -266,7 +287,7 @@ const SearchPage2 = () => {
             
             // Restore scroll position after a short delay to let DOM render
             setTimeout(() => {
-              const savedScrollPosition = sessionStorage.getItem('searchPageScrollPosition');
+              const savedScrollPosition = sessionStorage.getItem(scrollKey);
               if (savedScrollPosition) {
                 const scrollPos = parseInt(savedScrollPosition, 10);
                 window.scrollTo(0, scrollPos);
@@ -278,16 +299,16 @@ const SearchPage2 = () => {
             return true;
           } else if (stateAge >= maxAge) {
             logger.info('⏰ Saved state is too old, clearing...');
-            sessionStorage.removeItem('searchPageState');
-            sessionStorage.removeItem('searchPageScrollPosition');
+            sessionStorage.removeItem(storageKey);
+            sessionStorage.removeItem(scrollKey);
           } else {
             logger.info('📭 Saved state has no users, not restoring');
           }
         }
       } catch (error) {
         logger.error('❌ Error restoring search state:', error);
-        sessionStorage.removeItem('searchPageState');
-        sessionStorage.removeItem('searchPageScrollPosition');
+        sessionStorage.removeItem(storageKey);
+        sessionStorage.removeItem(scrollKey);
       }
       return false;
     };
@@ -1220,6 +1241,7 @@ const SearchPage2 = () => {
       
       logger.info('🔍 Search params after validation:', params);
       logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
+      logger.info(`🚻 GENDER PARAM BEING SENT: '${params.gender}'`);
 
       // PARALLEL FETCH: Run search and L3V3L APIs simultaneously for faster load
       // Only fetch L3V3L on page 1 - use cached scores for subsequent pages
@@ -1331,14 +1353,16 @@ const SearchPage2 = () => {
           logger.info(`📊 Dedup: ${filteredUsers.length} fetched, ${newUsers.length} new, ${filteredUsers.length - newUsers.length} duplicates skipped`);
           logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}`);
           
+          // Calculate hasMore INSIDE the callback to use accurate newTotal
+          // hasMore = we haven't loaded all records yet
+          const hasMoreNow = newTotal < total;
+          logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, accumulated=${newTotal}, total=${total}, hasMore=${hasMoreNow}`);
+          
+          // Use setTimeout to update hasMoreResults after state update completes
+          setTimeout(() => setHasMoreResults(hasMoreNow), 0);
+          
           return [...prev, ...newUsers];
         });
-        
-        // hasMore: Server returned a full page AND there are more records to load
-        // Check both conditions to ensure consistency with LoadMore component
-        const hasMore = serverReturnedFullPage && !serverReturnedNothing && (accumulatedCountRef.current < total);
-        logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, fullPage=${serverReturnedFullPage}, accumulated=${accumulatedCountRef.current}, total=${total}, hasMore=${hasMore}`);
-        setHasMoreResults(hasMore);
       }
 
     } catch (err) {
@@ -2495,7 +2519,7 @@ const SearchPage2 = () => {
                         {user.birthMonth && user.birthYear && user.height && ' • '}
                         {user.height && `📏 ${user.height}`}
                       </div>
-                      {user.matchScore !== undefined && user.matchScore !== null && (
+                      {user.matchScore > 0 && (
                         <div style={{
                           fontSize: '11px',
                           marginTop: '2px',

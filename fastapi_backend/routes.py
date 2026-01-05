@@ -3811,10 +3811,14 @@ async def search_users(
                 {"interests": {"$regex": keyword, "$options": "i"}}
             ]
 
-        # Gender filter - exact match with capitalized value
+        # Gender filter - SIMPLE exact match on gender field
         # Database stores gender as 'Male' or 'Female' (capitalized)
         if gender:
-            query["gender"] = gender.strip().capitalize()  # 'female' -> 'Female', 'MALE' -> 'Male'
+            gender_value = gender.strip().capitalize()  # 'female' -> 'Female', 'MALE' -> 'Male'
+            query["gender"] = gender_value
+            logger.info(f"🚻 Gender filter applied: query['gender'] = '{gender_value}'")
+        else:
+            logger.info(f"🚻 No gender filter provided")
 
         # Age filter - Calculate dynamically from birthMonth and birthYear
         # This ensures age is always accurate and never stale
@@ -3921,6 +3925,7 @@ async def search_users(
         query["role"] = {"$nin": ["admin", "Admin", "moderator", "Moderator"]}
     
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
+    logger.info(f"📋 FINAL QUERY before execution: {query}")
 
     try:
         # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
@@ -4006,7 +4011,12 @@ async def search_users(
                 total = total_count[0]["count"] if total_count else 0
                 logger.info(f"📊 Aggregation result: returned {len(users)} users, total={total}")
                 if users:
-                    logger.info(f"📊 First user: {users[0].get('username')}, Last user: {users[-1].get('username') if len(users) > 1 else 'N/A'}")
+                    logger.info(f"📊 First user: {users[0].get('username')} (gender={users[0].get('gender')}), Last user: {users[-1].get('username')} (gender={users[-1].get('gender')}) if len(users) > 1 else 'N/A'")
+                    # Log any gender mismatches for debugging
+                    if gender:
+                        mismatches = [u for u in users if u.get('gender') != gender.strip().capitalize()]
+                        if mismatches:
+                            logger.error(f"🚨 GENDER MISMATCH! Expected '{gender.strip().capitalize()}' but found: {[(u.get('username'), u.get('gender')) for u in mismatches]}")
             else:
                 users = []
                 total = 0
@@ -9077,143 +9087,98 @@ def calculate_age(birthMonth=None, birthYear=None):
 @router.get("/l3v3l-matches/{username}")
 async def get_l3v3l_matches(
     username: str,
-    limit: int = 20,
-    min_score: float = 50.0,
+    limit: int = 100,
+    min_score: float = 0,
     db = Depends(get_database)
 ):
     """
-    Get L3V3L matches for a user using comprehensive AI-powered algorithm
+    Get L3V3L matches for a user using PRE-COMPUTED scores from l3v3l_scores collection.
     
-    Considers:
-    1. Gender compatibility (opposite gender)
-    2. L3V3L Pillars alignment (values, personality)
-    3. Demographics (location, background)
-    4. Partner preferences match
-    5. Habits & personality compatibility
-    6. Career & education compatibility
-    7. Physical attributes (height, age, education level)
-    8. Cultural factors (religion, origin, traditions)
-    9. ML-based predictions (if trained)
+    This is now an INSTANT lookup - scores are pre-calculated by the L3V3L Score Calculator job.
+    No more real-time calculation = fast search!
+    
+    To refresh scores: POST /api/users/l3v3l-refresh/{username}
     """
-    logger.info(f"🦋 Getting L3V3L matches for {username}")
+    logger.info(f"🦋 Getting pre-computed L3V3L matches for {username}")
     
     try:
-        # Get current user
-        current_user = await db.users.find_one({"username": username})
-        if not current_user:
-            raise HTTPException(status_code=404, detail="User not found")
+        # Get pre-computed scores from l3v3l_scores collection
+        # This is instant - no calculation needed!
+        scores = await db.l3v3l_scores.find({
+            "fromUsername": username,
+            "score": {"$gte": min_score}
+        }).sort("score", -1).limit(limit).to_list(limit)
         
-        current_user['_id'] = str(current_user['_id'])
+        if not scores:
+            logger.info(f"📊 No pre-computed scores found for {username}, returning empty")
+            return {
+                "matches": [],
+                "total_found": 0,
+                "algorithm_version": "2.0.0-precomputed",
+                "ml_enabled": False,
+                "message": "No pre-computed scores. Run L3V3L Score Calculator job or click Refresh button."
+            }
         
-        # Get opposite gender users (heterosexual platform - only opposite gender matches)
-        opposite_gender = "Female" if current_user.get('gender') == 'Male' else "Male"
+        logger.info(f"📊 Found {len(scores)} pre-computed scores for {username}")
         
-        # Build query - only opposite gender (heterosexual matrimonial platform)
-        query = {
-            "username": {"$ne": username},  # Exclude self
-            "gender": opposite_gender,  # Only opposite gender
-            # PAUSE FEATURE: Exclude paused users from matching
-            # Only match active users (exclude paused, suspended, pending, etc.)
-            "accountStatus": "active"
-        }
+        # Build response with just username and score (frontend attaches to search results)
+        matches = []
+        for score_doc in scores:
+            matches.append({
+                "username": score_doc["toUsername"],
+                "matchScore": score_doc["score"],
+                "compatibilityLevel": score_doc.get("level", "Unknown"),
+                "breakdown": score_doc.get("breakdown", {}),
+                "calculatedAt": score_doc.get("calculatedAt", "").isoformat() if score_doc.get("calculatedAt") else None
+            })
         
-        # Get potential matches
-        potential_matches = await db.users.find(query).to_list(1000)
-        logger.info(f"📊 Query returned {len(potential_matches)} opposite gender users")
-        
-        # Get user's exclusions
-        exclusions = await db.exclusions.find({"userUsername": username}).to_list(100)
-        excluded_usernames = {exc['excludedUsername'] for exc in exclusions}
-        logger.info(f"🚫 Excluding {len(excluded_usernames)} users")
-        
-        # Filter out excluded users
-        potential_matches = [u for u in potential_matches if u['username'] not in excluded_usernames]
-        
-        logger.info(f"📊 Found {len(potential_matches)} potential matches after exclusions")
-        
-        # Calculate match scores
-        matches_with_scores = []
-        for candidate in potential_matches:
-            candidate['_id'] = str(candidate['_id'])
-            
-            # Calculate comprehensive match score
-            match_result = matching_engine.calculate_match_score(current_user, candidate)
-            
-            # Add ML prediction if model is trained
-            ml_score = 0
-            if ml_enhancer.is_trained:
-                ml_score = ml_enhancer.predict_compatibility(current_user, candidate)
-                # Blend ML score with rule-based score (70% rule-based, 30% ML)
-                match_result['total_score'] = (match_result['total_score'] * 0.7) + (ml_score * 100 * 0.3)
-                match_result['ml_prediction'] = round(ml_score * 100, 2)
-            
-            # Filter by minimum score
-            if match_result['total_score'] >= min_score:
-                # 🔓 DECRYPT PII fields before building profile
-                try:
-                    encryptor = get_encryptor()
-                    candidate = encryptor.decrypt_user_pii(candidate)
-                except Exception as decrypt_err:
-                    logger.warning(f"⚠️ Decryption skipped for {candidate.get('username')}: {decrypt_err}")
-                
-                # Prepare profile data - consistent with SearchResultCard expectations
-                profile = {
-                    'username': candidate['username'],
-                    'profileId': candidate.get('profileId'),
-                    'firstName': candidate.get('firstName'),
-                    'lastName': candidate.get('lastName'),
-                    'age': calculate_age(
-                        birthMonth=candidate.get('birthMonth'),
-                        birthYear=candidate.get('birthYear')
-                    ),
-                    'gender': candidate.get('gender'),
-                    'height': candidate.get('height'),
-                    'location': candidate.get('location'),
-                    'state': candidate.get('state'),
-                    'education': candidate.get('education'),
-                    'occupation': candidate.get('occupation'),
-                    'religion': candidate.get('religion'),
-                    'bodyType': candidate.get('bodyType'),
-                    'eatingPreference': candidate.get('eatingPreference'),
-                    'images': [get_full_image_url(img) for img in candidate.get('images', [])],  # All images
-                    'aboutMe': candidate.get('aboutMe', '')[:200] if candidate.get('aboutMe') else '',
-                    'contactEmail': candidate.get('contactEmail'),
-                    'contactNumber': candidate.get('contactNumber'),
-                    # L3V3L specific data
-                    'matchScore': match_result['total_score'],
-                    'compatibilityLevel': match_result['compatibility_level'],
-                    'matchReasons': match_result['match_reasons'],
-                    'componentScores': match_result['component_scores']
-                }
-                
-                if ml_enhancer.is_trained:
-                    profile['mlPrediction'] = match_result.get('ml_prediction', 0)
-                
-                matches_with_scores.append(profile)
-        
-        logger.info(f"🎯 {len(matches_with_scores)} matches scored >= {min_score}%")
-        
-        # Sort by match score (descending)
-        matches_with_scores.sort(key=lambda x: x['matchScore'], reverse=True)
-        
-        # Limit results
-        top_matches = matches_with_scores[:limit]
-        
-        if top_matches:
-            logger.info(f"✅ Returning {len(top_matches)} L3V3L matches for {username} (top score: {top_matches[0]['matchScore']}%)")
-        else:
-            logger.warning(f"⚠️ No matches found for {username} with min_score={min_score}%")
+        logger.info(f"✅ Returning {len(matches)} pre-computed L3V3L matches for {username}")
         
         return {
-            "matches": top_matches,
-            "total_found": len(matches_with_scores),
-            "algorithm_version": "1.0.0",
-            "ml_enabled": ml_enhancer.is_trained
+            "matches": matches,
+            "total_found": len(matches),
+            "algorithm_version": "2.0.0-precomputed",
+            "ml_enabled": False
         }
         
     except Exception as e:
         logger.error(f"❌ Error getting L3V3L matches: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to get matches: {str(e)}")
+
+
+@router.post("/l3v3l-refresh/{username}")
+async def refresh_l3v3l_scores(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    On-demand refresh of L3V3L scores for a specific user.
+    User can click a "Refresh Match Scores" button to recalculate their scores.
+    """
+    # Security: Only allow users to refresh their own scores (or admin)
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Can only refresh your own scores")
+    
+    logger.info(f"🔄 On-demand L3V3L score refresh requested for {username}")
+    
+    try:
+        from job_templates.l3v3l_score_calculator_template import L3V3LScoreCalculatorTemplate
+        
+        calculator = L3V3LScoreCalculatorTemplate()
+        result = await calculator.execute({"username": username}, db)
+        
+        logger.info(f"✅ L3V3L scores refreshed for {username}: {result.get('calculated', 0)} scores")
+        
+        return {
+            "status": "success",
+            "message": f"Refreshed {result.get('calculated', 0)} match scores",
+            "details": result
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error refreshing L3V3L scores: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to refresh scores: {str(e)}")
 
 
 @router.get("/l3v3l-match-score/{username}/{other_username}")
