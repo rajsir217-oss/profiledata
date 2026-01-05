@@ -54,12 +54,33 @@ from services.storage_service import initialize_storage_service
 # Configure logging
 # Use LOG_LEVEL from config (INFO, DEBUG, WARNING, ERROR, CRITICAL)
 log_level = getattr(logging, settings.log_level.upper(), logging.INFO)
+log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+
+# Setup handlers - both console and file
+handlers = [logging.StreamHandler()]  # Console output
+
+# Add file handler if log_file is configured
+if settings.log_file:
+    from logging.handlers import RotatingFileHandler
+    log_dir = Path(settings.log_file).parent
+    log_dir.mkdir(parents=True, exist_ok=True)
+    file_handler = RotatingFileHandler(
+        settings.log_file,
+        maxBytes=10*1024*1024,  # 10MB per file
+        backupCount=5  # Keep 5 backup files
+    )
+    file_handler.setFormatter(logging.Formatter(log_format))
+    handlers.append(file_handler)
+
 logging.basicConfig(
     level=log_level,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format=log_format,
+    handlers=handlers
 )
 logger = logging.getLogger(__name__)
 logger.info(f"Logger initialized in {settings.log_level.upper()} mode")
+if settings.log_file:
+    logger.info(f"📁 Logging to file: {settings.log_file}")
 
 async def lifespan(app: FastAPI):
     # Startup

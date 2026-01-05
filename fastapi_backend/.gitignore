@@ -14,5 +14,6 @@ ENV/
 .env.staging
 .env.cloud
 uploads/
+logs/
 *.log
 .DS_Store

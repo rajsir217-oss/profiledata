@@ -1138,6 +1138,7 @@ const SearchPage2 = () => {
       setLoadingStartTime(Date.now()); // Start timer
       setError('');
       if (page === 1) {
+        setUsers([]); // Clear old results immediately to prevent showing stale/wrong gender profiles
         setHasMoreResults(true); // Reset for new search
         loadingPageRef.current = 1; // Reset page tracking ref for new search
       }
