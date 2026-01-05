@@ -285,3 +285,211 @@ async def verify_database_encryption(db = Depends(get_database)):
         logger.error(f"Database encryption verification failed: {e}", exc_info=True)
     
     return verification_result
+
+
+@router.get("/health/storage")
+async def get_storage_stats(db = Depends(get_database)):
+    """
+    Get MongoDB storage statistics by collection.
+    Useful for monitoring free tier limits (512MB for M0).
+    """
+    storage_stats = {
+        "timestamp": datetime.utcnow().isoformat(),
+        "database": "matrimonialDB",
+        "freeTierLimit": 512 * 1024 * 1024,  # 512MB in bytes
+        "freeTierLimitFormatted": "512 MB",
+        "collections": [],
+        "totalSize": 0,
+        "totalDocuments": 0,
+        "recommendations": []
+    }
+    
+    try:
+        # Get database stats
+        db_stats = await db.command("dbStats")
+        storage_stats["totalSize"] = db_stats.get("dataSize", 0) + db_stats.get("indexSize", 0)
+        storage_stats["dataSize"] = db_stats.get("dataSize", 0)
+        storage_stats["indexSize"] = db_stats.get("indexSize", 0)
+        storage_stats["storageSize"] = db_stats.get("storageSize", 0)
+        
+        # Calculate usage percentage
+        usage_percent = (storage_stats["totalSize"] / storage_stats["freeTierLimit"]) * 100
+        storage_stats["usagePercent"] = round(usage_percent, 2)
+        storage_stats["totalSizeFormatted"] = format_bytes(storage_stats["totalSize"])
+        storage_stats["dataSizeFormatted"] = format_bytes(storage_stats["dataSize"])
+        storage_stats["indexSizeFormatted"] = format_bytes(storage_stats["indexSize"])
+        
+        # Get collection names
+        collection_names = await db.list_collection_names()
+        
+        # Get stats for each collection
+        for coll_name in sorted(collection_names):
+            try:
+                coll_stats = await db.command("collStats", coll_name)
+                doc_count = coll_stats.get("count", 0)
+                data_size = coll_stats.get("size", 0)
+                index_size = coll_stats.get("totalIndexSize", 0)
+                total_size = data_size + index_size
+                avg_doc_size = coll_stats.get("avgObjSize", 0)
+                
+                storage_stats["collections"].append({
+                    "name": coll_name,
+                    "documents": doc_count,
+                    "dataSize": data_size,
+                    "dataSizeFormatted": format_bytes(data_size),
+                    "indexSize": index_size,
+                    "indexSizeFormatted": format_bytes(index_size),
+                    "totalSize": total_size,
+                    "totalSizeFormatted": format_bytes(total_size),
+                    "avgDocSize": avg_doc_size,
+                    "avgDocSizeFormatted": format_bytes(avg_doc_size),
+                    "percentOfTotal": round((total_size / storage_stats["totalSize"] * 100), 2) if storage_stats["totalSize"] > 0 else 0
+                })
+                storage_stats["totalDocuments"] += doc_count
+            except Exception as e:
+                logger.warning(f"Could not get stats for collection {coll_name}: {e}")
+        
+        # Sort by size descending
+        storage_stats["collections"].sort(key=lambda x: x["totalSize"], reverse=True)
+        
+        # Generate recommendations
+        storage_stats["recommendations"] = generate_storage_recommendations(storage_stats)
+        
+        # Status indicator
+        if usage_percent < 50:
+            storage_stats["status"] = "healthy"
+            storage_stats["statusColor"] = "green"
+        elif usage_percent < 75:
+            storage_stats["status"] = "warning"
+            storage_stats["statusColor"] = "yellow"
+        elif usage_percent < 90:
+            storage_stats["status"] = "critical"
+            storage_stats["statusColor"] = "orange"
+        else:
+            storage_stats["status"] = "danger"
+            storage_stats["statusColor"] = "red"
+        
+    except Exception as e:
+        logger.error(f"Failed to get storage stats: {e}", exc_info=True)
+        storage_stats["error"] = str(e)
+        storage_stats["status"] = "error"
+    
+    return storage_stats
+
+
+def format_bytes(size_bytes):
+    """Format bytes into human-readable format"""
+    if size_bytes == 0:
+        return "0 B"
+    
+    units = ["B", "KB", "MB", "GB"]
+    unit_index = 0
+    size = float(size_bytes)
+    
+    while size >= 1024 and unit_index < len(units) - 1:
+        size /= 1024
+        unit_index += 1
+    
+    return f"{size:.2f} {units[unit_index]}"
+
+
+def generate_storage_recommendations(stats):
+    """Generate optimization recommendations based on storage stats"""
+    recommendations = []
+    collections = stats.get("collections", [])
+    usage_percent = stats.get("usagePercent", 0)
+    
+    # Check for specific collections that can be optimized
+    for coll in collections:
+        name = coll["name"]
+        size_mb = coll["totalSize"] / (1024 * 1024)
+        
+        # L3V3L scores - can be rebuilt on demand
+        if name == "l3v3l_scores" and size_mb > 20:
+            recommendations.append({
+                "collection": name,
+                "priority": "high",
+                "issue": f"L3V3L scores taking {coll['totalSizeFormatted']}",
+                "action": "Consider purging old scores or reducing calculation frequency",
+                "command": "db.l3v3l_scores.deleteMany({ calculatedAt: { $lt: ISODate('30 days ago') } })"
+            })
+        
+        # Notification queue - should be cleaned after processing
+        if name == "notification_queue" and coll["documents"] > 1000:
+            recommendations.append({
+                "collection": name,
+                "priority": "medium",
+                "issue": f"{coll['documents']} items in notification queue",
+                "action": "Clean up sent/failed notifications older than 7 days",
+                "command": "db.notification_queue.deleteMany({ status: { $in: ['sent', 'failed'] }, updatedAt: { $lt: ISODate('7 days ago') } })"
+            })
+        
+        # Notification log - archive or delete old logs
+        if name == "notification_log" and size_mb > 10:
+            recommendations.append({
+                "collection": name,
+                "priority": "medium",
+                "issue": f"Notification logs taking {coll['totalSizeFormatted']}",
+                "action": "Archive or delete logs older than 30 days",
+                "command": "db.notification_log.deleteMany({ sentAt: { $lt: ISODate('30 days ago') } })"
+            })
+        
+        # Activity logs - can grow large
+        if name == "activity_logs" and size_mb > 20:
+            recommendations.append({
+                "collection": name,
+                "priority": "medium",
+                "issue": f"Activity logs taking {coll['totalSizeFormatted']}",
+                "action": "Archive or delete logs older than 90 days",
+                "command": "db.activity_logs.deleteMany({ timestamp: { $lt: ISODate('90 days ago') } })"
+            })
+        
+        # Profile views - can be aggregated
+        if name == "profile_views" and size_mb > 30:
+            recommendations.append({
+                "collection": name,
+                "priority": "low",
+                "issue": f"Profile views taking {coll['totalSizeFormatted']}",
+                "action": "Consider aggregating old views into daily summaries",
+                "command": "Archive views older than 30 days"
+            })
+        
+        # Job execution history
+        if name == "job_execution_history" and size_mb > 10:
+            recommendations.append({
+                "collection": name,
+                "priority": "medium",
+                "issue": f"Job history taking {coll['totalSizeFormatted']}",
+                "action": "Delete old job execution records",
+                "command": "db.job_execution_history.deleteMany({ startTime: { $lt: ISODate('30 days ago') } })"
+            })
+        
+        # Weekly user stats - temporary data
+        if name == "weekly_user_stats" and size_mb > 5:
+            recommendations.append({
+                "collection": name,
+                "priority": "low",
+                "issue": f"Weekly stats taking {coll['totalSizeFormatted']}",
+                "action": "Delete stats older than 3 months",
+                "command": "db.weekly_user_stats.deleteMany({ month: { $lt: '2025-10' } })"
+            })
+    
+    # General recommendations based on usage
+    if usage_percent > 75:
+        recommendations.insert(0, {
+            "collection": "ALL",
+            "priority": "critical",
+            "issue": f"Storage at {usage_percent:.1f}% capacity!",
+            "action": "Immediate cleanup required to avoid hitting free tier limit",
+            "command": "Review and clean large collections"
+        })
+    elif usage_percent > 50:
+        recommendations.insert(0, {
+            "collection": "ALL",
+            "priority": "warning",
+            "issue": f"Storage at {usage_percent:.1f}% capacity",
+            "action": "Plan cleanup to maintain headroom",
+            "command": "Schedule regular cleanup jobs"
+        })
+    
+    return recommendations
