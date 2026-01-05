@@ -578,6 +578,11 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
     <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         
+        <!-- Logo -->
+        <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
+            <img src="https://l3v3lmatches.com/logo192.png" alt="L3V3L MATCHES" style="height: 60px; width: auto;" />
+        </div>
+        
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
             <h1 style="margin: 0; font-size: 28px; font-weight: 600;">📊 Your Monthly Activity</h1>
