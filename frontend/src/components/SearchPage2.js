@@ -1218,7 +1218,6 @@ const SearchPage2 = () => {
       });
       
       logger.info('🔍 Search params after validation:', params);
-      logger.info('🔍 profileId in params:', params.profileId);
       logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
 
       // PARALLEL FETCH: Run search and L3V3L APIs simultaneously for faster load
@@ -1305,15 +1304,18 @@ const SearchPage2 = () => {
         // First page: set total and hasMore
         setTotalResults(total);
         accumulatedCountRef.current = filteredUsers.length;
-        // hasMore = we haven't loaded all records yet
-        const hasMore = filteredUsers.length < total;
+        // hasMore = server returned a full page AND we haven't loaded all records yet
+        // Use both conditions to be safe
+        const serverReturnedFullPage = serverReturnedCount >= pageSize;
+        const hasMore = serverReturnedFullPage && filteredUsers.length < total;
         setHasMoreResults(hasMore);
         setUsers(filteredUsers);
         setCurrentPage(1);
-        logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, hasMore=${hasMore}`);
+        logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
       } else {
         // Subsequent pages: append new users and calculate hasMore
-        const serverReturnedNothing = filteredUsers.length === 0;
+        const serverReturnedNothing = serverReturnedCount === 0;
+        const serverReturnedFullPage = serverReturnedCount >= pageSize;
         
         // Get current users synchronously to calculate hasMore BEFORE state update
         // This avoids all closure/timing issues
@@ -1331,12 +1333,10 @@ const SearchPage2 = () => {
           return [...prev, ...newUsers];
         });
         
-        // hasMore: Simply check if server returned a full page (20 items)
-        // If server returns < 20, we've reached the end regardless of total count
-        // This is more reliable than comparing accumulated vs total
-        const serverReturnedFullPage = filteredUsers.length >= 20;
-        const hasMore = serverReturnedFullPage && !serverReturnedNothing;
-        logger.info(`📊 Setting hasMoreResults: serverReturned=${filteredUsers.length}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
+        // hasMore: Server returned a full page AND there are more records to load
+        // Check both conditions to ensure consistency with LoadMore component
+        const hasMore = serverReturnedFullPage && !serverReturnedNothing && (accumulatedCountRef.current < total);
+        logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, fullPage=${serverReturnedFullPage}, accumulated=${accumulatedCountRef.current}, total=${total}, hasMore=${hasMore}`);
         setHasMoreResults(hasMore);
       }
 

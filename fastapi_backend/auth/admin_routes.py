@@ -92,15 +92,17 @@ async def get_all_users(
         
         if gender:
             # Gender field can be 'sex', 'gender', or 'Sex' - use $or for compatibility
-            query["$or"] = query.get("$or", [])
             gender_query = {"$or": [
                 {"sex": {"$regex": f"^{gender}$", "$options": "i"}},
                 {"gender": {"$regex": f"^{gender}$", "$options": "i"}},
                 {"Sex": {"$regex": f"^{gender}$", "$options": "i"}}
             ]}
             # If we already have $or from search, we need to use $and
-            if "$or" in query:
-                query = {"$and": [{"$or": query["$or"]}, gender_query]}
+            existing_or = query.get("$or")
+            if existing_or and len(existing_or) > 0:
+                # Combine existing $or with gender $or using $and
+                del query["$or"]
+                query["$and"] = [{"$or": existing_or}, gender_query]
             else:
                 query.update(gender_query)
         

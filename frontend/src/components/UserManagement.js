@@ -27,6 +27,7 @@ const UserManagement = () => {
   const [loadingMore, setLoadingMore] = useState(false); // For infinite scroll
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Debounced search term
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
   const [page, setPage] = useState(1);
@@ -83,7 +84,7 @@ const UserManagement = () => {
       
       if (statusFilter) params.append('status_filter', statusFilter);
       if (roleFilter) params.append('role', roleFilter);
-      if (searchTerm) params.append('search', searchTerm);
+      if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
 
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       
@@ -142,7 +143,16 @@ const UserManagement = () => {
     }
   }, [userRole, navigate]);
 
-  // Initial load and reload when filters change
+  // Debounce search term - wait 500ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Initial load and reload when filters change (uses debounced search)
   useEffect(() => {
     if (userRole === 'admin') {
       setPage(1);
@@ -150,7 +160,7 @@ const UserManagement = () => {
       loadUsers(1, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole, statusFilter, roleFilter, searchTerm]);
+  }, [userRole, statusFilter, roleFilter, debouncedSearchTerm]);
 
   // Ref for tracking if we can load more (debounce)
   const loadMoreRef = useRef(null);

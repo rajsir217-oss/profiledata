@@ -3831,18 +3831,26 @@ async def search_users(
             if heightMax > 0:
                 height_query["$lte"] = heightMax
             # Lenient: include users who match OR heightInches field doesn't exist
-            if "$or" not in query:
-                query["$or"] = []
-            # Wrap existing $or conditions if they exist
-            existing_or = query.pop("$or", [])
-            query["$and"] = [
-                {"$or": existing_or} if existing_or else {},
-                {"$or": [
-                    {"heightInches": height_query},
-                    {"heightInches": {"$exists": False}},
-                    {"heightInches": None}
-                ]}
-            ]
+            height_condition = {"$or": [
+                {"heightInches": height_query},
+                {"heightInches": {"$exists": False}},
+                {"heightInches": None}
+            ]}
+            
+            # Check if there's an existing $or from keyword search
+            existing_or = query.pop("$or", None)
+            
+            # Build $and array, only including existing_or if it has conditions
+            and_conditions = []
+            if existing_or and len(existing_or) > 0:
+                and_conditions.append({"$or": existing_or})
+            and_conditions.append(height_condition)
+            
+            # Merge with existing $and if present
+            if "$and" in query:
+                query["$and"].extend(and_conditions)
+            else:
+                query["$and"] = and_conditions
 
         # Other filters
         # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
