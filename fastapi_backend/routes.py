@@ -4035,14 +4035,21 @@ async def search_users(
             if gender:
                 debug_cursor = db.users.find(query, {"username": 1, "gender": 1, "firstName": 1, "_id": 0})
                 debug_users = await debug_cursor.to_list(100)  # Limit to 100 for logging
-                logger.warning(f"🔍 DEBUG GENDER CHECK (with age filter) - Filter: gender='{gender.strip().capitalize()}' - ALL matching users (up to 100):")
-                for du in debug_users:
-                    logger.warning(f"   👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                logger.warning(f"🔍 DEBUG GENDER CHECK (with age filter) - Filter: gender='{gender.strip().capitalize()}' - Found {len(debug_users)} users matching query")
+                logger.warning(f"🔍 DEBUG QUERY: {query}")
+                if len(debug_users) == 0:
+                    logger.error(f"🚨 NO USERS FOUND matching gender filter! Query: {query}")
+                else:
+                    # Log first 20 users
+                    for du in debug_users[:20]:
+                        logger.warning(f" >>>>>>>>>>>  👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                    if len(debug_users) > 20:
+                        logger.warning(f"   ... and {len(debug_users) - 20} more users")
                 # Check for mismatches
                 mismatches = [du for du in debug_users if du.get('gender') != gender.strip().capitalize()]
                 if mismatches:
-                    logger.error(f"🚨 GENDER MISMATCH DETECTED IN QUERY RESULTS! Expected '{gender.strip().capitalize()}' but found:")
-                    for m in mismatches:
+                    logger.error(f"🚨 GENDER MISMATCH DETECTED! Expected '{gender.strip().capitalize()}' but found {len(mismatches)} mismatches:")
+                    for m in mismatches[:10]:  # Log first 10 mismatches
                         logger.error(f"   ❌ {m.get('firstName', 'N/A')} ({m.get('username')}) has gender='{m.get('gender')}'")
             
             result = await db.users.aggregate(pipeline).to_list(1)
@@ -4051,14 +4058,23 @@ async def search_users(
                 users = result[0].get("users", [])
                 total_count = result[0].get("totalCount", [])
                 total = total_count[0]["count"] if total_count else 0
-                logger.info(f"📊 Aggregation result: returned {len(users)} users, total={total}")
+                logger.warning(f"📊 AGGREGATION RESULT: returned {len(users)} users, total={total}")
                 if users:
-                    logger.info(f"📊 First user: {users[0].get('username')} (gender={users[0].get('gender')}), Last user: {users[-1].get('username')} (gender={users[-1].get('gender')}) if len(users) > 1 else 'N/A'")
+                    # Log ALL returned users with their gender
+                    logger.warning(f"📊 RETURNED USERS (checking gender):")
+                    for u in users:
+                        logger.warning(f"   👤 {u.get('firstName', 'N/A')} ({u.get('username')}) - gender: '{u.get('gender')}'")
                     # Log any gender mismatches for debugging
                     if gender:
                         mismatches = [u for u in users if u.get('gender') != gender.strip().capitalize()]
                         if mismatches:
-                            logger.error(f"🚨 GENDER MISMATCH! Expected '{gender.strip().capitalize()}' but found: {[(u.get('username'), u.get('gender')) for u in mismatches]}")
+                            logger.error(f"🚨 GENDER MISMATCH IN RESULTS! Expected '{gender.strip().capitalize()}' but found {len(mismatches)} wrong:")
+                            for m in mismatches:
+                                logger.error(f"   ❌ {m.get('firstName', 'N/A')} ({m.get('username')}) has gender='{m.get('gender')}'")
+                        else:
+                            logger.warning(f"✅ All {len(users)} users have correct gender '{gender.strip().capitalize()}'")
+                else:
+                    logger.warning(f"📊 No users returned from aggregation")
             else:
                 users = []
                 total = 0
@@ -4070,14 +4086,21 @@ async def search_users(
             if gender:
                 debug_cursor = db.users.find(query, {"username": 1, "gender": 1, "firstName": 1, "_id": 0})
                 debug_users = await debug_cursor.to_list(100)  # Limit to 100 for logging
-                logger.warning(f"🔍 DEBUG GENDER CHECK - Filter: gender='{gender.strip().capitalize()}' - ALL matching users (up to 100):")
-                for du in debug_users:
-                    logger.warning(f"   👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                logger.warning(f"🔍 DEBUG GENDER CHECK - Filter: gender='{gender.strip().capitalize()}' - Found {len(debug_users)} users matching query")
+                logger.warning(f"🔍 DEBUG QUERY: {query}")
+                if len(debug_users) == 0:
+                    logger.error(f"🚨 NO USERS FOUND matching gender filter! Query: {query}")
+                else:
+                    # Log first 20 users
+                    for du in debug_users[:20]:
+                        logger.warning(f"   👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                    if len(debug_users) > 20:
+                        logger.warning(f"   ... and {len(debug_users) - 20} more users")
                 # Check for mismatches
                 mismatches = [du for du in debug_users if du.get('gender') != gender.strip().capitalize()]
                 if mismatches:
-                    logger.error(f"🚨 GENDER MISMATCH DETECTED IN QUERY RESULTS! Expected '{gender.strip().capitalize()}' but found:")
-                    for m in mismatches:
+                    logger.error(f"🚨 GENDER MISMATCH DETECTED! Expected '{gender.strip().capitalize()}' but found {len(mismatches)} mismatches:")
+                    for m in mismatches[:10]:  # Log first 10 mismatches
                         logger.error(f"   ❌ {m.get('firstName', 'N/A')} ({m.get('username')}) has gender='{m.get('gender')}'")
             
             pipeline = [
