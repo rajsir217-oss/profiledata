@@ -265,18 +265,40 @@ const SearchPage2 = () => {
           if (stateAge < maxAge && state.users && state.users.length > 0) {
             logger.info('🔄 Restoring search state from sessionStorage with', state.users.length, 'users for user:', currentUser);
             
+            // 🔍 GENDER VALIDATION: Filter out users that don't match the saved gender filter
+            // This prevents showing wrong-gender profiles from stale cache
+            let usersToRestore = state.users;
+            const savedGender = state.searchCriteria?.gender;
+            if (savedGender) {
+              const genderCapitalized = savedGender.charAt(0).toUpperCase() + savedGender.slice(1).toLowerCase();
+              const beforeCount = usersToRestore.length;
+              usersToRestore = usersToRestore.filter(u => u.gender === genderCapitalized);
+              const afterCount = usersToRestore.length;
+              if (beforeCount !== afterCount) {
+                logger.warn(`🚨 GENDER FILTER: Removed ${beforeCount - afterCount} users with wrong gender from cache. Expected: ${genderCapitalized}`);
+              }
+            }
+            
+            // If all users were filtered out, don't restore - force fresh search
+            if (usersToRestore.length === 0) {
+              logger.warn('🚨 All cached users had wrong gender, clearing cache and forcing fresh search');
+              sessionStorage.removeItem(storageKey);
+              sessionStorage.removeItem(scrollKey);
+              return false;
+            }
+            
             // IMPORTANT: Set refs FIRST before any state updates to prevent race conditions
             hasRestoredStateRef.current = true;
             hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
             
-            // Restore all state
-            setUsers(state.users);
+            // Restore all state with validated users
+            setUsers(usersToRestore);
             setSearchCriteria(state.searchCriteria || {});
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) setViewMode(state.viewMode);
             setCurrentPage(state.currentPage || 1);
-            setTotalResults(state.totalResults || state.users.length);
+            setTotalResults(usersToRestore.length); // Use filtered count, not original
             setHasMoreResults(state.hasMoreResults !== undefined ? state.hasMoreResults : (state.users.length >= 20));
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
