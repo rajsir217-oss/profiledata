@@ -54,9 +54,15 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
         return {
             "type": "object",
             "properties": {
+                "mode": {
+                    "type": "string",
+                    "enum": ["incremental", "full"],
+                    "description": "incremental = only new/updated profiles, full = recalculate all",
+                    "default": "incremental"
+                },
                 "username": {
                     "type": "string",
-                    "description": "Username to calculate scores for (empty = all users)",
+                    "description": "Username to calculate scores for (empty = based on mode)",
                     "default": ""
                 },
                 "batch_size": {
@@ -75,10 +81,11 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
         params = context.parameters
         db = context.db
         
+        mode = params.get('mode', 'incremental')
         username = params.get('username', '')
         batch_size = params.get('batch_size', 50)
         
-        logger.info(f"🦋 Starting L3V3L score calculation - username: '{username}', batch_size: {batch_size}")
+        logger.info(f"🦋 Starting L3V3L score calculation - mode: '{mode}', username: '{username}', batch_size: {batch_size}")
         
         # Ensure indexes exist
         await db.l3v3l_scores.create_index([("fromUsername", 1), ("toUsername", 1)], unique=True)
@@ -89,8 +96,11 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
             if username:
                 # Calculate for specific user
                 result = await self._calculate_for_user(db, username)
+            elif mode == 'incremental':
+                # Calculate only for new/updated profiles
+                result = await self._calculate_incremental(db, batch_size, context)
             else:
-                # Calculate for all users
+                # Full recalculation for all users
                 result = await self._calculate_all(db, batch_size)
             
             end_time = datetime.utcnow()
@@ -150,8 +160,99 @@ class L3V3LScoreCalculatorTemplate(JobTemplate):
             "oppositeGender": opposite_gender
         }
     
+    async def _calculate_incremental(self, db, batch_size: int, context: JobExecutionContext) -> Dict[str, Any]:
+        """Calculate scores only for new/updated profiles since last run"""
+        from datetime import timedelta
+        
+        # Get last successful run time from job metadata
+        job_id = context.job_id
+        last_run = None
+        
+        if job_id:
+            job = await db.dynamic_jobs.find_one({"_id": job_id})
+            if job and job.get("lastRun"):
+                last_run = job["lastRun"]
+        
+        # If no last run, check for any existing scores to determine baseline
+        if not last_run:
+            latest_score = await db.l3v3l_scores.find_one(
+                {}, 
+                sort=[("calculatedAt", -1)]
+            )
+            if latest_score and latest_score.get("calculatedAt"):
+                last_run = latest_score["calculatedAt"]
+        
+        # Build query for new/updated users
+        user_query = {
+            "accountStatus": "active",
+            "gender": {"$in": ["Male", "Female"]}
+        }
+        
+        if last_run:
+            # Find users created or updated since last run
+            user_query["$or"] = [
+                {"createdAt": {"$gte": last_run}},
+                {"updatedAt": {"$gte": last_run}},
+                {"profileUpdatedAt": {"$gte": last_run}}
+            ]
+            context.log("INFO", f"🔍 Looking for profiles created/updated since {last_run}")
+        else:
+            context.log("INFO", "🔍 No previous run found - calculating for all users (first run)")
+        
+        users = await db.users.find(user_query).to_list(None)
+        
+        if not users:
+            context.log("INFO", "✅ No new or updated profiles found - nothing to calculate")
+            return {
+                "status": "completed",
+                "mode": "incremental",
+                "usersProcessed": 0,
+                "totalScoresCalculated": 0,
+                "message": "No new or updated profiles since last run"
+            }
+        
+        context.log("INFO", f"🦋 Found {len(users)} new/updated profiles to process")
+        
+        total_scores = 0
+        processed = 0
+        errors = []
+        
+        for user in users:
+            try:
+                user_gender = user.get('gender')
+                if not user_gender:
+                    continue
+                
+                opposite_gender = "Female" if user_gender == "Male" else "Male"
+                
+                # Get ALL opposite-gender users (not just new ones) to calculate scores against
+                potential_matches = await db.users.find({
+                    "gender": opposite_gender,
+                    "accountStatus": "active",
+                    "username": {"$ne": user['username']}
+                }).to_list(None)
+                
+                count = await self._calculate_and_store_scores(db, user, potential_matches)
+                total_scores += count
+                processed += 1
+                
+                context.log("INFO", f"   ✓ {user['username']}: {count} scores calculated")
+                    
+            except Exception as e:
+                errors.append(f"{user.get('username')}: {str(e)}")
+                context.log("ERROR", f"❌ Error for {user.get('username')}: {e}")
+        
+        return {
+            "status": "completed",
+            "mode": "incremental",
+            "usersProcessed": processed,
+            "totalScoresCalculated": total_scores,
+            "errorCount": len(errors),
+            "errors": errors[:10]
+        }
+    
     async def _calculate_all(self, db, batch_size: int) -> Dict[str, Any]:
-        """Calculate scores for all active users"""
+        """Calculate scores for all active users (full rebuild)"""
         users = await db.users.find({
             "accountStatus": "active",
             "gender": {"$in": ["Male", "Female"]}
