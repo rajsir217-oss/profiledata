@@ -65,6 +65,11 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                     "type": "boolean",
                     "description": "Preview without sending emails",
                     "default": False
+                },
+                "test_usernames": {
+                    "type": "string",
+                    "description": "Comma-separated list of usernames to send to (test mode). Leave empty to send to all.",
+                    "default": ""
                 }
             },
             "required": ["mode"]
@@ -265,6 +270,8 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         db = context.db
         max_recipients = context.parameters.get("max_recipients", 0)
         dry_run = context.parameters.get("dry_run", False)
+        # Test mode: comma-separated list of usernames to send to (e.g., "rajadmin,testuser1")
+        test_usernames = context.parameters.get("test_usernames", "")
         
         # Get current month
         now = datetime.utcnow()
@@ -272,6 +279,12 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         month_name = now.strftime("%B %Y")
         
         context.log("INFO", f"📧 Sending monthly digest for {month_name}")
+        
+        # Parse test usernames if provided
+        target_usernames = []
+        if test_usernames:
+            target_usernames = [u.strip() for u in test_usernames.split(",") if u.strip()]
+            context.log("INFO", f"   🧪 TEST MODE: Only sending to {len(target_usernames)} users: {target_usernames}")
         
         # Get all users with weekly stats for this month
         stats_cursor = db.weekly_user_stats.find({"month": month_key})
@@ -283,11 +296,16 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         if len(all_stats) == 0:
             context.log("INFO", f"   No pre-collected stats found. Gathering stats on-the-fly...")
             
-            # Get all active users with email
-            users_cursor = db.users.find({
+            # Build user query - filter by test_usernames if provided
+            user_query = {
                 "accountStatus": "active",
                 "contactEmail": {"$exists": True, "$ne": ""}
-            }, {"username": 1, "firstName": 1, "contactEmail": 1})
+            }
+            if target_usernames:
+                user_query["username"] = {"$in": target_usernames}
+            
+            # Get users with email
+            users_cursor = db.users.find(user_query, {"username": 1, "firstName": 1, "contactEmail": 1})
             active_users = await users_cursor.to_list(length=None)
             
             context.log("INFO", f"   Found {len(active_users)} active users with email")
@@ -319,6 +337,11 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 all_stats.append(user_stats)
             
             context.log("INFO", f"   Gathered on-the-fly stats for {len(all_stats)} users")
+        else:
+            # Filter pre-collected stats by test_usernames if provided
+            if target_usernames:
+                all_stats = [s for s in all_stats if s["username"] in target_usernames]
+                context.log("INFO", f"   Filtered to {len(all_stats)} test users from pre-collected stats")
         
         if max_recipients > 0 and len(all_stats) > max_recipients:
             all_stats = all_stats[:max_recipients]
