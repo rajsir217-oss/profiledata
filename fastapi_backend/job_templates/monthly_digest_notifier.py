@@ -270,7 +270,48 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         stats_cursor = db.weekly_user_stats.find({"month": month_key})
         all_stats = await stats_cursor.to_list(length=None)
         
-        context.log("INFO", f"   Found {len(all_stats)} users with stats")
+        context.log("INFO", f"   Found {len(all_stats)} users with pre-collected stats")
+        
+        # If no pre-collected stats, gather stats on-the-fly for all active users
+        if len(all_stats) == 0:
+            context.log("INFO", f"   No pre-collected stats found. Gathering stats on-the-fly...")
+            
+            # Get all active users with email
+            users_cursor = db.users.find({
+                "accountStatus": "active",
+                "contactEmail": {"$exists": True, "$ne": ""}
+            }, {"username": 1, "firstName": 1, "contactEmail": 1})
+            active_users = await users_cursor.to_list(length=None)
+            
+            context.log("INFO", f"   Found {len(active_users)} active users with email")
+            
+            # Calculate 4-week date ranges (last 28 days)
+            week_ranges = []
+            for i in range(4, 0, -1):
+                week_end = now - timedelta(days=(i-1) * 7)
+                week_start = week_end - timedelta(days=7)
+                week_ranges.append({
+                    "week": 5 - i,
+                    "start": week_start,
+                    "end": week_end
+                })
+            
+            # Build stats for each user on-the-fly
+            for user in active_users:
+                username = user["username"]
+                user_stats = {"username": username, "month": month_key}
+                
+                for wr in week_ranges:
+                    stats = await self._gather_user_stats(db, username, wr["start"], wr["end"])
+                    user_stats[f"week{wr['week']}"] = stats
+                    user_stats[f"week{wr['week']}_range"] = {
+                        "start": wr["start"].isoformat(),
+                        "end": wr["end"].isoformat()
+                    }
+                
+                all_stats.append(user_stats)
+            
+            context.log("INFO", f"   Gathered on-the-fly stats for {len(all_stats)} users")
         
         if max_recipients > 0 and len(all_stats) > max_recipients:
             all_stats = all_stats[:max_recipients]
