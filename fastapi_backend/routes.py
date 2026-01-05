@@ -3811,10 +3811,10 @@ async def search_users(
                 {"interests": {"$regex": keyword, "$options": "i"}}
             ]
 
-        # Gender filter - case-insensitive match
+        # Gender filter - exact match with capitalized value
+        # Database stores gender as 'Male' or 'Female' (capitalized)
         if gender:
-            # Capitalize first letter to match DB format (Male, Female)
-            query["gender"] = gender.capitalize()
+            query["gender"] = gender.strip().capitalize()  # 'female' -> 'Female', 'MALE' -> 'Male'
 
         # Age filter - Calculate dynamically from birthMonth and birthYear
         # This ensures age is always accurate and never stale

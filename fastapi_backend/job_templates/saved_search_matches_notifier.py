@@ -527,9 +527,11 @@ async def find_matches_for_search(
     
     logger.info(f"🔍 Building query for user '{username}' with criteria: {criteria}")
     
-    # Apply gender filter
+    # Apply gender filter - use exact match with capitalized value for reliability
+    # Database stores gender as 'Male' or 'Female' (capitalized)
     if criteria.get('gender'):
-        query['gender'] = {'$regex': f'^{criteria["gender"]}$', '$options': 'i'}
+        gender_value = criteria['gender'].strip().capitalize()  # 'female' -> 'Female', 'MALE' -> 'Male'
+        query['gender'] = gender_value  # Exact match, no regex needed
     
     # Apply age range using birthYear (age field is not populated in DB)
     # Calculate birth year range from age range
@@ -823,13 +825,14 @@ async def send_matches_email(
         if total_matches > 5:
             more_note = f'<p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">Showing top {displayed_count} of {total_matches} matches. Click below to see all.</p>'
         
+        matches_cards_html = ''.join(matches_html_parts)
         matches_container = f'''
         <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
             <p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">{total_matches}</strong> new match{plural} for you!</p>
             {more_note}
         </div>
         <div style="margin-top: 20px;">
-            {''.join(matches_html_parts)}
+            {matches_cards_html}
         </div>
         '''
         
