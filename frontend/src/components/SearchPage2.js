@@ -2494,13 +2494,14 @@ const SearchPage2 = () => {
                         {user.birthMonth && user.birthYear && user.height && ' • '}
                         {user.height && `📏 ${user.height}`}
                       </div>
-                      {user.matchScore && (
+                      {user.matchScore !== undefined && user.matchScore !== null && (
                         <div style={{
                           fontSize: '11px',
                           marginTop: '2px',
-                          fontWeight: 600
+                          fontWeight: 600,
+                          color: selectedProfileForDetail?.username === user.username ? 'white' : 'var(--primary-color)'
                         }}>
-                          {selectedProfileForDetail?.username === user.username ? '✓' : '🦋'} {user.matchScore}%
+                          🦋 {Math.round(user.matchScore * 10) / 10}%
                         </div>
                       )}
                     </div>

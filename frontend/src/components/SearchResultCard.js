@@ -83,10 +83,15 @@ const SearchResultCard = ({
     return `${imageSrc}${imageSrc.includes('?') ? '&' : '?'}token=${token}`;
   }, [user.images, currentImageIndex]);
 
-  // Navigate to profile with optional search context for carousel navigation
+  // Navigate to profile - behavior depends on viewMode
+  // Cards/Rows: Open in new tab (user is browsing, keep search results intact)
+  // Split: Use pagination (profile shown inline)
   const navigateToProfile = () => {
-    if (searchResults && currentIndex !== null) {
-      // Pass search results and current index for carousel navigation
+    if (viewMode === 'cards' || viewMode === 'rows') {
+      // Open in new tab for cards/rows layout
+      window.open(`/profile/${user.username}`, '_blank');
+    } else if (searchResults && currentIndex !== null) {
+      // Split layout: Pass search results for carousel navigation
       navigate(`/profile/${user.username}`, {
         state: {
           searchResults,
