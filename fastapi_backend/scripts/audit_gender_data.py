@@ -23,9 +23,9 @@ load_dotenv()
 # Common Indian male names
 MALE_NAMES = {
     'aarav', 'abhishek', 'aditya', 'ajay', 'akash', 'aman', 'amit', 'ankit', 
-    'arjun', 'aryan', 'deepak', 'gaurav', 'harsh', 'jay', 'kabir', 'karan',
-    'krishna', 'manish', 'neil', 'nikhil', 'prateek', 'rahul', 'raj', 'rajesh',
-    'reyansh', 'rohan', 'sandeep', 'shiv', 'siddharth', 'vihaan', 'vikram',
+    'arjun', 'aryan', 'deepak', 'gaurav', 'gautam', 'harsh', 'jay', 'kabir', 'karan',
+    'krishna', 'manish', 'miheer', 'neil', 'nikhil', 'prateek', 'rahul', 'raj', 'rajesh',
+    'reyansh', 'rohan', 'sandeep', 'shiv', 'siddharth', 'vihaan', 'vikas', 'vikram',
     'vishal', 'yogesh', 'sai'  # Sai can be both but often male
 }
 
