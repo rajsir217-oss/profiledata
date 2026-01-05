@@ -4030,6 +4030,21 @@ async def search_users(
             
             # Execute aggregation
             logger.info(f"🔍 Executing search with aggregation (dynamic age calculation), skip={skip}, limit={limit}")
+            
+            # 🔍 DEBUG: Log ALL users matching the base query (before pagination) when age filter is used
+            if gender:
+                debug_cursor = db.users.find(query, {"username": 1, "gender": 1, "firstName": 1, "_id": 0})
+                debug_users = await debug_cursor.to_list(100)  # Limit to 100 for logging
+                logger.warning(f"🔍 DEBUG GENDER CHECK (with age filter) - Filter: gender='{gender.strip().capitalize()}' - ALL matching users (up to 100):")
+                for du in debug_users:
+                    logger.warning(f"   👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                # Check for mismatches
+                mismatches = [du for du in debug_users if du.get('gender') != gender.strip().capitalize()]
+                if mismatches:
+                    logger.error(f"🚨 GENDER MISMATCH DETECTED IN QUERY RESULTS! Expected '{gender.strip().capitalize()}' but found:")
+                    for m in mismatches:
+                        logger.error(f"   ❌ {m.get('firstName', 'N/A')} ({m.get('username')}) has gender='{m.get('gender')}'")
+            
             result = await db.users.aggregate(pipeline).to_list(1)
             
             if result and len(result) > 0:
@@ -4050,6 +4065,20 @@ async def search_users(
         else:
             # No age filtering - use aggregation with L3V3L lookup
             logger.info(f"🔍 Executing search with L3V3L lookup, query: {query}")
+            
+            # 🔍 DEBUG: Log ALL users matching the base query (before pagination)
+            if gender:
+                debug_cursor = db.users.find(query, {"username": 1, "gender": 1, "firstName": 1, "_id": 0})
+                debug_users = await debug_cursor.to_list(100)  # Limit to 100 for logging
+                logger.warning(f"🔍 DEBUG GENDER CHECK - Filter: gender='{gender.strip().capitalize()}' - ALL matching users (up to 100):")
+                for du in debug_users:
+                    logger.warning(f"   👤 {du.get('firstName', 'N/A')} ({du.get('username')}) - gender: '{du.get('gender')}'")
+                # Check for mismatches
+                mismatches = [du for du in debug_users if du.get('gender') != gender.strip().capitalize()]
+                if mismatches:
+                    logger.error(f"🚨 GENDER MISMATCH DETECTED IN QUERY RESULTS! Expected '{gender.strip().capitalize()}' but found:")
+                    for m in mismatches:
+                        logger.error(f"   ❌ {m.get('firstName', 'N/A')} ({m.get('username')}) has gender='{m.get('gender')}'")
             
             pipeline = [
                 {"$match": query},
