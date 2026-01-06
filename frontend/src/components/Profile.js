@@ -215,6 +215,14 @@ const Profile = ({
           setIsOnline(profileData.isOnline);
         }
         
+        // Debug: Log relationship status from API
+        console.log('💜 Profile relationship status from API:', {
+          isFavorited: profileData.isFavorited,
+          isShortlisted: profileData.isShortlisted,
+          isExcluded: profileData.isExcluded,
+          username: profileData.username
+        });
+        
         if (profileData.isFavorited !== undefined) {
           setIsFavorited(profileData.isFavorited);
         }
@@ -266,6 +274,24 @@ const Profile = ({
           
           // Load accessible images with privacy settings (Legacy system check)
           await loadAccessibleImages();
+          
+          // Fallback: If API didn't return relationship status, fetch it separately
+          if (profileData.isFavorited === undefined || profileData.isShortlisted === undefined) {
+            try {
+              const [favResponse, shortlistResponse] = await Promise.all([
+                api.get(`/favorites/${currentUsername}`),
+                api.get(`/shortlist/${currentUsername}`)
+              ]);
+              
+              const favorites = favResponse.data.favorites || favResponse.data || [];
+              const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
+              
+              setIsFavorited(favorites.some(u => (u.username || u) === username));
+              setIsShortlisted(shortlist.some(u => (u.username || u) === username));
+            } catch (relErr) {
+              console.error("Error checking user relationship:", relErr);
+            }
+          }
         }
         
         // Activation status if viewing own profile
