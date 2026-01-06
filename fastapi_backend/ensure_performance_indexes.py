@@ -28,17 +28,17 @@ async def ensure_indexes():
     await db.pii_access.create_index([("granterUsername", 1), ("grantedToUsername", 1), ("isActive", 1)])
     await db.pii_access.create_index([("grantedToUsername", 1), ("isActive", 1)])
     
-    # 2. favorites - critical for relationship check
+    # 2. favorites - critical for relationship check (NEW SCHEMA: individual documents)
     logger.info("Setting up favorites indexes...")
-    await cleanup_nulls("favorites")
-    await db.favorites.create_index([("username", 1)], unique=True)
-    await db.favorites.create_index([("favorites", 1)]) # To count who favorited THIS user
+    await db.favorites.create_index([("userUsername", 1), ("favoriteUsername", 1)], unique=True)
+    await db.favorites.create_index([("favoriteUsername", 1)])  # To count who favorited THIS user
+    await db.favorites.create_index([("userUsername", 1)])  # To get user's favorites list
     
-    # 3. shortlist - critical for relationship check
-    logger.info("Setting up shortlist indexes...")
-    await cleanup_nulls("shortlist")
-    await db.shortlist.create_index([("username", 1)], unique=True)
-    await db.shortlist.create_index([("shortlist", 1)]) # To count who shortlisted THIS user
+    # 3. shortlists - critical for relationship check (NEW SCHEMA: individual documents)
+    logger.info("Setting up shortlists indexes...")
+    await db.shortlists.create_index([("userUsername", 1), ("shortlistedUsername", 1)], unique=True)
+    await db.shortlists.create_index([("shortlistedUsername", 1)])  # To count who shortlisted THIS user
+    await db.shortlists.create_index([("userUsername", 1)])  # To get user's shortlist
     
     # 4. exclusions - critical for relationship check
     logger.info("Setting up exclusions indexes...")

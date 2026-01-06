@@ -134,6 +134,14 @@
   background: var(--card-background);
 }
 
+.btn-action-message.active {
+  background: rgba(52, 152, 219, 0.15);
+}
+
+.btn-action-message.active .action-icon {
+  color: #3498db;
+}
+
 .btn-action-message:hover:not(:disabled) {
   background: rgba(52, 152, 219, 0.15);
 }
@@ -237,8 +245,13 @@
 }
 
 /* Sticky button specific colors */
-.btn-sticky-action.btn-action-message:hover:not(:disabled) {
+.btn-sticky-action.btn-action-message:hover:not(:disabled),
+.btn-sticky-action.btn-action-message.active {
   background: rgba(52, 152, 219, 0.15);
+}
+
+.btn-sticky-action.btn-action-message.active .action-icon {
+  color: #3498db;
 }
 
 .btn-sticky-action.btn-action-favorite:hover:not(:disabled),
