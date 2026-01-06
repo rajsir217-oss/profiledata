@@ -293,23 +293,11 @@ const SearchPage2 = () => {
             // We want loadAndExecuteDefaultSearch to run and execute a fresh search
             // with partnerCriteria defaults to ensure results match displayed filters
             
-<<<<<<< HEAD
-            // Restore all state with validated users
-            setUsers(usersToRestore);
-            setSearchCriteria(state.searchCriteria || {});
-            setSortBy(state.sortBy || 'age');
-            setSortOrder(state.sortOrder || 'asc');
-            if (state.viewMode) setViewMode(state.viewMode);
-            setCurrentPage(state.currentPage || 1);
-            setTotalResults(usersToRestore.length); // Use filtered count, not original
-            setHasMoreResults(state.hasMoreResults !== undefined ? state.hasMoreResults : (state.users.length >= 20));
-=======
             // Only restore UI preferences, NOT users or searchCriteria
             // The fresh search will populate users with correct data
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) setViewMode(state.viewMode);
->>>>>>> dev
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
