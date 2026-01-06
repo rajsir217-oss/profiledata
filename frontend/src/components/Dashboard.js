@@ -235,7 +235,7 @@ const Dashboard = () => {
       const lastLogin = profile?.security?.last_login_at;
       setLastLoginAt(lastLogin);
 
-      setDashboardData({
+      const newDashboardData = {
         myMessages: messagesRes.data.conversations || [],
         myFavorites: myFavoritesRes.data.favorites || [],
         myShortlists: myShortlistsRes.data.shortlist || [],
@@ -245,6 +245,25 @@ const Dashboard = () => {
         incomingContactRequests: incomingRequestsRes.data.requests || [],
         theirFavorites: theirFavoritesRes.data.users || [],
         theirShortlists: theirShortlistsRes.data.users || []
+      };
+      
+      setDashboardData(newDashboardData);
+      
+      // Auto-expand groups based on whether they have activities
+      // Always auto-expand based on data - expand if has activities, collapse if empty
+      const myActivitiesCount = (newDashboardData.myMessages?.length || 0) +
+                                (newDashboardData.myFavorites?.length || 0) +
+                                (newDashboardData.myShortlists?.length || 0) +
+                                (newDashboardData.myRequests?.length || 0) +
+                                (newDashboardData.myExclusions?.length || 0);
+      
+      const othersActivitiesCount = (newDashboardData.myViews?.length || 0) +
+                                    (newDashboardData.theirFavorites?.length || 0) +
+                                    (newDashboardData.theirShortlists?.length || 0);
+      
+      setExpandedGroups({
+        myActivities: myActivitiesCount > 0,
+        othersActivities: othersActivitiesCount > 0
       });
       
       // Set view metrics

@@ -1710,25 +1710,40 @@ async def get_user_profile(
     if include_context and requester_username and not is_own_profile:
         try:
             # 1. Relationship status
-            favorites = await db.favorites.find_one({"username": requester_username})
-            fav_list = favorites.get("favorites", []) if favorites else []
-            user["isFavorited"] = username in fav_list
+            # Check favorites using new schema (individual documents per favorite)
+            favorite_doc = await db.favorites.find_one({
+                "userUsername": requester_username,
+                "favoriteUsername": username
+            })
+            user["isFavorited"] = favorite_doc is not None
             
-            shortlist = await db.shortlist.find_one({"username": requester_username})
-            sl_list = shortlist.get("shortlist", []) if shortlist else []
-            user["isShortlisted"] = username in sl_list
+            # Check shortlist using correct collection (shortlists) and field (shortlistedUsername)
+            shortlist_doc = await db.shortlists.find_one({
+                "userUsername": requester_username,
+                "shortlistedUsername": username
+            })
+            user["isShortlisted"] = shortlist_doc is not None
             
-            exclusions = await db.exclusions.find_one({"username": requester_username})
-            ex_list = exclusions.get("exclusions", []) if exclusions else []
-            user["isExcluded"] = username in ex_list
+            # Check exclusions (may still use old schema - check both)
+            exclusion_doc = await db.exclusions.find_one({
+                "userUsername": requester_username,
+                "excludedUsername": username
+            })
+            if exclusion_doc is None:
+                # Fallback to old schema
+                exclusions = await db.exclusions.find_one({"username": requester_username})
+                ex_list = exclusions.get("exclusions", []) if exclusions else []
+                user["isExcluded"] = username in ex_list
+            else:
+                user["isExcluded"] = True
 
             # 2. KPI Stats (counts)
             # Profile views
             views_count = await db.profile_views.count_documents({"profileUsername": username})
-            # Their favorites (who favorited THIS user)
-            fav_by_count = await db.favorites.count_documents({"favorites": username})
-            # Their shortlists (who shortlisted THIS user)
-            short_by_count = await db.shortlist.count_documents({"shortlist": username})
+            # Their favorites (who favorited THIS user) - use new schema
+            fav_by_count = await db.favorites.count_documents({"favoriteUsername": username})
+            # Their shortlists (who shortlisted THIS user) - use correct collection and field
+            short_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
             
             user["kpiStats"] = {
                 "profileViews": views_count,

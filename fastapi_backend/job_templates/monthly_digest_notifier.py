@@ -65,6 +65,11 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                     "type": "boolean",
                     "description": "Preview without sending emails",
                     "default": False
+                },
+                "test_usernames": {
+                    "type": "string",
+                    "description": "Comma-separated list of usernames to send to (test mode). Leave empty to send to all.",
+                    "default": ""
                 }
             },
             "required": ["mode"]
@@ -198,10 +203,10 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         """Gather all metrics for a user within date range"""
         stats = {}
         
-        # Profile views received
+        # Profile views received (uses viewedAt, not createdAt)
         stats["profile_views_received"] = await db.profile_views.count_documents({
             "viewedUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "viewedAt": {"$gte": start_date, "$lte": end_date}
         })
         
         # Interests received (favorites/shortlists where user is the target)
@@ -213,25 +218,32 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             "createdAt": {"$gte": start_date, "$lte": end_date}
         })
         
-        # Interests sent
+        # Interests sent (uses userUsername, not username)
         stats["interests_sent"] = await db.favorites.count_documents({
-            "username": username,
+            "userUsername": username,
             "createdAt": {"$gte": start_date, "$lte": end_date}
         }) + await db.shortlists.count_documents({
-            "username": username,
+            "userUsername": username,
             "createdAt": {"$gte": start_date, "$lte": end_date}
         })
         
-        # Messages received
+        # Messages received (uses toUsername, not recipientUsername)
+        # Note: createdAt is stored as ISO string, need to handle both formats
         stats["messages_received"] = await db.messages.count_documents({
-            "recipientUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "toUsername": username,
+            "$or": [
+                {"createdAt": {"$gte": start_date, "$lte": end_date}},
+                {"createdAt": {"$gte": start_date.isoformat(), "$lte": end_date.isoformat()}}
+            ]
         })
         
-        # Messages sent
+        # Messages sent (uses fromUsername, not senderUsername)
         stats["messages_sent"] = await db.messages.count_documents({
-            "senderUsername": username,
-            "createdAt": {"$gte": start_date, "$lte": end_date}
+            "fromUsername": username,
+            "$or": [
+                {"createdAt": {"$gte": start_date, "$lte": end_date}},
+                {"createdAt": {"$gte": start_date.isoformat(), "$lte": end_date.isoformat()}}
+            ]
         })
         
         # Connection requests (PII requests received)
@@ -258,6 +270,8 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         db = context.db
         max_recipients = context.parameters.get("max_recipients", 0)
         dry_run = context.parameters.get("dry_run", False)
+        # Test mode: comma-separated list of usernames to send to (e.g., "rajadmin,testuser1")
+        test_usernames = context.parameters.get("test_usernames", "")
         
         # Get current month
         now = datetime.utcnow()
@@ -266,11 +280,68 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
         
         context.log("INFO", f"📧 Sending monthly digest for {month_name}")
         
+        # Parse test usernames if provided
+        target_usernames = []
+        if test_usernames:
+            target_usernames = [u.strip() for u in test_usernames.split(",") if u.strip()]
+            context.log("INFO", f"   🧪 TEST MODE: Only sending to {len(target_usernames)} users: {target_usernames}")
+        
         # Get all users with weekly stats for this month
         stats_cursor = db.weekly_user_stats.find({"month": month_key})
         all_stats = await stats_cursor.to_list(length=None)
         
-        context.log("INFO", f"   Found {len(all_stats)} users with stats")
+        context.log("INFO", f"   Found {len(all_stats)} users with pre-collected stats")
+        
+        # If no pre-collected stats, gather stats on-the-fly for all active users
+        if len(all_stats) == 0:
+            context.log("INFO", f"   No pre-collected stats found. Gathering stats on-the-fly...")
+            
+            # Build user query - filter by test_usernames if provided
+            user_query = {
+                "accountStatus": "active",
+                "contactEmail": {"$exists": True, "$ne": ""}
+            }
+            if target_usernames:
+                user_query["username"] = {"$in": target_usernames}
+            
+            # Get users with email
+            users_cursor = db.users.find(user_query, {"username": 1, "firstName": 1, "contactEmail": 1})
+            active_users = await users_cursor.to_list(length=None)
+            
+            context.log("INFO", f"   Found {len(active_users)} active users with email")
+            
+            # Calculate 4-week date ranges (last 28 days)
+            week_ranges = []
+            for i in range(4, 0, -1):
+                week_end = now - timedelta(days=(i-1) * 7)
+                week_start = week_end - timedelta(days=7)
+                week_ranges.append({
+                    "week": 5 - i,
+                    "start": week_start,
+                    "end": week_end
+                })
+            
+            # Build stats for each user on-the-fly
+            for user in active_users:
+                username = user["username"]
+                user_stats = {"username": username, "month": month_key}
+                
+                for wr in week_ranges:
+                    stats = await self._gather_user_stats(db, username, wr["start"], wr["end"])
+                    user_stats[f"week{wr['week']}"] = stats
+                    user_stats[f"week{wr['week']}_range"] = {
+                        "start": wr["start"].isoformat(),
+                        "end": wr["end"].isoformat()
+                    }
+                
+                all_stats.append(user_stats)
+            
+            context.log("INFO", f"   Gathered on-the-fly stats for {len(all_stats)} users")
+        else:
+            # Filter pre-collected stats by test_usernames if provided
+            if target_usernames:
+                all_stats = [s for s in all_stats if s["username"] in target_usernames]
+                context.log("INFO", f"   Filtered to {len(all_stats)} test users from pre-collected stats")
         
         if max_recipients > 0 and len(all_stats) > max_recipients:
             all_stats = all_stats[:max_recipients]
@@ -381,115 +452,44 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
             duration_seconds=duration
         )
     
-    def _build_svg_line_chart(
+    def _build_html_bar_chart(
         self,
         values: List[int],
-        color: str,
-        width: int = 200,
-        height: int = 60
+        color: str
     ) -> str:
-        """Generate an inline SVG line chart with area fill"""
+        """Generate an email-safe HTML bar chart using tables (works in all email clients)"""
         if not values or all(v == 0 for v in values):
-            # Return empty state chart
-            return f'''
-            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
-                <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
-                <text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#a0aec0" font-size="11" font-family="Arial, sans-serif">No data yet</text>
-            </svg>
+            return '''
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8f9fa; border-radius: 4px;">
+                <tr>
+                    <td style="padding: 20px; text-align: center; color: #a0aec0; font-size: 12px;">No data yet</td>
+                </tr>
+            </table>
             '''
         
         max_val = max(values) if max(values) > 0 else 1
-        padding = 10
-        chart_width = width - (padding * 2)
-        chart_height = height - (padding * 2)
+        max_height = 50  # Max bar height in pixels
         
-        # Calculate points for the line
-        points = []
+        # Build bars using table cells
+        bars_html = ""
         for i, val in enumerate(values):
-            x = padding + (i * chart_width / (len(values) - 1)) if len(values) > 1 else padding + chart_width / 2
-            y = padding + chart_height - (val / max_val * chart_height)
-            points.append((x, y))
-        
-        # Create path for line
-        line_path = f"M {points[0][0]},{points[0][1]}"
-        for x, y in points[1:]:
-            line_path += f" L {x},{y}"
-        
-        # Create path for area fill (closed polygon)
-        area_path = line_path + f" L {points[-1][0]},{padding + chart_height} L {points[0][0]},{padding + chart_height} Z"
-        
-        # Generate SVG
-        svg = f'''
-        <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-            <defs>
-                <linearGradient id="grad_{color[1:]}" x1="0%" y1="0%" x2="0%" y2="100%">
-                    <stop offset="0%" style="stop-color:{color};stop-opacity:0.3"/>
-                    <stop offset="100%" style="stop-color:{color};stop-opacity:0.05"/>
-                </linearGradient>
-            </defs>
+            bar_height = max(4, int((val / max_val) * max_height)) if max_val > 0 else 4
             
-            <!-- Background -->
-            <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
-            
-            <!-- Grid lines -->
-            <line x1="{padding}" y1="{padding + chart_height/2}" x2="{width - padding}" y2="{padding + chart_height/2}" stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4,4"/>
-            
-            <!-- Area fill -->
-            <path d="{area_path}" fill="url(#grad_{color[1:]})" />
-            
-            <!-- Line -->
-            <path d="{line_path}" fill="none" stroke="{color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-            
-            <!-- Data points -->
-            {''.join([f'<circle cx="{x}" cy="{y}" r="4" fill="white" stroke="{color}" stroke-width="2"/>' for x, y in points])}
-            
-            <!-- Week labels -->
-            {''.join([f'<text x="{points[i][0]}" y="{height - 2}" text-anchor="middle" fill="#718096" font-size="9" font-family="Arial, sans-serif">W{i+1}</text>' for i in range(len(points))])}
-        </svg>
-        '''
-        return svg
-    
-    def _build_svg_bar_chart(
-        self,
-        values: List[int],
-        color: str,
-        width: int = 200,
-        height: int = 60
-    ) -> str:
-        """Generate an inline SVG bar chart"""
-        if not values or all(v == 0 for v in values):
-            return f'''
-            <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg">
-                <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
-                <text x="{width//2}" y="{height//2 + 4}" text-anchor="middle" fill="#a0aec0" font-size="11" font-family="Arial, sans-serif">No data yet</text>
-            </svg>
+            bars_html += f'''
+            <td style="vertical-align: bottom; text-align: center; padding: 0 4px; width: 25%;">
+                <div style="font-size: 11px; font-weight: 600; color: {color}; margin-bottom: 4px;">{val}</div>
+                <div style="background: {color}; height: {bar_height}px; border-radius: 3px 3px 0 0; margin: 0 auto; width: 100%; max-width: 40px;"></div>
+                <div style="font-size: 10px; color: #718096; margin-top: 4px;">W{i+1}</div>
+            </td>
             '''
         
-        max_val = max(values) if max(values) > 0 else 1
-        padding = 10
-        bar_width = (width - padding * 2 - (len(values) - 1) * 8) / len(values)
-        chart_height = height - padding * 2 - 12  # Leave space for labels
-        
-        bars_svg = ""
-        for i, val in enumerate(values):
-            bar_height = max(4, (val / max_val) * chart_height)  # Min height for visibility
-            x = padding + i * (bar_width + 8)
-            y = padding + chart_height - bar_height
-            
-            # Bar with rounded top
-            bars_svg += f'''
-            <rect x="{x}" y="{y}" width="{bar_width}" height="{bar_height}" fill="{color}" rx="3" ry="3"/>
-            <text x="{x + bar_width/2}" y="{y - 4}" text-anchor="middle" fill="{color}" font-size="10" font-weight="600" font-family="Arial, sans-serif">{val}</text>
-            <text x="{x + bar_width/2}" y="{height - 2}" text-anchor="middle" fill="#718096" font-size="9" font-family="Arial, sans-serif">W{i+1}</text>
-            '''
-        
-        svg = f'''
-        <svg width="{width}" height="{height}" viewBox="0 0 {width} {height}" xmlns="http://www.w3.org/2000/svg" style="display: block;">
-            <rect width="{width}" height="{height}" fill="#f8f9fa" rx="4"/>
-            {bars_svg}
-        </svg>
+        return f'''
+        <table width="100%" cellpadding="0" cellspacing="0" style="background: #f8f9fa; border-radius: 6px; padding: 12px;">
+            <tr>
+                {bars_html}
+            </tr>
+        </table>
         '''
-        return svg
     
     def _build_digest_email(
         self, 
@@ -537,35 +537,35 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
                 **metric
             }
         
-        # Build metric cards with SVG charts
-        # Alternate between line and bar charts for visual variety
+        # Build metric cards with email-safe HTML bar charts
         metrics_html = ""
-        chart_types = ["line", "bar", "line", "bar", "line", "bar", "line"]
         
         for idx, (key, data) in enumerate(metrics_summary.items()):
-            chart_type = chart_types[idx % len(chart_types)]
-            
-            if chart_type == "line":
-                chart_svg = self._build_svg_line_chart(data["values"], data["color"], width=220, height=70)
-            else:
-                chart_svg = self._build_svg_bar_chart(data["values"], data["color"], width=220, height=70)
+            # Use email-safe HTML bar chart
+            chart_html = self._build_html_bar_chart(data["values"], data["color"])
             
             metrics_html += f'''
-            <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
-                    <div>
-                        <div style="font-size: 14px; color: #718096; margin-bottom: 4px;">{data["icon"]} {data["label"]}</div>
-                        <div style="font-size: 28px; font-weight: 700; color: {data["color"]};">{data["total"]}</div>
-                    </div>
-                    <div style="text-align: right;">
-                        <span style="font-size: 13px; color: {data["trend_color"]}; font-weight: 600;">{data["trend"]} {data["trend_text"]}</span>
-                        <div style="font-size: 11px; color: #a0aec0; margin-top: 2px;">vs last week</div>
-                    </div>
-                </div>
-                <div style="margin-top: 8px;">
-                    {chart_svg}
-                </div>
-            </div>
+            <table width="100%" cellpadding="0" cellspacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 12px;">
+                <tr>
+                    <td style="padding: 16px;">
+                        <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                                <td style="vertical-align: top;">
+                                    <div style="font-size: 14px; color: #718096; margin-bottom: 4px;">{data["icon"]} {data["label"]}</div>
+                                    <div style="font-size: 28px; font-weight: 700; color: {data["color"]};">{data["total"]}</div>
+                                </td>
+                                <td style="vertical-align: top; text-align: right;">
+                                    <span style="font-size: 13px; color: {data["trend_color"]}; font-weight: 600;">{data["trend"]} {data["trend_text"]}</span>
+                                    <div style="font-size: 11px; color: #a0aec0; margin-top: 2px;">vs last week</div>
+                                </td>
+                            </tr>
+                        </table>
+                        <div style="margin-top: 12px;">
+                            {chart_html}
+                        </div>
+                    </td>
+                </tr>
+            </table>
             '''
         
         # Build complete email
@@ -577,6 +577,11 @@ class MonthlyDigestNotifierTemplate(JobTemplate):
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
     <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Logo -->
+        <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
+            <img src="https://l3v3lmatches.com/logo192.png" alt="L3V3L MATCHES" style="height: 60px; width: auto;" />
+        </div>
         
         <!-- Header -->
         <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">

@@ -401,6 +401,10 @@ class EmailNotifierTemplate(JobTemplate):
                     "subject": "🔍 New matches for your saved search!",
                     "body": self._build_saved_search_fallback_body(template_data)
                 },
+                "monthly_digest": {
+                    "subject": f"📊 Your Monthly Activity Report - {template_data.get('month', 'This Month')}",
+                    "body": template_data.get("emailHtml", self._build_monthly_digest_fallback(template_data))
+                },
             }
             
             trigger_name = notification.trigger.replace("_", " ").title()
@@ -491,6 +495,67 @@ class EmailNotifierTemplate(JobTemplate):
                 <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
             </p>
             <p style="margin: 10px 0 0 0; color: #999;">© 2025 L3V3L MATCHES. All rights reserved.</p>
+        </div>
+        
+    </div>
+</body>
+</html>"""
+        return html
+    
+    def _build_monthly_digest_fallback(self, template_data: dict) -> str:
+        """Build a fallback HTML body for monthly digest when emailHtml is not provided"""
+        from config import settings
+        
+        user_first_name = "there"
+        if isinstance(template_data, dict):
+            user_data = template_data.get("user", {})
+            if isinstance(user_data, dict):
+                user_first_name = user_data.get("firstName", "there")
+        
+        month = template_data.get("month", "This Month") if isinstance(template_data, dict) else "This Month"
+        app_url = settings.frontend_url
+        
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Logo -->
+        <div style="text-align: center; padding: 25px 20px 15px 20px; background: white;">
+            <img src="https://l3v3lmatches.com/logo192.png" alt="L3V3L MATCHES" style="height: 60px; width: auto;" />
+        </div>
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">📊 Your Monthly Activity</h1>
+            <p style="margin: 10px 0 0 0; font-size: 18px; opacity: 0.9;">{month}</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 30px;">
+            <h2 style="margin: 0 0 15px 0; color: #2d3748;">Hi {user_first_name}! 👋</h2>
+            <p style="color: #4a5568; font-size: 16px; margin: 0 0 20px 0;">
+                Your monthly activity report is ready! Login to see your detailed stats including profile views, interests received, messages, and more.
+            </p>
+            
+            <div style="text-align: center; margin: 30px 0 20px 0;">
+                <a href="{app_url}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                    View Your Dashboard →
+                </a>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 10px 0;"><strong>L3V3L MATCHES</strong> - Premium Matrimonial Platform</p>
+            <p style="margin: 0;">
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Manage Notifications</a> | 
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+            </p>
         </div>
         
     </div>
