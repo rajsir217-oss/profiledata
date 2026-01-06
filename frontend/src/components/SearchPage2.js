@@ -267,22 +267,20 @@ const SearchPage2 = () => {
             
             // IMPORTANT: Set refs FIRST before any state updates to prevent race conditions
             hasRestoredStateRef.current = true;
-            hasAutoExecutedRef.current = true; // Prevent auto-search since we have results
+            // NOTE: Do NOT set hasAutoExecutedRef.current = true here!
+            // We want loadAndExecuteDefaultSearch to run and execute a fresh search
+            // with partnerCriteria defaults to ensure results match displayed filters
             
-            // Restore all state
-            setUsers(state.users);
-            setSearchCriteria(state.searchCriteria || {});
+            // Only restore UI preferences, NOT users or searchCriteria
+            // The fresh search will populate users with correct data
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
             if (state.viewMode) setViewMode(state.viewMode);
-            setCurrentPage(state.currentPage || 1);
-            setTotalResults(state.totalResults || state.users.length);
-            setHasMoreResults(state.hasMoreResults !== undefined ? state.hasMoreResults : (state.users.length >= 20));
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
             setExcludedUsers(new Set(state.excludedUsers || []));
-            setSelectedSearch(state.selectedSearch || null);
+            // Don't restore selectedSearch - let fresh search determine this
             if (state.selectedProfileForDetail) setSelectedProfileForDetail(state.selectedProfileForDetail);
             
             // Restore scroll position after a short delay to let DOM render
@@ -468,7 +466,10 @@ const SearchPage2 = () => {
           heightMaxInches: defaultHeightMaxInches
         });
         
-        // Set default search criteria with smart age/height defaults
+        // Set default search criteria from partnerCriteria
+        // Note: loadAndExecuteDefaultSearch will also build these and pass to handleSearch
+        // This ensures the UI shows correct filters while search is loading
+        logger.info('🔧 Setting default search criteria from partnerCriteria');
         setSearchCriteria(prev => ({
           ...prev,
           gender: oppositeGender,
@@ -623,7 +624,118 @@ const SearchPage2 = () => {
             toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
           }, 100);
         } else {
-          logger.info('🔍 No default search found - waiting for user to initiate search');
+          // No default saved search - execute search with partnerCriteria defaults
+          // This ensures fresh results matching the displayed filter criteria
+          logger.info('🔍 No default search found - building criteria from partnerCriteria');
+          
+          // Build criteria from currentUserProfile (same logic as loadCurrentUserProfile)
+          const userGender = currentUserProfile.gender?.toLowerCase();
+          let oppositeGender = '';
+          if (userGender === 'male') oppositeGender = 'female';
+          else if (userGender === 'female') oppositeGender = 'male';
+          
+          // Calculate user's age
+          let userAge = null;
+          if (currentUserProfile.birthMonth && currentUserProfile.birthYear) {
+            const today = new Date();
+            userAge = today.getFullYear() - currentUserProfile.birthYear;
+            if (today.getMonth() + 1 < currentUserProfile.birthMonth) userAge--;
+          }
+          
+          // Parse user's height
+          let userHeightTotalInches = null;
+          if (currentUserProfile.height) {
+            const heightMatch = currentUserProfile.height.match(/(\d+)'(\d+)"/);
+            if (heightMatch) {
+              userHeightTotalInches = parseInt(heightMatch[1]) * 12 + parseInt(heightMatch[2]);
+            }
+          }
+          
+          // Build default criteria from partnerCriteria
+          const partnerCriteria = currentUserProfile.partnerCriteria;
+          let defaultAgeMin = '', defaultAgeMax = '';
+          let defaultHeightMinFeet = '', defaultHeightMinInches = '';
+          let defaultHeightMaxFeet = '', defaultHeightMaxInches = '';
+          
+          // Age range from partnerCriteria
+          if (partnerCriteria?.ageRangeRelative && userAge) {
+            const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
+            const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
+            defaultAgeMin = Math.max(19, userAge + minOffset).toString();
+            defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
+          } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
+            defaultAgeMin = partnerCriteria.ageRange.min.toString();
+            defaultAgeMax = partnerCriteria.ageRange.max.toString();
+          } else if (userAge && userGender) {
+            if (userGender === 'male') {
+              defaultAgeMin = Math.max(19, userAge - 5).toString();
+              defaultAgeMax = Math.min(100, userAge + 1).toString();
+            } else if (userGender === 'female') {
+              defaultAgeMin = Math.max(19, userAge - 1).toString();
+              defaultAgeMax = Math.min(100, userAge + 5).toString();
+            }
+          }
+          
+          // Height range from partnerCriteria
+          if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
+            const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
+            const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
+            const minTotalInches = userHeightTotalInches + minInchesOffset;
+            const maxTotalInches = userHeightTotalInches + maxInchesOffset;
+            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+            defaultHeightMinInches = (minTotalInches % 12).toString();
+            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+            defaultHeightMaxInches = (maxTotalInches % 12).toString();
+          } else if (partnerCriteria?.heightRange?.minFeet) {
+            defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
+            defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
+            defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
+            defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
+          } else if (userHeightTotalInches && userGender) {
+            if (userGender === 'male') {
+              const minTotalInches = userHeightTotalInches - 6;
+              const maxTotalInches = userHeightTotalInches;
+              defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+              defaultHeightMinInches = (minTotalInches % 12).toString();
+              defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+              defaultHeightMaxInches = (maxTotalInches % 12).toString();
+            } else if (userGender === 'female') {
+              const minTotalInches = userHeightTotalInches + 1;
+              const maxTotalInches = userHeightTotalInches + 6;
+              defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+              defaultHeightMinInches = (minTotalInches % 12).toString();
+              defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+              defaultHeightMaxInches = (maxTotalInches % 12).toString();
+            }
+          }
+          
+          // Build the criteria object
+          const partnerCriteriaDefaults = {
+            gender: oppositeGender,
+            ageMin: defaultAgeMin,
+            ageMax: defaultAgeMax,
+            heightMinFeet: defaultHeightMinFeet,
+            heightMinInches: defaultHeightMinInches,
+            heightMaxFeet: defaultHeightMaxFeet,
+            heightMaxInches: defaultHeightMaxInches
+          };
+          
+          logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
+          
+          // Update searchCriteria state
+          setSearchCriteria(prev => ({ ...prev, ...partnerCriteriaDefaults }));
+          
+          // Mark as executed
+          hasAutoExecutedRef.current = true;
+          
+          // Clear any stale session-restored users to prevent mismatch
+          setUsers([]);
+          
+          // Execute search with explicit criteria (don't rely on async state)
+          setTimeout(() => {
+            logger.info('🔍 Auto-executing search with partnerCriteria defaults');
+            handleSearch(1, 0, partnerCriteriaDefaults);
+          }, 100);
         }
       } catch (err) {
         logger.error('Error loading default saved search:', err);
