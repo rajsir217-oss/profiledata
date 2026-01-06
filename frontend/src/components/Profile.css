@@ -135,11 +135,32 @@
 }
 
 .btn-action-message.active {
-  background: rgba(52, 152, 219, 0.15);
+  background: rgba(52, 152, 219, 0.15) !important;
+  position: relative;
 }
 
-.btn-action-message.active .action-icon {
-  color: #3498db;
+.btn-profile-action.btn-action-message.active .action-icon,
+.btn-sticky-action.btn-action-message.active .action-icon {
+  color: #3498db !important;
+}
+
+/* Blue notification dot for messages */
+.btn-action-message.active::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  background: #3498db;
+  border-radius: 50%;
+  border: 2px solid var(--card-background);
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
 }
 
 .btn-action-message:hover:not(:disabled) {
@@ -151,7 +172,12 @@
 }
 
 .btn-action-favorite.active {
-  background: rgba(243, 156, 18, 0.15);
+  background: rgba(243, 156, 18, 0.15) !important;
+}
+
+.btn-profile-action.btn-action-favorite.active .action-icon,
+.btn-sticky-action.btn-action-favorite.active .action-icon {
+  color: #f39c12 !important;
 }
 
 .btn-action-favorite:hover:not(:disabled) {
@@ -163,7 +189,12 @@
 }
 
 .btn-action-shortlist.active {
-  background: rgba(39, 174, 96, 0.15);
+  background: rgba(39, 174, 96, 0.15) !important;
+}
+
+.btn-profile-action.btn-action-shortlist.active .action-icon,
+.btn-sticky-action.btn-action-shortlist.active .action-icon {
+  color: #27ae60 !important;
 }
 
 .btn-action-shortlist:hover:not(:disabled) {
@@ -251,7 +282,7 @@
 }
 
 .btn-sticky-action.btn-action-message.active .action-icon {
-  color: #3498db;
+  color: #3498db !important;
 }
 
 .btn-sticky-action.btn-action-favorite:hover:not(:disabled),
