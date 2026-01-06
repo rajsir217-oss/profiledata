@@ -248,33 +248,68 @@ const Dashboard2 = () => {
     logger.info('Loading dashboard for user:', user);
 
     try {
-      // Use the new granular fetch functions but in parallel for initial load
-      await Promise.all([
+      // Fetch all data in parallel and collect results for auto-expand logic
+      const [
+        , // profile - no return needed
+        messagesRes,
+        favoritesRes,
+        shortlistsRes,
+        , // views - no return needed for expand logic
+        exclusionsRes,
+        piiRequestsRes,
+        incomingRequestsRes
+      ] = await Promise.all([
         refreshProfile(user, true),
-        refreshMessages(user, true),
-        refreshFavorites(user, true),
-        refreshShortlists(user, true),
+        api.get(`/messages/conversations?username=${user}`).then(res => res.data.conversations || []),
+        api.get(`/favorites/${user}`).then(res => res.data.favorites || []),
+        api.get(`/shortlist/${user}`).then(res => res.data.shortlist || []),
         refreshViews(user, true),
-        refreshExclusions(user, true),
-        refreshPiiRequests(user, true),
-        refreshIncomingRequests(user, true),
+        api.get(`/exclusions/${user}`).then(res => res.data.exclusions || []),
+        api.get(`/pii-requests/${user}/outgoing`).then(res => res.data.requests || []),
+        api.get(`/pii-requests/${user}/incoming`).then(res => res.data.requests || [])
+      ]);
+      
+      // Also fetch the remaining data
+      await Promise.all([
         refreshTheirFavorites(user, true),
         refreshTheirShortlists(user, true),
         refreshReceivedAccess(user, true)
       ]);
-
-      // Auto-collapse sections with zero items
-      const piiCount = (dashboardData.incomingContactRequests?.length || 0) + (dashboardData.myRequests?.length || 0);
-      const myActivitiesCount = (dashboardData.myMessages?.length || 0) + 
-                                (dashboardData.myFavorites?.length || 0) + 
-                                (dashboardData.myShortlists?.length || 0) + 
-                                (dashboardData.myExclusions?.length || 0);
       
-      setExpandedGroups(prev => ({
+      // Update dashboard data with fetched results
+      setDashboardData(prev => ({
         ...prev,
-        piiRequests: piiCount > 0,
-        myActivities: myActivitiesCount > 0
+        myMessages: messagesRes,
+        myFavorites: favoritesRes,
+        myShortlists: shortlistsRes,
+        myExclusions: exclusionsRes,
+        myRequests: piiRequestsRes,
+        incomingContactRequests: incomingRequestsRes
       }));
+
+      // Auto-expand/collapse based on ACTUAL fetched data (not stale state)
+      const piiCount = (incomingRequestsRes?.length || 0) + (piiRequestsRes?.length || 0);
+      const myActivitiesCount = (messagesRes?.length || 0) + 
+                                (favoritesRes?.length || 0) + 
+                                (shortlistsRes?.length || 0) + 
+                                (exclusionsRes?.length || 0);
+      
+      console.log('📊 Auto-expand logic:', {
+        piiCount,
+        myActivitiesCount,
+        expandPii: piiCount > 0,
+        expandMyActivities: myActivitiesCount > 0,
+        messagesLen: messagesRes?.length,
+        favoritesLen: favoritesRes?.length,
+        shortlistsLen: shortlistsRes?.length,
+        exclusionsLen: exclusionsRes?.length
+      });
+      
+      setExpandedGroups({
+        piiRequests: piiCount > 0,
+        myActivities: myActivitiesCount > 0,
+        othersActivities: false  // Keep others collapsed by default
+      });
     } catch (err) {
       logger.error('Error loading dashboard data:', err);
       const errorMessage = err.response?.data?.detail || 
