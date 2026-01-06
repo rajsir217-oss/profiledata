@@ -49,6 +49,9 @@ class DatabaseCleanupTemplate(JobTemplate):
                 "cleanup_targets": {
                     "type": "array",
                     "description": "List of collections to clean up with their retention policies",
+                    "default": [
+                        {"collection": "job_executions", "days_old": 7, "date_field": "started_at"}
+                    ],
                     "items": {
                         "type": "object",
                         "properties": {

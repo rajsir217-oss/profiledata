@@ -558,6 +558,7 @@ class NotificationService:
             NotificationTrigger.PII_REQUEST,
             NotificationTrigger.PII_GRANTED,
             NotificationTrigger.NEW_MESSAGE,
+            NotificationTrigger.MONTHLY_DIGEST,
         ]
         
         # Handle both enum keys and string keys (MongoDB stores as strings due to use_enum_values=True)

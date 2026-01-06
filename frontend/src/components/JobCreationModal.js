@@ -304,9 +304,11 @@ const JobCreationModal = ({ templates, onClose, onSubmit, editJob = null }) => {
       
       if (isArrayOfObjects) {
         // Handle array of objects as JSON
+        // Initialize with empty array if no value
+        const displayValue = Array.isArray(value) ? value : (value ? [value] : []);
         return (
           <textarea
-            value={Array.isArray(value) ? JSON.stringify(value, null, 2) : ''}
+            value={displayValue.length > 0 ? JSON.stringify(displayValue, null, 2) : ''}
             onChange={(e) => {
               try {
                 const parsed = JSON.parse(e.target.value);

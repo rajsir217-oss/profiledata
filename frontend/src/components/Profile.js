@@ -117,6 +117,7 @@ const Profile = ({
   const [selectedImageForAccess, setSelectedImageForAccess] = useState(null);
   const [isFavorited, setIsFavorited] = useState(false);
   const [isShortlisted, setIsShortlisted] = useState(false);
+  const [hasMessages, setHasMessages] = useState(false);
   
   // Inline editing state (Phase 2: Full implementation)
   const [editingSection, setEditingSection] = useState(null);
@@ -215,6 +216,14 @@ const Profile = ({
           setIsOnline(profileData.isOnline);
         }
         
+        // Debug: Log relationship status from API
+        console.log('💜 Profile relationship status from API:', {
+          isFavorited: profileData.isFavorited,
+          isShortlisted: profileData.isShortlisted,
+          isExcluded: profileData.isExcluded,
+          username: profileData.username
+        });
+        
         if (profileData.isFavorited !== undefined) {
           setIsFavorited(profileData.isFavorited);
         }
@@ -266,6 +275,33 @@ const Profile = ({
           
           // Load accessible images with privacy settings (Legacy system check)
           await loadAccessibleImages();
+          
+          // Fallback: If API didn't return relationship status, fetch it separately
+          if (profileData.isFavorited === undefined || profileData.isShortlisted === undefined) {
+            try {
+              const [favResponse, shortlistResponse] = await Promise.all([
+                api.get(`/favorites/${currentUsername}`),
+                api.get(`/shortlist/${currentUsername}`)
+              ]);
+              
+              const favorites = favResponse.data.favorites || favResponse.data || [];
+              const shortlist = shortlistResponse.data.shortlist || shortlistResponse.data || [];
+              
+              setIsFavorited(favorites.some(u => (u.username || u) === username));
+              setIsShortlisted(shortlist.some(u => (u.username || u) === username));
+            } catch (relErr) {
+              console.error("Error checking user relationship:", relErr);
+            }
+          }
+          
+          // Check if there are existing messages with this user
+          try {
+            const messagesResponse = await api.get(`/messages/${username}?requester=${currentUsername}&limit=1`);
+            const messages = messagesResponse.data.messages || messagesResponse.data || [];
+            setHasMessages(messages.length > 0);
+          } catch (msgErr) {
+            console.error("Error checking messages:", msgErr);
+          }
         }
         
         // Activation status if viewing own profile
@@ -1000,7 +1036,7 @@ const Profile = ({
 
   return (
     <div 
-      className={`container ${embedded ? 'profile-embedded' : 'mt-4'}`}
+      className={`container profile-page-wide ${embedded ? 'profile-embedded' : 'mt-4'}`}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -2492,10 +2528,10 @@ const Profile = ({
         <div className="profile-sticky-actions">
           {/* Message Button */}
           <button
-            className="btn-sticky-action btn-action-message"
+            className={`btn-sticky-action btn-action-message ${hasMessages ? 'active' : ''}`}
             onClick={() => setShowMessageModal(true)}
             disabled={user.accountStatus === 'paused'}
-            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : 'Send Message'}
+            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
           >
             <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
           </button>
@@ -2517,7 +2553,16 @@ const Profile = ({
                 }
                 setTimeout(() => setSuccessMessage(''), 3000);
               } catch (err) {
-                setError('Failed to update favorites');
+                console.error('❌ Favorites error:', err.response?.data || err.message);
+                // Handle 409 Conflict (already in favorites) - just update UI state
+                if (err.response?.status === 409) {
+                  setIsFavorited(true);  // Already favorited, sync UI
+                  setSuccessMessage('Already in favorites');
+                  setTimeout(() => setSuccessMessage(''), 3000);
+                } else {
+                  const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
+                  setError(errorMsg);
+                }
               }
             }}
             title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
@@ -2596,13 +2641,13 @@ const Profile = ({
         <div className="profile-action-buttons">
           {/* Message Button */}
           <button
-            className="btn-profile-action btn-action-message"
+            className={`btn-profile-action btn-action-message ${hasMessages ? 'active' : ''}`}
             onClick={() => setShowMessageModal(true)}
             disabled={user.accountStatus === 'paused'}
-            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : 'Send Message'}
+            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
           >
             <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
-            <span className="action-label">Message</span>
+            <span className="action-label">{hasMessages ? 'Messages' : 'Message'}</span>
           </button>
 
           {/* Favorite Button */}
@@ -2622,7 +2667,16 @@ const Profile = ({
                 }
                 setTimeout(() => setSuccessMessage(''), 3000);
               } catch (err) {
-                setError('Failed to update favorites');
+                console.error('❌ Favorites error:', err.response?.data || err.message);
+                // Handle 409 Conflict (already in favorites) - just update UI state
+                if (err.response?.status === 409) {
+                  setIsFavorited(true);  // Already favorited, sync UI
+                  setSuccessMessage('Already in favorites');
+                  setTimeout(() => setSuccessMessage(''), 3000);
+                } else {
+                  const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
+                  setError(errorMsg);
+                }
               }
             }}
             title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
