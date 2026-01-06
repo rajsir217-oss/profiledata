@@ -14,6 +14,7 @@
 export const ACTION_ICONS = {
   // Primary Actions
   MESSAGE: '💬',
+  MESSAGE_ACTIVE: '📩',    // Has messages - envelope with arrow (more obvious)
   VIEW_PROFILE: '👁️',
   
   // Favorites
@@ -22,7 +23,8 @@ export const ACTION_ICONS = {
   FAVORITED_BY: '💖',       // Others who favorited you (stats)
   
   // Shortlists
-  SHORTLIST: '📋',          // Add to shortlist
+  SHORTLIST: '📋',          // Add to shortlist (inactive)
+  SHORTLIST_ACTIVE: '📝',   // Shortlisted (active) - notepad with pencil
   REMOVE_SHORTLIST: '📤',   // Remove from shortlist
   
   // Blocking/Exclusions

@@ -296,8 +296,9 @@ const Profile = ({
           
           // Check if there are existing messages with this user
           try {
-            const messagesResponse = await api.get(`/messages/${username}?requester=${currentUsername}&limit=1`);
+            const messagesResponse = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
             const messages = messagesResponse.data.messages || messagesResponse.data || [];
+            console.log('💬 Messages check:', { username, currentUsername, hasMessages: messages.length > 0, count: messages.length });
             setHasMessages(messages.length > 0);
           } catch (msgErr) {
             console.error("Error checking messages:", msgErr);
@@ -2533,7 +2534,7 @@ const Profile = ({
             disabled={user.accountStatus === 'paused'}
             title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
           >
-            <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
+            <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
           </button>
 
           {/* Favorite Button */}
@@ -2592,7 +2593,7 @@ const Profile = ({
             }}
             title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
           >
-            <span className="action-icon">{ACTION_ICONS.SHORTLIST}</span>
+            <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
           </button>
 
           {/* PII Request Button */}
@@ -2646,7 +2647,7 @@ const Profile = ({
             disabled={user.accountStatus === 'paused'}
             title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
           >
-            <span className="action-icon">{ACTION_ICONS.MESSAGE}</span>
+            <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
             <span className="action-label">{hasMessages ? 'Messages' : 'Message'}</span>
           </button>
 
@@ -2707,7 +2708,7 @@ const Profile = ({
             }}
             title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
           >
-            <span className="action-icon">{ACTION_ICONS.SHORTLIST}</span>
+            <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
             <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
           </button>
 
