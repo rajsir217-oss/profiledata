@@ -2615,13 +2615,12 @@ const Profile = ({
             className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
             onClick={async () => {
               try {
-                const currentUser = localStorage.getItem('username');
                 if (isExcluded) {
-                  await api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  await api.delete(`/exclusions/${username}`);
                   setIsExcluded(false);
                   setSuccessMessage('✅ Removed from not interested');
                 } else {
-                  await api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  await api.post(`/exclusions/${username}`);
                   setIsExcluded(true);
                   setSuccessMessage('✅ Marked as not interested');
                 }
@@ -2732,13 +2731,12 @@ const Profile = ({
             className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
             onClick={async () => {
               try {
-                const currentUser = localStorage.getItem('username');
                 if (isExcluded) {
-                  await api.delete(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  await api.delete(`/exclusions/${username}`);
                   setIsExcluded(false);
                   setSuccessMessage('✅ Removed from not interested');
                 } else {
-                  await api.post(`/exclusions/${username}?username=${encodeURIComponent(currentUser)}`);
+                  await api.post(`/exclusions/${username}`);
                   setIsExcluded(true);
                   setSuccessMessage('✅ Marked as not interested');
                 }
