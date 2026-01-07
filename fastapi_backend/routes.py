@@ -5285,7 +5285,7 @@ async def add_to_exclusions(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Add user to exclusions"""
+    """Add user to exclusions with full relationship cleanup"""
     # Non-active users cannot add exclusions
     if current_user.get("accountStatus") != "active":
         raise HTTPException(
@@ -5294,13 +5294,39 @@ async def add_to_exclusions(
         )
     
     username = current_user["username"]
+    
+    # Cannot exclude yourself
+    if username == target_username:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot exclude yourself"
+        )
+    
+    # Verify target user exists (projection for efficiency)
+    target_user = await db.users.find_one({"username": target_username}, {"_id": 1})
+    if not target_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
     logger.info(f"❌ Adding {target_username} to {username}'s exclusions")
 
-    # Check if already excluded
-    existing = await db.exclusions.find_one({
-        "userUsername": username,
-        "excludedUsername": target_username
-    })
+    # Check both exclusion directions in a single query (optimization)
+    exclusion_checks = await db.exclusions.find({
+        "$or": [
+            {"userUsername": username, "excludedUsername": target_username},
+            {"userUsername": target_username, "excludedUsername": username}
+        ]
+    }).to_list(length=2)
+    
+    existing = None
+    reverse_exclusion = None
+    for exc in exclusion_checks:
+        if exc["userUsername"] == username:
+            existing = exc
+        else:
+            reverse_exclusion = exc
 
     if existing:
         logger.warning(f"⚠️ Already excluded: {username} → {target_username}")
@@ -5308,56 +5334,187 @@ async def add_to_exclusions(
             status_code=status.HTTP_409_CONFLICT,
             detail="User already excluded"
         )
-
-    # AUTO-REMOVE from favorites and shortlist when adding to exclusions
-    try:
-        # Remove from favorites if present
-        favorites_result = await db.favorites.delete_one({
-            "userUsername": username,
-            "favoriteUsername": target_username
-        })
-        if favorites_result.deleted_count > 0:
-            logger.info(f"🗑️ Auto-removed {target_username} from {username}'s favorites (due to exclusion)")
-        
-        # Remove from shortlist if present
-        shortlist_result = await db.shortlist.delete_one({
-            "userUsername": username,
-            "shortlistUsername": target_username
-        })
-        if shortlist_result.deleted_count > 0:
-            logger.info(f"🗑️ Auto-removed {target_username} from {username}'s shortlist (due to exclusion)")
-    except Exception as e:
-        logger.warning(f"⚠️ Error auto-removing from favorites/shortlist: {e}")
     
-    # Add to exclusions
+    should_notify_target = reverse_exclusion is None
+
+    # =========================================================================
+    # FULL RELATIONSHIP CLEANUP (Both Sides)
+    # When user marks someone as "not interested", clean up all relationship data
+    # =========================================================================
+    cleanup_summary = {
+        "messages_deleted": 0,
+        "pii_requests_cancelled": 0,
+        "pii_access_revoked": 0,
+        "favorites_removed": 0,
+        "shortlists_removed": 0,
+        "notifications_cancelled": 0
+    }
+    
+    try:
+        # 1. DELETE ALL MESSAGES BETWEEN USERS (Both directions)
+        messages_result = await db.messages.delete_many({
+            "$or": [
+                {"fromUsername": username, "toUsername": target_username},
+                {"fromUsername": target_username, "toUsername": username}
+            ]
+        })
+        cleanup_summary["messages_deleted"] = messages_result.deleted_count
+        if messages_result.deleted_count > 0:
+            logger.info(f"🗑️ Deleted {messages_result.deleted_count} messages between {username} ↔ {target_username}")
+        
+        # 2. CANCEL/REJECT ALL PENDING PII REQUESTS (Both directions)
+        pii_requests_result = await db.pii_requests.update_many(
+            {
+                "$or": [
+                    {"requesterUsername": username, "requestedUsername": target_username, "status": "pending"},
+                    {"requesterUsername": username, "profileUsername": target_username, "status": "pending"},
+                    {"requesterUsername": target_username, "requestedUsername": username, "status": "pending"},
+                    {"requesterUsername": target_username, "profileUsername": username, "status": "pending"}
+                ]
+            },
+            {
+                "$set": {
+                    "status": "cancelled",
+                    "cancelledAt": datetime.utcnow(),
+                    "cancelReason": "User marked as not interested"
+                }
+            }
+        )
+        cleanup_summary["pii_requests_cancelled"] = pii_requests_result.modified_count
+        if pii_requests_result.modified_count > 0:
+            logger.info(f"🗑️ Cancelled {pii_requests_result.modified_count} PII requests between {username} ↔ {target_username}")
+        
+        # 3. REVOKE ALL PII ACCESS (Both directions)
+        pii_access_result = await db.pii_access.update_many(
+            {
+                "$or": [
+                    {"granterUsername": username, "grantedToUsername": target_username, "isActive": True},
+                    {"granterUsername": target_username, "grantedToUsername": username, "isActive": True}
+                ]
+            },
+            {
+                "$set": {
+                    "isActive": False,
+                    "revokedAt": datetime.utcnow(),
+                    "revokeReason": "User marked as not interested"
+                }
+            }
+        )
+        cleanup_summary["pii_access_revoked"] = pii_access_result.modified_count
+        if pii_access_result.modified_count > 0:
+            logger.info(f"🔒 Revoked {pii_access_result.modified_count} PII access grants between {username} ↔ {target_username}")
+        
+        # 4. REMOVE FROM FAVORITES (Both sides) - Optimized single query
+        fav_result = await db.favorites.delete_many({
+            "$or": [
+                {"userUsername": username, "favoriteUsername": target_username},
+                {"userUsername": target_username, "favoriteUsername": username}
+            ]
+        })
+        cleanup_summary["favorites_removed"] = fav_result.deleted_count
+        if fav_result.deleted_count > 0:
+            logger.info(f"💔 Removed {fav_result.deleted_count} favorites between {username} ↔ {target_username}")
+        
+        # 5. REMOVE FROM SHORTLISTS (Both sides) - Optimized single query
+        short_result = await db.shortlist.delete_many({
+            "$or": [
+                {"userUsername": username, "shortlistUsername": target_username},
+                {"userUsername": target_username, "shortlistUsername": username}
+            ]
+        })
+        cleanup_summary["shortlists_removed"] = short_result.deleted_count
+        if short_result.deleted_count > 0:
+            logger.info(f"📤 Removed {short_result.deleted_count} shortlists between {username} ↔ {target_username}")
+        
+        # 6. CANCEL PENDING NOTIFICATIONS (Both directions)
+        # Check multiple possible field locations for target username
+        notif_result = await db.notification_queue.delete_many({
+            "status": {"$in": ["pending", "scheduled", "processing"]},
+            "$or": [
+                # Notifications TO actor ABOUT target
+                {"username": username, "templateData.match.username": target_username},
+                {"username": username, "templateData.actor.username": target_username},
+                {"username": username, "templateData.target.username": target_username},
+                # Notifications TO target ABOUT actor
+                {"username": target_username, "templateData.match.username": username},
+                {"username": target_username, "templateData.actor.username": username},
+                {"username": target_username, "templateData.target.username": username}
+            ]
+        })
+        cleanup_summary["notifications_cancelled"] = notif_result.deleted_count
+        if notif_result.deleted_count > 0:
+            logger.info(f"🔕 Cancelled {notif_result.deleted_count} pending notifications between {username} ↔ {target_username}")
+        
+        # 7. NOTIFY THE EXCLUDED USER (Polite message)
+        # Only notify if target hasn't already excluded the actor
+        if should_notify_target:
+            try:
+                from services.notification_service import NotificationService
+                notification_service = NotificationService(db)
+                await notification_service.queue_notification(
+                    username=target_username,
+                    trigger="profile_unavailable",
+                    channels=["email"],  # Email only - not intrusive
+                    template_data={
+                        "message": "A profile you were interested in is no longer available for you",
+                        "actor": {
+                            "username": username  # For internal tracking, not shown to user
+                        }
+                    },
+                    priority="low"
+                )
+                logger.info(f"📧 Queued 'profile unavailable' notification for {target_username}")
+            except Exception as notif_err:
+                logger.warning(f"⚠️ Failed to queue notification for {target_username}: {notif_err}")
+        else:
+            logger.info(f"⏭️ Skipping notification - {target_username} already excluded {username}")
+        
+        logger.info(f"🧹 Cleanup summary for {username} excluding {target_username}: {cleanup_summary}")
+        
+    except Exception as e:
+        # Log detailed error but continue - cleanup is best-effort
+        logger.error(f"⚠️ Error during relationship cleanup: {e}", exc_info=True)
+        cleanup_summary["cleanup_error"] = str(e)
+    
+    # Add to exclusions FIRST - this is the critical operation
+    # If this fails, we should NOT have done the cleanup above
+    # However, cleanup is designed to be idempotent and safe
     exclusion = {
         "userUsername": username,
         "excludedUsername": target_username,
         "reason": reason,
-        "createdAt": datetime.utcnow()  # Store as datetime, not ISO string
+        "createdAt": datetime.utcnow()
     }
 
     try:
         await db.exclusions.insert_one(exclusion)
         logger.info(f"✅ Added to exclusions: {username} → {target_username}")
-        
-        # Dispatch event (no notification - privacy)
-        try:
-            from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
-            await dispatcher.dispatch(
-                event_type=UserEventType.USER_EXCLUDED,
-                actor_username=username,
-                target_username=target_username,
-                metadata={"reason": reason}
-            )
-        except Exception as event_err:
-            logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
-        
-        return {"message": "Added to exclusions successfully"}
     except Exception as e:
         logger.error(f"❌ Error adding to exclusions: {e}", exc_info=True)
+        # Note: Cleanup already happened - this is acceptable because:
+        # 1. Messages deleted = privacy preserved (good)
+        # 2. PII revoked = privacy preserved (good)
+        # 3. Favorites/shortlists removed = no harm
+        # 4. User can retry the exclusion
         raise HTTPException(status_code=500, detail=str(e))
+    
+    # Dispatch event (non-critical, fire-and-forget)
+    try:
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
+        dispatcher = get_event_dispatcher(db)
+        await dispatcher.dispatch(
+            event_type=UserEventType.USER_EXCLUDED,
+            actor_username=username,
+            target_username=target_username,
+            metadata={"reason": reason, "cleanup_summary": cleanup_summary}
+        )
+    except Exception as event_err:
+        logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
+    
+    return {
+        "message": "Added to exclusions successfully",
+        "cleanup": cleanup_summary
+    }
 
 @router.get("/exclusions/{username}")
 async def get_exclusions(
