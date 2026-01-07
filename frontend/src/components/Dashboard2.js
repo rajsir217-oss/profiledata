@@ -148,6 +148,12 @@ const Dashboard2 = () => {
   const [pauseStatus, setPauseStatus] = useState(null);
   const [showPauseSettings, setShowPauseSettings] = useState(false);
   
+  // Exclusion preview modal state
+  const [showExclusionPreview, setShowExclusionPreview] = useState(false);
+  const [exclusionPreviewData, setExclusionPreviewData] = useState(null);
+  const [exclusionLoading, setExclusionLoading] = useState(false);
+  const [selectedUserForExclusion, setSelectedUserForExclusion] = useState(null);
+  
   // View mode and drag-drop states
   const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
   const [draggedIndex, setDraggedIndex] = useState(null);
@@ -884,13 +890,37 @@ const Dashboard2 = () => {
   const handleAddToExclusions = async (user) => {
     try {
       const targetUsername = user.username || user;
-      await api.post(`/exclusions/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+      // Show preview modal before excluding
+      setExclusionLoading(true);
+      setSelectedUserForExclusion(user);
+      const response = await api.get(`/exclusions/preview/${targetUsername}`);
+      setExclusionPreviewData(response.data);
+      setShowExclusionPreview(true);
+      setExclusionLoading(false);
+    } catch (err) {
+      setExclusionLoading(false);
+      logger.error(`Failed to load exclusion preview: ${err.message}`);
+      toast.error(`Failed to load exclusion preview`);
+    }
+  };
+  
+  const confirmExclusion = async () => {
+    if (!selectedUserForExclusion) return;
+    try {
+      setExclusionLoading(true);
+      const targetUsername = selectedUserForExclusion.username || selectedUserForExclusion;
+      await api.post(`/exclusions/${targetUsername}`);
+      setShowExclusionPreview(false);
+      setExclusionPreviewData(null);
+      setSelectedUserForExclusion(null);
       // Reload dashboard to get fresh data
       await loadDashboardData(currentUser);
-      toast.success(`Search Exclude`);
+      toast.success(`Marked as not interested`);
     } catch (err) {
       logger.error(`Failed to add to exclusions: ${err.message}`);
       toast.error(`Failed to add to exclusions`);
+    } finally {
+      setExclusionLoading(false);
     }
   };
 
@@ -2275,6 +2305,94 @@ const Dashboard2 = () => {
                   )}
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Exclusion Preview Modal */}
+      {showExclusionPreview && exclusionPreviewData && (
+        <div className="modal-overlay" onClick={() => setShowExclusionPreview(false)}>
+          <div className="exclusion-preview-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header" style={{ background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', padding: '20px', borderRadius: '16px 16px 0 0' }}>
+              <h2 style={{ margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+                ⚠️ Confirm Exclusion
+              </h2>
+              <button 
+                className="modal-close" 
+                onClick={() => setShowExclusionPreview(false)}
+                style={{ background: 'rgba(0,0,0,0.6)', border: 'none', borderRadius: '50%', width: '32px', height: '32px', color: 'white', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="modal-body" style={{ padding: '24px', background: 'var(--card-background)' }}>
+              <p style={{ marginBottom: '16px', fontSize: '15px' }}>
+                Marking <strong>{selectedUserForExclusion?.firstName || exclusionPreviewData.target_username}</strong> as "Not Interested" will permanently remove:
+              </p>
+              
+              <div style={{ background: 'var(--surface-color)', borderRadius: '12px', padding: '16px', marginBottom: '16px' }}>
+                {exclusionPreviewData.messages_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>💬 Messages</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.messages_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.favorites_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>❤️ Favorites</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.favorites_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.shortlists_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>📋 Shortlists</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.shortlists_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.pii_requests_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>📝 PII Requests</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.pii_requests_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.pii_access_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)' }}>
+                    <span>🔓 PII Access</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.pii_access_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.notifications_count > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0' }}>
+                    <span>🔔 Pending Notifications</span>
+                    <strong style={{ color: 'var(--danger-color)' }}>{exclusionPreviewData.notifications_count}</strong>
+                  </div>
+                )}
+                {exclusionPreviewData.total_items === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: '8px 0' }}>
+                    No existing data to remove
+                  </div>
+                )}
+              </div>
+              
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '0' }}>
+                This action will also notify the user that a profile they were interested in is no longer available.
+              </p>
+            </div>
+            <div className="modal-footer" style={{ padding: '16px 24px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', gap: '12px', background: 'var(--card-background)', borderRadius: '0 0 16px 16px' }}>
+              <button 
+                onClick={() => setShowExclusionPreview(false)}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: '2px solid var(--border-color)', background: 'var(--surface-color)', color: 'var(--text-color)', cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={confirmExclusion}
+                disabled={exclusionLoading}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)', color: 'white', cursor: 'pointer', fontWeight: '600' }}
+              >
+                {exclusionLoading ? '⏳ Processing...' : '🚫 Confirm Exclusion'}
+              </button>
             </div>
           </div>
         </div>

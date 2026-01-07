@@ -187,7 +187,7 @@ const UserCard = ({
       case 'not-interested':
       case 'my-exclusions':
         if (onViewProfile) bottomActions.push({ icon: ACTION_ICONS.VIEW_PROFILE, label: 'View', handler: onViewProfile, className: 'btn-secondary' });
-        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.UNBLOCK, label: 'Unblock', handler: onRemove, className: 'btn-success' });
+        if (onRemove) bottomActions.push({ icon: ACTION_ICONS.UNBLOCK, label: 'Unhide', handler: onRemove, className: 'btn-secondary' });
         break;
 
       case 'pii-requests':
@@ -353,6 +353,7 @@ const UserCard = ({
             user={user}
             isFavorited={isFavorited}
             isShortlisted={isShortlisted}
+            isBlocked={isBlocked}
             onViewProfile={onViewProfile}
             onToggleFavorite={onToggleFavorite}
             onToggleShortlist={onToggleShortlist}

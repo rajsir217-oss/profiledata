@@ -5278,6 +5278,97 @@ async def reorder_shortlist(
 
 # ===== EXCLUSIONS MANAGEMENT =====
 
+@router.get("/exclusions/preview/{target_username}")
+async def preview_exclusion_cleanup(
+    target_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Preview what will be cleaned up when excluding a user"""
+    username = current_user["username"]
+    
+    # Count what will be affected
+    preview = {
+        "target_username": target_username,
+        "messages_count": 0,
+        "pii_requests_count": 0,
+        "pii_access_count": 0,
+        "favorites_count": 0,
+        "shortlists_count": 0,
+        "notifications_count": 0
+    }
+    
+    try:
+        # Messages between users
+        preview["messages_count"] = await db.messages.count_documents({
+            "$or": [
+                {"fromUsername": username, "toUsername": target_username},
+                {"fromUsername": target_username, "toUsername": username}
+            ]
+        })
+        
+        # Pending PII requests
+        preview["pii_requests_count"] = await db.pii_requests.count_documents({
+            "$or": [
+                {"requesterUsername": username, "requestedUsername": target_username, "status": "pending"},
+                {"requesterUsername": username, "profileUsername": target_username, "status": "pending"},
+                {"requesterUsername": target_username, "requestedUsername": username, "status": "pending"},
+                {"requesterUsername": target_username, "profileUsername": username, "status": "pending"}
+            ]
+        })
+        
+        # Active PII access
+        preview["pii_access_count"] = await db.pii_access.count_documents({
+            "$or": [
+                {"granterUsername": username, "grantedToUsername": target_username, "isActive": True},
+                {"granterUsername": target_username, "grantedToUsername": username, "isActive": True}
+            ]
+        })
+        
+        # Favorites (both sides)
+        preview["favorites_count"] = await db.favorites.count_documents({
+            "$or": [
+                {"userUsername": username, "favoriteUsername": target_username},
+                {"userUsername": target_username, "favoriteUsername": username}
+            ]
+        })
+        
+        # Shortlists (both sides) - NOTE: Collection is 'shortlists' (plural), field is 'shortlistedUsername'
+        preview["shortlists_count"] = await db.shortlists.count_documents({
+            "$or": [
+                {"userUsername": username, "shortlistedUsername": target_username},
+                {"userUsername": target_username, "shortlistedUsername": username}
+            ]
+        })
+        
+        # Pending notifications
+        preview["notifications_count"] = await db.notification_queue.count_documents({
+            "status": {"$in": ["pending", "scheduled", "processing"]},
+            "$or": [
+                {"username": username, "templateData.match.username": target_username},
+                {"username": username, "templateData.actor.username": target_username},
+                {"username": target_username, "templateData.match.username": username},
+                {"username": target_username, "templateData.actor.username": username}
+            ]
+        })
+        
+        # Calculate total
+        preview["total_items"] = (
+            preview["messages_count"] +
+            preview["pii_requests_count"] +
+            preview["pii_access_count"] +
+            preview["favorites_count"] +
+            preview["shortlists_count"] +
+            preview["notifications_count"]
+        )
+        
+        return preview
+        
+    except Exception as e:
+        logger.error(f"Error previewing exclusion cleanup: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/exclusions/{target_username}")
 async def add_to_exclusions(
     target_username: str,
@@ -5416,10 +5507,11 @@ async def add_to_exclusions(
             logger.info(f"💔 Removed {fav_result.deleted_count} favorites between {username} ↔ {target_username}")
         
         # 5. REMOVE FROM SHORTLISTS (Both sides) - Optimized single query
-        short_result = await db.shortlist.delete_many({
+        # NOTE: Collection is 'shortlists' (plural), field is 'shortlistedUsername'
+        short_result = await db.shortlists.delete_many({
             "$or": [
-                {"userUsername": username, "shortlistUsername": target_username},
-                {"userUsername": target_username, "shortlistUsername": username}
+                {"userUsername": username, "shortlistedUsername": target_username},
+                {"userUsername": target_username, "shortlistedUsername": username}
             ]
         })
         cleanup_summary["shortlists_removed"] = short_result.deleted_count
