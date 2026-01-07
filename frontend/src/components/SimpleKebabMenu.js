@@ -10,6 +10,7 @@ const SimpleKebabMenu = ({
   user,
   isFavorited,
   isShortlisted,
+  isBlocked = false,  // When true, disable most actions
   onViewProfile,
   onToggleFavorite,
   onToggleShortlist,
@@ -91,51 +92,76 @@ const SimpleKebabMenu = ({
             {ACTION_ICONS.VIEW_PROFILE} View Profile
           </button>
           
-          <button onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleItemClick(onToggleFavorite, 'Toggle Favorite');
-          }}>
+          {/* Favorite - disabled when blocked */}
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isBlocked) handleItemClick(onToggleFavorite, 'Toggle Favorite');
+            }}
+            disabled={isBlocked}
+            className={isBlocked ? 'menu-item-disabled' : ''}
+            title={isBlocked ? 'Remove from exclusions first' : ''}
+          >
             {isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE} {isFavorited ? 'Unfavorite' : 'Favorite'}
           </button>
           
-          <button onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleItemClick(onToggleShortlist, 'Toggle Shortlist');
-          }}>
+          {/* Shortlist - disabled when blocked */}
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (!isBlocked) handleItemClick(onToggleShortlist, 'Toggle Shortlist');
+            }}
+            disabled={isBlocked}
+            className={isBlocked ? 'menu-item-disabled' : ''}
+            title={isBlocked ? 'Remove from exclusions first' : ''}
+          >
             {isShortlisted ? ACTION_ICONS.REMOVE_SHORTLIST : ACTION_ICONS.SHORTLIST} {isShortlisted ? 'Remove Shortlist' : 'Add Shortlist'}
           </button>
           
+          {/* Message - disabled when blocked */}
           {onMessage && (
-            <button onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleItemClick(onMessage, 'Message');
-            }}>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isBlocked) handleItemClick(onMessage, 'Message');
+              }}
+              disabled={isBlocked}
+              className={isBlocked ? 'menu-item-disabled' : ''}
+              title={isBlocked ? 'Remove from exclusions first' : ''}
+            >
               {ACTION_ICONS.MESSAGE} Message
             </button>
           )}
           
           <div className="menu-divider"></div>
           
+          {/* Data Request - disabled when blocked */}
           {onRequestPII && (
-            <button onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleItemClick(onRequestPII, 'Data Request');
-            }}>
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!isBlocked) handleItemClick(onRequestPII, 'Data Request');
+              }}
+              disabled={isBlocked}
+              className={isBlocked ? 'menu-item-disabled' : ''}
+              title={isBlocked ? 'Remove from exclusions first' : ''}
+            >
               {ACTION_ICONS.REQUEST_CONTACT} Data Request
             </button>
           )}
           
+          {/* Block/Unblock - always enabled, changes label when blocked */}
           {onBlock && (
             <button onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              handleItemClick(onBlock, 'Hide');
+              handleItemClick(onBlock, isBlocked ? 'Unblock' : 'Hide');
             }}>
-              {ACTION_ICONS.BLOCK} Hide
+              {isBlocked ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.BLOCK} {isBlocked ? 'Remove Exclusion' : 'Hide'}
             </button>
           )}
           

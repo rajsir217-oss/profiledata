@@ -29,7 +29,7 @@ export const ACTION_ICONS = {
   
   // Blocking/Exclusions
   BLOCK: '🚫',              // Block user
-  UNBLOCK: '✅',            // Unblock user
+  UNBLOCK: '👀',            // Unblock/Remove exclusion - "see again" eye icon
   NOT_INTERESTED: '🙈',     // Not interested section icon
   
   // PII/Contact Requests

@@ -126,3 +126,21 @@ body.theme-dark .menu-arrow {
 body.theme-dark .menu-divider {
   background: #444;
 }
+
+/* Disabled menu items (for excluded users) */
+.simple-kebab-menu button.menu-item-disabled,
+.simple-kebab-menu button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: #999;
+}
+
+.simple-kebab-menu button.menu-item-disabled:hover,
+.simple-kebab-menu button:disabled:hover {
+  background: none;
+}
+
+body.theme-dark .simple-kebab-menu button.menu-item-disabled,
+body.theme-dark .simple-kebab-menu button:disabled {
+  color: #666;
+}

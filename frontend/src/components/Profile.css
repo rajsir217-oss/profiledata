@@ -2041,3 +2041,32 @@
     height: 50px !important;
   }
 }
+
+/* Exclusion Preview Modal */
+.exclusion-preview-modal {
+  background: var(--card-background);
+  border-radius: 16px;
+  max-width: 450px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: modalSlideIn 0.3s ease;
+}
+
+.exclusion-preview-modal .modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
