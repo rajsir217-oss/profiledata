@@ -1198,21 +1198,22 @@ const SearchPage2 = () => {
     // Note: L3V3L filtering is done client-side after server results
   };
 
-  // Handle sort changes - triggers new server search
+  // Handle sort changes - CLIENT-SIDE ONLY (no server re-fetch needed)
+  // The data is already loaded, just re-sort it
   const handleSortChange = (e) => {
     const newSortBy = e.target.value;
+    logger.info(`🔀 Sort changed to: ${newSortBy}`);
     setSortBy(newSortBy);
-    // Pass new sort value directly to avoid async state issue
-    handleSearch(1, null, null, { sortBy: newSortBy, sortOrder });
+    // Don't trigger server search - client-side sorting handles it
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Toggle sort order - triggers new server search
+  // Toggle sort order - CLIENT-SIDE ONLY (no server re-fetch needed)
   const toggleSortOrder = () => {
     const newOrder = sortOrder === 'asc' ? 'desc' : 'asc';
+    logger.info(`🔀 Sort order changed to: ${newOrder}`);
     setSortOrder(newOrder);
-    // Pass new sort order directly to avoid async state issue
-    handleSearch(1, null, null, { sortBy, sortOrder: newOrder });
+    // Don't trigger server search - client-side sorting handles it
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -2086,8 +2087,21 @@ const SearchPage2 = () => {
   
   logger.info(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
   logger.info(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
-  // Reset debug flag so we can see new comparisons
+  
+  // Debug: Log first 5 users BEFORE sorting with all sort-relevant fields
+  if (filteredUsers.length > 0) {
+    logger.info(`📋 BEFORE SORT (sortBy=${sortBy}, sortOrder=${sortOrder}) - First 5:`, filteredUsers.slice(0, 5).map(u => ({
+      name: u.firstName,
+      age: u.age || calculateAge(u.birthMonth, u.birthYear) || 'N/A',
+      birthYear: u.birthYear,
+      matchScore: u.matchScore || 0,
+      height: u.height
+    })));
+  }
+  
+  // Reset debug flags so we can see new comparisons
   window._sortDebugLogged = false;
+  window._ageSortDebugLogged = false;
 
   // Apply sorting to filtered users
   const sortedUsers = [...filteredUsers].sort((a, b) => {
@@ -2102,6 +2116,11 @@ const SearchPage2 = () => {
         const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
         const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
         compareValue = ageB - ageA; // Higher age first (consistent with "High to Low")
+        // Debug first comparison
+        if (!window._ageSortDebugLogged) {
+          logger.info(`📅 Age sort: ${a.firstName}(${ageA}) vs ${b.firstName}(${ageB}) = ${compareValue}`);
+          window._ageSortDebugLogged = true;
+        }
         break;
       
       case 'height':
@@ -2143,6 +2162,17 @@ const SearchPage2 = () => {
     // Apply sort order (desc = default natural order, asc = reversed)
     return sortOrder === 'desc' ? compareValue : -compareValue;
   });
+
+  // Debug: Log first 5 users AFTER sorting
+  if (sortedUsers.length > 0) {
+    logger.info(`📋 AFTER SORT (sortBy=${sortBy}, sortOrder=${sortOrder}) - First 5:`, sortedUsers.slice(0, 5).map(u => ({
+      name: u.firstName,
+      age: u.age || calculateAge(u.birthMonth, u.birthYear) || 'N/A',
+      birthYear: u.birthYear,
+      matchScore: u.matchScore || 0,
+      height: u.height
+    })));
+  }
 
   // With server-side pagination, all fetched users are displayed
   // Deduplicate by username to prevent any duplicates from showing
@@ -2284,24 +2314,24 @@ const SearchPage2 = () => {
         </div>
       )}
 
-      <div className="search-container">
-        {/* Active Criteria Summary Bar */}
-        <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
-          <div className="criteria-info">
-            <span className="criteria-label">ACTIVE FILTERS:</span>
-            <span className="criteria-value">{getActiveCriteriaSummary()}</span>
-          </div>
-          <div className="criteria-actions">
-            <span className="results-count">
-              <span className="results-count-number">{totalResults}</span>
-              <span className="results-count-text"> profiles found</span>
-            </span>
-            <button className="btn-modify-search">
-              <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
-            </button>
-          </div>
+      {/* Active Criteria Summary Bar - Header at top */}
+      <div className="active-criteria-bar" onClick={() => setIsSearchModalOpen(true)}>
+        <div className="criteria-info">
+          <span className="criteria-label">ACTIVE FILTERS:</span>
+          <span className="criteria-value">{getActiveCriteriaSummary()}</span>
         </div>
+        <div className="criteria-actions">
+          <span className="results-count">
+            <span className="results-count-number">{totalResults}</span>
+            <span className="results-count-text"> profiles found</span>
+          </span>
+          <button className="btn-modify-search">
+            <span className="modify-text">Modify </span><span className="modify-icon">⚙️</span>
+          </button>
+        </div>
+      </div>
 
+      <div className="search-container">
         <div className="search-results" ref={searchResultsRef}>
           {loading && (
             <div className="text-center py-4">

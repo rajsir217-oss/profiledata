@@ -1,0 +1,518 @@
+/* Loading Timer Animation */
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Split-Screen Layout Styles */
+.split-screen-layout {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 20px;
+  height: calc(100vh - 350px);
+  min-height: 600px;
+  /* Reset any grid styles that might bleed in */
+  grid-template-columns: unset !important;
+}
+
+.thumbnail-navigation {
+  width: 280px;
+  flex-shrink: 0;
+  overflow-y: auto;
+  background: var(--surface-color);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.thumbnail-card {
+  padding: 12px;
+  margin-bottom: 8px;
+  background: var(--card-background);
+  color: var(--text-color);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.thumbnail-card.selected {
+  background: var(--primary-color);
+  color: white;
+  border: 2px solid var(--primary-color);
+}
+
+.thumbnail-card:hover:not(.selected) {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+  transform: translateX(4px);
+}
+
+.profile-detail-panel {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--card-background);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  border: 1px solid var(--border-color);
+}
+
+/* Profile sections */
+.profile-section {
+  margin-bottom: 16px;
+}
+
+.profile-section > div:first-child {
+  background: var(--surface-color);
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.profile-section > div:first-child:hover {
+  background: var(--hover-background);
+  border-color: var(--primary-color);
+}
+
+/* Sticky action buttons */
+.profile-detail-content > div:first-child button {
+  white-space: nowrap;
+}
+
+.profile-detail-content > div:first-child button:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .split-screen-layout {
+    gap: 12px;
+    height: calc(100vh - 300px);
+  }
+
+  /* Mobile: Show only letters in left sidebar */
+  .thumbnail-navigation {
+    width: 40px;
+    min-width: 40px;
+    flex: 0 0 40px;
+    padding: 6px 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Mobile: Icons only for action buttons */
+  .profile-detail-content > div:first-child {
+    gap: 4px !important;
+    padding: 8px 0 !important;
+  }
+
+  .profile-detail-content > div:first-child button {
+    padding: 6px !important;
+    font-size: 16px !important;
+    min-width: 32px;
+    height: 32px;
+    justify-content: center;
+  }
+
+  /* Hide button text on mobile, show only icons */
+  .action-btn .btn-text {
+    display: none;
+  }
+
+  .action-btn .btn-icon {
+    margin: 0;
+  }
+
+  /* For buttons without separate icon span (Message button) */
+  .action-btn {
+    gap: 0 !important;
+  }
+
+  .thumbnail-card {
+    padding: 0;
+    margin-bottom: 4px;
+    flex-direction: column;
+    gap: 0;
+    justify-content: center;
+    align-items: center;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    overflow: visible;
+    width: 32px;
+    height: 32px;
+  }
+
+  /* Square letter button on mobile */
+  .thumbnail-card > div:first-child {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    background: var(--surface-color) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+    color: var(--text-color) !important;
+    line-height: 32px !important;
+    text-align: center !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Selected state for mobile - highlight the letter */
+  .thumbnail-card.selected > div:first-child {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+  }
+
+  .thumbnail-card.selected {
+    background: transparent !important;
+    border-radius: 6px;
+  }
+
+  .thumbnail-card.selected > div:first-child {
+    color: white !important;
+  }
+
+  /* Hide text content on mobile - show only avatar */
+  .thumbnail-card > div:last-child {
+    display: none;
+  }
+
+  /* Reduce profile detail panel padding */
+  .profile-detail-panel {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 576px) {
+  .split-screen-layout {
+    height: calc(100vh - 250px);
+  }
+
+  /* Extra small: Even narrower sidebar */
+  .thumbnail-navigation {
+    width: 60px;
+    padding: 6px;
+  }
+
+  .thumbnail-card {
+    padding: 6px;
+  }
+
+  .thumbnail-card > div:first-child {
+    width: 45px !important;
+    height: 45px !important;
+    font-size: 20px !important;
+  }
+
+  .profile-detail-panel {
+    padding: 12px;
+  }
+}
+
+/* Search Modal Trigger - Matches TopBar search button style */
+.floating-search-trigger {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  cursor: pointer;
+  z-index: 1000;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.floating-search-trigger:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+  background: var(--secondary-color);
+}
+
+.trigger-icon {
+  font-size: 20px;
+}
+
+.trigger-text {
+  display: none; /* Hide text to match TopBar icon-only style */
+}
+
+.active-criteria-bar {
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.active-criteria-bar:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateY(-2px);
+}
+
+.criteria-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  overflow: hidden;
+}
+
+.criteria-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.criteria-value {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.criteria-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+.results-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.btn-modify-search {
+  background: transparent;
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  padding: 6px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-modify-search:hover {
+  background: var(--primary-color);
+  color: white;
+}
+
+@media (max-width: 768px) {
+  .floating-search-trigger {
+    bottom: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  
+  .trigger-icon {
+    font-size: 20px;
+  }
+  
+  .active-criteria-bar {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  
+  .criteria-info {
+    flex: 1;
+    min-width: 0;
+  }
+  
+  .criteria-label {
+    font-size: 11px !important;
+  }
+  
+  .criteria-value {
+    font-size: 12px !important;
+    max-width: 150px;
+  }
+  
+  .criteria-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  
+  /* Hide "profiles found" text on mobile, show only number */
+  .results-count-text {
+    display: none !important;
+  }
+  
+  .results-count {
+    padding: 4px 10px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Hide "Modify" text on mobile, show only icon */
+  .modify-text {
+    display: none !important;
+  }
+  
+  .btn-modify-search {
+    padding: 6px 10px !important;
+    font-size: 16px !important;
+    min-width: 36px;
+  }
+}
+
+/* Cleanup old search filter styles if needed */
+.search-filters {
+  display: none; /* Hide old inline filters container if any remaining refs */
+}
+
+.layout-toggle-buttons button.active {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+/* Layout toggle button hover effect */
+.layout-toggle-btn:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+  transform: translateY(-1px);
+}
+
+/* Hide text on mobile for layout toggle buttons */
+@media (max-width: 576px) {
+  .layout-toggle-btn-text {
+    display: none;
+  }
+  
+  .layout-toggle-btn {
+    padding: 6px 10px !important;
+  }
+}
+
+/* Floating Action Buttons - Same style as Profile page */
+.fab-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.fab-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.fab-message {
+  background: var(--primary-color);
+}
+
+.fab-favorite {
+  background: var(--success-color);
+}
+
+.fab-favorite.active {
+  background: var(--danger-color);
+}
+
+.fab-shortlist {
+  background: var(--info-color);
+}
+
+.fab-shortlist.active {
+  background: var(--warning-color);
+}
+
+.fab-hide {
+  background: var(--danger-color);
+}
+
+.fab-hide.active {
+  background: var(--success-color);
+}
+
+.fab-request {
+  background: var(--secondary-color);
+}
+
+/* Mobile: Icons only for FAB buttons */
+@media (max-width: 768px) {
+  .fab-btn {
+    padding: 8px;
+    min-width: 36px;
+    height: 36px;
+    justify-content: center;
+    border-radius: 50%;
+  }
+
+  .fab-btn .fab-text {
+    display: none;
+  }
+
+  .floating-action-buttons {
+    gap: 6px !important;
+  }
+}
+
+/* Embedded Profile Mode - for split-screen layout */
+.profile-embedded {
+  padding: 12px !important;
+  margin: 0 !important;
+  max-width: 100% !important;
+}
+
+.profile-embedded .profile-carousel-nav {
+  display: none !important;
+}
+
+/* Hide the floating action buttons sidebar in embedded mode - we have our own */
+.profile-embedded .floating-action-sidebar {
+  display: none !important;
+}

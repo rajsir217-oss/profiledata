@@ -1228,32 +1228,32 @@ const Dashboard = () => {
           {expandedGroups.othersActivities && (
             <div className="column-sections">
               {renderSection('Profile Views', dashboardData.myViews, 'myViews', SECTION_ICONS.PROFILE_VIEWS, '#c9944a', handleClearViewHistory)}
-          
-          {/* Image Access Requests Section */}
-          <CategorySection
-            title="Photo Requests"
-            icon={SECTION_ICONS.INCOMING_PHOTO_REQUESTS}
-            color="#5a9a8a"
-            sectionKey="imageAccessRequests"
-            data={[]}
-            isExpanded={activeSections.imageAccessRequests}
-            onToggle={toggleSection}
-          >
-            <div style={{ padding: '16px' }}>
-              <AccessRequestManager
-                username={currentUser}
-                onRequestProcessed={(action, request) => {
-                  // Show success message
-                  if (action === 'approved') {
-                    logger.info(`Access approved for ${request.requesterUsername}`);
-                  } else if (action === 'rejected') {
-                    logger.info(`Access rejected for ${request.requesterUsername}`);
-                  }
-                }}
-              />
-            </div>
-          </CategorySection>
-          
+              
+              {/* Image Access Requests Section */}
+              <CategorySection
+                title="Photo Requests"
+                icon={SECTION_ICONS.INCOMING_PHOTO_REQUESTS}
+                color="#5a9a8a"
+                sectionKey="imageAccessRequests"
+                data={[]}
+                isExpanded={activeSections.imageAccessRequests}
+                onToggle={toggleSection}
+              >
+                <div style={{ padding: '16px' }}>
+                  <AccessRequestManager
+                    username={currentUser}
+                    onRequestProcessed={(action, request) => {
+                      // Show success message
+                      if (action === 'approved') {
+                        logger.info(`Access approved for ${request.requesterUsername}`);
+                      } else if (action === 'rejected') {
+                        logger.info(`Access rejected for ${request.requesterUsername}`);
+                      }
+                    }}
+                  />
+                </div>
+              </CategorySection>
+              
               {renderSection('Favorites', dashboardData.theirFavorites, 'theirFavorites', SECTION_ICONS.THEIR_FAVORITES, '#c4687a', null)}
               {renderSection('Shortlists', dashboardData.theirShortlists, 'theirShortlists', SECTION_ICONS.THEIR_SHORTLISTS, '#5a9eb5', null)}
             </div>
