@@ -17,7 +17,6 @@ import logger from '../utils/logger';
 import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import toastService from '../services/toastService';
-import './SearchPage.css';
 import './SearchPage2.css';
 
 const SearchPage2 = () => {

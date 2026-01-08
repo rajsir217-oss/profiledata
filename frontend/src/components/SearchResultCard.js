@@ -5,7 +5,7 @@ import OnlineStatusBadge from './OnlineStatusBadge';
 import DefaultAvatar from './DefaultAvatar';
 import { getDisplayName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
-import './SearchPage.css';
+import './SearchPage2.css';
 import { ACTION_ICONS } from '../constants/icons';
 
 /**

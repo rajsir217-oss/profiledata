@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import SearchResultCard from './SearchResultCard';
-import './SearchPage.css';
+import './SearchPage2.css';
 
 const Exclusions = () => {
   const [exclusions, setExclusions] = useState([]);
