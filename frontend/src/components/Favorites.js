@@ -5,7 +5,7 @@ import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
-import './SearchPage.css';
+import './SearchPage2.css';
 
 const Favorites = () => {
   const [favorites, setFavorites] = useState([]);
