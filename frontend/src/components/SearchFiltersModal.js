@@ -261,7 +261,16 @@ const SearchFiltersModal = ({
                               <div key={search.id} className={`saved-search-card ${search.isDefault ? 'is-default' : ''} ${selectedSearch?.id === search.id ? 'is-active' : ''}`}>
                                 <div className="saved-search-header">
                                   <h5 className="saved-search-name">
-                                    {search.isDefault && <span className="default-badge" title="Default Search">⭐ </span>}
+                                    {search.isDefault && (
+                                      <button 
+                                        type="button" 
+                                        className="default-badge-btn" 
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSetDefaultSearch(search.id, search.name, true); }}
+                                        title="Click to remove as default"
+                                      >
+                                        ⭐
+                                      </button>
+                                    )}
                                     {search.name}
                                   </h5>
                                   <div className="saved-search-actions">
@@ -273,9 +282,15 @@ const SearchFiltersModal = ({
                                   <p>{search.description || generateSearchDescription(search.criteria, search.minMatchScore)}</p>
                                 </div>
                                 <div className="saved-search-footer">
-                                  {!search.isDefault && (
-                                    <button type="button" className="btn-set-default" onClick={(e) => { e.preventDefault(); handleSetDefaultSearch(search.id, search.name); }} title="Set as default"><span className="default-icon">⭐</span><span className="default-text"> Default</span></button>
-                                  )}
+                                  <button 
+                                    type="button" 
+                                    className={`btn-set-default ${search.isDefault ? 'is-default' : ''}`} 
+                                    onClick={(e) => { e.preventDefault(); handleSetDefaultSearch(search.id, search.name, search.isDefault); }} 
+                                    title={search.isDefault ? "Remove as default" : "Set as default"}
+                                  >
+                                    <span className="default-icon">{search.isDefault ? '⭐' : '☆'}</span>
+                                    <span className="default-text">{search.isDefault ? ' Unset' : ' Default'}</span>
+                                  </button>
                                   <button type="button" className="btn-load-saved" onClick={(e) => { e.preventDefault(); handleLoadSavedSearch(search); onClose(); }}>📂 Load</button>
                                 </div>
                               </div>

@@ -4391,6 +4391,28 @@ async def save_search(username: str, search_data: dict, db = Depends(get_databas
         logger.error(f"❌ Error saving search: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# Static routes MUST come before {search_id} routes to avoid matching "unset-default" as an ObjectId
+@router.delete("/{username}/saved-searches/unset-default")
+async def unset_default_saved_search(username: str, db = Depends(get_database)):
+    """Unset the default saved search for a user (no default after this)"""
+    logger.info(f"⭐ Unsetting default saved search for user '{username}'")
+    
+    try:
+        # Unset all defaults for this user
+        result = await db.saved_searches.update_many(
+            {"username": username},
+            {"$set": {"isDefault": False}}
+        )
+        
+        logger.info(f"✅ Unset default saved search for user '{username}' (modified: {result.modified_count})")
+        return {
+            "message": "Default saved search unset successfully",
+            "modifiedCount": result.modified_count
+        }
+    except Exception as e:
+        logger.error(f"❌ Error unsetting default saved search: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.put("/{username}/saved-searches/{search_id}")
 async def update_saved_search(username: str, search_id: str, search_data: dict, db = Depends(get_database)):
     """Update a saved search (e.g., notification schedule, name, criteria)"""

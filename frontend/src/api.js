@@ -145,6 +145,16 @@ export const getDefaultSavedSearch = async () => {
   }
 };
 
+export const unsetDefaultSavedSearch = async () => {
+  try {
+    const username = localStorage.getItem('username');
+    const response = await api.delete(`/${username}/saved-searches/unset-default`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error.message;
+  }
+};
+
 export const addToFavorites = async (userId) => {
   try {
     const response = await api.post(`/favorites/${userId}`);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
-import api, { setDefaultSavedSearch, getDefaultSavedSearch } from '../api';
+import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSearch } from '../api';
 import SearchResultCard from './SearchResultCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
@@ -1698,14 +1698,21 @@ const SearchPage2 = () => {
     }
   };
 
-  const handleSetDefaultSearch = async (searchId, searchName) => {
+  const handleSetDefaultSearch = async (searchId, searchName, isCurrentlyDefault = false) => {
     try {
-      await setDefaultSavedSearch(searchId);
-      toastService.success(`⭐ "${searchName}" set as default search`);
+      if (isCurrentlyDefault) {
+        // Unset the default
+        await unsetDefaultSavedSearch();
+        toastService.success(`☆ "${searchName}" is no longer the default search`);
+      } else {
+        // Set as default
+        await setDefaultSavedSearch(searchId);
+        toastService.success(`⭐ "${searchName}" set as default search`);
+      }
       loadSavedSearches();
     } catch (err) {
-      logger.error('Error setting default search:', err);
-      toastService.error('Failed to set default search');
+      logger.error('Error toggling default search:', err);
+      toastService.error('Failed to update default search');
     }
   };
 
