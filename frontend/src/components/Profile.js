@@ -2612,7 +2612,7 @@ const Profile = ({
             disabled={hasAllAccess}
             title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
           >
-            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.REQUEST_CONTACT}</span>
+            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
           </button>
 
           {/* Exclude Button */}
@@ -2733,7 +2733,7 @@ const Profile = ({
             disabled={hasAllAccess}
             title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
           >
-            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.REQUEST_CONTACT}</span>
+            <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
 
