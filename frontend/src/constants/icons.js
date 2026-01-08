@@ -34,6 +34,7 @@ export const ACTION_ICONS = {
   
   // PII/Contact Requests
   REQUEST_CONTACT: '🔒',    // Request contact info (outgoing)
+  HAS_ACCESS: '🔓',         // Has PII access (unlocked)
   INCOMING_REQUESTS: '📥',  // Incoming requests from others
   PHOTO_REQUESTS: '📷',     // Photo/image requests
   
