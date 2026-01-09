@@ -408,6 +408,28 @@ const SearchFilters = ({
             </div>
           </div>
         </div>
+        <div className="col-days-back">
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Days Back
+              <Tooltip 
+                text="Show only profiles created within the last X days. Useful for finding new members."
+                position="top"
+                icon 
+              />
+            </label>
+            <input
+              type="number"
+              className="form-control"
+              name="daysBack"
+              value={searchCriteria.daysBack || ''}
+              onChange={handleInputChange}
+              min="1"
+              max="365"
+              placeholder="30"
+            />
+          </div>
+        </div>
       </div>
       
       {/* Validation Error Message */}
@@ -685,28 +707,6 @@ const SearchFilters = ({
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-              <div className="col-days-back">
-                <div className="form-group">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Days Back
-                    <Tooltip 
-                      text="Show only profiles created within the last X days. Useful for finding new members."
-                      position="top"
-                      icon 
-                    />
-                  </label>
-                  <input
-                    type="number"
-                    className="form-control"
-                    name="daysBack"
-                    value={searchCriteria.daysBack || ''}
-                    onChange={handleInputChange}
-                    min="1"
-                    max="365"
-                    placeholder="e.g., 7, 30"
-                  />
                 </div>
               </div>
           </div>
