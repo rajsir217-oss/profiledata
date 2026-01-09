@@ -5008,57 +5008,62 @@ async def get_favorites(
         # Check if current user is admin (admins see ALL images)
         is_admin = _is_admin_user(current_user)
 
-        # Get ONLY needed user fields (not all 162+ fields!)
+        # OPTIMIZED: Batch fetch all users with $in query (fixes N+1)
+        favorite_usernames = [fav["favoriteUsername"] for fav in favorites]
+        users = await db.users.find(
+            {
+                "username": {"$in": favorite_usernames},
+                "accountStatus": "active"
+            },
+            DASHBOARD_USER_PROJECTION
+        ).to_list(100)
+        
+        # Create lookup dict for O(1) access
+        user_dict = {}
+        encryptor = get_encryptor()
+        for user in users:
+            try:
+                user = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+            user_dict[user["username"]] = user
+        
+        # Process each favorite using the lookup dict
         favorite_users = []
         for fav in favorites:
-            user = await db.users.find_one(
-                {
-                    "username": fav["favoriteUsername"],
-                    "accountStatus": "active"  # Strictly active users only
-                },
-                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
-            )
-            if user:
-                # 🔓 DECRYPT PII fields
-                try:
-                    encryptor = get_encryptor()
-                    user = encryptor.decrypt_user_pii(user)
-                except Exception as decrypt_err:
-                    logger.warning(f"⚠️ Decryption skipped for {fav['favoriteUsername']}: {decrypt_err}")
-                
-                remove_consent_metadata(user)
-                existing_images = user.get("images", [])
-                profile_image = user.get("profileImage")
-                
-                # If images array is empty but profileImage exists, use it
-                if not existing_images and profile_image:
-                    existing_images = [profile_image]
-                
-                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-                full_public_urls = [get_full_image_url(p) for p in normalized_public]
-                user["publicImages"] = full_public_urls
-                
-                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
-                if is_admin and existing_images:
-                    user["images"] = [get_full_image_url(img) for img in existing_images]
-                    user["profilePicVisible"] = True
-                elif profile_pic_always_visible and existing_images:
-                    profile_pic_url = get_full_image_url(existing_images[0])
-                    if profile_pic_url not in full_public_urls:
-                        user["images"] = [profile_pic_url] + full_public_urls
-                    else:
-                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
-                    user["profilePicVisible"] = True
+            user = user_dict.get(fav["favoriteUsername"])
+            if not user:
+                continue
+            
+            remove_consent_metadata(user)
+            existing_images = user.get("images", [])
+            profile_image = user.get("profileImage")
+            
+            if not existing_images and profile_image:
+                existing_images = [profile_image]
+            
+            normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            user["publicImages"] = full_public_urls
+            
+            if is_admin and existing_images:
+                user["images"] = [get_full_image_url(img) for img in existing_images]
+                user["profilePicVisible"] = True
+            elif profile_pic_always_visible and existing_images:
+                profile_pic_url = get_full_image_url(existing_images[0])
+                if profile_pic_url not in full_public_urls:
+                    user["images"] = [profile_pic_url] + full_public_urls
                 else:
-                    user["images"] = full_public_urls
-                
-                # Enrich with imageVisibility for frontend avatar display
-                user = _enrich_user_with_image_visibility(user)
-                
-                user["addedToFavoritesAt"] = fav["createdAt"]
-                favorite_users.append(user)
+                    user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                user["profilePicVisible"] = True
+            else:
+                user["images"] = full_public_urls
+            
+            user = _enrich_user_with_image_visibility(user)
+            user["addedToFavoritesAt"] = fav["createdAt"]
+            favorite_users.append(user)
 
-        logger.info(f"✅ Found {len(favorite_users)} favorites for {username} (optimized query)")
+        logger.info(f"✅ Found {len(favorite_users)} favorites for {username} (batch query)")
         return {"favorites": favorite_users}
     except Exception as e:
         logger.error(f"❌ Error fetching favorites: {e}", exc_info=True)
@@ -5210,58 +5215,63 @@ async def get_shortlist(
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
         is_admin = _is_admin_user(current_user)
 
-        # Get ONLY needed user fields (not all 162+ fields!)
+        # OPTIMIZED: Batch fetch all users with $in query (fixes N+1)
+        shortlist_usernames = [item["shortlistedUsername"] for item in shortlist]
+        users = await db.users.find(
+            {
+                "username": {"$in": shortlist_usernames},
+                "accountStatus": "active"
+            },
+            DASHBOARD_USER_PROJECTION
+        ).to_list(100)
+        
+        # Create lookup dict for O(1) access
+        user_dict = {}
+        encryptor = get_encryptor()
+        for user in users:
+            try:
+                user = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+            user_dict[user["username"]] = user
+        
+        # Process each shortlist item using the lookup dict
         shortlisted_users = []
         for item in shortlist:
-            user = await db.users.find_one(
-                {
-                    "username": item["shortlistedUsername"],
-                    "accountStatus": "active"  # Strictly active users only
-                },
-                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
-            )
-            if user:
-                # 🔓 DECRYPT PII fields
-                try:
-                    encryptor = get_encryptor()
-                    user = encryptor.decrypt_user_pii(user)
-                except Exception as decrypt_err:
-                    logger.warning(f"⚠️ Decryption skipped for {item['shortlistedUsername']}: {decrypt_err}")
-                
-                remove_consent_metadata(user)
-                existing_images = user.get("images", [])
-                profile_image = user.get("profileImage")
-                
-                # If images array is empty but profileImage exists, use it
-                if not existing_images and profile_image:
-                    existing_images = [profile_image]
-                
-                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-                full_public_urls = [get_full_image_url(p) for p in normalized_public]
-                user["publicImages"] = full_public_urls
-                
-                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
-                if is_admin and existing_images:
-                    user["images"] = [get_full_image_url(img) for img in existing_images]
-                    user["profilePicVisible"] = True
-                elif profile_pic_always_visible and existing_images:
-                    profile_pic_url = get_full_image_url(existing_images[0])
-                    if profile_pic_url not in full_public_urls:
-                        user["images"] = [profile_pic_url] + full_public_urls
-                    else:
-                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
-                    user["profilePicVisible"] = True
+            user = user_dict.get(item["shortlistedUsername"])
+            if not user:
+                continue
+            
+            remove_consent_metadata(user)
+            existing_images = user.get("images", [])
+            profile_image = user.get("profileImage")
+            
+            if not existing_images and profile_image:
+                existing_images = [profile_image]
+            
+            normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            user["publicImages"] = full_public_urls
+            
+            if is_admin and existing_images:
+                user["images"] = [get_full_image_url(img) for img in existing_images]
+                user["profilePicVisible"] = True
+            elif profile_pic_always_visible and existing_images:
+                profile_pic_url = get_full_image_url(existing_images[0])
+                if profile_pic_url not in full_public_urls:
+                    user["images"] = [profile_pic_url] + full_public_urls
                 else:
-                    user["images"] = full_public_urls
-                
-                # Enrich with imageVisibility for frontend avatar display
-                user = _enrich_user_with_image_visibility(user)
-                
-                user["notes"] = item.get("notes")
-                user["addedToShortlistAt"] = item["createdAt"]
-                shortlisted_users.append(user)
+                    user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                user["profilePicVisible"] = True
+            else:
+                user["images"] = full_public_urls
+            
+            user = _enrich_user_with_image_visibility(user)
+            user["notes"] = item.get("notes")
+            user["addedToShortlistAt"] = item["createdAt"]
+            shortlisted_users.append(user)
 
-        logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username} (optimized query)")
+        logger.info(f"✅ Found {len(shortlisted_users)} shortlisted users for {username} (batch query)")
         return {"shortlist": shortlisted_users}
     except Exception as e:
         logger.error(f"❌ Error fetching shortlist: {e}", exc_info=True)
@@ -5651,54 +5661,61 @@ async def get_exclusions(
         profile_pic_always_visible = await _get_profile_picture_always_visible(db)
         is_admin = _is_admin_user(current_user)
 
-        # Get ONLY needed user fields (not all 162+ fields!)
+        # OPTIMIZED: Batch fetch all users with $in query (fixes N+1)
+        exclusion_usernames = [exc["excludedUsername"] for exc in exclusions]
+        users = await db.users.find(
+            {
+                "username": {"$in": exclusion_usernames},
+                "accountStatus": "active"
+            },
+            DASHBOARD_USER_PROJECTION
+        ).to_list(100)
+        
+        # Create lookup dict for O(1) access
+        user_dict = {}
+        encryptor = get_encryptor()
+        for user in users:
+            try:
+                user = encryptor.decrypt_user_pii(user)
+            except Exception as decrypt_err:
+                logger.warning(f"⚠️ Decryption skipped for {user.get('username')}: {decrypt_err}")
+            user_dict[user["username"]] = user
+        
+        # Process each exclusion using the lookup dict
         excluded_users = []
         for exc in exclusions:
-            user = await db.users.find_one(
-                {
-                    "username": exc["excludedUsername"],
-                    "accountStatus": "active"  # Strictly active users only
-                },
-                DASHBOARD_USER_PROJECTION  # ✅ Only fetch needed fields
-            )
-            if user:
-                # 🔓 DECRYPT PII fields
-                try:
-                    encryptor = get_encryptor()
-                    user = encryptor.decrypt_user_pii(user)
-                except Exception as decrypt_err:
-                    logger.warning(f"⚠️ Decryption skipped for {exc['excludedUsername']}: {decrypt_err}")
-                
-                remove_consent_metadata(user)
-                existing_images = user.get("images", [])
-                profile_image = user.get("profileImage")
-                
-                # If images array is empty but profileImage exists, use it
-                if not existing_images and profile_image:
-                    existing_images = [profile_image]
-                
-                normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
-                full_public_urls = [get_full_image_url(p) for p in normalized_public]
-                user["publicImages"] = full_public_urls
-                
-                # Image visibility: Admin sees all, profile_pic_always_visible shows avatar to all
-                if is_admin and existing_images:
-                    user["images"] = [get_full_image_url(img) for img in existing_images]
-                    user["profilePicVisible"] = True
-                elif profile_pic_always_visible and existing_images:
-                    profile_pic_url = get_full_image_url(existing_images[0])
-                    if profile_pic_url not in full_public_urls:
-                        user["images"] = [profile_pic_url] + full_public_urls
-                    else:
-                        user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
-                    user["profilePicVisible"] = True
+            user = user_dict.get(exc["excludedUsername"])
+            if not user:
+                continue
+            
+            remove_consent_metadata(user)
+            existing_images = user.get("images", [])
+            profile_image = user.get("profileImage")
+            
+            if not existing_images and profile_image:
+                existing_images = [profile_image]
+            
+            normalized_public = _compute_public_image_paths(existing_images, user.get("publicImages", []))
+            full_public_urls = [get_full_image_url(p) for p in normalized_public]
+            user["publicImages"] = full_public_urls
+            
+            if is_admin and existing_images:
+                user["images"] = [get_full_image_url(img) for img in existing_images]
+                user["profilePicVisible"] = True
+            elif profile_pic_always_visible and existing_images:
+                profile_pic_url = get_full_image_url(existing_images[0])
+                if profile_pic_url not in full_public_urls:
+                    user["images"] = [profile_pic_url] + full_public_urls
                 else:
-                    user["images"] = full_public_urls
-                
-                user["excludedAt"] = exc.get("createdAt")
-                excluded_users.append(user)
+                    user["images"] = full_public_urls if full_public_urls else [profile_pic_url]
+                user["profilePicVisible"] = True
+            else:
+                user["images"] = full_public_urls
+            
+            user["excludedAt"] = exc.get("createdAt")
+            excluded_users.append(user)
 
-        logger.info(f"✅ Found {len(excluded_users)} exclusions for {username} (optimized query)")
+        logger.info(f"✅ Found {len(excluded_users)} exclusions for {username} (batch query)")
         return {"exclusions": excluded_users}
     except Exception as e:
         logger.error(f"❌ Error fetching exclusions: {e}", exc_info=True)
