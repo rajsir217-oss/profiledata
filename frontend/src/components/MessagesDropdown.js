@@ -53,31 +53,55 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
     }
   }, [isOpen, loadConversations]);
   
+  // Create a stable list of usernames to track
+  const usernames = React.useMemo(() => 
+    conversations?.map(c => c.username).join(',') || '', 
+    [conversations]
+  );
+  
   // Track online status for conversation users
   useEffect(() => {
-    if (!conversations || conversations.length === 0) return;
+    if (!usernames) return;
+    
+    const usernameList = usernames.split(',').filter(Boolean);
+    if (usernameList.length === 0) return;
+    
+    let isMounted = true;
     
     const checkAllStatuses = async () => {
       const statuses = {};
-      for (const conv of conversations) {
+      for (const username of usernameList) {
         try {
-          const online = await onlineStatusService.isUserOnline(conv.username);
-          statuses[conv.username] = online;
+          const online = await onlineStatusService.isUserOnline(username);
+          statuses[username] = online;
         } catch (e) {
-          statuses[conv.username] = false;
+          statuses[username] = false;
         }
       }
-      setOnlineStatuses(statuses);
+      if (isMounted) {
+        setOnlineStatuses(prev => {
+          const hasChanges = Object.keys(statuses).some(k => prev[k] !== statuses[k]);
+          return hasChanges ? { ...prev, ...statuses } : prev;
+        });
+      }
     };
     
     checkAllStatuses();
     
     const unsubscribe = onlineStatusService.subscribe((username, online) => {
-      setOnlineStatuses(prev => ({ ...prev, [username]: online }));
+      if (isMounted && usernameList.includes(username)) {
+        setOnlineStatuses(prev => {
+          if (prev[username] === online) return prev;
+          return { ...prev, [username]: online };
+        });
+      }
     });
     
-    return () => unsubscribe();
-  }, [conversations]);
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
+  }, [usernames]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
