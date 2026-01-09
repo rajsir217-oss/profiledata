@@ -225,16 +225,25 @@
 
 @media (max-width: 480px) {
   .message-modal {
-    max-height: 95vh;
+    max-height: 98vh;
+    min-height: 70vh;
     border-radius: 8px;
   }
 
   .message-modal-header {
-    padding: 15px;
+    padding: 12px 15px;
     border-radius: 8px 8px 0 0;
   }
 
   .message-modal-overlay {
-    padding: 5px;
+    padding: 2px;
+    padding-top: 10px;
+  }
+  
+  /* Make message body taller on mobile */
+  .message-modal-body {
+    min-height: 50vh;
+    max-height: 65vh;
+    overflow-y: auto;
   }
 }

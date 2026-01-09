@@ -131,6 +131,9 @@ class ProfileCompletionReminderTemplate(JobTemplate):
                     completeness = self._calculate_completeness(user)
                     has_photos = len(user.get("photos", [])) > 0
                     
+                    # Get user's first name for template
+                    recipient_firstName = user.get("firstName", username)
+                    
                     # Check if we should send photo reminder
                     if check_photos and not has_photos:
                         # Account at least 24 hours old, no photos
@@ -142,6 +145,7 @@ class ProfileCompletionReminderTemplate(JobTemplate):
                                 trigger="upload_photos",
                                 channels=["email"],
                                 template_data={
+                                    "recipient_firstName": recipient_firstName,
                                     "profile": {
                                         "completeness": completeness
                                     }
@@ -161,6 +165,7 @@ class ProfileCompletionReminderTemplate(JobTemplate):
                             trigger="profile_incomplete",
                             channels=["email"],
                             template_data={
+                                "recipient_firstName": recipient_firstName,
                                 "profile": {
                                     "completeness": completeness,
                                     "missingFields": ", ".join(missing_fields)

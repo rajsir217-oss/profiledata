@@ -169,15 +169,27 @@ class ConversationMonitorTemplate(JobTemplate):
                             continue
                     
                     # Send notification to both users
-                    for username, other_name in [(user1, user2_name), (user2, user1_name)]:
+                    for username, other_doc, other_name in [
+                        (user1, user2_doc, user2_name), 
+                        (user2, user1_doc, user1_name)
+                    ]:
+                        # Get recipient's first name
+                        recipient_doc = user1_doc if username == user1 else user2_doc
+                        recipient_firstName = recipient_doc.get("firstName", username)
+                        
                         await service.queue_notification(
                             username=username,
                             trigger="conversation_cold",
                             channels=["email"],
                             template_data={
+                                "recipient_firstName": recipient_firstName,
                                 "match": {
-                                    "firstName": other_name
+                                    "firstName": other_name,
+                                    "profileId": other_doc.get("profileId", ""),
+                                    "username": other_doc.get("username", "")
                                 },
+                                "match_firstName": other_name,
+                                "match_profileId": other_doc.get("profileId", ""),
                                 "conversation": {
                                     "lastMessageDate": last_message_date.strftime("%B %d"),
                                     "daysInactive": days_inactive

@@ -3776,6 +3776,7 @@ async def search_users(
     relationshipStatus: str = "",
     bodyType: str = "",
     newlyAdded: bool = False,
+    daysBack: int = 0,
     status_filter: str = "",
     sortBy: str = "newest",
     sortOrder: str = "desc",
@@ -3916,11 +3917,43 @@ async def search_users(
         if bodyType:
             query["bodyType"] = bodyType
 
-        # Newly added filter (last 7 days)
+        # Newly added filter (last 7 days) - legacy, use daysBack instead
         if newlyAdded:
             from datetime import datetime, timedelta
             seven_days_ago = datetime.now() - timedelta(days=7)
             query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
+        
+        # Days back filter - filter by adminApprovedAt date (when profile was approved by admin)
+        # If daysBack=30, show profiles approved in the last 30 days (e.g., today Jan 10 - 30 = Dec 11)
+        if daysBack > 0:
+            from datetime import datetime, timedelta
+            cutoff_date = datetime.utcnow() - timedelta(days=daysBack)
+            cutoff_iso = cutoff_date.isoformat()
+            
+            # Use adminApprovedAt date (when admin approved the profile)
+            # The field can be stored as datetime or ISO string, so check both formats
+            # Fall back to createdAt if adminApprovedAt doesn't exist
+            days_back_query = {"$or": [
+                # adminApprovedAt as datetime object
+                {"adminApprovedAt": {"$gte": cutoff_date, "$type": "date"}},
+                # adminApprovedAt as ISO string (lexicographic comparison works for ISO dates)
+                {"adminApprovedAt": {"$gte": cutoff_iso, "$type": "string"}},
+                # Fallback: if no adminApprovedAt, use createdAt
+                {"$and": [
+                    {"adminApprovedAt": {"$exists": False}},
+                    {"createdAt": {"$gte": cutoff_iso}}
+                ]},
+                {"$and": [
+                    {"adminApprovedAt": None},
+                    {"createdAt": {"$gte": cutoff_iso}}
+                ]}
+            ]}
+            # Merge with existing $and if present
+            if "$and" in query:
+                query["$and"].append(days_back_query)
+            else:
+                query["$and"] = [days_back_query]
+            logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} ({cutoff_iso})")
 
     # Sort options - always add _id as secondary sort for stable pagination
     sort_options = {

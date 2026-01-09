@@ -64,13 +64,20 @@ const SaveSearchModal = ({
       }
       parts.push(heightRange);
       
+      // Days back filter
+      const daysBack = criteria.daysBack || '';
+      parts.push(daysBack ? `${daysBack}d` : '');
+      
       // L3V3L Score
       parts.push(score.toString());
       
       // Keep existing unique number or generate new one
       const currentName = editingScheduleFor.name || '';
       const currentParts = currentName.split('|');
-      const uniqueNum = currentParts.length === 5 ? currentParts[4] : String(Date.now() % 1000).padStart(3, '0');
+      // Format: Gender|Age|Height|DaysBack|Score|UniqueNum (6 parts) or old format (5 parts)
+      const uniqueNum = currentParts.length === 6 ? currentParts[5] : 
+                        currentParts.length === 5 ? currentParts[4] : 
+                        String(Date.now() % 1000).padStart(3, '0');
       parts.push(uniqueNum);
       
       const correctedName = parts.join('|');
@@ -151,6 +158,10 @@ const SaveSearchModal = ({
         heightRange = `<${maxFt}'${maxIn}`;
       }
       parts.push(heightRange);
+      
+      // Days back filter
+      const daysBack = currentCriteria.daysBack || '';
+      parts.push(daysBack ? `${daysBack}d` : '');
       
       // L3V3L Score (just the number)
       const score = minMatchScore > 0 ? minMatchScore.toString() : '0';
