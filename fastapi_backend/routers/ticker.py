@@ -555,7 +555,8 @@ async def get_ticker_settings(
     """
     Get ticker configuration settings (admin only)
     """
-    if current_user.get("role") != "admin":
+    user_role = current_user.get("role") or current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Load settings from database
@@ -579,7 +580,8 @@ async def save_ticker_settings(
     """
     Save ticker configuration settings (admin only)
     """
-    if current_user.get("role") != "admin":
+    user_role = current_user.get("role") or current_user.get("role_name")
+    if user_role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Save settings to database
