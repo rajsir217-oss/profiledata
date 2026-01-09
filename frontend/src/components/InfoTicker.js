@@ -95,16 +95,12 @@ const InfoTicker = () => {
   };
 
   if (loading) {
-    console.log('⏳ Ticker loading...');
     return null;
   }
   
   if (items.length === 0) {
-    console.log('📭 No ticker items to display');
     return null;
   }
-  
-  console.log('✅ Rendering ticker with', items.length, 'items');
 
   // Duplicate items for seamless infinite scroll
   const duplicatedItems = [...items, ...items];

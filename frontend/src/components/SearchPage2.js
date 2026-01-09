@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSearch } from '../api';
@@ -2063,128 +2063,81 @@ const SearchPage2 = () => {
     setShowMessageModal(true);
   };
 
-  logger.info(`🔍 Starting client-side filter with ${users.length} users from backend`);
-  logger.info(`🎯 Current minMatchScore STATE value: ${minMatchScore}`);
-  logger.info(`📋 First 3 users:`, users.slice(0, 3).map(u => ({ username: u.username, age: u.age, height: u.height, matchScore: u.matchScore })));
-  
-  // Check if this is a Profile ID search - bypass most filters if so
-  const isProfileIdSearch = searchCriteria.profileId?.trim();
-  
-  // Client-side filtering - only apply filters NOT handled by server
-  // Server already handles: gender, age, height, location, keyword, exclusions
-  // Client handles: L3V3L score filter only (fetched separately after search)
-  // Note: excludedUsers state is kept for UI display (blocked count badge) only
-  const filteredUsers = users.filter(user => {
-    // Profile ID search bypasses all client-side filters
-    if (isProfileIdSearch) {
-      return true;
-    }
-
-    // Filter by minimum compatibility score (L3V3L) - client-only filter
-    if (minMatchScore > 0) {
-      const userScore = user.matchScore || 0;
-      if (userScore < minMatchScore) {
-        return false;
+  // Memoize filtered and sorted users to prevent excessive re-renders on hover
+  const currentRecords = useMemo(() => {
+    // Check if this is a Profile ID search - bypass most filters if so
+    const isProfileIdSearch = searchCriteria.profileId?.trim();
+    
+    // Client-side filtering - only apply filters NOT handled by server
+    const filteredUsers = users.filter(user => {
+      // Profile ID search bypasses all client-side filters
+      if (isProfileIdSearch) {
+        return true;
       }
-    }
 
-    return true;
-  });
-  
-  logger.info(`📊 Filter Results: ${users.length} users → ${filteredUsers.length} after filtering`);
-  logger.info(`🔀 Sorting by: ${sortBy}, order: ${sortOrder}`);
-  
-  // Debug: Log first 5 users BEFORE sorting with all sort-relevant fields
-  if (filteredUsers.length > 0) {
-    logger.info(`📋 BEFORE SORT (sortBy=${sortBy}, sortOrder=${sortOrder}) - First 5:`, filteredUsers.slice(0, 5).map(u => ({
-      name: u.firstName,
-      age: u.age || calculateAge(u.birthMonth, u.birthYear) || 'N/A',
-      birthYear: u.birthYear,
-      matchScore: u.matchScore || 0,
-      height: u.height
-    })));
-  }
-  
-  // Reset debug flags so we can see new comparisons
-  window._sortDebugLogged = false;
-  window._ageSortDebugLogged = false;
-
-  // Apply sorting to filtered users
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    let compareValue = 0;
-
-    switch (sortBy) {
-      case 'matchScore':
-        compareValue = (b.matchScore || 0) - (a.matchScore || 0);
-        break;
-      
-      case 'age':
-        const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
-        const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
-        compareValue = ageB - ageA; // Higher age first (consistent with "High to Low")
-        // Debug first comparison
-        if (!window._ageSortDebugLogged) {
-          logger.info(`📅 Age sort: ${a.firstName}(${ageA}) vs ${b.firstName}(${ageB}) = ${compareValue}`);
-          window._ageSortDebugLogged = true;
+      // Filter by minimum compatibility score (L3V3L) - client-only filter
+      if (minMatchScore > 0) {
+        const userScore = user.matchScore || 0;
+        if (userScore < minMatchScore) {
+          return false;
         }
-        break;
-      
-      case 'height':
-        const heightA = parseHeight(a.height) || 0;
-        const heightB = parseHeight(b.height) || 0;
-        compareValue = heightB - heightA; // Taller first by default
-        break;
-      
-      case 'location':
-        const locA = (a.location || '').toLowerCase();
-        const locB = (b.location || '').toLowerCase();
-        compareValue = locB.localeCompare(locA); // Z-A first (consistent with "High to Low")
-        break;
-      
-      case 'occupation':
-        const occA = (a.occupation || '').toLowerCase();
-        const occB = (b.occupation || '').toLowerCase();
-        compareValue = occB.localeCompare(occA); // Z-A first (consistent with "High to Low")
-        break;
-      
-      case 'newest':
-        // Use admin approval date (when profile became visible) with fallback to createdAt
-        const dateA = new Date(a.adminApprovedAt || a.createdAt || 0).getTime();
-        const dateB = new Date(b.adminApprovedAt || b.createdAt || 0).getTime();
-        compareValue = dateB - dateA; // Newest approved first
-        // Debug: log first comparison only
-        if (!window._sortDebugLogged) {
-          logger.info(`📅 Newest sort debug - User A: ${a.username}, date: ${a.adminApprovedAt || a.createdAt}, timestamp: ${dateA}`);
-          logger.info(`📅 Newest sort debug - User B: ${b.username}, date: ${b.adminApprovedAt || b.createdAt}, timestamp: ${dateB}`);
-          logger.info(`📅 compareValue: ${compareValue}, sortOrder: ${sortOrder}, final: ${sortOrder === 'desc' ? compareValue : -compareValue}`);
-          window._sortDebugLogged = true;
-        }
-        break;
-      
-      default:
-        compareValue = 0;
-    }
+      }
 
-    // Apply sort order (desc = default natural order, asc = reversed)
-    return sortOrder === 'desc' ? compareValue : -compareValue;
-  });
+      return true;
+    });
 
-  // Debug: Log first 5 users AFTER sorting
-  if (sortedUsers.length > 0) {
-    logger.info(`📋 AFTER SORT (sortBy=${sortBy}, sortOrder=${sortOrder}) - First 5:`, sortedUsers.slice(0, 5).map(u => ({
-      name: u.firstName,
-      age: u.age || calculateAge(u.birthMonth, u.birthYear) || 'N/A',
-      birthYear: u.birthYear,
-      matchScore: u.matchScore || 0,
-      height: u.height
-    })));
-  }
+    // Apply sorting to filtered users
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+      let compareValue = 0;
 
-  // With server-side pagination, all fetched users are displayed
-  // Deduplicate by username to prevent any duplicates from showing
-  const currentRecords = sortedUsers.filter((user, index, self) => 
-    index === self.findIndex(u => u.username === user.username)
-  );
+      switch (sortBy) {
+        case 'matchScore':
+          compareValue = (b.matchScore || 0) - (a.matchScore || 0);
+          break;
+        
+        case 'age':
+          const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
+          const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
+          compareValue = ageB - ageA;
+          break;
+        
+        case 'height':
+          const heightA = parseHeight(a.height) || 0;
+          const heightB = parseHeight(b.height) || 0;
+          compareValue = heightB - heightA;
+          break;
+        
+        case 'location':
+          const locA = (a.location || '').toLowerCase();
+          const locB = (b.location || '').toLowerCase();
+          compareValue = locB.localeCompare(locA);
+          break;
+        
+        case 'occupation':
+          const occA = (a.occupation || '').toLowerCase();
+          const occB = (b.occupation || '').toLowerCase();
+          compareValue = occB.localeCompare(occA);
+          break;
+        
+        case 'newest':
+          const dateA = new Date(a.adminApprovedAt || a.createdAt || 0).getTime();
+          const dateB = new Date(b.adminApprovedAt || b.createdAt || 0).getTime();
+          compareValue = dateB - dateA;
+          break;
+        
+        default:
+          compareValue = 0;
+      }
+
+      // Apply sort order (desc = default natural order, asc = reversed)
+      return sortOrder === 'desc' ? compareValue : -compareValue;
+    });
+
+    // Deduplicate by username to prevent any duplicates from showing
+    return sortedUsers.filter((user, index, self) => 
+      index === self.findIndex(u => u.username === user.username)
+    );
+  }, [users, searchCriteria.profileId, minMatchScore, sortBy, sortOrder]);
 
   const getActiveCriteriaSummary = () => {
     const summary = [];
@@ -2371,7 +2324,7 @@ const SearchPage2 = () => {
             </div>
           )}
 
-          {!loading && filteredUsers.length === 0 && (
+          {!loading && currentRecords.length === 0 && (
             <div className="no-results">
               <h5>No profiles found</h5>
               <p>Try adjusting your search criteria or use broader filters.</p>
@@ -2379,7 +2332,7 @@ const SearchPage2 = () => {
           )}
 
           {/* Sort Controls - Before Results */}
-          {sortedUsers.length > 0 && (
+          {currentRecords.length > 0 && (
             <div className="sort-controls-top">
               {/* Layout Toggle Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2777,7 +2730,7 @@ const SearchPage2 = () => {
           )}
 
           {/* LoadMore - shows count and manual button */}
-          {sortedUsers.length > 0 && (
+          {currentRecords.length > 0 && (
             <LoadMore
               currentCount={Math.min(currentRecords.length, totalResults)}
               totalCount={totalResults}
@@ -2790,7 +2743,7 @@ const SearchPage2 = () => {
           )}
 
           {/* Consolidated Bottom Navigation Bar */}
-          {sortedUsers.length > 0 && (
+          {currentRecords.length > 0 && (
             <div className="results-controls-bottom">
               {/* Cards Per Row + View Toggle */}
               <div className="center-controls">

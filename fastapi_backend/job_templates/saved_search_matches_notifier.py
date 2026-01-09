@@ -268,34 +268,39 @@ EMAIL_TEMPLATE = """
 """
 
 MATCH_CARD_TEMPLATE = """
-<div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-    <h3 style="font-size: 18px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0;">{name}</h3>
-    {l3v3l_badge}
-    <div style="margin: 12px 0;">
-        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-            <span style="margin-right: 8px;">🆔</span>
-            <span>Profile ID: <strong>{profile_id}</strong></span>
-        </div>
-        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-            <span style="margin-right: 8px;">🎂</span>
-            <span>{age} years old</span>
-        </div>
-        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-            <span style="margin-right: 8px;">📏</span>
-            <span>{height}</span>
-        </div>
-        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-            <span style="margin-right: 8px;">📍</span>
-            <span>{location}</span>
-        </div>
-        <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-            <span style="margin-right: 8px;">🎓</span>
-            <span>{education}</span>
-        </div>
-        {religion_detail}
-        {occupation_detail}
+<div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 15px;">
+    <div style="flex-shrink: 0;">
+        <img src="{profile_photo_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 3px solid #667eea;" onerror="this.style.display='none'" />
     </div>
-    <a href="{profile_url}" style="display: inline-block; color: #667eea; text-decoration: none; font-weight: 500; font-size: 14px; margin-top: 8px;">View Full Profile →</a>
+    <div style="flex: 1;">
+        <h3 style="font-size: 18px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0;">{name}</h3>
+        {l3v3l_badge}
+        <div style="margin: 12px 0;">
+            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                <span style="margin-right: 8px;">🆔</span>
+                <span>Profile ID: <strong>{profile_id}</strong></span>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                <span style="margin-right: 8px;">🎂</span>
+                <span>{age} years old</span>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                <span style="margin-right: 8px;">📏</span>
+                <span>{height}</span>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                <span style="margin-right: 8px;">📍</span>
+                <span>{location}</span>
+            </div>
+            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                <span style="margin-right: 8px;">🎓</span>
+                <span>{education}</span>
+            </div>
+            {religion_detail}
+            {occupation_detail}
+        </div>
+        <a href="{profile_url}" style="display: inline-block; color: #667eea; text-decoration: none; font-weight: 500; font-size: 14px; margin-top: 8px;">View Full Profile →</a>
+    </div>
 </div>
 """
 
@@ -800,6 +805,25 @@ async def send_matches_email(
             # Get profileId
             profile_id = decrypted_match.get('profileId', '')
             
+            # Get profile photo URL
+            profile_photo_url = ''
+            photos = decrypted_match.get('photos', [])
+            if photos and isinstance(photos, list) and len(photos) > 0:
+                # Get first photo (primary photo)
+                first_photo = photos[0]
+                if isinstance(first_photo, dict):
+                    profile_photo_url = first_photo.get('url', first_photo.get('thumbnail', ''))
+                elif isinstance(first_photo, str):
+                    profile_photo_url = first_photo
+            
+            # Fallback to profilePhoto field
+            if not profile_photo_url:
+                profile_photo_url = decrypted_match.get('profilePhoto', decrypted_match.get('photoUrl', ''))
+            
+            # Use placeholder if no photo
+            if not profile_photo_url:
+                profile_photo_url = f"{app_url}/default-avatar.png"
+            
             match_html = MATCH_CARD_TEMPLATE.format(
                 name=name,
                 profile_id=profile_id or 'N/A',
@@ -810,7 +834,8 @@ async def send_matches_email(
                 religion_detail=religion_detail,
                 occupation_detail=occupation_detail,
                 l3v3l_badge=l3v3l_badge,
-                profile_url=profile_url
+                profile_url=profile_url,
+                profile_photo_url=profile_photo_url
             )
             
             matches_html_parts.append(match_html)
@@ -823,18 +848,20 @@ async def send_matches_email(
         # Show "more matches" note if there are more than 5
         more_note = ''
         if total_matches > 5:
-            more_note = f'<p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">Showing top {displayed_count} of {total_matches} matches. Click below to see all.</p>'
+            more_note = '<p style="margin: 10px 0 0 0; font-size: 14px; color: #718096;">Showing top ' + str(displayed_count) + ' of ' + str(total_matches) + ' matches. Click below to see all.</p>'
         
         matches_cards_html = ''.join(matches_html_parts)
-        matches_container = f'''
-        <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">
-            <p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">{total_matches}</strong> new match{plural} for you!</p>
-            {more_note}
-        </div>
-        <div style="margin-top: 20px;">
-            {matches_cards_html}
-        </div>
-        '''
+        
+        # Build matches container using string concatenation to avoid any curly brace issues
+        matches_container = (
+            '<div style="background: #f0f4ff; padding: 15px; border-radius: 8px; text-align: center; margin: 20px 0;">'
+            '<p style="margin: 0; font-size: 16px; color: #4a5568;">Found <strong style="color: #667eea; font-size: 24px;">' + str(total_matches) + '</strong> new match' + plural + ' for you!</p>'
+            + more_note +
+            '</div>'
+            '<div style="margin-top: 20px;">'
+            + matches_cards_html +
+            '</div>'
+        )
         
         # Get user info for personalization
         user = await db.users.find_one({'username': username})
