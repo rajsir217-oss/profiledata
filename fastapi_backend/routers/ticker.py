@@ -29,6 +29,8 @@ class TickerSettings(BaseModel):
     piiRequestsLimit: int = 5
     expiringAccessDays: int = 3
     expiringAccessLimit: int = 3
+    savedSearchMatchesLimit: int = 3
+    savedSearchMatchesDays: int = 7
     totalItemsLimit: int = 15
     enableProfileViews: bool = True
     enableFavorites: bool = True
@@ -36,6 +38,7 @@ class TickerSettings(BaseModel):
     enableMessages: bool = True
     enablePiiRequests: bool = True
     enableExpiringAccess: bool = True
+    enableSavedSearchMatches: bool = True
     enableTips: bool = True
 
 
@@ -330,6 +333,63 @@ async def get_ticker_items(
                 "metadata": {
                     "shortlisterUsername": shortlist["userUsername"],
                     "shortlistedAt": shortlist["createdAt"].isoformat()
+                }
+            })
+    
+    # ===== 3.5. SAVED SEARCH MATCHES (Priority 4) =====
+    # Show recent saved search notifications with match counts
+    
+    if settings.enableSavedSearchMatches:
+        cutoff_date = now - timedelta(days=settings.savedSearchMatchesDays)
+        
+        # Get recent saved search notifications for this user
+        recent_notifications = await db.saved_search_notifications.find({
+            "username": username,
+            "last_notification_at": {"$gte": cutoff_date}
+        }).sort("last_notification_at", -1).limit(settings.savedSearchMatchesLimit).to_list(settings.savedSearchMatchesLimit)
+        
+        for notification in recent_notifications:
+            search_id = notification.get("search_id")
+            if not search_id:
+                continue
+            
+            # Get the saved search details
+            try:
+                saved_search = await db.saved_searches.find_one({"_id": ObjectId(search_id)})
+            except Exception:
+                saved_search = None
+            
+            if not saved_search:
+                continue
+            
+            search_name = saved_search.get("name", "Saved Search")
+            match_count = len(notification.get("notified_matches", []))
+            last_notified = notification.get("last_notification_at", now)
+            
+            # Calculate time ago
+            time_diff = now - last_notified
+            total_seconds = int(time_diff.total_seconds())
+            if total_seconds < 3600:
+                time_ago = f"{max(1, total_seconds // 60)}m ago"
+            elif total_seconds < 86400:
+                time_ago = f"{total_seconds // 3600}h ago"
+            else:
+                days = total_seconds // 86400
+                time_ago = f"{days}d ago"
+            
+            items.append({
+                "type": "stat",
+                "subtype": "saved_search_match",
+                "icon": "🔍",
+                "text": f"{match_count} new match{'es' if match_count != 1 else ''} for \"{search_name}\" {time_ago}",
+                "link": f"/search?savedSearchId={search_id}",
+                "priority": 4,
+                "dismissible": True,
+                "metadata": {
+                    "searchId": search_id,
+                    "searchName": search_name,
+                    "matchCount": match_count,
+                    "notifiedAt": last_notified.isoformat()
                 }
             })
     
