@@ -22,6 +22,7 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [genderFilter, setGenderFilter] = useState('all');
+  const [chartType, setChartType] = useState('bar'); // 'bar' or 'pie'
   const [reportData, setReportData] = useState(null);
   const [selectedAge, setSelectedAge] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -176,6 +177,15 @@ const AdminReports = () => {
         <div className="report-header">
           <h2>👤 Members by Age Distribution</h2>
           <div className="filter-controls">
+            <label>Chart:</label>
+            <select 
+              value={chartType} 
+              onChange={(e) => setChartType(e.target.value)}
+              className="chart-type-select"
+            >
+              <option value="bar">📊 Bar</option>
+              <option value="pie">🥧 Pie</option>
+            </select>
             <label>Gender:</label>
             <select 
               value={genderFilter} 
@@ -213,6 +223,77 @@ const AdminReports = () => {
               </span>
             </div>
 
+            {/* Pie Chart */}
+            {chartType === 'pie' && summary && (
+              <div className="pie-chart-container">
+                <svg viewBox="0 0 400 300" className="pie-chart">
+                  {(() => {
+                    const total = summary.maleCount + summary.femaleCount;
+                    const malePercent = total > 0 ? (summary.maleCount / total) * 100 : 0;
+                    const femalePercent = total > 0 ? (summary.femaleCount / total) * 100 : 0;
+                    const maleAngle = (malePercent / 100) * 360;
+                    const centerX = 200;
+                    const centerY = 130;
+                    const radius = 100;
+                    
+                    // Calculate arc paths
+                    const polarToCartesian = (cx, cy, r, angle) => {
+                      const rad = (angle - 90) * Math.PI / 180;
+                      return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+                    };
+                    
+                    const describeArc = (cx, cy, r, startAngle, endAngle) => {
+                      const start = polarToCartesian(cx, cy, r, endAngle);
+                      const end = polarToCartesian(cx, cy, r, startAngle);
+                      const largeArcFlag = endAngle - startAngle <= 180 ? 0 : 1;
+                      return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 ${largeArcFlag} 0 ${end.x} ${end.y} Z`;
+                    };
+                    
+                    return (
+                      <>
+                        {/* Male slice (blue) */}
+                        {summary.maleCount > 0 && (
+                          <path
+                            d={describeArc(centerX, centerY, radius, 0, maleAngle)}
+                            className="pie-slice-male"
+                          />
+                        )}
+                        {/* Female slice (pink) */}
+                        {summary.femaleCount > 0 && (
+                          <path
+                            d={describeArc(centerX, centerY, radius, maleAngle, 360)}
+                            className="pie-slice-female"
+                          />
+                        )}
+                        {/* Center labels */}
+                        <text x={centerX} y={centerY - 10} className="pie-center-label">
+                          {total}
+                        </text>
+                        <text x={centerX} y={centerY + 15} className="pie-center-sublabel">
+                          Total
+                        </text>
+                      </>
+                    );
+                  })()}
+                </svg>
+                
+                {/* Pie Legend with counts */}
+                <div className="pie-legend">
+                  <div className="pie-legend-item">
+                    <span className="legend-color male"></span>
+                    <span>Male: <strong>{summary.maleCount}</strong> ({((summary.maleCount / (summary.maleCount + summary.femaleCount)) * 100).toFixed(1)}%)</span>
+                  </div>
+                  <div className="pie-legend-item">
+                    <span className="legend-color female"></span>
+                    <span>Female: <strong>{summary.femaleCount}</strong> ({((summary.femaleCount / (summary.maleCount + summary.femaleCount)) * 100).toFixed(1)}%)</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Bar/Line Chart */}
+            {chartType === 'bar' && (
+            <>
             <svg 
               viewBox={`0 0 ${chartWidth} ${chartHeight}`}
               className="line-chart"
@@ -289,6 +370,46 @@ const AdminReports = () => {
                 Count
               </text>
 
+              {/* Bar chart - Male (blue) and Female (pink) */}
+              {data.map((d, i) => {
+                const barWidth = Math.max(6, innerWidth / (data.length * 4));
+                const barX = xScale(d.age);
+                const barBottom = chartHeight - padding.bottom;
+                
+                // Use yScale for proper positioning (same as line chart)
+                const maleBarTop = yScale(d.maleCount || 0);
+                const femaleBarTop = yScale(d.femaleCount || 0);
+                const maleHeight = barBottom - maleBarTop;
+                const femaleHeight = barBottom - femaleBarTop;
+                
+                return (
+                  <g key={`bars-${i}`} className="bar-group">
+                    {/* Male bar (blue) - left side */}
+                    {(d.maleCount || 0) > 0 && (
+                      <rect
+                        x={barX - barWidth - 2}
+                        y={maleBarTop}
+                        width={barWidth}
+                        height={maleHeight}
+                        className="bar-male"
+                        onClick={() => handleDataPointClick(d)}
+                      />
+                    )}
+                    {/* Female bar (pink) - right side */}
+                    {(d.femaleCount || 0) > 0 && (
+                      <rect
+                        x={barX + 2}
+                        y={femaleBarTop}
+                        width={barWidth}
+                        height={femaleHeight}
+                        className="bar-female"
+                        onClick={() => handleDataPointClick(d)}
+                      />
+                    )}
+                  </g>
+                );
+              })}
+
               {/* Line path */}
               {linePath && (
                 <path
@@ -319,9 +440,23 @@ const AdminReports = () => {
               ))}
             </svg>
 
+            {/* Legend */}
+            <div className="chart-legend">
+              <div className="legend-item">
+                <span className="legend-color male"></span>
+                <span>Male</span>
+              </div>
+              <div className="legend-item">
+                <span className="legend-color female"></span>
+                <span>Female</span>
+              </div>
+            </div>
+
             <p className="chart-hint">
-              💡 Click on any data point to see the list of members at that age
+              💡 Click on any data point or bar to see the list of members at that age
             </p>
+            </>
+            )}
           </div>
         )}
       </div>

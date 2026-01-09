@@ -81,14 +81,22 @@ async def get_gender_by_age_report(
                     },
                     "else": None
                 }
-            }
+            },
+            # Normalize gender to lowercase for consistent grouping
+            "normalizedGender": {"$toLower": {"$ifNull": ["$gender", "other"]}}
         }},
         # Filter out users without valid age
         {"$match": {"calculatedAge": {"$ne": None, "$gte": 18, "$lte": 100}}},
-        # Group by age
+        # Group by age with gender breakdown
         {"$group": {
             "_id": "$calculatedAge",
             "count": {"$sum": 1},
+            "maleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "male"]}, 1, 0]}
+            },
+            "femaleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "female"]}, 1, 0]}
+            },
             "users": {"$push": {
                 "profileId": "$profileId",
                 "username": "$username",
@@ -104,6 +112,8 @@ async def get_gender_by_age_report(
             "_id": 0,
             "age": "$_id",
             "count": 1,
+            "maleCount": 1,
+            "femaleCount": 1,
             "users": {"$slice": ["$users", 100]}  # Limit users per age to 100
         }}
     ]
