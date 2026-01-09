@@ -2,25 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 import logger from '../utils/logger';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
 
-// Create axios instance for announcements API
-const announcementsApi = axios.create({
+// Create axios instance for announcements API with session handling
+const announcementsApi = addSessionInterceptor(axios.create({
   baseURL: `${getBackendUrl()}/api`
-});
-
-// Add auth token interceptor
-announcementsApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+}));
 
 /**
  * AnnouncementManagement Component

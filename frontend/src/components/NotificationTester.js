@@ -4,29 +4,12 @@ import axios from 'axios';
 import './NotificationTester.css';
 import DeleteButton from './DeleteButton';
 
-// Create a custom API instance for notifications (different base path)
+// Create a custom API instance with session handling
 import { getBackendUrl } from '../config/apiConfig';
-const notificationApi = axios.create({
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
+const notificationApi = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
-
-// Add auth token interceptor
-notificationApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log('🔑 Notification API: Token added to request');
-    } else {
-      console.warn('⚠️ Notification API: No token found in localStorage');
-    }
-    return config;
-  },
-  (error) => {
-    console.error('❌ Notification API: Request interceptor error:', error);
-    return Promise.reject(error);
-  }
-);
+}));
 
 // Add response interceptor for better error handling
 notificationApi.interceptors.response.use(

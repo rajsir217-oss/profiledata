@@ -2,13 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import Logo from './Logo';
 import './VerifyEmail.css';
 
-// Create a separate axios instance for verification API
-const verificationApi = axios.create({
+// Create axios instance with session handling
+const verificationApi = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
+}));
 
 const VerifyEmail = () => {
   const navigate = useNavigate();

@@ -3,23 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './UserManagement.css';
 
-// Create admin API client without baseURL prefix
+// Create admin API client with session handling
 import { getBackendUrl } from '../config/apiConfig';
-const adminApi = axios.create({
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
+const adminApi = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
-
-// Add auth token interceptor
-adminApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+}));
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);

@@ -1,25 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getBackendUrl } from '../../config/apiConfig';
+import { addSessionInterceptor } from '../../utils/axiosInterceptors';
 import { useToast } from '../../hooks/useToast';
 import './SavedSearchNotificationManager.css';
 
-// Create admin API client with proper baseURL
-const adminApi = axios.create({
+// Create admin API client with session handling
+const adminApi = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
-
-// Add auth token interceptor
-adminApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+}));
 
 /**
  * Admin component to view and manage all saved search notifications

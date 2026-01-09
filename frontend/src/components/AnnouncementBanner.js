@@ -1,22 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import logger from '../utils/logger';
 import './AnnouncementBanner.css';
 
-// Create axios instance for announcements API
-const announcementsApi = axios.create({
+// Create axios instance with session handling
+const announcementsApi = addSessionInterceptor(axios.create({
   baseURL: `${getBackendUrl()}/api`
-});
-
-// Add auth token interceptor (optional for public announcements)
-announcementsApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+}));
 
 /**
  * AnnouncementBanner Component

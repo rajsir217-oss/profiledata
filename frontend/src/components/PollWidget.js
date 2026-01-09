@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import './PollWidget.css';
 
-// Create axios instance for polls API (uses /api/polls, not /api/users)
-const pollsApi = axios.create();
-pollsApi.interceptors.request.use((config) => {
-  config.baseURL = getBackendUrl();
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// Create axios instance with session handling
+const pollsApi = addSessionInterceptor(axios.create({
+  baseURL: getBackendUrl()
+}));
 
 /**
  * PollWidget - Displays active polls for users to respond to
