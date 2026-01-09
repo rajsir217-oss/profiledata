@@ -323,6 +323,107 @@ async def get_notification_analytics(
     )
 
 
+@router.get("/analytics/sms-by-month")
+async def get_sms_by_month(
+    year: int = Query(None, description="Year to filter by (defaults to current year)"),
+    current_user: dict = Depends(get_current_user),
+    service: NotificationService = Depends(get_notification_service)
+):
+    """Get SMS delivery count by month for a given year (admin only)"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Admin check
+    user_role = current_user.get("role") or current_user.get("role_name", "free_user")
+    username = current_user.get("username", "")
+    is_admin = (user_role == "admin" or username == "admin")
+    
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    # Default to current year
+    if year is None:
+        year = datetime.utcnow().year
+    
+    logger.info(f"📊 SMS by month analytics for year {year}")
+    
+    # Build aggregation pipeline for SMS logs by month
+    pipeline = [
+        {
+            "$match": {
+                "channel": "sms",
+                "sentAt": {
+                    "$gte": datetime(year, 1, 1),
+                    "$lt": datetime(year + 1, 1, 1)
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": {"$month": "$sentAt"},
+                "count": {"$sum": 1},
+                "delivered": {
+                    "$sum": {"$cond": [{"$in": ["$status", ["sent", "delivered"]]}, 1, 0]}
+                },
+                "failed": {
+                    "$sum": {"$cond": [{"$eq": ["$status", "failed"]}, 1, 0]}
+                }
+            }
+        },
+        {"$sort": {"_id": 1}}
+    ]
+    
+    results = await service.db["notification_log"].aggregate(pipeline).to_list(12)
+    
+    # Build monthly data with all 12 months (fill zeros for missing months)
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", 
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    monthly_data = []
+    results_map = {r["_id"]: r for r in results}
+    
+    for month_num in range(1, 13):
+        data = results_map.get(month_num, {"count": 0, "delivered": 0, "failed": 0})
+        monthly_data.append({
+            "month": month_num,
+            "monthName": month_names[month_num - 1],
+            "count": data["count"],
+            "delivered": data.get("delivered", 0),
+            "failed": data.get("failed", 0)
+        })
+    
+    # Calculate totals
+    total_sent = sum(m["count"] for m in monthly_data)
+    total_delivered = sum(m["delivered"] for m in monthly_data)
+    total_failed = sum(m["failed"] for m in monthly_data)
+    
+    # Get available years (for dropdown)
+    years_pipeline = [
+        {"$match": {"channel": "sms"}},
+        {"$group": {"_id": {"$year": "$sentAt"}}},
+        {"$sort": {"_id": -1}}
+    ]
+    years_result = await service.db["notification_log"].aggregate(years_pipeline).to_list(10)
+    available_years = [r["_id"] for r in years_result if r["_id"]]
+    
+    # Ensure current year is in the list
+    current_year = datetime.utcnow().year
+    if current_year not in available_years:
+        available_years.insert(0, current_year)
+    
+    return {
+        "success": True,
+        "year": year,
+        "availableYears": available_years,
+        "monthlyData": monthly_data,
+        "totals": {
+            "sent": total_sent,
+            "delivered": total_delivered,
+            "failed": total_failed
+        },
+        "monthlyLimit": 500  # Plan limit
+    }
+
+
 @router.get("/analytics/global", response_model=NotificationAnalytics)
 async def get_global_analytics(
     trigger: Optional[NotificationTrigger] = Query(None),

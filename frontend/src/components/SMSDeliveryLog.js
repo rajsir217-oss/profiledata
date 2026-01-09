@@ -16,6 +16,14 @@ const SMSDeliveryLog = () => {
   const [displayCount, setDisplayCount] = useState(20);
   const [stats, setStats] = useState({ today: 0, week: 0, month: 0 });
   const PAGE_SIZE = 20;
+  
+  // SMS Usage Chart state
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [availableYears, setAvailableYears] = useState([new Date().getFullYear()]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [chartTotals, setChartTotals] = useState({ sent: 0, delivered: 0, failed: 0 });
+  const [chartLoading, setChartLoading] = useState(false);
+  const MONTHLY_LIMIT = 500;
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -61,9 +69,32 @@ const SMSDeliveryLog = () => {
     }
   }, []);
 
+  // Load SMS by month chart data
+  const loadChartData = useCallback(async (year) => {
+    setChartLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${getBackendUrl()}/api/notifications/analytics/sms-by-month`, {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { year }
+      });
+      
+      if (response.data.success) {
+        setMonthlyData(response.data.monthlyData || []);
+        setChartTotals(response.data.totals || { sent: 0, delivered: 0, failed: 0 });
+        setAvailableYears(response.data.availableYears || [new Date().getFullYear()]);
+      }
+    } catch (err) {
+      console.error('Failed to load SMS chart data:', err);
+    } finally {
+      setChartLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     loadLogs();
-  }, [loadLogs]);
+    loadChartData(selectedYear);
+  }, [loadLogs, loadChartData, selectedYear]);
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -158,6 +189,81 @@ const SMSDeliveryLog = () => {
           <span className="stat-value">{stats.month}</span>
           <span className="stat-label">This Month</span>
         </div>
+      </div>
+
+      {/* SMS Usage Chart */}
+      <div className="sms-usage-chart">
+        <div className="chart-header">
+          <h4>📊 SMS Usage by Month</h4>
+          <div className="chart-controls">
+            <span className="plan-limit">Plan: {MONTHLY_LIMIT}/month</span>
+            <select 
+              value={selectedYear} 
+              onChange={(e) => setSelectedYear(parseInt(e.target.value))}
+              className="year-select"
+            >
+              {availableYears.map(year => (
+                <option key={year} value={year}>{year}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        
+        {chartLoading ? (
+          <div className="chart-loading">Loading chart...</div>
+        ) : (
+          <>
+            <div className="chart-summary">
+              <span>Year Total: <strong>{chartTotals.sent}</strong> SMS</span>
+              <span className="delivered">Delivered: <strong>{chartTotals.delivered}</strong></span>
+              <span className="failed">Failed: <strong>{chartTotals.failed}</strong></span>
+            </div>
+            
+            <div className="bar-chart">
+              {monthlyData.map((m, i) => {
+                const maxCount = Math.max(...monthlyData.map(d => d.count), MONTHLY_LIMIT);
+                const barHeight = maxCount > 0 ? (m.count / maxCount) * 100 : 0;
+                const limitLine = (MONTHLY_LIMIT / maxCount) * 100;
+                const isOverLimit = m.count > MONTHLY_LIMIT;
+                const currentMonth = new Date().getMonth() + 1;
+                const isCurrentMonth = selectedYear === new Date().getFullYear() && m.month === currentMonth;
+                
+                return (
+                  <div key={i} className="bar-container">
+                    <div className="bar-wrapper">
+                      {/* Limit line indicator */}
+                      <div 
+                        className="limit-line" 
+                        style={{ bottom: `${limitLine}%` }}
+                        title={`Monthly limit: ${MONTHLY_LIMIT}`}
+                      />
+                      <div 
+                        className={`bar ${isOverLimit ? 'over-limit' : ''} ${isCurrentMonth ? 'current' : ''}`}
+                        style={{ height: `${barHeight}%` }}
+                        title={`${m.monthName}: ${m.count} SMS (Delivered: ${m.delivered}, Failed: ${m.failed})`}
+                      >
+                        {m.count > 0 && <span className="bar-value">{m.count}</span>}
+                      </div>
+                    </div>
+                    <span className="bar-label">{m.monthName}</span>
+                  </div>
+                );
+              })}
+            </div>
+            
+            <div className="chart-legend">
+              <span className="legend-item">
+                <span className="legend-color normal"></span> Under limit
+              </span>
+              <span className="legend-item">
+                <span className="legend-color over"></span> Over limit
+              </span>
+              <span className="legend-item">
+                <span className="legend-line"></span> {MONTHLY_LIMIT} limit
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="log-controls">

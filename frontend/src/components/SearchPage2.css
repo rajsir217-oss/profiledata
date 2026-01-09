@@ -1094,12 +1094,11 @@
   max-height: 280px;
   object-fit: cover;
   border-radius: 8px;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: box-shadow 0.2s ease;
   opacity: 1;
 }
 
 .profile-thumbnail:hover {
-  transform: scale(1.05);
   box-shadow: var(--shadow-lg);
 }
 
@@ -1175,9 +1174,19 @@
   flex-direction: column;
 }
 
+.result-card .card {
+  will-change: box-shadow;
+}
+
+/* Disable global hover transform effects that cause flickering */
+.result-card .card::before {
+  display: none !important;
+}
+
 .result-card .card:hover {
-  transform: translateY(-5px);
   box-shadow: var(--shadow-lg);
+  /* transform: none !important; */
+  border-color: var(--primary-color);
 }
 
 /* Card Title Section */
@@ -1191,12 +1200,6 @@
   border-radius: 12px 12px 0 0;
   gap: 10px;
   flex-wrap: wrap;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.result-card .card-title-section:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
 }
 
 .result-card .card-title-section .card-title {
@@ -1232,7 +1235,6 @@
 }
 
 .result-card .l3v3l-match-badge:hover {
-  transform: translateY(-1px);
   box-shadow: var(--shadow-lg);
 }
 
@@ -1437,8 +1439,8 @@
 }
 
 .card-action-icon-btn:hover:not(:disabled) {
-  transform: scale(1.1);
   border-color: var(--primary-color);
+  background: var(--hover-background);
 }
 
 .card-action-icon-btn.pending {
