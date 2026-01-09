@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import { getDisplayName } from '../utils/userDisplay';
-import OnlineStatusBadge from './OnlineStatusBadge';
+import { getProfilePicUrl } from '../utils/urlHelper';
+import onlineStatusService from '../services/onlineStatusService';
 import './MessagesDropdown.css';
 
 /**
@@ -13,7 +14,24 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
   const navigate = useNavigate();
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [onlineStatuses, setOnlineStatuses] = useState({});
   const currentUsername = localStorage.getItem('username');
+  
+  // Get initials from first and last name
+  const getInitials = (conv) => {
+    const firstName = conv?.firstName || '';
+    const lastName = conv?.lastName || '';
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    }
+    return conv?.username?.[0]?.toUpperCase() || '?';
+  };
+  
+  const isUserOnline = useCallback((username) => {
+    return onlineStatuses[username] || false;
+  }, [onlineStatuses]);
 
   const loadConversations = useCallback(async () => {
     if (!currentUsername) return;
@@ -34,6 +52,32 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
       loadConversations();
     }
   }, [isOpen, loadConversations]);
+  
+  // Track online status for conversation users
+  useEffect(() => {
+    if (!conversations || conversations.length === 0) return;
+    
+    const checkAllStatuses = async () => {
+      const statuses = {};
+      for (const conv of conversations) {
+        try {
+          const online = await onlineStatusService.isUserOnline(conv.username);
+          statuses[conv.username] = online;
+        } catch (e) {
+          statuses[conv.username] = false;
+        }
+      }
+      setOnlineStatuses(statuses);
+    };
+    
+    checkAllStatuses();
+    
+    const unsubscribe = onlineStatusService.subscribe((username, online) => {
+      setOnlineStatuses(prev => ({ ...prev, [username]: online }));
+    });
+    
+    return () => unsubscribe();
+  }, [conversations]);
 
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return '';
@@ -112,29 +156,22 @@ const MessagesDropdown = ({ isOpen, onClose, onOpenMessage }) => {
                   onClick={() => handleConversationClick(conv)}
                 >
                   <div className="conversation-avatar-container">
-                    {(conv.avatar || conv.profilePic || conv.images?.[0]) ? (
+                    {getProfilePicUrl(conv) ? (
                       <img 
-                        src={conv.avatar || conv.profilePic || conv.images?.[0]} 
+                        src={getProfilePicUrl(conv)} 
                         alt={getDisplayName(conv)} 
                         className="conversation-avatar"
                       />
                     ) : (
                       <div className="conversation-avatar-placeholder">
-                        {conv.firstName?.[0] || conv.username[0].toUpperCase()}
+                        {getInitials(conv)}
                       </div>
                     )}
-                    <div className="conversation-status-badge">
-                      <OnlineStatusBadge 
-                        username={conv.username} 
-                        size="small" 
-                        showTooltip={false}
-                      />
-                    </div>
                   </div>
 
                   <div className="conversation-details">
                     <div className="conversation-header">
-                      <span className="conversation-name">
+                      <span className={`conversation-name ${isUserOnline(conv.username) ? 'online' : 'offline'}`}>
                         {getDisplayName(conv)}
                       </span>
                       <span className="conversation-time">

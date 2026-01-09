@@ -1,14 +1,65 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import OnlineStatusBadge from './OnlineStatusBadge';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
 import { getDisplayName } from '../utils/userDisplay';
 import { getProfilePicUrl } from '../utils/urlHelper';
+import onlineStatusService from '../services/onlineStatusService';
 import './MessageList.css';
 
 const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
   const navigate = useNavigate();
-  const [imageErrors, setImageErrors] = React.useState({});
+  const [imageErrors, setImageErrors] = useState({});
+  const [onlineStatuses, setOnlineStatuses] = useState({});
+  
+  // Track online status for all conversation users
+  useEffect(() => {
+    if (!conversations || conversations.length === 0) return;
+    
+    // Initial check for all users
+    const checkAllStatuses = async () => {
+      const statuses = {};
+      for (const conv of conversations) {
+        try {
+          const online = await onlineStatusService.isUserOnline(conv.username);
+          statuses[conv.username] = online;
+        } catch (e) {
+          statuses[conv.username] = false;
+        }
+      }
+      setOnlineStatuses(statuses);
+    };
+    
+    checkAllStatuses();
+    
+    // Subscribe to real-time updates
+    const unsubscribe = onlineStatusService.subscribe((username, online) => {
+      setOnlineStatuses(prev => ({ ...prev, [username]: online }));
+    });
+    
+    // Periodic refresh every 30 seconds
+    const interval = setInterval(checkAllStatuses, 30000);
+    
+    return () => {
+      unsubscribe();
+      clearInterval(interval);
+    };
+  }, [conversations]);
+  
+  const isUserOnline = useCallback((username) => {
+    return onlineStatuses[username] || false;
+  }, [onlineStatuses]);
+  
+  // Get initials from first and last name
+  const getInitials = (userProfile, username) => {
+    const firstName = userProfile?.firstName || '';
+    const lastName = userProfile?.lastName || '';
+    if (firstName && lastName) {
+      return `${firstName[0]}${lastName[0]}`.toUpperCase();
+    } else if (firstName) {
+      return firstName[0].toUpperCase();
+    }
+    return username?.[0]?.toUpperCase() || '?';
+  };
 
   const handleImageError = (username) => {
     setImageErrors(prev => ({ ...prev, [username]: true }));
@@ -58,7 +109,7 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               className={`conversation-item ${selectedUser === conv.username ? 'active' : ''}`}
               onClick={() => onSelectUser(conv.username)}
             >
-              {/* Avatar */}
+              {/* Avatar - shows profile pic or initials */}
               <div className="conversation-avatar">
                 {getProfilePicUrl(conv.userProfile) && !imageErrors[conv.username] ? (
                   <img 
@@ -68,12 +119,9 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                   />
                 ) : (
                   <div className="avatar-placeholder">
-                    {conv.userProfile?.firstName?.[0] || conv.username[0].toUpperCase()}
+                    {getInitials(conv.userProfile, conv.username)}
                   </div>
                 )}
-                <div className="status-badge-absolute">
-                  <OnlineStatusBadge username={conv.username} size="small" />
-                </div>
                 {conv.unreadCount > 0 && (
                   <span className="unread-badge">{conv.unreadCount}</span>
                 )}
@@ -82,7 +130,7 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
               {/* Info - Name, Date, Message Preview */}
               <div className="conversation-info">
                 <div className="conversation-header">
-                  <span className="conversation-name">
+                  <span className={`conversation-name ${isUserOnline(conv.username) ? 'online' : 'offline'}`}>
                     {getDisplayName(conv.userProfile) || conv.username}
                     {conv.userProfile?.profileCreatedBy && (
                       <ProfileCreatorBadge 

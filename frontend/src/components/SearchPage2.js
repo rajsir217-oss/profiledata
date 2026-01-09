@@ -2225,6 +2225,11 @@ const SearchPage2 = () => {
     // With photos only
     if (searchCriteria.withPhotosOnly) summary.push('📷 With Photos');
     
+    // Days back filter
+    if (searchCriteria.daysBack && searchCriteria.daysBack > 0) {
+      summary.push(`📅 Last ${searchCriteria.daysBack}d`);
+    }
+    
     return summary.length > 0 ? summary.join(' • ') : 'Showing all matches';
   };
 

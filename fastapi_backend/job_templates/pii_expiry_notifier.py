@@ -120,15 +120,23 @@ class PIIExpiryNotifierTemplate(JobTemplate):
                     days_remaining = (expires_at - now).days
                     expiry_date = expires_at.strftime("%B %d, %Y")
                     
+                    # Get requester's first name for template
+                    requester_user = await context.db.users.find_one({"username": requester})
+                    requester_firstName = requester_user.get("firstName", requester) if requester_user else requester
+                    
                     # Queue notification
                     await service.queue_notification(
                         username=requester,
                         trigger="pii_expiring",
                         channels=["email"],
                         template_data={
+                            "recipient_firstName": requester_firstName,
                             "match": {
-                                "firstName": target_name
+                                "firstName": target_name,
+                                "profileId": target_user.get("profileId", "") if target_user else ""
                             },
+                            "match_firstName": target_name,
+                            "match_profileId": target_user.get("profileId", "") if target_user else "",
                             "pii": {
                                 "daysRemaining": days_remaining,
                                 "expiryDate": expiry_date

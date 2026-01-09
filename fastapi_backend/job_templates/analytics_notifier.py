@@ -217,11 +217,15 @@ class AnalyticsNotifierTemplate(JobTemplate):
                 })
                 
                 if not last_spike:
+                    # Get user's first name
+                    recipient_firstName = user.get("firstName", username)
+                    
                     await service.queue_notification(
                         username=username,
                         trigger="profile_visibility_spike",
                         channels=["email"],
                         template_data={
+                            "recipient_firstName": recipient_firstName,
                             "stats": {
                                 "increase": int(increase),
                                 "period": "24 hours",
@@ -279,11 +283,15 @@ class AnalyticsNotifierTemplate(JobTemplate):
                     })
                     
                     if not already_notified:
+                        # Get user's first name
+                        recipient_firstName = user.get("firstName", username)
+                        
                         await service.queue_notification(
                             username=username,
                             trigger="match_milestone",
                             channels=["email", "push"],
                             template_data={
+                                "recipient_firstName": recipient_firstName,
                                 "milestone": {
                                     "description": milestone["description"],
                                     "value": milestone["value"]
@@ -330,11 +338,16 @@ class AnalyticsNotifierTemplate(JobTemplate):
                 })
                 
                 if not already_sent:
+                    # Get user's first name
+                    user = await context.db.users.find_one({"username": username})
+                    recipient_firstName = user.get("firstName", username) if user else username
+                    
                     await service.queue_notification(
                         username=username,
                         trigger="search_appearance",
                         channels=["email"],
                         template_data={
+                            "recipient_firstName": recipient_firstName,
                             "stats": {
                                 "searchCount": search_count
                             }
