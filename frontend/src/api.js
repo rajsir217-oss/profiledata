@@ -548,6 +548,50 @@ export const updateEmailPreferences = (preferences) => {
   return api.put('/account/email-preferences', preferences);
 };
 
+/**
+ * Create a configured axios instance with session handling
+ * Use this instead of creating custom axios instances in components
+ * @param {string} baseURL - Optional custom base URL (defaults to getBackendUrl())
+ * @returns {AxiosInstance} Configured axios instance with auth and session handling
+ */
+export const createApiInstance = (baseURL = null) => {
+  const instance = axios.create({
+    baseURL: baseURL || getBackendUrl()
+  });
+
+  // Add auth token to requests
+  instance.interceptors.request.use(
+    (config) => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      // Track activity for session management
+      if (sessionManager.isActive) {
+        sessionManager.handleActivity();
+      }
+      return config;
+    },
+    (error) => Promise.reject(error)
+  );
+
+  // Handle 401 responses - redirect to login
+  instance.interceptors.response.use(
+    (response) => response,
+    (error) => {
+      if (error.response?.status === 401) {
+        const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+        if (!hasLoggedOut) {
+          console.warn('🔒 Session expired - redirecting to login');
+          sessionStorage.setItem('hasLoggedOut', 'true');
+          sessionManager.logout();
+        }
+      }
+      return Promise.reject(error);
+    }
+  );
+
+  return instance;
+};
+
 export default api;
-
-

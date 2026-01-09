@@ -1,14 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
-import axios from 'axios';
+import { createApiInstance } from '../api';
 import './AdminReports.css';
 
-// Create axios instance with session handling
-const api = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const api = createApiInstance();
 
 const AdminReports = () => {
   const navigate = useNavigate();

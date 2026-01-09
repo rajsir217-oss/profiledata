@@ -1,18 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import useToast from '../hooks/useToast';
 import DeleteButton from './DeleteButton';
 import logger from '../utils/logger';
 import './AnnouncementManagement.css';
 import './TickerSettings.css';
 
-// Create axios instance for announcements API with session handling
-const announcementsApi = addSessionInterceptor(axios.create({
-  baseURL: `${getBackendUrl()}/api`
-}));
+// Use global API factory for session handling
+const announcementsApi = createApiInstance(`${getBackendUrl()}/api`);
 
 /**
  * AnnouncementManagement Component

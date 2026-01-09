@@ -20,12 +20,10 @@ import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
 import "./Profile.css";
 import { ACTION_ICONS } from "../constants/icons";
-import { addSessionInterceptor } from "../utils/axiosInterceptors";
+import { createApiInstance } from "../api";
 
-// Create axios instance with session handling
-const verificationApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const verificationApi = createApiInstance();
 
 const Profile = ({ 
   usernameFromProp = null,  // Optional: username passed as prop for embedded mode
