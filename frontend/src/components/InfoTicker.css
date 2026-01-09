@@ -143,13 +143,31 @@
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Action Required Items */
+/* Action Required Items - Base (urgent red) */
 .ticker-action_required {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(239, 68, 68, 0.45);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  border: 1px solid rgba(248, 113, 113, 0.5);
   font-weight: 600;
   animation: urgent-pulse 2s ease-in-out infinite;
+}
+
+/* PII Requests - Orange/amber for attention */
+.ticker-action_required.ticker-pii_request {
+  background: rgba(249, 115, 22, 0.45);
+  border: 1px solid rgba(251, 146, 60, 0.5);
+}
+
+/* Messages - Blue for communication */
+.ticker-action_required.ticker-message {
+  background: rgba(59, 130, 246, 0.45);
+  border: 1px solid rgba(96, 165, 250, 0.5);
+}
+
+/* Expiring Access - Yellow/warning */
+.ticker-action_required.ticker-pii_expiring {
+  background: rgba(234, 179, 8, 0.45);
+  border: 1px solid rgba(250, 204, 21, 0.5);
 }
 
 @keyframes urgent-pulse {
@@ -163,18 +181,42 @@
   }
 }
 
-/* User Stats */
+/* User Stats - Base */
 .ticker-stat {
   background: rgba(255, 255, 255, 0.15);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* Tips */
+/* Profile Views - Eye-catching purple/blue */
+.ticker-stat.ticker-profile_view {
+  background: rgba(99, 102, 241, 0.4);
+  border: 1px solid rgba(129, 140, 248, 0.5);
+}
+
+/* Favorites - Golden/amber */
+.ticker-stat.ticker-favorite {
+  background: rgba(245, 158, 11, 0.4);
+  border: 1px solid rgba(251, 191, 36, 0.5);
+}
+
+/* Shortlists - Teal/cyan */
+.ticker-stat.ticker-shortlist {
+  background: rgba(20, 184, 166, 0.4);
+  border: 1px solid rgba(45, 212, 191, 0.5);
+}
+
+/* Saved Search Matches - Vibrant pink/magenta */
+.ticker-stat.ticker-saved_search_match {
+  background: rgba(236, 72, 153, 0.4);
+  border: 1px solid rgba(244, 114, 182, 0.5);
+}
+
+/* Tips - Green */
 .ticker-tip {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(34, 197, 94, 0.35);
   color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.4);
 }
 
 /* Separator */

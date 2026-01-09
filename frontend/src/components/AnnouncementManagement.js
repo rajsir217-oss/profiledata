@@ -46,6 +46,8 @@ const AnnouncementManagement = () => {
     piiRequestsLimit: 5,
     expiringAccessDays: 3,
     expiringAccessLimit: 3,
+    savedSearchMatchesLimit: 3,
+    savedSearchMatchesDays: 7,
     totalItemsLimit: 15,
     enableProfileViews: true,
     enableFavorites: true,
@@ -53,6 +55,7 @@ const AnnouncementManagement = () => {
     enableMessages: true,
     enablePiiRequests: true,
     enableExpiringAccess: true,
+    enableSavedSearchMatches: true,
     enableTips: true
   });
   const [savingSettings, setSavingSettings] = useState(false);
@@ -129,11 +132,14 @@ const AnnouncementManagement = () => {
   const handleSaveTickerSettings = async () => {
     try {
       setSavingSettings(true);
-      await announcementsApi.post('/ticker/settings', tickerSettings);
+      const response = await announcementsApi.post('/ticker/settings', tickerSettings);
+      console.log('✅ Ticker settings saved:', response.data);
       toast.success('Ticker settings saved successfully!');
     } catch (error) {
+      console.error('❌ Error saving ticker settings:', error);
       logger.error('Error saving ticker settings:', error);
-      toast.error('Failed to save ticker settings');
+      const errorMessage = error.response?.data?.detail || 'Failed to save ticker settings';
+      toast.error(errorMessage);
     } finally {
       setSavingSettings(false);
     }
@@ -788,6 +794,47 @@ const AnnouncementManagement = () => {
                       onChange={(e) => handleTickerSettingChange('expiringAccessLimit', parseInt(e.target.value))}
                     />
                     <small>Maximum expiring access items to show</small>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Saved Search Matches */}
+            <div className="setting-section">
+              <div className="section-header">
+                <h3>🔍 Saved Search Matches</h3>
+                <label className="toggle-switch">
+                  <input
+                    type="checkbox"
+                    checked={tickerSettings.enableSavedSearchMatches}
+                    onChange={(e) => handleTickerSettingChange('enableSavedSearchMatches', e.target.checked)}
+                  />
+                  <span className="toggle-slider"></span>
+                </label>
+              </div>
+              {tickerSettings.enableSavedSearchMatches && (
+                <div className="setting-inputs">
+                  <div className="input-group">
+                    <label>Lookback Days</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="30"
+                      value={tickerSettings.savedSearchMatchesDays}
+                      onChange={(e) => handleTickerSettingChange('savedSearchMatchesDays', parseInt(e.target.value))}
+                    />
+                    <small>Show matches from the last X days</small>
+                  </div>
+                  <div className="input-group">
+                    <label>Max Items</label>
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={tickerSettings.savedSearchMatchesLimit}
+                      onChange={(e) => handleTickerSettingChange('savedSearchMatchesLimit', parseInt(e.target.value))}
+                    />
+                    <small>Maximum saved search notifications to show</small>
                   </div>
                 </div>
               )}
