@@ -3996,6 +3996,13 @@ async def search_users(
             current_year = datetime.now().year
             current_month = datetime.now().month
             
+            # Build age filter conditions dynamically (avoid empty objects in $and)
+            age_conditions = [{"calculatedAge": {"$ne": None}}]  # Must have age data
+            if age_filter_min is not None:
+                age_conditions.append({"calculatedAge": {"$gte": age_filter_min}})
+            if age_filter_max is not None:
+                age_conditions.append({"calculatedAge": {"$lte": age_filter_max}})
+            
             # Build aggregation pipeline
             pipeline = [
                 # Stage 1: Match base query
@@ -4034,14 +4041,8 @@ async def search_users(
                 # Stage 3: Filter by calculated age (LENIENT - include users without age data)
                 {"$match": {
                     "$or": [
-                        # Match age range
-                        {
-                            "$and": [
-                                {"calculatedAge": {"$gte": age_filter_min}} if age_filter_min else {},
-                                {"calculatedAge": {"$lte": age_filter_max}} if age_filter_max else {},
-                                {"calculatedAge": {"$ne": None}}  # Has age data
-                            ]
-                        },
+                        # Match age range with all conditions
+                        {"$and": age_conditions},
                         # OR: No age data (lenient)
                         {"calculatedAge": None}
                     ]
