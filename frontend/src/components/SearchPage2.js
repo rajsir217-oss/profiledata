@@ -64,7 +64,7 @@ const SearchPage2 = () => {
     smoking: '',
     relationshipStatus: '',
     newlyAdded: false,
-    daysBack: '', // Number of days to look back for profile creation
+    daysBack: 30, // Number of days to look back for profile creation (default: 30)
   });
   const [favoritedUsers, setFavoritedUsers] = useState(new Set());
   const [shortlistedUsers, setShortlistedUsers] = useState(new Set());
@@ -1187,7 +1187,8 @@ const SearchPage2 = () => {
       heightMinFeet: defaultHeightMinFeet,
       heightMinInches: defaultHeightMinInches,
       heightMaxFeet: defaultHeightMaxFeet,
-      heightMaxInches: defaultHeightMaxInches
+      heightMaxInches: defaultHeightMaxInches,
+      daysBack: 30
     };
   };
 
@@ -1246,6 +1247,7 @@ const SearchPage2 = () => {
         relationshipStatus: '',
         bodyType: '',
         newlyAdded: false,
+        daysBack: 30,
         sortBy: 'age',
         sortOrder: 'asc'
       });
@@ -1275,6 +1277,7 @@ const SearchPage2 = () => {
         relationshipStatus: '',
         bodyType: '',
         newlyAdded: false,
+        daysBack: defaults.daysBack || 30,
         sortBy: 'age',
         sortOrder: 'asc'
       });
@@ -1632,6 +1635,11 @@ const SearchPage2 = () => {
       parts.push(`with keywords "${criteria.keyword}"`);
     }
     
+    // Days Back (new profiles)
+    if (criteria.daysBack && criteria.daysBack > 0) {
+      parts.push(`joined in last ${criteria.daysBack} days`);
+    }
+    
     // Join all parts with commas and "and" before the last item
     if (parts.length === 0) {
       return "Search with no specific criteria";
@@ -1662,7 +1670,13 @@ const SearchPage2 = () => {
     // Expand filters if they were collapsed so user can see what was loaded
     setFiltersCollapsed(false);
     
-    setSearchCriteria(savedSearch.criteria);
+    // Apply default daysBack if not set in saved search (for backward compatibility)
+    const criteriaWithDefaults = {
+      ...savedSearch.criteria,
+      daysBack: savedSearch.criteria.daysBack || 30
+    };
+    
+    setSearchCriteria(criteriaWithDefaults);
     // Restore L3V3L match score if saved
     const loadedMinScore = savedSearch.minMatchScore !== undefined ? savedSearch.minMatchScore : 0;
     setMinMatchScore(loadedMinScore);
@@ -1673,7 +1687,7 @@ const SearchPage2 = () => {
     // Automatically perform search with loaded criteria
     // Pass the criteria directly to handleSearch to ensure immediate execution with correct values
     setTimeout(() => {
-      handleSearch(1, loadedMinScore, savedSearch.criteria);
+      handleSearch(1, loadedMinScore, criteriaWithDefaults);
     }, 100);
   };
 
