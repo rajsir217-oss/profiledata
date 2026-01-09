@@ -3092,7 +3092,8 @@ async def get_user_preferences(
             )
         
         preferences = {
-            "themePreference": user.get("themePreference", "light-blue")
+            "themePreference": user.get("themePreference", "light-blue"),
+            "homePage": user.get("homePage", "dashboard")
         }
         
         logger.info(f"✅ Retrieved preferences for '{username}': {preferences}")
@@ -3115,8 +3116,9 @@ async def update_user_preferences(
     """Update current user's preferences"""
     username = current_user.get("username")
     theme_preference = preferences.get("themePreference")
+    home_page = preferences.get("homePage")
     
-    logger.info(f"⚙️ Updating preferences for user '{username}': theme={theme_preference}")
+    logger.info(f"⚙️ Updating preferences for user '{username}': theme={theme_preference}, homePage={home_page}")
     
     # Validate theme
     valid_themes = ['light-blue', 'dark', 'light-pink', 'light-gray', 'ultra-light-gray', 'ultra-light-green', 'ultra-black', 'indian-wedding', 'newspaper']
@@ -3127,12 +3129,22 @@ async def update_user_preferences(
             detail=f"Invalid theme. Must be one of: {', '.join(valid_themes)}"
         )
     
+    # Validate home page
+    valid_home_pages = ['dashboard', 'search', 'messages']
+    if home_page and home_page not in valid_home_pages:
+        logger.warning(f"⚠️ Invalid home page: {home_page}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid home page. Must be one of: {', '.join(valid_home_pages)}"
+        )
+    
     try:
-        # Update user preferences
-        update_data = {
-            "themePreference": theme_preference,
-            "updatedAt": datetime.utcnow()
-        }
+        # Update user preferences (only set fields that are provided)
+        update_data = {"updatedAt": datetime.utcnow()}
+        if theme_preference:
+            update_data["themePreference"] = theme_preference
+        if home_page:
+            update_data["homePage"] = home_page
         
         result = await db.users.update_one(
             {"username": username},
@@ -3146,10 +3158,11 @@ async def update_user_preferences(
                 detail="User not found"
             )
         
-        logger.info(f"✅ Updated preferences for '{username}': theme={theme_preference}")
+        logger.info(f"✅ Updated preferences for '{username}': theme={theme_preference}, homePage={home_page}")
         return {
             "message": "Preferences updated successfully",
-            "themePreference": theme_preference
+            "themePreference": theme_preference,
+            "homePage": home_page
         }
     except HTTPException:
         raise
