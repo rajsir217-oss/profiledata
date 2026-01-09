@@ -841,6 +841,10 @@
   border-left: 3px solid #14b8a6;
 }
 
+.stat-card-compact.stat-card-saved-search {
+  border-left: 3px solid #8b5cf6;
+}
+
 .stat-card-compact.stat-card-disabled {
   border-left: 3px solid var(--text-muted, #999);
   opacity: 0.5;

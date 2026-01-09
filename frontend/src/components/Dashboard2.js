@@ -51,7 +51,8 @@ const Dashboard2 = () => {
     incomingContactRequests: [],
     theirFavorites: [],
     theirShortlists: [],
-    receivedAccess: []
+    receivedAccess: [],
+    savedSearches: []
   });
   const [lastLoginAt, setLastLoginAt] = useState(null);
   
@@ -279,7 +280,8 @@ const Dashboard2 = () => {
       await Promise.all([
         refreshTheirFavorites(user, true),
         refreshTheirShortlists(user, true),
-        refreshReceivedAccess(user, true)
+        refreshReceivedAccess(user, true),
+        refreshSavedSearches(user, true)
       ]);
       
       // Update dashboard data with fetched results
@@ -480,6 +482,19 @@ const Dashboard2 = () => {
       if (!silent) toast.error('Failed to refresh access history');
     } finally {
       if (!silent) setRefreshing(prev => ({ ...prev, piiHistory: false }));
+    }
+  };
+
+  const refreshSavedSearches = async (user, silent = false) => {
+    try {
+      if (!silent) setRefreshing(prev => ({ ...prev, savedSearches: true }));
+      const res = await api.get(`/${user}/saved-searches`);
+      setDashboardData(prev => ({ ...prev, savedSearches: res.data.savedSearches || [] }));
+    } catch (err) {
+      logger.error('Error refreshing saved searches:', err);
+      if (!silent) toast.error('Failed to refresh saved searches');
+    } finally {
+      if (!silent) setRefreshing(prev => ({ ...prev, savedSearches: false }));
     }
   };
 
@@ -1661,32 +1676,6 @@ const Dashboard2 = () => {
             </div>
           </div>
           
-          {/* Favorited Me stat card (mobile-optimized) */}
-          <div 
-            className="stat-card-compact stat-card-favorited-me clickable-card"
-            onClick={() => {
-              if (window.innerWidth <= 640) {
-                setMobileActivityCategory('theirFavorites');
-                setShowMobileActivityModal(true);
-              } else {
-                setExpandedGroups(prev => ({ ...prev, othersActivities: true }));
-                setOthersActiveCategory('theirFavorites');
-                setTimeout(() => {
-                  document.querySelector('.activity-group-header-others')?.scrollIntoView({ behavior: 'smooth' });
-                }, 100);
-              }
-            }}
-            title="Click to see who favorited you"
-          >
-            <div className="stat-icon-compact">💕</div>
-            <span className="stat-label-mobile">Fav'd Me</span>
-            <span className="stat-badge-mobile">{dashboardData.theirFavorites.length}</span>
-            <div className="stat-content-compact">
-              <span className="stat-value-compact">{dashboardData.theirFavorites.length}</span>
-              <span className="stat-label-compact">FAV ME</span>
-            </div>
-          </div>
-          
           {/* Shortlisted Me stat card (mobile-optimized) */}
           <div 
             className="stat-card-compact stat-card-shortlisted-me clickable-card"
@@ -1710,6 +1699,21 @@ const Dashboard2 = () => {
             <div className="stat-content-compact">
               <span className="stat-value-compact">{dashboardData.theirShortlists.length}</span>
               <span className="stat-label-compact">SHORTD ME</span>
+            </div>
+          </div>
+          
+          {/* Saved Searches stat card */}
+          <div 
+            className="stat-card-compact stat-card-saved-search clickable-card"
+            onClick={() => navigate('/search?showSaved=true')}
+            title="Click to view your saved searches"
+          >
+            <div className="stat-icon-compact">🔍</div>
+            <span className="stat-label-mobile">Searches</span>
+            <span className="stat-badge-mobile">{dashboardData.savedSearches.length}</span>
+            <div className="stat-content-compact">
+              <span className="stat-value-compact">{dashboardData.savedSearches.length}</span>
+              <span className="stat-label-compact">SAVED SRCH</span>
             </div>
           </div>
         </div>
