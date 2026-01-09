@@ -38,6 +38,7 @@ const UnifiedPreferences = () => {
 
   // Account Settings State
   const [selectedTheme, setSelectedTheme] = useState('light-blue');
+  const [selectedHomePage, setSelectedHomePage] = useState('dashboard');
   const [isLoading, setIsLoading] = useState(true);
 
   // Admin Settings State
@@ -226,7 +227,9 @@ const UnifiedPreferences = () => {
         const userPrefs = await getUserPreferences();
         if (userPrefs.themePreference) {
           setSelectedTheme(userPrefs.themePreference);
-          // Theme is already applied by App.js, no need to reapply here
+        }
+        if (userPrefs.homePage) {
+          setSelectedHomePage(userPrefs.homePage);
         }
       } catch (error) {
         console.error('Error loading preferences:', error);
@@ -422,6 +425,22 @@ const UnifiedPreferences = () => {
     } catch (error) {
       console.error('Error saving theme:', error);
       showToast('Failed to save theme preference', 'error');
+    }
+  };
+
+  // Home page change handler
+  const handleHomePageChange = async (pageId) => {
+    setSelectedHomePage(pageId);
+    
+    try {
+      await updateUserPreferences({ homePage: pageId });
+      // Also save to localStorage for login redirect
+      localStorage.setItem('homePage', pageId);
+      console.log('✅ Home page saved:', pageId);
+      showToast('Home page updated successfully!', 'success');
+    } catch (error) {
+      console.error('Error saving home page:', error);
+      showToast('Failed to save home page preference', 'error');
     }
   };
 
@@ -788,6 +807,33 @@ const UnifiedPreferences = () => {
             label: 'Settings',
             content: (
               <div className="account-settings">
+          {/* Home Page Selection */}
+          <section className="settings-section">
+            <h2>🏠 My Home Page</h2>
+            <p className="section-description">Choose which page to show after login</p>
+            
+            <div className="home-page-selector">
+              {[
+                { id: 'dashboard', label: 'Dashboard', icon: '📊', description: 'Overview with stats and activity' },
+                { id: 'search', label: 'Search', icon: '🔍', description: 'Browse profiles directly' },
+                { id: 'messages', label: 'Messages', icon: '💬', description: 'Jump to conversations' }
+              ].map((page) => (
+                <div
+                  key={page.id}
+                  className={`home-page-option ${selectedHomePage === page.id ? 'selected' : ''}`}
+                  onClick={() => handleHomePageChange(page.id)}
+                >
+                  <span className="option-icon">{page.icon}</span>
+                  <div className="option-content">
+                    <span className="option-label">{page.label}</span>
+                    <span className="option-description">{page.description}</span>
+                  </div>
+                  {selectedHomePage === page.id && <span className="option-check">✓</span>}
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* Theme Selection */}
           <section className="settings-section">
             <h2>🎨 Theme</h2>

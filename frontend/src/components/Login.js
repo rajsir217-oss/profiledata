@@ -122,7 +122,16 @@ const Login = () => {
         sessionStorage.setItem('mfa_warning', JSON.stringify(res.data.mfa_warning));
       }
       
-      navigate('/dashboard', { state: { user: res.data.user } });
+      // Redirect to user's preferred home page (default: dashboard)
+      const homePage = res.data.user.homePage || 'dashboard';
+      localStorage.setItem('homePage', homePage);
+      const homeRoutes = {
+        'dashboard': '/dashboard',
+        'search': '/search',
+        'messages': '/messages'
+      };
+      const redirectPath = homeRoutes[homePage] || '/dashboard';
+      navigate(redirectPath, { state: { user: res.data.user } });
     } catch (err) {
       console.error("Login error:", err);
       
