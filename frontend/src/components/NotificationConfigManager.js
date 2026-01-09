@@ -1,14 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
+import { createApiInstance } from '../api';
 import toastService from '../services/toastService';
 import './NotificationConfigManager.css';
 
-// Create admin API instance with session handling
-const adminApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const adminApi = createApiInstance();
 
 const NotificationConfigManager = () => {
   const [triggers, setTriggers] = useState([]);

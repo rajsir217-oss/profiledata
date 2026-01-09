@@ -1,15 +1,11 @@
 // frontend/src/components/NotificationTester.js
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import { createApiInstance } from '../api';
 import './NotificationTester.css';
 import DeleteButton from './DeleteButton';
 
-// Create a custom API instance with session handling
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
-const notificationApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const notificationApi = createApiInstance();
 
 // Add response interceptor for better error handling
 notificationApi.interceptors.response.use(

@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { createApiInstance } from '../api';
 import './AdminPage.css';
 import './LoadMore.css'; // Import LoadMore styles
 import MetaFieldsModal from './MetaFieldsModal';
 
-// Create admin API client with session handling
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
-const adminApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const adminApi = createApiInstance();
 
 const AdminPage = () => {
   const navigate = useNavigate();

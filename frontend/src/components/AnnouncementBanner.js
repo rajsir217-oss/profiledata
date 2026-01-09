@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { createApiInstance } from '../api';
 import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import logger from '../utils/logger';
 import './AnnouncementBanner.css';
 
-// Create axios instance with session handling
-const announcementsApi = addSessionInterceptor(axios.create({
-  baseURL: `${getBackendUrl()}/api`
-}));
+// Use global API factory for session handling
+const announcementsApi = createApiInstance(`${getBackendUrl()}/api`);
 
 /**
  * AnnouncementBanner Component

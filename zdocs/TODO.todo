@@ -1,6 +1,9 @@
 # TODO List
 
 ## UI/UX Improvements
+add to todo.todo "review for opportuniites -- add a factory function to api.js that creates properly configured axios instances with session handling and others, then update components to use it -- it will eliminates code issues later"
+
+
 
 1. ✅ **Profile Pictures - 3-Column Visibility System** (Dec 28, 2025)
    - Design: `zdocs/PHOTO_VISIBILITY_DESIGN.md`

@@ -1,15 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
+import { createApiInstance } from '../api';
 import Logo from './Logo';
 import './VerifyEmail.css';
 
-// Create axios instance with session handling
-const verificationApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const verificationApi = createApiInstance();
 
 const VerifyEmail = () => {
   const navigate = useNavigate();

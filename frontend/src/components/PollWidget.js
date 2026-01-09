@@ -1,13 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import { getBackendUrl } from '../config/apiConfig';
-import { addSessionInterceptor } from '../utils/axiosInterceptors';
+import { createApiInstance } from '../api';
 import './PollWidget.css';
 
-// Create axios instance with session handling
-const pollsApi = addSessionInterceptor(axios.create({
-  baseURL: getBackendUrl()
-}));
+// Use global API factory for session handling
+const pollsApi = createApiInstance();
 
 /**
  * PollWidget - Displays active polls for users to respond to
