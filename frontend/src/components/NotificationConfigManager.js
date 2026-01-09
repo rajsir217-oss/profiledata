@@ -1,38 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import toastService from '../services/toastService';
 import './NotificationConfigManager.css';
 
-// Create admin API instance (bypasses /api/users prefix)
-const adminApi = axios.create({
+// Create admin API instance with session handling
+const adminApi = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
-
-// Add auth token interceptor
-adminApi.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Handle 401 errors
-adminApi.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('username');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
+}));
 
 const NotificationConfigManager = () => {
   const [triggers, setTriggers] = useState([]);

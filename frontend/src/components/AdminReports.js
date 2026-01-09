@@ -1,21 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../config/apiConfig';
+import { addSessionInterceptor } from '../utils/axiosInterceptors';
 import axios from 'axios';
 import './AdminReports.css';
 
-// Create axios instance with auth
-const api = axios.create({
+// Create axios instance with session handling
+const api = addSessionInterceptor(axios.create({
   baseURL: getBackendUrl()
-});
-
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+}));
 
 const AdminReports = () => {
   const navigate = useNavigate();
