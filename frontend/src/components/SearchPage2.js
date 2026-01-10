@@ -17,9 +17,13 @@ import logger from '../utils/logger';
 import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import toastService from '../services/toastService';
+import useActivityLogger from '../hooks/useActivityLogger';
 import './SearchPage2.css';
 
 const SearchPage2 = () => {
+  // Activity logger hook
+  const { logPageVisit, logSearchResultsViewed, logFilterApplied, logSortChanged } = useActivityLogger();
+  
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
@@ -344,6 +348,11 @@ const SearchPage2 = () => {
       hasRestoredStateRef.current = true; // Allow saving state even if nothing was restored
     }
   }, []);
+
+  // Log page visit on mount
+  useEffect(() => {
+    logPageVisit('Search Page');
+  }, [logPageVisit]);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -1426,6 +1435,9 @@ const SearchPage2 = () => {
         setUsers(filteredUsers);
         setCurrentPage(1);
         logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
+        
+        // Log search results viewed activity
+        logSearchResultsViewed(total, criteriaToUse);
       } else {
         // Subsequent pages: append new users and calculate hasMore
         const serverReturnedNothing = serverReturnedCount === 0;

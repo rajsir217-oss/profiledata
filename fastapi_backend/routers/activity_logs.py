@@ -188,9 +188,10 @@ async def create_activity_log(
     """
     try:
         logger = get_activity_logger()
+        username = current_user.get("username")
         
         await logger.log_activity(
-            username=log_data.username,
+            username=username,
             action_type=log_data.action_type,
             target_username=log_data.target_username,
             metadata=log_data.metadata,
@@ -204,6 +205,61 @@ async def create_activity_log(
     except Exception as e:
         print(f"❌ Error creating activity log: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to log activity: {str(e)}")
+
+
+@router.post("/batch")
+async def create_batch_activity_logs(
+    data: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Create multiple activity log entries in batch (from frontend)
+    
+    **Request Body:**
+    - activities: List of activity objects with action_type, metadata, target_username, etc.
+    
+    **Note:** This endpoint is used by the frontend useActivityLogger hook for batched logging.
+    """
+    try:
+        logger = get_activity_logger()
+        username = current_user.get("username")
+        activities = data.get("activities", [])
+        
+        if not activities:
+            return {"success": True, "message": "No activities to log", "logged_count": 0}
+        
+        logged_count = 0
+        for activity in activities:
+            try:
+                action_type_str = activity.get("action_type")
+                if not action_type_str:
+                    continue
+                
+                # Convert string to ActivityType enum
+                try:
+                    action_type = ActivityType(action_type_str)
+                except ValueError:
+                    print(f"⚠️ Unknown activity type: {action_type_str}")
+                    continue
+                
+                await logger.log_activity(
+                    username=username,
+                    action_type=action_type,
+                    target_username=activity.get("target_username"),
+                    metadata=activity.get("metadata", {}),
+                    page_url=activity.get("page_url"),
+                    referrer_url=activity.get("referrer_url"),
+                    duration_ms=activity.get("duration_ms")
+                )
+                logged_count += 1
+            except Exception as activity_err:
+                print(f"⚠️ Failed to log activity: {activity_err}")
+                continue
+        
+        return {"success": True, "message": f"Logged {logged_count} activities", "logged_count": logged_count}
+    except Exception as e:
+        print(f"❌ Error creating batch activity logs: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to log activities: {str(e)}")
 
 @router.delete("/cleanup")
 async def cleanup_old_logs(

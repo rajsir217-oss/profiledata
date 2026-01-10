@@ -27,6 +27,8 @@ from .password_utils import PasswordManager, AccountLockoutManager, TokenManager
 from .jwt_auth import JWTManager, create_token_pair, get_current_user_dependency, AuthenticationService
 from .audit_logger import AuditLogger
 from .authorization import PermissionChecker
+from services.activity_logger import get_activity_logger
+from models.activity_models import ActivityType
 
 logger = logging.getLogger(__name__)
 
@@ -832,6 +834,19 @@ async def change_password(
             status="success",
             details={"password_expiry": password_expires_at.isoformat()}
         )
+        
+        # Log to activity logger
+        try:
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.PASSWORD_CHANGED,
+                ip_address=http_request.client.host if http_request else None,
+                user_agent=http_request.headers.get("user-agent") if http_request else None,
+                metadata={"password_expiry": password_expires_at.isoformat()}
+            )
+        except Exception as log_err:
+            logger.warning(f"Failed to log password change activity: {log_err}")
         
         logger.info(f"✅ Password changed successfully for {username}")
         
