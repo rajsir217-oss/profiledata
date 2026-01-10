@@ -39,11 +39,11 @@ class ActivityLogger:
             await self.collection.create_index([("username", 1), ("timestamp", -1)])
             await self.collection.create_index([("action_type", 1), ("timestamp", -1)])
             
-            # TTL index for automatic deletion after 30 days
+            # TTL index for automatic deletion after 120 days
             # Note: This replaces any existing timestamp index
             await self.collection.create_index(
                 "timestamp",
-                expireAfterSeconds=2592000,  # 30 days
+                expireAfterSeconds=10368000,  # 120 days (120 * 24 * 60 * 60)
                 name="timestamp_1"
             )
             
