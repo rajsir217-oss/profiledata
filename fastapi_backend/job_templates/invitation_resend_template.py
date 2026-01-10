@@ -201,15 +201,21 @@ class InvitationResendTemplate(JobTemplate):
                     # Determine target email
                     target_email = test_email if test_mode and test_email else inv_email
                     
+                    # Check if this is the final attempt
+                    is_final_attempt = (current_resend_count + 1) >= max_resend
+                    
                     if test_mode:
-                        context.log("info", f"🧪 [TEST MODE] Would resend to {inv_email} (count: {current_resend_count + 1})")
+                        context.log("info", f"🧪 [TEST MODE] Would resend to {inv_email} (count: {current_resend_count + 1}){' [FINAL]' if is_final_attempt else ''}")
                     else:
                         # Send the email
-                        context.log("info", f"📨 Resending invitation to {inv_email} (attempt #{current_resend_count + 1})")
+                        context.log("info", f"📨 Resending invitation to {inv_email} (attempt #{current_resend_count + 1}){' [FINAL]' if is_final_attempt else ''}")
                         
                         # Create a follow-up subject line
                         email_subject = invitation.get("emailSubject") or "Reminder: You're Invited to Join USVedika"
-                        if current_resend_count > 0:
+                        if is_final_attempt:
+                            # Final attempt - add FINAL to subject
+                            email_subject = f"FINAL Reminder: {email_subject}"
+                        elif current_resend_count > 0:
                             email_subject = f"Reminder #{current_resend_count + 1}: {email_subject}"
                         
                         await send_invitation_email(
@@ -220,14 +226,24 @@ class InvitationResendTemplate(JobTemplate):
                             email_subject=email_subject
                         )
                     
+                    # Build update document
+                    update_set = {
+                        "lastEmailSentAt": datetime.utcnow(),
+                        "updatedAt": datetime.utcnow()
+                    }
+                    
+                    # If this is the final attempt, archive the invitation
+                    if is_final_attempt:
+                        update_set["archived"] = True
+                        update_set["archivedAt"] = datetime.utcnow()
+                        update_set["archiveReason"] = "max_resend_reached"
+                        context.log("info", f"📦 Archiving invitation {inv_id} - max resend count reached")
+                    
                     # Update the invitation with resend count and timestamp
                     await context.db.invitations.update_one(
                         {"_id": ObjectId(inv_id)},
                         {
-                            "$set": {
-                                "lastEmailSentAt": datetime.utcnow(),
-                                "updatedAt": datetime.utcnow()
-                            },
+                            "$set": update_set,
                             "$inc": {
                                 "emailResendCount": 1
                             }

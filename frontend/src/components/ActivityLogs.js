@@ -109,7 +109,12 @@ const ActivityLogs = () => {
       const totalCount = data.total || 0;
       
       if (append) {
-        setLogs(prev => [...prev, ...newLogs]);
+        // Prevent duplicates by filtering out logs that already exist
+        setLogs(prev => {
+          const existingIds = new Set(prev.map(log => log._id));
+          const uniqueNewLogs = newLogs.filter(log => !existingIds.has(log._id));
+          return [...prev, ...uniqueNewLogs];
+        });
       } else {
         setLogs(newLogs);
         setSelectedLogs([]);
@@ -118,7 +123,8 @@ const ActivityLogs = () => {
       
       setTotal(totalCount);
       setPage(pageNum);
-      setHasMore(pageNum * logsPerPage < totalCount);
+      // Check if we've loaded all logs (current loaded + new should not exceed total)
+      setHasMore(newLogs.length === logsPerPage && pageNum * logsPerPage < totalCount);
     } catch (error) {
       console.error('Error loading logs:', error);
       toast.error('Failed to load activity logs');
@@ -572,7 +578,7 @@ const ActivityLogs = () => {
             {loadingMore ? 'Loading...' : `Load more (${Math.min(logsPerPage, total - logs.length)}) ${logs.length}/${total}`}
           </button>
         ) : (
-          <span className="pagination-info">{logs.length} of {total} logs</span>
+          <span className="pagination-info">{Math.min(logs.length, total)} of {total} logs</span>
         )}
       </div>
     </div>

@@ -2446,6 +2446,18 @@ async def upload_photos(
         
         logger.info(f"✅ Photos auto-uploaded successfully for user '{username}'")
         
+        # Log activity
+        try:
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=current_username,
+                action_type=ActivityType.PHOTO_UPLOADED,
+                target_username=username if username != current_username else None,
+                metadata={"photo_count": len(new_image_paths), "total_photos": len(all_images)}
+            )
+        except Exception as log_err:
+            logger.warning(f"Failed to log photo upload activity: {log_err}")
+        
         # Return full URLs
         full_urls = [get_full_image_url(img) for img in all_images]
         
@@ -2769,6 +2781,18 @@ async def delete_photo(
         logger.info(f"📸 Images before: {len(existing_images)}, after: {len(normalized_remaining)}")
         logger.info(f"📸 New visibility: profilePic={new_visibility['profilePic']}, memberVisible={len(new_visibility['memberVisible'])}, onRequest={len(new_visibility['onRequest'])}")
         
+        # Log activity
+        try:
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=current_username,
+                action_type=ActivityType.PHOTO_DELETED,
+                target_username=username if username != current_username else None,
+                metadata={"deleted_photo": normalized_to_delete, "remaining_photos": len(normalized_remaining)}
+            )
+        except Exception as log_err:
+            logger.warning(f"Failed to log photo delete activity: {log_err}")
+        
         # Return full URLs
         full_urls = [get_full_image_url(img) for img in normalized_remaining_paths]
         full_public_urls = [get_full_image_url(img) for img in normalized_public_paths]
@@ -3062,6 +3086,21 @@ async def update_image_visibility(
     )
 
     logger.info(f"📸 Image visibility updated for {username}: profilePic={normalized_profile_pic}, memberVisible={len(normalized_member_visible)}, onRequest={len(normalized_on_request)}")
+
+    # Log activity
+    try:
+        activity_logger = get_activity_logger()
+        await activity_logger.log_activity(
+            username=current_username,
+            action_type=ActivityType.PROFILE_VISIBILITY_CHANGED,
+            target_username=username if username != current_username else None,
+            metadata={
+                "member_visible_count": len(normalized_member_visible),
+                "on_request_count": len(normalized_on_request)
+            }
+        )
+    except Exception as log_err:
+        logger.warning(f"Failed to log image visibility activity: {log_err}")
 
     return {
         "profilePic": get_full_image_url(normalized_profile_pic) if normalized_profile_pic else None,
@@ -6840,6 +6879,18 @@ async def delete_message(
             raise HTTPException(status_code=500, detail="Failed to delete message")
         
         logger.info(f"✅ Message deleted successfully: {message_id}")
+        
+        # Log activity
+        try:
+            activity_logger = get_activity_logger()
+            await activity_logger.log_activity(
+                username=username,
+                action_type=ActivityType.MESSAGE_DELETED,
+                target_username=message.get("toUsername"),
+                metadata={"message_id": message_id}
+            )
+        except Exception as log_err:
+            logger.warning(f"Failed to log message delete activity: {log_err}")
         
         return {
             "success": True,

@@ -4,6 +4,7 @@ import api from '../api';
 import socketService from '../services/socketService';
 import MessageList from './MessageList';
 import ChatWindow from './ChatWindow';
+import useActivityLogger from '../hooks/useActivityLogger';
 import './Messages.css';
 
 const Messages = () => {
@@ -16,12 +17,17 @@ const Messages = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUsername = localStorage.getItem('username');
+  const { logMessagesPageViewed, logPageVisit } = useActivityLogger();
 
   useEffect(() => {
     if (!currentUsername) {
       navigate('/login');
       return;
     }
+    
+    // Log page visit
+    logPageVisit('Messages Page');
+    
     loadConversations();
 
     // Check if we should open a specific conversation
@@ -84,8 +90,12 @@ const Messages = () => {
       const response = await api.get(url);
       console.log('✅ Messages.js: Response received:', response.data);
       console.log('📊 Messages.js: Conversations count:', response.data.conversations?.length || 0);
-      setConversations(response.data.conversations || []);
+      const convos = response.data.conversations || [];
+      setConversations(convos);
       setLoading(false);
+      
+      // Log messages page viewed with conversation count
+      logMessagesPageViewed(convos.length);
     } catch (err) {
       console.error('❌ Messages.js: Error loading conversations:', err);
       console.error('❌ Messages.js: Error response:', err.response?.data);

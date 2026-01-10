@@ -401,6 +401,27 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         search_description = search.get('description', '')
                         criteria = search.get('criteria', {})
                         
+                        # Sanitize search description - remove raw JSON/dict content
+                        # If description looks like JSON (starts with { or [), generate a human-readable one
+                        if search_description and (search_description.strip().startswith('{') or search_description.strip().startswith('[')):
+                            search_description = ''  # Clear JSON-like descriptions
+                        
+                        # If no description, generate one from criteria
+                        if not search_description and criteria:
+                            desc_parts = []
+                            if criteria.get('gender'):
+                                desc_parts.append(f"Gender: {criteria['gender']}")
+                            if criteria.get('ageMin') or criteria.get('ageMax'):
+                                age_range = f"{criteria.get('ageMin', '?')}-{criteria.get('ageMax', '?')} years"
+                                desc_parts.append(f"Age: {age_range}")
+                            if criteria.get('location'):
+                                desc_parts.append(f"Location: {criteria['location']}")
+                            if criteria.get('religion'):
+                                desc_parts.append(f"Religion: {criteria['religion']}")
+                            if criteria.get('education'):
+                                desc_parts.append(f"Education: {criteria['education']}")
+                            search_description = ' | '.join(desc_parts) if desc_parts else 'Your saved search criteria'
+                        
                         # Check if notifications are enabled for this search
                         notifications = get_effective_notification_settings(search)
                         if not notifications.get('enabled'):
@@ -742,13 +763,45 @@ async def send_matches_email(
             # Location - use decrypted values
             location = decrypted_match.get('location') or decrypted_match.get('state') or 'Location not specified'
             
-            # Education
-            education = 'Not specified'
+            # Education - check multiple possible field names and formats
+            education = ''
+            
+            # 1. Check education field (can be string or array)
             if decrypted_match.get('education'):
-                if isinstance(decrypted_match['education'], list) and len(decrypted_match['education']) > 0:
-                    education = decrypted_match['education'][0].get('degree', 'Not specified')
-                elif isinstance(decrypted_match['education'], str):
-                    education = decrypted_match['education']
+                edu_data = decrypted_match['education']
+                if isinstance(edu_data, str) and edu_data.strip():
+                    education = edu_data
+                elif isinstance(edu_data, list) and len(edu_data) > 0:
+                    first_edu = edu_data[0]
+                    if isinstance(first_edu, dict):
+                        education = first_edu.get('degree') or first_edu.get('qualification') or first_edu.get('level', '')
+                    elif isinstance(first_edu, str):
+                        education = first_edu
+            
+            # 2. Fallback to highestEducation or educationLevel
+            if not education:
+                education = decrypted_match.get('highestEducation') or decrypted_match.get('educationLevel') or ''
+            
+            # 3. Fallback to workExperience for job title if no education
+            if not education:
+                work_exp = decrypted_match.get('workExperience', [])
+                if isinstance(work_exp, list) and len(work_exp) > 0:
+                    current_job = None
+                    for job in work_exp:
+                        if isinstance(job, dict) and job.get('isCurrent'):
+                            current_job = job
+                            break
+                    if not current_job and work_exp:
+                        current_job = work_exp[0] if isinstance(work_exp[0], dict) else None
+                    
+                    if current_job:
+                        job_title = current_job.get('jobTitle') or current_job.get('title') or current_job.get('position')
+                        if job_title:
+                            education = job_title  # Use job title as fallback
+            
+            # Final fallback
+            if not education:
+                education = 'Not specified'
             
             # Religion (optional)
             religion_detail = ''
@@ -806,19 +859,49 @@ async def send_matches_email(
             profile_id = decrypted_match.get('profileId', '')
             
             # Get profile photo URL
+            # Priority: imageVisibility.profilePic > images[0] > photos[0] > profilePhoto
             profile_photo_url = ''
-            photos = decrypted_match.get('photos', [])
-            if photos and isinstance(photos, list) and len(photos) > 0:
-                # Get first photo (primary photo)
-                first_photo = photos[0]
-                if isinstance(first_photo, dict):
-                    profile_photo_url = first_photo.get('url', first_photo.get('thumbnail', ''))
-                elif isinstance(first_photo, str):
-                    profile_photo_url = first_photo
             
-            # Fallback to profilePhoto field
+            # 1. Check imageVisibility.profilePic (new 3-bucket system)
+            image_visibility = decrypted_match.get('imageVisibility', {})
+            if image_visibility and image_visibility.get('profilePic'):
+                profile_photo_url = image_visibility['profilePic']
+            
+            # 2. Fallback to images array (main storage)
+            if not profile_photo_url:
+                images = decrypted_match.get('images', [])
+                if images and isinstance(images, list) and len(images) > 0:
+                    first_image = images[0]
+                    if isinstance(first_image, str):
+                        profile_photo_url = first_image
+                    elif isinstance(first_image, dict):
+                        profile_photo_url = first_image.get('url', first_image.get('path', ''))
+            
+            # 3. Fallback to photos array (legacy)
+            if not profile_photo_url:
+                photos = decrypted_match.get('photos', [])
+                if photos and isinstance(photos, list) and len(photos) > 0:
+                    first_photo = photos[0]
+                    if isinstance(first_photo, dict):
+                        profile_photo_url = first_photo.get('url', first_photo.get('thumbnail', ''))
+                    elif isinstance(first_photo, str):
+                        profile_photo_url = first_photo
+            
+            # 4. Fallback to profilePhoto field
             if not profile_photo_url:
                 profile_photo_url = decrypted_match.get('profilePhoto', decrypted_match.get('photoUrl', ''))
+            
+            # Convert relative paths to full URLs
+            if profile_photo_url:
+                # Handle relative paths like /uploads/filename.jpg or /api/users/media/filename.jpg
+                if profile_photo_url.startswith('/'):
+                    # Use backend URL for media files
+                    backend_url = settings.backend_url.rstrip('/')
+                    profile_photo_url = f"{backend_url}{profile_photo_url}"
+                elif not profile_photo_url.startswith('http'):
+                    # Handle bare filenames
+                    backend_url = settings.backend_url.rstrip('/')
+                    profile_photo_url = f"{backend_url}/uploads/{profile_photo_url}"
             
             # Use placeholder if no photo
             if not profile_photo_url:

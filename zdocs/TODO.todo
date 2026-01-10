@@ -74,4 +74,78 @@ Removing unused dependencies
 - Revenue attribution by promo code
 
 ---
-**Last Updated:** Dec 28, 2025
+
+## Activity Logging - Missing Events (Jan 11, 2026)
+
+**Summary:** Only ~20 of 54 defined activity events are being logged. The following need implementation:
+
+### 🔲 Authentication (2 - 1 IMPLEMENTED)
+- [ ] Session Expired
+- [x] Password Changed - Backend: `auth_routes.py` change_password endpoint
+
+### 🔲 Profile (8 - 3 IMPLEMENTED)
+- [x] Photo Uploaded - Backend: `routes.py` upload_photos endpoint
+- [x] Photo Deleted - Backend: `routes.py` delete_photo endpoint
+- [x] Profile Visibility Changed - Backend: `routes.py` update_image_visibility endpoint
+- [ ] Matching Criteria Updated
+- [ ] Bio Updated
+- [ ] Contact Info Updated
+- [ ] Education Updated
+- [ ] Occupation Updated
+
+### 🔲 Messaging (4 - 2 IMPLEMENTED)
+- [ ] Conversation Started
+- [ ] Conversation Archived
+- [x] Message Deleted - Backend: `routes.py` delete_message endpoint
+- [x] Messages Page Viewed - `useActivityLogger.logMessagesPageViewed()` (integrated in Messages.js)
+
+### ✅ Search (3 - IMPLEMENTED via Frontend Hook)
+- [x] Filter Applied - `useActivityLogger.logFilterApplied()`
+- [x] Search Results Viewed - `useActivityLogger.logSearchResultsViewed()` (integrated in SearchPage2)
+- [x] Sort Changed - `useActivityLogger.logSortChanged()`
+
+### 🔲 PII & Access (4 missing)
+- [ ] Image Access Requested
+- [ ] Image Access Granted
+- [ ] Image Access Revoked
+- [ ] PII Viewed
+
+### 🔲 Admin (4 missing)
+- [ ] User Deleted
+- [ ] Role Changed
+- [ ] Ticket Resolved
+- [ ] Notification Sent Manual
+
+### ✅ System (4 - ALL IMPLEMENTED via Frontend Hook)
+- [x] Page Visited - `useActivityLogger.logPageVisit()` (integrated in SearchPage2, Messages)
+- [x] Error Occurred - `useActivityLogger.logError()`
+- [x] Feature Used - `useActivityLogger.logFeatureUsed()`
+- [x] Export Requested - `useActivityLogger.logExportRequested()`
+
+**Reference:** `fastapi_backend/models/activity_models.py` - ActivityType enum
+**Logger:** `fastapi_backend/services/activity_logger.py` - get_activity_logger()
+
+### ✅ Frontend Activity Logger Hook Created
+**File:** `frontend/src/hooks/useActivityLogger.js`
+**Backend Endpoint:** `POST /api/activity-logs/batch` (for batched logging)
+
+**Available Methods:**
+- `logPageVisit(pageName, metadata)` - Log page navigation
+- `logFilterApplied(filterName, filterValue, allFilters)` - Log filter changes
+- `logSearchResultsViewed(resultCount, searchCriteria)` - Log search results
+- `logSortChanged(sortField, sortDirection)` - Log sort changes
+- `logMessagesPageViewed(conversationCount)` - Log messages page view
+- `logFeatureUsed(featureName, metadata)` - Log feature usage
+- `logExportRequested(exportType, recordCount)` - Log export requests
+- `logMatchesViewed(matchType, matchCount)` - Log matches page view
+- `logError(errorMessage, errorStack, componentName)` - Log errors
+- `logActivity(actionType, metadata, targetUsername, immediate)` - Generic logger
+
+**Features:**
+- Batched logging (flushes every 5 seconds or when queue reaches 10 items)
+- Debounced to prevent spam
+- Non-blocking (won't break app if logging fails)
+- Tracks page URL and referrer automatically
+
+---
+**Last Updated:** Jan 11, 2026
