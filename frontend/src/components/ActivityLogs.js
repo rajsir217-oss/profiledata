@@ -22,9 +22,11 @@ const ActivityLogs = () => {
     end_date: ''
   });
   
-  // Load more pagination
-  const [displayedCount, setDisplayedCount] = useState(50);
-  const recordsPerPage = 50;
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const logsPerPage = 20;  // Show 20 rows per page
   
   const [total, setTotal] = useState(0);
   const [actionTypes, setActionTypes] = useState([]);
@@ -67,14 +69,23 @@ const ActivityLogs = () => {
     }
   };
   
-  // Load logs
-  const loadLogs = async () => {
-    setLoading(true);
+  // Load logs (initial load or filter change)
+  const loadLogs = async (pageNum = 1, append = false) => {
+    if (append) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const queryParams = new URLSearchParams();
       
-      // Add all logs (no pagination on backend, we handle it on frontend)
+      // Add pagination params
+      queryParams.append('page', pageNum.toString());
+      queryParams.append('limit', logsPerPage.toString());
+      
+      // Add filter params
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== 'all') {
           queryParams.append(key, value);
@@ -94,16 +105,33 @@ const ActivityLogs = () => {
       if (!response.ok) throw new Error('Failed to load logs');
       
       const data = await response.json();
-      setLogs(data.logs || []);
-      setTotal(data.total || 0);
-      setDisplayedCount(50); // Reset to initial display count
-      setSelectedLogs([]);
-      setSelectAll(false);
+      const newLogs = data.logs || [];
+      const totalCount = data.total || 0;
+      
+      if (append) {
+        setLogs(prev => [...prev, ...newLogs]);
+      } else {
+        setLogs(newLogs);
+        setSelectedLogs([]);
+        setSelectAll(false);
+      }
+      
+      setTotal(totalCount);
+      setPage(pageNum);
+      setHasMore(pageNum * logsPerPage < totalCount);
     } catch (error) {
       console.error('Error loading logs:', error);
       toast.error('Failed to load activity logs');
     } finally {
       setLoading(false);
+      setLoadingMore(false);
+    }
+  };
+  
+  // Load more logs (next page)
+  const handleLoadMore = () => {
+    if (!loadingMore && hasMore) {
+      loadLogs(page + 1, true);
     }
   };
   
@@ -310,18 +338,24 @@ const ActivityLogs = () => {
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-icon">📈</div>
-            <div className="stat-value">{stats.total_activities.toLocaleString()}</div>
-            <div className="stat-label">Total Activities</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.total_activities.toLocaleString()}</div>
+              <div className="stat-label">Total</div>
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">👥</div>
-            <div className="stat-value">{stats.unique_users}</div>
-            <div className="stat-label">Unique Users</div>
+            <div className="stat-content">
+              <div className="stat-value">{stats.unique_users}</div>
+              <div className="stat-label">Users</div>
+            </div>
           </div>
           <div className="stat-card">
             <div className="stat-icon">⭐</div>
-            <div className="stat-value">{Object.keys(stats.top_actions).length}</div>
-            <div className="stat-label">Action Types</div>
+            <div className="stat-content">
+              <div className="stat-value">{Object.keys(stats.top_actions).length}</div>
+              <div className="stat-label">Types</div>
+            </div>
           </div>
         </div>
       )}
@@ -337,6 +371,15 @@ const ActivityLogs = () => {
           onKeyPress={handleKeyPress}
         />
         
+        <input
+          type="text"
+          className="filter-input"
+          placeholder="Target user..."
+          value={targetSearch}
+          onChange={(e) => setTargetSearch(e.target.value)}
+          onKeyPress={handleKeyPress}
+        />
+        
         <select
           className="filter-select"
           value={filters.action_type}
@@ -347,15 +390,6 @@ const ActivityLogs = () => {
             <option key={type.value} value={type.value}>{type.label}</option>
           ))}
         </select>
-        
-        <input
-          type="text"
-          className="filter-input"
-          placeholder="Target user..."
-          value={targetSearch}
-          onChange={(e) => setTargetSearch(e.target.value)}
-          onKeyPress={handleKeyPress}
-        />
         
         <input
           type="date"
@@ -371,25 +405,29 @@ const ActivityLogs = () => {
           onChange={(e) => setFilters({ ...filters, end_date: e.target.value, page: 1 })}
         />
         
-        <button 
-          className="btn-primary"
-          onClick={handleSearch}
-        >
-          🔍 Search
-        </button>
-        
-        <button 
-          className="btn-secondary"
-          onClick={() => {
-            setSearchTerm('');
-            setTargetSearch('');
-            setFilters({ username: '', action_type: 'all', target_username: '', start_date: '', end_date: '', page: 1, limit: 50 });
-          }}
-        >
-          Clear
-        </button>
-        
-        <div className="export-buttons">
+        {/* Action buttons row */}
+        <div className="action-buttons-row">
+          <button 
+            className="btn-primary"
+            onClick={handleSearch}
+          >
+            <span className="search-icon">🔍</span>
+            <span className="search-text"> Search</span>
+          </button>
+          
+          <button 
+            className="btn-secondary"
+            onClick={() => {
+              setSearchTerm('');
+              setTargetSearch('');
+              setFilters({ username: '', action_type: 'all', target_username: '', start_date: '', end_date: '', page: 1, limit: 50 });
+            }}
+            title="Clear filters"
+          >
+            <span className="clear-icon">✕</span>
+            <span className="clear-text">Clear</span>
+          </button>
+          
           <select 
             className="export-dropdown"
             value={exportValue}
@@ -401,10 +439,11 @@ const ActivityLogs = () => {
               }
             }}
           >
-            <option value="">📥 Export</option>
-            <option value="json">Export JSON</option>
-            <option value="csv">Export CSV</option>
+            <option value="">📥</option>
+            <option value="json">JSON</option>
+            <option value="csv">CSV</option>
           </select>
+          
           <DeleteButton
             onDelete={handleCleanup}
             itemName="logs >30 days"
@@ -413,6 +452,7 @@ const ActivityLogs = () => {
             confirmIcon="✓"
             confirmText="Cleanup?"
           />
+          
           {selectedLogs.length > 0 && (
             <DeleteButton
               onDelete={handleBulkDelete}
@@ -451,7 +491,7 @@ const ActivityLogs = () => {
               </tr>
             </thead>
             <tbody>
-              {logs.slice(0, displayedCount).map((log) => {
+              {logs.map((log) => {
                 const badge = getActionBadge(log.action_type);
                 const isExpanded = expandedRow === log._id;
                 
@@ -477,10 +517,11 @@ const ActivityLogs = () => {
                       <td className="duration">{log.duration_ms ? `${log.duration_ms}ms` : '-'}</td>
                       <td>
                         <button 
-                          className="btn-sm btn-info"
+                          className="btn-sm btn-expand"
                           onClick={() => setExpandedRow(isExpanded ? null : log._id)}
+                          title={isExpanded ? 'Collapse' : 'Expand'}
                         >
-                          {isExpanded ? '▲' : '▼'} View
+                          {isExpanded ? '−' : '+'}
                         </button>
                       </td>
                       <td className="delete-col">
@@ -520,22 +561,18 @@ const ActivityLogs = () => {
         )}
       </div>
       
-      {/* View More Pagination */}
-      <div className="pagination-container">
-        <div className="pagination-info">
-          Viewing {Math.min(displayedCount, logs.length)} of {logs.length} logs
-        </div>
-        
-        {displayedCount < logs.length && (
-          <div className="pagination-controls">
-            <button
-              className="view-more-btn"
-              onClick={() => setDisplayedCount(prev => Math.min(prev + recordsPerPage, logs.length))}
-            >
-              <span className="view-more-text">View more</span>
-              <span className="view-more-count">({Math.min(recordsPerPage, logs.length - displayedCount)} more)</span>
-            </button>
-          </div>
+      {/* Load More Pagination - Single button with all info */}
+      <div className="pagination-row">
+        {hasMore ? (
+          <button
+            className="load-more-btn"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading...' : `Load more (${Math.min(logsPerPage, total - logs.length)}) ${logs.length}/${total}`}
+          </button>
+        ) : (
+          <span className="pagination-info">{logs.length} of {total} logs</span>
         )}
       </div>
     </div>
