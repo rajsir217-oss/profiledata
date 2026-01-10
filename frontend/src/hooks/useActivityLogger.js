@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useRef, useEffect } from 'react';
-import { getBackendApiUrl } from '../config/apiConfig';
+import { getBackendUrl } from '../config/apiConfig';
 
 // Activity types enum (matches backend ActivityType)
 export const ActivityType = {
@@ -67,7 +67,7 @@ const flushQueue = async () => {
   activityQueue = [];
   
   try {
-    await fetch(getBackendApiUrl('/api/activity-logs/batch'), {
+    await fetch(`${getBackendUrl()}/api/activity-logs/batch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +115,7 @@ const logActivityImmediate = async (actionType, metadata = {}, targetUsername = 
   if (!token) return;
   
   try {
-    await fetch(getBackendApiUrl('/api/activity-logs/log'), {
+    await fetch(`${getBackendUrl()}/api/activity-logs/log`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

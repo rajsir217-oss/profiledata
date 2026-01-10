@@ -294,47 +294,15 @@ const PIIRequestModal = ({
     <div className="pii-modal-overlay" onClick={handleOverlayClick}>
       {/* Error Bubble */}
       {error && (
-        <div className="status-bubble error-bubble" style={{
-          position: 'fixed',
-          top: '80px',
-          right: '20px',
-          backgroundColor: '#f8d7da',
-          border: '1px solid #f5c6cb',
-          borderRadius: '12px',
-          padding: '12px 16px',
-          maxWidth: '350px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 10001,
-          animation: 'slideInRight 0.3s ease-out'
-        }}>
-          <span style={{ fontSize: '20px', flexShrink: 0 }}>❌</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#721c24', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
-              Error
-            </strong>
-            <p style={{ color: '#721c24', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
-              {error}
-            </p>
+        <div className="status-bubble error-bubble">
+          <span className="bubble-icon">❌</span>
+          <div className="bubble-content">
+            <strong className="bubble-title">Error</strong>
+            <p className="bubble-message">{error}</p>
           </div>
           <button 
             onClick={() => setError('')}
-            style={{
-              background: 'none',
-              border: 'none',
-              fontSize: '18px',
-              cursor: 'pointer',
-              color: '#721c24',
-              padding: '0',
-              width: '20px',
-              height: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              flexShrink: 0
-            }}
+            className="bubble-close"
             title="Dismiss"
           >
             ×
@@ -344,30 +312,11 @@ const PIIRequestModal = ({
 
       {/* Success Bubble */}
       {successMessage && (
-        <div className="status-bubble success-bubble" style={{
-          position: 'fixed',
-          top: '80px',
-          right: '20px',
-          backgroundColor: '#d4edda',
-          border: '1px solid #c3e6cb',
-          borderRadius: '12px',
-          padding: '12px 16px',
-          maxWidth: '350px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          gap: '10px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          zIndex: 10001,
-          animation: 'slideInRight 0.3s ease-out'
-        }}>
-          <span style={{ fontSize: '20px', flexShrink: 0 }}>✅</span>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <strong style={{ color: '#155724', display: 'block', fontSize: '13px', marginBottom: '4px' }}>
-              Success
-            </strong>
-            <p style={{ color: '#155724', margin: 0, fontSize: '12px', lineHeight: '1.4' }}>
-              {successMessage}
-            </p>
+        <div className="status-bubble success-bubble">
+          <span className="bubble-icon">✅</span>
+          <div className="bubble-content">
+            <strong className="bubble-title">Success</strong>
+            <p className="bubble-message">{successMessage}</p>
           </div>
         </div>
       )}
@@ -463,7 +412,7 @@ const PIIRequestModal = ({
                         <div className="member-visible-badge">👁️ Already Member Visible</div>
                       )}
                       {visibilitySetting && !targetHasThisData && canShare && (
-                        <div className="member-visible-badge" style={{background: '#fff3cd', color: '#856404', border: '1px solid #ffeaa7'}}>📭 Member has no {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} yet</div>
+                        <div className="no-data-badge">📭 Member has no {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} yet</div>
                       )}
                       <div className="pii-type-description">{type.description}</div>
                       {/* Conditional notes based on requester data and visibility settings */}
@@ -481,7 +430,7 @@ const PIIRequestModal = ({
                         </div>
                       )}
                       {visibilitySetting && !targetHasThisData && canShare && (
-                        <div className="pii-type-note" style={{color: '#856404', fontSize: '11px'}}>
+                        <div className="pii-type-note note-info">
                           Member has no {type.label.replace(/[📷📞📧🔗]\s*/g, '').toLowerCase()} yet. Your request will notify them to add it.
                         </div>
                       )}
