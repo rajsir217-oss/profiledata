@@ -725,6 +725,8 @@ class EventDispatcher:
                     "age": granter_profile.get("age", "N/A") if granter_profile else "N/A",
                     "location": granter_profile.get("location", "") if granter_profile else ""
                 },
+                # Nested format for dot notation: {recipient.firstName}
+                "recipient": {"firstName": recipient_firstName, "username": target},
                 # Flattened format for underscore notation
                 "match_firstName": granter_firstName,
                 "recipient_firstName": recipient_firstName
@@ -757,6 +759,7 @@ class EventDispatcher:
                 trigger="pii_rejected",
                 channels=["email"],
                 template_data={
+                    "recipient": {"firstName": recipient_firstName, "username": target},
                     "recipient_firstName": recipient_firstName,
                     "match_firstName": rejecter_firstName,
                     "match": {

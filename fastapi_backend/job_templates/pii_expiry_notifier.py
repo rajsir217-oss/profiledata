@@ -130,6 +130,7 @@ class PIIExpiryNotifierTemplate(JobTemplate):
                         trigger="pii_expiring",
                         channels=["email"],
                         template_data={
+                            "recipient": {"firstName": requester_firstName, "username": requester},
                             "recipient_firstName": requester_firstName,
                             "match": {
                                 "firstName": target_name,

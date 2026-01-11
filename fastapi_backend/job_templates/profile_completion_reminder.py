@@ -145,6 +145,7 @@ class ProfileCompletionReminderTemplate(JobTemplate):
                                 trigger="upload_photos",
                                 channels=["email"],
                                 template_data={
+                                    "recipient": {"firstName": recipient_firstName, "username": username},
                                     "recipient_firstName": recipient_firstName,
                                     "profile": {
                                         "completeness": completeness
@@ -165,6 +166,7 @@ class ProfileCompletionReminderTemplate(JobTemplate):
                             trigger="profile_incomplete",
                             channels=["email"],
                             template_data={
+                                "recipient": {"firstName": recipient_firstName, "username": username},
                                 "recipient_firstName": recipient_firstName,
                                 "profile": {
                                     "completeness": completeness,
