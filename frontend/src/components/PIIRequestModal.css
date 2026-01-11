@@ -196,20 +196,20 @@
 
 .pii-type-option:hover {
   border-color: var(--primary-color, #667eea);
-  background: var(--hover-background, rgba(102, 126, 234, 0.02));
+  background: var(--hover-background, #fef3c7);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .pii-type-option.selected {
   border-color: var(--success-color, #10b981);
-  background: rgba(16, 185, 129, 0.05);
+  background: var(--success-light, #d1fae5);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
 }
 
 .pii-type-option.has-access {
   border-color: var(--success-color, #10b981);
-  background: rgba(16, 185, 129, 0.05);
+  background: var(--success-light, #d1fae5);
   cursor: not-allowed;
   opacity: 0.95;
 }
@@ -217,7 +217,7 @@
 .pii-type-option.has-access:hover {
   transform: none;
   border-color: var(--success-color, #10b981);
-  background: rgba(16, 185, 129, 0.05);
+  background: var(--success-light, #d1fae5);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
@@ -299,7 +299,7 @@
 
 .pii-type-option.member-visible {
   border-color: var(--info-color, #93c5fd);
-  background: var(--info-background, rgba(59, 130, 246, 0.1));
+  background: var(--info-light, #e0e7ff);
   cursor: default;
 }
 
@@ -309,13 +309,13 @@
 
 .pii-type-option.expired {
   border-color: var(--danger-light, #fecaca);
-  background: var(--danger-background, rgba(239, 68, 68, 0.1));
+  background: var(--danger-light, #ffebee);
 }
 
 /* No data to share - requester doesn't have this PII type */
 .pii-type-option.no-data-to-share {
   border-color: var(--warning-color, #fbbf24);
-  background: var(--warning-background, rgba(251, 191, 36, 0.1));
+  background: var(--warning-light, #fef3c7);
   cursor: not-allowed;
   opacity: 0.85;
 }
@@ -689,7 +689,7 @@
   font-size: var(--font-size-xs, 11px);
   font-weight: 600;
   color: var(--warning-dark, #92400e);
-  background: var(--warning-background, rgba(251, 191, 36, 0.15));
+  background: var(--warning-light, #fef3c7);
   border: 1px solid var(--warning-color, #fbbf24);
   padding: 4px var(--spacing-sm, 10px);
   border-radius: var(--radius-full, 12px);
