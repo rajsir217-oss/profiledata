@@ -225,6 +225,7 @@ class AnalyticsNotifierTemplate(JobTemplate):
                         trigger="profile_visibility_spike",
                         channels=["email"],
                         template_data={
+                            "recipient": {"firstName": recipient_firstName, "username": username},
                             "recipient_firstName": recipient_firstName,
                             "stats": {
                                 "increase": int(increase),
@@ -291,6 +292,7 @@ class AnalyticsNotifierTemplate(JobTemplate):
                             trigger="match_milestone",
                             channels=["email", "push"],
                             template_data={
+                                "recipient": {"firstName": recipient_firstName, "username": username},
                                 "recipient_firstName": recipient_firstName,
                                 "milestone": {
                                     "description": milestone["description"],
@@ -347,6 +349,7 @@ class AnalyticsNotifierTemplate(JobTemplate):
                         trigger="search_appearance",
                         channels=["email"],
                         template_data={
+                            "recipient": {"firstName": recipient_firstName, "username": username},
                             "recipient_firstName": recipient_firstName,
                             "stats": {
                                 "searchCount": search_count

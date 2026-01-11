@@ -182,6 +182,12 @@ class ConversationMonitorTemplate(JobTemplate):
                             trigger="conversation_cold",
                             channels=["email"],
                             template_data={
+                                # Nested format for dot notation: {recipient.firstName}
+                                "recipient": {
+                                    "firstName": recipient_firstName,
+                                    "username": username
+                                },
+                                # Flat format for underscore notation: {recipient_firstName}
                                 "recipient_firstName": recipient_firstName,
                                 "match": {
                                     "firstName": other_name,
