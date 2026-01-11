@@ -354,23 +354,23 @@ class EmailNotifierTemplate(JobTemplate):
                     "body": f"<p><strong>Username:</strong> {notification.username}</p><p>Your account has been paused by an administrator. Your profile is hidden from searches. Please contact support for more information.</p>"
                 },
                 "pending_pii_request": {
-                    "subject": "📧 Someone requested your contact information",
-                    "body": f"<p><strong>Username:</strong> {notification.username}</p><p>{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request.</p>"
+                    "subject": f"🔒 {requester_name} requested your contact information",
+                    "body": self._build_pii_request_fallback_body(template_data, notification, requester_name)
                 },
                 "pii_request": {
-                    "subject": "📧 New contact information request",
-                    "body": f"{requester_name} has requested access to your contact information. Login to L3V3LMATCHES.com to review and respond to this request."
+                    "subject": f"🔒 {requester_name} requested your contact information",
+                    "body": self._build_pii_request_fallback_body(template_data, notification, requester_name)
                 },
                 "pii_granted": {
-                    "subject": "✅ Your contact request was approved!",
-                    "body": f"Great news! {requester_name} has approved your request to view their contact information. Login to L3V3LMATCHES.com to see their details."
+                    "subject": f"✅ {requester_name} approved your contact request!",
+                    "body": self._build_pii_granted_fallback_body(template_data, notification, requester_name)
                 },
                 "pii_denied": {
-                    "subject": "Contact request update",
+                    "subject": f"📋 Contact request update from {requester_name}",
                     "body": f"{requester_name} has declined your contact information request. Don't worry - there are many other great matches waiting for you on L3V3LMATCHES.com!"
                 },
                 "new_message": {
-                    "subject": "💬 You have a new message!",
+                    "subject": f"💬 New message from {requester_name}",
                     "body": f"{requester_name} sent you a message. Login to L3V3LMATCHES.com to read and reply."
                 },
                 "unread_messages": {
@@ -378,23 +378,23 @@ class EmailNotifierTemplate(JobTemplate):
                     "body": "You have messages waiting for you! Login to L3V3LMATCHES.com to catch up on your conversations."
                 },
                 "profile_view": {
-                    "subject": "👁️ Someone viewed your profile!",
+                    "subject": f"👁️ {requester_name} viewed your profile!",
                     "body": f"{requester_name} checked out your profile. Login to L3V3LMATCHES.com to see who's interested in you."
                 },
                 "new_match": {
-                    "subject": "💕 You have a new match!",
+                    "subject": f"💕 You matched with {requester_name}!",
                     "body": f"Exciting news! You matched with {requester_name}. Login to L3V3LMATCHES.com to start a conversation."
                 },
                 "mutual_favorite": {
-                    "subject": "💖 It's a match! You both favorited each other",
+                    "subject": f"💖 It's a match! You and {requester_name} favorited each other",
                     "body": f"Great news! You and {requester_name} have both favorited each other. This could be the start of something special! Login to L3V3LMATCHES.com to connect."
                 },
                 "shortlist_added": {
-                    "subject": "⭐ Someone added you to their shortlist!",
+                    "subject": f"⭐ {requester_name} added you to their shortlist!",
                     "body": f"{requester_name} added you to their shortlist. They're seriously interested! Login to L3V3LMATCHES.com to check them out."
                 },
                 "favorited": {
-                    "subject": "❤️ Someone favorited your profile!",
+                    "subject": f"❤️ {requester_name} favorited your profile!",
                     "body": f"{requester_name} favorited your profile. Login to L3V3LMATCHES.com to see if you're interested too!"
                 },
                 "saved_search_matches": {
@@ -495,6 +495,127 @@ class EmailNotifierTemplate(JobTemplate):
                 <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
             </p>
             <p style="margin: 10px 0 0 0; color: #999;">© 2025 L3V3L MATCHES. All rights reserved.</p>
+        </div>
+        
+    </div>
+</body>
+</html>"""
+        return html
+    
+    def _build_pii_request_fallback_body(self, template_data: dict, notification, requester_name: str) -> str:
+        """Build a simple HTML body for PII request notifications"""
+        from config import settings
+        
+        # Extract requester details from template_data
+        match_data = {}
+        if isinstance(template_data, dict):
+            match_data = template_data.get("match", {}) or template_data.get("actor", {}) or {}
+        
+        requester_username = match_data.get("username", "") if isinstance(match_data, dict) else ""
+        
+        # Build requester full name
+        first_name = match_data.get("firstName", "") if isinstance(match_data, dict) else ""
+        last_name = match_data.get("lastName", "") if isinstance(match_data, dict) else ""
+        if first_name and last_name:
+            requester_fullname = f"{first_name} {last_name}"
+        elif first_name:
+            requester_fullname = first_name
+        else:
+            requester_fullname = requester_name
+        
+        # Get recipient/profile owner name
+        recipient_name = "there"
+        if isinstance(template_data, dict):
+            recipient_data = template_data.get("recipient", {})
+            if isinstance(recipient_data, dict):
+                recipient_name = recipient_data.get("firstName", "there")
+        
+        app_url = settings.frontend_url
+        profile_url = f"{app_url}/profile/{requester_username}" if requester_username else app_url
+        
+        # Simple, clean message as requested
+        html = f"""<p>Hi {recipient_name},</p>
+<p><a href="{profile_url}" style="color: #667eea; font-weight: bold; text-decoration: none;">{requester_fullname}</a> has requested access to your contact information. Login to <a href="{app_url}" style="color: #667eea; text-decoration: none;">L3V3LMATCHES.com</a> to review and respond to this request.</p>"""
+        return html
+    
+    def _build_pii_granted_fallback_body(self, template_data: dict, notification, requester_name: str) -> str:
+        """Build a rich HTML body for PII granted notifications"""
+        from config import settings
+        
+        # Extract granter details from template_data
+        match_data = {}
+        if isinstance(template_data, dict):
+            match_data = template_data.get("match", {}) or template_data.get("actor", {}) or {}
+        
+        granter_username = match_data.get("username", "") if isinstance(match_data, dict) else ""
+        granter_photo = match_data.get("profilePhoto", match_data.get("photoUrl", "")) if isinstance(match_data, dict) else ""
+        
+        # Get recipient name
+        recipient_name = "there"
+        if isinstance(template_data, dict):
+            recipient_data = template_data.get("recipient", {})
+            if isinstance(recipient_data, dict):
+                recipient_name = recipient_data.get("firstName", "there")
+        
+        app_url = settings.frontend_url
+        
+        # Build profile photo HTML
+        photo_html = ""
+        if granter_photo:
+            photo_html = f'<img src="{granter_photo}" alt="{requester_name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 4px solid #10b981; margin-bottom: 15px;" />'
+        else:
+            initials = requester_name[0].upper() if requester_name else "?"
+            photo_html = f'<div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; font-size: 32px; color: white; font-weight: bold;">{initials}</div>'
+        
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">✅ Request Approved!</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">Great news!</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 30px;">
+            <h2 style="margin: 0 0 15px 0; color: #2d3748;">Hi {recipient_name}! 🎉</h2>
+            <p style="color: #4a5568; font-size: 16px; margin: 0 0 25px 0;">
+                <strong style="color: #10b981;">{requester_name}</strong> has approved your request to view their contact information!
+            </p>
+            
+            <!-- Granter Card -->
+            <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 25px; border: 1px solid #6ee7b7;">
+                {photo_html}
+                <h3 style="margin: 0 0 8px 0; color: #065f46; font-size: 20px;">{requester_name}</h3>
+                <p style="margin: 0; color: #047857; font-size: 14px;">Contact information is now available!</p>
+            </div>
+            
+            <!-- Action Button -->
+            <div style="text-align: center; margin: 30px 0 20px 0;">
+                <a href="{app_url}/profile/{granter_username}?open=contact" style="display: inline-block; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 18px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4);">
+                    📞 View Contact Info
+                </a>
+            </div>
+            
+            <p style="text-align: center; color: #6b7280; font-size: 14px; margin-top: 20px;">
+                Don't wait - reach out and start a conversation!
+            </p>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 10px 0;">This is an automated message from L3V3L MATCHES.</p>
+            <p style="margin: 0;">
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Manage Notifications</a> | 
+                <a href="{app_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+            </p>
+            <p style="margin: 10px 0 0 0; color: #9ca3af;">© {__import__('datetime').datetime.now().year} L3V3L MATCHES. All rights reserved.</p>
         </div>
         
     </div>
