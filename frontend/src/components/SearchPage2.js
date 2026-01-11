@@ -354,6 +354,13 @@ const SearchPage2 = () => {
     logPageVisit('Search Page');
   }, [logPageVisit]);
 
+  // CRITICAL: Clear users on component mount to prevent stale data from previous sessions
+  // This runs once when component mounts, before any other effects
+  useEffect(() => {
+    logger.info('🧹 Component mounted - clearing any stale users');
+    setUsers([]);
+  }, []);
+
   useEffect(() => {
     const username = localStorage.getItem('username');
     if (!username) {
@@ -617,16 +624,17 @@ const SearchPage2 = () => {
         return;
       }
 
+      // CRITICAL: Clear any stale users IMMEDIATELY - BEFORE any other checks
+      // This prevents showing wrong-gender profiles from previous sessions
+      // Must happen even if hasAutoExecutedRef is true (e.g., from restored state)
+      logger.info('🧹 Clearing stale users before loading search criteria');
+      setUsers([]);
+
       // Prevent multiple auto-executions (or if state was restored)
       if (hasAutoExecutedRef.current) {
         logger.info('⏭️ Already auto-executed default search or state restored, skipping');
         return;
       }
-
-      // CRITICAL: Clear any stale users IMMEDIATELY at the start
-      // This prevents showing wrong-gender profiles from previous sessions
-      logger.info('🧹 Clearing stale users before loading search criteria');
-      setUsers([]);
 
       try {
         // Check if there's a default saved search
