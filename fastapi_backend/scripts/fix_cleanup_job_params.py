@@ -33,12 +33,27 @@ CLEANUP_TARGETS = [
     {
         "collection": "job_executions",
         "days_old": 1,
-        "date_field": "started_at"  # CORRECT field name
+        "date_field": "started_at"
     },
     {
         "collection": "notifications",
         "days_old": 1,
         "date_field": "createdAt"
+    },
+    {
+        "collection": "favorites",
+        "days_old": 45,
+        "date_field": "createdAt"
+    },
+    {
+        "collection": "shortlists",
+        "days_old": 45,
+        "date_field": "createdAt"
+    },
+    {
+        "collection": "audit_logs",
+        "days_old": 30,
+        "date_field": "timestamp"
     }
 ]
 
@@ -52,98 +67,98 @@ async def fix_dev():
     client = AsyncIOMotorClient('mongodb://localhost:27017')
     db = client.matrimonialDB
     
-    # Find the Database Cleanup job
-    job = await db.scheduled_jobs.find_one({
-        'templateType': 'database_cleanup'
-    })
+    # Check both scheduled_jobs and dynamic_jobs
+    collections_to_check = [
+        ('scheduled_jobs', 'templateType'),
+        ('dynamic_jobs', 'template_type')
+    ]
     
-    if not job:
-        print('❌ Database Cleanup job not found in dev')
-        client.close()
-        return
-    
-    print(f'Found job: {job["_id"]}')
-    print(f'Name: {job.get("name")}')
-    
-    # Update the job
-    result = await db.scheduled_jobs.update_one(
-        {'_id': job['_id']},
-        {
-            '$set': {
-                'parameters.cleanup_targets': CLEANUP_TARGETS,
-                'updatedAt': datetime.now(timezone.utc)
-            }
-        }
-    )
-    
-    if result.modified_count > 0:
-        print(f'✅ Fixed dev job parameters')
-        print(f'   Changed job_executions date_field: createdAt → started_at')
-    else:
-        print(f'⚠️  No changes made (may already be correct)')
+    for coll_name, field_name in collections_to_check:
+        coll = db[coll_name]
+        job = await coll.find_one({field_name: 'database_cleanup'})
+        
+        if job:
+            print(f'Found job in {coll_name}: {job["_id"]}')
+            result = await coll.update_one(
+                {'_id': job['_id']},
+                {
+                    '$set': {
+                        'parameters.cleanup_targets': CLEANUP_TARGETS,
+                        'updatedAt': datetime.now(timezone.utc)
+                    }
+                }
+            )
+            if result.modified_count > 0:
+                print(f'   ✅ Fixed {coll_name} parameters')
+            else:
+                print(f'   ⚠️  No changes needed for {coll_name}')
+        else:
+            print(f'❌ Database Cleanup job not found in {coll_name}')
     
     client.close()
 
 
 async def fix_or_create_prod():
-    """Fix or create the Database Cleanup job in production"""
+    """Force update ALL cleanup jobs in production to ensure UI and Backend are in sync"""
     print("\n" + "="*50)
-    print("🔧 FIXING/CREATING PRODUCTION DATABASE CLEANUP JOB")
+    print("🚀 FORCE UPDATING PRODUCTION CLEANUP JOBS")
     print("="*50)
     
-    load_dotenv('.env.production')
+    # Try both local and parent directory paths for .env.production
+    if os.path.exists('.env.production'):
+        load_dotenv('.env.production')
+    elif os.path.exists('fastapi_backend/.env.production'):
+        load_dotenv('fastapi_backend/.env.production')
+        
     mongodb_url = os.getenv('MONGODB_URL')
-    
+    if not mongodb_url:
+        print("❌ MONGODB_URL not found")
+        return
+
     client = AsyncIOMotorClient(mongodb_url, tlsCAFile=certifi.where())
     db = client.matrimonialDB
     
-    # Find the Database Cleanup job
-    job = await db.scheduled_jobs.find_one({
-        'templateType': 'database_cleanup'
-    })
+    collections = ['dynamic_jobs', 'scheduled_jobs']
     
-    if job:
-        print(f'Found existing job: {job["_id"]}')
-        # Update the job
-        result = await db.scheduled_jobs.update_one(
-            {'_id': job['_id']},
-            {
-                '$set': {
-                    'parameters.cleanup_targets': CLEANUP_TARGETS,
-                    'updatedAt': datetime.now(timezone.utc)
+    for coll_name in collections:
+        print(f"\n📁 Checking {coll_name}...")
+        # Find ANY job that looks like a cleanup job
+        cursor = db[coll_name].find({
+            '$or': [
+                {'template_type': 'database_cleanup'},
+                {'templateType': 'database_cleanup'},
+                {'name': {'$regex': 'Cleanup', '$options': 'i'}}
+            ]
+        })
+        
+        jobs = await cursor.to_list(length=100)
+        if not jobs:
+            print(f"   No cleanup jobs found in {coll_name}")
+            continue
+            
+        for job in jobs:
+            print(f"   Updating Job ID: {job['_id']} ({job.get('name')})")
+            result = await db[coll_name].update_one(
+                {'_id': job['_id']},
+                {
+                    '$set': {
+                        'parameters.cleanup_targets': CLEANUP_TARGETS,
+                        'parameters.dry_run': False,
+                        'parameters.batch_size': 1000,
+                        'updatedAt': datetime.now(timezone.utc)
+                    }
                 }
-            }
-        )
-        if result.modified_count > 0:
-            print(f'✅ Fixed production job parameters')
-        else:
-            print(f'⚠️  No changes made (may already be correct)')
-    else:
-        print('Job not found - creating new Database Cleanup job...')
-        
-        new_job = {
-            '_id': ObjectId(),
-            'name': 'Database Cleanup',
-            'description': 'Clean up expired sessions and temporary data',
-            'templateType': 'database_cleanup',
-            'schedule': '0 9 * * *',  # Daily at 9 AM UTC
-            'status': 'active',
-            'parameters': {
-                'cleanup_targets': CLEANUP_TARGETS,
-                'dry_run': False,
-                'batch_size': 1000
-            },
-            'createdAt': datetime.now(timezone.utc),
-            'updatedAt': datetime.now(timezone.utc),
-            'createdBy': 'admin'
-        }
-        
-        result = await db.scheduled_jobs.insert_one(new_job)
-        print(f'✅ Created Database Cleanup job with ID: {result.inserted_id}')
-        print(f'   Schedule: Daily at 9 AM UTC')
-        print(f'   Collections: sessions, logs, activity_logs, job_executions, notifications')
-    
+            )
+            if result.modified_count > 0:
+                print(f"   ✅ Successfully updated parameters")
+            else:
+                print(f"   ⚠️  Parameters already up to date")
+
     client.close()
+    print("\n" + "="*50)
+    print("✅ FORCE UPDATE COMPLETE")
+    print("="*50)
+
 
 
 async def main():
