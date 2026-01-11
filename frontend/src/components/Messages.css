@@ -1,7 +1,6 @@
 /* Messages Page */
 .messages-page {
   height: calc(100vh - 140px);
-  max-height: 700px;
   display: flex;
   flex-direction: column;
   padding: 10px 20px;
@@ -34,13 +33,50 @@
 /* Messages Container */
 .messages-container {
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px 6px 1fr;
   flex: 1;
   min-height: 0;
   background: var(--card-background, white);
   box-shadow: 0 2px 8px var(--shadow-color, rgba(0, 0, 0, 0.1));
   border-radius: 8px;
   overflow: hidden;
+}
+
+/* Resizer handle */
+.messages-resizer {
+  background: var(--border-color, #e0e0e0);
+  cursor: col-resize;
+  transition: background 0.2s ease;
+  position: relative;
+}
+
+.messages-resizer:hover,
+.messages-container.resizing .messages-resizer {
+  background: var(--primary-color, #667eea);
+}
+
+.messages-resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 4px;
+  height: 40px;
+  background: var(--text-muted, #999);
+  border-radius: 2px;
+  opacity: 0.5;
+}
+
+.messages-resizer:hover::after,
+.messages-container.resizing .messages-resizer::after {
+  background: white;
+  opacity: 1;
+}
+
+/* Prevent text selection while resizing */
+.messages-container.resizing {
+  user-select: none;
 }
 
 /* Alert */
@@ -52,7 +88,7 @@
 /* Responsive */
 @media (max-width: 1024px) {
   .messages-container {
-    grid-template-columns: 250px 1fr;
+    grid-template-columns: 250px 6px 1fr;
   }
 }
 
@@ -62,8 +98,13 @@
   }
 
   .messages-container {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
     position: relative;
+  }
+  
+  /* Hide resizer on mobile */
+  .messages-resizer {
+    display: none;
   }
   
   /* On mobile: Show only conversation list by default */

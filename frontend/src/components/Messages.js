@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
@@ -14,10 +14,56 @@ const Messages = () => {
   const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('messagesSidebarWidth');
+    return saved ? parseInt(saved, 10) : 280;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const currentUsername = localStorage.getItem('username');
   const { logMessagesPageViewed, logPageVisit } = useActivityLogger();
+
+  // Handle resize drag
+  const handleMouseDown = useCallback((e) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!isResizing || !containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = e.clientX - containerRect.left;
+    
+    // Clamp between 200px and 500px
+    const clampedWidth = Math.min(Math.max(newWidth, 200), 500);
+    setSidebarWidth(clampedWidth);
+  }, [isResizing]);
+
+  const handleMouseUp = useCallback(() => {
+    if (isResizing) {
+      setIsResizing(false);
+      localStorage.setItem('messagesSidebarWidth', sidebarWidth.toString());
+    }
+  }, [isResizing, sidebarWidth]);
+
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+    
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, handleMouseMove, handleMouseUp]);
 
   useEffect(() => {
     if (!currentUsername) {
@@ -181,12 +227,20 @@ const Messages = () => {
         </div>
       )}
       
-      <div className={`messages-container ${selectedUser ? 'chat-active' : ''}`}>
+      <div 
+        ref={containerRef}
+        className={`messages-container ${selectedUser ? 'chat-active' : ''} ${isResizing ? 'resizing' : ''}`}
+        style={{ gridTemplateColumns: `${sidebarWidth}px 6px 1fr` }}
+      >
         <MessageList
           conversations={conversations}
           selectedUser={selectedUser}
           onSelectUser={handleSelectUser}
           currentUsername={currentUsername}
+        />
+        <div 
+          className="messages-resizer"
+          onMouseDown={handleMouseDown}
         />
         <ChatWindow
           messages={messages}
