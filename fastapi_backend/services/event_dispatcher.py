@@ -681,6 +681,11 @@ class EventDispatcher:
                         "username": actor,
                         "profileId": requester.get("profileId", "") if requester else ""
                     },
+                    # Nested format for recipient: {recipient.firstName}
+                    "recipient": {
+                        "firstName": recipient_firstName,
+                        "username": target
+                    },
                     # Flattened format for underscore notation: {match_firstName}
                     "match_firstName": requester_firstName,
                     "match_username": actor,

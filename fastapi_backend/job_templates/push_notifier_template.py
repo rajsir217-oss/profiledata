@@ -162,11 +162,11 @@ class PushNotifierTemplate(JobTemplate):
                     # User-friendly fallback messages for each trigger type
                     trigger_messages = {
                         "pending_pii_request": {
-                            "title": "Someone requested your contact info",
+                            "title": "{match_firstName} requested your contact info",
                             "body": "Login to L3V3LMATCHES.com to respond"
                         },
                         "pii_request": {
-                            "title": "New contact info request",
+                            "title": "{match_firstName} requested your contact info",
                             "body": "Login to L3V3LMATCHES.com to respond"
                         },
                         "pii_granted": {
@@ -215,6 +215,18 @@ class PushNotifierTemplate(JobTemplate):
                     
                     title = notification.get("title") or fallback["title"]
                     body = notification.get("message") or fallback["body"]
+                    
+                    # Render template variables in title and body
+                    template_data = notification.get("templateData", {})
+                    if template_data:
+                        for key, value in template_data.items():
+                            if isinstance(value, dict):
+                                for nested_key, nested_value in value.items():
+                                    title = title.replace(f"{{{key}_{nested_key}}}", str(nested_value or ""))
+                                    body = body.replace(f"{{{key}_{nested_key}}}", str(nested_value or ""))
+                            else:
+                                title = title.replace(f"{{{key}}}", str(value or ""))
+                                body = body.replace(f"{{{key}}}", str(value or ""))
                     
                     # Add prefix if not already present
                     if not title.startswith("[L3V3LMATCHES]"):
