@@ -502,20 +502,12 @@ const SearchPage2 = () => {
           heightMaxInches: defaultHeightMaxInches
         });
         
-        // Set default search criteria from partnerCriteria
-        // Note: loadAndExecuteDefaultSearch will also build these and pass to handleSearch
-        // This ensures the UI shows correct filters while search is loading
-        logger.info('🔧 Setting default search criteria from partnerCriteria');
-        setSearchCriteria(prev => ({
-          ...prev,
-          gender: oppositeGender,
-          ageMin: defaultAgeMin,
-          ageMax: defaultAgeMax,
-          heightMinFeet: defaultHeightMinFeet,
-          heightMinInches: defaultHeightMinInches,
-          heightMaxFeet: defaultHeightMaxFeet,
-          heightMaxInches: defaultHeightMaxInches
-        }));
+        // NOTE: Do NOT set searchCriteria here!
+        // loadAndExecuteDefaultSearch will set it properly:
+        // - If user has default saved search → use saved search criteria
+        // - Else → use partnerCriteria defaults
+        // Setting it here causes a "flash" where UI shows partnerCriteria then switches to saved search
+        logger.info('🔧 Profile loaded, criteria will be set by loadAndExecuteDefaultSearch');
       } catch (err) {
         logger.error('❌ Error loading current user profile:', err);
         // Set profile anyway to trigger search
@@ -745,21 +737,35 @@ const SearchPage2 = () => {
             }
           }
           
-          // Build the criteria object
+          // Build the COMPLETE criteria object (not merging with prev to avoid stale values like daysBack)
           const partnerCriteriaDefaults = {
+            keyword: '',
+            profileId: '',
             gender: oppositeGender,
             ageMin: defaultAgeMin,
             ageMax: defaultAgeMax,
             heightMinFeet: defaultHeightMinFeet,
             heightMinInches: defaultHeightMinInches,
             heightMaxFeet: defaultHeightMaxFeet,
-            heightMaxInches: defaultHeightMaxInches
+            heightMaxInches: defaultHeightMaxInches,
+            heightMin: '',
+            heightMax: '',
+            location: '',
+            education: '',
+            occupation: '',
+            religion: '',
+            caste: '',
+            drinking: '',
+            smoking: '',
+            relationshipStatus: '',
+            newlyAdded: false,
+            daysBack: 30, // Default to 30 days for production (many profiles)
           };
           
           logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
           
-          // Update searchCriteria state
-          setSearchCriteria(prev => ({ ...prev, ...partnerCriteriaDefaults }));
+          // Set complete criteria object (not merging)
+          setSearchCriteria(partnerCriteriaDefaults);
           
           // Mark as executed
           hasAutoExecutedRef.current = true;
