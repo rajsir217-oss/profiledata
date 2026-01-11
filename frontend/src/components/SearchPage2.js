@@ -35,6 +35,7 @@ const SearchPage2 = () => {
   const [loading, setLoading] = useState(false);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
   const [error, setError] = useState('');
+  const [initialSearchComplete, setInitialSearchComplete] = useState(false); // Track if initial search has run
   // const [totalResults, setTotalResults] = useState(0); // Unused - kept for future pagination
   // currentPage removed - using LoadMore incremental loading instead
 
@@ -196,6 +197,18 @@ const SearchPage2 = () => {
     return currentUser ? `${baseKey}_${currentUser}` : baseKey;
   };
 
+  // CRITICAL: Clear users on component mount - MUST be FIRST useEffect
+  // This prevents stale data from previous sessions showing before new search runs
+  useEffect(() => {
+    logger.info('🧹 FIRST useEffect - clearing stale users on mount');
+    setUsers([]);
+    
+    // Also clear sessionStorage to prevent any cached data
+    const currentUser = localStorage.getItem('username');
+    const storageKey = currentUser ? `searchPageState_${currentUser}` : 'searchPageState';
+    sessionStorage.removeItem(storageKey);
+  }, []);
+
   // Save search state to sessionStorage whenever it changes
   useEffect(() => {
     if (users.length > 0 && hasRestoredStateRef.current) {
@@ -354,12 +367,6 @@ const SearchPage2 = () => {
     logPageVisit('Search Page');
   }, [logPageVisit]);
 
-  // CRITICAL: Clear users on component mount to prevent stale data from previous sessions
-  // This runs once when component mounts, before any other effects
-  useEffect(() => {
-    logger.info('🧹 Component mounted - clearing any stale users');
-    setUsers([]);
-  }, []);
 
   useEffect(() => {
     const username = localStorage.getItem('username');
@@ -1509,6 +1516,7 @@ const SearchPage2 = () => {
     } finally {
       setLoading(false);
       setLoadingStartTime(null); // Stop timer
+      setInitialSearchComplete(true); // Mark initial search as complete
       // No longer auto-collapse filters - user controls visibility via Hide Filters button
     }
   };
@@ -2118,6 +2126,16 @@ const SearchPage2 = () => {
         return true;
       }
 
+      // CRITICAL: Filter out wrong-gender profiles from stale cache
+      // This prevents showing male profiles when searching for females (or vice versa)
+      if (searchCriteria.gender) {
+        const expectedGender = searchCriteria.gender.charAt(0).toUpperCase() + searchCriteria.gender.slice(1).toLowerCase();
+        if (user.gender && user.gender !== expectedGender) {
+          logger.warn(`🚨 Filtering out wrong-gender profile: ${user.username} (${user.gender}) - expected ${expectedGender}`);
+          return false;
+        }
+      }
+
       // Filter by minimum compatibility score (L3V3L) - client-only filter
       if (minMatchScore > 0) {
         const userScore = user.matchScore || 0;
@@ -2380,7 +2398,8 @@ const SearchPage2 = () => {
           )}
 
           {/* Sort Controls - Before Results */}
-          {currentRecords.length > 0 && (
+          {/* Only show results after initial search completes to prevent stale data flash */}
+          {initialSearchComplete && currentRecords.length > 0 && (
             <div className="sort-controls-top">
               {/* Layout Toggle Buttons */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2547,7 +2566,8 @@ const SearchPage2 = () => {
           )}
 
           {/* Layout Container - isolates view modes */}
-          <div key={`layout-${viewMode}`} style={{ width: '100%' }}>
+          {/* Only render results after initial search completes to prevent stale data flash */}
+          {initialSearchComplete && <div key={`layout-${viewMode}`} style={{ width: '100%' }}>
           {/* Split-Screen Layout */}
           {viewMode === 'split' ? (
             <div className="split-screen-layout" style={{
@@ -2767,7 +2787,7 @@ const SearchPage2 = () => {
               })}
             </div>
           )}
-          </div> {/* Close Layout Container */}
+          </div>} {/* Close Layout Container and initialSearchComplete conditional */}
 
           {/* Infinite Scroll Trigger - invisible element that triggers load more */}
           {hasMoreResults && (
@@ -2778,7 +2798,7 @@ const SearchPage2 = () => {
           )}
 
           {/* LoadMore - shows count and manual button */}
-          {currentRecords.length > 0 && (
+          {initialSearchComplete && currentRecords.length > 0 && (
             <LoadMore
               currentCount={Math.min(currentRecords.length, totalResults)}
               totalCount={totalResults}
@@ -2791,7 +2811,7 @@ const SearchPage2 = () => {
           )}
 
           {/* Consolidated Bottom Navigation Bar */}
-          {currentRecords.length > 0 && (
+          {initialSearchComplete && currentRecords.length > 0 && (
             <div className="results-controls-bottom">
               {/* Cards Per Row + View Toggle */}
               <div className="center-controls">
