@@ -182,6 +182,102 @@
   transform: translateY(-1px);
 }
 
+/* Loading state */
+.chat-first-loading {
+  padding: 20px;
+  text-align: center;
+}
+
+.chat-first-loading .loading-spinner {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 12px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Success state - conversation exists */
+.chat-first-success {
+  color: var(--success-color, #4CAF50) !important;
+}
+
+.chat-first-stats {
+  font-size: 13px;
+  color: var(--text-muted, #666);
+  background: var(--success-light, rgba(76, 175, 80, 0.1));
+  padding: 8px 16px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-bottom: 16px;
+}
+
+/* Required state - no conversation */
+.chat-first-required {
+  color: var(--danger-color, #f44336) !important;
+}
+
+.chat-first-requirement {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: var(--warning-light, rgba(255, 152, 0, 0.1));
+  border: 1px solid var(--warning-color, #ff9800);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  color: var(--warning-dark, #e65100);
+}
+
+.requirement-icon {
+  font-size: 18px;
+}
+
+/* Blocked footer */
+.chat-first-blocked {
+  background: var(--danger-light, rgba(244, 67, 54, 0.1));
+  border-top: 2px solid var(--danger-color, #f44336);
+}
+
+.chat-first-blocked .blocked-text {
+  font-size: 14px;
+  color: var(--danger-color, #f44336);
+  margin: 0 0 16px 0;
+  font-weight: 500;
+}
+
+.chat-first-blocked .btn-cancel {
+  background: var(--surface-color, #f5f5f5);
+  color: var(--text-color, #333);
+  border: 2px solid var(--border-color, #ddd);
+  padding: 12px 32px;
+  border-radius: 50px !important;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.chat-first-blocked .btn-cancel:hover {
+  background: var(--hover-background, #eee);
+}
+
+/* Success button variant */
+.btn-continue.btn-success {
+  background: linear-gradient(135deg, var(--success-color, #4CAF50) 0%, #45a049 100%) !important;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.btn-continue.btn-success:hover {
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  transform: translateY(-2px);
+}
+
 /* Mobile responsive */
 @media (max-width: 480px) {
   .chat-first-modal {

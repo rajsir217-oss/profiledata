@@ -85,15 +85,24 @@ const EventStatusLog = () => {
     return sortConfig.direction === 'asc' ? '↑' : '↓';
   };
 
+  // Extract target user from templateData
+  const getTargetUser = (log) => {
+    const td = log.templateData || log.template_data || {};
+    // Try different possible locations for target user
+    return td.match?.username || td.match_username || td.target_username || td.targetUsername || '—';
+  };
+
   const filteredLogs = logs.filter(log => {
     // Status filter
     if (filter !== 'all' && log.status?.toLowerCase() !== filter) return false;
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
+      const targetUser = getTargetUser(log);
       return (
         log.username?.toLowerCase().includes(search) ||
-        log.trigger?.toLowerCase().includes(search)
+        log.trigger?.toLowerCase().includes(search) ||
+        (targetUser !== '—' && targetUser.toLowerCase().includes(search))
       );
     }
     return true;
@@ -184,6 +193,7 @@ const EventStatusLog = () => {
                 <th className="sortable" onClick={() => handleSort('username')}>
                   User {getSortIcon('username')}
                 </th>
+                <th>Target</th>
                 <th className="sortable" onClick={() => handleSort('trigger')}>
                   Event/Trigger {getSortIcon('trigger')}
                 </th>
@@ -205,6 +215,9 @@ const EventStatusLog = () => {
                   </td>
                   <td className="user-cell">
                     {log.username || 'N/A'}
+                  </td>
+                  <td className="target-cell">
+                    {getTargetUser(log)}
                   </td>
                   <td className="trigger-cell">
                     <span className="trigger-badge">{log.trigger || 'N/A'}</span>

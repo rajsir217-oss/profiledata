@@ -192,6 +192,11 @@
   font-weight: 500;
 }
 
+.event-status-log .target-cell {
+  font-weight: 500;
+  color: var(--info-color, #3b82f6);
+}
+
 .event-status-log .trigger-badge {
   display: inline-block;
   padding: 4px 10px;
