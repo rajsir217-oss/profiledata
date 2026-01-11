@@ -56,6 +56,14 @@ const Dashboard2 = () => {
   });
   const [lastLoginAt, setLastLoginAt] = useState(null);
   
+  // Track which data has been loaded (for lazy loading)
+  const [loadedData, setLoadedData] = useState({
+    profile: false,
+    piiRequests: false,
+    myActivities: false,
+    othersActivities: false
+  });
+  
   // Profile view metrics
   const [viewMetrics, setViewMetrics] = useState({
     uniqueViewers: 0,
@@ -252,72 +260,37 @@ const Dashboard2 = () => {
 
     setLoading(true);
     setError('');
-    logger.info('Loading dashboard for user:', user);
+    logger.info('Loading dashboard for user (lazy mode):', user);
 
     try {
-      // Fetch all data in parallel and collect results for auto-expand logic
-      const [
-        , // profile - no return needed
-        messagesRes,
-        favoritesRes,
-        shortlistsRes,
-        , // views - no return needed for expand logic
-        exclusionsRes,
-        piiRequestsRes,
-        incomingRequestsRes
-      ] = await Promise.all([
-        refreshProfile(user, true),
-        api.get(`/messages/conversations?username=${user}`).then(res => res.data.conversations || []),
-        api.get(`/favorites/${user}`).then(res => res.data.favorites || []),
-        api.get(`/shortlist/${user}`).then(res => res.data.shortlist || []),
-        refreshViews(user, true),
-        api.get(`/exclusions/${user}`).then(res => res.data.exclusions || []),
+      // LAZY LOADING: Only fetch essential data initially (profile + counts for badges)
+      // Other data will be loaded when user expands a section
+      await refreshProfile(user, true);
+      
+      // Fetch PII counts for badges (lightweight - just counts)
+      const [piiOutgoing, piiIncoming] = await Promise.all([
         api.get(`/pii-requests/${user}/outgoing`).then(res => res.data.requests || []),
         api.get(`/pii-requests/${user}/incoming`).then(res => res.data.requests || [])
       ]);
       
-      // Also fetch the remaining data
-      await Promise.all([
-        refreshTheirFavorites(user, true),
-        refreshTheirShortlists(user, true),
-        refreshReceivedAccess(user, true),
-        refreshSavedSearches(user, true)
-      ]);
-      
-      // Update dashboard data with fetched results
       setDashboardData(prev => ({
         ...prev,
-        myMessages: messagesRes,
-        myFavorites: favoritesRes,
-        myShortlists: shortlistsRes,
-        myExclusions: exclusionsRes,
-        myRequests: piiRequestsRes,
-        incomingContactRequests: incomingRequestsRes
+        myRequests: piiOutgoing,
+        incomingContactRequests: piiIncoming
       }));
-
-      // Auto-expand/collapse based on ACTUAL fetched data (not stale state)
-      const piiCount = (incomingRequestsRes?.length || 0) + (piiRequestsRes?.length || 0);
-      const myActivitiesCount = (messagesRes?.length || 0) + 
-                                (favoritesRes?.length || 0) + 
-                                (shortlistsRes?.length || 0) + 
-                                (exclusionsRes?.length || 0);
       
-      console.log('📊 Auto-expand logic:', {
-        piiCount,
-        myActivitiesCount,
-        expandPii: piiCount > 0,
-        expandMyActivities: myActivitiesCount > 0,
-        messagesLen: messagesRes?.length,
-        favoritesLen: favoritesRes?.length,
-        shortlistsLen: shortlistsRes?.length,
-        exclusionsLen: exclusionsRes?.length
-      });
+      setLoadedData(prev => ({ ...prev, profile: true, piiRequests: true }));
       
-      setExpandedGroups({
+      // Auto-expand PII if there are requests
+      const piiCount = (piiIncoming?.length || 0) + (piiOutgoing?.length || 0);
+      setExpandedGroups(prev => ({
+        ...prev,
         piiRequests: piiCount > 0,
-        myActivities: myActivitiesCount > 0,
-        othersActivities: false  // Keep others collapsed by default
-      });
+        myActivities: true,  // Default expanded but data loaded lazily
+        othersActivities: false
+      }));
+      
+      logger.info('📊 Initial load complete - PII count:', piiCount);
     } catch (err) {
       logger.error('Error loading dashboard data:', err);
       const errorMessage = err.response?.data?.detail || 
@@ -327,6 +300,61 @@ const Dashboard2 = () => {
       setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // LAZY LOADING: Load My Activities data when section is expanded
+  const loadMyActivitiesData = async (user) => {
+    if (loadedData.myActivities) return; // Already loaded
+    
+    const currentUser = user || localStorage.getItem('username');
+    logger.info('📦 Lazy loading My Activities data...');
+    
+    try {
+      const [messagesRes, favoritesRes, shortlistsRes, exclusionsRes] = await Promise.all([
+        api.get(`/messages/conversations?username=${currentUser}`).then(res => res.data.conversations || []),
+        api.get(`/favorites/${currentUser}`).then(res => res.data.favorites || []),
+        api.get(`/shortlist/${currentUser}`).then(res => res.data.shortlist || []),
+        api.get(`/exclusions/${currentUser}`).then(res => res.data.exclusions || [])
+      ]);
+      
+      // Also load views
+      await refreshViews(currentUser, true);
+      
+      setDashboardData(prev => ({
+        ...prev,
+        myMessages: messagesRes,
+        myFavorites: favoritesRes,
+        myShortlists: shortlistsRes,
+        myExclusions: exclusionsRes
+      }));
+      
+      setLoadedData(prev => ({ ...prev, myActivities: true }));
+      logger.info('✅ My Activities data loaded');
+    } catch (err) {
+      logger.error('Error loading My Activities:', err);
+    }
+  };
+
+  // LAZY LOADING: Load Others' Activities data when section is expanded
+  const loadOthersActivitiesData = async (user) => {
+    if (loadedData.othersActivities) return; // Already loaded
+    
+    const currentUser = user || localStorage.getItem('username');
+    logger.info('📦 Lazy loading Others Activities data...');
+    
+    try {
+      await Promise.all([
+        refreshTheirFavorites(currentUser, true),
+        refreshTheirShortlists(currentUser, true),
+        refreshReceivedAccess(currentUser, true),
+        refreshSavedSearches(currentUser, true)
+      ]);
+      
+      setLoadedData(prev => ({ ...prev, othersActivities: true }));
+      logger.info('✅ Others Activities data loaded');
+    } catch (err) {
+      logger.error('Error loading Others Activities:', err);
     }
   };
 
@@ -683,6 +711,15 @@ const Dashboard2 = () => {
     localStorage.setItem('dashboardGroups', JSON.stringify(expandedGroups));
   }, [expandedGroups]);
 
+  // LAZY LOADING: Load My Activities data after initial dashboard load
+  // Since My Activities is expanded by default, load it after profile/PII loads
+  useEffect(() => {
+    if (loadedData.profile && !loadedData.myActivities && expandedGroups.myActivities) {
+      loadMyActivitiesData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadedData.profile, expandedGroups.myActivities]);
+
   const toggleSection = (section) => {
     setActiveSections(prev => ({
       ...prev,
@@ -690,12 +727,23 @@ const Dashboard2 = () => {
     }));
   };
 
-  // Toggle group (column) expand/collapse
+  // Toggle group (column) expand/collapse with lazy loading
   const toggleGroup = (group) => {
+    const willExpand = !expandedGroups[group];
+    
     setExpandedGroups(prev => ({
       ...prev,
-      [group]: !prev[group]
+      [group]: willExpand
     }));
+    
+    // Trigger lazy loading when expanding
+    if (willExpand) {
+      if (group === 'myActivities') {
+        loadMyActivitiesData();
+      } else if (group === 'othersActivities') {
+        loadOthersActivitiesData();
+      }
+    }
   };
 
   // Toggle all sections (single button)
@@ -720,12 +768,14 @@ const Dashboard2 = () => {
       });
       setIsAllExpanded(false);
     } else {
-      // Expand all
+      // Expand all - trigger lazy loading for all groups
       setExpandedGroups({
         piiRequests: true,
         myActivities: true,
         othersActivities: true
       });
+      loadMyActivitiesData();
+      loadOthersActivitiesData();
       setActiveSections({
         myMessages: true,
         myFavorites: true,
