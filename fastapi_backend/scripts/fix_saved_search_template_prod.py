@@ -44,7 +44,7 @@ TEMPLATE_BODY = """<!DOCTYPE html>
             </div>
             
             <!-- Matches HTML will be injected here -->
-            {{{matchesHtml}}}
+            {{matchesHtml}}
             
             <div style="text-align: center; margin: 40px 0 20px 0;">
                 <a href="{{app.searchUrl}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
@@ -75,18 +75,33 @@ TEMPLATE_BODY = """<!DOCTYPE html>
 
 
 async def fix_template():
-    load_dotenv('.env.production')
+    # Try .env.local first (for local dev), then .env.production
+    if os.path.exists('.env.local'):
+        load_dotenv('.env.local')
+        print('Using .env.local')
+    elif os.path.exists('.env.production'):
+        load_dotenv('.env.production')
+        print('Using .env.production')
+    else:
+        load_dotenv('.env')
+        print('Using .env')
     
     mongodb_url = os.getenv('MONGODB_URL')
-    print(f'Connecting to production MongoDB...')
+    # Remove quotes if present (from .env file)
+    if mongodb_url:
+        mongodb_url = mongodb_url.strip('"').strip("'")
+    print(f'Connecting to MongoDB...')
     
-    client = AsyncIOMotorClient(mongodb_url, tlsCAFile=certifi.where())
+    # Only use TLS for Atlas (mongodb+srv), not for local MongoDB
+    if mongodb_url and 'mongodb+srv' in mongodb_url:
+        client = AsyncIOMotorClient(mongodb_url, tlsCAFile=certifi.where())
+    else:
+        client = AsyncIOMotorClient(mongodb_url)
     db = client.matrimonialDB
     
-    # Delete existing template
+    # Delete existing template (by trigger only, since there's a unique index on trigger)
     result = await db.notification_templates.delete_many({
-        'trigger': 'saved_search_matches',
-        'channel': 'email'
+        'trigger': 'saved_search_matches'
     })
     print(f'🗑️  Deleted {result.deleted_count} existing template(s)')
     

@@ -213,7 +213,7 @@ async def update_template():
             </div>
             
             <!-- Matches HTML will be injected here -->
-            {{{matchesHtml}}}
+            {{matchesHtml}}
             
             <div class="cta-section">
                 <a href="{{app.searchUrl}}" class="cta-button">

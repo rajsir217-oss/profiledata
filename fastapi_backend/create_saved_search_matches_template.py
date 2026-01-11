@@ -78,7 +78,7 @@ async def create_template():
             </div>
             
             <!-- Matches HTML will be injected here -->
-            {{{matchesHtml}}}
+            {{matchesHtml}}
             
             <div style="text-align: center; margin: 40px 0 20px 0;">
                 <a href="{{app.searchUrl}}" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">

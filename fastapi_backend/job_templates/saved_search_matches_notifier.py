@@ -268,11 +268,11 @@ EMAIL_TEMPLATE = """
 """
 
 MATCH_CARD_TEMPLATE = """
-<div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 15px;">
+<div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); display: flex; gap: 20px;">
     <div style="flex-shrink: 0;">
-        <img src="{profile_photo_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 3px solid #667eea;" onerror="this.style.display='none'" />
+        <img src="{profile_photo_url}" alt="{name}" style="width: 80px; height: 80px; border-radius: 12px; object-fit: cover; border: 3px solid #667eea;" />
     </div>
-    <div style="flex: 1;">
+    <div style="flex: 1; padding-left: 5px;">
         <h3 style="font-size: 18px; font-weight: 700; color: #1a202c; margin: 0 0 8px 0;">{name}</h3>
         {l3v3l_badge}
         <div style="margin: 12px 0;">
@@ -292,10 +292,7 @@ MATCH_CARD_TEMPLATE = """
                 <span style="margin-right: 8px;">📍</span>
                 <span>{location}</span>
             </div>
-            <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
-                <span style="margin-right: 8px;">🎓</span>
-                <span>{education}</span>
-            </div>
+            {education_detail}
             {religion_detail}
             {occupation_detail}
         </div>
@@ -763,11 +760,26 @@ async def send_matches_email(
             # Location - use decrypted values
             location = decrypted_match.get('location') or decrypted_match.get('state') or 'Location not specified'
             
-            # Education - check multiple possible field names and formats
+            # Education - check educationHistory array first, then fallbacks
             education = ''
             
-            # 1. Check education field (can be string or array)
-            if decrypted_match.get('education'):
+            # 1. Check educationHistory array (primary field)
+            edu_history = decrypted_match.get('educationHistory', [])
+            if isinstance(edu_history, list) and len(edu_history) > 0:
+                first_edu = edu_history[0]
+                if isinstance(first_edu, dict):
+                    # Build education string: "Degree from Institution" or just "Degree/Level"
+                    degree = first_edu.get('degree') or first_edu.get('level') or ''
+                    institution = first_edu.get('institution') or ''
+                    if degree and institution:
+                        education = f"{degree} from {institution}"
+                    elif degree:
+                        education = degree
+                    elif institution:
+                        education = institution
+            
+            # 2. Fallback to education field (can be string or array)
+            if not education and decrypted_match.get('education'):
                 edu_data = decrypted_match['education']
                 if isinstance(edu_data, str) and edu_data.strip():
                     education = edu_data
@@ -778,30 +790,18 @@ async def send_matches_email(
                     elif isinstance(first_edu, str):
                         education = first_edu
             
-            # 2. Fallback to highestEducation or educationLevel
+            # 3. Fallback to highestEducation or educationLevel
             if not education:
                 education = decrypted_match.get('highestEducation') or decrypted_match.get('educationLevel') or ''
-            
-            # 3. Fallback to workExperience for job title if no education
-            if not education:
-                work_exp = decrypted_match.get('workExperience', [])
-                if isinstance(work_exp, list) and len(work_exp) > 0:
-                    current_job = None
-                    for job in work_exp:
-                        if isinstance(job, dict) and job.get('isCurrent'):
-                            current_job = job
-                            break
-                    if not current_job and work_exp:
-                        current_job = work_exp[0] if isinstance(work_exp[0], dict) else None
-                    
-                    if current_job:
-                        job_title = current_job.get('jobTitle') or current_job.get('title') or current_job.get('position')
-                        if job_title:
-                            education = job_title  # Use job title as fallback
-            
-            # Final fallback
-            if not education:
-                education = 'Not specified'
+            # Education detail (only show if specified)
+            education_detail = ''
+            if education:
+                education_detail = f'''
+                <div style="display: flex; align-items: center; font-size: 14px; color: #4a5568; margin-bottom: 6px;">
+                    <span style="margin-right: 8px;">🎓</span>
+                    <span>{education}</span>
+                </div>
+                '''
             
             # Religion (optional)
             religion_detail = ''
@@ -892,20 +892,35 @@ async def send_matches_email(
                 profile_photo_url = decrypted_match.get('profilePhoto', decrypted_match.get('photoUrl', ''))
             
             # Convert relative paths to full URLs
-            if profile_photo_url:
-                # Handle relative paths like /uploads/filename.jpg or /api/users/media/filename.jpg
-                if profile_photo_url.startswith('/'):
-                    # Use backend URL for media files
-                    backend_url = settings.backend_url.rstrip('/')
-                    profile_photo_url = f"{backend_url}{profile_photo_url}"
-                elif not profile_photo_url.startswith('http'):
-                    # Handle bare filenames
-                    backend_url = settings.backend_url.rstrip('/')
-                    profile_photo_url = f"{backend_url}/uploads/{profile_photo_url}"
+            # For emails, images must be publicly accessible (no auth required)
+            # Use GCS bucket URL for all images
+            gcs_bucket = settings.gcs_bucket_name or 'matrimonial-uploads-matrimonial-staging'
             
-            # Use placeholder if no photo
+            if profile_photo_url:
+                # Handle GCS bucket paths (e.g., /matrimonial-uploads-matrimonial-staging/uploads/...)
+                if profile_photo_url.startswith('/matrimonial-uploads'):
+                    # This is a GCS bucket path - convert to full GCS URL
+                    profile_photo_url = f"https://storage.googleapis.com{profile_photo_url}"
+                elif profile_photo_url.startswith('/uploads/'):
+                    # Handle /uploads/filename.jpg - convert to GCS URL (public bucket)
+                    filename = profile_photo_url.split('/uploads/')[-1]
+                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}/uploads/{filename}"
+                elif profile_photo_url.startswith('https://storage.googleapis.com'):
+                    # Already a full GCS URL - keep as is
+                    pass
+                elif profile_photo_url.startswith('/'):
+                    # Handle other relative paths - convert to GCS
+                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}{profile_photo_url}"
+                elif not profile_photo_url.startswith('http'):
+                    # Handle bare filenames - convert to GCS URL
+                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}/uploads/{profile_photo_url}"
+            
+            # Use placeholder if no photo - use ui-avatars.com for a nice avatar with initials
             if not profile_photo_url:
-                profile_photo_url = f"{app_url}/default-avatar.png"
+                # URL encode the name for the avatar
+                import urllib.parse
+                encoded_name = urllib.parse.quote(name)
+                profile_photo_url = f"https://ui-avatars.com/api/?name={encoded_name}&background=667eea&color=fff&size=80&bold=true"
             
             match_html = MATCH_CARD_TEMPLATE.format(
                 name=name,
@@ -913,7 +928,7 @@ async def send_matches_email(
                 age=age or '?',
                 height=height,
                 location=location,
-                education=education,
+                education_detail=education_detail,
                 religion_detail=religion_detail,
                 occupation_detail=occupation_detail,
                 l3v3l_badge=l3v3l_badge,

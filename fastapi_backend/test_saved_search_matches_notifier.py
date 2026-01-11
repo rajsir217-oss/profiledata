@@ -28,7 +28,16 @@ from config import settings
 
 
 async def main() -> None:
-    load_dotenv(".env.local")
+    # Try .env.local first, then .env.production
+    if os.path.exists(".env.local"):
+        load_dotenv(".env.local")
+        print("Using .env.local")
+    elif os.path.exists(".env.production"):
+        load_dotenv(".env.production")
+        print("Using .env.production")
+    else:
+        load_dotenv(".env")
+        print("Using .env")
 
     mongodb_url = os.getenv("MONGODB_URL")
     db_name = os.getenv("MONGODB_DB_NAME", "matrimonialDB")
