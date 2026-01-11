@@ -4,6 +4,8 @@
 # Usage: 
 #   gitp ["Your commit message"]       - Commit and push to current branch
 #   gitp -main ["Your commit message"] - Commit to dev, merge to main, checkout back to dev
+#   gitp -n ["Your commit message"]    - Dry-run: preview changes without committing
+#   gitp -h                            - Show help
 # Note: Timestamp is automatically appended to all commit messages
 
 set -e  # Exit on any error
@@ -14,6 +16,7 @@ YELLOW='\033[1;33m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Function to print colored output
@@ -37,6 +40,41 @@ print_merge() {
     echo -e "${CYAN}[MERGE]${NC} $1"
 }
 
+print_dry() {
+    echo -e "${MAGENTA}[DRY-RUN]${NC} $1"
+}
+
+# Show help
+show_help() {
+    echo -e "${CYAN}gitp${NC} - Quick git workflow script"
+    echo ""
+    echo -e "${YELLOW}Usage:${NC}"
+    echo "  gitp [message]              Commit and push to current branch"
+    echo "  gitp -main [message]        Commit, push, merge dev→main, return to dev"
+    echo "  gitp -n [message]           Dry-run: preview what would be committed"
+    echo "  gitp -a [message]           Add ALL files including untracked (default: tracked only)"
+    echo "  gitp -h, --help             Show this help message"
+    echo ""
+    echo -e "${YELLOW}Options:${NC}"
+    echo "  -main     Merge mode: push to dev, then merge into main"
+    echo "  -n        Dry-run mode: show what would happen without making changes"
+    echo "  -a        Add all files (including new untracked files)"
+    echo "  -h        Show this help"
+    echo ""
+    echo -e "${YELLOW}Examples:${NC}"
+    echo "  gitp                        # Auto-commit with timestamp message"
+    echo "  gitp \"Fix login bug\"        # Commit with custom message + timestamp"
+    echo "  gitp -n                     # Preview changes without committing"
+    echo "  gitp -main \"Release v1.2\"  # Push to dev, merge to main"
+    echo "  gitp -a \"Add new feature\"  # Include untracked files"
+    echo ""
+    echo -e "${YELLOW}Notes:${NC}"
+    echo "  • Timestamp is automatically appended to all commit messages"
+    echo "  • By default, only tracked files are staged (use -a for all)"
+    echo "  • Protected branches (main/master/production) will prompt for confirmation"
+    exit 0
+}
+
 # Generate default commit message with timestamp
 generate_default_message() {
     echo "changes made on $(date '+%Y-%m-%d | %H:%M:%S')"
@@ -45,12 +83,36 @@ generate_default_message() {
 # Get current timestamp
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-# Check for -main flag (merge mode: dev -> main)
+# Protected branches that require confirmation
+PROTECTED_BRANCHES=("main" "master" "production")
+
+# Parse flags
 MERGE_MODE=false
-if [ "$1" == "-main" ]; then
-    MERGE_MODE=true
-    shift  # Remove flag from arguments
-fi
+DRY_RUN=false
+ADD_ALL=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_help
+            ;;
+        -main)
+            MERGE_MODE=true
+            shift
+            ;;
+        -n|--dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -a|--all)
+            ADD_ALL=true
+            shift
+            ;;
+        *)
+            break  # Stop parsing flags, rest is commit message
+            ;;
+    esac
+done
 
 # Check if commit message is provided, otherwise use default
 if [ $# -eq 0 ]; then
@@ -66,6 +128,31 @@ fi
 if ! git rev-parse --git-dir > /dev/null 2>&1; then
     print_error "Not in a git repository!"
     exit 1
+fi
+
+# Get current branch early for protection check
+CURRENT_BRANCH=$(git branch --show-current)
+
+# Check if pushing to protected branch (skip in merge mode)
+if [ "$MERGE_MODE" = false ] && [ "$DRY_RUN" = false ]; then
+    for protected in "${PROTECTED_BRANCHES[@]}"; do
+        if [ "$CURRENT_BRANCH" == "$protected" ]; then
+            print_warning "⚠️  You're about to push directly to protected branch: $CURRENT_BRANCH"
+            echo -n "Continue? (y/N): "
+            read -r response
+            if [[ ! "$response" =~ ^[Yy]$ ]]; then
+                print_status "Aborted. Consider using a feature branch instead."
+                exit 0
+            fi
+            break
+        fi
+    done
+fi
+
+if [ "$DRY_RUN" = true ]; then
+    print_dry "=========================================="
+    print_dry "DRY-RUN MODE - No changes will be made"
+    print_dry "=========================================="
 fi
 
 print_status "Starting git workflow..."
@@ -85,13 +172,50 @@ fi
 print_status "Files to be committed:"
 echo "$GIT_STATUS" | sed 's/^/  /'
 
-# Add all changes
-print_status "Adding files to staging area..."
-if git add --all; then
-    print_success "Files added successfully"
+# Dry-run: show what would happen and exit
+if [ "$DRY_RUN" = true ]; then
+    echo ""
+    print_dry "Would commit with message: \"$COMMIT_MESSAGE\""
+    print_dry "Would push to branch: $CURRENT_BRANCH"
+    if [ "$MERGE_MODE" = true ]; then
+        print_dry "Would then merge dev → main"
+    fi
+    if [ "$ADD_ALL" = true ]; then
+        print_dry "Would add ALL files (including untracked)"
+    else
+        print_dry "Would add only tracked files (use -a for all)"
+    fi
+    echo ""
+    print_dry "=========================================="
+    print_dry "End of dry-run. No changes were made."
+    print_dry "=========================================="
+    exit 0
+fi
+
+# Add changes (tracked only by default, or all with -a flag)
+if [ "$ADD_ALL" = true ]; then
+    print_status "Adding ALL files to staging area (including untracked)..."
+    if git add --all; then
+        print_success "All files added successfully"
+    else
+        print_error "Failed to add files"
+        exit 1
+    fi
 else
-    print_error "Failed to add files"
-    exit 1
+    print_status "Adding tracked files to staging area..."
+    if git add -u; then
+        print_success "Tracked files added successfully"
+    else
+        print_error "Failed to add files"
+        exit 1
+    fi
+    
+    # Check for untracked files and warn
+    UNTRACKED=$(git status --porcelain | grep "^??" || true)
+    if [ -n "$UNTRACKED" ]; then
+        print_warning "Untracked files not staged (use -a to include):"
+        echo "$UNTRACKED" | sed 's/^??/  /'
+    fi
 fi
 
 # Commit with provided message
@@ -129,7 +253,7 @@ else
     exit 1
 fi
 
-# Handle merge mode (-m flag)
+# Handle merge mode (-main flag)
 if [ "$MERGE_MODE" = true ]; then
     echo ""
     print_merge "=========================================="
@@ -144,12 +268,29 @@ if [ "$MERGE_MODE" = true ]; then
         exit 1
     fi
     
+    # Check for uncommitted changes and auto-stash if needed
+    STASH_NEEDED=false
+    if [ -n "$(git status --porcelain)" ]; then
+        print_merge "Uncommitted changes detected, stashing..."
+        if git stash push -m "gitp auto-stash before merge [$TIMESTAMP]"; then
+            STASH_NEEDED=true
+            print_success "Changes stashed successfully"
+        else
+            print_error "Failed to stash changes"
+            exit 1
+        fi
+    fi
+    
     # Checkout to main
     print_merge "Checking out to main branch..."
     if git checkout main; then
         print_success "Switched to main branch"
     else
         print_error "Failed to checkout main branch"
+        # Restore stash if we stashed
+        if [ "$STASH_NEEDED" = true ]; then
+            git stash pop
+        fi
         git checkout dev  # Try to go back to dev
         exit 1
     fi
@@ -192,6 +333,17 @@ if [ "$MERGE_MODE" = true ]; then
     else
         print_error "Failed to checkout dev branch"
         exit 1
+    fi
+    
+    # Restore stash if we stashed earlier
+    if [ "$STASH_NEEDED" = true ]; then
+        print_merge "Restoring stashed changes..."
+        if git stash pop; then
+            print_success "Stashed changes restored"
+        else
+            print_warning "Could not restore stash automatically"
+            print_status "Your changes are in: git stash list"
+        fi
     fi
     
     echo ""
