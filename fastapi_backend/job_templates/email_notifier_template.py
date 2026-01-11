@@ -235,9 +235,11 @@ class EmailNotifierTemplate(JobTemplate):
         template = await db.notification_templates.find_one({
             "trigger": notification.trigger,
             "$or": [
-                # Flat structure
+                # Flat structure - check both enum and string values
                 {"channel": NotificationChannel.EMAIL, "enabled": True},
                 {"channel": NotificationChannel.EMAIL, "active": True},
+                {"channel": "email", "enabled": True},
+                {"channel": "email", "active": True},
                 # Nested structure (channels.email)
                 {"channels.email.enabled": True, "isActive": True},
                 {"channels.email.enabled": True}

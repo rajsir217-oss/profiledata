@@ -240,7 +240,7 @@ EMAIL_TEMPLATES = [
         <div class="content">
             <p>Hi {recipient.firstName},</p>
             
-            <p>Someone wants to connect with you!</p>
+            <p><strong>{match.firstName}</strong> wants to connect with you!</p>
             
             <div class="request-card">
                 <h2>{match.firstName}, {match.age}</h2>
