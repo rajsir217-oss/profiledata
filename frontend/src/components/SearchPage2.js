@@ -623,6 +623,11 @@ const SearchPage2 = () => {
         return;
       }
 
+      // CRITICAL: Clear any stale users IMMEDIATELY at the start
+      // This prevents showing wrong-gender profiles from previous sessions
+      logger.info('🧹 Clearing stale users before loading search criteria');
+      setUsers([]);
+
       try {
         // Check if there's a default saved search
         logger.info('⭐ Checking for default saved search for user:', localStorage.getItem('username'));
@@ -770,10 +775,8 @@ const SearchPage2 = () => {
           // Mark as executed
           hasAutoExecutedRef.current = true;
           
-          // Clear any stale session-restored users to prevent mismatch
-          setUsers([]);
-          
           // Execute search with explicit criteria (don't rely on async state)
+          // Note: Users already cleared at line 628 at start of function
           setTimeout(() => {
             logger.info('🔍 Auto-executing search with partnerCriteria defaults');
             handleSearch(1, 0, partnerCriteriaDefaults);
