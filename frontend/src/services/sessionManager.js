@@ -26,7 +26,9 @@ class SessionManager {
     this.REFRESH_INTERVAL = 5 * 60 * 1000; // Refresh token every 5 minutes if active
     this.HARD_LIMIT = 8 * 60 * 60 * 1000; // 8 hour hard limit (full work day)
     this.WARNING_TIME = 7.5 * 60 * 60 * 1000; // Warn at 7.5 hours
+    this.INACTIVITY_LOGOUT = 30 * 60 * 1000; // Log out after 30 minutes of inactivity
     this.warningShown = false;
+    this.isLoggingOut = false;
   }
 
   /**
@@ -53,6 +55,9 @@ class SessionManager {
 
     // Set up activity listeners
     this.setupActivityListeners();
+
+    // Set up visibility change listener (for when user returns to tab)
+    this.setupVisibilityListener();
 
     // Start refresh interval
     this.startRefreshInterval();
@@ -81,6 +86,48 @@ class SessionManager {
   }
 
   /**
+   * Set up visibility change listener
+   * This checks session validity when user returns to the tab
+   */
+  setupVisibilityListener() {
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+  }
+
+  /**
+   * Handle visibility change (user returns to tab)
+   */
+  handleVisibilityChange = async () => {
+    if (document.visibilityState === 'visible' && this.isActive) {
+      logger.debug('Tab became visible, checking session...');
+      
+      // Check if user has been inactive too long
+      const timeSinceActivity = Date.now() - this.lastActivity;
+      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
+        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+        this.logout();
+        return;
+      }
+
+      // Check hard limit
+      if (this.hasExceededHardLimit()) {
+        logger.warn('Session exceeded 8-hour hard limit on tab return');
+        toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
+        this.logout();
+        return;
+      }
+
+      // Try to refresh token to verify session is still valid
+      try {
+        await this.refreshToken();
+        this.lastActivity = Date.now(); // Reset activity on successful return
+      } catch (error) {
+        logger.error('Failed to refresh token on tab return:', error);
+      }
+    }
+  }
+
+  /**
    * Remove activity listeners
    */
   removeActivityListeners() {
@@ -89,6 +136,7 @@ class SessionManager {
     document.removeEventListener('click', this.handleActivity);
     document.removeEventListener('touchstart', this.handleActivity);
     document.removeEventListener('scroll', this.handleActivity);
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
 
   /**
@@ -161,7 +209,16 @@ class SessionManager {
         this.warningShown = true;
       }
 
-      // Only refresh if user is active
+      // Check if user has been inactive too long - log them out
+      const timeSinceActivity = Date.now() - this.lastActivity;
+      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
+        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+        this.logout();
+        return;
+      }
+
+      // Only refresh if user is active (within 25 min threshold)
       if (!this.isUserActive()) {
         logger.debug('User inactive, skipping token refresh');
         return;
