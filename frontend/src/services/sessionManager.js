@@ -17,6 +17,7 @@ class SessionManager {
   constructor() {
     this.activityTimeout = null;
     this.refreshInterval = null;
+    this.inactivityInterval = null; // Dedicated inactivity check interval
     this.lastActivity = Date.now();
     this.loginTime = null;
     this.isActive = false;
@@ -181,12 +182,44 @@ class SessionManager {
       clearInterval(this.refreshInterval);
     }
 
-    // Check and refresh every 10 minutes
+    // Check and refresh every 5 minutes
     this.refreshInterval = setInterval(async () => {
       await this.checkAndRefresh();
     }, this.REFRESH_INTERVAL);
 
     logger.debug('Token refresh interval started');
+    
+    // ALSO start a dedicated inactivity check interval
+    // This runs more frequently (every 1 minute) to catch inactivity faster
+    // Browsers may throttle this in background tabs, but it will catch up when tab is active
+    this.startInactivityCheckInterval();
+  }
+  
+  /**
+   * Start dedicated inactivity check interval
+   * Runs every minute to check if user has been inactive for too long
+   */
+  startInactivityCheckInterval() {
+    // Clear existing interval
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval);
+    }
+    
+    // Check inactivity every 1 minute
+    this.inactivityInterval = setInterval(() => {
+      if (!this.isActive) return;
+      
+      const timeSinceActivity = Date.now() - this.lastActivity;
+      logger.debug(`Inactivity check: ${Math.round(timeSinceActivity / 60000)} minutes since last activity`);
+      
+      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
+        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+        this.logout();
+      }
+    }, 60 * 1000); // Check every 1 minute
+    
+    logger.debug('Inactivity check interval started (every 1 minute)');
   }
 
   /**
@@ -295,6 +328,11 @@ class SessionManager {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+    }
+    
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval);
+      this.inactivityInterval = null;
     }
 
     if (this.activityTimeout) {
