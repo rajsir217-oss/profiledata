@@ -7,6 +7,7 @@ import { getDisplayName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage2.css';
 import { ACTION_ICONS } from '../constants/icons';
+import { generateLookingForSummary } from '../utils/profileDescriptionGenerator';
 
 /**
  * Reusable Search Result Card Component
@@ -776,6 +777,16 @@ const SearchResultCard = ({
               {displayDOB && <p className="card-detail-line"><strong>DOB:</strong> {displayDOB}</p>}
             </div>
           </div>
+
+          {/* Looking For Summary */}
+          {(() => {
+            const lookingForSummary = generateLookingForSummary(user);
+            return lookingForSummary ? (
+              <p className="card-looking-for">
+                <span className="looking-for-label">Looking for:</span> {lookingForSummary}
+              </p>
+            ) : null;
+          })()}
 
           {/* Badges */}
           <div className="card-badges">
