@@ -564,39 +564,39 @@ export const generateLookingForSummary = (user) => {
   const traits = [];
   const criteria = user.partnerCriteria || user;
 
-  // Priority order: Education, Profession, Location (most valuable for quick view)
+  // Only 3 fields: Education, Profession, Location
   
-  // 1. Education level (highest priority)
+  // 1. Education level
   if (criteria.educationLevel) {
     const eduArray = Array.isArray(criteria.educationLevel) ? criteria.educationLevel : [criteria.educationLevel];
-    const validEdu = eduArray.filter(e => e && e !== 'Any' && e !== 'any');
+    const validEdu = eduArray.filter(e => e && e !== 'Any' && e !== 'any' && e !== 'No Preference');
     if (validEdu.length > 0) {
       traits.push(validEdu[0]);
     }
   }
 
-  // 2. Profession (second priority)
+  // 2. Profession
   if (criteria.profession) {
     const profArray = Array.isArray(criteria.profession) ? criteria.profession : [criteria.profession];
-    const validProf = profArray.filter(p => p && p !== 'Any' && p !== 'any');
+    const validProf = profArray.filter(p => p && p !== 'Any' && p !== 'any' && p !== 'No Preference');
     if (validProf.length > 0) {
       traits.push(validProf[0]);
     }
   }
 
-  // 3. Location preference (third priority)
+  // 3. Location preference
   if (criteria.location || criteria.partnerLocation) {
     const loc = criteria.location || criteria.partnerLocation;
     const locArray = Array.isArray(loc) ? loc : [loc];
-    const validLoc = locArray.filter(l => l && l !== 'Any' && l !== 'any' && l !== 'Any location');
+    const validLoc = locArray.filter(l => l && l !== 'Any' && l !== 'any' && l !== 'Any location' && l !== 'No Preference');
     if (validLoc.length > 0) {
       traits.push(validLoc[0]);
     }
   }
 
-  // If we have the top 3, return them (Education, Profession, Location)
+  // Return only these 3 fields
   if (traits.length > 0) {
-    return traits.slice(0, 3).join(', ');
+    return traits.join(', ');
   }
 
   // Fallback: Extract keywords from partnerPreference text
