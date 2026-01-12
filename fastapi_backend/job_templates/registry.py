@@ -205,5 +205,9 @@ def initialize_templates():
     # Register L3V3L score calculator template
     registry.register(L3V3LScoreCalculatorTemplate())
     
+    # Register notes cleanup template
+    from .notes_cleanup_template import NotesCleanupTemplate
+    registry.register(NotesCleanupTemplate())
+    
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
