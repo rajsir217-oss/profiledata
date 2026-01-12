@@ -163,6 +163,8 @@ DASHBOARD_USER_PROJECTION = {
     "compatibilityLevel": 1,
     # Partner preferences for "Looking for" display
     "partnerPreferences": 1,
+    "partnerCriteria": 1,
+    "partnerPreference": 1,
     "lookingFor": 1,
     # Date fields for sorting
     "createdAt": 1,
