@@ -80,9 +80,20 @@ const SMSDeliveryLog = () => {
       });
       
       if (response.data.success) {
-        setMonthlyData(response.data.monthlyData || []);
+        const monthlyDataResult = response.data.monthlyData || [];
+        setMonthlyData(monthlyDataResult);
         setChartTotals(response.data.totals || { sent: 0, delivered: 0, failed: 0 });
         setAvailableYears(response.data.availableYears || [new Date().getFullYear()]);
+        
+        // Update "This Month" stat from chart data if viewing current year
+        // This ensures consistency between the stat box and the chart bar
+        const now = new Date();
+        if (year === now.getFullYear()) {
+          const currentMonthData = monthlyDataResult.find(m => m.month === now.getMonth() + 1);
+          if (currentMonthData) {
+            setStats(prev => ({ ...prev, month: currentMonthData.count }));
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to load SMS chart data:', err);
