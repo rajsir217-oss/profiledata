@@ -564,37 +564,27 @@ export const generateLookingForSummary = (user) => {
   const traits = [];
   const criteria = user.partnerCriteria || user;
 
-  // Extract from structured criteria first (more reliable)
+  // Priority order: Education, Profession, Location (most valuable for quick view)
   
-  // Education level
+  // 1. Education level (highest priority)
   if (criteria.educationLevel) {
     const eduArray = Array.isArray(criteria.educationLevel) ? criteria.educationLevel : [criteria.educationLevel];
     const validEdu = eduArray.filter(e => e && e !== 'Any' && e !== 'any');
     if (validEdu.length > 0) {
-      traits.push(validEdu[0]); // Take first education preference
+      traits.push(validEdu[0]);
     }
   }
 
-  // Profession
+  // 2. Profession (second priority)
   if (criteria.profession) {
     const profArray = Array.isArray(criteria.profession) ? criteria.profession : [criteria.profession];
     const validProf = profArray.filter(p => p && p !== 'Any' && p !== 'any');
     if (validProf.length > 0) {
-      traits.push(validProf[0]); // Take first profession preference
+      traits.push(validProf[0]);
     }
   }
 
-  // Religion
-  if (criteria.religion || criteria.partnerReligion) {
-    const rel = criteria.religion || criteria.partnerReligion;
-    const relArray = Array.isArray(rel) ? rel : [rel];
-    const validRel = relArray.filter(r => r && r !== 'Any' && r !== 'any' && r !== 'Any Religion');
-    if (validRel.length > 0) {
-      traits.push(validRel[0]);
-    }
-  }
-
-  // Location preference
+  // 3. Location preference (third priority)
   if (criteria.location || criteria.partnerLocation) {
     const loc = criteria.location || criteria.partnerLocation;
     const locArray = Array.isArray(loc) ? loc : [loc];
@@ -604,24 +594,9 @@ export const generateLookingForSummary = (user) => {
     }
   }
 
-  // Languages
-  if (criteria.languages) {
-    const langArray = Array.isArray(criteria.languages) ? criteria.languages : [criteria.languages];
-    if (langArray.length > 0 && langArray[0]) {
-      traits.push(langArray[0]);
-    }
-  }
-
-  // If we have structured data, return it
+  // If we have the top 3, return them (Education, Profession, Location)
   if (traits.length > 0) {
-    // Limit to 5 traits and ~100 chars total (text will wrap)
-    let result = '';
-    for (let i = 0; i < Math.min(traits.length, 5); i++) {
-      const next = result ? `${result}, ${traits[i]}` : traits[i];
-      if (next.length > 100) break;
-      result = next;
-    }
-    return result;
+    return traits.slice(0, 3).join(', ');
   }
 
   // Fallback: Extract keywords from partnerPreference text
