@@ -1277,6 +1277,11 @@
   color: white;
 }
 
+.category-pill.pill-notes {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  color: white;
+}
+
 .category-pill.pill-favorites {
   background: linear-gradient(135deg, #d4a574 0%, #e0b88a 100%);
   color: white;

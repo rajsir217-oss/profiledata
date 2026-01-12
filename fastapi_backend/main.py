@@ -45,6 +45,7 @@ from routers.admin_reports import router as admin_reports_router
 from routers.promo_codes import router as promo_codes_router
 from routers.payments import router as payments_router
 from routers.site_settings import router as site_settings_router
+from routers.notes import router as notes_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -312,6 +313,7 @@ app.include_router(admin_reports_router)  # Admin reports routes (already has /a
 app.include_router(promo_codes_router)  # Promo codes routes (already has /api/promo-codes prefix)
 app.include_router(payments_router)  # Payment history routes (already has /api/payments prefix)
 app.include_router(site_settings_router)  # Site settings routes (already has /api/site-settings prefix)
+app.include_router(notes_router)  # Profile notes routes (already has /api/notes prefix)
 
 # Health check endpoint
 @app.get("/health")

@@ -24,6 +24,7 @@ import { formatRelativeTime } from '../utils/timeFormatter';
 import PauseSettings from './PauseSettings';
 import { SECTION_ICONS, STATS_ICONS } from '../constants/icons';
 import PollWidget from './PollWidget';
+import ProfileNotes from './ProfileNotes';
 
 const Dashboard2 = () => {
   const [loading, setLoading] = useState(true);
@@ -43,6 +44,7 @@ const Dashboard2 = () => {
   // Dashboard data states
   const [dashboardData, setDashboardData] = useState({
     myMessages: [],
+    myNotes: [],
     myFavorites: [],
     myShortlists: [],
     myViews: [],
@@ -311,8 +313,9 @@ const Dashboard2 = () => {
     logger.info('📦 Lazy loading My Activities data...');
     
     try {
-      const [messagesRes, favoritesRes, shortlistsRes, exclusionsRes] = await Promise.all([
+      const [messagesRes, notesRes, favoritesRes, shortlistsRes, exclusionsRes] = await Promise.all([
         api.get(`/messages/conversations?username=${currentUser}`).then(res => res.data.conversations || []),
+        api.get('/api/notes').then(res => res.data.notes || []).catch(() => []),
         api.get(`/favorites/${currentUser}`).then(res => res.data.favorites || []),
         api.get(`/shortlist/${currentUser}`).then(res => res.data.shortlist || []),
         api.get(`/exclusions/${currentUser}`).then(res => res.data.exclusions || [])
@@ -324,6 +327,7 @@ const Dashboard2 = () => {
       setDashboardData(prev => ({
         ...prev,
         myMessages: messagesRes,
+        myNotes: notesRes,
         myFavorites: favoritesRes,
         myShortlists: shortlistsRes,
         myExclusions: exclusionsRes
@@ -1998,6 +2002,14 @@ const Dashboard2 = () => {
             <span className="pill-count">{dashboardData.myMessages.length}</span>
           </button>
           <button 
+            className={`category-pill pill-notes ${myActiveCategory === 'myNotes' ? 'active' : ''}`}
+            onClick={() => setMyActiveCategory('myNotes')}
+          >
+            <span className="pill-icon">📝</span>
+            <span className="pill-label">Notes</span>
+            <span className="pill-count">{dashboardData.myNotes.length}</span>
+          </button>
+          <button 
             className={`category-pill pill-favorites ${myActiveCategory === 'myFavorites' ? 'active' : ''}`}
             onClick={() => setMyActiveCategory('myFavorites')}
           >
@@ -2026,6 +2038,7 @@ const Dashboard2 = () => {
         {/* Content Panel for Selected Category */}
         <div className="category-content">
           {myActiveCategory === 'myMessages' && renderTabContent('Messages', dashboardData.myMessages, 'myMessages', SECTION_ICONS.MESSAGES, '#5a6fd6', handleDeleteMessage)}
+          {myActiveCategory === 'myNotes' && <ProfileNotes />}
           {myActiveCategory === 'myFavorites' && renderTabContent('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
           {myActiveCategory === 'myShortlists' && renderTabContent('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
           {myActiveCategory === 'myExclusions' && renderTabContent('Search Exclude', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#dc6b6b', handleRemoveFromExclusions)}
