@@ -48,8 +48,8 @@ const SMSDeliveryLog = () => {
       const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const weekStart = new Date(todayStart);
       weekStart.setDate(weekStart.getDate() - 7);
-      const monthStart = new Date(todayStart);
-      monthStart.setDate(monthStart.getDate() - 30);
+      // Use calendar month start (1st of current month) to match the chart
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       
       let today = 0, week = 0, month = 0;
       smsLogs.forEach(log => {
