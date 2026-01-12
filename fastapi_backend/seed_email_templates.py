@@ -246,7 +246,6 @@ EMAIL_TEMPLATES = [
                 <h2>{match.firstName}, {match.age}</h2>
                 <p><strong>Location:</strong> {match.location}</p>
                 <p><strong>Profession:</strong> {match.profession}</p>
-                <p><strong>Match Score:</strong> {match.matchScore}%</p>
             </div>
             
             <p>has requested access to your contact information (email and phone number).</p>

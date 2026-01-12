@@ -662,9 +662,39 @@ class EventDispatcher:
             actor = event_data.get("actor")
             metadata = event_data.get("metadata", {})
             
-            # Fetch requester's profile
+            # Fetch requester's profile with all needed fields
             requester = await self.db.users.find_one({"username": actor})
             requester_firstName = requester.get("firstName", actor) if requester else actor
+            
+            # Extract requester details for email template
+            requester_age = ""
+            requester_location = ""
+            requester_profession = ""
+            
+            if requester:
+                # Calculate age from birthMonth/birthYear
+                birth_month = requester.get("birthMonth")
+                birth_year = requester.get("birthYear")
+                if birth_month and birth_year:
+                    from datetime import datetime
+                    now = datetime.utcnow()
+                    try:
+                        age = now.year - int(birth_year)
+                        if now.month < int(birth_month):
+                            age -= 1
+                        requester_age = str(age)
+                    except (ValueError, TypeError):
+                        requester_age = ""
+                
+                # Get location - use region (unencrypted) instead of location (encrypted)
+                requester_location = requester.get("region", "") or requester.get("city", "") or requester.get("state", "")
+                
+                # Get profession from workExperience or occupation
+                if requester.get("workExperience") and len(requester.get("workExperience", [])) > 0:
+                    work = requester["workExperience"][0]
+                    requester_profession = work.get("position", "") or work.get("description", "") or work.get("company", "")
+                else:
+                    requester_profession = requester.get("occupation", "")
             
             # Fetch recipient's profile for personalization
             recipient = await self.db.users.find_one({"username": target})
@@ -675,11 +705,15 @@ class EventDispatcher:
                 trigger="pii_request",
                 channels=["email", "sms", "push"],
                 template_data={
-                    # Nested format for dot notation: {match.firstName}
+                    # Nested format for dot notation: {match.firstName}, {match.age}, etc.
                     "match": {
                         "firstName": requester_firstName,
                         "username": actor,
-                        "profileId": requester.get("profileId", "") if requester else ""
+                        "profileId": requester.get("profileId", "") if requester else "",
+                        "age": requester_age,
+                        "location": requester_location,
+                        "profession": requester_profession,
+                        "matchScore": metadata.get("matchScore", "")
                     },
                     # Nested format for recipient: {recipient.firstName}
                     "recipient": {
@@ -689,6 +723,9 @@ class EventDispatcher:
                     # Flattened format for underscore notation: {match_firstName}
                     "match_firstName": requester_firstName,
                     "match_username": actor,
+                    "match_age": requester_age,
+                    "match_location": requester_location,
+                    "match_profession": requester_profession,
                     "recipient_firstName": recipient_firstName,
                     "request_type": metadata.get("type", "contact_info")
                 },
