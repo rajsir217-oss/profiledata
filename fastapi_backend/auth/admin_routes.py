@@ -56,6 +56,7 @@ ADMIN_USER_LIST_PROJECTION = {
     "images": 1,
     "profileImage": 1,
     "imageValidation": 1,
+    "donationPopupDisabledByAdmin": 1,
 }
 
 @router.get("/users", dependencies=[Depends(require_moderator_or_admin)])

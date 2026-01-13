@@ -76,9 +76,15 @@ const UserManagement = () => {
       
       const loadedUsers = response.data.users || [];
       
+            
       // Append users for infinite scroll, replace for initial load or filter change
       if (isLoadMore && pageNum > 1) {
-        setUsers(prev => [...prev, ...loadedUsers]);
+        setUsers(prev => {
+          // Filter out duplicates by username
+          const existingUsernames = new Set(prev.map(u => u.username));
+          const newUsers = loadedUsers.filter(u => !existingUsernames.has(u.username));
+          return [...prev, ...newUsers];
+        });
       } else {
         setUsers(loadedUsers);
       }
@@ -713,6 +719,9 @@ const UserManagement = () => {
                   <span className="sort-indicator">{sortOrder === 'asc' ? ' ▲' : ' ▼'}</span>
                 )}
               </th>
+              <th title="Donation Popup Status">
+                💳
+              </th>
               <th onClick={() => handleSort('created_at')}>
                 Created
                 {sortField === 'created_at' && (
@@ -757,6 +766,10 @@ const UserManagement = () => {
                     {openDropdown === user.username && (() => {
                       // Get fresh user data from users array to avoid stale closure
                       const freshUser = users.find(u => u.username === user.username) || user;
+                      // Get effective donation state (override takes precedence)
+                      const isDonationDisabled = donationToggleOverrides[freshUser.username] !== undefined 
+                        ? donationToggleOverrides[freshUser.username] 
+                        : !!freshUser.donationPopupDisabledByAdmin;
                       return (
                       <div 
                         className="actions-dropdown-menu"
@@ -868,13 +881,39 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item"
                           onClick={async () => {
+                            // Update override BEFORE closing dropdown for immediate feedback
+                            const currentState = donationToggleOverrides[freshUser.username] !== undefined 
+                              ? donationToggleOverrides[freshUser.username] 
+                              : freshUser.donationPopupDisabledByAdmin === true;
+                            setDonationToggleOverrides(prev => ({
+                              ...prev,
+                              [freshUser.username]: !currentState
+                            }));
                             setOpenDropdown(null);
-                            await toggleDonationPopup(freshUser);
+                            
+                            // Then make API call
+                            try {
+                              await adminApi.put(`/api/stripe/admin/user/${freshUser.username}/donation-popup`, {
+                                disabled: !currentState
+                              });
+                              const statusText = !currentState ? 'disabled' : 'enabled';
+                              setSuccessMessage(`✅ Donation popup ${statusText} for ${freshUser.username}`);
+                              setTimeout(() => setSuccessMessage(''), 3000);
+                            } catch (err) {
+                              console.error('Error toggling donation popup:', err);
+                              setError('Failed to toggle donation popup: ' + (err.response?.data?.detail || err.message));
+                              // Revert on error
+                              setDonationToggleOverrides(prev => {
+                                const newOverrides = { ...prev };
+                                delete newOverrides[freshUser.username];
+                                return newOverrides;
+                              });
+                            }
                           }}
                           disabled={freshUser.username === currentUser}
                         >
-                          <span className="dropdown-icon">{(donationToggleOverrides[freshUser.username] !== undefined ? donationToggleOverrides[freshUser.username] : freshUser.donationPopupDisabledByAdmin) ? '🔔' : '🔕'}</span>
-                          {(donationToggleOverrides[freshUser.username] !== undefined ? donationToggleOverrides[freshUser.username] : freshUser.donationPopupDisabledByAdmin) ? 'Enable Donation Popup' : 'Disable Donation Popup'}
+                          <span className="dropdown-icon">{isDonationDisabled ? '💵' : '💰'}</span>
+                          {isDonationDisabled ? 'Enable Donation Popup' : 'Disable Donation Popup'}
                         </button>
                       </div>
                     )})()}
@@ -899,6 +938,21 @@ const UserManagement = () => {
                   <span className="promo-code-badge">
                     🎫 {user.promoCode || 'USVEDIKA'}
                   </span>
+                </td>
+                <td style={{textAlign: 'center'}}>
+                  {(() => {
+                    const isDisabled = donationToggleOverrides[user.username] !== undefined 
+                      ? donationToggleOverrides[user.username] 
+                      : !!user.donationPopupDisabledByAdmin;
+                    return (
+                      <span 
+                        className={`status-badge ${isDisabled ? 'status-inactive' : 'status-active'}`}
+                        style={{fontSize: '11px', padding: '2px 6px'}}
+                      >
+                        {isDisabled ? 'Disabled' : 'Enabled'}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
               </tr>
