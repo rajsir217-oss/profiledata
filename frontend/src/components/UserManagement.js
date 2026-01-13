@@ -33,6 +33,7 @@ const UserManagement = () => {
   const [openDropdown, setOpenDropdown] = useState(null); // Track which dropdown is open
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 }); // Track dropdown position
   const dropdownRefs = useRef({}); // Refs for dropdown buttons
+  const [donationToggleOverrides, setDonationToggleOverrides] = useState({}); // Track local overrides for donation toggle
   const navigate = useNavigate();
 
   const currentUser = localStorage.getItem('username');
@@ -248,12 +249,45 @@ const UserManagement = () => {
       setTimeout(() => setSuccessMessage(''), 3000);
       
       // Reload users to get updated data
-      loadUsers();
+      loadUsers(1, false);
     } catch (err) {
       console.error('Error validating images:', err);
       setError('Failed to validate images: ' + (err.response?.data?.detail || err.message));
     } finally {
       setValidatingImages(prev => ({ ...prev, [username]: false }));
+    }
+  };
+
+  const toggleDonationPopup = async (user) => {
+    try {
+      // Check override first, then user state
+      const currentState = donationToggleOverrides[user.username] !== undefined 
+        ? donationToggleOverrides[user.username] 
+        : user.donationPopupDisabledByAdmin === true;
+      const newDisabledState = !currentState;
+      
+      // Update override immediately for instant UI feedback
+      setDonationToggleOverrides(prev => ({
+        ...prev,
+        [user.username]: newDisabledState
+      }));
+      
+      await adminApi.put(`/api/stripe/admin/user/${user.username}/donation-popup`, {
+        disabled: newDisabledState
+      });
+      
+      const statusText = newDisabledState ? 'disabled' : 'enabled';
+      setSuccessMessage(`✅ Donation popup ${statusText} for ${user.username}`);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('Error toggling donation popup:', err);
+      setError('Failed to toggle donation popup: ' + (err.response?.data?.detail || err.message));
+      // Revert override on error
+      setDonationToggleOverrides(prev => {
+        const newOverrides = { ...prev };
+        delete newOverrides[user.username];
+        return newOverrides;
+      });
     }
   };
 
@@ -266,7 +300,7 @@ const UserManagement = () => {
       
       setShowRoleModal(false);
       setSelectedUser(null);
-      loadUsers();
+      loadUsers(1, false);
       
       setSuccessMessage(`✅ Successfully assigned ${newRole} role to ${username}`);
       setError('');
@@ -297,7 +331,7 @@ const UserManagement = () => {
     // Execute action directly without modal
     try {
       await handleUserAction(user.username, action, `${action} by admin`);
-      loadUsers();
+      loadUsers(1, false);
       setSuccessMessage(`✅ Successfully ${action}ed user ${user.username}`);
       setError('');
       setTimeout(() => setSuccessMessage(''), 5000);
@@ -430,7 +464,7 @@ const UserManagement = () => {
       }
       
       setSelectedUsers([]);
-      loadUsers();
+      loadUsers(1, false);
 
       // Show success message
       if (failCount === 0) {
@@ -517,7 +551,7 @@ const UserManagement = () => {
 
       setShowBulkRoleModal(false);
       setSelectedUsers([]);
-      loadUsers();
+      loadUsers(1, false);
       
       // Show success message in the UI instead of alert
       let message = '';
@@ -720,7 +754,10 @@ const UserManagement = () => {
                       ⋮
                     </button>
                     
-                    {openDropdown === user.username && (
+                    {openDropdown === user.username && (() => {
+                      // Get fresh user data from users array to avoid stale closure
+                      const freshUser = users.find(u => u.username === user.username) || user;
+                      return (
                       <div 
                         className="actions-dropdown-menu"
                         style={{
@@ -731,7 +768,7 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item"
                           onClick={() => {
-                            navigate(`/profile/${user.username}`);
+                            navigate(`/profile/${freshUser.username}`);
                             setOpenDropdown(null);
                           }}
                         >
@@ -742,27 +779,27 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item"
                           onClick={() => {
-                            openRoleModal(user);
+                            openRoleModal(freshUser);
                             setOpenDropdown(null);
                           }}
-                          disabled={user.username === currentUser}
+                          disabled={freshUser.username === currentUser}
                         >
                           <span className="dropdown-icon">👥</span>
                           Assign Role
                         </button>
                         
                         {(() => {
-                          const validation = imageValidationStatus[user.username];
-                          const hasImages = user.images && user.images.length > 0;
+                          const validation = imageValidationStatus[freshUser.username];
+                          const hasImages = freshUser.images && freshUser.images.length > 0;
                           const needsReview = validation?.needs_review || false;
-                          const isValidating = validatingImages[user.username] || false;
+                          const isValidating = validatingImages[freshUser.username] || false;
                           
                           if (hasImages) {
                             return (
                               <button
                                 className={`dropdown-item ${needsReview ? 'dropdown-item-warning' : 'dropdown-item-success'}`}
                                 onClick={() => {
-                                  handleValidateImages(user.username);
+                                  handleValidateImages(freshUser.username);
                                   setOpenDropdown(null);
                                 }}
                                 disabled={isValidating}
@@ -782,10 +819,10 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item dropdown-item-success"
                           onClick={() => {
-                            openActionModal(user, 'activate');
+                            openActionModal(freshUser, 'activate');
                             setOpenDropdown(null);
                           }}
-                          disabled={user.accountStatus === 'active' || user.username === currentUser}
+                          disabled={freshUser.accountStatus === 'active' || freshUser.username === currentUser}
                         >
                           <span className="dropdown-icon">✅</span>
                           Activate
@@ -794,10 +831,10 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item dropdown-item-warning"
                           onClick={() => {
-                            openActionModal(user, 'suspend');
+                            openActionModal(freshUser, 'suspend');
                             setOpenDropdown(null);
                           }}
-                          disabled={user.username === currentUser}
+                          disabled={freshUser.username === currentUser}
                         >
                           <span className="dropdown-icon">⏸️</span>
                           Suspend
@@ -806,10 +843,10 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item dropdown-item-danger"
                           onClick={() => {
-                            openActionModal(user, 'ban');
+                            openActionModal(freshUser, 'ban');
                             setOpenDropdown(null);
                           }}
-                          disabled={user.username === currentUser}
+                          disabled={freshUser.username === currentUser}
                         >
                           <span className="dropdown-icon">🚫</span>
                           Ban
@@ -820,15 +857,27 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item"
                           onClick={() => {
-                            openCleanupModal(user);
+                            openCleanupModal(freshUser);
                             setOpenDropdown(null);
                           }}
                         >
                           <span className="dropdown-icon">🗑️</span>
                           Configure Cleanup
                         </button>
+                        
+                        <button
+                          className="dropdown-item"
+                          onClick={async () => {
+                            setOpenDropdown(null);
+                            await toggleDonationPopup(freshUser);
+                          }}
+                          disabled={freshUser.username === currentUser}
+                        >
+                          <span className="dropdown-icon">{(donationToggleOverrides[freshUser.username] !== undefined ? donationToggleOverrides[freshUser.username] : freshUser.donationPopupDisabledByAdmin) ? '🔔' : '🔕'}</span>
+                          {(donationToggleOverrides[freshUser.username] !== undefined ? donationToggleOverrides[freshUser.username] : freshUser.donationPopupDisabledByAdmin) ? 'Enable Donation Popup' : 'Disable Donation Popup'}
+                        </button>
                       </div>
-                    )}
+                    )})()}
                   </div>
                 </td>
                 <td>

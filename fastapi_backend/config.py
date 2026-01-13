@@ -115,6 +115,11 @@ class Settings(BaseSettings):
     groq_api_key: Optional[str] = None
     ai_provider: Optional[str] = "groq"  # "gemini" or "groq"
     
+    # Stripe Payment Configuration
+    stripe_secret_key: Optional[str] = None
+    stripe_publishable_key: Optional[str] = None
+    stripe_webhook_secret: Optional[str] = None
+    
     # Logging Configuration
     log_level: Optional[str] = "INFO"
     log_file: Optional[str] = "logs/app.log"

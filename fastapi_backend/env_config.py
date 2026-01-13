@@ -137,6 +137,11 @@ class EnvironmentManager:
             # Logging
             'LOG_LEVEL': 'Logging level (DEBUG, INFO, WARNING, ERROR)',
             'LOG_FILE': 'Log file path',
+            
+            # Stripe Payments
+            'STRIPE_SECRET_KEY': 'Stripe secret key (sk_live_... or sk_test_...)',
+            'STRIPE_PUBLISHABLE_KEY': 'Stripe publishable key (pk_live_... or pk_test_...)',
+            'STRIPE_WEBHOOK_SECRET': 'Stripe webhook signing secret (whsec_...)',
         }
     
     @staticmethod
