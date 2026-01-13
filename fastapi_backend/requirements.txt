@@ -36,6 +36,9 @@ firebase-admin==6.5.0
 # Twilio (for SMS/OTP)
 twilio==8.10.0
 
+# Stripe (for payment processing)
+stripe==7.0.0
+
 # Testing dependencies
 pytest==8.0.0
 pytest-asyncio==0.23.5

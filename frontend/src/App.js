@@ -46,6 +46,12 @@ import InviteFriends from './components/InviteFriends';
 import PromoCodeManager from './components/PromoCodeManager';
 import PromoCodeAccounting from './components/PromoCodeAccounting';
 import MembershipPlans from './components/MembershipPlans';
+import PricingPage from './components/PricingPage';
+import PaymentSuccess from './components/PaymentSuccess';
+import PaymentCancel from './components/PaymentCancel';
+import DonationSuccess from './components/DonationSuccess';
+import DonationCancel from './components/DonationCancel';
+import DonationPopupWrapper from './components/DonationPopupWrapper';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -411,6 +417,11 @@ function AppContent() {
               <Route path="/invite-friends" element={<ProtectedRoute><InviteFriends /></ProtectedRoute>} />
               <Route path="/promo-codes" element={<ProtectedRoute><PromoCodeManager /></ProtectedRoute>} />
               <Route path="/membership-plans" element={<ProtectedRoute><MembershipPlans /></ProtectedRoute>} />
+              <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
+              <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
+              <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
+              <Route path="/donation/success" element={<ProtectedRoute><DonationSuccess /></ProtectedRoute>} />
+              <Route path="/donation/cancel" element={<ProtectedRoute><DonationCancel /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
@@ -435,6 +446,7 @@ function App() {
         </AuthGuard>
         <ToastContainer />
         <PIIAccessRefreshNotification />
+        <DonationPopupWrapper />
       </Router>
     </HelmetProvider>
   );
