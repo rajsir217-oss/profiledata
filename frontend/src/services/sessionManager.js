@@ -50,9 +50,37 @@ class SessionManager {
     }
 
     this.isActive = true;
-    this.loginTime = Date.now();
-    this.lastActivity = Date.now();
+    
+    // CRITICAL FIX: Restore login time from localStorage to persist across page reloads
+    // This prevents the 8-hour hard limit from resetting on every page refresh
+    const storedLoginTime = localStorage.getItem('sessionLoginTime');
+    if (storedLoginTime) {
+      this.loginTime = parseInt(storedLoginTime, 10);
+      logger.debug('Restored login time from localStorage:', new Date(this.loginTime).toISOString());
+    } else {
+      this.loginTime = Date.now();
+      localStorage.setItem('sessionLoginTime', this.loginTime.toString());
+      logger.debug('New login time set:', new Date(this.loginTime).toISOString());
+    }
+    
+    // CRITICAL FIX: Restore last activity from localStorage
+    // This prevents inactivity timer from resetting on page refresh
+    const storedLastActivity = localStorage.getItem('sessionLastActivity');
+    if (storedLastActivity) {
+      this.lastActivity = parseInt(storedLastActivity, 10);
+      logger.debug('Restored last activity from localStorage:', new Date(this.lastActivity).toISOString());
+    } else {
+      this.lastActivity = Date.now();
+      localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
+    }
+    
     this.warningShown = false;
+    
+    // CRITICAL FIX: Check session validity IMMEDIATELY on init
+    // This catches expired sessions when user returns to a stale tab
+    if (this.checkSessionExpiredOnInit()) {
+      return; // Session expired, logout already called
+    }
 
     // Set up activity listeners
     this.setupActivityListeners();
@@ -64,6 +92,32 @@ class SessionManager {
     this.startRefreshInterval();
 
     logger.info('Session manager initialized');
+  }
+  
+  /**
+   * Check if session is expired on init (before any activity handlers run)
+   * Returns true if session is expired and logout was triggered
+   */
+  checkSessionExpiredOnInit() {
+    // Check hard limit first
+    const timeSinceLogin = Date.now() - this.loginTime;
+    if (timeSinceLogin >= this.HARD_LIMIT) {
+      logger.warn(`Session exceeded 8-hour hard limit on init (${Math.round(timeSinceLogin / 3600000)} hours)`);
+      toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
+      this.logout();
+      return true;
+    }
+    
+    // Check inactivity
+    const timeSinceActivity = Date.now() - this.lastActivity;
+    if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+      logger.warn(`Session expired due to inactivity on init (${Math.round(timeSinceActivity / 60000)} minutes)`);
+      toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+      this.logout();
+      return true;
+    }
+    
+    return false;
   }
 
   /**
@@ -96,23 +150,38 @@ class SessionManager {
 
   /**
    * Handle visibility change (user returns to tab)
+   * CRITICAL: Check session validity BEFORE any activity handlers can reset values
    */
   handleVisibilityChange = async () => {
     if (document.visibilityState === 'visible' && this.isActive) {
       logger.debug('Tab became visible, checking session...');
       
+      // CRITICAL FIX: Read from localStorage to get the ACTUAL last activity time
+      // This is important because the in-memory value may have been updated by
+      // activity handlers that fire before this visibility change handler
+      const storedLastActivity = localStorage.getItem('sessionLastActivity');
+      const actualLastActivity = storedLastActivity 
+        ? parseInt(storedLastActivity, 10) 
+        : this.lastActivity;
+      
+      const storedLoginTime = localStorage.getItem('sessionLoginTime');
+      const actualLoginTime = storedLoginTime 
+        ? parseInt(storedLoginTime, 10) 
+        : this.loginTime;
+      
       // Check if user has been inactive too long
-      const timeSinceActivity = Date.now() - this.lastActivity;
+      const timeSinceActivity = Date.now() - actualLastActivity;
       if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
-        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
+        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes (from localStorage), logging out`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
         this.logout();
         return;
       }
 
       // Check hard limit
-      if (this.hasExceededHardLimit()) {
-        logger.warn('Session exceeded 8-hour hard limit on tab return');
+      const timeSinceLogin = Date.now() - actualLoginTime;
+      if (timeSinceLogin >= this.HARD_LIMIT) {
+        logger.warn(`Session exceeded 8-hour hard limit on tab return (${Math.round(timeSinceLogin / 3600000)} hours)`);
         toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
         this.logout();
         return;
@@ -121,7 +190,9 @@ class SessionManager {
       // Try to refresh token to verify session is still valid
       try {
         await this.refreshToken();
-        this.lastActivity = Date.now(); // Reset activity on successful return
+        // Reset activity on successful return
+        this.lastActivity = Date.now();
+        localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
       } catch (error) {
         logger.error('Failed to refresh token on tab return:', error);
       }
@@ -142,9 +213,20 @@ class SessionManager {
 
   /**
    * Handle user activity
+   * Throttled to avoid excessive localStorage writes
    */
   handleActivity = () => {
-    this.lastActivity = Date.now();
+    const now = Date.now();
+    
+    // Throttle: Only update if more than 10 seconds since last update
+    // This prevents excessive localStorage writes on every mouse move
+    if (now - this.lastActivity > 10000) {
+      this.lastActivity = now;
+      localStorage.setItem('sessionLastActivity', now.toString());
+    } else {
+      // Still update in-memory value for accurate checks
+      this.lastActivity = now;
+    }
   }
 
   /**
@@ -355,6 +437,8 @@ class SessionManager {
     localStorage.removeItem('username');
     localStorage.removeItem('userRole');
     localStorage.removeItem('userStatus');
+    localStorage.removeItem('sessionLoginTime');
+    localStorage.removeItem('sessionLastActivity');
     
     // Mark as logged out to prevent duplicate handling
     sessionStorage.setItem('hasLoggedOut', 'true');
@@ -421,11 +505,15 @@ class SessionManager {
 
   /**
    * Update login time (called after successful login)
+   * Also persists to localStorage for cross-page-reload persistence
    */
   setLoginTime(time = Date.now()) {
     this.loginTime = time;
+    this.lastActivity = time;
     this.warningShown = false;
-    logger.debug('Login time set:', new Date(time).toISOString());
+    localStorage.setItem('sessionLoginTime', time.toString());
+    localStorage.setItem('sessionLastActivity', time.toString());
+    logger.debug('Login time set and persisted:', new Date(time).toISOString());
   }
 
   /**

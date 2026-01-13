@@ -139,10 +139,8 @@ const DonationPopup = ({ isOpen, onClose }) => {
                   }}
                   disabled={loading}
                 />
-                <span className="donation-amount-label">
-                  ${amount}
-                  {amount === 10 && <span className="popular-badge">Popular</span>}
-                </span>
+                <span className="donation-amount-label">${amount}</span>
+                {amount === 10 && <span className="popular-badge">Popular</span>}
               </label>
             ))}
             

@@ -270,6 +270,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/lead-generation')
       });
       
+      items.push({
+        icon: '💝',
+        label: 'Donation Management',
+        subLabel: 'View all donations',
+        action: () => navigate('/donation-management')
+      });
+      
       // === ANALYTICS & REPORTS ===
       items.push({ isHeader: true, label: 'ANALYTICS & REPORTS' });
       

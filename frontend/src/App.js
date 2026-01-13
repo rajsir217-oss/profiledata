@@ -62,6 +62,7 @@ import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
 import AdminReports from './components/AdminReports';
+import DonationManagement from './components/DonationManagement';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import TooltipDemo from './components/TooltipDemo';
@@ -423,6 +424,7 @@ function AppContent() {
               <Route path="/donation/success" element={<ProtectedRoute><DonationSuccess /></ProtectedRoute>} />
               <Route path="/donation/cancel" element={<ProtectedRoute><DonationCancel /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
+              <Route path="/donation-management" element={<ProtectedRoute><DonationManagement /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
