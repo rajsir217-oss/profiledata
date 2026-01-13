@@ -444,6 +444,84 @@ async def toggle_user_donation_popup(
     return {"success": True, "message": f"Donation popup {status_text} for {username}"}
 
 
+@router.get("/admin/donations")
+async def get_all_donations(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    page: int = 1,
+    limit: int = 50,
+    payment_type: Optional[str] = None
+):
+    """Get all donations (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        # Build query for donations only
+        query = {"paymentType": {"$in": ["donation_one_time", "donation_recurring"]}}
+        
+        if payment_type == "one_time":
+            query["paymentType"] = "donation_one_time"
+        elif payment_type == "recurring":
+            query["paymentType"] = "donation_recurring"
+        
+        # Get total count
+        total = await db.payments.count_documents(query)
+        
+        # Get donations with pagination
+        skip = (page - 1) * limit
+        donations = await db.payments.find(query).sort("createdAt", -1).skip(skip).limit(limit).to_list(length=limit)
+        
+        # Format for frontend
+        formatted_donations = []
+        for d in donations:
+            formatted_donations.append({
+                "id": str(d.get("_id")),
+                "username": d.get("username"),
+                "amount": d.get("amount"),
+                "paymentType": "recurring" if d.get("paymentType") == "donation_recurring" else "one_time",
+                "status": d.get("status", "completed"),
+                "stripeSessionId": d.get("stripeSessionId"),
+                "stripeSubscriptionId": d.get("stripeSubscriptionId"),
+                "createdAt": d.get("createdAt").isoformat() if d.get("createdAt") else None,
+                "description": d.get("description")
+            })
+        
+        # Get summary stats
+        pipeline = [
+            {"$match": {"paymentType": {"$in": ["donation_one_time", "donation_recurring"]}}},
+            {"$group": {
+                "_id": None,
+                "totalAmount": {"$sum": "$amount"},
+                "totalCount": {"$sum": 1},
+                "oneTimeCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "donation_one_time"]}, 1, 0]}},
+                "recurringCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "donation_recurring"]}, 1, 0]}}
+            }}
+        ]
+        stats_result = await db.payments.aggregate(pipeline).to_list(length=1)
+        stats = stats_result[0] if stats_result else {"totalAmount": 0, "totalCount": 0, "oneTimeCount": 0, "recurringCount": 0}
+        
+        return {
+            "success": True,
+            "donations": formatted_donations,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "totalPages": (total + limit - 1) // limit
+            },
+            "stats": {
+                "totalAmount": stats.get("totalAmount", 0),
+                "totalCount": stats.get("totalCount", 0),
+                "oneTimeCount": stats.get("oneTimeCount", 0),
+                "recurringCount": stats.get("recurringCount", 0)
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error getting donations: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get donations")
+
+
 @router.post("/apply-promo")
 async def apply_promo_code(
     plan_id: str,
