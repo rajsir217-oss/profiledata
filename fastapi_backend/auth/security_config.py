@@ -16,7 +16,7 @@ class SecuritySettings(BaseSettings):
     JWT_SECRET_KEY: str = "your-secret-key-change-in-production"  # Change in production!
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes (refreshed automatically)
-    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 30  # 30 days
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days (reduced from 30 for security - Jan 13, 2026)
     
     # ===== Password Policy =====
     PASSWORD_MIN_LENGTH: int = 8
@@ -39,9 +39,10 @@ class SecuritySettings(BaseSettings):
     RESET_FAILED_ATTEMPTS_AFTER_MINUTES: int = 60
     
     # ===== Session Management =====
-    SESSION_TIMEOUT_MINUTES: int = 60
+    # ALIGNED with frontend sessionManager.js (Jan 13, 2026)
+    SESSION_TIMEOUT_MINUTES: int = 30  # Inactivity timeout (matches frontend INACTIVITY_LOGOUT)
     MAX_CONCURRENT_SESSIONS_PER_USER: int = 3
-    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 24
+    SESSION_ABSOLUTE_TIMEOUT_HOURS: int = 8  # Hard limit (matches frontend HARD_LIMIT)
     
     # ===== Multi-Factor Authentication =====
     MFA_ENABLED: bool = False  # Enable for production

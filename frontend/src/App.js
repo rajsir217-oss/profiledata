@@ -208,8 +208,8 @@ function AppContent() {
     
     // Initialize session manager if user is already logged in
     const token = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (token && refreshToken) {
+    if (token) {
+      // Initialize even without refreshToken - inactivity check still works
       sessionManager.init();
       logger.info('Session manager initialized on app load');
     }

@@ -50,6 +50,7 @@ from routers.stripe_payments import router as stripe_payments_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
+from middleware.session_validation import validate_session_middleware
 from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
 from services.storage_service import initialize_storage_service
 
@@ -234,6 +235,12 @@ else:
         allow_headers=["*"],
         expose_headers=["*"],
     )
+
+# Session validation middleware (must be added BEFORE request logging)
+# This validates session on every authenticated API call
+@app.middleware("http")
+async def session_validation(request: Request, call_next):
+    return await validate_session_middleware(request, call_next)
 
 # Request logging middleware
 @app.middleware("http")
