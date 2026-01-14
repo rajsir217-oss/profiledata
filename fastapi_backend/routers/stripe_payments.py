@@ -31,9 +31,9 @@ class VerifySessionRequest(BaseModel):
     sessionId: str = Field(..., description="Stripe checkout session ID")
 
 
-class CreateDonationRequest(BaseModel):
-    """Request model for creating a donation checkout session"""
-    amount: float = Field(..., ge=1, description="Donation amount in dollars (minimum $1)")
+class CreateContributionRequest(BaseModel):
+    """Request model for creating a contribution checkout session"""
+    amount: float = Field(..., ge=1, description="Contribution amount in dollars (minimum $1)")
     paymentType: str = Field("monthly", description="Payment type: 'one-time' or 'monthly'")
 
 
@@ -286,14 +286,14 @@ async def stripe_webhook(
         raise HTTPException(status_code=500, detail="Webhook processing failed")
 
 
-@router.post("/create-donation-session")
-async def create_donation_session(
-    request: CreateDonationRequest,
+@router.post("/create-contribution-session")
+async def create_contribution_session(
+    request: CreateContributionRequest,
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Create a Stripe Checkout Session for a donation"""
-    logger.info(f"💝 Donation request from {current_user.get('username')}: ${request.amount} ({request.paymentType})")
+    """Create a Stripe Checkout Session for a contribution"""
+    logger.info(f"💝 Contribution request from {current_user.get('username')}: ${request.amount} ({request.paymentType})")
     try:
         if not settings.stripe_secret_key:
             raise HTTPException(
@@ -302,200 +302,200 @@ async def create_donation_session(
             )
         
         service = StripeService(db)
-        result = await service.create_donation_session(
+        result = await service.create_contribution_session(
             username=current_user["username"],
             amount=request.amount,
             payment_type=request.paymentType
         )
         
-        logger.info(f"✅ Donation session created: {result.get('sessionId')}")
+        logger.info(f"✅ Contribution session created: {result.get('sessionId')}")
         return {"success": True, **result}
         
     except ValueError as e:
-        logger.error(f"ValueError in donation: {e}")
+        logger.error(f"ValueError in contribution: {e}")
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"❌ Error creating donation session: {e}", exc_info=True)
+        logger.error(f"❌ Error creating contribution session: {e}", exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/verify-donation")
-async def verify_donation_session(
+@router.post("/verify-contribution")
+async def verify_contribution_session(
     request: VerifySessionRequest,
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Verify a donation checkout session after payment"""
+    """Verify a contribution checkout session after payment"""
     try:
         service = StripeService(db)
-        result = await service.verify_donation_session(request.sessionId, current_user["username"])
+        result = await service.verify_contribution_session(request.sessionId, current_user["username"])
         return result
     except Exception as e:
-        logger.error(f"Error verifying donation: {e}")
+        logger.error(f"Error verifying contribution: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/donation-status")
-async def get_donation_status(
+@router.get("/contribution-status")
+async def get_contribution_status(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Get user's donation status for popup logic"""
+    """Get user's contribution status for popup logic"""
     try:
         user = await db.users.find_one({"username": current_user["username"]})
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
         
-        donations = user.get("donations", {})
+        contributions = user.get("contributions", {})
         
         # Check site-level setting
         site_settings = await db.site_settings.find_one({"_id": "site_settings"})
-        donation_config = site_settings.get("donation", {}) if site_settings else {}
+        contribution_config = site_settings.get("contributions", {}) if site_settings else {}
         
         return {
             "success": True,
-            "siteEnabled": donation_config.get("enabled", False),  # Default: disabled
-            "userDisabledByAdmin": user.get("donationPopupDisabledByAdmin", False),
-            "hasActiveRecurringDonation": donations.get("hasActiveRecurring", False),
-            "lastDonationDate": donations.get("lastDonationDate"),
-            "totalDonated": donations.get("totalDonated", 0),
+            "siteEnabled": contribution_config.get("enabled", False),  # Default: disabled
+            "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
+            "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
+            "lastContributionDate": contributions.get("lastContributionDate"),
+            "totalContributed": contributions.get("totalContributed", 0),
             "popupConfig": {
-                "amounts": donation_config.get("amounts", [5, 10, 15]),
-                "message": donation_config.get("message", "Please support the platform by generous donation"),
-                "frequencyDays": donation_config.get("frequencyDays", 14),
-                "minLogins": donation_config.get("minLogins", 3)
+                "amounts": contribution_config.get("amounts", [5, 10, 15]),
+                "message": contribution_config.get("message", "Support the platform"),
+                "frequencyDays": contribution_config.get("frequencyDays", 14),
+                "minLogins": contribution_config.get("minLogins", 3)
             }
         }
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting donation status: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get donation status")
+        logger.error(f"Error getting contribution status: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get contribution status")
 
 
-@router.get("/admin/donation-settings")
-async def get_donation_settings(
+@router.get("/admin/contribution-settings")
+async def get_contribution_settings(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Get donation popup settings (admin only)"""
+    """Get contribution popup settings (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     site_settings = await db.site_settings.find_one({"_id": "site_settings"})
-    donation_config = site_settings.get("donation", {}) if site_settings else {}
+    contribution_config = site_settings.get("contributions", {}) if site_settings else {}
     
     return {
         "success": True,
-        "donation": {
-            "enabled": donation_config.get("enabled", False),  # Default: disabled
-            "amounts": donation_config.get("amounts", [5, 10, 15]),
-            "message": donation_config.get("message", "Please support the platform by generous donation"),
-            "frequencyDays": donation_config.get("frequencyDays", 14),
-            "minLogins": donation_config.get("minLogins", 3)
+        "contributions": {
+            "enabled": contribution_config.get("enabled", False),  # Default: disabled
+            "amounts": contribution_config.get("amounts", [5, 10, 15]),
+            "message": contribution_config.get("message", "Support the platform"),
+            "frequencyDays": contribution_config.get("frequencyDays", 14),
+            "minLogins": contribution_config.get("minLogins", 3)
         }
     }
 
 
-@router.put("/admin/donation-settings")
-async def update_donation_settings(
+@router.put("/admin/contribution-settings")
+async def update_contribution_settings(
     settings_data: dict = Body(...),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Update donation popup settings (admin only)"""
+    """Update contribution popup settings (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     # Update site settings
     await db.site_settings.update_one(
         {"_id": "site_settings"},
-        {"$set": {"donation": settings_data}},
+        {"$set": {"contributions": settings_data}},
         upsert=True
     )
     
-    logger.info(f"💝 Donation settings updated by {current_user['username']}: enabled={settings_data.get('enabled')}")
+    logger.info(f"💝 Contribution settings updated by {current_user['username']}: enabled={settings_data.get('enabled')}")
     
-    return {"success": True, "message": "Donation settings updated"}
+    return {"success": True, "message": "Contribution settings updated"}
 
 
-@router.put("/admin/user/{username}/donation-popup")
-async def toggle_user_donation_popup(
+@router.put("/admin/user/{username}/contribution-popup")
+async def toggle_user_contribution_popup(
     username: str,
     disabled: bool = Body(..., embed=True),
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Enable/disable donation popup for a specific user (admin only)"""
+    """Enable/disable contribution popup for a specific user (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     result = await db.users.update_one(
         {"username": username},
-        {"$set": {"donationPopupDisabledByAdmin": disabled}}
+        {"$set": {"contributionPopupDisabledByAdmin": disabled}}
     )
     
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="User not found")
     
     status_text = "disabled" if disabled else "enabled"
-    logger.info(f"💝 Donation popup {status_text} for {username} by {current_user['username']}")
+    logger.info(f"💝 Contribution popup {status_text} for {username} by {current_user['username']}")
     
-    return {"success": True, "message": f"Donation popup {status_text} for {username}"}
+    return {"success": True, "message": f"Contribution popup {status_text} for {username}"}
 
 
-@router.get("/admin/donations")
-async def get_all_donations(
+@router.get("/admin/contributions")
+async def get_all_contributions(
     current_user: dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
     page: int = 1,
     limit: int = 50,
     payment_type: Optional[str] = None
 ):
-    """Get all donations (admin only)"""
+    """Get all contributions (admin only)"""
     if current_user.get("role") != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     
     try:
-        # Build query for donations only
-        query = {"paymentType": {"$in": ["donation_one_time", "donation_recurring"]}}
+        # Build query for contributions only
+        query = {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}
         
         if payment_type == "one_time":
-            query["paymentType"] = "donation_one_time"
+            query["paymentType"] = "contribution_one_time"
         elif payment_type == "recurring":
-            query["paymentType"] = "donation_recurring"
+            query["paymentType"] = "contribution_recurring"
         
         # Get total count
         total = await db.payments.count_documents(query)
         
-        # Get donations with pagination
+        # Get contributions with pagination
         skip = (page - 1) * limit
-        donations = await db.payments.find(query).sort("createdAt", -1).skip(skip).limit(limit).to_list(length=limit)
+        contributions = await db.payments.find(query).sort("createdAt", -1).skip(skip).limit(limit).to_list(length=limit)
         
         # Format for frontend
-        formatted_donations = []
-        for d in donations:
-            formatted_donations.append({
-                "id": str(d.get("_id")),
-                "username": d.get("username"),
-                "amount": d.get("amount"),
-                "paymentType": "recurring" if d.get("paymentType") == "donation_recurring" else "one_time",
-                "status": d.get("status", "completed"),
-                "stripeSessionId": d.get("stripeSessionId"),
-                "stripeSubscriptionId": d.get("stripeSubscriptionId"),
-                "createdAt": d.get("createdAt").isoformat() if d.get("createdAt") else None,
-                "description": d.get("description")
+        formatted_contributions = []
+        for c in contributions:
+            formatted_contributions.append({
+                "id": str(c.get("_id")),
+                "username": c.get("username"),
+                "amount": c.get("amount"),
+                "paymentType": "recurring" if c.get("paymentType") == "contribution_recurring" else "one_time",
+                "status": c.get("status", "completed"),
+                "stripeSessionId": c.get("stripeSessionId"),
+                "stripeSubscriptionId": c.get("stripeSubscriptionId"),
+                "createdAt": c.get("createdAt").isoformat() if c.get("createdAt") else None,
+                "description": c.get("description")
             })
         
         # Get summary stats
         pipeline = [
-            {"$match": {"paymentType": {"$in": ["donation_one_time", "donation_recurring"]}}},
+            {"$match": {"paymentType": {"$in": ["contribution_one_time", "contribution_recurring"]}}},
             {"$group": {
                 "_id": None,
                 "totalAmount": {"$sum": "$amount"},
                 "totalCount": {"$sum": 1},
-                "oneTimeCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "donation_one_time"]}, 1, 0]}},
-                "recurringCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "donation_recurring"]}, 1, 0]}}
+                "oneTimeCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "contribution_one_time"]}, 1, 0]}},
+                "recurringCount": {"$sum": {"$cond": [{"$eq": ["$paymentType", "contribution_recurring"]}, 1, 0]}}
             }}
         ]
         stats_result = await db.payments.aggregate(pipeline).to_list(length=1)
@@ -503,7 +503,7 @@ async def get_all_donations(
         
         return {
             "success": True,
-            "donations": formatted_donations,
+            "contributions": formatted_contributions,
             "pagination": {
                 "page": page,
                 "limit": limit,
@@ -518,8 +518,8 @@ async def get_all_donations(
             }
         }
     except Exception as e:
-        logger.error(f"Error getting donations: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get donations")
+        logger.error(f"Error getting contributions: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get contributions")
 
 
 @router.post("/apply-promo")

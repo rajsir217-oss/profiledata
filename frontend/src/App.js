@@ -49,9 +49,9 @@ import MembershipPlans from './components/MembershipPlans';
 import PricingPage from './components/PricingPage';
 import PaymentSuccess from './components/PaymentSuccess';
 import PaymentCancel from './components/PaymentCancel';
-import DonationSuccess from './components/DonationSuccess';
-import DonationCancel from './components/DonationCancel';
-import DonationPopupWrapper from './components/DonationPopupWrapper';
+import ContributionSuccess from './components/ContributionSuccess';
+import ContributionCancel from './components/ContributionCancel';
+import ContributionPopupWrapper from './components/ContributionPopupWrapper';
 import PauseAnalyticsDashboard from './components/PauseAnalyticsDashboard';
 import PIIAccessRefreshNotification from './components/PIIAccessRefreshNotification';
 import L3V3LInfo from './components/L3V3LInfo';
@@ -62,7 +62,7 @@ import AnnouncementBanner from './components/AnnouncementBanner';
 import AnnouncementManagement from './components/AnnouncementManagement';
 import PollManagement from './components/PollManagement';
 import AdminReports from './components/AdminReports';
-import DonationManagement from './components/DonationManagement';
+import ContributionManagement from './components/ContributionManagement';
 // L3V3LMatches now handled by SearchPage2 with mode='l3v3l'
 import LogoShowcase from './components/LogoShowcase';
 import TooltipDemo from './components/TooltipDemo';
@@ -421,10 +421,10 @@ function AppContent() {
               <Route path="/pricing" element={<ProtectedRoute><PricingPage /></ProtectedRoute>} />
               <Route path="/payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
               <Route path="/payment/cancel" element={<ProtectedRoute><PaymentCancel /></ProtectedRoute>} />
-              <Route path="/donation/success" element={<ProtectedRoute><DonationSuccess /></ProtectedRoute>} />
-              <Route path="/donation/cancel" element={<ProtectedRoute><DonationCancel /></ProtectedRoute>} />
+              <Route path="/contribution/success" element={<ProtectedRoute><ContributionSuccess /></ProtectedRoute>} />
+              <Route path="/contribution/cancel" element={<ProtectedRoute><ContributionCancel /></ProtectedRoute>} />
               <Route path="/lead-generation" element={<ProtectedRoute><PromoCodeAccounting /></ProtectedRoute>} />
-              <Route path="/donation-management" element={<ProtectedRoute><DonationManagement /></ProtectedRoute>} />
+              <Route path="/contribution-management" element={<ProtectedRoute><ContributionManagement /></ProtectedRoute>} />
               <Route path="/poll-management" element={<ProtectedRoute><PollManagement /></ProtectedRoute>} />
               <Route path="/admin-reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
               {/* Legacy routes - redirect to unified page */}
@@ -448,7 +448,7 @@ function App() {
         </AuthGuard>
         <ToastContainer />
         <PIIAccessRefreshNotification />
-        <DonationPopupWrapper />
+        <ContributionPopupWrapper />
       </Router>
     </HelmetProvider>
   );

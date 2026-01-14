@@ -359,15 +359,15 @@ class StripeService:
             return {"success": False, "error": str(e)}
 
 
-    async def create_donation_session(
+    async def create_contribution_session(
         self,
         username: str,
         amount: float,
         payment_type: str = "monthly"
     ) -> Dict[str, Any]:
         """
-        Create a Stripe Checkout Session for a donation.
-        Supports one-time and monthly recurring donations.
+        Create a Stripe Checkout Session for a contribution.
+        Supports one-time and monthly recurring contributions.
         """
         try:
             # Get user info
@@ -382,12 +382,12 @@ class StripeService:
             amount_cents = int(amount * 100)
             
             # Build success/cancel URLs
-            success_url = f"{settings.frontend_url}/donation/success?session_id={{CHECKOUT_SESSION_ID}}"
-            cancel_url = f"{settings.frontend_url}/donation/cancel"
+            success_url = f"{settings.frontend_url}/contribution/success?session_id={{CHECKOUT_SESSION_ID}}"
+            cancel_url = f"{settings.frontend_url}/contribution/cancel"
             
             # Create session params
             if payment_type == "monthly":
-                # Recurring monthly donation
+                # Recurring monthly contribution
                 session_params = {
                     "payment_method_types": ["card"],
                     "mode": "subscription",
@@ -397,15 +397,15 @@ class StripeService:
                     "client_reference_id": username,
                     "metadata": {
                         "username": username,
-                        "donation_type": "recurring",
+                        "contribution_type": "recurring",
                         "amount": str(amount)
                     },
                     "line_items": [{
                         "price_data": {
                             "currency": "usd",
                             "product_data": {
-                                "name": "L3V3L Matches Monthly Donation",
-                                "description": f"Monthly donation of ${amount} to support the platform",
+                                "name": "L3V3L Matches Monthly Contribution",
+                                "description": f"Monthly contribution of ${amount} to support the platform",
                             },
                             "unit_amount": amount_cents,
                             "recurring": {
@@ -417,7 +417,7 @@ class StripeService:
                     }]
                 }
             else:
-                # One-time donation
+                # One-time contribution
                 session_params = {
                     "payment_method_types": ["card"],
                     "mode": "payment",
@@ -427,15 +427,15 @@ class StripeService:
                     "client_reference_id": username,
                     "metadata": {
                         "username": username,
-                        "donation_type": "one_time",
+                        "contribution_type": "one_time",
                         "amount": str(amount)
                     },
                     "line_items": [{
                         "price_data": {
                             "currency": "usd",
                             "product_data": {
-                                "name": "L3V3L Matches Donation",
-                                "description": f"One-time donation of ${amount} to support the platform",
+                                "name": "L3V3L Matches Contribution",
+                                "description": f"One-time contribution of ${amount} to support the platform",
                             },
                             "unit_amount": amount_cents,
                         },
@@ -446,7 +446,7 @@ class StripeService:
             # Create the session
             session = stripe.checkout.Session.create(**session_params)
             
-            logger.info(f"💝 Created donation session {session.id} for {username}: ${amount} ({payment_type})")
+            logger.info(f"💝 Created contribution session {session.id} for {username}: ${amount} ({payment_type})")
             
             return {
                 "sessionId": session.id,
@@ -456,14 +456,14 @@ class StripeService:
             }
             
         except stripe.error.StripeError as e:
-            logger.error(f"Stripe error creating donation session: {e}")
+            logger.error(f"Stripe error creating contribution session: {e}")
             raise ValueError(f"Payment service error: {str(e)}")
         except Exception as e:
-            logger.error(f"Error creating donation session: {e}", exc_info=True)
+            logger.error(f"Error creating contribution session: {e}", exc_info=True)
             raise
     
-    async def verify_donation_session(self, session_id: str, username: str) -> Dict[str, Any]:
-        """Verify a donation checkout session and update user's donation record"""
+    async def verify_contribution_session(self, session_id: str, username: str) -> Dict[str, Any]:
+        """Verify a contribution checkout session and update user's contribution record"""
         try:
             session = stripe.checkout.Session.retrieve(session_id)
             
@@ -472,45 +472,45 @@ class StripeService:
             
             metadata = session.metadata or {}
             amount = float(metadata.get("amount", 0))
-            donation_type = metadata.get("donation_type", "one_time")
-            is_recurring = donation_type == "recurring"
+            contribution_type = metadata.get("contribution_type", "one_time")
+            is_recurring = contribution_type == "recurring"
             
             now = datetime.utcnow()
             
-            # Update user's donation record
+            # Update user's contribution record
             update_data = {
-                "donations.lastDonationDate": now,
-                "donations.lastDonationAmount": amount,
+                "contributions.lastContributionDate": now,
+                "contributions.lastContributionAmount": amount,
             }
             
             if is_recurring:
-                update_data["donations.hasActiveRecurring"] = True
-                update_data["donations.recurringSubscriptionId"] = session.subscription
+                update_data["contributions.hasActiveRecurring"] = True
+                update_data["contributions.recurringSubscriptionId"] = session.subscription
             
             await self.users_collection.update_one(
                 {"username": username},
                 {
                     "$set": update_data,
-                    "$inc": {"donations.totalDonated": amount}
+                    "$inc": {"contributions.totalContributed": amount}
                 }
             )
             
-            # Record donation in payments collection
-            donation_record = {
+            # Record contribution in payments collection
+            contribution_record = {
                 "username": username,
                 "amount": amount,
-                "paymentType": "donation_recurring" if is_recurring else "donation_one_time",
+                "paymentType": "contribution_recurring" if is_recurring else "contribution_one_time",
                 "paymentMethod": "stripe",
                 "stripeSessionId": session_id,
                 "stripeSubscriptionId": session.subscription if is_recurring else None,
                 "status": "completed",
                 "createdAt": now,
-                "description": f"{'Monthly' if is_recurring else 'One-time'} donation"
+                "description": f"{'Monthly' if is_recurring else 'One-time'} contribution"
             }
             
-            await self.db.payments.insert_one(donation_record)
+            await self.db.payments.insert_one(contribution_record)
             
-            logger.info(f"✅ Donation verified for {username}: ${amount} ({donation_type})")
+            logger.info(f"✅ Contribution verified for {username}: ${amount} ({contribution_type})")
             
             return {
                 "success": True,
@@ -520,23 +520,23 @@ class StripeService:
             }
             
         except Exception as e:
-            logger.error(f"Error verifying donation: {e}")
+            logger.error(f"Error verifying contribution: {e}")
             raise
     
-    async def handle_donation_webhook(self, session: Dict[str, Any]) -> Dict[str, Any]:
-        """Handle donation checkout completion from webhook"""
+    async def handle_contribution_webhook(self, session: Dict[str, Any]) -> Dict[str, Any]:
+        """Handle contribution checkout completion from webhook"""
         try:
             metadata = session.get("metadata", {})
             
-            # Check if this is a donation
-            if metadata.get("donation_type"):
+            # Check if this is a contribution
+            if metadata.get("contribution_type"):
                 username = session.get("client_reference_id") or metadata.get("username")
                 if username:
-                    return await self.verify_donation_session(session.get("id"), username)
+                    return await self.verify_contribution_session(session.get("id"), username)
             
-            return {"success": False, "error": "Not a donation session"}
+            return {"success": False, "error": "Not a contribution session"}
         except Exception as e:
-            logger.error(f"Error handling donation webhook: {e}")
+            logger.error(f"Error handling contribution webhook: {e}")
             return {"success": False, "error": str(e)}
 
 
