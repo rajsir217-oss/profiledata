@@ -4,6 +4,8 @@ import { getBackendUrl } from '../config/apiConfig';
 import toastService from './toastService';
 import logger from '../utils/logger';
 
+// Module loaded - debug log removed
+
 /**
  * Session Manager - Activity-based token refresh
  * 
@@ -36,18 +38,22 @@ class SessionManager {
    * Initialize session manager
    */
   init() {
+    logger.debug('SessionManager.init() called');
+    
     if (this.isActive) {
-      logger.debug('Session manager already initialized');
+      logger.debug('Session manager already initialized, skipping');
       return;
     }
 
     const token = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
+    logger.debug('Tokens found:', { token: !!token, refreshToken: !!refreshToken });
     
-    if (!token || !refreshToken) {
-      logger.debug('No tokens found, session manager not initialized');
+    if (!token) {
+      logger.debug('No token found, session manager not initialized');
       return;
     }
+    // Note: refreshToken is optional - inactivity check works without it
 
     this.isActive = true;
     
@@ -287,21 +293,21 @@ class SessionManager {
       clearInterval(this.inactivityInterval);
     }
     
-    // Check inactivity every 1 minute
     this.inactivityInterval = setInterval(() => {
       if (!this.isActive) return;
       
-      const timeSinceActivity = Date.now() - this.lastActivity;
-      logger.debug(`Inactivity check: ${Math.round(timeSinceActivity / 60000)} minutes since last activity`);
+      // Read from localStorage to get the persisted value (more reliable than in-memory)
+      const storedLastActivity = localStorage.getItem('sessionLastActivity');
+      const lastActivityTime = storedLastActivity ? parseInt(storedLastActivity, 10) : this.lastActivity;
+      
+      const timeSinceActivity = Date.now() - lastActivityTime;
       
       if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
-        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
+        logger.warn(`Session expired due to inactivity (${Math.round(timeSinceActivity / 60000)} minutes)`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
         this.logout();
       }
     }, 60 * 1000); // Check every 1 minute
-    
-    logger.debug('Inactivity check interval started (every 1 minute)');
   }
 
   /**

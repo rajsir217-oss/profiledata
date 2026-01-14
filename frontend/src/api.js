@@ -26,10 +26,8 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Track API activity for session management
-    if (sessionManager.isActive) {
-      sessionManager.handleActivity();
-    }
+    // NOTE: API activity tracking removed - it was resetting inactivity timer on background polling
+    // User activity is now tracked only via DOM events (mouse, keyboard, click, scroll)
     
     return config;
   },
@@ -566,10 +564,8 @@ export const createApiInstance = (baseURL = null) => {
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
-      // Track activity for session management
-      if (sessionManager.isActive) {
-        sessionManager.handleActivity();
-      }
+      // NOTE: API activity tracking removed - it was resetting inactivity timer on background polling
+      // User activity is now tracked only via DOM events (mouse, keyboard, click, scroll)
       return config;
     },
     (error) => Promise.reject(error)
