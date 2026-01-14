@@ -52,6 +52,13 @@ const UnifiedPreferences = () => {
   const [showProfileViewTooltip, setShowProfileViewTooltip] = useState(false);
   const [showProfilePicTooltip, setShowProfilePicTooltip] = useState(false);
   const [adminSettingsLoading, setAdminSettingsLoading] = useState(false);
+  
+  // Contribution Settings State
+  const [contributionEnabled, setContributionEnabled] = useState(false);
+  const [contributionMinLogins, setContributionMinLogins] = useState(3);
+  const [contributionFrequencyDays, setContributionFrequencyDays] = useState(14);
+  const [savingContributionSettings, setSavingContributionSettings] = useState(false);
+  const [showContributionTooltip, setShowContributionTooltip] = useState(false);
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
     newPassword: '',
@@ -366,9 +373,48 @@ const UnifiedPreferences = () => {
     }
   };
 
+  // Contribution Settings Functions
+  const loadContributionSettings = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${getBackendUrl()}/api/stripe/admin/contribution-settings`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (response.data.success) {
+        const settings = response.data.contributions;
+        setContributionEnabled(settings.enabled || false);
+        setContributionMinLogins(settings.minLogins || 3);
+        setContributionFrequencyDays(settings.frequencyDays || 14);
+      }
+    } catch (error) {
+      console.error('Error loading contribution settings:', error);
+    }
+  };
+
+  const handleSaveContributionSettings = async () => {
+    try {
+      setSavingContributionSettings(true);
+      const token = localStorage.getItem('token');
+      await axios.put(`${getBackendUrl()}/api/stripe/admin/contribution-settings`, {
+        enabled: contributionEnabled,
+        minLogins: contributionMinLogins,
+        frequencyDays: contributionFrequencyDays
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      showToast('Contribution settings saved successfully!', 'success');
+    } catch (error) {
+      console.error('Error saving contribution settings:', error);
+      showToast('Failed to save contribution settings', 'error');
+    } finally {
+      setSavingContributionSettings(false);
+    }
+  };
+
   useEffect(() => {
     if (isAdmin) {
       loadAdminSettings();
+      loadContributionSettings();
     }
   }, [isAdmin]);
 
@@ -2012,6 +2058,168 @@ const UnifiedPreferences = () => {
                   </p>
                   <p style={{ margin: '8px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                     This setting only affects the first image (profile picture). Additional photos always respect the user's privacy settings.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Contribution Popup Settings */}
+          {!adminSettingsLoading && (
+            <div className="settings-card" style={{ marginTop: '24px' }}>
+              <h3>💝 Contribution Popup</h3>
+              <p>Configure the contribution popup that encourages users to support the platform</p>
+
+              <div className="form-group" style={{ marginTop: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                  <label style={{ fontWeight: '600' }}>Enable Contribution Popup</label>
+                  <div style={{ position: 'relative' }}>
+                    <span 
+                      onClick={() => setShowContributionTooltip(!showContributionTooltip)}
+                      style={{
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        padding: '4px 8px',
+                        borderRadius: '50%',
+                        background: 'var(--info-light)',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      ℹ️
+                    </span>
+                    {showContributionTooltip && (
+                      <>
+                        <div 
+                          onClick={() => setShowContributionTooltip(false)}
+                          style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 999
+                          }}
+                        />
+                        <div style={{
+                          position: 'absolute',
+                          top: '100%',
+                          left: '0',
+                          marginTop: '8px',
+                          background: 'var(--card-background)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                          zIndex: 1000,
+                          minWidth: '300px',
+                          maxWidth: '400px'
+                        }}>
+                          <strong style={{ display: 'block', marginBottom: '8px' }}>Contribution Popup Settings:</strong>
+                          <ul style={{ marginLeft: '20px', lineHeight: '1.6' }}>
+                            <li><strong>Enabled:</strong> Shows popup to eligible users asking for contributions</li>
+                            <li><strong>Min Logins:</strong> User must have logged in this many times before seeing popup</li>
+                            <li><strong>Frequency:</strong> Days between showing popup to same user</li>
+                            <li>Users with active recurring contributions won't see the popup</li>
+                            <li>Admins can disable popup for individual users in User Management</li>
+                          </ul>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <label 
+                  style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '12px',
+                    cursor: 'pointer',
+                    padding: '12px 16px',
+                    borderRadius: '8px',
+                    border: `2px solid ${contributionEnabled ? 'var(--success-color)' : 'var(--border-color)'}`,
+                    background: contributionEnabled ? 'var(--success-light)' : 'var(--surface-color)',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '16px'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={contributionEnabled}
+                    onChange={(e) => setContributionEnabled(e.target.checked)}
+                    disabled={savingContributionSettings}
+                    style={{ 
+                      width: '20px', 
+                      height: '20px',
+                      accentColor: 'var(--success-color)'
+                    }}
+                  />
+                  <span style={{ fontWeight: '500' }}>
+                    {contributionEnabled ? '✅ Enabled - Popup will show to eligible users' : '🔕 Disabled - Popup will not show'}
+                  </span>
+                </label>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                      Minimum Logins Required
+                    </label>
+                    <select
+                      value={contributionMinLogins}
+                      onChange={(e) => setContributionMinLogins(Number(e.target.value))}
+                      disabled={savingContributionSettings}
+                      className="form-control"
+                      style={{ width: '100%' }}
+                    >
+                      <option value={1}>1 login</option>
+                      <option value={2}>2 logins</option>
+                      <option value={3}>3 logins</option>
+                      <option value={5}>5 logins</option>
+                      <option value={10}>10 logins</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                      Show Popup Every
+                    </label>
+                    <select
+                      value={contributionFrequencyDays}
+                      onChange={(e) => setContributionFrequencyDays(Number(e.target.value))}
+                      disabled={savingContributionSettings}
+                      className="form-control"
+                      style={{ width: '100%' }}
+                    >
+                      <option value={7}>7 days</option>
+                      <option value={14}>14 days</option>
+                      <option value={30}>30 days</option>
+                      <option value={60}>60 days</option>
+                      <option value={90}>90 days</option>
+                    </select>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleSaveContributionSettings}
+                  disabled={savingContributionSettings}
+                  className="btn-primary"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  {savingContributionSettings ? '💾 Saving...' : '💾 Save Contribution Settings'}
+                </button>
+
+                <div style={{ 
+                  marginTop: '16px', 
+                  padding: '12px', 
+                  borderRadius: '8px', 
+                  background: contributionEnabled ? 'var(--success-light)' : 'var(--surface-color)',
+                  border: contributionEnabled ? '1px solid var(--success-color)' : '1px solid var(--border-color)'
+                }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-color)' }}>
+                    <strong>Current Status:</strong> {contributionEnabled 
+                      ? '💝 Popup enabled - Shows after ' + contributionMinLogins + ' logins, every ' + contributionFrequencyDays + ' days'
+                      : '🔕 Popup disabled - Users will not see contribution requests'}
                   </p>
                 </div>
               </div>

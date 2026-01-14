@@ -69,49 +69,97 @@ const HelpPage = () => {
             <h2>🔍 Search & Filters</h2>
             
             <div className="help-section">
-              <h3>How Search Works (Simple Explanation)</h3>
-              <p>Search shows you profiles that match your filters. Think of filters like a shopping checklist — the more you add, the fewer results you’ll see.</p>
+              <h3>How Search Works</h3>
+              <p>Search shows you profiles that match your filters. Think of filters like a shopping checklist — the more you add, the fewer results you'll see. Start broad and narrow down as needed.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>🎯 Profile ID Search (Direct Lookup)</h3>
+              <p>If you know someone's exact Profile ID, you can find them instantly:</p>
               <ul>
-                <li><strong>Keyword:</strong> Find profiles by name, region, occupation, education, or bio keywords.</li>
-                <li><strong>Age range:</strong> Set a minimum and maximum age.</li>
-                <li><strong>Height range:</strong> Set min/max height.</li>
-                <li><strong>Location / Region:</strong> Narrow to the region you prefer.</li>
+                <li>Enter the Profile ID (e.g., <code>STHa9Lor</code>) in the <strong>Profile ID</strong> field</li>
+                <li>Click <strong>Search</strong> — this bypasses all other filters</li>
+                <li>Profile IDs are shown on each profile card and in the URL when viewing a profile</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Common Filters</h3>
-              <p>Use these to narrow down results:</p>
+              <h3>🎚️ L3V3L Compatibility Score Slider</h3>
+              <p>Filter matches by their compatibility score with you:</p>
               <ul>
-                <li><strong>Education & occupation</strong></li>
-                <li><strong>Religion / cultural preferences</strong> (when provided)</li>
-                <li><strong>Lifestyle</strong> (eating, drinking, smoking)</li>
-                <li><strong>Recently added</strong> (helps you find new profiles)</li>
+                <li>Drag the slider to set a <strong>minimum compatibility percentage</strong></li>
+                <li><strong>0%</strong> — Show all profiles (no filtering)</li>
+                <li><strong>50-60%</strong> — Good starting point for more options</li>
+                <li><strong>70%+</strong> — Focus on stronger compatibility matches</li>
+                <li>Results update instantly as you move the slider</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Using L3V3L Score in Search</h3>
-              <p>You can set a <strong>minimum L3V3L score</strong> to focus on strong matches. Higher scores generally mean better alignment.</p>
+              <h3>📝 Basic Filters (Always Visible)</h3>
+              <p>These filters are always available at the top of the search page:</p>
               <ul>
-                <li><strong>Start at 50–60%</strong> if you want more options.</li>
-                <li><strong>Use 70%+</strong> if you want to prioritize strong compatibility.</li>
-                <li>If you see very few results, lower the minimum score first.</li>
+                <li><strong>Keyword Search:</strong> Search across all profile fields — bio, interests, occupation, education, and more. Leave empty to see all matches.</li>
+                <li><strong>Location:</strong> Filter by city, state, or region. Partial matches work (e.g., "CA" for California, "Bay" for Bay Area).</li>
+                <li><strong>Age Range:</strong> Set minimum and maximum age (19-100). <em>Required for non-admin users.</em></li>
+                <li><strong>Height Range:</strong> Set minimum and maximum height in feet and inches.</li>
+                <li><strong>Days Back:</strong> Show only profiles created within the last X days — great for finding new members!</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>Saved Searches</h3>
-              <p>If you use the same filters often, save them so you don’t have to set them again every time.</p>
+              <h3>⚙️ Advanced Filters (Click "View More")</h3>
+              <p>Click <strong>▼ View More</strong> to reveal additional filters:</p>
+              <ul>
+                <li><strong>Gender:</strong> Filter by gender preference (locked to opposite gender for regular users; admins can search all)</li>
+                <li><strong>Body Type:</strong> Filter by body type preference</li>
+                <li><strong>Occupation:</strong> Filter by profession or career field</li>
+                <li><strong>Eating Preference:</strong> Vegetarian, non-vegetarian, vegan, eggetarian, etc.</li>
+                <li><strong>Drinking:</strong> Never, socially, regularly, etc.</li>
+                <li><strong>Smoking:</strong> Never, occasionally, regularly, etc.</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🔘 Action Buttons</h3>
+              <ul>
+                <li><strong>🔍 Search:</strong> Run the search with your current filters</li>
+                <li><strong>🗑️ Clear / 🔄 Reset:</strong> Clear all filters (admins) or reset to your partner preference defaults (regular users)</li>
+                <li><strong>💾 Save Search:</strong> Save your current filter combination for quick access later</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>💾 Saved Searches</h3>
+              <p>Save your favorite filter combinations to run them again with one click:</p>
               <ol>
-                <li>Set your filters</li>
-                <li>Click <strong>Save Search</strong></li>
-                <li>Click a saved search to instantly run it again</li>
+                <li>Set your desired filters</li>
+                <li>Click <strong>💾 Save Search</strong></li>
+                <li>Give your search a name (e.g., "Bay Area 25-30")</li>
+                <li>Access saved searches from the sidebar or search page</li>
+                <li>Get notified when new profiles match your saved search criteria!</li>
               </ol>
             </div>
 
+            <div className="help-section">
+              <h3>📊 Search Results</h3>
+              <p>After searching, you'll see matching profiles displayed as cards:</p>
+              <ul>
+                <li>Each card shows the profile photo, name, age, location, and L3V3L score</li>
+                <li>Click a card to view the full profile</li>
+                <li>Use the ❤️ (Favorite), ⭐ (Shortlist), or 💬 (Message) buttons for quick actions</li>
+                <li>Results are sorted by compatibility score by default</li>
+              </ul>
+            </div>
+
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> If you’re not sure where to start: try keyword + age range + location, then adjust.
+              <strong>💡 Pro Tips:</strong>
+              <ul style={{ marginTop: '8px', marginBottom: 0 }}>
+                <li>Start with just <strong>Age Range + Location</strong>, then add more filters</li>
+                <li>If you see too few results, remove some filters or lower the L3V3L score</li>
+                <li>Use <strong>Days Back</strong> to discover newly joined members</li>
+                <li>Save your most-used searches to save time</li>
+              </ul>
             </div>
           </div>
         );
