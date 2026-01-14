@@ -272,9 +272,9 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
       
       items.push({
         icon: '💝',
-        label: 'Donation Management',
-        subLabel: 'View all donations',
-        action: () => navigate('/donation-management')
+        label: 'Contribution Management',
+        subLabel: 'View all contributions',
+        action: () => navigate('/contribution-management')
       });
       
       // === ANALYTICS & REPORTS ===
