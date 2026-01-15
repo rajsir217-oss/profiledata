@@ -52,13 +52,13 @@ show_help() {
     echo "  gitp [message]              Commit and push to current branch"
     echo "  gitp -main [message]        Commit, push, merge dev→main, return to dev"
     echo "  gitp -n [message]           Dry-run: preview what would be committed"
-    echo "  gitp -a [message]           Add ALL files including untracked (default: tracked only)"
+    echo "  gitp -u [message]           Add only tracked files (default: includes untracked)"
     echo "  gitp -h, --help             Show this help message"
     echo ""
     echo -e "${YELLOW}Options:${NC}"
     echo "  -main     Merge mode: push to dev, then merge into main"
     echo "  -n        Dry-run mode: show what would happen without making changes"
-    echo "  -a        Add all files (including new untracked files)"
+    echo "  -u        Add only tracked files (exclude new untracked files)"
     echo "  -h        Show this help"
     echo ""
     echo -e "${YELLOW}Examples:${NC}"
@@ -66,11 +66,12 @@ show_help() {
     echo "  gitp \"Fix login bug\"        # Commit with custom message + timestamp"
     echo "  gitp -n                     # Preview changes without committing"
     echo "  gitp -main \"Release v1.2\"  # Push to dev, merge to main"
-    echo "  gitp -a \"Add new feature\"  # Include untracked files"
+    echo "  gitp -u \"Fix bug\"          # Exclude untracked files"
     echo ""
     echo -e "${YELLOW}Notes:${NC}"
     echo "  • Timestamp is automatically appended to all commit messages"
-    echo "  • By default, only tracked files are staged (use -a for all)"
+    echo "  • By default, ALL files are staged including new untracked files"
+    echo "  • Use -u to exclude untracked files"
     echo "  • Protected branches (main/master/production) will prompt for confirmation"
     exit 0
 }
@@ -89,7 +90,7 @@ PROTECTED_BRANCHES=("main" "master" "production")
 # Parse flags
 MERGE_MODE=false
 DRY_RUN=false
-ADD_ALL=false
+ADD_ALL=true  # Default to adding all files including untracked
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -106,6 +107,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -a|--all)
             ADD_ALL=true
+            shift
+            ;;
+        -u|--tracked-only)
+            ADD_ALL=false
             shift
             ;;
         *)
