@@ -9,6 +9,7 @@ import MessageModal from './MessageModal';
 import OnlineUsersDropdown from './OnlineUsersDropdown';
 import Logo from './Logo';
 import InfoTicker from './InfoTicker';
+import EventCountdown from './EventCountdown';
 import { getFirstName } from '../utils/userDisplay';
 import logger from '../utils/logger';
 import './TopBar.css';
@@ -355,6 +356,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
               )}
             </div>
           )}
+          
+          {/* Event Countdown - Shows for users who RSVPed "Yes" to upcoming events */}
+          <EventCountdown />
         </div>
         <div className="top-bar-right">
           {/* Search Button */}

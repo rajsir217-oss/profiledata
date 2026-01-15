@@ -315,7 +315,7 @@ const Dashboard2 = () => {
     try {
       const [messagesRes, notesRes, favoritesRes, shortlistsRes, exclusionsRes] = await Promise.all([
         api.get(`/messages/conversations?username=${currentUser}`).then(res => res.data.conversations || []),
-        api.get('/api/notes').then(res => res.data.notes || []).catch(() => []),
+        axios.get(`${getBackendUrl()}/api/notes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.data.notes || []).catch(() => []),
         api.get(`/favorites/${currentUser}`).then(res => res.data.favorites || []),
         api.get(`/shortlist/${currentUser}`).then(res => res.data.shortlist || []),
         api.get(`/exclusions/${currentUser}`).then(res => res.data.exclusions || [])
