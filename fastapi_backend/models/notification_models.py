@@ -83,6 +83,9 @@ class NotificationTrigger(str, Enum):
     
     # Exclusion/Not Interested
     PROFILE_UNAVAILABLE = "profile_unavailable"  # Polite notification when excluded
+    
+    # Polls
+    POLL_REMINDER = "poll_reminder"  # Reminder to respond to active poll
 
 
 class FrequencyType(str, Enum):

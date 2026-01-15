@@ -222,6 +222,9 @@ const UnifiedPreferences = () => {
       { id: 'weekly_digest', label: 'Weekly Digest', description: 'Weekly activity summary email' },
       { id: 'monthly_digest', label: 'Monthly Digest', description: 'Monthly activity report with charts' },
       { id: 'saved_search_matches', label: 'Saved Search Matches', description: 'New profiles matching your saved searches' }
+    ],
+    polls: [
+      { id: 'poll_reminder', label: 'Poll Reminder', description: 'Reminder to respond to active polls' }
     ]
   };
 
