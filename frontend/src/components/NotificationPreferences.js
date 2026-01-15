@@ -46,6 +46,9 @@ const NotificationPreferences = () => {
       { id: 'weekly_digest', label: 'Weekly Digest', description: 'Weekly activity summary email' },
       { id: 'monthly_digest', label: 'Monthly Digest', description: 'Monthly activity report with charts' },
       { id: 'saved_search_matches', label: 'Saved Search Matches', description: 'New profiles matching your saved searches' }
+    ],
+    polls: [
+      { id: 'poll_reminder', label: 'Poll Reminder', description: 'Reminder to respond to active polls' }
     ]
   };
 
@@ -284,6 +287,7 @@ const NotificationPreferences = () => {
             {category === 'privacy' && '🔐 Privacy & Security'}
             {category === 'engagement' && '⭐ Engagement'}
             {category === 'digests' && '📊 Digests & Reports'}
+            {category === 'polls' && '📊 Polls & Events'}
           </h2>
 
           <div className="triggers-list">

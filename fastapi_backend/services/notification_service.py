@@ -73,6 +73,9 @@ class NotificationService:
                 NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
                 NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
+                
+                # Polls
+                NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
             },
             frequency={
                 "instant": [NotificationTrigger.NEW_MATCH, NotificationTrigger.PII_REQUEST],
