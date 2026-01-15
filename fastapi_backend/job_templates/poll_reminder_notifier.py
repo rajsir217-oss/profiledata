@@ -255,6 +255,24 @@ class PollReminderNotifierTemplate(JobTemplate):
                             phone = user.get("phone") or user.get("contactNumber")
                             first_name = user.get("firstName", username)
                             
+                            # 🔓 Decrypt PII if encrypted
+                            from crypto_utils import get_encryptor
+                            encryptor = get_encryptor()
+                            
+                            if email and email.startswith('gAAAAA'):
+                                try:
+                                    email = encryptor.decrypt(email)
+                                except Exception as decrypt_err:
+                                    logger.warning(f"Failed to decrypt email for {username}: {decrypt_err}")
+                                    email = None
+                            
+                            if phone and phone.startswith('gAAAAA'):
+                                try:
+                                    phone = encryptor.decrypt(phone)
+                                except Exception as decrypt_err:
+                                    logger.warning(f"Failed to decrypt phone for {username}: {decrypt_err}")
+                                    phone = None
+                            
                             # Build notification content
                             subject = f"🔔 Reminder: Please respond to poll - {poll_title}"
                             
