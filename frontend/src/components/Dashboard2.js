@@ -1775,7 +1775,8 @@ const Dashboard2 = () => {
         {/* Inline Poll Widget or Placeholder */}
         <div className="poll-widget-inline">
           <PollWidget 
-            inline={true} 
+            inline={true}
+            autoPopup={true}
             renderPlaceholder={() => (
               <div className="stat-card-compact stat-card-disabled">
                 <div className="stat-icon-compact">🔔</div>

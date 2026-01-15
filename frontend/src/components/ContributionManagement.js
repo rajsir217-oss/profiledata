@@ -95,7 +95,7 @@ const ContributionManagement = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
+      <div className="stats-grid">
         <div className="stat-card total">
           <div className="stat-icon">💰</div>
           <div className="stat-content">

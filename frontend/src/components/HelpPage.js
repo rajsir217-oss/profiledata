@@ -75,69 +75,172 @@ const HelpPage = () => {
             </div>
 
             <div className="help-section">
-              <h3>📊 My Dashboard Stats (Top Row)</h3>
-              <p>At the top, you'll see quick stats about your profile activity:</p>
+              <h3>🔐 MFA Security Banner</h3>
+              <p>At the top of your dashboard, you may see a security banner prompting you to enable Multi-Factor Authentication (MFA):</p>
               <ul>
-                <li><strong>👁️ Profile Views:</strong> How many people have viewed your profile (with unique count)</li>
-                <li><strong>💖 Fav By:</strong> Number of people who added you to their favorites</li>
-                <li><strong>💬 Conversations:</strong> Active message threads you have</li>
-                <li><strong>📥 Reqs Inbox:</strong> Pending contact/photo access requests you've received</li>
-                <li><strong>🔓 Access Recvd:</strong> Contact access you've been granted by others</li>
-                <li><strong>⭐ My Favs:</strong> Profiles you've favorited</li>
-                <li><strong>📁 My Shortlists:</strong> Profiles you've shortlisted for closer review</li>
-                <li><strong>🚫 Shortd Me:</strong> People who shortlisted you</li>
-                <li><strong>🔍 Saved Srch:</strong> Your saved search filters</li>
+                <li><strong>Why enable MFA?</strong> Adds an extra layer of security to your account beyond just your password</li>
+                <li><strong>How it works:</strong> After enabling, you'll need to enter a code from your authenticator app when logging in</li>
+                <li><strong>Enable MFA button:</strong> Click to set up MFA using an authenticator app (Google Authenticator, Authy, etc.)</li>
+                <li><strong>Dismiss (✕):</strong> Close the banner temporarily — it will appear again on your next login session</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>🗳️ Poll</h3>
-              <p>Occasionally, you may see a <strong>Poll</strong> section with a "NEW" badge. These are quick community polls — your input helps shape the platform!</p>
-            </div>
-
-            <div className="help-section">
-              <h3>🔐 Data Requests</h3>
-              <p>This section shows pending contact information and photo access requests:</p>
+              <h3>� Photo Upload Reminder Banner</h3>
+              <p>If you haven't uploaded any photos yet, you'll see a reminder banner:</p>
               <ul>
-                <li>The number badge shows how many requests are waiting for your response</li>
-                <li>Click the arrow (▶) to expand and see the full list</li>
-                <li>You can approve or deny each request individually</li>
-                <li>Approving a request shares your contact info with that person</li>
+                <li><strong>Why upload photos?</strong> Profiles with photos receive up to 10x more views and engagement</li>
+                <li><strong>Upload Photos button:</strong> Takes you directly to Edit Profile to add your photos</li>
+                <li><strong>Dismiss (✕):</strong> Close the banner for this session — it will appear again next time if you still have no photos</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>📋 My Activities</h3>
-              <p>Quick access tabs to your key activity areas:</p>
+              <h3>⏸️ Pause Status Banner</h3>
+              <p>If your profile is paused (taking a break), you'll see a prominent banner:</p>
               <ul>
-                <li><strong>💬 Messages:</strong> Your conversations and unread messages</li>
-                <li><strong>📝 Notes:</strong> Private notes you've written about profiles</li>
-                <li><strong>⭐ Favorites:</strong> Profiles you've marked as favorites</li>
-                <li><strong>📁 Shortlists:</strong> Profiles you're actively considering</li>
-                <li><strong>🔍 Search:</strong> Quick access to search</li>
-              </ul>
-              <p>Click any tab to see the content below, or click the refresh icon (🔄) to update the counts.</p>
-            </div>
-
-            <div className="help-section">
-              <h3>💬 Messages Panel</h3>
-              <p>The bottom section shows your recent messages:</p>
-              <ul>
-                <li>See a preview of your latest conversations</li>
-                <li>Unread messages are highlighted</li>
-                <li>Click a conversation to open the full chat</li>
-                <li>"No messages yet" means you haven't started any conversations</li>
+                <li><strong>What it shows:</strong> Confirms your profile is paused and hidden from searches</li>
+                <li><strong>Auto-unpause date:</strong> If you set an end date, it shows when your profile will automatically reactivate</li>
+                <li><strong>Un-Pause Now button:</strong> Click to immediately reactivate your profile and return to active status</li>
               </ul>
             </div>
 
             <div className="help-section">
-              <h3>🔔 Notification Ticker (Top Bar)</h3>
-              <p>The scrolling bar at the top shows recent activity:</p>
+              <h3>🕐 Last Login Info</h3>
+              <p>Shows when you last logged in (e.g., "Last login: 2 days ago"). Helps you track your activity patterns.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>� Stats Overview Cards (Clickable)</h3>
+              <p>Five large stat cards showing your key metrics — click any card to see detailed information:</p>
               <ul>
-                <li>Who viewed your profile and when</li>
-                <li>New match notifications</li>
-                <li>Click any notification to go directly to that profile or action</li>
-                <li>Click ✕ to dismiss individual notifications</li>
+                <li><strong>👁️ Profile Views:</strong> Total views + unique viewers count. Click to see WHO viewed your profile with timestamps</li>
+                <li><strong>💖 Favorited By:</strong> Number of people who added you to their favorites. Click to see the list of admirers</li>
+                <li><strong>💬 Conversations:</strong> Active message threads. Click to see all your conversations in a modal</li>
+                <li><strong>📷 Photo Requests:</strong> Your outgoing photo/contact access requests. Click to manage pending requests</li>
+                <li><strong>📥 Contact Requests:</strong> Incoming requests from others waiting for YOUR approval. Click to approve/deny requests</li>
+              </ul>
+              <p><strong>Note:</strong> The Contact Requests card glows/highlights when you have pending requests to review!</p>
+            </div>
+
+            <div className="help-section">
+              <h3>📋 My Activities Column</h3>
+              <p>The left column shows YOUR activities and lists. Click the header to expand/collapse:</p>
+              <ul>
+                <li><strong>💬 Messages:</strong> Your conversations — click any card to open the chat</li>
+                <li><strong>❤️ Favorites:</strong> Profiles you've favorited (auto-removed after 45 days of inactivity)</li>
+                <li><strong>📋 Shortlists:</strong> Profiles you're seriously considering (auto-removed after 45 days)</li>
+                <li><strong>� Photo Requests:</strong> Your outgoing PII/photo access requests with status</li>
+                <li><strong>🚫 Search Exclude:</strong> Profiles you've marked as "Not Interested" — they won't appear in your searches</li>
+              </ul>
+              <p><strong>Drag & Drop:</strong> You can drag profiles between Favorites, Shortlists, and Exclusions to reorganize!</p>
+            </div>
+
+            <div className="help-section">
+              <h3>� Others' Activities Column</h3>
+              <p>The right column shows how OTHERS interact with you. Click the header to expand/collapse:</p>
+              <ul>
+                <li><strong>👁️ Profile Views:</strong> Who viewed your profile and when</li>
+                <li><strong>📷 Photo Requests:</strong> Incoming access requests from others — approve or deny here</li>
+                <li><strong>❤️ Favorites:</strong> People who have favorited YOUR profile (last 45 days)</li>
+                <li><strong>📋 Shortlists:</strong> People who have shortlisted YOUR profile (last 45 days)</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>📝 Notes Feature</h3>
+              <p>The Notes feature lets you keep private notes about profiles you're interested in. Only you can see your notes — they are never shared with other users.</p>
+              <ul>
+                <li><strong>What are Notes?</strong> Personal reminders and observations about profiles you've viewed</li>
+                <li><strong>How to add a Note:</strong> Visit any profile and click the "Add Note" or 📝 icon to write your private note</li>
+                <li><strong>Where to find Notes:</strong> Click the "Notes" tab in My Activities section on your Dashboard</li>
+                <li><strong>Note count badge:</strong> Shows how many profiles you've written notes for</li>
+                <li><strong>Edit or delete:</strong> You can update or remove notes at any time</li>
+                <li><strong>Privacy:</strong> Notes are 100% private — the other person will never know you wrote a note about them</li>
+              </ul>
+              <p><strong>Use cases for Notes:</strong></p>
+              <ul>
+                <li>Remember key details from a profile ("Works at Google, loves hiking")</li>
+                <li>Track conversation topics ("Discussed meeting next week")</li>
+                <li>Note your impressions ("Very compatible, follow up soon")</li>
+                <li>Keep track of important dates or facts mentioned in chats</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>� Exclusion (Not Interested) Feature</h3>
+              <p>When you mark someone as "Not Interested", a confirmation modal shows what will be removed:</p>
+              <ul>
+                <li><strong>Preview modal:</strong> Shows count of messages, favorites, shortlists, and requests that will be deleted</li>
+                <li><strong>Permanent action:</strong> Removes all interaction history with that person</li>
+                <li><strong>Search hiding:</strong> The excluded profile will no longer appear in your search results</li>
+                <li><strong>Notification:</strong> The other user receives a notification that a profile they were interested in is no longer available</li>
+                <li><strong>Undo:</strong> You can remove someone from exclusions to see them in searches again</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>�🔔 Notification Ticker (Top Scrolling Bar)</h3>
+              <p>The scrolling notification bar at the very top shows recent activity on your profile:</p>
+              <ul>
+                <li><strong>Profile views:</strong> "Neil Mishra viewed your profile 25d ago" — shows who viewed you and when</li>
+                <li><strong>New matches:</strong> Notifications about new compatible profiles matching your saved searches</li>
+                <li><strong>System alerts:</strong> Important platform announcements</li>
+                <li><strong>Click to navigate:</strong> Click any notification to go directly to that profile or action</li>
+                <li><strong>Dismiss (✕):</strong> Click the X to dismiss individual notifications</li>
+                <li><strong>Auto-scroll:</strong> Notifications scroll automatically; hover to pause</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>⚡ Bottom Action Buttons</h3>
+              <p>Fixed buttons at the bottom of the dashboard for quick actions:</p>
+              <ul>
+                <li><strong>⊞/☰ View Toggle:</strong> Switch between Card view and Row view for profile displays</li>
+                <li><strong>🔄 Refresh:</strong> Reload all dashboard data without refreshing the entire page</li>
+                <li><strong>⇲/⇱ Expand/Collapse All:</strong> Toggle all sections open or closed at once</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🦋 L3V3L Button (Header)</h3>
+              <p>The purple "L3V3L" button in the header takes you to your AI-powered compatibility matches:</p>
+              <ul>
+                <li>See profiles ranked by compatibility score</li>
+                <li>Get personalized match recommendations</li>
+                <li>View detailed compatibility breakdowns</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🟢 Members Online Indicator</h3>
+              <p>The green "X members online" badge shows how many users are currently active on the platform:</p>
+              <ul>
+                <li>Higher numbers mean more potential for real-time conversations</li>
+                <li>Online users may respond to messages faster</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🔍 Quick Search & Actions (Header Icons)</h3>
+              <p>The header contains quick action icons:</p>
+              <ul>
+                <li><strong>🔍 Search icon:</strong> Quick access to the search page</li>
+                <li><strong>💬 Chat icon:</strong> Access your messages/conversations</li>
+                <li><strong>👤 Profile avatar:</strong> Click to access your profile, settings, and logout</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🎴 User Cards & Kebab Menu</h3>
+              <p>Each profile card in your dashboard has a kebab menu (⋮) with quick actions:</p>
+              <ul>
+                <li><strong>👁️ View Profile:</strong> Open the full profile page</li>
+                <li><strong>💬 Message:</strong> Start or continue a conversation</li>
+                <li><strong>❤️ Add/Remove Favorite:</strong> Toggle favorite status</li>
+                <li><strong>📋 Add/Remove Shortlist:</strong> Toggle shortlist status</li>
+                <li><strong>📷 Request Access:</strong> Request photo or contact info access</li>
+                <li><strong>🚫 Not Interested:</strong> Add to exclusions (with confirmation)</li>
               </ul>
             </div>
 
@@ -145,8 +248,14 @@ const HelpPage = () => {
               <strong>💡 Pro Tips:</strong>
               <ul style={{ marginTop: '8px', marginBottom: 0 }}>
                 <li>Check your Dashboard daily to stay on top of new views and requests</li>
-                <li>Respond to Data Requests promptly — it shows you're active!</li>
-                <li>Use the refresh icons to get the latest counts without reloading the page</li>
+                <li>Respond to Contact Requests promptly — it shows you're active and increases engagement!</li>
+                <li>Use the bottom refresh button (🔄) to get the latest counts without reloading the entire page</li>
+                <li>Enable MFA for better account security — it only takes a minute to set up</li>
+                <li>Click the stat cards to see detailed lists (who viewed you, who favorited you, etc.)</li>
+                <li>Drag and drop profiles between Favorites, Shortlists, and Exclusions to organize</li>
+                <li>Use Notes to remember important details about profiles you're interested in</li>
+                <li>Upload photos to get up to 10x more profile views!</li>
+                <li>Favorites and Shortlists auto-expire after 45 days — take action on profiles you like!</li>
               </ul>
             </div>
           </div>
