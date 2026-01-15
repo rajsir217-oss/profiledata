@@ -8,6 +8,7 @@ const HelpPage = () => {
 
   const sections = [
     { id: 'getting-started', icon: '🚀', title: 'Getting Started' },
+    { id: 'dashboard', icon: '🎯', title: 'Your Dashboard' },
     { id: 'search', icon: '🔍', title: 'Search & Filters' },
     { id: 'l3v3l', icon: '🦋', title: 'L3V3L Matching' },
     { id: 'profile', icon: '👤', title: 'Your Profile' },
@@ -59,6 +60,94 @@ const HelpPage = () => {
 
             <div className="help-tip">
               <strong>💡 Pro Tip:</strong> If search results feel “empty”, loosen your filters first (age range, location, keyword). Then narrow down.
+            </div>
+          </div>
+        );
+
+      case 'dashboard':
+        return (
+          <div className="help-content">
+            <h2>🎯 Your Dashboard</h2>
+            
+            <div className="help-section">
+              <h3>Dashboard Overview</h3>
+              <p>Your Dashboard is your home base — a quick snapshot of your activity, interactions, and things that need your attention. Everything you need is organized into easy-to-scan sections.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>📊 My Dashboard Stats (Top Row)</h3>
+              <p>At the top, you'll see quick stats about your profile activity:</p>
+              <ul>
+                <li><strong>👁️ Profile Views:</strong> How many people have viewed your profile (with unique count)</li>
+                <li><strong>💖 Fav By:</strong> Number of people who added you to their favorites</li>
+                <li><strong>💬 Conversations:</strong> Active message threads you have</li>
+                <li><strong>📥 Reqs Inbox:</strong> Pending contact/photo access requests you've received</li>
+                <li><strong>🔓 Access Recvd:</strong> Contact access you've been granted by others</li>
+                <li><strong>⭐ My Favs:</strong> Profiles you've favorited</li>
+                <li><strong>📁 My Shortlists:</strong> Profiles you've shortlisted for closer review</li>
+                <li><strong>🚫 Shortd Me:</strong> People who shortlisted you</li>
+                <li><strong>🔍 Saved Srch:</strong> Your saved search filters</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🗳️ Poll</h3>
+              <p>Occasionally, you may see a <strong>Poll</strong> section with a "NEW" badge. These are quick community polls — your input helps shape the platform!</p>
+            </div>
+
+            <div className="help-section">
+              <h3>🔐 Data Requests</h3>
+              <p>This section shows pending contact information and photo access requests:</p>
+              <ul>
+                <li>The number badge shows how many requests are waiting for your response</li>
+                <li>Click the arrow (▶) to expand and see the full list</li>
+                <li>You can approve or deny each request individually</li>
+                <li>Approving a request shares your contact info with that person</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>📋 My Activities</h3>
+              <p>Quick access tabs to your key activity areas:</p>
+              <ul>
+                <li><strong>💬 Messages:</strong> Your conversations and unread messages</li>
+                <li><strong>📝 Notes:</strong> Private notes you've written about profiles</li>
+                <li><strong>⭐ Favorites:</strong> Profiles you've marked as favorites</li>
+                <li><strong>📁 Shortlists:</strong> Profiles you're actively considering</li>
+                <li><strong>🔍 Search:</strong> Quick access to search</li>
+              </ul>
+              <p>Click any tab to see the content below, or click the refresh icon (🔄) to update the counts.</p>
+            </div>
+
+            <div className="help-section">
+              <h3>💬 Messages Panel</h3>
+              <p>The bottom section shows your recent messages:</p>
+              <ul>
+                <li>See a preview of your latest conversations</li>
+                <li>Unread messages are highlighted</li>
+                <li>Click a conversation to open the full chat</li>
+                <li>"No messages yet" means you haven't started any conversations</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>🔔 Notification Ticker (Top Bar)</h3>
+              <p>The scrolling bar at the top shows recent activity:</p>
+              <ul>
+                <li>Who viewed your profile and when</li>
+                <li>New match notifications</li>
+                <li>Click any notification to go directly to that profile or action</li>
+                <li>Click ✕ to dismiss individual notifications</li>
+              </ul>
+            </div>
+
+            <div className="help-tip">
+              <strong>💡 Pro Tips:</strong>
+              <ul style={{ marginTop: '8px', marginBottom: 0 }}>
+                <li>Check your Dashboard daily to stay on top of new views and requests</li>
+                <li>Respond to Data Requests promptly — it shows you're active!</li>
+                <li>Use the refresh icons to get the latest counts without reloading the page</li>
+              </ul>
             </div>
           </div>
         );

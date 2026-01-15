@@ -293,11 +293,33 @@ class SMSNotifierTemplate(JobTemplate):
             "active": True
         })
         
+        # Extract requester name from template data with fallbacks
+        template_data = notification.templateData or {}
+        requester_name = "Someone"
+        if isinstance(template_data, dict):
+            match_data = template_data.get("match", {})
+            if isinstance(match_data, dict):
+                first = match_data.get("firstName", "")
+                username = match_data.get("username", "")
+                if first:
+                    requester_name = first
+                elif username:
+                    requester_name = username
+            # Also check flat format
+            if requester_name == "Someone":
+                flat_first = template_data.get("match_firstName", "")
+                flat_username = template_data.get("match_username", "")
+                if flat_first:
+                    requester_name = flat_first
+                elif flat_username:
+                    requester_name = flat_username
+        
         if not template:
             # User-friendly fallback messages for each trigger type
+            # Use direct string formatting since template variables may not be substituted
             trigger_messages = {
-                "pending_pii_request": "{match_firstName} requested your contact info! Login to L3V3LMATCHES.com to respond.",
-                "pii_request": "{match_firstName} requested your contact info! Login to L3V3LMATCHES.com to respond.",
+                "pending_pii_request": f"{requester_name} requested your contact info! Login to L3V3LMATCHES.com to respond.",
+                "pii_request": f"{requester_name} requested your contact info! Login to L3V3LMATCHES.com to respond.",
                 "pii_granted": "Your contact info request was approved! Login to L3V3LMATCHES.com to view.",
                 "pii_denied": "Your contact info request was declined. Login to L3V3LMATCHES.com for details.",
                 "new_message": "You have a new message! Login to L3V3LMATCHES.com to read it.",
@@ -311,16 +333,24 @@ class SMSNotifierTemplate(JobTemplate):
             
             message = trigger_messages.get(
                 notification.trigger,
-                f"You have a new notification! Login to L3V3LMATCHES.com"
+                "You have a new notification! Login to L3V3LMATCHES.com"
             )
-            # Render template variables in fallback messages
-            message = service.render_template(message, notification.templateData or {})
             message = f"{PREFIX}{message}"
         else:
+            # Enrich template data with extracted requester_name for substitution
+            enriched_data = dict(template_data)
+            enriched_data["requester_name"] = requester_name
+            enriched_data["match_firstName"] = requester_name  # Ensure flat format is available
+            
             message = service.render_template(
                 template.get("bodyTemplate", ""),
-                notification.templateData
+                enriched_data
             )
+            
+            # If template variables weren't substituted (still contain {match_firstName}), replace manually
+            if "{match_firstName}" in message or "{match.firstName}" in message:
+                message = message.replace("{match_firstName}", requester_name)
+                message = message.replace("{match.firstName}", requester_name)
             
             # Add prefix if not already present
             if not message.startswith("[L3V3LMATCHES]"):

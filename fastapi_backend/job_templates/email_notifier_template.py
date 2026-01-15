@@ -327,10 +327,14 @@ class EmailNotifierTemplate(JobTemplate):
                 if isinstance(match_data, dict):
                     first = match_data.get("firstName", "")
                     last = match_data.get("lastName", "")
+                    username = match_data.get("username", "")
                     if first and last:
                         requester_name = f"{first} {last}"
                     elif first:
                         requester_name = first
+                    elif username:
+                        # Fallback to username if firstName is empty
+                        requester_name = username
             
             # User-friendly fallback messages for each trigger type
             trigger_messages = {
@@ -518,10 +522,14 @@ class EmailNotifierTemplate(JobTemplate):
         # Build requester full name
         first_name = match_data.get("firstName", "") if isinstance(match_data, dict) else ""
         last_name = match_data.get("lastName", "") if isinstance(match_data, dict) else ""
+        username = match_data.get("username", "") if isinstance(match_data, dict) else ""
         if first_name and last_name:
             requester_fullname = f"{first_name} {last_name}"
         elif first_name:
             requester_fullname = first_name
+        elif username:
+            # Fallback to username if firstName is empty
+            requester_fullname = username
         else:
             requester_fullname = requester_name
         
@@ -552,6 +560,18 @@ class EmailNotifierTemplate(JobTemplate):
         granter_username = match_data.get("username", "") if isinstance(match_data, dict) else ""
         granter_photo = match_data.get("profilePhoto", match_data.get("photoUrl", "")) if isinstance(match_data, dict) else ""
         
+        # Build granter display name with username fallback
+        first_name = match_data.get("firstName", "") if isinstance(match_data, dict) else ""
+        last_name = match_data.get("lastName", "") if isinstance(match_data, dict) else ""
+        if first_name and last_name:
+            granter_display_name = f"{first_name} {last_name}"
+        elif first_name:
+            granter_display_name = first_name
+        elif granter_username:
+            granter_display_name = granter_username
+        else:
+            granter_display_name = requester_name
+        
         # Get recipient name
         recipient_name = "there"
         if isinstance(template_data, dict):
@@ -564,9 +584,9 @@ class EmailNotifierTemplate(JobTemplate):
         # Build profile photo HTML
         photo_html = ""
         if granter_photo:
-            photo_html = f'<img src="{granter_photo}" alt="{requester_name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 4px solid #10b981; margin-bottom: 15px;" />'
+            photo_html = f'<img src="{granter_photo}" alt="{granter_display_name}" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 4px solid #10b981; margin-bottom: 15px;" />'
         else:
-            initials = requester_name[0].upper() if requester_name else "?"
+            initials = granter_display_name[0].upper() if granter_display_name else "?"
             photo_html = f'<div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, #10b981 0%, #059669 100%); display: flex; align-items: center; justify-content: center; margin: 0 auto 15px auto; font-size: 32px; color: white; font-weight: bold;">{initials}</div>'
         
         html = f"""<!DOCTYPE html>
@@ -588,13 +608,13 @@ class EmailNotifierTemplate(JobTemplate):
         <div style="padding: 30px;">
             <h2 style="margin: 0 0 15px 0; color: #2d3748;">Hi {recipient_name}! 🎉</h2>
             <p style="color: #4a5568; font-size: 16px; margin: 0 0 25px 0;">
-                <strong style="color: #10b981;">{requester_name}</strong> has approved your request to view their contact information!
+                <strong style="color: #10b981;">{granter_display_name}</strong> has approved your request to view their contact information!
             </p>
             
             <!-- Granter Card -->
             <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); border-radius: 12px; padding: 25px; text-align: center; margin-bottom: 25px; border: 1px solid #6ee7b7;">
                 {photo_html}
-                <h3 style="margin: 0 0 8px 0; color: #065f46; font-size: 20px;">{requester_name}</h3>
+                <h3 style="margin: 0 0 8px 0; color: #065f46; font-size: 20px;">{granter_display_name}</h3>
                 <p style="margin: 0; color: #047857; font-size: 14px;">Contact information is now available!</p>
             </div>
             
