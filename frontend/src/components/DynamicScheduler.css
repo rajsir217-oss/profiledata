@@ -183,6 +183,12 @@
   flex-wrap: wrap;
 }
 
+.scheduler-filters > .btn {
+  margin-left: auto;
+  height: fit-content;
+  white-space: nowrap;
+}
+
 .filter-group {
   display: flex;
   flex-direction: column;
