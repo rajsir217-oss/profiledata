@@ -305,7 +305,10 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.4;
-  text-align: center;
+  text-align: left;
+  width: 100%;
+  max-width: 100%;
+  display: block;
 }
 
 /* Height & DOB Row */

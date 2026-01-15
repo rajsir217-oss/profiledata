@@ -205,8 +205,8 @@
   margin: 0 12px;
 }
 
-/* Scroll hint for mobile */
-.table-container::after {
+/* Scroll hint for mobile - scoped to invitation-manager only */
+.invitation-manager .table-container::after {
   content: '← Scroll →';
   position: absolute;
   bottom: 10px;
@@ -223,7 +223,7 @@
 }
 
 @media (max-width: 768px) {
-  .table-container::after {
+  .invitation-manager .table-container::after {
     opacity: 1;
     animation: fadeInOut 3s ease-in-out;
   }
