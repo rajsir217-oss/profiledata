@@ -53,8 +53,8 @@ class PollReminderNotifierTemplate(JobTemplate):
                 "type": "integer",
                 "label": "Minimum Poll Age (Hours)",
                 "description": "Only send reminders for polls active for at least this many hours",
-                "default": 24,
-                "min": 1,
+                "default": 1,
+                "min": 0,
                 "max": 168
             },
             "days_before_event": {
@@ -113,7 +113,7 @@ class PollReminderNotifierTemplate(JobTemplate):
         """Get default parameters"""
         return {
             "reminder_cooldown_hours": 24,
-            "min_poll_age_hours": 24,
+            "min_poll_age_hours": 1,
             "days_before_event": 7,
             "batch_size": 100,
             "channels": ["email", "push"],
@@ -182,7 +182,7 @@ class PollReminderNotifierTemplate(JobTemplate):
                 poll_query["event_date"] = {
                     "$exists": True,
                     "$ne": None,
-                    "$lte": event_date_cutoff.isoformat()
+                    "$lte": event_date_cutoff  # Compare datetime to datetime
                 }
             
             # Get active polls
