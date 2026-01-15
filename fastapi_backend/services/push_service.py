@@ -229,8 +229,9 @@ class PushNotificationService:
                 )
             )
             
-            # Send multicast
-            response = messaging.send_multicast(message)
+            # Send using send_each_for_multicast (replaces deprecated send_multicast)
+            # This uses the newer FCM v1 API instead of the deprecated batch endpoint
+            response = messaging.send_each_for_multicast(message)
             
             # Collect failed tokens
             failed_tokens = []
