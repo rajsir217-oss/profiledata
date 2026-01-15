@@ -116,6 +116,9 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
       if (response.data.success) {
         showToast(isUpdate ? 'Response updated!' : 'Response submitted!', 'success');
         
+        // Close modal after successful submission
+        closePollModal();
+        
         // Refresh polls to update UI
         await fetchActivePolls();
         
@@ -167,6 +170,27 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   const closePollModal = () => {
     setShowModal(false);
     setSelectedPollId(null);
+  };
+
+  // Navigate to previous poll in modal
+  const goToPrevPoll = (e) => {
+    e.stopPropagation();
+    const currentIndex = polls.findIndex(p => p._id === selectedPollId);
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : polls.length - 1;
+    setSelectedPollId(polls[prevIndex]._id);
+  };
+
+  // Navigate to next poll in modal
+  const goToNextPoll = (e) => {
+    e.stopPropagation();
+    const currentIndex = polls.findIndex(p => p._id === selectedPollId);
+    const nextIndex = currentIndex < polls.length - 1 ? currentIndex + 1 : 0;
+    setSelectedPollId(polls[nextIndex]._id);
+  };
+
+  // Get current poll index for display
+  const getCurrentPollIndex = () => {
+    return polls.findIndex(p => p._id === selectedPollId) + 1;
   };
 
   const getSelectedOptionText = (poll) => {
@@ -350,12 +374,28 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
           <div className="poll-modal-overlay" onClick={closePollModal}>
             <div className="poll-modal" onClick={(e) => e.stopPropagation()}>
               <div className="poll-modal-header">
+                {/* Navigation arrow - previous */}
+                {polls.length > 1 && (
+                  <button className="poll-nav-btn poll-nav-prev" onClick={goToPrevPoll} title="Previous poll">
+                    ‹
+                  </button>
+                )}
                 <div className="poll-modal-title">
                   <span className="poll-icon">🔔</span>
                   <h2>{selectedPoll.title}</h2>
                 </div>
                 {selectedPoll.user_has_responded && (
                   <span className="poll-responded-badge">✓ Responded</span>
+                )}
+                {/* Poll count indicator */}
+                {polls.length > 1 && (
+                  <span className="poll-count-badge">{getCurrentPollIndex()}/{polls.length}</span>
+                )}
+                {/* Navigation arrow - next */}
+                {polls.length > 1 && (
+                  <button className="poll-nav-btn poll-nav-next" onClick={goToNextPoll} title="Next poll">
+                    ›
+                  </button>
                 )}
                 <button className="poll-modal-close" onClick={closePollModal}>✕</button>
               </div>
