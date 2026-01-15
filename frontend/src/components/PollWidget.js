@@ -9,8 +9,9 @@ const pollsApi = createApiInstance();
  * PollWidget - Displays active polls for users to respond to
  * Shows on dashboard as a card widget or inline with stat cards
  * @param {boolean} inline - If true, renders in compact inline mode
+ * @param {boolean} autoPopup - If true, automatically shows modal for unanswered polls on mount
  */
-const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null }) => {
+const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null, autoPopup = false }) => {
   const [polls, setPolls] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -20,6 +21,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
   const [toast, setToast] = useState(null);
   const [showModal, setShowModal] = useState(false); // Modal state for inline mode
   const [selectedPollId, setSelectedPollId] = useState(null); // Which poll to show in modal
+  const [autoPopupShown, setAutoPopupShown] = useState(false); // Track if auto-popup was shown this session
 
   useEffect(() => {
     fetchActivePolls();
@@ -40,6 +42,18 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null 
           }
         });
         setSelectedOptions(initialSelections);
+        
+        // Auto-popup logic: Show modal for first unanswered poll on EVERY login
+        // Keep showing until user responds - no session tracking needed
+        if (autoPopup && !autoPopupShown && response.data.polls.length > 0) {
+          const unansweredPoll = response.data.polls.find(p => !p.user_has_responded);
+          if (unansweredPoll) {
+            // Show the modal automatically for unanswered polls
+            setSelectedPollId(unansweredPoll._id);
+            setShowModal(true);
+            setAutoPopupShown(true);
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching polls:', err);
