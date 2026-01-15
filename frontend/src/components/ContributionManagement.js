@@ -95,19 +95,19 @@ const ContributionManagement = () => {
       )}
 
       {/* Stats Cards */}
-      <div className="stats-grid">
+      <div className="stats-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '6px' }}>
         <div className="stat-card total">
           <div className="stat-icon">💰</div>
           <div className="stat-content">
             <div className="stat-value">{formatAmount(stats.totalAmount)}</div>
-            <div className="stat-label">Total Contributed</div>
+            <div className="stat-label">Total</div>
           </div>
         </div>
         <div className="stat-card">
           <div className="stat-icon">📊</div>
           <div className="stat-content">
             <div className="stat-value">{stats.totalCount}</div>
-            <div className="stat-label">Total Contributions</div>
+            <div className="stat-label">Count</div>
           </div>
         </div>
         <div className="stat-card">
@@ -132,7 +132,7 @@ const ContributionManagement = () => {
           className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
           onClick={() => setFilter('all')}
         >
-          All Contributions
+          All
         </button>
         <button 
           className={`filter-tab ${filter === 'one_time' ? 'active' : ''}`}

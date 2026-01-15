@@ -234,13 +234,17 @@ class PIIAccessCleanupTemplate(JobTemplate):
             # ========================================================
             # STEP 6: Clean up old expired requests
             # Delete expired requests older than expiryDays
+            # Check both expiredAt AND createdAt to catch old requests
             # ========================================================
             context.log("info", "")
             context.log("info", f"📋 Step 6: Cleaning up old expired requests...")
             
             old_expired_query = {
                 "status": "expired",
-                "expiredAt": {"$lt": cutoff_date}
+                "$or": [
+                    {"expiredAt": {"$lt": cutoff_date}},
+                    {"createdAt": {"$lt": cutoff_date}}
+                ]
             }
             
             old_expired_count = await context.db.pii_requests.count_documents(old_expired_query)
