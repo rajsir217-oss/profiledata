@@ -339,7 +339,24 @@ const AdminPage = () => {
             <h2>🔐 Admin Dashboard</h2>
             <p className="text-muted mb-0">Manage all user profiles</p>
           </div>
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-3">
+            {/* Quick Navigation Buttons */}
+            <div className="admin-nav-buttons">
+              <button
+                className="admin-nav-btn"
+                onClick={() => navigate('/dynamic-scheduler')}
+                title="Dynamic Scheduler"
+              >
+                📅 Scheduler
+              </button>
+              <button
+                className="admin-nav-btn"
+                onClick={() => navigate('/user-management')}
+                title="User Management"
+              >
+                👥 Users
+              </button>
+            </div>
             <div className="admin-stats">
               <span className="badge bg-primary">USERS: {users.length}</span>
               <span className="badge bg-success">FILTERED: {filteredUsers.length}</span>
