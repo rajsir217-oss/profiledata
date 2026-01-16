@@ -30,12 +30,18 @@ export const getDisplayName = (user) => {
 export const getShortName = (user) => {
   if (!user) return 'Unknown';
   
+  // Helper to capitalize first letter, lowercase rest
+  const toCamelCase = (str) => {
+    if (!str) return '';
+    return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+  };
+  
   if (user.firstName && user.lastName) {
-    return `${user.firstName} ${user.lastName.charAt(0)}.`;
+    return `${toCamelCase(user.firstName)} ${user.lastName.charAt(0).toUpperCase()}`;
   }
   
   if (user.firstName) {
-    return user.firstName;
+    return toCamelCase(user.firstName);
   }
   
   return user.username || 'Unknown';

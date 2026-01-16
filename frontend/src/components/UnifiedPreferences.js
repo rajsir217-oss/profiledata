@@ -183,6 +183,13 @@ const UnifiedPreferences = () => {
       icon: '📰',
       description: 'Classic black and white newspaper style',
       preview: { primary: '#1a1a1a', secondary: '#4a4a4a', background: '#f4f1ea', text: '#1a1a1a' }
+    },
+    {
+      id: 'cute-bubble',
+      name: 'Cute Bubble',
+      icon: '🫧',
+      description: 'Playful purple-pink theme with bubble effects',
+      preview: { primary: '#8b5cf6', secondary: '#ec4899', background: '#f8f7ff', text: '#374151' }
     }
   ];
 

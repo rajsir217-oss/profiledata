@@ -1790,3 +1790,361 @@ body.theme-newspaper {
 .theme-newspaper ::-webkit-scrollbar-thumb:hover {
   background: #999999;
 }
+
+/* ========================================
+   CUTE BUBBLE THEME
+   Playful, modern with bubble effects
+   ======================================== */
+body.theme-cute-bubble {
+  /* Primary Colors - Purple to Pink gradient palette */
+  --primary-color: #8b5cf6;
+  --secondary-color: #ec4899;
+  --accent-color: #f59e0b;
+  
+  /* Backgrounds - Soft lavender tones */
+  --background-color: #f8f7ff;
+  --surface-color: #ffffff;
+  --card-background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+  --card-bg: #ffffff;
+  --input-bg: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  --error-bg: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  
+  /* Bootstrap Modal Variables Override */
+  --bs-modal-bg: #ffffff;
+  --bs-modal-color: #374151;
+  --bs-modal-border-color: #ede9fe;
+  
+  /* Text Colors */
+  --text-color: #374151;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-on-gradient: #ffffff;
+  
+  /* Borders & Dividers - Soft purple tint */
+  --border-color: #e5e7eb;
+  --divider-color: #ede9fe;
+  
+  /* Interactive States - Purple tones */
+  --hover-background: #ede9fe;
+  --active-background: #ddd6fe;
+  --selected-background: rgba(139, 92, 246, 0.15);
+  
+  /* Status Colors */
+  --success-color: #10b981;
+  --danger-color: #ef4444;
+  --warning-color: #f59e0b;
+  --info-color: #8b5cf6;
+  
+  /* Button State Colors */
+  --success-light: #d1fae5;
+  --success-hover: #a7f3d0;
+  --info-light: #ede9fe;
+  --info-hover: #ddd6fe;
+  --info-background: #f3e8ff;
+  --info-border: #c4b5fd;
+  --danger-light: #fef2f2;
+  --danger-hover: #fecaca;
+  --warning-light: #fef3c7;
+  --warning-background: #fffbeb;
+  --warning-dark: #92400e;
+  
+  /* Typography - Rounded, friendly fonts */
+  --font-family: 'Plus Jakarta Sans', 'Nunito', -apple-system, sans-serif;
+  --font-size-xs: 12px;
+  --font-size-sm: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 21px;
+  --font-size-2xl: 26px;
+  
+  /* Spacing */
+  --spacing-xs: 6px;
+  --spacing-sm: 10px;
+  --spacing-md: 16px;
+  --spacing-lg: 20px;
+  --spacing-xl: 32px;
+  
+  /* Shadows - Soft purple glow */
+  --shadow-sm: 0 2px 8px rgba(139, 92, 246, 0.08);
+  --shadow-md: 0 8px 20px rgba(139, 92, 246, 0.12);
+  --shadow-lg: 0 15px 40px rgba(139, 92, 246, 0.15);
+  --shadow-glow: 0 0 25px rgba(139, 92, 246, 0.2);
+  --primary-shadow: rgba(139, 92, 246, 0.35);
+  --primary-shadow-hover: rgba(139, 92, 246, 0.45);
+  --primary-color-light: rgba(139, 92, 246, 0.2);
+  --danger-shadow: rgba(239, 68, 68, 0.4);
+  
+  /* Border Radius - Extra round for bubble effect */
+  --radius-sm: 12px;
+  --radius-md: 18px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  
+  background: linear-gradient(145deg, #f8f7ff 0%, #ede9fe 50%, #fce7f3 100%);
+  color: var(--text-color);
+  font-family: var(--font-family);
+  min-height: 100vh;
+}
+
+/* Cute Bubble Theme - Card Styles */
+.theme-cute-bubble .user-card,
+.theme-cute-bubble .dashboard-section,
+.theme-cute-bubble .stat-card,
+.theme-cute-bubble .search-filters,
+.theme-cute-bubble .preferences-section,
+.theme-cute-bubble .result-card .card {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+  border-radius: var(--radius-lg);
+  box-shadow: 
+    0 15px 40px rgba(139, 92, 246, 0.1),
+    0 5px 15px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(139, 92, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Decorative bubble on cards */
+.theme-cute-bubble .user-card::before,
+.theme-cute-bubble .dashboard-section::before,
+.theme-cute-bubble .stat-card::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Cute Bubble Theme - Buttons */
+.theme-cute-bubble .btn,
+.theme-cute-bubble button:not(.simple-kebab-btn) {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  box-shadow: 
+    0 8px 20px rgba(139, 92, 246, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-cute-bubble .btn:hover,
+.theme-cute-bubble button:not(.simple-kebab-btn):hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    0 12px 28px rgba(139, 92, 246, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.theme-cute-bubble .btn-outline-primary,
+.theme-cute-bubble .btn-secondary {
+  background: linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
+  color: #8b5cf6;
+  border: 2px solid rgba(139, 92, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.15);
+}
+
+.theme-cute-bubble .btn-outline-primary:hover,
+.theme-cute-bubble .btn-secondary:hover {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  border-color: transparent;
+}
+
+/* Cute Bubble Theme - Inputs */
+.theme-cute-bubble input,
+.theme-cute-bubble select,
+.theme-cute-bubble textarea {
+  background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+  border: 2px solid transparent;
+  border-radius: var(--radius-md);
+  transition: all 0.25s ease;
+}
+
+.theme-cute-bubble input:focus,
+.theme-cute-bubble select:focus,
+.theme-cute-bubble textarea:focus {
+  outline: none;
+  border-color: #8b5cf6;
+  background: white;
+  box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+}
+
+.theme-cute-bubble input:hover,
+.theme-cute-bubble select:hover,
+.theme-cute-bubble textarea:hover {
+  border-color: #c4b5fd;
+}
+
+/* Cute Bubble Theme - Headers */
+.theme-cute-bubble .card-title-section,
+.theme-cute-bubble .admin-header,
+.theme-cute-bubble .user-management-header {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.theme-cute-bubble .card-title-section::before,
+.theme-cute-bubble .admin-header::before {
+  content: '';
+  position: absolute;
+  top: -30px;
+  right: -30px;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.theme-cute-bubble .card-title-section::after,
+.theme-cute-bubble .admin-header::after {
+  content: '';
+  position: absolute;
+  bottom: -20px;
+  left: 15%;
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Cute Bubble Theme - Badges */
+.theme-cute-bubble .badge {
+  background: linear-gradient(135deg, #ede9fe 0%, #fce7f3 100%);
+  color: #6b46c1;
+  border-radius: 20px;
+  font-weight: 600;
+  border: 1px solid rgba(139, 92, 246, 0.2);
+}
+
+.theme-cute-bubble .badge.bg-primary {
+  background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+  color: white;
+}
+
+.theme-cute-bubble .badge.bg-success {
+  background: linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  color: white;
+}
+
+.theme-cute-bubble .badge.bg-warning {
+  background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+  color: white;
+}
+
+.theme-cute-bubble .badge.bg-danger {
+  background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+  color: white;
+}
+
+/* Cute Bubble Theme - Tables */
+.theme-cute-bubble table thead {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+}
+
+.theme-cute-bubble table th {
+  background: transparent !important;
+  color: white !important;
+  font-weight: 600;
+}
+
+.theme-cute-bubble table tbody tr {
+  background: var(--card-bg);
+  transition: all 0.2s ease;
+}
+
+.theme-cute-bubble table tbody tr:hover {
+  background: #ede9fe !important;
+  transform: translateX(4px);
+}
+
+/* Cute Bubble Theme - Modals */
+.theme-cute-bubble .modal-content {
+  background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+  border-radius: var(--radius-xl);
+  box-shadow: 
+    0 25px 50px rgba(139, 92, 246, 0.2),
+    0 10px 20px rgba(0, 0, 0, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  border: none;
+  overflow: hidden;
+}
+
+.theme-cute-bubble .modal-header {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  color: white;
+  border-bottom: none;
+  position: relative;
+}
+
+.theme-cute-bubble .modal-header::before {
+  content: '';
+  position: absolute;
+  top: -20px;
+  right: -20px;
+  width: 80px;
+  height: 80px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+}
+
+/* Cute Bubble Theme - Scrollbar */
+.theme-cute-bubble ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.theme-cute-bubble ::-webkit-scrollbar-track {
+  background: #f3e8ff;
+  border-radius: 10px;
+}
+
+.theme-cute-bubble ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  border-radius: 10px;
+  border: 2px solid #f3e8ff;
+}
+
+.theme-cute-bubble ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+}
+
+/* Cute Bubble Theme - Links */
+.theme-cute-bubble a {
+  color: #8b5cf6;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.theme-cute-bubble a:hover {
+  color: #ec4899;
+  text-decoration: underline;
+}
+
+/* Cute Bubble Theme - Animations */
+@keyframes bubble-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-5px); }
+}
+
+.theme-cute-bubble .stat-card {
+  animation: bubble-float 3s ease-in-out infinite;
+}
+
+.theme-cute-bubble .stat-card:nth-child(2) {
+  animation-delay: 0.5s;
+}
+
+.theme-cute-bubble .stat-card:nth-child(3) {
+  animation-delay: 1s;
+}
