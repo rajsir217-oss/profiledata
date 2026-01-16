@@ -303,40 +303,39 @@ class PollReminderNotifierTemplate(JobTemplate):
                             for channel in channels:
                                 try:
                                     if channel == "email" and email:
-                                        notification = NotificationQueueCreate(
+                                        await notification_service.queue_notification(
                                             username=username,
-                                            trigger=NotificationTrigger.POLL_REMINDER,
-                                            channels=[NotificationChannel.EMAIL],
-                                            priority=NotificationPriority.MEDIUM,
-                                            title=subject,
-                                            body=body,
-                                            metadata={
+                                            trigger="poll_reminder",
+                                            channels=["email"],
+                                            template_data={
                                                 "poll_id": poll_id,
                                                 "poll_title": poll_title,
-                                                "event_date": event_date,
-                                                "recipient_email": email
-                                            }
+                                                "event_date": str(event_date) if event_date else None,
+                                                "recipient_email": email,
+                                                "subject": subject,
+                                                "body": body
+                                            },
+                                            priority="medium"
                                         )
-                                        await notification_service.queue_notification(notification)
                                         notifications_sent += 1
+                                        logger.info(f"✅ Queued email notification for {username}")
                                         
                                     elif channel == "sms" and phone:
                                         sms_body = f"[L3V3LMATCHES] Reminder: Please respond to poll \"{poll_title}\". Log in to respond!"
-                                        notification = NotificationQueueCreate(
+                                        await notification_service.queue_notification(
                                             username=username,
-                                            trigger=NotificationTrigger.POLL_REMINDER,
-                                            channels=[NotificationChannel.SMS],
-                                            priority=NotificationPriority.MEDIUM,
-                                            title="Poll Reminder",
-                                            body=sms_body,
-                                            metadata={
+                                            trigger="poll_reminder",
+                                            channels=["sms"],
+                                            template_data={
                                                 "poll_id": poll_id,
                                                 "poll_title": poll_title,
-                                                "recipient_phone": phone
-                                            }
+                                                "recipient_phone": phone,
+                                                "body": sms_body
+                                            },
+                                            priority="medium"
                                         )
-                                        await notification_service.queue_notification(notification)
                                         notifications_sent += 1
+                                        logger.info(f"✅ Queued SMS notification for {username}")
                                         
                                     elif channel == "push":
                                         # Check if user has push subscription
@@ -346,21 +345,21 @@ class PollReminderNotifierTemplate(JobTemplate):
                                         })
                                         
                                         if has_subscription:
-                                            notification = NotificationQueueCreate(
+                                            await notification_service.queue_notification(
                                                 username=username,
-                                                trigger=NotificationTrigger.POLL_REMINDER,
-                                                channels=[NotificationChannel.PUSH],
-                                                priority=NotificationPriority.MEDIUM,
-                                                title=f"🔔 Poll Reminder",
-                                                body=f"Please respond to: {poll_title}",
-                                                metadata={
+                                                trigger="poll_reminder",
+                                                channels=["push"],
+                                                template_data={
                                                     "poll_id": poll_id,
                                                     "poll_title": poll_title,
-                                                    "action_url": f"/polls/{poll_id}"
-                                                }
+                                                    "action_url": f"/polls/{poll_id}",
+                                                    "title": "🔔 Poll Reminder",
+                                                    "body": f"Please respond to: {poll_title}"
+                                                },
+                                                priority="medium"
                                             )
-                                            await notification_service.queue_notification(notification)
                                             notifications_sent += 1
+                                            logger.info(f"✅ Queued push notification for {username}")
                                         
                                 except Exception as channel_error:
                                     logger.error(f"Error sending {channel} notification: {channel_error}")
