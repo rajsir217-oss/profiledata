@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SearchPage2 - Cute Bubble Style Mockup</title>
+  <style>
+    /* ============================================
+       CUTE BUBBLE STYLE - SearchPage2 Mockup
+       Inspired by ContributionPopup.css
+       ============================================ */
+
+    :root {
+      --primary-color: #8b5cf6;
+      --secondary-color: #ec4899;
+      --accent-color: #a855f7;
+      --background-color: #f8f7ff;
+      --surface-color: #ffffff;
+      --card-background: #ffffff;
+      --text-color: #374151;
+      --text-secondary: #6b7280;
+      --text-muted: #9ca3af;
+      --border-color: #e5e7eb;
+      --success-color: #10b981;
+      --warning-color: #f59e0b;
+      --danger-color: #ef4444;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background: linear-gradient(145deg, #f8f7ff 0%, #ede9fe 50%, #fce7f3 100%);
+      min-height: 100vh;
+      color: var(--text-color);
+    }
+
+    /* ============================================
+       HEADER - Cute Bubble Style
+       ============================================ */
+    .search-header {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      padding: 24px 32px;
+      border-radius: 0 0 32px 32px;
+      color: white;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 15px 40px rgba(139, 92, 246, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    /* Decorative bubbles */
+    .search-header::before {
+      content: '';
+      position: absolute;
+      top: -40px;
+      right: -40px;
+      width: 150px;
+      height: 150px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .search-header::after {
+      content: '';
+      position: absolute;
+      bottom: -30px;
+      left: 20%;
+      width: 80px;
+      height: 80px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 50%;
+    }
+
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-icon {
+      font-size: 32px;
+      animation: wiggle 2s ease-in-out infinite;
+    }
+
+    @keyframes wiggle {
+      0%, 100% { transform: rotate(-5deg); }
+      50% { transform: rotate(5deg); }
+    }
+
+    .header-title h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .header-title p {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-top: 4px;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 12px;
+    }
+
+    .stat-badge {
+      background: rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      padding: 10px 18px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    /* ============================================
+       SEARCH FILTERS - Cute Bubble Cards
+       ============================================ */
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    .filters-section {
+      background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 24px;
+      box-shadow: 
+        0 15px 40px rgba(139, 92, 246, 0.1),
+        0 5px 15px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      position: relative;
+      overflow: hidden;
+      animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes bubblePop {
+      0% { opacity: 0; transform: scale(0.95) translateY(10px); }
+      50% { transform: scale(1.01) translateY(-3px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .filters-section::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, rgba(139, 92, 246, 0.15) 0%, rgba(236, 72, 153, 0.15) 100%);
+      border-radius: 50%;
+    }
+
+    .filters-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .filters-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #6b46c1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .filters-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .filter-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .filter-input,
+    .filter-select {
+      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+      border: 2px solid transparent;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
+      color: var(--text-color);
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .filter-input:focus,
+    .filter-select:focus {
+      outline: none;
+      border-color: #8b5cf6;
+      background: white;
+      box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.15);
+    }
+
+    .filter-input:hover,
+    .filter-select:hover {
+      border-color: #c4b5fd;
+    }
+
+    /* Cute Search Button */
+    .search-btn {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 18px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 
+        0 8px 20px rgba(139, 92, 246, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .search-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .search-btn:hover::before {
+      left: 100%;
+    }
+
+    .search-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 
+        0 12px 28px rgba(139, 92, 246, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    /* ============================================
+       RESULTS GRID - Cute Profile Cards
+       ============================================ */
+    .results-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .results-count {
+      font-size: 14px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .results-count strong {
+      color: #8b5cf6;
+      font-weight: 700;
+    }
+
+    .view-toggle {
+      display: flex;
+      gap: 4px;
+      background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+      padding: 4px;
+      border-radius: 14px;
+    }
+
+    .view-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 10px;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .view-btn.active {
+      background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+    }
+
+    .results-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+
+    /* ============================================
+       PROFILE CARD - Cute Bubble Style
+       ============================================ */
+    .profile-card {
+      background: linear-gradient(145deg, #ffffff 0%, #f8f7ff 100%);
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 
+        0 15px 40px rgba(139, 92, 246, 0.1),
+        0 5px 15px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+      animation: bubblePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      animation-fill-mode: both;
+    }
+
+    .profile-card:nth-child(1) { animation-delay: 0.05s; }
+    .profile-card:nth-child(2) { animation-delay: 0.1s; }
+    .profile-card:nth-child(3) { animation-delay: 0.15s; }
+    .profile-card:nth-child(4) { animation-delay: 0.2s; }
+    .profile-card:nth-child(5) { animation-delay: 0.25s; }
+    .profile-card:nth-child(6) { animation-delay: 0.3s; }
+
+    .profile-card:hover {
+      transform: translateY(-8px);
+      box-shadow: 
+        0 25px 50px rgba(139, 92, 246, 0.2),
+        0 10px 25px rgba(0, 0, 0, 0.08),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    /* Card Header with Gradient */
+    .card-header {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      padding: 14px 18px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card-header::before {
+      content: '';
+      position: absolute;
+      top: -20px;
+      right: -20px;
+      width: 60px;
+      height: 60px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
+    }
+
+    .card-name {
+      font-size: 16px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .online-dot {
+      width: 10px;
+      height: 10px;
+      background: #10b981;
+      border-radius: 50%;
+      border: 2px solid white;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.7; transform: scale(1.1); }
+    }
+
+    .card-badges {
+      display: flex;
+      gap: 6px;
+    }
+
+    .age-badge {
+      background: rgba(255, 255, 255, 0.25);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .match-badge {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Card Image */
+    .card-image {
+      width: 100%;
+      height: 220px;
+      object-fit: cover;
+      background: linear-gradient(135deg, #ede9fe 0%, #fce7f3 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      color: #c4b5fd;
+      position: relative;
+    }
+
+    .image-nav {
+      position: absolute;
+      bottom: 12px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+    }
+
+    .image-dot {
+      width: 8px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.5);
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .image-dot.active {
+      background: white;
+      width: 20px;
+      border-radius: 4px;
+    }
+
+    /* Card Body */
+    .card-body {
+      padding: 18px;
+    }
+
+    .card-bio {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      margin-bottom: 14px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      font-style: italic;
+    }
+
+    .card-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .detail-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+
+    .detail-icon {
+      font-size: 14px;
+    }
+
+    .detail-value {
+      font-weight: 500;
+      color: var(--text-color);
+    }
+
+    /* Looking For Section */
+    .looking-for {
+      background: linear-gradient(135deg, #f3e8ff 0%, #fce7f3 100%);
+      padding: 10px 14px;
+      border-radius: 14px;
+      margin-bottom: 14px;
+    }
+
+    .looking-for-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: #9333ea;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+
+    .looking-for-text {
+      font-size: 12px;
+      color: #6b46c1;
+      font-weight: 500;
+    }
+
+    /* Card Actions */
+    .card-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      padding: 14px 18px;
+      background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
+      border-top: 1px solid rgba(139, 92, 246, 0.1);
+    }
+
+    .action-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      background: white;
+      font-size: 18px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .action-btn:hover {
+      transform: translateY(-3px) scale(1.1);
+      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.25);
+    }
+
+    .action-btn.favorite {
+      background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+      border-color: #f59e0b;
+    }
+
+    .action-btn.favorite:hover {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    }
+
+    .action-btn.message {
+      background: linear-gradient(135deg, #ede9fe 0%, #e9d5ff 100%);
+      border-color: #8b5cf6;
+    }
+
+    .action-btn.message:hover {
+      background: linear-gradient(135deg, #8b5cf6 0%, #a855f7 100%);
+      color: white;
+    }
+
+    .action-btn.photo {
+      background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+      border-color: #10b981;
+    }
+
+    .action-btn.photo:hover {
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: white;
+    }
+
+    /* ============================================
+       LOAD MORE - Cute Button
+       ============================================ */
+    .load-more-section {
+      text-align: center;
+      padding: 40px 0;
+    }
+
+    .load-more-btn {
+      background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+      color: white;
+      border: none;
+      padding: 16px 40px;
+      border-radius: 24px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 
+        0 10px 30px rgba(139, 92, 246, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .load-more-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .load-more-btn:hover::before {
+      left: 100%;
+    }
+
+    .load-more-btn:hover {
+      transform: translateY(-4px);
+      box-shadow: 
+        0 15px 40px rgba(139, 92, 246, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    }
+
+    /* ============================================
+       RESPONSIVE
+       ============================================ */
+    @media (max-width: 768px) {
+      .search-header {
+        padding: 20px;
+        border-radius: 0 0 24px 24px;
+      }
+
+      .header-content {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .header-stats {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .filters-section {
+        padding: 18px;
+        border-radius: 20px;
+      }
+
+      .filters-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .results-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-card {
+        border-radius: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="search-header">
+    <div class="header-content">
+      <div class="header-title">
+        <span class="header-icon">💜</span>
+        <div>
+          <h1>Find Your Match</h1>
+          <p>Discover compatible profiles based on your preferences</p>
+        </div>
+      </div>
+      <div class="header-stats">
+        <div class="stat-badge">
+          <span>👥</span>
+          <span>2,847 Profiles</span>
+        </div>
+        <div class="stat-badge">
+          <span>🟢</span>
+          <span>156 Online</span>
+        </div>
+        <div class="stat-badge">
+          <span>⭐</span>
+          <span>12 Favorites</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Filters Section -->
+    <section class="filters-section">
+      <div class="filters-header">
+        <div class="filters-title">
+          <span>🔍</span>
+          Search Filters
+        </div>
+        <button class="search-btn">
+          <span>✨</span>
+          Search
+        </button>
+      </div>
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label class="filter-label">Looking For</label>
+          <select class="filter-select">
+            <option>Female</option>
+            <option>Male</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Age Range</label>
+          <select class="filter-select">
+            <option>25 - 32 years</option>
+            <option>18 - 25 years</option>
+            <option>32 - 40 years</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Height</label>
+          <select class="filter-select">
+            <option>5'2" - 5'8"</option>
+            <option>5'0" - 5'4"</option>
+            <option>5'6" - 6'0"</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Location</label>
+          <input type="text" class="filter-input" placeholder="Any location...">
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Education</label>
+          <select class="filter-select">
+            <option>Any Education</option>
+            <option>Bachelor's</option>
+            <option>Master's</option>
+            <option>PhD</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <label class="filter-label">Religion</label>
+          <select class="filter-select">
+            <option>Any Religion</option>
+            <option>Hindu</option>
+            <option>Muslim</option>
+            <option>Christian</option>
+          </select>
+        </div>
+      </div>
+    </section>
+
+    <!-- Results Header -->
+    <div class="results-header">
+      <div class="results-count">
+        Showing <strong>48</strong> of <strong>156</strong> matches
+      </div>
+      <div class="view-toggle">
+        <button class="view-btn active">🎴 Cards</button>
+        <button class="view-btn">📋 List</button>
+      </div>
+    </div>
+
+    <!-- Results Grid -->
+    <div class="results-grid">
+      
+      <!-- Profile Card 1 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            <span class="online-dot"></span>
+            Priya Sharma
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">28</span>
+            <span class="match-badge">⭐ 92%</span>
+          </div>
+        </div>
+        <div class="card-image">👩</div>
+        <div class="card-body">
+          <p class="card-bio">"Looking for someone who values family, loves to travel, and has a great sense of humor..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">San Francisco, CA</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">Master's Degree</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">Software Engineer</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'5"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Serious relationship, Marriage-minded partner</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">⭐</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+      <!-- Profile Card 2 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            Ananya Patel
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">26</span>
+            <span class="match-badge">⭐ 88%</span>
+          </div>
+        </div>
+        <div class="card-image">👩‍🦱</div>
+        <div class="card-body">
+          <p class="card-bio">"Passionate about art, music, and meaningful conversations. Looking for my forever person..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">New York, NY</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">Bachelor's Degree</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">UX Designer</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'4"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Creative soul, Adventure partner</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">☆</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+      <!-- Profile Card 3 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            <span class="online-dot"></span>
+            Meera Krishnan
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">29</span>
+            <span class="match-badge">⭐ 95%</span>
+          </div>
+        </div>
+        <div class="card-image">👩‍💼</div>
+        <div class="card-body">
+          <p class="card-bio">"Doctor by profession, foodie by passion. Seeking a partner who appreciates both ambition and simplicity..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">Chicago, IL</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">MD</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">Physician</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'6"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Life partner, Family-oriented</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">⭐</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+      <!-- Profile Card 4 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            Kavitha Reddy
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">27</span>
+            <span class="match-badge">⭐ 85%</span>
+          </div>
+        </div>
+        <div class="card-image">👩‍🎓</div>
+        <div class="card-body">
+          <p class="card-bio">"Entrepreneur and yoga enthusiast. Looking for someone who shares my vision for a balanced life..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">Austin, TX</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">MBA</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">Startup Founder</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'3"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Ambitious partner, Wellness-focused</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">☆</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+      <!-- Profile Card 5 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            <span class="online-dot"></span>
+            Divya Nair
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">25</span>
+            <span class="match-badge">⭐ 90%</span>
+          </div>
+        </div>
+        <div class="card-image">👩‍🎨</div>
+        <div class="card-body">
+          <p class="card-bio">"Artist and dreamer. Looking for someone who sees the beauty in everyday moments..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">Seattle, WA</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">BFA</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">Graphic Designer</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'2"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Creative connection, Genuine soul</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">⭐</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+      <!-- Profile Card 6 -->
+      <div class="profile-card">
+        <div class="card-header">
+          <div class="card-name">
+            Sneha Gupta
+          </div>
+          <div class="card-badges">
+            <span class="age-badge">30</span>
+            <span class="match-badge">⭐ 87%</span>
+          </div>
+        </div>
+        <div class="card-image">👩‍⚕️</div>
+        <div class="card-body">
+          <p class="card-bio">"Lawyer with a love for books and travel. Seeking an intellectual companion for life's journey..."</p>
+          <div class="card-details">
+            <div class="detail-item">
+              <span class="detail-icon">📍</span>
+              <span class="detail-value">Boston, MA</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📚</span>
+              <span class="detail-value">JD</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">💼</span>
+              <span class="detail-value">Attorney</span>
+            </div>
+            <div class="detail-item">
+              <span class="detail-icon">📏</span>
+              <span class="detail-value">5'7"</span>
+            </div>
+          </div>
+          <div class="looking-for">
+            <div class="looking-for-label">Looking For</div>
+            <div class="looking-for-text">Intellectual match, World traveler</div>
+          </div>
+        </div>
+        <div class="card-actions">
+          <button class="action-btn photo" title="Request Photos">📷</button>
+          <button class="action-btn favorite" title="Add to Favorites">☆</button>
+          <button class="action-btn message" title="Send Message">💬</button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Load More -->
+    <div class="load-more-section">
+      <button class="load-more-btn">
+        ✨ Load More Profiles
+      </button>
+    </div>
+
+  </div>
+
+</body>
+</html>
