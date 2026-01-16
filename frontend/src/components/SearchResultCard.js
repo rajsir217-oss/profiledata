@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import OnlineStatusBadge from './OnlineStatusBadge';
 import DefaultAvatar from './DefaultAvatar';
-import { getDisplayName } from '../utils/userDisplay';
+import { getDisplayName, getShortName } from '../utils/userDisplay';
 import SimpleKebabMenu from './SimpleKebabMenu';
 import './SearchPage2.css';
 import { ACTION_ICONS } from '../constants/icons';
@@ -662,7 +662,7 @@ const SearchResultCard = ({
         >
           <h6 className="card-title">
             {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
-            {getDisplayName(user)}
+            {getShortName(user)}
           </h6>
           <div className="card-title-badges">
             {Number(user.matchScore) > 0 && (
