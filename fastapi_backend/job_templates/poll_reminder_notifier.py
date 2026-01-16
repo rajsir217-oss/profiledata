@@ -259,19 +259,27 @@ class PollReminderNotifierTemplate(JobTemplate):
                             from crypto_utils import get_encryptor
                             encryptor = get_encryptor()
                             
+                            logger.info(f"🔍 User {username}: email={email[:20] if email else None}..., phone={phone[:10] if phone else None}...")
+                            
                             if email and email.startswith('gAAAAA'):
                                 try:
-                                    email = encryptor.decrypt(email)
+                                    decrypted = encryptor.decrypt(email)
+                                    logger.info(f"🔓 Decrypted email for {username}: {decrypted[:3]}***@{decrypted.split('@')[1] if '@' in decrypted else '***'}")
+                                    email = decrypted
                                 except Exception as decrypt_err:
-                                    logger.warning(f"Failed to decrypt email for {username}: {decrypt_err}")
+                                    logger.warning(f"❌ Failed to decrypt email for {username}: {decrypt_err}")
                                     email = None
                             
                             if phone and phone.startswith('gAAAAA'):
                                 try:
-                                    phone = encryptor.decrypt(phone)
+                                    decrypted = encryptor.decrypt(phone)
+                                    logger.info(f"🔓 Decrypted phone for {username}: ***{decrypted[-4:] if len(decrypted) >= 4 else '****'}")
+                                    phone = decrypted
                                 except Exception as decrypt_err:
-                                    logger.warning(f"Failed to decrypt phone for {username}: {decrypt_err}")
+                                    logger.warning(f"❌ Failed to decrypt phone for {username}: {decrypt_err}")
                                     phone = None
+                            
+                            logger.info(f"📧 After decrypt - {username}: email={'YES' if email else 'NO'}, phone={'YES' if phone else 'NO'}")
                             
                             # Build notification content
                             subject = f"🔔 Reminder: Please respond to poll - {poll_title}"

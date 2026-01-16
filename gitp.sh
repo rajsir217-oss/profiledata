@@ -1,5 +1,11 @@
 #!/bin/bash
 
+
+
+#####
+##### window.dispatchEvent(new CustomEvent('show-contribution-popup'));
+#####
+
 # Quick git workflow script - gitp (git push)
 # Usage: 
 #   gitp ["Your commit message"]       - Commit and push to current branch
