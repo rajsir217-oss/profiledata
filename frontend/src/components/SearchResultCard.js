@@ -794,7 +794,7 @@ const SearchResultCard = ({
             {user.eatingPreference && <span className="card-badge">{user.eatingPreference}</span>}
           </div>
 
-          {/* Action Buttons Row - Request Pics & Message */}
+          {/* Action Buttons Row - Request Pics, Favorite & Message */}
           <div className="card-action-buttons-row">
             {/* Request Pics Button - Only show if no full image access */}
             {!hasImageAccess && currentUsername !== user.username && (
@@ -818,6 +818,21 @@ const SearchResultCard = ({
                   ✓
                 </button>
               )
+            )}
+
+            {/* Favorite Button */}
+            {currentUsername !== user.username && (onToggleFavorite || onFavorite) && (
+              <button
+                className={`card-action-icon-btn ${isFavorited ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onToggleFavorite) onToggleFavorite(user);
+                  else if (onFavorite) onFavorite(user);
+                }}
+                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
+              >
+                {isFavorited ? '⭐' : '☆'}
+              </button>
             )}
 
             {/* Message Button */}
