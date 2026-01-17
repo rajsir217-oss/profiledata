@@ -9,9 +9,6 @@ import hashlib
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from urllib.parse import quote, unquote
 from config import Settings
 from crypto_utils import get_encryptor
@@ -264,8 +261,7 @@ class EmailVerificationService:
     
     async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
         """
-        Internal method to send email via SMTP
-        Runs in a thread pool to avoid blocking the async event loop
+        Internal method to send email via centralized email sender (Resend + SMTP fallback)
         
         Args:
             to_email: Recipient email address
@@ -276,59 +272,16 @@ class EmailVerificationService:
         Returns:
             True if sent successfully, False otherwise
         """
-        from starlette.concurrency import run_in_threadpool
-        
-        def send_sync():
-            import time
-            start_time = time.time()
-            try:
-                print(f"📧 Starting email send to: {to_email}")
-                
-                # Create message
-                msg = MIMEMultipart('alternative')
-                msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
-                msg['To'] = to_email
-                msg['Subject'] = subject
-                
-                # Add Reply-To header to discourage replies
-                reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
-                msg['Reply-To'] = f"No Reply <{reply_to}>"
-                
-                # Add headers to indicate this is an automated message
-                msg['X-Auto-Response-Suppress'] = 'All'
-                msg['Auto-Submitted'] = 'auto-generated'
-                
-                # Attach both plain text and HTML
-                part1 = MIMEText(text_content, 'plain')
-                part2 = MIMEText(html_content, 'html')
-                msg.attach(part1)
-                msg.attach(part2)
-                
-                print(f"📧 Connecting to SMTP: {settings.smtp_host}:{settings.smtp_port}")
-                connect_start = time.time()
-                
-                # Connect to SMTP server and send
-                with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=30) as server:
-                    print(f"📧 SMTP connected in {time.time() - connect_start:.2f}s")
-                    if settings.smtp_port == 587:  # TLS
-                        server.starttls()
-                        print(f"📧 TLS started")
-                    server.login(settings.smtp_user, settings.smtp_password)
-                    print(f"📧 Logged in, sending message...")
-                    server.send_message(msg)
-                
-                elapsed = time.time() - start_time
-                print(f"✅ Verification email sent to: {to_email} in {elapsed:.2f}s")
-                return True
-                
-            except Exception as e:
-                import traceback
-                print(f"❌ Error sending email: {e}")
-                print(f"❌ Full traceback: {traceback.format_exc()}")
-                print(f"❌ SMTP Config: host={settings.smtp_host}, port={settings.smtp_port}, user={settings.smtp_user}")
-                return False
-
-        return await run_in_threadpool(send_sync)
+        try:
+            from services.email_sender import send_email
+            await send_email(to_email, subject, html_content, text_content)
+            print(f"✅ Verification email sent to: {to_email}")
+            return True
+        except Exception as e:
+            import traceback
+            print(f"❌ Error sending email: {e}")
+            print(f"❌ Full traceback: {traceback.format_exc()}")
+            return False
     
     async def verify_token(self, username: str, token: str) -> Dict[str, Any]:
         """

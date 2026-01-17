@@ -30,6 +30,9 @@ openpyxl==3.1.5  # Excel file processing for data imports
 # Google Cloud Storage (for production file uploads)
 google-cloud-storage==2.10.0
 
+# Google Cloud Secret Manager (for secure secret storage)
+google-cloud-secret-manager==2.16.0
+
 # Firebase Cloud Messaging (for push notifications)
 firebase-admin==6.5.0
 
@@ -38,6 +41,12 @@ twilio==8.10.0
 
 # Stripe (for payment processing)
 stripe==7.0.0
+
+# Resend (for transactional emails - primary)
+resend>=2.0.0
+
+# Courier (for transactional emails - backup)
+trycourier>=7.0.0
 
 # Testing dependencies
 pytest==8.0.0

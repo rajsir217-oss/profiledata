@@ -1,12 +1,10 @@
 """
 Email OTP Service
 Handles sending OTP codes via email
+Uses centralized email_sender.py for Resend + SMTP fallback
 """
 
 import logging
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from pathlib import Path
 from typing import Dict, Optional
 from datetime import datetime, timedelta
@@ -132,29 +130,9 @@ class EmailOTPService:
             html_body = self._render_template(html_template, context)
             text_body = self._render_template(text_template, context)
             
-            # Create message
-            msg = MIMEMultipart('alternative')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} (Do Not Reply) <{self.from_email}>"
-            msg['To'] = email
-            
-            # Add Reply-To header to discourage replies
-            reply_to = getattr(settings, 'reply_to_email', None) or self.from_email
-            msg['Reply-To'] = f"No Reply <{reply_to}>"
-            
-            # Add headers to indicate this is an automated message
-            msg['X-Auto-Response-Suppress'] = 'All'
-            msg['Auto-Submitted'] = 'auto-generated'
-            
-            # Attach both plain text and HTML versions
-            msg.attach(MIMEText(text_body, 'plain', 'utf-8'))
-            msg.attach(MIMEText(html_body, 'html', 'utf-8'))
-            
-            # Send email
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            # Send email using centralized email sender (Resend + SMTP fallback)
+            from services.email_sender import send_email
+            await send_email(email, subject, html_body, text_body)
             
             logger.info(f"✅ OTP email sent to {email} (purpose: {purpose})")
             
@@ -167,27 +145,11 @@ class EmailOTPService:
                 "message": f"Verification code sent to {self._mask_email(email)}"
             }
             
-        except smtplib.SMTPAuthenticationError:
-            logger.error("❌ SMTP authentication failed - check credentials")
-            return {
-                "success": False,
-                "error": "Email service authentication failed",
-                "channel": "email"
-            }
-            
-        except smtplib.SMTPException as e:
-            logger.error(f"❌ SMTP error sending OTP: {e}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send OTP email: {e}", exc_info=True)
             return {
                 "success": False,
                 "error": f"Failed to send email: {str(e)}",
-                "channel": "email"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Unexpected error sending OTP email: {e}", exc_info=True)
-            return {
-                "success": False,
-                "error": f"Unexpected error: {str(e)}",
                 "channel": "email"
             }
     
@@ -232,17 +194,11 @@ class EmailOTPService:
         try:
             # Create simple text message
             text_body = f"Hello{' ' + username if username else ''},\n\n{message}\n\n---\n{self.app_name}"
+            html_body = f"<p>Hello{' ' + username if username else ''},</p><p>{message}</p><hr><p>{self.app_name}</p>"
             
-            msg = MIMEText(text_body, 'plain', 'utf-8')
-            msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = email
-            
-            # Send email
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            # Send email using centralized email sender (Resend + SMTP fallback)
+            from services.email_sender import send_email
+            await send_email(email, subject, html_body, text_body)
             
             logger.info(f"✅ Notification email sent to {email}")
             

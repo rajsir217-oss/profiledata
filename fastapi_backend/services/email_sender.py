@@ -1,14 +1,169 @@
 """
 Direct Email Sender
 For sending emails outside the notification queue (e.g., invitations)
+Uses Resend as primary provider with SMTP fallback.
 """
 
 import smtplib
+import os
+import logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from config import Settings
 
 settings = Settings()
+logger = logging.getLogger(__name__)
+
+
+async def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """Try to send email via Resend API"""
+    try:
+        import resend
+        
+        resend_api_key = os.environ.get("RESEND_API_KEY") or getattr(settings, 'resend_api_key', None)
+        if not resend_api_key:
+            print("📧 [email_sender] Resend API key not configured, skipping Resend", flush=True)
+            logger.warning("📧 Resend API key not configured, skipping Resend")
+            return False
+        
+        resend.api_key = resend_api_key
+        from_email = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
+        from_name = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+        
+        print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
+        logger.info(f"📧 Attempting to send via Resend to {to_email}")
+        
+        params = {
+            "from": f"{from_name} <{from_email}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+            "text": text_content
+        }
+        
+        response = resend.Emails.send(params)
+        print(f"✅ [email_sender] Resend SUCCESS: {response}", flush=True)
+        logger.info(f"✅ Resend success: {response}")
+        return True
+        
+    except Exception as e:
+        print(f"⚠️ [email_sender] Resend FAILED: {e}", flush=True)
+        logger.warning(f"⚠️ Resend failed: {e}")
+        return False
+
+
+async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+    """Send email via SMTP (fallback)"""
+    smtp_host = os.environ.get("SMTP_HOST") or getattr(settings, 'smtp_host', 'smtp.gmail.com')
+    smtp_port = int(os.environ.get("SMTP_PORT") or getattr(settings, 'smtp_port', 587))
+    smtp_user = os.environ.get("SMTP_USER") or getattr(settings, 'smtp_user', None)
+    smtp_password = os.environ.get("SMTP_PASSWORD") or getattr(settings, 'smtp_password', None)
+    from_name = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+    
+    if not smtp_user or not smtp_password:
+        raise Exception("SMTP credentials not configured")
+    
+    print(f"📧 [email_sender] Sending via SMTP ({smtp_user}) to {to_email}", flush=True)
+    logger.info(f"📧 Sending via SMTP ({smtp_user}) to {to_email}")
+    
+    # Create email - use SMTP_USER as from address (Gmail requires this)
+    msg = MIMEMultipart('alternative')
+    msg['Subject'] = subject
+    msg['From'] = f"{from_name} (Do Not Reply) <{smtp_user}>"
+    msg['To'] = to_email
+    msg['Reply-To'] = f"No Reply <{smtp_user}>"
+    msg['X-Auto-Response-Suppress'] = 'All'
+    msg['Auto-Submitted'] = 'auto-generated'
+    
+    msg.attach(MIMEText(text_content, 'plain'))
+    msg.attach(MIMEText(html_content, 'html'))
+    
+    with smtplib.SMTP(smtp_host, smtp_port) as server:
+        server.starttls()
+        server.login(smtp_user, smtp_password)
+        server.send_message(msg)
+    
+    print(f"✅ [email_sender] SMTP SUCCESS to {to_email}", flush=True)
+    logger.info(f"✅ SMTP success to {to_email}")
+    return True
+
+
+async def _send_email_with_fallback(to_email: str, subject: str, html_content: str, text_content: str) -> dict:
+    """Send email using Resend as primary, SMTP as fallback. Returns result dict."""
+    email_provider = os.environ.get("EMAIL_PROVIDER", "resend").lower()
+    print(f"📧 [email_sender] EMAIL_PROVIDER={email_provider}", flush=True)
+    
+    result = {
+        "success": False,
+        "provider": None,
+        "resend_attempted": False,
+        "resend_error": None,
+        "smtp_attempted": False,
+        "smtp_error": None
+    }
+    
+    if email_provider == "resend":
+        # Try Resend first
+        result["resend_attempted"] = True
+        try:
+            if await _send_via_resend(to_email, subject, html_content, text_content):
+                result["success"] = True
+                result["provider"] = "resend"
+                return result
+        except Exception as e:
+            result["resend_error"] = str(e)
+        
+        # Fall back to SMTP
+        print("📧 [email_sender] Resend failed, falling back to SMTP...", flush=True)
+        logger.info("📧 Falling back to SMTP...")
+        result["smtp_attempted"] = True
+        try:
+            await _send_via_smtp(to_email, subject, html_content, text_content)
+            result["success"] = True
+            result["provider"] = "smtp"
+        except Exception as e:
+            result["smtp_error"] = str(e)
+            raise
+    else:
+        # SMTP only
+        print("📧 [email_sender] Using SMTP only (EMAIL_PROVIDER != resend)", flush=True)
+        result["smtp_attempted"] = True
+        try:
+            await _send_via_smtp(to_email, subject, html_content, text_content)
+            result["success"] = True
+            result["provider"] = "smtp"
+        except Exception as e:
+            result["smtp_error"] = str(e)
+            raise
+    
+    return result
+
+
+async def send_email(
+    to_email: str,
+    subject: str,
+    html_content: str,
+    text_content: str = None
+) -> dict:
+    """
+    Public function to send email using Resend + SMTP fallback.
+    This is the centralized email sending function that all jobs should use.
+    
+    Args:
+        to_email: Recipient email address
+        subject: Email subject
+        html_content: HTML body content
+        text_content: Plain text body (optional, defaults to stripped HTML)
+    
+    Returns:
+        dict with keys: success, provider, resend_attempted, resend_error, smtp_attempted, smtp_error
+    """
+    if not text_content:
+        # Strip HTML tags for plain text version
+        import re
+        text_content = re.sub(r'<[^>]+>', '', html_content)
+    
+    return await _send_email_with_fallback(to_email, subject, html_content, text_content)
 
 
 async def send_invitation_email(
@@ -238,35 +393,9 @@ Best regards,
 The L3V3L MATCHES Team
     """
     
-    # Create email
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = email_subject or "You're Invited to Join L3V3L MATCHES! 💝"
-    msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
-    msg['To'] = to_email
-    
-    # Add Reply-To header to discourage replies
-    reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
-    msg['Reply-To'] = f"No Reply <{reply_to}>"
-    
-    # Add headers to indicate this is an automated message
-    msg['X-Auto-Response-Suppress'] = 'All'
-    msg['Auto-Submitted'] = 'auto-generated'
-    
-    # Attach both versions
-    part1 = MIMEText(text_content, 'plain')
-    part2 = MIMEText(html_content, 'html')
-    msg.attach(part1)
-    msg.attach(part2)
-    
-    # Send email
-    try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        raise Exception(f"Failed to send email: {str(e)}")
+    # Send email using Resend + SMTP fallback
+    subject = email_subject or "You're Invited to Join L3V3L MATCHES! 💝"
+    return await _send_email_with_fallback(to_email, subject, html_content, text_content)
 
 
 async def send_password_reset_email(
@@ -406,32 +535,6 @@ Best regards,
 The L3V3L MATCHES Team
     """
     
-    # Create email
-    msg = MIMEMultipart('alternative')
-    msg['Subject'] = f"🔐 Password Reset Code - L3V3L MATCHES"
-    msg['From'] = f"{settings.from_name} (Do Not Reply) <{settings.from_email}>"
-    msg['To'] = to_email
-    
-    # Add Reply-To header to discourage replies
-    reply_to = getattr(settings, 'reply_to_email', None) or settings.from_email
-    msg['Reply-To'] = f"No Reply <{reply_to}>"
-    
-    # Add headers to indicate this is an automated message
-    msg['X-Auto-Response-Suppress'] = 'All'
-    msg['Auto-Submitted'] = 'auto-generated'
-    
-    # Attach both versions
-    part1 = MIMEText(text_content, 'plain')
-    part2 = MIMEText(html_content, 'html')
-    msg.attach(part1)
-    msg.attach(part2)
-    
-    # Send email
-    try:
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port) as server:
-            server.starttls()
-            server.login(settings.smtp_user, settings.smtp_password)
-            server.send_message(msg)
-        return True
-    except Exception as e:
-        raise Exception(f"Failed to send email: {str(e)}")
+    # Send email using Resend + SMTP fallback
+    subject = f"🔐 Password Reset Code - L3V3L MATCHES"
+    return await _send_email_with_fallback(to_email, subject, html_content, text_content)
