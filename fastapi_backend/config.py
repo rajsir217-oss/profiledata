@@ -43,7 +43,13 @@ class Settings(BaseSettings):
     gcs_bucket_name: Optional[str] = None
     gcs_project_id: Optional[str] = None
     
-    # SMTP Email Configuration
+    # Email Configuration
+    email_provider: Optional[str] = "smtp"  # Options: "courier", "smtp"
+    
+    # Courier API (Recommended - 10k emails/month free)
+    courier_api_key: Optional[str] = None
+    
+    # SMTP Email Configuration (Legacy/Backup)
     smtp_host: Optional[str] = None
     smtp_port: Optional[int] = 587
     smtp_user: Optional[str] = None

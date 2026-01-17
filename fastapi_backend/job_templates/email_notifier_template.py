@@ -1,14 +1,11 @@
 """
 Email Notifier Job Template
 Processes email notification queue and sends emails
+Uses centralized email_sender.py for Resend + SMTP fallback
 """
 
 from typing import Dict, Any, Tuple, Optional
 from datetime import datetime
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-import os
 
 from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
@@ -32,15 +29,21 @@ class EmailNotifierTemplate(JobTemplate):
     def __init__(self):
         from config import settings
         from utils.branding import get_app_name
+        from utils.gcp_secrets import get_email_config
         
-        self.smtp_host = settings.smtp_host
-        self.smtp_port = settings.smtp_port
-        self.smtp_user = settings.smtp_user
-        self.smtp_password = settings.smtp_password
-        self.from_email = settings.from_email or "noreply@datingapp.com"
+        # Get email config with Courier -> Gmail SMTP failover
+        email_config = get_email_config()
+        
+        self.email_provider = email_config['provider']
+        self.courier_api_key = email_config['courier_api_key']
+        self.smtp_host = email_config['smtp_host'] or settings.smtp_host
+        self.smtp_port = email_config['smtp_port'] or settings.smtp_port
+        self.smtp_user = email_config['smtp_user'] or settings.smtp_user
+        self.smtp_password = email_config['smtp_password'] or settings.smtp_password
+        self.from_email = email_config['from_email'] or settings.from_email or "noreply@l3v3lmatches.com"
         
         # Load brand name from whitelabel.json
-        self.from_name = settings.from_name or get_app_name()
+        self.from_name = email_config['from_name'] or settings.from_name or get_app_name()
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
@@ -163,7 +166,7 @@ class EmailNotifierTemplate(JobTemplate):
                     subject, body = await self._render_email(service, notification, context.db)
                     
                     # Send email
-                    await self._send_email(recipient_email, subject, body, notification)
+                    await self._send_email(recipient_email, subject, body, notification, context)
                     
                     # Mark as sent (use notification.id directly)
                     await service.mark_as_sent(
@@ -706,39 +709,45 @@ class EmailNotifierTemplate(JobTemplate):
 </html>"""
         return html
     
-    async def _send_email(self, to_email: str, subject: str, body: str, notification) -> None:
-        """Send email via SMTP"""
-        # Debug logging
-        import logging
-        logger = logging.getLogger(__name__)
+    async def _send_email(self, to_email: str, subject: str, body: str, notification, context=None) -> None:
+        """Send email via centralized email sender (Resend + SMTP fallback)"""
+        from services.email_sender import send_email
+        import os
         
-        logger.info(f"📧 SMTP Configuration: Host={self.smtp_host}, Port={self.smtp_port}, User={self.smtp_user}, Password={'SET' if self.smtp_password else 'NOT SET'}, From={self.from_email}")
+        # Log email provider info
+        email_provider = os.environ.get("EMAIL_PROVIDER", "resend").lower()
+        if context:
+            context.log("info", f"📧 Using centralized email_sender (EMAIL_PROVIDER={email_provider})")
         
-        if not self.smtp_user or not self.smtp_password:
-            raise Exception(f"SMTP credentials not configured (user={self.smtp_user}, pass={'SET' if self.smtp_password else 'NOT SET'})")
-        
-        msg = MIMEMultipart('alternative')
-        msg['From'] = f"{self.from_name} (Do Not Reply) <{self.from_email}>"
-        msg['To'] = to_email
-        msg['Subject'] = subject
-        
-        # Add Reply-To header to discourage replies (or use configured no-reply address)
-        reply_to = settings.reply_to_email or self.from_email
-        msg['Reply-To'] = f"No Reply <{reply_to}>"
-        
-        # Add header to indicate this is an automated message
-        msg['X-Auto-Response-Suppress'] = 'All'
-        msg['Auto-Submitted'] = 'auto-generated'
-        
+        # Create HTML email with styling
         html_body = self._create_html_email(body, notification)
-        msg.attach(MIMEText(html_body, 'html'))
         
-        logger.info(f"📧 Sending email to {to_email}...")
-        with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-            server.starttls()
-            server.login(self.smtp_user, self.smtp_password)
-            server.send_message(msg)
-        logger.info(f"📧 Email sent successfully to {to_email}!")
+        # Use centralized email sender with Resend + SMTP fallback
+        try:
+            result = await send_email(to_email, subject, html_body)
+            
+            # Log detailed result
+            if context and isinstance(result, dict):
+                if result.get("resend_attempted"):
+                    if result.get("resend_error"):
+                        context.log("warning", f"⚠️ Resend FAILED: {result['resend_error']}")
+                    elif result.get("provider") == "resend":
+                        context.log("info", f"✅ Email sent via Resend")
+                
+                if result.get("smtp_attempted"):
+                    if result.get("smtp_error"):
+                        context.log("error", f"❌ SMTP FAILED: {result['smtp_error']}")
+                    elif result.get("provider") == "smtp":
+                        context.log("info", f"✅ Email sent via SMTP fallback")
+                
+                if result.get("success"):
+                    context.log("info", f"✅ Email delivered via {result.get('provider', 'unknown')}")
+            elif context:
+                context.log("info", f"✅ Email sent via centralized sender")
+        except Exception as e:
+            if context:
+                context.log("error", f"❌ Email send failed: {e}")
+            raise
     
     def _create_html_email(self, body: str, notification) -> str:
         """Create HTML email with inline CSS styling (email client compatible)"""

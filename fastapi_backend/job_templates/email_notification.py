@@ -1,15 +1,13 @@
 """
 Email Notification Job Template
 Sends scheduled email notifications to users
+Uses centralized email_sender.py for Resend + SMTP fallback
 """
 
 from typing import Dict, Any, Optional, Tuple, List
 from .base import JobTemplate, JobResult, JobExecutionContext
 import logging
 import re
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from config import settings
 
 logger = logging.getLogger(__name__)
@@ -246,7 +244,7 @@ class EmailNotificationTemplate(JobTemplate):
         context: JobExecutionContext
     ) -> bool:
         """
-        Send an individual email via SMTP (or simulate if simulate_only=True)
+        Send an individual email via centralized email sender (Resend + SMTP fallback)
         """
         try:
             # SIMULATION MODE - just log, don't actually send
@@ -254,35 +252,18 @@ class EmailNotificationTemplate(JobTemplate):
                 context.log("DEBUG", f"🎭 SIMULATING email send to {to}")
                 context.log("DEBUG", f"   Subject: {subject}")
                 context.log("DEBUG", f"   Body: {body[:100]}..." if len(body) > 100 else f"   Body: {body}")
-                # Simulate success
                 return True
             
-            # LIVE MODE - actually send via SMTP
-            context.log("INFO", f"📤 Sending REAL email to {to}")
+            # LIVE MODE - use centralized email sender
+            context.log("INFO", f"📤 Sending email to {to}")
             
-            if not self.smtp_user or not self.smtp_password:
-                raise Exception(f"SMTP credentials not configured")
+            from services.email_sender import send_email
             
-            # Create email message
-            msg = MIMEMultipart('alternative')
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
-            msg['To'] = to
-            msg['Subject'] = subject
+            # Determine content type
+            html_content = body if body_type == 'html' else f"<pre>{body}</pre>"
+            text_content = body if body_type == 'plain' else None
             
-            if reply_to:
-                msg['Reply-To'] = reply_to
-            
-            # Add body (HTML or plain text)
-            if body_type == 'html':
-                msg.attach(MIMEText(body, 'html'))
-            else:
-                msg.attach(MIMEText(body, 'plain'))
-            
-            # Send via SMTP
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
-                server.send_message(msg)
+            await send_email(to, subject, html_content, text_content)
             
             context.log("INFO", f"✅ Email sent successfully to {to}")
             return True
