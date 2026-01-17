@@ -713,13 +713,13 @@ class NotificationService:
         priority: str = "medium",  # Changed from "normal" to valid enum value
         lineage_token: Optional[str] = None  # Track workflow end-to-end
     ) -> Optional[NotificationQueueItem]:
-        """Simple helper to queue a notification"""
+        """
+        Simple helper to queue a notification.
+        Creates SEPARATE queue entries per channel to allow independent processing.
+        """
         try:
             # Convert string trigger to enum
             trigger_enum = NotificationTrigger(trigger)
-            
-            # Convert string channels to enums
-            channel_enums = [NotificationChannel(ch) for ch in channels]
             
             # Convert priority string to enum
             priority_enum = NotificationPriority(priority)
@@ -729,18 +729,33 @@ class NotificationService:
             if lineage_token:
                 enriched_template_data["lineage_token"] = lineage_token
             
-            # Create queue item
-            queue_data = NotificationQueueCreate(
-                username=username,
-                trigger=trigger_enum,
-                channels=channel_enums,
-                templateData=enriched_template_data,
-                priority=priority_enum,
-                scheduledFor=None
-            )
+            # Create SEPARATE queue entries per channel to allow independent processing
+            # This prevents the race condition where one job claims the notification
+            # and blocks other channels from processing it
+            last_result = None
+            for channel in channels:
+                try:
+                    channel_enum = NotificationChannel(channel)
+                    
+                    # Create queue item for this specific channel
+                    queue_data = NotificationQueueCreate(
+                        username=username,
+                        trigger=trigger_enum,
+                        channels=[channel_enum],  # Single channel per entry
+                        templateData=enriched_template_data,
+                        priority=priority_enum,
+                        scheduledFor=None
+                    )
+                    
+                    # Enqueue
+                    last_result = await self.enqueue_notification(queue_data)
+                except Exception as channel_error:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"⚠️ Failed to queue {channel} notification for {username}/{trigger}: {channel_error}")
+                    # Continue with other channels
             
-            # Enqueue
-            return await self.enqueue_notification(queue_data)
+            return last_result
             
         except ValueError as e:
             # Invalid enum value

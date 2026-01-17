@@ -40,10 +40,10 @@ class EmailNotifierTemplate(JobTemplate):
         self.smtp_port = email_config['smtp_port'] or settings.smtp_port
         self.smtp_user = email_config['smtp_user'] or settings.smtp_user
         self.smtp_password = email_config['smtp_password'] or settings.smtp_password
-        self.from_email = email_config['from_email'] or settings.from_email or "noreply@l3v3lmatches.com"
+        self.from_email = (email_config['from_email'] or settings.from_email or "noreply@l3v3lmatches.com").strip()
         
         # Load brand name from whitelabel.json
-        self.from_name = email_config['from_name'] or settings.from_name or get_app_name()
+        self.from_name = (email_config['from_name'] or settings.from_name or get_app_name()).strip()
     
     def validate_params(self, params: Dict[str, Any]) -> Tuple[bool, Optional[str]]:
         """Validate job parameters"""
