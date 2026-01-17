@@ -146,7 +146,10 @@ class ActivityLogger:
         if filters.username:
             query["username"] = filters.username
         
-        if filters.action_type:
+        # Multi-select action_types takes precedence over single action_type
+        if filters.action_types and len(filters.action_types) > 0:
+            query["action_type"] = {"$in": filters.action_types}
+        elif filters.action_type:
             query["action_type"] = filters.action_type.value
         
         if filters.target_username:
@@ -267,7 +270,10 @@ class ActivityLogger:
         if filters.username:
             query["username"] = filters.username
         
-        if filters.action_type:
+        # Multi-select action_types takes precedence over single action_type
+        if filters.action_types and len(filters.action_types) > 0:
+            query["action_type"] = {"$in": filters.action_types}
+        elif filters.action_type:
             query["action_type"] = filters.action_type.value
         
         if filters.target_username:

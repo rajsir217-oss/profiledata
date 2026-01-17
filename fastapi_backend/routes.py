@@ -4800,7 +4800,7 @@ async def add_to_favorites(
         await db.favorites.insert_one(favorite)
         logger.info(f"✅ Added to favorites: {username} → {target_username}")
         
-        # Dispatch event (handles notifications automatically)
+        # Dispatch event (handles notifications automatically - includes email + push)
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
             dispatcher = get_event_dispatcher(db)
@@ -4809,34 +4809,9 @@ async def add_to_favorites(
                 actor_username=username,
                 target_username=target_username
             )
+            logger.info(f"🔔 Favorited notification dispatched for {target_username}")
         except Exception as event_err:
             logger.warning(f"⚠️ Failed to dispatch event: {event_err}")
-        
-        # Send push notification to target user
-        try:
-            from services.notification_service import NotificationService
-            from models.notification_models import NotificationQueueCreate, NotificationTrigger, NotificationChannel
-            
-            notification_service = NotificationService(db)
-            # Get favoriter's name
-            favoriter = await db.users.find_one({"username": username})
-            favoriter_name = favoriter.get("firstName", username) if favoriter else username
-            
-            await notification_service.enqueue_notification(
-                NotificationQueueCreate(
-                    username=target_username,  # Person being favorited
-                    trigger=NotificationTrigger.FAVORITED,
-                    channels=[NotificationChannel.PUSH],
-                    templateData={
-                        "favoriter": username,
-                        "favoritersName": favoriter_name
-                    }
-                )
-            )
-            logger.info(f"🔔 Favorited push notification queued for {target_username}")
-        except Exception as e:
-            logger.error(f"❌ Failed to queue favorited notification: {e}")
-            # Don't fail the favorite operation if notification fails
         
         return {"message": "Added to favorites successfully"}
     except Exception as e:

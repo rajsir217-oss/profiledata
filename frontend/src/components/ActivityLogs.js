@@ -16,11 +16,14 @@ const ActivityLogs = () => {
   // Filters
   const [filters, setFilters] = useState({
     username: '',
-    action_type: 'all',
+    action_types: [],  // Changed to array for multi-select
     target_username: '',
     start_date: '',
     end_date: ''
   });
+  
+  // Multi-select dropdown state
+  const [showActionDropdown, setShowActionDropdown] = useState(false);
   
   // Pagination state
   const [page, setPage] = useState(1);
@@ -70,7 +73,7 @@ const ActivityLogs = () => {
   };
   
   // Load logs (initial load or filter change)
-  const loadLogs = async (pageNum = 1, append = false) => {
+  const loadLogs = async (pageNum = 1, append = false, currentFilters = filters) => {
     if (append) {
       setLoadingMore(true);
     } else {
@@ -85,12 +88,18 @@ const ActivityLogs = () => {
       queryParams.append('page', pageNum.toString());
       queryParams.append('limit', logsPerPage.toString());
       
-      // Add filter params
-      Object.entries(filters).forEach(([key, value]) => {
-        if (value && value !== 'all') {
+      // Add filter params - use passed filters to avoid stale closure
+      Object.entries(currentFilters).forEach(([key, value]) => {
+        if (key === '_timestamp') return;  // Skip internal timestamp field
+        if (key === 'action_types' && Array.isArray(value) && value.length > 0) {
+          // Send multiple action types as comma-separated
+          queryParams.append('action_types', value.join(','));
+        } else if (value && value !== 'all' && !Array.isArray(value)) {
           queryParams.append(key, value);
         }
       });
+      
+      console.log('🔍 Loading logs with params:', queryParams.toString());
       
       const response = await fetch(getBackendApiUrl(`/api/activity-logs/?${queryParams}`), {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -163,7 +172,7 @@ const ActivityLogs = () => {
   }, []);
   
   useEffect(() => {
-    loadLogs();
+    loadLogs(1, false, filters);
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
@@ -296,9 +305,17 @@ const ActivityLogs = () => {
     }
   };
   
-  // Apply search filters
+  // Apply search filters - updates filters which triggers useEffect to reload
   const handleSearch = () => {
-    setFilters({ ...filters, username: searchTerm, target_username: targetSearch, page: 1 });
+    setShowActionDropdown(false);  // Close dropdown
+    // Create new filter object to trigger useEffect
+    const newFilters = { 
+      ...filters, 
+      username: searchTerm, 
+      target_username: targetSearch,
+      _timestamp: Date.now()  // Force state change to trigger reload
+    };
+    setFilters(newFilters);
   };
   
   // Handle Enter key press
@@ -386,16 +403,54 @@ const ActivityLogs = () => {
           onKeyPress={handleKeyPress}
         />
         
-        <select
-          className="filter-select"
-          value={filters.action_type}
-          onChange={(e) => setFilters({ ...filters, action_type: e.target.value, page: 1 })}
-        >
-          <option value="all">All Actions</option>
-          {actionTypes.map(type => (
-            <option key={type.value} value={type.value}>{type.label}</option>
-          ))}
-        </select>
+        <div className="multi-select-container">
+          <button 
+            className="multi-select-trigger"
+            onClick={() => setShowActionDropdown(!showActionDropdown)}
+          >
+            {filters.action_types.length === 0 
+              ? 'All Actions' 
+              : `${filters.action_types.length} selected`}
+            <span className="dropdown-arrow">{showActionDropdown ? '▲' : '▼'}</span>
+          </button>
+          
+          {showActionDropdown && (
+            <div className="multi-select-dropdown">
+              <div className="multi-select-header">
+                <button 
+                  className="select-all-btn"
+                  onClick={() => {
+                    if (filters.action_types.length === actionTypes.length) {
+                      setFilters({ ...filters, action_types: [] });
+                    } else {
+                      setFilters({ ...filters, action_types: actionTypes.map(t => t.value) });
+                    }
+                  }}
+                >
+                  {filters.action_types.length === actionTypes.length ? 'Clear All' : 'Select All'}
+                </button>
+              </div>
+              <div className="multi-select-options">
+                {actionTypes.map(type => (
+                  <label key={type.value} className="multi-select-option">
+                    <input
+                      type="checkbox"
+                      checked={filters.action_types.includes(type.value)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setFilters({ ...filters, action_types: [...filters.action_types, type.value] });
+                        } else {
+                          setFilters({ ...filters, action_types: filters.action_types.filter(t => t !== type.value) });
+                        }
+                      }}
+                    />
+                    <span>{type.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
         
         <input
           type="date"
@@ -426,7 +481,8 @@ const ActivityLogs = () => {
             onClick={() => {
               setSearchTerm('');
               setTargetSearch('');
-              setFilters({ username: '', action_type: 'all', target_username: '', start_date: '', end_date: '', page: 1, limit: 50 });
+              setFilters({ username: '', action_types: [], target_username: '', start_date: '', end_date: '' });
+              setShowActionDropdown(false);
             }}
             title="Clear filters"
           >
