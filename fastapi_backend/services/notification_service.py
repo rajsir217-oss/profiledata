@@ -208,7 +208,9 @@ class NotificationService:
         
         if channel:
             # Check if channel exists in the channels array
-            query["channels"] = {"$in": [channel]}
+            # Use .value to get the string value from the enum
+            channel_value = channel.value if hasattr(channel, 'value') else channel
+            query["channels"] = {"$in": [channel_value]}
         
         notifications = []
         

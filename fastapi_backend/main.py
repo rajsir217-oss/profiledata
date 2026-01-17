@@ -80,6 +80,17 @@ logging.basicConfig(
     format=log_format,
     handlers=handlers
 )
+
+# Suppress noisy third-party loggers
+logging.getLogger("pymongo").setLevel(logging.WARNING)
+logging.getLogger("pymongo.command").setLevel(logging.WARNING)
+logging.getLogger("pymongo.connection").setLevel(logging.WARNING)
+logging.getLogger("pymongo.serverSelection").setLevel(logging.WARNING)
+logging.getLogger("motor").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
+
 logger = logging.getLogger(__name__)
 logger.info(f"Logger initialized in {settings.log_level.upper()} mode")
 if settings.log_file:

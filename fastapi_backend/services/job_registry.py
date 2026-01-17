@@ -122,7 +122,18 @@ class JobRegistryService:
         Returns:
             Dictionary with jobs list and pagination info
         """
-        query = filters or {}
+        # Build MongoDB query from filters
+        query = {}
+        if filters:
+            # Handle multi-select template_types with $in operator
+            if "template_types" in filters and filters["template_types"]:
+                query["template_type"] = {"$in": filters["template_types"]}
+            elif "template_type" in filters:
+                query["template_type"] = filters["template_type"]
+            
+            # Handle enabled filter
+            if "enabled" in filters:
+                query["enabled"] = filters["enabled"]
         
         # Get total count
         total = await self.jobs_collection.count_documents(query)

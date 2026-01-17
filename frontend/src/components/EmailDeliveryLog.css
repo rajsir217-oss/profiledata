@@ -148,6 +148,11 @@
   color: var(--text-muted);
 }
 
+.email-delivery-log .from-cell {
+  font-weight: 500;
+  color: var(--text-color);
+}
+
 .email-delivery-log .recipient-cell {
   font-weight: 500;
 }
