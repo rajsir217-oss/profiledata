@@ -231,6 +231,9 @@ const EmailDeliveryLog = () => {
                 <th className="sortable" onClick={() => handleSort('sentAt')}>
                   Time {getSortIcon('sentAt')}
                 </th>
+                <th className="sortable" onClick={() => handleSort('from_user')}>
+                  From {getSortIcon('from_user')}
+                </th>
                 <th className="sortable" onClick={() => handleSort('username')}>
                   Recipient {getSortIcon('username')}
                 </th>
@@ -253,6 +256,9 @@ const EmailDeliveryLog = () => {
                   <tr key={log._id || index}>
                     <td className="time-cell">
                       {formatDate(log.sentAt || log.sent_at || log.createdAt)}
+                    </td>
+                    <td className="from-cell">
+                      {log.from_user || log.templateData?.from_user || log.metadata?.from_user || '—'}
                     </td>
                     <td className="recipient-cell">
                       {log.username || log.recipient || 'N/A'}

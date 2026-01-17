@@ -18,7 +18,8 @@ const DynamicScheduler = ({ currentUser }) => {
   const [editJob, setEditJob] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
-  const [filterTemplate, setFilterTemplate] = useState('');
+  const [filterTemplates, setFilterTemplates] = useState([]);  // Changed to array for multi-select
+  const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [filterEnabled, setFilterEnabled] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -113,7 +114,7 @@ const DynamicScheduler = ({ currentUser }) => {
       loadJobs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTemplate, filterEnabled, currentPage, refreshTrigger, userRole]);
+  }, [filterTemplates, filterEnabled, currentPage, refreshTrigger, userRole]);
 
   // Check for pre-selected template from Template Manager
   useEffect(() => {
@@ -166,8 +167,9 @@ const DynamicScheduler = ({ currentUser }) => {
         limit: 20
       });
       
-      if (filterTemplate) {
-        params.append('template_type', filterTemplate);
+      if (filterTemplates.length > 0) {
+        // Send multiple template types as comma-separated
+        params.append('template_types', filterTemplates.join(','));
       }
       
       if (filterEnabled !== 'all') {
@@ -546,19 +548,58 @@ const DynamicScheduler = ({ currentUser }) => {
 
       {/* Filters */}
       <div className="scheduler-filters">
-        <div className="filter-group">
+        <div className="filter-group template-filter">
           <label>Template Type:</label>
-          <select 
-            value={filterTemplate} 
-            onChange={(e) => { setFilterTemplate(e.target.value); setCurrentPage(1); }}
-          >
-            <option value="">All Templates</option>
-            {templates.map(t => (
-              <option key={t.type} value={t.type}>
-                {t.icon} {t.name}
-              </option>
-            ))}
-          </select>
+          <div className="multi-select-container">
+            <button 
+              className="multi-select-trigger"
+              onClick={() => setShowTemplateDropdown(!showTemplateDropdown)}
+            >
+              {filterTemplates.length === 0 
+                ? 'All Templates' 
+                : `${filterTemplates.length} selected`}
+              <span className="dropdown-arrow">{showTemplateDropdown ? '▲' : '▼'}</span>
+            </button>
+            
+            {showTemplateDropdown && (
+              <div className="multi-select-dropdown">
+                <div className="multi-select-header">
+                  <button 
+                    className="select-all-btn"
+                    onClick={() => {
+                      if (filterTemplates.length === templates.length) {
+                        setFilterTemplates([]);
+                      } else {
+                        setFilterTemplates(templates.map(t => t.type));
+                      }
+                      setCurrentPage(1);
+                    }}
+                  >
+                    {filterTemplates.length === templates.length ? 'Clear All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="multi-select-options">
+                  {templates.map(t => (
+                    <label key={t.type} className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={filterTemplates.includes(t.type)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFilterTemplates(prev => [...prev, t.type]);
+                          } else {
+                            setFilterTemplates(prev => prev.filter(type => type !== t.type));
+                          }
+                          setCurrentPage(1);
+                        }}
+                      />
+                      <span>{t.icon} {t.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div className="filter-group">
           <label>Status:</label>

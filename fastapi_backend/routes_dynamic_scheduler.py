@@ -157,7 +157,8 @@ async def create_job(
 async def list_jobs(
     current_user: Dict = Depends(get_current_user),
     db: AsyncIOMotorDatabase = Depends(get_database),
-    template_type: Optional[str] = Query(None, description="Filter by template type"),
+    template_type: Optional[str] = Query(None, description="Filter by template type (single)"),
+    template_types: Optional[str] = Query(None, description="Filter by template types (comma-separated for multi-select)"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
     page: int = Query(1, ge=1, description="Page number"),
     limit: int = Query(20, ge=1, le=100, description="Items per page")
@@ -176,7 +177,12 @@ async def list_jobs(
         
         # Build filters
         filters = {}
-        if template_type:
+        # Multi-select template_types takes precedence over single template_type
+        if template_types:
+            template_types_list = [t.strip() for t in template_types.split(',') if t.strip()]
+            if template_types_list:
+                filters["template_types"] = template_types_list
+        elif template_type:
             filters["template_type"] = template_type
         if enabled is not None:
             filters["enabled"] = enabled
