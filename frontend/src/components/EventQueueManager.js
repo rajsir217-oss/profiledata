@@ -14,10 +14,27 @@ const EventQueueManager = () => {
   const toast = useToast();
   const [filters, setFilters] = useState({
     status: 'all',
-    trigger: 'all',
+    triggers: [],  // Changed to array for multi-select
     channel: 'all',
     search: ''
   });
+  const [showTriggerDropdown, setShowTriggerDropdown] = useState(false);
+  
+  // All available triggers for multi-select
+  const availableTriggers = [
+    { value: 'new_match', label: '💕 New Match', group: 'Match Events' },
+    { value: 'mutual_favorite', label: '💖 Mutual Favorite', group: 'Match Events' },
+    { value: 'shortlist_added', label: '⭐ Shortlist Added', group: 'Match Events' },
+    { value: 'profile_view', label: '👁️ Profile View', group: 'Activity' },
+    { value: 'favorited', label: '❤️ Favorited', group: 'Activity' },
+    { value: 'new_message', label: '💬 New Message', group: 'Messages' },
+    { value: 'unread_messages', label: '📬 Unread Messages', group: 'Messages' },
+    { value: 'pii_request', label: '🔒 PII Request', group: 'Privacy' },
+    { value: 'pii_granted', label: '✅ PII Granted', group: 'Privacy' },
+    { value: 'pii_denied', label: '❌ PII Denied', group: 'Privacy' },
+    { value: 'weekly_digest', label: '📊 Weekly Digest', group: 'Engagement' },
+    { value: 'poll_reminder', label: '📋 Poll Reminder', group: 'Engagement' }
+  ];
   const [stats, setStats] = useState({
     queued: 0,
     processing: 0,
@@ -318,7 +335,7 @@ const EventQueueManager = () => {
     // Filter items
     let filtered = items.filter(item => {
       const matchesStatus = filters.status === 'all' || item.status === filters.status;
-      const matchesTrigger = filters.trigger === 'all' || item.trigger === filters.trigger;
+      const matchesTrigger = filters.triggers.length === 0 || filters.triggers.includes(item.trigger);
       const matchesChannel = filters.channel === 'all' || item.channels?.includes(filters.channel);
       const matchesSearch = !filters.search || 
         item.username?.toLowerCase().includes(filters.search.toLowerCase()) ||
@@ -365,9 +382,6 @@ const EventQueueManager = () => {
           <h1>📊 Event Queue Manager</h1>
           <p>Monitor notification events and delivery status</p>
         </div>
-        <button className="btn btn-primary" onClick={loadData}>
-          🔄 Refresh
-        </button>
       </div>
 
       {/* Stats Cards */}
@@ -410,16 +424,71 @@ const EventQueueManager = () => {
         <span className="queue-label">📥 Queue ({queueItems.length})</span>
       </div>
 
-      {/* Filters */}
+      {/* Filters - Order: Channel | Triggers | Status | Search */}
       <div className="filters-bar">
         <div className="filter-group">
-          <label>🔍 Search:</label>
-          <input
-            type="text"
-            placeholder="Search by user or trigger..."
-            value={filters.search}
-            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-          />
+          <label>Channel:</label>
+          <select
+            value={filters.channel}
+            onChange={(e) => setFilters(prev => ({ ...prev, channel: e.target.value }))}
+          >
+            <option value="all">All Channels</option>
+            <option value="email">Email</option>
+            <option value="sms">SMS</option>
+            <option value="push">Push</option>
+          </select>
+        </div>
+
+        <div className="filter-group trigger-filter">
+          <label>Trigger:</label>
+          <div className="multi-select-container">
+            <button 
+              className="multi-select-trigger"
+              onClick={() => setShowTriggerDropdown(!showTriggerDropdown)}
+            >
+              {filters.triggers.length === 0 
+                ? 'All Triggers' 
+                : `${filters.triggers.length} selected`}
+              <span className="dropdown-arrow">{showTriggerDropdown ? '▲' : '▼'}</span>
+            </button>
+            
+            {showTriggerDropdown && (
+              <div className="multi-select-dropdown">
+                <div className="multi-select-header">
+                  <button 
+                    className="select-all-btn"
+                    onClick={() => {
+                      if (filters.triggers.length === availableTriggers.length) {
+                        setFilters(prev => ({ ...prev, triggers: [] }));
+                      } else {
+                        setFilters(prev => ({ ...prev, triggers: availableTriggers.map(t => t.value) }));
+                      }
+                    }}
+                  >
+                    {filters.triggers.length === availableTriggers.length ? 'Clear All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="multi-select-options">
+                  {availableTriggers.map(trigger => (
+                    <label key={trigger.value} className="multi-select-option" style={{ color: '#e0e0e0' }}>
+                      <input
+                        type="checkbox"
+                        checked={filters.triggers.includes(trigger.value)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setFilters(prev => ({ ...prev, triggers: [...prev.triggers, trigger.value] }));
+                          } else {
+                            setFilters(prev => ({ ...prev, triggers: prev.triggers.filter(t => t !== trigger.value) }));
+                          }
+                        }}
+                      />
+                      <span style={{ color: '#e0e0e0' }}>{trigger.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="filter-group">
@@ -438,48 +507,18 @@ const EventQueueManager = () => {
         </div>
 
         <div className="filter-group">
-          <label>Trigger:</label>
-          <select
-            value={filters.trigger}
-            onChange={(e) => setFilters(prev => ({ ...prev, trigger: e.target.value }))}
-          >
-            <option value="all">All Triggers</option>
-            <optgroup label="Match Events">
-              <option value="new_match">💕 New Match</option>
-              <option value="mutual_favorite">💕 Mutual Favorite</option>
-              <option value="shortlist_added">⭐ Shortlist Added</option>
-            </optgroup>
-            <optgroup label="Activity">
-              <option value="profile_view">👁️ Profile View</option>
-              <option value="favorited">❤️ Favorited</option>
-            </optgroup>
-            <optgroup label="Messages">
-              <option value="new_message">💬 New Message</option>
-              <option value="unread_messages">📬 Unread Messages</option>
-            </optgroup>
-            <optgroup label="Privacy">
-              <option value="pii_request">🔒 PII Request</option>
-              <option value="pii_granted">✅ PII Granted</option>
-              <option value="pii_denied">❌ PII Denied</option>
-            </optgroup>
-            <optgroup label="Engagement">
-              <option value="weekly_digest">📊 Weekly Digest</option>
-            </optgroup>
-          </select>
+          <label>🔍 Search:</label>
+          <input
+            type="text"
+            placeholder="Search by user or trigger..."
+            value={filters.search}
+            onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
+          />
         </div>
 
-        <div className="filter-group">
-          <label>Channel:</label>
-          <select
-            value={filters.channel}
-            onChange={(e) => setFilters(prev => ({ ...prev, channel: e.target.value }))}
-          >
-            <option value="all">All Channels</option>
-            <option value="email">Email</option>
-            <option value="sms">SMS</option>
-            <option value="push">Push</option>
-          </select>
-        </div>
+        <button className="btn btn-primary btn-refresh" onClick={loadData} disabled={loading}>
+          🔄 {loading ? 'Loading...' : 'Refresh'}
+        </button>
 
         <div className="filter-results">
           {filteredItems.length} item{filteredItems.length !== 1 ? 's' : ''}

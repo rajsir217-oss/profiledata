@@ -13,6 +13,11 @@ const EmailDeliveryLog = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'sentAt', direction: 'desc' });
   const [displayCount, setDisplayCount] = useState(20);
   const PAGE_SIZE = 20;
+  
+  // Multi-select trigger filter
+  const [selectedTriggers, setSelectedTriggers] = useState([]);
+  const [showTriggerDropdown, setShowTriggerDropdown] = useState(false);
+  const [availableTriggers, setAvailableTriggers] = useState([]);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -36,6 +41,21 @@ const EmailDeliveryLog = () => {
   useEffect(() => {
     loadLogs();
   }, [loadLogs]);
+
+  // Extract unique triggers from logs
+  useEffect(() => {
+    const triggers = [...new Set(logs.map(log => log.trigger || log.type).filter(Boolean))];
+    setAvailableTriggers(triggers.sort());
+  }, [logs]);
+
+  // Toggle trigger selection
+  const toggleTrigger = (trigger) => {
+    setSelectedTriggers(prev => 
+      prev.includes(trigger) 
+        ? prev.filter(t => t !== trigger)
+        : [...prev, trigger]
+    );
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -77,6 +97,11 @@ const EmailDeliveryLog = () => {
       const status = log.status?.toLowerCase();
       if (filter === 'sent' && status !== 'sent' && status !== 'delivered') return false;
       if (filter === 'failed' && status !== 'failed') return false;
+    }
+    // Trigger filter (multi-select)
+    if (selectedTriggers.length > 0) {
+      const logTrigger = log.trigger || log.type;
+      if (!selectedTriggers.includes(logTrigger)) return false;
     }
     // Lineage search
     if (searchLineage) {
@@ -120,6 +145,52 @@ const EmailDeliveryLog = () => {
             <option value="sent">Sent/Delivered</option>
             <option value="failed">Failed</option>
           </select>
+        </div>
+
+        <div className="control-group trigger-filter">
+          <label>Trigger:</label>
+          <div className="multi-select-container">
+            <button 
+              className="multi-select-trigger"
+              onClick={() => setShowTriggerDropdown(!showTriggerDropdown)}
+            >
+              {selectedTriggers.length === 0 
+                ? 'All Triggers' 
+                : `${selectedTriggers.length} selected`}
+              <span className="dropdown-arrow">{showTriggerDropdown ? '▲' : '▼'}</span>
+            </button>
+            
+            {showTriggerDropdown && (
+              <div className="multi-select-dropdown">
+                <div className="multi-select-header">
+                  <button 
+                    className="select-all-btn"
+                    onClick={() => {
+                      if (selectedTriggers.length === availableTriggers.length) {
+                        setSelectedTriggers([]);
+                      } else {
+                        setSelectedTriggers([...availableTriggers]);
+                      }
+                    }}
+                  >
+                    {selectedTriggers.length === availableTriggers.length ? 'Clear All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="multi-select-options">
+                  {availableTriggers.map(trigger => (
+                    <label key={trigger} className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedTriggers.includes(trigger)}
+                        onChange={() => toggleTrigger(trigger)}
+                      />
+                      <span>{trigger}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="control-group search-group">

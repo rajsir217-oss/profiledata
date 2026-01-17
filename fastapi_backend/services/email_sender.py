@@ -81,7 +81,8 @@ async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_co
     with smtplib.SMTP(smtp_host, smtp_port) as server:
         server.starttls()
         server.login(smtp_user, smtp_password)
-        server.send_message(msg)
+        # Use sendmail() with explicit recipient to ensure To: header is respected
+        server.sendmail(smtp_user, [to_email], msg.as_string())
     
     print(f"✅ [email_sender] SMTP SUCCESS to {to_email}", flush=True)
     logger.info(f"✅ SMTP success to {to_email}")

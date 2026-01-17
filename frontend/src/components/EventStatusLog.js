@@ -11,6 +11,11 @@ const EventStatusLog = () => {
   const [sortConfig, setSortConfig] = useState({ key: 'createdAt', direction: 'desc' });
   const [displayCount, setDisplayCount] = useState(20);
   const PAGE_SIZE = 20;
+  
+  // Multi-select trigger filter
+  const [selectedTriggers, setSelectedTriggers] = useState([]);
+  const [showTriggerDropdown, setShowTriggerDropdown] = useState(false);
+  const [availableTriggers, setAvailableTriggers] = useState([]);
 
   const loadLogs = useCallback(async () => {
     setLoading(true);
@@ -42,6 +47,21 @@ const EventStatusLog = () => {
     const interval = setInterval(loadLogs, 15000); // Refresh every 15 seconds
     return () => clearInterval(interval);
   }, [loadLogs]);
+
+  // Extract unique triggers from logs
+  useEffect(() => {
+    const triggers = [...new Set(logs.map(log => log.trigger).filter(Boolean))].sort();
+    setAvailableTriggers(triggers);
+  }, [logs]);
+
+  // Toggle trigger selection
+  const toggleTrigger = (trigger) => {
+    setSelectedTriggers(prev => 
+      prev.includes(trigger) 
+        ? prev.filter(t => t !== trigger)
+        : [...prev, trigger]
+    );
+  };
 
   const formatDate = (dateStr) => {
     if (!dateStr) return 'N/A';
@@ -95,6 +115,8 @@ const EventStatusLog = () => {
   const filteredLogs = logs.filter(log => {
     // Status filter
     if (filter !== 'all' && log.status?.toLowerCase() !== filter) return false;
+    // Trigger filter (multi-select)
+    if (selectedTriggers.length > 0 && !selectedTriggers.includes(log.trigger)) return false;
     // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
@@ -171,6 +193,52 @@ const EventStatusLog = () => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
+        
+        <div className="trigger-filter">
+          <div className="multi-select-container">
+            <button 
+              className="multi-select-trigger"
+              onClick={() => setShowTriggerDropdown(!showTriggerDropdown)}
+            >
+              {selectedTriggers.length === 0 
+                ? 'All Triggers' 
+                : `${selectedTriggers.length} selected`}
+              <span className="dropdown-arrow">{showTriggerDropdown ? '▲' : '▼'}</span>
+            </button>
+            
+            {showTriggerDropdown && (
+              <div className="multi-select-dropdown">
+                <div className="multi-select-header">
+                  <button 
+                    className="select-all-btn"
+                    onClick={() => {
+                      if (selectedTriggers.length === availableTriggers.length) {
+                        setSelectedTriggers([]);
+                      } else {
+                        setSelectedTriggers([...availableTriggers]);
+                      }
+                    }}
+                  >
+                    {selectedTriggers.length === availableTriggers.length ? 'Clear All' : 'Select All'}
+                  </button>
+                </div>
+                <div className="multi-select-options">
+                  {availableTriggers.map(trigger => (
+                    <label key={trigger} className="multi-select-option">
+                      <input
+                        type="checkbox"
+                        checked={selectedTriggers.includes(trigger)}
+                        onChange={() => toggleTrigger(trigger)}
+                      />
+                      <span>{trigger}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
         <button className="btn-refresh" onClick={loadLogs} disabled={loading}>
           🔄 {loading ? 'Loading...' : 'Refresh'}
         </button>

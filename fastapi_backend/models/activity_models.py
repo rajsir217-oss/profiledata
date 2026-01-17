@@ -120,6 +120,7 @@ class ActivityLogFilter(BaseModel):
     """Filter model for querying activity logs"""
     username: Optional[str] = None
     action_type: Optional[ActivityType] = None
+    action_types: Optional[List[str]] = None  # Multi-select filter
     target_username: Optional[str] = None
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None

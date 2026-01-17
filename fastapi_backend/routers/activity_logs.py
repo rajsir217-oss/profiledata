@@ -25,6 +25,7 @@ def check_admin(current_user: dict):
 async def get_activity_logs(
     username: Optional[str] = Query(None),
     action_type: Optional[ActivityType] = Query(None),
+    action_types: Optional[str] = Query(None, description="Comma-separated list of action types for multi-select"),
     target_username: Optional[str] = Query(None),
     start_date: Optional[datetime] = Query(None),
     end_date: Optional[datetime] = Query(None),
@@ -38,7 +39,8 @@ async def get_activity_logs(
     
     **Query Parameters:**
     - username: Filter by user who performed action
-    - action_type: Filter by activity type
+    - action_type: Filter by single activity type
+    - action_types: Comma-separated list of activity types (multi-select)
     - target_username: Filter by target user
     - start_date: Filter from date (ISO format)
     - end_date: Filter to date (ISO format)
@@ -51,9 +53,16 @@ async def get_activity_logs(
     try:
         logger = get_activity_logger()
         
+        # Parse multi-select action_types if provided
+        action_types_list = None
+        if action_types:
+            action_types_list = [t.strip() for t in action_types.split(',') if t.strip()]
+            print(f"🔍 Filtering by action_types: {action_types_list}", flush=True)
+        
         filters = ActivityLogFilter(
             username=username,
             action_type=action_type,
+            action_types=action_types_list,
             target_username=target_username,
             start_date=start_date,
             end_date=end_date,
@@ -63,6 +72,7 @@ async def get_activity_logs(
         )
         
         logs, total = await logger.get_logs(filters)
+        print(f"🔍 Found {total} logs matching filters", flush=True)
         pages = (total + limit - 1) // limit  # Ceiling division
         
         return ActivityLogResponse(
