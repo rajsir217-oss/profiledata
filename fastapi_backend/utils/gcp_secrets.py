@@ -39,9 +39,10 @@ def get_secret(secret_id: str, default: Optional[str] = None) -> Optional[str]:
         except Exception as e:
             logger.warning(f"Failed to get secret '{secret_id}' from GCP: {e}")
     
-    # Fallback to environment variable
+    # Fallback to environment variable (strip whitespace/newlines)
     value = os.environ.get(secret_id, default)
     if value:
+        value = value.strip()  # Strip newlines from env vars too
         _secrets_cache[secret_id] = value
     return value
 
