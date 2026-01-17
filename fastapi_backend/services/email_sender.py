@@ -27,8 +27,8 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
             return False
         
         resend.api_key = resend_api_key
-        from_email = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
-        from_name = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+        from_email = (os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')).strip()
+        from_name = (os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')).strip()
         
         print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
         logger.info(f"📧 Attempting to send via Resend to {to_email}")
@@ -58,7 +58,7 @@ async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_co
     smtp_port = int(os.environ.get("SMTP_PORT") or getattr(settings, 'smtp_port', 587))
     smtp_user = os.environ.get("SMTP_USER") or getattr(settings, 'smtp_user', None)
     smtp_password = os.environ.get("SMTP_PASSWORD") or getattr(settings, 'smtp_password', None)
-    from_name = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+    from_name = (os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')).strip()
     
     if not smtp_user or not smtp_password:
         raise Exception("SMTP credentials not configured")
