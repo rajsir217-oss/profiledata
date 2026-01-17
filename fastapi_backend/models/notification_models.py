@@ -100,6 +100,7 @@ class NotificationStatus(str, Enum):
     """Notification processing status"""
     PENDING = "pending"
     SCHEDULED = "scheduled"
+    PROCESSING = "processing"  # Being processed - prevents race conditions
     SENT = "sent"
     DELIVERED = "delivered"
     FAILED = "failed"

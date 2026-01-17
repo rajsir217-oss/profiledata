@@ -139,7 +139,12 @@ class SMSNotifierTemplate(JobTemplate):
             
             context.log("info", f"Daily SMS cost: ${daily_cost:.2f} / ${params.get('costLimit')})")
             
-            # Get pending SMS notifications
+            # Reset any stuck PROCESSING notifications (from crashed jobs)
+            stuck_count = await service.reset_stuck_processing(timeout_minutes=10)
+            if stuck_count > 0:
+                context.log("warning", f"🔄 Reset {stuck_count} stuck notifications from previous failed runs")
+            
+            # Get pending SMS notifications (atomically claimed)
             context.log("info", f"Fetching pending SMS notifications (limit: {params.get('batchSize', 50)})")
             notifications = await service.get_pending_notifications(
                 channel=NotificationChannel.SMS,
