@@ -74,8 +74,8 @@ def _get_secret_from_gcp(secret_id: str) -> Optional[str]:
         # Access the secret
         response = client.access_secret_version(request={"name": name})
         
-        # Return the secret value
-        return response.payload.data.decode("UTF-8")
+        # Return the secret value (strip whitespace/newlines that GCP sometimes adds)
+        return response.payload.data.decode("UTF-8").strip()
         
     except ImportError:
         logger.warning("google-cloud-secret-manager not installed")
