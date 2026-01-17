@@ -108,7 +108,12 @@ class EmailNotifierTemplate(JobTemplate):
             service = NotificationService(context.db)
             params = context.parameters
             
-            # Get pending email notifications
+            # Reset any stuck PROCESSING notifications (from crashed jobs)
+            stuck_count = await service.reset_stuck_processing(timeout_minutes=10)
+            if stuck_count > 0:
+                context.log("warning", f"🔄 Reset {stuck_count} stuck notifications from previous failed runs")
+            
+            # Get pending email notifications (atomically claimed)
             context.log("info", f"Fetching pending email notifications (limit: {params.get('batchSize', 100)})")
             notifications = await service.get_pending_notifications(
                 channel=NotificationChannel.EMAIL,

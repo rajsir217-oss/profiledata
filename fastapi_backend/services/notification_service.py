@@ -182,7 +182,11 @@ class NotificationService:
         channel: Optional[NotificationChannel] = None,
         limit: int = 100
     ) -> List[NotificationQueueItem]:
-        """Get pending notifications ready to send (respects retry delays)"""
+        """
+        Get pending notifications ready to send (respects retry delays).
+        Uses atomic find_one_and_update to prevent race conditions when
+        multiple job instances run simultaneously.
+        """
         query = {
             "status": {"$in": [NotificationStatus.PENDING, NotificationStatus.SCHEDULED]},
             "$and": [
@@ -206,16 +210,60 @@ class NotificationService:
             # Check if channel exists in the channels array
             query["channels"] = {"$in": [channel]}
         
-        cursor = self.queue_collection.find(query).limit(limit)
         notifications = []
         
-        async for doc in cursor:
+        # Atomically claim notifications one by one to prevent race conditions
+        for _ in range(limit):
+            # find_one_and_update is atomic - only one process can claim each notification
+            doc = await self.queue_collection.find_one_and_update(
+                query,
+                {
+                    "$set": {
+                        "status": NotificationStatus.PROCESSING,
+                        "processingStartedAt": datetime.utcnow()
+                    }
+                },
+                return_document=True  # Return the updated document
+            )
+            
+            if not doc:
+                break  # No more pending notifications
+            
             # Convert ObjectId to string for JSON serialization
             if "_id" in doc:
                 doc["_id"] = str(doc["_id"])
             notifications.append(NotificationQueueItem(**doc))
         
         return notifications
+    
+    async def reset_stuck_processing(self, timeout_minutes: int = 10) -> int:
+        """
+        Reset notifications stuck in PROCESSING state (job crashed).
+        Called at the start of each job run to recover from failures.
+        Returns count of reset notifications.
+        """
+        from datetime import timedelta
+        
+        cutoff_time = datetime.utcnow() - timedelta(minutes=timeout_minutes)
+        
+        result = await self.queue_collection.update_many(
+            {
+                "status": NotificationStatus.PROCESSING,
+                "processingStartedAt": {"$lt": cutoff_time}
+            },
+            {
+                "$set": {
+                    "status": NotificationStatus.PENDING,
+                    "statusReason": f"Reset from stuck PROCESSING state after {timeout_minutes} minutes"
+                },
+                "$inc": {"attempts": 0}  # Don't increment attempts for stuck reset
+            }
+        )
+        
+        if result.modified_count > 0:
+            print(f"🔄 Reset {result.modified_count} stuck PROCESSING notifications")
+        
+        return result.modified_count
     
     async def mark_as_sent(
         self,
