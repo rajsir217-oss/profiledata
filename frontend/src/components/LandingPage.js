@@ -42,9 +42,6 @@ const LandingPage = () => {
             <button className="btn-login" onClick={() => navigate('/login')}>
               LOG IN
             </button>
-            <button className="btn-help">
-              ❓ Help
-            </button>
           </div>
         </div>
       </header>
