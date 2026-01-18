@@ -3836,8 +3836,10 @@ async def search_users(
             detail="Your account must be fully activated to search for profiles. Please verify your email."
         )
 
-    # Build query
+    # Build query using a safer pattern to avoid malformed $and/$or combinations
     query = {}
+    and_conditions = []  # Collect all $and conditions here, merge at the end
+    keyword_or_condition = None  # Store keyword $or separately
     
     # Status filter - use accountStatus (unified field)
     # Only allow admins/moderators to search for non-active users
@@ -3865,10 +3867,10 @@ async def search_users(
     age_filter_max = None
     
     if not profileId:
-        # Text search
+        # Text search - store separately to merge properly later
         # ⚠️ IMPORTANT: Don't search encrypted fields (location is encrypted, use region and city)
-        if keyword:
-            query["$or"] = [
+        if keyword and keyword.strip():
+            keyword_or_condition = [
                 {"firstName": {"$regex": keyword, "$options": "i"}},
                 {"lastName": {"$regex": keyword, "$options": "i"}},
                 {"username": {"$regex": keyword, "$options": "i"}},
@@ -3883,7 +3885,7 @@ async def search_users(
 
         # Gender filter - SIMPLE exact match on gender field
         # Database stores gender as 'Male' or 'Female' (capitalized)
-        if gender:
+        if gender and gender.strip():
             gender_value = gender.strip().capitalize()  # 'female' -> 'Female', 'MALE' -> 'Male'
             query["gender"] = gender_value
             logger.info(f"🚻 Gender filter applied: query['gender'] = '{gender_value}'")
@@ -3904,31 +3906,20 @@ async def search_users(
                 height_query["$gte"] = heightMin
             if heightMax > 0:
                 height_query["$lte"] = heightMax
-            # Lenient: include users who match OR heightInches field doesn't exist
-            height_condition = {"$or": [
-                {"heightInches": height_query},
-                {"heightInches": {"$exists": False}},
-                {"heightInches": None}
-            ]}
             
-            # Check if there's an existing $or from keyword search
-            existing_or = query.pop("$or", None)
-            
-            # Build $and array, only including existing_or if it has conditions
-            and_conditions = []
-            if existing_or and len(existing_or) > 0:
-                and_conditions.append({"$or": existing_or})
-            and_conditions.append(height_condition)
-            
-            # Merge with existing $and if present
-            if "$and" in query:
-                query["$and"].extend(and_conditions)
-            else:
-                query["$and"] = and_conditions
+            # Only add height condition if we have actual constraints
+            if height_query:
+                # Lenient: include users who match OR heightInches field doesn't exist
+                height_condition = {"$or": [
+                    {"heightInches": height_query},
+                    {"heightInches": {"$exists": False}},
+                    {"heightInches": None}
+                ]}
+                and_conditions.append(height_condition)
 
         # Other filters
         # ⚠️ IMPORTANT: Can't search on encrypted location, search on region, city, and aboutYou instead
-        if location:
+        if location and location.strip():
             # Search in region, city, OR aboutYou field (all unencrypted) instead of location (encrypted)
             # aboutYou often contains location info like "I live in Indianapolis, IN"
             location_query = {"$or": [
@@ -3936,26 +3927,23 @@ async def search_users(
                 {"city": {"$regex": location, "$options": "i"}},
                 {"aboutYou": {"$regex": location, "$options": "i"}}
             ]}
-            # Merge with existing query
-            if "$and" in query:
-                query["$and"].append(location_query)
-            else:
-                query["$and"] = [location_query]
-        if occupation:
+            and_conditions.append(location_query)
+        
+        if occupation and occupation.strip():
             query["occupation"] = occupation
-        if religion:
+        if religion and religion.strip():
             query["religion"] = religion
-        if caste:
+        if caste and caste.strip():
             query["castePreference"] = caste
-        if eatingPreference:
+        if eatingPreference and eatingPreference.strip():
             query["eatingPreference"] = eatingPreference
-        if drinking:
+        if drinking and drinking.strip():
             query["drinking"] = drinking
-        if smoking:
+        if smoking and smoking.strip():
             query["smoking"] = smoking
-        if relationshipStatus:
+        if relationshipStatus and relationshipStatus.strip():
             query["relationshipStatus"] = relationshipStatus
-        if bodyType:
+        if bodyType and bodyType.strip():
             query["bodyType"] = bodyType
 
         # Newly added filter (last 7 days) - legacy, use daysBack instead
@@ -3989,11 +3977,7 @@ async def search_users(
                     {"createdAt": {"$gte": cutoff_iso}}
                 ]}
             ]}
-            # Merge with existing $and if present
-            if "$and" in query:
-                query["$and"].append(days_back_query)
-            else:
-                query["$and"] = [days_back_query]
+            and_conditions.append(days_back_query)
             logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} ({cutoff_iso})")
 
     # Sort options - always add _id as secondary sort for stable pagination
@@ -4007,7 +3991,7 @@ async def search_users(
 
     sort = sort_options.get(sortBy, sort_options["newest"])
     if sortOrder == "asc":
-        sort = [(field, 1) if direction == -1 else (field, -1) for field, direction in sort]
+        sort = [(field, 1) if direction == -1 else (field, direction) for field, direction in sort]
 
     # Calculate skip for pagination
     skip = (page - 1) * limit
@@ -4025,25 +4009,33 @@ async def search_users(
     # Exclude admin and moderator roles from search results (unless doing profileId lookup)
     # Check BOTH 'role' and 'role_name' fields since database uses both
     if not profileId:
-        admin_exclusion = {
-            "$and": [
-                {"$or": [
-                    {"role": {"$nin": ["admin", "Admin", "moderator", "Moderator"]}},
-                    {"role": {"$exists": False}},
-                    {"role": None}
-                ]},
-                {"$or": [
-                    {"role_name": {"$nin": ["admin", "moderator"]}},
-                    {"role_name": {"$exists": False}},
-                    {"role_name": None}
-                ]}
-            ]
-        }
-        # Merge with existing $and if present
-        if "$and" in query:
-            query["$and"].extend(admin_exclusion["$and"])
+        # Add admin exclusion conditions to and_conditions list
+        and_conditions.append({"$or": [
+            {"role": {"$nin": ["admin", "Admin", "moderator", "Moderator"]}},
+            {"role": {"$exists": False}},
+            {"role": None}
+        ]})
+        and_conditions.append({"$or": [
+            {"role_name": {"$nin": ["admin", "moderator"]}},
+            {"role_name": {"$exists": False}},
+            {"role_name": None}
+        ]})
+    
+    # ========== FINAL QUERY ASSEMBLY ==========
+    # Safely merge keyword_or_condition and and_conditions into query
+    # This prevents malformed $and/$or combinations
+    
+    if keyword_or_condition and len(keyword_or_condition) > 0:
+        # If we have keyword search AND other conditions, wrap keyword in $and
+        if len(and_conditions) > 0:
+            and_conditions.insert(0, {"$or": keyword_or_condition})
         else:
-            query["$and"] = admin_exclusion["$and"]
+            # Only keyword search, no other $and conditions - use $or directly
+            query["$or"] = keyword_or_condition
+    
+    # Add all collected $and conditions to query
+    if len(and_conditions) > 0:
+        query["$and"] = and_conditions
     
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
     logger.info(f"📋 FINAL QUERY before execution: {query}")
