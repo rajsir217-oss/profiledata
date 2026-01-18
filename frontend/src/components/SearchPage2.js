@@ -3009,6 +3009,83 @@ const SearchPage2 = () => {
               className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
               style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
             >
+              {/* Excel-like header row for rows view with sortable columns */}
+              {viewMode === 'rows' && (
+                <div 
+                  className="excel-header"
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '40px 32px minmax(100px, 1fr) 50px 55px 70px minmax(80px, 1fr) minmax(80px, 1fr) 65px 60px 90px',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 12px',
+                    background: 'var(--primary-color)',
+                    color: 'white',
+                    fontSize: '10px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.5px',
+                    borderRadius: '4px 4px 0 0',
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 10
+                  }}
+                >
+                  <span>#</span>
+                  <span></span>
+                  <span 
+                    onClick={() => { setSortBy('firstName'); setSortOrder(sortBy === 'firstName' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                    title="Sort by name"
+                  >
+                    Name {sortBy === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('matchScore'); setSortOrder(sortBy === 'matchScore' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    title="Sort by L3V3L compatibility score"
+                  >
+                    🎯 {sortBy === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('age'); setSortOrder(sortBy === 'age' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    title="Sort by age"
+                  >
+                    Age {sortBy === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('heightInches'); setSortOrder(sortBy === 'heightInches' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    title="Sort by height"
+                  >
+                    Height {sortBy === 'heightInches' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('location'); setSortOrder(sortBy === 'location' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer' }}
+                    title="Sort by location"
+                  >
+                    Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('education'); setSortOrder(sortBy === 'education' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer' }}
+                    title="Sort by education"
+                  >
+                    Education {sortBy === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span 
+                    onClick={() => { setSortBy('occupation'); setSortOrder(sortBy === 'occupation' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
+                    style={{ cursor: 'pointer' }}
+                    title="Sort by occupation"
+                  >
+                    Occupation {sortBy === 'occupation' && (sortOrder === 'asc' ? '↑' : '↓')}
+                  </span>
+                  <span>Tags</span>
+                  <span style={{ textAlign: 'right' }}>Actions</span>
+                </div>
+              )}
               {currentRecords.map((user, index) => {
                 return (
                 <SearchResultCard

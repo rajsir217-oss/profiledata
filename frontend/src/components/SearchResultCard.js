@@ -452,196 +452,130 @@ const SearchResultCard = ({
     );
   };
 
-  // Render compact row view
+  // Render Excel-like table row view
   if (viewMode === 'rows') {
+    // Get L3V3L match score
+    const matchScore = user.matchScore || user.l3v3lScore || user.compatibilityScore;
+    
     return (
-      <div className="result-row-compact">
-        <div className="row-compact-content">
-          {/* Top section with image and info */}
-          <div className="row-compact-top">
-            {/* Column 1: Image */}
-            <div className="row-image-compact">
-              {renderProfileImage()}
-            </div>
-
-            {/* Column 2: Basic Info */}
-            <div className="row-info-column-1">
-              <h6 className="row-name">
-                {debugIndex && <span style={{ color: 'var(--primary-color)', fontWeight: 700, marginRight: '6px' }}>#{debugIndex}</span>}
-                {getDisplayName(user)}
-                {displayAge && displayAge !== 'N/A' && <span className="age-badge-inline">{displayAge}y</span>}
-              </h6>
-              <p className="row-detail"><strong>📍</strong> {user.location}</p>
-              <p className="row-detail"><strong>📏</strong> {user.height}</p>
-              <div className="row-badges">
-                {user.religion && <span className="badge bg-info badge-sm">{user.religion}</span>}
-                {user.eatingPreference && <span className="badge bg-success badge-sm">{user.eatingPreference}</span>}
-              </div>
-            </div>
-
-            {/* Column 3: Education & Work */}
-            <div className="row-info-column-2">
-              <p className="row-detail"><strong>🎓</strong> {displayEducation || 'Not specified'}</p>
-              <p className="row-detail"><strong>💼</strong> {displayOccupation || 'Not specified'}</p>
-              {user.bodyType && <span className="badge bg-warning badge-sm">{user.bodyType}</span>}
-            </div>
-
-            {/* Column 4: Contact (PII) */}
-            <div className="row-info-column-3">
-              <p className="row-detail-pii">
-                {hasPiiAccess ? (
-                  <button
-                    className="pii-icon-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(user.contactEmail);
-                      alert('Email copied to clipboard!');
-                    }}
-                    title={user.contactEmail}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '20px',
-                      padding: '4px'
-                    }}
-                  >
-                    📧
-                  </button>
-                ) : (
-                  <>
-                    <span 
-                      className="pii-locked-icon" 
-                      style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
-                      title="Email locked - Request access"
-                    >
-                      📧
-                    </span>
-                    {onPIIRequest && (
-                      <button
-                        className={`btn btn-xs btn-link pii-btn-xs ${piiStatus.className}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onPIIRequest(user);
-                        }}
-                        title={piiStatus.text}
-                      >
-                        🔒
-                      </button>
-                    )}
-                  </>
-                )}
-              </p>
-              <p className="row-detail-pii">
-                {hasPiiAccess ? (
-                  <button
-                    className="pii-icon-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigator.clipboard.writeText(user.contactNumber);
-                      alert('Phone number copied to clipboard!');
-                    }}
-                    title={user.contactNumber}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      fontSize: '20px',
-                      padding: '4px'
-                    }}
-                  >
-                    📱
-                  </button>
-                ) : (
-                  <span 
-                    className="pii-locked-icon" 
-                    style={{opacity: 0.3, filter: 'grayscale(100%)', fontSize: '20px'}}
-                    title="Phone locked - Request access"
-                  >
-                    📱
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-
-          {/* Bottom section with action buttons */}
-          <div className="row-compact-bottom">
-            <div className="row-actions-compact">
-            {showFavoriteButton && onFavorite && (
-              <button
-                className={`btn btn-sm ${isFavorited ? 'btn-warning' : 'btn-outline-warning'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onFavorite(user);
-                }}
-                title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-              >
-                {isFavorited ? '⭐' : '☆'}
-              </button>
-            )}
-            
-            {showShortlistButton && onShortlist && (
-              <button
-                className={`btn btn-sm ${isShortlisted ? 'btn-info' : 'btn-outline-info'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onShortlist(user);
-                }}
-                title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
-              >
-                {isShortlisted ? '✓📋' : '📋'}
-              </button>
-            )}
-            
-            {showMessageButton && onMessage && (
-              <button
-                className="btn btn-sm btn-outline-primary action-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMessage(user);
-                }}
-                title="Send Message"
-              >
-                💬
-              </button>
-            )}
-            
-            {showExcludeButton && onExclude && (
-              <button
-                className={`btn btn-sm ${isExcluded ? 'btn-danger' : 'btn-outline-danger'} action-btn`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onExclude(user);
-                }}
-                title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
-              >
-                {isExcluded ? '🚫' : '❌'}
-              </button>
-            )}
-            
-            {showRemoveButton && onRemove && (
-              <button
-                className="btn btn-sm btn-outline-danger action-btn"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove(user);
-                }}
-                title={removeButtonLabel}
-              >
-                {removeButtonIcon}
-              </button>
-            )}
-            
+      <div 
+        className="excel-row"
+        onClick={navigateToProfile}
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '40px 32px minmax(100px, 1fr) 50px 55px 70px minmax(80px, 1fr) minmax(80px, 1fr) 65px 60px 90px',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '6px 12px',
+          background: 'var(--surface-color)',
+          borderBottom: '1px solid var(--border-color)',
+          fontSize: '12px',
+          cursor: 'pointer',
+          transition: 'background 0.15s ease'
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover-color, rgba(139, 92, 246, 0.1))'}
+        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
+      >
+        {/* Col 1: Index */}
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+          {debugIndex ? `#${debugIndex}` : ''}
+        </span>
+        
+        {/* Col 2: Avatar (tiny) - always show DefaultAvatar as base */}
+        <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+          <DefaultAvatar gender={user.gender} initials={getShortName(user)} size="small" />
+          {user.images && user.images.length > 0 && imageUrlWithToken && (
+            <img 
+              src={imageUrlWithToken} 
+              alt="" 
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
+              onError={(e) => e.target.style.display = 'none'}
+            />
+          )}
+        </div>
+        
+        {/* Col 3: Name */}
+        <span style={{ fontWeight: 600, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {getDisplayName(user)}
+        </span>
+        
+        {/* Col 4: L3V3L Score */}
+        <span style={{ textAlign: 'center' }}>
+          {matchScore ? (
+            <span style={{ 
+              fontSize: '10px', 
+              padding: '2px 6px', 
+              background: matchScore >= 70 ? 'var(--success-color)' : matchScore >= 50 ? 'var(--warning-color)' : 'var(--text-muted)',
+              color: 'white',
+              borderRadius: '10px',
+              fontWeight: 600
+            }}>
+              {Math.round(matchScore)}%
+            </span>
+          ) : (
+            <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>-</span>
+          )}
+        </span>
+        
+        {/* Col 5: Age */}
+        <span style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+          {displayAge && displayAge !== 'N/A' ? `${displayAge}y` : '-'}
+        </span>
+        
+        {/* Col 6: Height */}
+        <span style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+          {displayHeight || '-'}
+        </span>
+        
+        {/* Col 7: Location */}
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {user.location || '-'}
+        </span>
+        
+        {/* Col 8: Education */}
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayEducation}>
+          {displayEducation || '-'}
+        </span>
+        
+        {/* Col 9: Occupation */}
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayOccupation}>
+          {displayOccupation || '-'}
+        </span>
+        
+        {/* Col 10: Tags */}
+        <span style={{ display: 'flex', gap: '2px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+          {user.religion && <span style={{ fontSize: '10px', padding: '1px 4px', background: 'var(--primary-color)', color: 'white', borderRadius: '3px', whiteSpace: 'nowrap' }}>{user.religion}</span>}
+        </span>
+        
+        {/* Col 10: Actions */}
+        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+          {showFavoriteButton && onFavorite && (
             <button
-              className="btn btn-sm btn-outline-primary action-btn"
-              onClick={navigateToProfile}
-              title="View Profile"
+              onClick={(e) => { e.stopPropagation(); onFavorite(user); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isFavorited ? 1 : 0.5 }}
+              title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
             >
-              👁️
+              {isFavorited ? '⭐' : '☆'}
             </button>
-            </div>
-          </div>
+          )}
+          {showShortlistButton && onShortlist && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onShortlist(user); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isShortlisted ? 1 : 0.5 }}
+              title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
+            >
+              {isShortlisted ? '📋' : '📄'}
+            </button>
+          )}
+          {showExcludeButton && onExclude && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onExclude(user); }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isExcluded ? 1 : 0.5 }}
+              title={isExcluded ? 'Remove from Excluded' : 'Exclude'}
+            >
+              {isExcluded ? '🚫' : '✕'}
+            </button>
+          )}
         </div>
       </div>
     );
