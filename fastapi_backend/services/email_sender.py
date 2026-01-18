@@ -27,8 +27,15 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
             return False
         
         resend.api_key = resend_api_key
-        from_email = (os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')).strip()
-        from_name = (os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')).strip()
+        from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
+        from_name_raw = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+        from_email = from_email_raw.strip()
+        from_name = from_name_raw.strip()
+        
+        # Debug: Log if newline was stripped (to verify fix is deployed)
+        if from_email_raw != from_email or from_name_raw != from_name:
+            print(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!", flush=True)
+            logger.warning(f"📧 STRIPPED NEWLINE from FROM_EMAIL (raw len={len(from_email_raw)}, clean len={len(from_email)})")
         
         print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
         logger.info(f"📧 Attempting to send via Resend to {to_email}")
@@ -54,9 +61,10 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
 
 async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
     """Send email via SMTP (fallback)"""
-    smtp_host = os.environ.get("SMTP_HOST") or getattr(settings, 'smtp_host', 'smtp.gmail.com')
+    smtp_host = (os.environ.get("SMTP_HOST") or getattr(settings, 'smtp_host', 'smtp.gmail.com')).strip()
     smtp_port = int(os.environ.get("SMTP_PORT") or getattr(settings, 'smtp_port', 587))
-    smtp_user = os.environ.get("SMTP_USER") or getattr(settings, 'smtp_user', None)
+    smtp_user = (os.environ.get("SMTP_USER") or getattr(settings, 'smtp_user', None))
+    smtp_user = smtp_user.strip() if smtp_user else None
     smtp_password = os.environ.get("SMTP_PASSWORD") or getattr(settings, 'smtp_password', None)
     from_name = (os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')).strip()
     
