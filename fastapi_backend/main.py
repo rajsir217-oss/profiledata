@@ -199,13 +199,16 @@ print(f"   ENV = {env}")
 print(f"   FRONTEND_URL = {frontend_url}")
 
 if env == "production":
-    # Production: Use actual domains
+    # Production: Use actual domains + Capacitor Android app origin
     cors_origins = [
         frontend_url,
         "https://l3v3lmatches.com",
         "https://www.l3v3lmatches.com",
         "https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app",
-        "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app"
+        "https://matrimonial-backend-7cxoxmouuq-uc.a.run.app",
+        "http://localhost",              # Android Capacitor app
+        "https://localhost",             # Android Capacitor app (HTTPS)
+        "capacitor://localhost",         # Capacitor custom scheme
     ]
     cors_regex = None  # No regex needed for production - explicit origins only
     print(f"🔒 Production CORS enabled for: {cors_origins}")

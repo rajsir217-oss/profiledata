@@ -4,7 +4,7 @@
   "webDir": "build",
   "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "http"
+    "androidScheme": "https"
   },
   "android": {
     "allowMixedContent": true,
