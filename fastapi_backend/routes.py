@@ -4023,8 +4023,27 @@ async def search_users(
     query["username"] = {"$nin": usernames_to_exclude}
     
     # Exclude admin and moderator roles from search results (unless doing profileId lookup)
+    # Check BOTH 'role' and 'role_name' fields since database uses both
     if not profileId:
-        query["role"] = {"$nin": ["admin", "Admin", "moderator", "Moderator"]}
+        admin_exclusion = {
+            "$and": [
+                {"$or": [
+                    {"role": {"$nin": ["admin", "Admin", "moderator", "Moderator"]}},
+                    {"role": {"$exists": False}},
+                    {"role": None}
+                ]},
+                {"$or": [
+                    {"role_name": {"$nin": ["admin", "moderator"]}},
+                    {"role_name": {"$exists": False}},
+                    {"role_name": None}
+                ]}
+            ]
+        }
+        # Merge with existing $and if present
+        if "$and" in query:
+            query["$and"].extend(admin_exclusion["$and"])
+        else:
+            query["$and"] = admin_exclusion["$and"]
     
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
     logger.info(f"📋 FINAL QUERY before execution: {query}")
