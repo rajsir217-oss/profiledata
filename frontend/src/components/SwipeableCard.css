@@ -1,0 +1,234 @@
+/* SwipeableCard.css - Swipe gesture card styles */
+
+.swipeable-card-wrapper {
+  position: relative;
+  width: 100%;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  will-change: transform;
+}
+
+.swipeable-card-wrapper.is-dragging {
+  z-index: 100;
+}
+
+.swipeable-card {
+  position: relative;
+  width: 100%;
+  transform-origin: center center;
+  will-change: transform, opacity;
+  cursor: grab;
+}
+
+.swipeable-card:active {
+  cursor: grabbing;
+}
+
+/* Card Content */
+.swipeable-card-content {
+  position: relative;
+  z-index: 1;
+  pointer-events: none; /* Prevent child elements from capturing events during swipe */
+}
+
+.swipeable-card-wrapper:not(.is-dragging) .swipeable-card-content {
+  pointer-events: auto; /* Re-enable when not dragging */
+}
+
+/* Swipe Overlays */
+.swipe-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  z-index: 10;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.swipe-overlay-icon {
+  font-size: 64px;
+  margin-bottom: 12px;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  animation: pulse-icon 0.5s ease infinite;
+}
+
+.swipe-overlay-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: white;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Right Swipe - Favorite (Green) */
+.swipe-overlay-right {
+  background: linear-gradient(
+    135deg,
+    rgba(34, 197, 94, 0.9) 0%,
+    rgba(22, 163, 74, 0.95) 100%
+  );
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Left Swipe - Exclude/Pass (Red) */
+.swipe-overlay-left {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.9) 0%,
+    rgba(220, 38, 38, 0.95) 100%
+  );
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Up Swipe - Shortlist (Purple) */
+.swipe-overlay-up {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.9) 0%,
+    rgba(124, 58, 237, 0.95) 100%
+  );
+  border: 4px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Swipe Hint Indicators */
+.swipe-hints {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.swipeable-card-wrapper:hover .swipe-hints {
+  opacity: 1;
+}
+
+.swipe-hint {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  animation: hint-pulse 2s ease-in-out infinite;
+}
+
+.swipe-hint-left {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.swipe-hint-right {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.swipe-hint-up {
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Animations */
+@keyframes pulse-icon {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes hint-pulse {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+  }
+}
+
+.swipe-hint-up {
+  animation: hint-pulse-up 2s ease-in-out infinite;
+}
+
+@keyframes hint-pulse-up {
+  0%, 100% {
+    opacity: 0.5;
+    transform: translateX(-50%) scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.1);
+  }
+}
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+  .swipe-overlay-icon {
+    font-size: 48px;
+  }
+  
+  .swipe-overlay-text {
+    font-size: 18px;
+  }
+  
+  .swipe-hint {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
+  }
+  
+  /* Always show hints on mobile (no hover) */
+  .swipe-hints {
+    opacity: 0.6;
+  }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .swipeable-card {
+    transition: none !important;
+  }
+  
+  .swipe-overlay-icon {
+    animation: none;
+  }
+  
+  .swipe-hint {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+/* Dark Theme Adjustments */
+.theme-dark .swipe-hint {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Committed State - Card flying off */
+.swipeable-card-wrapper.committed {
+  pointer-events: none;
+}
