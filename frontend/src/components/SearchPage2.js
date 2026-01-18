@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSearch } from '../api';
 import SearchResultCard from './SearchResultCard';
+import SwipeableCard from './SwipeableCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
@@ -82,11 +83,14 @@ const SearchPage2 = () => {
     if (saved) return saved;
     // Default: cards on mobile (<=768px), split on desktop
     return window.innerWidth <= 768 ? 'cards' : 'split';
-  }); // 'cards', 'rows', or 'split'
+  }); // 'cards', 'rows', 'split', or 'swipe'
   const [cardsPerRow, setCardsPerRow] = useState(() => {
     const saved = localStorage.getItem('searchCardsPerRow');
     return saved ? parseInt(saved) : 4;
   });
+  
+  // Swipe mode state - tracks current card index in swipe view
+  const [swipeIndex, setSwipeIndex] = useState(0);
   
   // Split-screen layout state
   const [selectedProfileForDetail, setSelectedProfileForDetail] = useState(null);
@@ -106,6 +110,10 @@ const SearchPage2 = () => {
     // Auto-select first profile when switching to split view
     if (mode === 'split' && users.length > 0 && !selectedProfileForDetail) {
       setSelectedProfileForDetail(users[0]);
+    }
+    // Reset swipe index when switching to swipe mode
+    if (mode === 'swipe') {
+      setSwipeIndex(0);
     }
   };
   
@@ -2060,6 +2068,30 @@ const SearchPage2 = () => {
     }
   };
 
+  // Swipe action handlers - advance to next card after action
+  const handleSwipeAction = (direction, user) => {
+    const username = user.username;
+    
+    if (direction === 'right') {
+      // Favorite
+      handleProfileAction(null, username, 'favorite');
+      toastService.success(`⭐ Added ${user.firstName || username} to favorites`);
+    } else if (direction === 'left') {
+      // Exclude/Pass
+      handleProfileAction(null, username, 'exclude');
+      toastService.info(`🚫 Passed on ${user.firstName || username}`);
+    } else if (direction === 'up') {
+      // Shortlist
+      handleProfileAction(null, username, 'shortlist');
+      toastService.success(`📋 Added ${user.firstName || username} to shortlist`);
+    }
+    
+    // Advance to next card after a short delay for animation
+    setTimeout(() => {
+      setSwipeIndex(prev => prev + 1);
+    }, 350);
+  };
+
   // Confirm exclusion from preview modal
   const confirmExclusion = async () => {
     if (!selectedUserForExclusion) return;
@@ -2461,6 +2493,24 @@ const SearchPage2 = () => {
                   >
                     <span className="layout-toggle-btn-icon">☰</span><span className="layout-toggle-btn-text"> Rows</span>
                   </button>
+                  <button
+                    onClick={() => handleViewModeChange('swipe')}
+                    className={`layout-toggle-btn ${viewMode === 'swipe' ? 'active' : ''}`}
+                    title="Swipe view - Tinder-style swiping"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: viewMode === 'swipe' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: viewMode === 'swipe' ? 'var(--primary-color)' : 'var(--surface-color)',
+                      color: viewMode === 'swipe' ? 'white' : 'var(--text-color)',
+                      cursor: 'pointer',
+                      fontWeight: viewMode === 'swipe' ? 600 : 400,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span className="layout-toggle-btn-icon">👆</span><span className="layout-toggle-btn-text"> Swipe</span>
+                  </button>
                 </div>
               </div>
               
@@ -2731,6 +2781,227 @@ const SearchPage2 = () => {
                 )}
               </div>
             </div>
+          ) : viewMode === 'swipe' ? (
+            /* Swipe Mode Layout */
+            <div className="swipe-mode-container" style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              minHeight: '500px',
+              padding: '20px',
+              position: 'relative'
+            }}>
+              {/* Swipe Progress */}
+              <div className="swipe-progress" style={{
+                marginBottom: '16px',
+                fontSize: '14px',
+                color: 'var(--text-secondary)'
+              }}>
+                {swipeIndex < currentRecords.length ? (
+                  <span>Profile {swipeIndex + 1} of {currentRecords.length}</span>
+                ) : (
+                  <span>All profiles reviewed! 🎉</span>
+                )}
+              </div>
+              
+              {/* Swipe Instructions */}
+              <div className="swipe-instructions" style={{
+                marginBottom: '20px',
+                display: 'flex',
+                gap: '20px',
+                fontSize: '12px',
+                color: 'var(--text-muted)'
+              }}>
+                <span>← Pass</span>
+                <span>↑ Shortlist</span>
+                <span>Favorite →</span>
+              </div>
+              
+              {/* Card Stack */}
+              <div className="swipe-card-stack" style={{
+                position: 'relative',
+                width: '100%',
+                maxWidth: '400px'
+              }}>
+                {/* Show current card and next card (for stack effect) */}
+                {currentRecords.slice(swipeIndex, swipeIndex + 2).map((user, stackIndex) => {
+                  const isTopCard = stackIndex === 0;
+                  return (
+                    <div 
+                      key={user.username}
+                      style={{
+                        position: stackIndex === 0 ? 'relative' : 'absolute',
+                        top: stackIndex === 0 ? 0 : '8px',
+                        left: stackIndex === 0 ? 0 : '4px',
+                        right: stackIndex === 0 ? 0 : '4px',
+                        zIndex: 10 - stackIndex,
+                        opacity: stackIndex === 0 ? 1 : 0.7,
+                        transform: stackIndex === 0 ? 'none' : 'scale(0.95)',
+                        pointerEvents: stackIndex === 0 ? 'auto' : 'none'
+                      }}
+                    >
+                      {isTopCard ? (
+                        <SwipeableCard
+                          onSwipeRight={() => handleSwipeAction('right', user)}
+                          onSwipeLeft={() => handleSwipeAction('left', user)}
+                          onSwipeUp={() => handleSwipeAction('up', user)}
+                        >
+                          <SearchResultCard
+                            key={user.username}
+                            user={user}
+                            debugIndex={swipeIndex + 1}
+                            currentUsername={localStorage.getItem('username')}
+                            context="swipe-mode"
+                            onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                            onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                            onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                            onMessage={handleMessage}
+                            onRequestPII={(u) => openPIIRequestModal(u.username)}
+                            isFavorited={favoritedUsers.has(user.username)}
+                            isShortlisted={shortlistedUsers.has(user.username)}
+                            isExcluded={excludedUsers.has(user.username)}
+                            hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
+                            viewMode="cards"
+                            showFavoriteButton={false}
+                            showShortlistButton={false}
+                            showExcludeButton={false}
+                            showMessageButton={true}
+                          />
+                        </SwipeableCard>
+                      ) : (
+                        <SearchResultCard
+                          key={user.username}
+                          user={user}
+                          currentUsername={localStorage.getItem('username')}
+                          viewMode="cards"
+                          showFavoriteButton={false}
+                          showShortlistButton={false}
+                          showExcludeButton={false}
+                          showMessageButton={false}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {/* End of results message */}
+                {swipeIndex >= currentRecords.length && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '60px 20px',
+                    background: 'var(--surface-color)',
+                    borderRadius: '16px',
+                    border: '2px dashed var(--border-color)'
+                  }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🦋</div>
+                    <h3 style={{ margin: '0 0 8px', color: 'var(--text-color)' }}>You've seen all profiles!</h3>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
+                      Try adjusting your filters or check back later for new matches.
+                    </p>
+                    <button
+                      onClick={() => setSwipeIndex(0)}
+                      style={{
+                        marginTop: '20px',
+                        padding: '10px 24px',
+                        background: 'var(--primary-color)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: 600
+                      }}
+                    >
+                      Start Over
+                    </button>
+                  </div>
+                )}
+              </div>
+              
+              {/* Manual Action Buttons (tiny hint buttons for accessibility) */}
+              {swipeIndex < currentRecords.length && (
+                <div className="swipe-action-buttons" style={{
+                  display: 'flex',
+                  gap: '8px',
+                  marginTop: '12px',
+                  opacity: 0.5
+                }}>
+                  <button
+                    onClick={() => handleSwipeAction('left', currentRecords[swipeIndex])}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      minHeight: '20px',
+                      padding: 0,
+                      borderRadius: '50%',
+                      border: '1px solid var(--danger-color)',
+                      background: 'transparent',
+                      color: 'var(--danger-color)',
+                      fontSize: '10px',
+                      lineHeight: 1,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Pass (swipe left)"
+                  >
+                    ✕
+                  </button>
+                  <button
+                    onClick={() => handleSwipeAction('up', currentRecords[swipeIndex])}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      minHeight: '20px',
+                      padding: 0,
+                      borderRadius: '50%',
+                      border: '1px solid var(--primary-color)',
+                      background: 'transparent',
+                      color: 'var(--primary-color)',
+                      fontSize: '10px',
+                      lineHeight: 1,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Shortlist (swipe up)"
+                  >
+                    📋
+                  </button>
+                  <button
+                    onClick={() => handleSwipeAction('right', currentRecords[swipeIndex])}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      minHeight: '20px',
+                      padding: 0,
+                      borderRadius: '50%',
+                      border: '1px solid var(--success-color)',
+                      background: 'transparent',
+                      color: 'var(--success-color)',
+                      fontSize: '10px',
+                      lineHeight: 1,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Favorite (swipe right)"
+                  >
+                    ⭐
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             /* Cards/Rows Layout */
             <div 
@@ -2858,6 +3129,13 @@ const SearchPage2 = () => {
                   title="Row view"
                 >
                   ☰
+                </button>
+                <button
+                  className={`view-toggle-btn ${viewMode === 'swipe' ? 'active' : ''}`}
+                  onClick={() => handleViewModeChange('swipe')}
+                  title="Swipe view"
+                >
+                  👆
                 </button>
               </div>
             </div>
