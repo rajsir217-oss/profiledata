@@ -4860,6 +4860,9 @@ async def request_password_reset(
     """Send password reset code to user's email/phone"""
     logger.info(f"🔐 Password reset requested for: {identifier}")
     
+    # Initialize encryptor at the start (needed for both email lookup and sending)
+    encryptor = get_encryptor()
+    
     # Try finding by username first (case-insensitive)
     user = await db.users.find_one(get_username_query(identifier))
     
@@ -4868,7 +4871,6 @@ async def request_password_reset(
         logger.info(f"🔍 Username not found, searching by email: {identifier}")
         # Get all users and check decrypted email
         try:
-            encryptor = get_encryptor()
             users_cursor = db.users.find({}, {"username": 1, "contactEmail": 1})
             users = await users_cursor.to_list(1000)
             logger.info(f"📊 Checking {len(users)} users for email match")
@@ -4992,8 +4994,8 @@ async def reset_password(
     """Reset user's password"""
     logger.info(f"🔄 Resetting password for: {identifier}")
     
-    # Try finding by username first
-    user = await db.users.find_one({"username": identifier})
+    # Try finding by username first (case-insensitive)
+    user = await db.users.find_one(get_username_query(identifier))
     
     # If not found by username, search by email (handle encryption)
     if not user:
