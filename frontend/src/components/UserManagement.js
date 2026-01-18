@@ -781,7 +781,7 @@ const UserManagement = () => {
                         <button
                           className="dropdown-item"
                           onClick={() => {
-                            navigate(`/profile/${freshUser.username}`);
+                            window.open(`/profile/${freshUser.username}`, '_blank');
                             setOpenDropdown(null);
                           }}
                         >

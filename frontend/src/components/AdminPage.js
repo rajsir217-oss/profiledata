@@ -482,7 +482,7 @@ const AdminPage = () => {
                     <div className="btn-group" role="group">
                       <button
                         className="btn btn-sm btn-outline-primary"
-                        onClick={() => navigate(`/profile/${user.username}`)}
+                        onClick={() => window.open(`/profile/${user.username}`, '_blank')}
                         title="View Profile"
                       >
                         👁️

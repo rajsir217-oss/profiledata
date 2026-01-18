@@ -210,6 +210,11 @@ class InvitationResendTemplate(JobTemplate):
                         # Send the email
                         context.log("info", f"📨 Resending invitation to {inv_email} (attempt #{current_resend_count + 1}){' [FINAL]' if is_final_attempt else ''}")
                         
+                        # Log email provider being used
+                        import os
+                        email_provider = os.environ.get("EMAIL_PROVIDER", "resend").lower()
+                        context.log("info", f"📧 Using centralized email_sender (EMAIL_PROVIDER={email_provider})")
+                        
                         # Create a follow-up subject line
                         email_subject = invitation.get("emailSubject") or "Reminder: You're Invited to Join USVedika"
                         if is_final_attempt:
@@ -218,13 +223,18 @@ class InvitationResendTemplate(JobTemplate):
                         elif current_resend_count > 0:
                             email_subject = f"Reminder #{current_resend_count + 1}: {email_subject}"
                         
-                        await send_invitation_email(
+                        result = await send_invitation_email(
                             to_email=target_email,
                             to_name=inv_name,
                             invitation_link=invitation_link,
                             custom_message=invitation.get("customMessage"),
                             email_subject=email_subject
                         )
+                        
+                        # Log which provider was used
+                        if isinstance(result, dict):
+                            provider = result.get("provider", "unknown")
+                            context.log("info", f"✅ Email sent via {provider.upper()} to {inv_email}")
                     
                     # Build update document
                     update_set = {
