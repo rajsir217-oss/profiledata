@@ -3003,12 +3003,13 @@ const SearchPage2 = () => {
               )}
             </div>
           ) : (
-            /* Cards/Rows Layout */
-            <div 
-              key={`${viewMode}-layout`}
-              className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
-              style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : {}}
-            >
+            /* Cards/Rows Layout - wrapped in scroll container for rows view */
+            <div className={viewMode === 'rows' ? 'rows-scroll-container' : undefined}>
+              <div 
+                key={`${viewMode}-layout`}
+                className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
+                style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : { minWidth: '900px' }}
+              >
               {/* Excel-like header row for rows view with sortable columns */}
               {viewMode === 'rows' && (
                 <div 
@@ -3133,9 +3134,10 @@ const SearchPage2 = () => {
                 />
               );
               })}
+              </div>
             </div>
           )}
-          </div>} {/* Close Layout Container and initialSearchComplete conditional */}
+          </div>}
 
           {/* Infinite Scroll Trigger - invisible element that triggers load more */}
           {hasMoreResults && (
