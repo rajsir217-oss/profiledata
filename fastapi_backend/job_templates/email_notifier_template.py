@@ -419,6 +419,10 @@ class EmailNotifierTemplate(JobTemplate):
                     "subject": f"📊 Your Monthly Activity Report - {template_data.get('month', 'This Month')}",
                     "body": template_data.get("emailHtml", self._build_monthly_digest_fallback(template_data))
                 },
+                "daily_digest": {
+                    "subject": self._build_daily_digest_subject(template_data),
+                    "body": self._build_daily_digest_body(template_data)
+                },
             }
             
             trigger_name = notification.trigger.replace("_", " ").title()
@@ -882,3 +886,277 @@ class EmailNotifierTemplate(JobTemplate):
 </html>
 """
         return html
+    
+    def _build_daily_digest_subject(self, template_data: dict) -> str:
+        """Build subject line for daily digest email"""
+        stats = template_data.get("stats", {}) if isinstance(template_data, dict) else {}
+        total_favorites = stats.get("total_favorites", 0)
+        total_views = stats.get("total_views", 0)
+        total_messages = stats.get("total_messages", 0)
+        
+        # Build a dynamic subject based on activity
+        parts = []
+        if total_favorites > 0:
+            parts.append(f"{total_favorites} ❤️")
+        if total_views > 0:
+            parts.append(f"{total_views} 👁️")
+        if total_messages > 0:
+            parts.append(f"{total_messages} 💬")
+        
+        if parts:
+            return f"📬 Your Daily Digest - {', '.join(parts)}"
+        return "📬 Your Daily Digest from L3V3L MATCHES"
+    
+    def _build_daily_digest_body(self, template_data: dict) -> str:
+        """Build HTML body for daily digest email"""
+        from config import settings
+        
+        recipient = template_data.get("recipient", {}) if isinstance(template_data, dict) else {}
+        activity = template_data.get("activity", {}) if isinstance(template_data, dict) else {}
+        stats = template_data.get("stats", {}) if isinstance(template_data, dict) else {}
+        
+        first_name = recipient.get("firstName", "there")
+        frontend_url = settings.frontend_url
+        
+        # Extract activity lists
+        favorited_by = activity.get("favorited_by", [])
+        shortlisted_by = activity.get("shortlisted_by", [])
+        profile_views = activity.get("profile_views", [])
+        new_messages = activity.get("new_messages", [])
+        pii_requests = activity.get("pii_requests", [])
+        expiring_access = activity.get("expiring_access", [])
+        
+        # Build sections HTML
+        sections_html = ""
+        
+        # Favorites section
+        if favorited_by:
+            sections_html += self._build_digest_section(
+                "❤️ New Favorites",
+                f"{len(favorited_by)} people favorited your profile",
+                favorited_by,
+                frontend_url,
+                "#e74c3c"
+            )
+        
+        # Shortlists section
+        if shortlisted_by:
+            sections_html += self._build_digest_section(
+                "⭐ Added to Shortlists",
+                f"{len(shortlisted_by)} people added you to their shortlist",
+                shortlisted_by,
+                frontend_url,
+                "#f39c12"
+            )
+        
+        # Profile views section
+        if profile_views:
+            sections_html += self._build_digest_section(
+                "👁️ Profile Views",
+                f"{stats.get('total_views', len(profile_views))} people viewed your profile",
+                profile_views[:10],
+                frontend_url,
+                "#3498db"
+            )
+        
+        # Messages section
+        if new_messages:
+            sections_html += self._build_messages_section(new_messages, frontend_url)
+        
+        # PII requests section
+        if pii_requests:
+            sections_html += self._build_digest_section(
+                "🔒 Contact Requests",
+                f"{len(pii_requests)} people requested your contact info",
+                pii_requests,
+                frontend_url,
+                "#9b59b6",
+                show_action=True
+            )
+        
+        # Expiring access section
+        if expiring_access:
+            sections_html += self._build_expiring_section(expiring_access, frontend_url)
+        
+        # If no activity, show a friendly message
+        if not sections_html:
+            sections_html = """
+            <div style="text-align: center; padding: 30px; color: #666;">
+                <p style="font-size: 48px; margin: 0;">🌟</p>
+                <p style="font-size: 16px; margin: 15px 0 0 0;">No new activity today, but keep your profile updated to attract more matches!</p>
+            </div>
+            """
+        
+        html = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f5f5f5;">
+    <div style="max-width: 600px; margin: 20px auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; text-align: center;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: 600;">📬 Your Daily Digest</h1>
+            <p style="margin: 10px 0 0 0; font-size: 16px; opacity: 0.9;">L3V3L MATCHES</p>
+        </div>
+        
+        <!-- Greeting -->
+        <div style="padding: 25px 30px 15px 30px;">
+            <h2 style="margin: 0; color: #2d3748; font-size: 22px;">Hi {first_name}! 👋</h2>
+            <p style="color: #666; margin: 10px 0 0 0;">Here's what happened on your profile in the last 24 hours:</p>
+        </div>
+        
+        <!-- Stats Summary -->
+        <div style="display: flex; justify-content: space-around; padding: 15px 30px; background: #f8f9fa; margin: 0 20px; border-radius: 10px;">
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #e74c3c;">{stats.get('total_favorites', 0)}</div>
+                <div style="font-size: 12px; color: #666;">Favorites</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #3498db;">{stats.get('total_views', 0)}</div>
+                <div style="font-size: 12px; color: #666;">Views</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #2ecc71;">{stats.get('total_messages', 0)}</div>
+                <div style="font-size: 12px; color: #666;">Messages</div>
+            </div>
+        </div>
+        
+        <!-- Activity Sections -->
+        <div style="padding: 20px 30px;">
+            {sections_html}
+        </div>
+        
+        <!-- CTA -->
+        <div style="text-align: center; padding: 20px 30px 30px 30px;">
+            <a href="{frontend_url}/dashboard" style="display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 35px; text-decoration: none; border-radius: 50px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);">
+                View Your Dashboard →
+            </a>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; border-top: 1px solid #e2e8f0;">
+            <p style="margin: 0 0 10px 0;">You're receiving this because you enabled Daily Digest in your preferences.</p>
+            <p style="margin: 0;">
+                <a href="{frontend_url}/preferences" style="color: #667eea; text-decoration: none;">Manage Digest Settings</a> | 
+                <a href="{frontend_url}/preferences" style="color: #667eea; text-decoration: none;">Unsubscribe</a>
+            </p>
+            <p style="margin: 10px 0 0 0; color: #999;">© 2025 L3V3L MATCHES. All rights reserved.</p>
+        </div>
+        
+    </div>
+</body>
+</html>"""
+        return html
+    
+    def _build_digest_section(self, title: str, subtitle: str, items: list, frontend_url: str, color: str, show_action: bool = False) -> str:
+        """Build a section for the daily digest"""
+        items_html = ""
+        for item in items[:5]:
+            name = f"{item.get('firstName', '')} {item.get('lastName', '')}".strip() or item.get('username', 'Someone')
+            location = item.get('location', '')
+            occupation = item.get('occupation', '')
+            details = f"{occupation}" if occupation else ""
+            if location:
+                details = f"{details} • {location}" if details else location
+            
+            items_html += f"""
+            <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: {color}20; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                    <span style="font-size: 18px;">{title[0]}</span>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #333;">{name}</div>
+                    <div style="font-size: 12px; color: #666;">{details}</div>
+                </div>
+                <a href="{frontend_url}/profile/{item.get('username', '')}" style="color: {color}; text-decoration: none; font-size: 12px;">View →</a>
+            </div>
+            """
+        
+        more_count = len(items) - 5
+        if more_count > 0:
+            items_html += f'<div style="text-align: center; padding: 10px; color: #666; font-size: 12px;">+{more_count} more</div>'
+        
+        return f"""
+        <div style="margin-bottom: 25px;">
+            <div style="display: flex; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; color: {color}; font-size: 16px;">{title}</h3>
+            </div>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">{subtitle}</p>
+            <div style="background: #fafafa; border-radius: 8px; padding: 5px 15px;">
+                {items_html}
+            </div>
+        </div>
+        """
+    
+    def _build_messages_section(self, messages: list, frontend_url: str) -> str:
+        """Build messages section for daily digest"""
+        items_html = ""
+        for msg in messages[:5]:
+            name = f"{msg.get('firstName', '')} {msg.get('lastName', '')}".strip() or msg.get('username', 'Someone')
+            count = msg.get('count', 1)
+            preview = msg.get('lastMessage', '')[:50]
+            if len(msg.get('lastMessage', '')) > 50:
+                preview += "..."
+            
+            items_html += f"""
+            <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: #2ecc7120; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                    <span style="font-size: 18px;">💬</span>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #333;">{name} <span style="font-weight: normal; color: #666;">({count} message{'s' if count > 1 else ''})</span></div>
+                    <div style="font-size: 12px; color: #666; font-style: italic;">"{preview}"</div>
+                </div>
+                <a href="{frontend_url}/messages" style="color: #2ecc71; text-decoration: none; font-size: 12px;">Reply →</a>
+            </div>
+            """
+        
+        return f"""
+        <div style="margin-bottom: 25px;">
+            <h3 style="margin: 0 0 10px 0; color: #2ecc71; font-size: 16px;">💬 Unread Messages</h3>
+            <div style="background: #fafafa; border-radius: 8px; padding: 5px 15px;">
+                {items_html}
+            </div>
+        </div>
+        """
+    
+    def _build_expiring_section(self, expiring: list, frontend_url: str) -> str:
+        """Build expiring access section for daily digest"""
+        items_html = ""
+        for item in expiring[:3]:
+            name = f"{item.get('firstName', '')} {item.get('lastName', '')}".strip() or item.get('username', 'Someone')
+            expires_at = item.get('expiresAt')
+            if expires_at:
+                from datetime import datetime
+                if isinstance(expires_at, datetime):
+                    expires_str = expires_at.strftime("%b %d")
+                else:
+                    expires_str = "soon"
+            else:
+                expires_str = "soon"
+            
+            items_html += f"""
+            <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: #e67e2220; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                    <span style="font-size: 18px;">⏰</span>
+                </div>
+                <div style="flex: 1;">
+                    <div style="font-weight: 600; color: #333;">{name}</div>
+                    <div style="font-size: 12px; color: #e67e22;">Access expires {expires_str}</div>
+                </div>
+                <a href="{frontend_url}/profile/{item.get('username', '')}" style="color: #e67e22; text-decoration: none; font-size: 12px;">View →</a>
+            </div>
+            """
+        
+        return f"""
+        <div style="margin-bottom: 25px;">
+            <h3 style="margin: 0 0 10px 0; color: #e67e22; font-size: 16px;">⏰ Expiring Access</h3>
+            <p style="margin: 0 0 10px 0; color: #666; font-size: 13px;">Contact access expiring soon - view their info before it expires!</p>
+            <div style="background: #fafafa; border-radius: 8px; padding: 5px 15px;">
+                {items_html}
+            </div>
+        </div>
+        """
