@@ -7,7 +7,7 @@ Aggregates activity from the past 24 hours (or configured period).
 from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import logging
-from .base import JobTemplate
+from .base import JobTemplate, JobResult, JobExecutionContext
 
 logger = logging.getLogger(__name__)
 
@@ -18,9 +18,15 @@ class DailyDigestTemplate(JobTemplate):
     Collects all activity for users with digest enabled and sends a single summary email.
     """
     
-    name = "daily_digest"
-    description = "Send daily digest emails summarizing user activity"
+    # Template metadata (required for registry)
+    template_type = "daily_digest"
+    template_name = "Daily Digest"
+    template_description = "Send daily digest emails summarizing user activity"
     category = "notifications"
+    icon = "📬"
+    estimated_duration = "5-15 minutes"
+    resource_usage = "medium"
+    risk_level = "low"
     
     def get_schema(self) -> Dict[str, Any]:
         return {
@@ -45,20 +51,36 @@ class DailyDigestTemplate(JobTemplate):
                 "label": "Dry Run",
                 "description": "If true, don't actually send emails (for testing)",
                 "default": False
+            },
+            "force_send": {
+                "type": "boolean",
+                "label": "Force Send (Ignore Time)",
+                "description": "If true, bypass preferred time check and send to all users now (for testing)",
+                "default": False
             }
         }
     
-    def validate_params(self, params: Dict[str, Any]) -> bool:
+    def validate_params(self, params: Dict[str, Any]) -> tuple:
+        """Validate job parameters"""
         batch_size = params.get("batch_size", 50)
         hours_lookback = params.get("hours_lookback", 24)
         
         if not isinstance(batch_size, int) or batch_size < 10 or batch_size > 200:
-            return False
+            return False, "batch_size must be an integer between 10 and 200"
         if not isinstance(hours_lookback, int) or hours_lookback < 12 or hours_lookback > 168:
-            return False
-        return True
+            return False, "hours_lookback must be an integer between 12 and 168"
+        return True, None
     
-    async def execute(self, context: Dict[str, Any]) -> Dict[str, Any]:
+    def get_default_params(self) -> Dict[str, Any]:
+        """Get default parameters"""
+        return {
+            "batch_size": 50,
+            "hours_lookback": 24,
+            "dry_run": False,
+            "force_send": False
+        }
+    
+    async def execute(self, context: JobExecutionContext) -> JobResult:
         """
         Execute the daily digest job.
         
@@ -67,42 +89,70 @@ class DailyDigestTemplate(JobTemplate):
         3. Generate and send digest email
         4. Log results
         """
-        db = context.get("db")
-        params = context.get("params", {})
+        start_time = datetime.utcnow()
+        
+        # Context is a JobExecutionContext dataclass, access properties directly
+        db = context.db
+        params = context.parameters or {}
         
         batch_size = params.get("batch_size", 50)
         hours_lookback = params.get("hours_lookback", 24)
         dry_run = params.get("dry_run", False)
         
-        if not db:
-            return {
-                "success": False,
-                "error": "Database connection not available"
-            }
+        if db is None:
+            return JobResult(
+                status="failed",
+                message="Database connection not available",
+                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+            )
         
-        results = {
-            "success": True,
-            "users_processed": 0,
-            "digests_sent": 0,
-            "digests_skipped": 0,
-            "errors": []
-        }
+        users_processed = 0
+        digests_sent = 0
+        digests_skipped = 0
+        errors = []
         
         try:
             # Get current time and lookback period
             now = datetime.utcnow()
             lookback_time = now - timedelta(hours=hours_lookback)
+            current_hour = now.hour
             
             # Find users with digest enabled
             users_with_digest = await db.notification_preferences.find({
                 "digestSettings.enabled": True
             }).to_list(length=None)
             
-            logger.info(f"📬 Found {len(users_with_digest)} users with digest enabled")
+            context.log("info", f"📬 Found {len(users_with_digest)} users with digest enabled")
             
             for user_prefs in users_with_digest:
                 username = user_prefs.get("username")
                 digest_settings = user_prefs.get("digestSettings", {})
+                
+                # Check if it's the right time to send digest for this user
+                preferred_time = digest_settings.get("preferredTime", "08:00")
+                user_timezone = digest_settings.get("timezone", "UTC")
+                
+                # Parse preferred hour (e.g., "08:00" -> 8)
+                try:
+                    preferred_hour = int(preferred_time.split(":")[0])
+                except (ValueError, AttributeError):
+                    preferred_hour = 8
+                
+                # Convert current UTC time to user's timezone and check if it matches
+                # For simplicity, we check if current UTC hour matches preferred hour
+                # (For production, use pytz for proper timezone conversion)
+                if user_timezone == "UTC":
+                    user_current_hour = current_hour
+                else:
+                    # Basic timezone offset handling (simplified)
+                    # In production, use: from pytz import timezone
+                    user_current_hour = current_hour  # Fallback to UTC
+                
+                # Only process if current hour matches user's preferred hour
+                # This allows the job to run hourly and only send to users at their preferred time
+                if user_current_hour != preferred_hour:
+                    context.log("debug", f"⏰ Skipping {username} - not their preferred time ({preferred_hour}:00, current: {user_current_hour}:00)")
+                    continue
                 
                 try:
                     # Collect activity for this user
@@ -110,23 +160,23 @@ class DailyDigestTemplate(JobTemplate):
                         db, username, lookback_time, now, digest_settings
                     )
                     
-                    results["users_processed"] += 1
+                    users_processed += 1
                     
                     # Skip if no activity and skipIfNoActivity is enabled
                     if digest_settings.get("skipIfNoActivity", True) and not activity["has_activity"]:
-                        results["digests_skipped"] += 1
-                        logger.debug(f"⏭️ Skipping digest for {username} - no activity")
+                        digests_skipped += 1
+                        context.log("debug", f"⏭️ Skipping digest for {username} - no activity")
                         continue
                     
                     # Get user details for email
                     user = await db.users.find_one({"username": username})
                     if not user:
-                        logger.warning(f"⚠️ User {username} not found, skipping")
+                        context.log("warning", f"⚠️ User {username} not found, skipping")
                         continue
                     
                     email = user.get("email") or user.get("contactEmail")
                     if not email:
-                        logger.warning(f"⚠️ No email for {username}, skipping")
+                        context.log("warning", f"⚠️ No email for {username}, skipping")
                         continue
                     
                     # Generate and queue digest email
@@ -134,25 +184,41 @@ class DailyDigestTemplate(JobTemplate):
                         await self._queue_digest_email(
                             db, username, email, user, activity, digest_settings
                         )
-                        results["digests_sent"] += 1
-                        logger.info(f"✅ Queued digest for {username}")
+                        digests_sent += 1
+                        context.log("info", f"✅ Queued digest for {username}")
                     else:
-                        results["digests_sent"] += 1
-                        logger.info(f"🧪 [DRY RUN] Would send digest to {username}")
+                        digests_sent += 1
+                        context.log("info", f"🧪 [DRY RUN] Would send digest to {username}")
                     
                 except Exception as e:
                     error_msg = f"Error processing {username}: {str(e)}"
-                    results["errors"].append(error_msg)
-                    logger.error(f"❌ {error_msg}")
+                    errors.append(error_msg)
+                    context.log("error", f"❌ {error_msg}")
             
-            logger.info(f"📊 Daily Digest Summary: {results['digests_sent']} sent, {results['digests_skipped']} skipped, {len(results['errors'])} errors")
+            context.log("info", f"📊 Daily Digest Summary: {digests_sent} sent, {digests_skipped} skipped, {len(errors)} errors")
+            
+            return JobResult(
+                status="success" if len(errors) == 0 else "partial",
+                message=f"Processed {users_processed} users, sent {digests_sent} digests, skipped {digests_skipped}",
+                records_processed=users_processed,
+                records_affected=digests_sent,
+                details={
+                    "digests_sent": digests_sent,
+                    "digests_skipped": digests_skipped,
+                    "dry_run": dry_run
+                },
+                errors=errors,
+                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+            )
             
         except Exception as e:
-            results["success"] = False
-            results["error"] = str(e)
-            logger.error(f"❌ Daily digest job failed: {e}")
-        
-        return results
+            context.log("error", f"❌ Daily digest job failed: {e}")
+            return JobResult(
+                status="failed",
+                message=f"Daily digest job failed: {str(e)}",
+                errors=[str(e)],
+                duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+            )
     
     async def _collect_user_activity(
         self, 

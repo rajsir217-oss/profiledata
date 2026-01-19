@@ -822,6 +822,7 @@
   width: 18px;
   height: 18px;
   min-width: 18px;
+  margin-right: 10px;
   accent-color: var(--primary-color);
   cursor: pointer;
 }
