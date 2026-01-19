@@ -85,6 +85,21 @@ const UnifiedPreferences = () => {
     hideProfileViews: false
   });
 
+  // Daily Digest Settings State
+  const [digestSettings, setDigestSettings] = useState({
+    enabled: false,
+    frequency: 'daily',
+    preferredTime: '08:00',
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
+    minMatchScore: 0,
+    skipIfNoActivity: true,
+    batchFavorites: true,
+    batchShortlists: true,
+    batchProfileViews: true,
+    batchPiiRequests: false,
+    batchNewMatches: true
+  });
+
   // Push Notification State
   const [pushPermission, setPushPermission] = useState('default');
   // eslint-disable-next-line no-unused-vars
@@ -226,6 +241,7 @@ const UnifiedPreferences = () => {
       { id: 'upload_photos', label: 'Upload Photos', description: 'Photo upload reminder' }
     ],
     digests: [
+      { id: 'daily_digest', label: 'Daily Digest', description: 'Daily activity summary email (configure in Daily Digest section below)' },
       { id: 'weekly_digest', label: 'Weekly Digest', description: 'Weekly activity summary email' },
       { id: 'monthly_digest', label: 'Monthly Digest', description: 'Monthly activity report with charts' },
       { id: 'saved_search_matches', label: 'Saved Search Matches', description: 'New profiles matching your saved searches' }
@@ -273,6 +289,24 @@ const UnifiedPreferences = () => {
             hideShortlist: data.privacySettings.hideShortlist || false,
             hideProfileViews: data.privacySettings.hideProfileViews || false
           });
+        }
+        
+        // Load digest settings from notification preferences
+        if (data.digestSettings) {
+          setDigestSettings(prev => ({
+            ...prev,
+            enabled: data.digestSettings.enabled || false,
+            frequency: data.digestSettings.frequency || 'daily',
+            preferredTime: data.digestSettings.preferredTime || '08:00',
+            timezone: data.digestSettings.timezone || prev.timezone,
+            minMatchScore: data.digestSettings.minMatchScore || 0,
+            skipIfNoActivity: data.digestSettings.skipIfNoActivity !== false,
+            batchFavorites: data.digestSettings.batchFavorites !== false,
+            batchShortlists: data.digestSettings.batchShortlists !== false,
+            batchProfileViews: data.digestSettings.batchProfileViews !== false,
+            batchPiiRequests: data.digestSettings.batchPiiRequests || false,
+            batchNewMatches: data.digestSettings.batchNewMatches !== false
+          }));
         }
       } catch (error) {
         console.error('Error loading notification preferences:', error);
@@ -577,13 +611,28 @@ const UnifiedPreferences = () => {
     }));
   };
 
+  const handleDigestToggle = (setting) => {
+    setDigestSettings(prev => ({
+      ...prev,
+      [setting]: !prev[setting]
+    }));
+  };
+
+  const handleDigestChange = (field, value) => {
+    setDigestSettings(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
   const handleSaveNotifications = async () => {
     try {
       setSavingNotifications(true);
       await notifications.updatePreferences({
         channels: notificationPreferences.channels,
         quietHours: notificationPreferences.quietHours,
-        privacySettings: privacySettings
+        privacySettings: privacySettings,
+        digestSettings: digestSettings
       });
       showToast('Notification preferences saved successfully!', 'success');
     } catch (error) {
@@ -1529,6 +1578,197 @@ const UnifiedPreferences = () => {
                     onChange={(e) => handleQuietHoursChange('timezone', e.target.value)}
                     placeholder="UTC"
                   />
+                </div>
+              </div>
+            )}
+          </section>
+
+          {/* Daily Digest Settings */}
+          <section className="settings-section digest-settings-section">
+            <h2>📬 Daily Digest</h2>
+            <p className="section-description">
+              Receive a single daily email summarizing all your activity instead of individual notifications
+            </p>
+
+            {/* Main Toggle */}
+            <div className="digest-main-toggle" style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '20px',
+              background: digestSettings.enabled 
+                ? 'linear-gradient(135deg, var(--success-light) 0%, rgba(16, 185, 129, 0.1) 100%)'
+                : 'var(--surface-color)',
+              border: `2px solid ${digestSettings.enabled ? 'var(--success-color)' : 'var(--border-color)'}`,
+              borderRadius: '12px',
+              marginTop: '16px',
+              marginBottom: '20px',
+              transition: 'all 0.3s ease'
+            }}>
+              <div>
+                <strong style={{ fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {digestSettings.enabled ? '✅' : '📧'} Daily Digest Email
+                </strong>
+                <p style={{ margin: '6px 0 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  {digestSettings.enabled 
+                    ? `Enabled - You'll receive a digest at ${digestSettings.preferredTime}`
+                    : 'Disabled - You receive individual notifications immediately'}
+                </p>
+              </div>
+              <label className="switch">
+                <input
+                  type="checkbox"
+                  checked={digestSettings.enabled}
+                  onChange={() => handleDigestToggle('enabled')}
+                />
+                <span className="slider round"></span>
+              </label>
+            </div>
+
+            {/* Digest Settings (shown when enabled) */}
+            {digestSettings.enabled && (
+              <div className="digest-options" style={{ 
+                background: 'var(--surface-color)', 
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '20px'
+              }}>
+                {/* Frequency & Time Row */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
+                  <div className="form-group">
+                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>📅 Frequency</label>
+                    <select
+                      value={digestSettings.frequency}
+                      onChange={(e) => handleDigestChange('frequency', e.target.value)}
+                      className="form-control"
+                      style={{ width: '100%' }}
+                    >
+                      <option value="daily">Daily (once per day)</option>
+                      <option value="twice_daily">Twice Daily (morning & evening)</option>
+                      <option value="weekly">Weekly (every Monday)</option>
+                    </select>
+                  </div>
+                  
+                  <div className="form-group">
+                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>⏰ Preferred Time</label>
+                    <input
+                      type="time"
+                      value={digestSettings.preferredTime}
+                      onChange={(e) => handleDigestChange('preferredTime', e.target.value)}
+                      className="form-control"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>🌍 Timezone</label>
+                    <input
+                      type="text"
+                      value={digestSettings.timezone}
+                      onChange={(e) => handleDigestChange('timezone', e.target.value)}
+                      className="form-control"
+                      style={{ width: '100%' }}
+                      placeholder="America/New_York"
+                    />
+                  </div>
+                </div>
+
+                {/* Skip if no activity */}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '12px 16px',
+                  background: 'var(--card-background)',
+                  borderRadius: '8px',
+                  marginBottom: '16px'
+                }}>
+                  <div>
+                    <strong>Skip if no activity</strong>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      Don't send digest if there's nothing new to report
+                    </p>
+                  </div>
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={digestSettings.skipIfNoActivity}
+                      onChange={() => handleDigestToggle('skipIfNoActivity')}
+                    />
+                    <span className="slider round"></span>
+                  </label>
+                </div>
+
+                {/* Batch Settings Header */}
+                <h4 style={{ 
+                  marginTop: '24px', 
+                  marginBottom: '12px',
+                  paddingBottom: '8px',
+                  borderBottom: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  🔄 Batch These Into Digest
+                  <span style={{ 
+                    fontSize: '0.75rem', 
+                    fontWeight: 'normal',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    (instead of sending immediately)
+                  </span>
+                </h4>
+
+                {/* Batch Toggles */}
+                <div className="batch-toggles" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {[
+                    { key: 'batchFavorites', icon: '⭐', label: 'Favorited By', desc: 'When someone favorites you' },
+                    { key: 'batchShortlists', icon: '📋', label: 'Shortlisted By', desc: 'When someone shortlists you' },
+                    { key: 'batchProfileViews', icon: '👁️', label: 'Profile Views', desc: 'When someone views your profile' },
+                    { key: 'batchNewMatches', icon: '🦋', label: 'New L3V3L Matches', desc: 'New high-scoring matches' },
+                    { key: 'batchPiiRequests', icon: '🔐', label: 'PII Requests', desc: 'Contact info requests (not recommended)', warning: true }
+                  ].map(item => (
+                    <div key={item.key} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '12px 16px',
+                      background: item.warning && digestSettings[item.key] ? 'var(--warning-light)' : 'var(--card-background)',
+                      border: item.warning && digestSettings[item.key] ? '1px solid var(--warning-color)' : '1px solid transparent',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ fontSize: '1.2rem' }}>{item.icon}</span>
+                        <div>
+                          <strong>{item.label}</strong>
+                          <p style={{ margin: '2px 0 0 0', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                            {item.desc}
+                          </p>
+                        </div>
+                      </div>
+                      <label className="switch">
+                        <input
+                          type="checkbox"
+                          checked={digestSettings[item.key]}
+                          onChange={() => handleDigestToggle(item.key)}
+                        />
+                        <span className="slider round"></span>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Info Note */}
+                <div style={{
+                  marginTop: '20px',
+                  padding: '12px 16px',
+                  background: 'var(--info-light)',
+                  border: '1px solid var(--info-color)',
+                  borderRadius: '8px',
+                  fontSize: '0.9rem'
+                }}>
+                  <strong>💡 How it works:</strong> When enabled, the selected notification types will be collected and sent in your daily digest email instead of being sent immediately. This reduces email clutter while keeping you informed.
                 </div>
               </div>
             )}

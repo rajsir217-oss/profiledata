@@ -165,6 +165,7 @@ def initialize_templates():
     from .pending_approvals_sms_notifier import PendingApprovalsSMSNotifierTemplate
     from .l3v3l_score_calculator_template import L3V3LScoreCalculatorTemplate
     from .poll_reminder_notifier import PollReminderNotifierTemplate
+    from .daily_digest_template import DailyDigestTemplate
     
     registry = get_template_registry()
     
@@ -212,6 +213,9 @@ def initialize_templates():
     
     # Register poll reminder notifier template
     registry.register(PollReminderNotifierTemplate())
+    
+    # Register daily digest template
+    registry.register(DailyDigestTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry
