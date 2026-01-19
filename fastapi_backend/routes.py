@@ -528,6 +528,10 @@ async def get_protected_media(
         "http://localhost:8000",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:8000",
+        # Capacitor Android app origins
+        "https://localhost",
+        "http://localhost",
+        "capacitor://localhost",
     ]
     # Add production domains
     if hasattr(settings, 'allowed_origins'):
