@@ -166,6 +166,7 @@ def initialize_templates():
     from .l3v3l_score_calculator_template import L3V3LScoreCalculatorTemplate
     from .poll_reminder_notifier import PollReminderNotifierTemplate
     from .daily_digest_template import DailyDigestTemplate
+    from .poll_auto_close_template import PollAutoCloseTemplate
     
     registry = get_template_registry()
     
@@ -216,6 +217,9 @@ def initialize_templates():
     
     # Register daily digest template
     registry.register(DailyDigestTemplate())
+    
+    # Register poll auto-close template
+    registry.register(PollAutoCloseTemplate())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

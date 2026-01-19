@@ -98,6 +98,7 @@ class DailyDigestTemplate(JobTemplate):
         batch_size = params.get("batch_size", 50)
         hours_lookback = params.get("hours_lookback", 24)
         dry_run = params.get("dry_run", False)
+        force_send = params.get("force_send", False)
         
         if db is None:
             return JobResult(
@@ -148,9 +149,9 @@ class DailyDigestTemplate(JobTemplate):
                     # In production, use: from pytz import timezone
                     user_current_hour = current_hour  # Fallback to UTC
                 
-                # Only process if current hour matches user's preferred hour
+                # Only process if current hour matches user's preferred hour (unless force_send is enabled)
                 # This allows the job to run hourly and only send to users at their preferred time
-                if user_current_hour != preferred_hour:
+                if not force_send and user_current_hour != preferred_hour:
                     context.log("debug", f"⏰ Skipping {username} - not their preferred time ({preferred_hour}:00, current: {user_current_hour}:00)")
                     continue
                 

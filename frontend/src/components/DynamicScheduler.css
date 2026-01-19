@@ -293,6 +293,16 @@
   z-index: 10;
 }
 
+.jobs-table th.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.jobs-table th.sortable-header:hover {
+  background: var(--secondary-color) !important;
+}
+
 .jobs-table tbody tr {
   border-bottom: 1px solid var(--divider-color);
   transition: background 0.2s ease;
