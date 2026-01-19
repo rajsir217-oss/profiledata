@@ -62,6 +62,7 @@ const SearchResultCard = ({
   removeButtonLabel = 'Remove',
   removeButtonIcon = '🗑️',
   viewMode = 'cards', // 'cards' or 'rows'
+  columnWidths = null, // Dynamic column widths for resizable columns
   // Search carousel props
   searchResults = null, // Array of search results for carousel navigation
   currentIndex = null   // Current index in search results
@@ -457,15 +458,20 @@ const SearchResultCard = ({
     // Get L3V3L match score
     const matchScore = user.matchScore || user.l3v3lScore || user.compatibilityScore;
     
+    // Build gridTemplateColumns - use dynamic widths if provided, otherwise defaults
+    const gridCols = columnWidths 
+      ? `${columnWidths.index}px ${columnWidths.photo}px ${columnWidths.name}px ${columnWidths.score}px ${columnWidths.age}px ${columnWidths.height}px ${columnWidths.location}px ${columnWidths.education}px ${columnWidths.occupation}px 60px ${columnWidths.actions}px`
+      : '40px 32px minmax(100px, 1fr) 50px 55px 70px minmax(80px, 1fr) minmax(80px, 1fr) 65px 60px 90px';
+    
     return (
       <div 
         className="excel-row"
         onClick={navigateToProfile}
         style={{
           display: 'grid',
-          gridTemplateColumns: '40px 32px minmax(100px, 1fr) 50px 55px 70px minmax(80px, 1fr) minmax(80px, 1fr) 65px 60px 90px',
+          gridTemplateColumns: gridCols,
           alignItems: 'center',
-          gap: '6px',
+          gap: '0',
           padding: '6px 12px',
           background: 'var(--surface-color)',
           borderBottom: '1px solid var(--border-color)',

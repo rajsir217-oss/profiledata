@@ -194,6 +194,54 @@ const SearchPage2 = () => {
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
   const [sortOrder, setSortOrder] = useState('desc'); // desc or asc (desc = newest first)
 
+  // Resizable columns state for rows view
+  const [columnWidths, setColumnWidths] = useState({
+    index: 40,
+    photo: 32,
+    name: 120,
+    score: 50,
+    age: 55,
+    height: 70,
+    location: 100,
+    education: 120,
+    occupation: 80,
+    actions: 90
+  });
+  const resizingColumnRef = useRef(null);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+
+  // Column resize handlers
+  const handleResizeStart = useCallback((e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingColumnRef.current = columnKey;
+    startXRef.current = e.clientX;
+    startWidthRef.current = columnWidths[columnKey];
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [columnWidths]);
+
+  const handleResizeMove = useCallback((e) => {
+    if (!resizingColumnRef.current) return;
+    const diff = e.clientX - startXRef.current;
+    const newWidth = Math.max(30, startWidthRef.current + diff); // Min width 30px
+    setColumnWidths(prev => ({
+      ...prev,
+      [resizingColumnRef.current]: newWidth
+    }));
+  }, []);
+
+  const handleResizeEnd = useCallback(() => {
+    resizingColumnRef.current = null;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, [handleResizeMove]);
+
   // Collapse state for filters panel
   const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
@@ -3010,15 +3058,15 @@ const SearchPage2 = () => {
                 className={`${viewMode === 'cards' ? 'results-grid results-cards' : viewMode === 'compact' ? 'results-rows results-compact' : 'results-rows'}`}
                 style={viewMode === 'cards' ? { gridTemplateColumns: `repeat(${cardsPerRow}, 1fr)` } : { minWidth: '900px' }}
               >
-              {/* Excel-like header row for rows view with sortable columns */}
+              {/* Excel-like header row for rows view with sortable & resizable columns */}
               {viewMode === 'rows' && (
                 <div 
                   className="excel-header"
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: '40px 32px minmax(100px, 1fr) 50px 55px 70px minmax(80px, 1fr) minmax(80px, 1fr) 65px 60px 90px',
+                    gridTemplateColumns: `${columnWidths.index}px ${columnWidths.photo}px ${columnWidths.name}px ${columnWidths.score}px ${columnWidths.age}px ${columnWidths.height}px ${columnWidths.location}px ${columnWidths.education}px ${columnWidths.occupation}px 60px ${columnWidths.actions}px`,
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '0',
                     padding: '8px 12px',
                     background: 'var(--primary-color)',
                     color: 'white',
@@ -3032,56 +3080,70 @@ const SearchPage2 = () => {
                     zIndex: 10
                   }}
                 >
-                  <span>#</span>
-                  <span></span>
+                  <span style={{ paddingRight: '6px' }}>#</span>
+                  <span style={{ paddingRight: '6px' }}></span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('firstName'); setSortOrder(sortBy === 'firstName' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px' }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px' }}
                     title="Sort by name"
                   >
                     Name {sortBy === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'name')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('matchScore'); setSortOrder(sortBy === 'matchScore' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
                     title="Sort by L3V3L compatibility score"
                   >
                     🎯 {sortBy === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'score')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('age'); setSortOrder(sortBy === 'age' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
                     title="Sort by age"
                   >
                     Age {sortBy === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'age')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('heightInches'); setSortOrder(sortBy === 'heightInches' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
                     title="Sort by height"
                   >
                     Height {sortBy === 'heightInches' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'height')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('location'); setSortOrder(sortBy === 'location' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
                     title="Sort by location"
                   >
                     Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'location')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('education'); setSortOrder(sortBy === 'education' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
                     title="Sort by education"
                   >
                     Education {sortBy === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'education')} />
                   </span>
                   <span 
+                    className="resizable-header"
                     onClick={() => { setSortBy('occupation'); setSortOrder(sortBy === 'occupation' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
                     title="Sort by occupation"
                   >
                     Occupation {sortBy === 'occupation' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'occupation')} />
                   </span>
                   <span>Tags</span>
                   <span style={{ textAlign: 'right' }}>Actions</span>
@@ -3124,6 +3186,7 @@ const SearchPage2 = () => {
                     photos: hasPiiAccess(user.username, 'images')
                   }}
                   viewMode={viewMode}
+                  columnWidths={columnWidths}
                   // Legacy display flags
                   showFavoriteButton={true}
                   showShortlistButton={true}

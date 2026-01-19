@@ -10,22 +10,24 @@ Usage:
 
 import asyncio
 import sys
+import os
 from datetime import datetime, timezone
-from motor.motor_asyncio import AsyncIOMotorClient
-from config import Settings
 
-# Check for explicit environment flag
+# MUST set env var BEFORE importing config (config loads at import time)
+# env_config.py checks APP_ENVIRONMENT, not ENV
 if "--prod" in sys.argv or "--production" in sys.argv:
-    import os
-    os.environ["ENV"] = "production"
+    os.environ["APP_ENVIRONMENT"] = "production"
     print("⚠️  PRODUCTION MODE - Will update production database!")
     confirm = input("Type 'yes' to confirm: ")
     if confirm.lower() != "yes":
         print("❌ Aborted.")
         sys.exit(0)
 elif "--local" in sys.argv:
-    import os
-    os.environ["ENV"] = "local"
+    os.environ["APP_ENVIRONMENT"] = "local"
+
+# Now import config AFTER setting ENV
+from motor.motor_asyncio import AsyncIOMotorClient
+from config import Settings
 
 settings = Settings()
 print(f"🎯 Target database: {settings.database_name} @ {settings.mongodb_url[:50]}...")
