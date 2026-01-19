@@ -26,6 +26,8 @@ const DynamicScheduler = ({ currentUser }) => {
   const [totalJobs, setTotalJobs] = useState(0);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userRole, setUserRole] = useState(null);
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
   const toast = useToast();
 
   // Check admin access - redirect if not admin or role missing
@@ -490,6 +492,65 @@ const DynamicScheduler = ({ currentUser }) => {
     return template?.icon || '⚙️';
   };
 
+  // Sorting handler
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+
+  // Sort jobs
+  const getSortedJobs = () => {
+    if (!jobs || jobs.length === 0) return [];
+    
+    return [...jobs].sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (sortBy) {
+        case 'status':
+          aVal = a.last_run_status || 'zzz'; // Put "never run" at end
+          bVal = b.last_run_status || 'zzz';
+          break;
+        case 'name':
+          aVal = (a.name || '').toLowerCase();
+          bVal = (b.name || '').toLowerCase();
+          break;
+        case 'template':
+          aVal = (a.template_type || '').toLowerCase();
+          bVal = (b.template_type || '').toLowerCase();
+          break;
+        case 'schedule':
+          aVal = a.schedule?.interval_seconds || 0;
+          bVal = b.schedule?.interval_seconds || 0;
+          break;
+        case 'last_run':
+          aVal = a.last_run_at ? new Date(a.last_run_at).getTime() : 0;
+          bVal = b.last_run_at ? new Date(b.last_run_at).getTime() : 0;
+          break;
+        case 'next_run':
+          aVal = a.next_run_at ? new Date(a.next_run_at).getTime() : 0;
+          bVal = b.next_run_at ? new Date(b.next_run_at).getTime() : 0;
+          break;
+        default:
+          aVal = a.name || '';
+          bVal = b.name || '';
+      }
+      
+      if (aVal < bVal) return sortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Get sort indicator
+  const getSortIndicator = (column) => {
+    if (sortBy !== column) return '';
+    return sortOrder === 'asc' ? ' ▲' : ' ▼';
+  };
+
   return (
     <div className="dynamic-scheduler">
       <div className="dynamic-scheduler-header-actions">
@@ -649,17 +710,29 @@ const DynamicScheduler = ({ currentUser }) => {
             <table>
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Job Name</th>
-                  <th>Template</th>
-                  <th>Schedule</th>
-                  <th>Last Run</th>
-                  <th>Next Run</th>
+                  <th className="sortable-header" onClick={() => handleSort('status')}>
+                    Status{getSortIndicator('status')}
+                  </th>
+                  <th className="sortable-header" onClick={() => handleSort('name')}>
+                    Job Name{getSortIndicator('name')}
+                  </th>
+                  <th className="sortable-header" onClick={() => handleSort('template')}>
+                    Template{getSortIndicator('template')}
+                  </th>
+                  <th className="sortable-header" onClick={() => handleSort('schedule')}>
+                    Schedule{getSortIndicator('schedule')}
+                  </th>
+                  <th className="sortable-header" onClick={() => handleSort('last_run')}>
+                    Last Run{getSortIndicator('last_run')}
+                  </th>
+                  <th className="sortable-header" onClick={() => handleSort('next_run')}>
+                    Next Run{getSortIndicator('next_run')}
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {jobs.map(job => (
+                {getSortedJobs().map(job => (
                   <tr key={job._id}>
                     <td>
                       {job.last_run_status ? (

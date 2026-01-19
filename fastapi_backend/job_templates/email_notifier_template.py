@@ -108,6 +108,12 @@ class EmailNotifierTemplate(JobTemplate):
             service = NotificationService(context.db)
             params = context.parameters
             
+            # Log email provider info
+            provider_info = f"📧 Email Provider: {self.email_provider.upper()}"
+            if self.email_provider == 'smtp':
+                provider_info += f" ({self.smtp_host}:{self.smtp_port})"
+            context.log("info", provider_info)
+            
             # Reset any stuck PROCESSING notifications (from crashed jobs)
             stuck_count = await service.reset_stuck_processing(timeout_minutes=10)
             if stuck_count > 0:

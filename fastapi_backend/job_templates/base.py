@@ -126,6 +126,8 @@ class JobTemplate(ABC):
         Returns:
             Dictionary with template information
         """
+        # Wrap schema in JSON Schema format expected by frontend
+        raw_schema = self.get_schema()
         return {
             "_id": self.template_type,
             "type": self.template_type,
@@ -136,7 +138,11 @@ class JobTemplate(ABC):
             "estimated_duration": self.estimated_duration,
             "resource_usage": self.resource_usage,
             "risk_level": self.risk_level,
-            "parameters_schema": self.get_schema()
+            "parameters_schema": {
+                "type": "object",
+                "properties": raw_schema,
+                "required": []
+            }
         }
     
     async def pre_execute(self, context: JobExecutionContext) -> bool:

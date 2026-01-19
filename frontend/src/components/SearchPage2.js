@@ -2236,6 +2236,13 @@ const SearchPage2 = () => {
           compareValue = (b.matchScore || 0) - (a.matchScore || 0);
           break;
         
+        case 'firstName':
+        case 'name':
+          const nameA = (a.firstName || a.name || '').toLowerCase();
+          const nameB = (b.firstName || b.name || '').toLowerCase();
+          compareValue = nameA.localeCompare(nameB);
+          break;
+        
         case 'age':
           const ageA = a.age || calculateAge(a.birthMonth, a.birthYear) || 0;
           const ageB = b.age || calculateAge(b.birthMonth, b.birthYear) || 0;
@@ -2243,6 +2250,7 @@ const SearchPage2 = () => {
           break;
         
         case 'height':
+        case 'heightInches':
           const heightA = parseHeight(a.height) || 0;
           const heightB = parseHeight(b.height) || 0;
           compareValue = heightB - heightA;
@@ -2252,6 +2260,12 @@ const SearchPage2 = () => {
           const locA = (a.location || '').toLowerCase();
           const locB = (b.location || '').toLowerCase();
           compareValue = locB.localeCompare(locA);
+          break;
+        
+        case 'education':
+          const eduA = (a.education || '').toLowerCase();
+          const eduB = (b.education || '').toLowerCase();
+          compareValue = eduA.localeCompare(eduB);
           break;
         
         case 'occupation':
