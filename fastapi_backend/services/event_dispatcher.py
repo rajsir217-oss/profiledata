@@ -270,6 +270,42 @@ class EventDispatcher:
     # Privacy Settings Helper
     # ============================================
     
+    async def _should_batch_to_digest(self, target_username: str, batch_type: str) -> bool:
+        """
+        Check if notification should be batched into daily digest instead of sent immediately.
+        
+        Args:
+            target_username: The user who would receive the notification
+            batch_type: One of 'batchFavorites', 'batchShortlists', 'batchProfileViews', 
+                       'batchPiiRequests', 'batchNewMatches'
+        
+        Returns:
+            True if notification should be batched (skip immediate send), False otherwise
+        """
+        try:
+            # Get target's notification preferences
+            prefs = await self.db.notification_preferences.find_one({"username": target_username})
+            if not prefs:
+                return False  # No preferences = default (send immediately)
+            
+            digest_settings = prefs.get("digestSettings", {})
+            
+            # Check if digest is enabled
+            if not digest_settings.get("enabled", False):
+                return False  # Digest disabled = send immediately
+            
+            # Check if this specific type should be batched
+            should_batch = digest_settings.get(batch_type, False)
+            
+            if should_batch:
+                logger.info(f"📬 Batching notification for {target_username} - {batch_type} enabled in digest settings")
+            
+            return should_batch
+            
+        except Exception as e:
+            logger.warning(f"⚠️ Error checking digest settings for {target_username}: {e}")
+            return False  # Default to sending immediately on error
+
     async def _check_actor_privacy(self, actor_username: str, privacy_type: str) -> bool:
         """
         Check if actor has privacy settings enabled that should block notifications.
@@ -325,6 +361,11 @@ class EventDispatcher:
             # Check if actor has privacy settings to hide favorites (Premium feature)
             if await self._check_actor_privacy(actor_username, "hideFavorites"):
                 logger.info(f"🔒 Skipping 'favorited' notification - {actor_username} has hideFavorites enabled")
+                return
+            
+            # Check if target wants to batch favorites into daily digest
+            if await self._should_batch_to_digest(target_username, "batchFavorites"):
+                logger.info(f"📬 Skipping immediate 'favorited' notification for {target_username} - will be included in daily digest")
                 return
             
             # Fetch BOTH user's full data
@@ -464,6 +505,11 @@ class EventDispatcher:
                 logger.info(f"🔒 Skipping 'shortlist_added' notification - {actor_username} has hideShortlist enabled")
                 return
             
+            # Check if target wants to batch shortlists into daily digest
+            if await self._should_batch_to_digest(target_username, "batchShortlists"):
+                logger.info(f"📬 Skipping immediate 'shortlist_added' notification for {target_username} - will be included in daily digest")
+                return
+            
             # Fetch BOTH user's full data
             actor = await self.db.users.find_one({"username": actor_username})
             target = await self.db.users.find_one({"username": target_username})
@@ -551,6 +597,11 @@ class EventDispatcher:
             # Check if actor has privacy settings to hide profile views (Premium feature)
             if await self._check_actor_privacy(actor, "hideProfileViews"):
                 logger.info(f"🔒 Skipping 'profile_view' notification - {actor} has hideProfileViews enabled")
+                return
+            
+            # Check if target wants to batch profile views into daily digest
+            if await self._should_batch_to_digest(target, "batchProfileViews"):
+                logger.info(f"📬 Skipping immediate 'profile_view' notification for {target} - will be included in daily digest")
                 return
             
             # Fetch viewer's profile
@@ -661,6 +712,11 @@ class EventDispatcher:
             target = event_data.get("target")
             actor = event_data.get("actor")
             metadata = event_data.get("metadata", {})
+            
+            # Check if target wants to batch PII requests into daily digest (not recommended)
+            if await self._should_batch_to_digest(target, "batchPiiRequests"):
+                logger.info(f"📬 Skipping immediate 'pii_request' notification for {target} - will be included in daily digest (not recommended)")
+                return
             
             # Fetch requester's profile with all needed fields
             requester = await self.db.users.find_one({"username": actor})

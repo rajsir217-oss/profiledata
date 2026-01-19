@@ -62,6 +62,7 @@ class NotificationTrigger(str, Enum):
     UPLOAD_PHOTOS = "upload_photos"
     
     # Digest emails
+    DAILY_DIGEST = "daily_digest"
     WEEKLY_DIGEST = "weekly_digest"
     MONTHLY_DIGEST = "monthly_digest"
     
@@ -172,6 +173,57 @@ class PrivacySettings(BaseModel):
     )
 
 
+class DigestSettings(BaseModel):
+    """Daily digest email settings to reduce notification spam"""
+    enabled: bool = Field(
+        default=False,
+        description="Enable daily digest emails"
+    )
+    frequency: str = Field(
+        default="daily",
+        description="Digest frequency: daily, twice_daily, weekly"
+    )
+    preferredTime: str = Field(
+        default="08:00",
+        description="Preferred send time in HH:MM format (24h)"
+    )
+    timezone: str = Field(
+        default="UTC",
+        description="User timezone for digest delivery"
+    )
+    minMatchScore: int = Field(
+        default=0,
+        ge=0,
+        le=100,
+        description="Only include matches above this score in digest"
+    )
+    skipIfNoActivity: bool = Field(
+        default=True,
+        description="Don't send digest if no activity in period"
+    )
+    # Which notifications to batch into digest instead of sending immediately
+    batchFavorites: bool = Field(
+        default=True,
+        description="Batch 'favorited by' notifications into digest"
+    )
+    batchShortlists: bool = Field(
+        default=True,
+        description="Batch 'shortlisted by' notifications into digest"
+    )
+    batchProfileViews: bool = Field(
+        default=True,
+        description="Batch 'profile view' notifications into digest"
+    )
+    batchPiiRequests: bool = Field(
+        default=False,
+        description="Batch PII request notifications into digest (not recommended)"
+    )
+    batchNewMatches: bool = Field(
+        default=True,
+        description="Batch new L3V3L match notifications into digest"
+    )
+
+
 class NotificationPreferences(BaseModel):
     """User notification preferences"""
     username: str = Field(..., description="User username")
@@ -212,6 +264,9 @@ class NotificationPreferences(BaseModel):
     # Privacy settings (Premium feature)
     privacySettings: PrivacySettings = Field(default_factory=PrivacySettings)
     
+    # Daily digest settings
+    digestSettings: DigestSettings = Field(default_factory=DigestSettings)
+    
     # Engagement metrics
     engagement: Dict[str, Any] = Field(
         default_factory=lambda: {
@@ -238,6 +293,7 @@ class NotificationPreferencesUpdate(BaseModel):
     rateLimit: Optional[Dict[str, RateLimit]] = None
     smsOptimization: Optional[SMSOptimization] = None
     privacySettings: Optional[PrivacySettings] = None
+    digestSettings: Optional[DigestSettings] = None
 
 
 # ============================================
