@@ -1,14 +1,34 @@
 """
 Seed script for Daily Digest Email Template
 Run this to add the daily digest email template to the notification_templates collection
+
+Usage:
+    python seed_daily_digest_template.py          # Uses current ENV (default: local)
+    python seed_daily_digest_template.py --prod   # Explicitly targets production
+    python seed_daily_digest_template.py --local  # Explicitly targets local
 """
 
 import asyncio
-from datetime import datetime
+import sys
+from datetime import datetime, timezone
 from motor.motor_asyncio import AsyncIOMotorClient
 from config import Settings
 
+# Check for explicit environment flag
+if "--prod" in sys.argv or "--production" in sys.argv:
+    import os
+    os.environ["ENV"] = "production"
+    print("⚠️  PRODUCTION MODE - Will update production database!")
+    confirm = input("Type 'yes' to confirm: ")
+    if confirm.lower() != "yes":
+        print("❌ Aborted.")
+        sys.exit(0)
+elif "--local" in sys.argv:
+    import os
+    os.environ["ENV"] = "local"
+
 settings = Settings()
+print(f"🎯 Target database: {settings.database_name} @ {settings.mongodb_url[:50]}...")
 
 DAILY_DIGEST_TEMPLATE = {
     "templateId": "daily_digest_email",
@@ -240,8 +260,8 @@ DAILY_DIGEST_TEMPLATE = {
 """,
     "priority": "low",
     "active": True,
-    "createdAt": datetime.utcnow(),
-    "updatedAt": datetime.utcnow()
+    "createdAt": datetime.now(timezone.utc),
+    "updatedAt": datetime.now(timezone.utc)
 }
 
 
@@ -261,7 +281,7 @@ async def seed_daily_digest_template():
                 {"$set": {
                     "subject": DAILY_DIGEST_TEMPLATE["subject"],
                     "bodyTemplate": DAILY_DIGEST_TEMPLATE["bodyTemplate"],
-                    "updatedAt": datetime.utcnow()
+                    "updatedAt": datetime.now(timezone.utc)
                 }}
             )
             print(f"✅ Updated daily_digest_email template (modified: {result.modified_count})")
