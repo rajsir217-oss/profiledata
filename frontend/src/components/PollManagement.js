@@ -25,6 +25,11 @@ const PollManagement = () => {
   const [pollResults, setPollResults] = useState(null);
   const [resultsLoading, setResultsLoading] = useState(false);
   
+  // Response table sorting and filtering
+  const [responseSortBy, setResponseSortBy] = useState('responded_at');
+  const [responseSortOrder, setResponseSortOrder] = useState('desc');
+  const [responseFilter, setResponseFilter] = useState('all');
+  
   // Form state for creating/editing polls
   const [formData, setFormData] = useState({
     title: '',
@@ -86,6 +91,66 @@ const PollManagement = () => {
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  };
+
+  // Get sorted and filtered responses
+  const getSortedFilteredResponses = () => {
+    if (!pollResults?.responses) return [];
+    
+    let filtered = [...pollResults.responses];
+    
+    // Apply filter
+    if (responseFilter !== 'all') {
+      filtered = filtered.filter(r => 
+        (r.rsvp_response || '').toLowerCase() === responseFilter.toLowerCase()
+      );
+    }
+    
+    // Apply sort
+    filtered.sort((a, b) => {
+      let aVal, bVal;
+      
+      switch (responseSortBy) {
+        case 'username':
+          aVal = (a.username || '').toLowerCase();
+          bVal = (b.username || '').toLowerCase();
+          break;
+        case 'user_full_name':
+          aVal = (a.user_full_name || '').toLowerCase();
+          bVal = (b.user_full_name || '').toLowerCase();
+          break;
+        case 'rsvp_response':
+          aVal = (a.rsvp_response || '').toLowerCase();
+          bVal = (b.rsvp_response || '').toLowerCase();
+          break;
+        case 'responded_at':
+        default:
+          aVal = new Date(a.responded_at || 0).getTime();
+          bVal = new Date(b.responded_at || 0).getTime();
+          break;
+      }
+      
+      if (aVal < bVal) return responseSortOrder === 'asc' ? -1 : 1;
+      if (aVal > bVal) return responseSortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+    
+    return filtered;
+  };
+
+  // Handle column header click for sorting
+  const handleResponseSort = (column) => {
+    if (responseSortBy === column) {
+      setResponseSortOrder(responseSortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setResponseSortBy(column);
+      setResponseSortOrder('asc');
+    }
+  };
+
+  // Open profile in new tab
+  const openProfileInNewTab = (username) => {
+    window.open(`/profile/${username}`, '_blank');
   };
 
   const handleCreatePoll = async (e) => {
@@ -618,25 +683,74 @@ const PollManagement = () => {
                   
                   {/* Responses Table */}
                   <div className="poll-responses-section">
-                    <h3>All Responses</h3>
+                    <div className="poll-responses-header">
+                      <h3>All Responses</h3>
+                      <div className="poll-responses-controls">
+                        <select 
+                          value={responseFilter} 
+                          onChange={(e) => setResponseFilter(e.target.value)}
+                          className="poll-filter-select"
+                        >
+                          <option value="all">All Responses</option>
+                          <option value="yes">Yes Only</option>
+                          <option value="no">No Only</option>
+                          <option value="maybe">Maybe Only</option>
+                        </select>
+                        <span className="poll-response-count">
+                          Showing {getSortedFilteredResponses().length} of {pollResults.responses?.length || 0}
+                        </span>
+                      </div>
+                    </div>
                     {pollResults.responses?.length > 0 ? (
                       <div className="poll-responses-table-wrapper">
                         <table className="poll-responses-table">
                           <thead>
                             <tr>
-                              <th>User</th>
-                              <th>Full Name</th>
+                              <th 
+                                onClick={() => handleResponseSort('username')} 
+                                className="sortable-header"
+                                title="Click to sort by username"
+                              >
+                                User {responseSortBy === 'username' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
+                              <th 
+                                onClick={() => handleResponseSort('user_full_name')} 
+                                className="sortable-header"
+                                title="Click to sort by name"
+                              >
+                                Full Name {responseSortBy === 'user_full_name' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
                               <th>Email</th>
                               <th>Phone</th>
-                              <th>Response</th>
+                              <th 
+                                onClick={() => handleResponseSort('rsvp_response')} 
+                                className="sortable-header"
+                                title="Click to sort by response"
+                              >
+                                Response {responseSortBy === 'rsvp_response' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
                               <th>Comment</th>
-                              <th>Date</th>
+                              <th 
+                                onClick={() => handleResponseSort('responded_at')} 
+                                className="sortable-header"
+                                title="Click to sort by date"
+                              >
+                                Date {responseSortBy === 'responded_at' && (responseSortOrder === 'asc' ? '↑' : '↓')}
+                              </th>
                             </tr>
                           </thead>
                           <tbody>
-                            {pollResults.responses.map(resp => (
+                            {getSortedFilteredResponses().map(resp => (
                               <tr key={resp._id}>
-                                <td>{resp.username}</td>
+                                <td>
+                                  <span 
+                                    className="poll-username-link"
+                                    onClick={() => openProfileInNewTab(resp.username)}
+                                    title="Open profile in new tab"
+                                  >
+                                    {resp.username}
+                                  </span>
+                                </td>
                                 <td>{resp.user_full_name || '-'}</td>
                                 <td>{resp.user_email || '-'}</td>
                                 <td>{resp.user_phone || '-'}</td>

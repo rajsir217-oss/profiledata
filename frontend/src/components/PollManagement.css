@@ -660,6 +660,70 @@
   padding: 2rem;
 }
 
+/* Response table header with filter */
+.poll-responses-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.poll-responses-header h3 {
+  margin: 0;
+}
+
+.poll-responses-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.poll-filter-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  background: var(--card-background);
+  color: var(--text-color);
+  font-size: 0.875rem;
+  cursor: pointer;
+}
+
+.poll-filter-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+.poll-response-count {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+/* Sortable table headers */
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease;
+}
+
+.sortable-header:hover {
+  background: var(--hover-background);
+}
+
+/* Clickable username link */
+.poll-username-link {
+  color: var(--primary-color);
+  cursor: pointer;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.poll-username-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
 /* Toast */
 .poll-toast {
   position: fixed;
