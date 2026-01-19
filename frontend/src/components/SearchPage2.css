@@ -169,6 +169,34 @@
   gap: 8px;
 }
 
+/* ========== RESIZABLE COLUMN HEADERS ========== */
+.resizable-header {
+  position: relative;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.2s ease;
+  z-index: 1;
+}
+
+.resize-handle:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.resize-handle:active {
+  background: rgba(255, 255, 255, 0.5);
+}
+
 /* ========== VIEW TOGGLE ========== */
 .view-toggle-selector {
   display: flex !important;
