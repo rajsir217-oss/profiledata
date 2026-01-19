@@ -3,12 +3,21 @@
 ##############################################
 # 🤖 Build and Run Android App
 # Builds React app and deploys to emulator
+# Usage: ./build_android.sh [release]
 ##############################################
 
 set -e  # Exit on error
 
+# Parse arguments
+BUILD_TYPE="debug"
+if [ "$1" = "release" ]; then
+    BUILD_TYPE="release"
+fi
+
+BUILD_TYPE_UPPER=$(echo "$BUILD_TYPE" | tr '[:lower:]' '[:upper:]')
 echo "=============================================="
 echo "🤖 L3V3L Matrimony - Build & Run Android"
+echo "   Build Type: ${BUILD_TYPE_UPPER}"
 echo "=============================================="
 echo ""
 
@@ -161,26 +170,49 @@ cd android
 # Clean previous build (optional, uncomment if needed)
 # ./gradlew clean
 
-# Build debug APK
-./gradlew assembleDebug
+# Build APK based on type
+if [ "$BUILD_TYPE" = "release" ]; then
+    echo -e "${YELLOW}🔐 Building RELEASE APK...${NC}"
+    ./gradlew assembleRelease
+    APK_PATH="app/build/outputs/apk/release/app-release-unsigned.apk"
+    APK_NAME="L3V3L-Matrimony-release.apk"
+    
+    # Check for signed APK first
+    if [ -f "app/build/outputs/apk/release/app-release.apk" ]; then
+        APK_PATH="app/build/outputs/apk/release/app-release.apk"
+        APK_NAME="L3V3L-Matrimony-release-signed.apk"
+    fi
+else
+    echo -e "${BLUE}🔧 Building DEBUG APK...${NC}"
+    ./gradlew assembleDebug
+    APK_PATH="app/build/outputs/apk/debug/app-debug.apk"
+    APK_NAME="L3V3L-Matrimony.apk"
+fi
 
-if [ ! -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
+if [ ! -f "$APK_PATH" ]; then
     echo -e "${RED}❌ Failed to build APK${NC}"
+    echo "Expected: $APK_PATH"
     exit 1
 fi
 
-APK_SIZE=$(du -h app/build/outputs/apk/debug/app-debug.apk | cut -f1)
+APK_SIZE=$(du -h "$APK_PATH" | cut -f1)
 echo -e "${GREEN}✅ APK built (Size: ${APK_SIZE})${NC}"
 echo ""
 
-# Install on emulator
-echo -e "${BLUE}📲 Step 5: Installing on emulator...${NC}"
-$ADB_CMD install -r app/build/outputs/apk/debug/app-debug.apk
+# Copy APK to Desktop
+echo -e "${BLUE}📋 Step 5: Copying APK to Desktop...${NC}"
+cp "$APK_PATH" ~/Desktop/"$APK_NAME"
+echo -e "${GREEN}✅ APK copied to ~/Desktop/${APK_NAME}${NC}"
+echo ""
+
+# Install on emulator (skip for release if no emulator)
+echo -e "${BLUE}📲 Step 6: Installing on emulator...${NC}"
+$ADB_CMD install -r "$APK_PATH"
 echo -e "${GREEN}✅ App installed${NC}"
 echo ""
 
 # Launch app
-echo -e "${BLUE}🚀 Step 6: Launching app...${NC}"
+echo -e "${BLUE}🚀 Step 7: Launching app...${NC}"
 $ADB_CMD shell am start -n com.l3v3l.matrimony/.MainActivity
 echo -e "${GREEN}✅ App launched${NC}"
 echo ""
@@ -191,8 +223,9 @@ echo -e "${GREEN}🎉 App Running on Emulator!${NC}"
 echo "=============================================="
 echo ""
 echo "📱 App: L3V3L Matrimony"
-echo "📦 APK: app/build/outputs/apk/debug/app-debug.apk"
+echo "📦 APK: $APK_PATH"
 echo "💾 Size: ${APK_SIZE}"
+echo "📋 Desktop: ~/Desktop/${APK_NAME}"
 echo ""
 echo "🔍 Debug Tools:"
 echo "   • Chrome DevTools: chrome://inspect"
