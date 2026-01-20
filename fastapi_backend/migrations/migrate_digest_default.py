@@ -33,7 +33,7 @@ async def migrate_digest_defaults():
     
     # Connect to MongoDB
     client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.mongodb_db_name]
+    db = client[settings.database_name]
     
     # Default digest settings
     default_digest_settings = {
@@ -112,7 +112,7 @@ async def dry_run():
     print("=" * 60)
     
     client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.mongodb_db_name]
+    db = client[settings.database_name]
     
     try:
         # Count records
