@@ -103,6 +103,15 @@ const ContactUs = () => {
     setSelectedTicket(ticket);
     // Refresh to get latest data including new admin replies
     await refreshTicket(ticket._id);
+    
+    // Mark ticket as read if it has an admin reply
+    if (ticket.adminReply && currentUser) {
+      try {
+        await api.post(`/contact/${ticket._id}/mark-read?username=${encodeURIComponent(currentUser)}`);
+      } catch (err) {
+        console.error('Error marking ticket as read:', err);
+      }
+    }
   };
 
   const handleSendReply = async (e) => {

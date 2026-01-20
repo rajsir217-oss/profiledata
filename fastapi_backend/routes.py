@@ -9935,6 +9935,69 @@ async def get_user_tickets(
         logger.error(f"❌ Error getting user tickets: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/contact/admin/open-count")
+async def get_open_ticket_count(
+    db = Depends(get_database)
+):
+    """Get count of open support tickets (admin only) - for TopBar badge"""
+    try:
+        # Count tickets that are not resolved or closed
+        count = await db.contact_tickets.count_documents({
+            "status": {"$in": ["open", "in_progress"]}
+        })
+        return {"count": count}
+    except Exception as e:
+        logger.error(f"❌ Error getting open ticket count: {e}")
+        return {"count": 0}
+
+@router.get("/contact/user/{username}/unread-count")
+async def get_user_unread_response_count(
+    username: str,
+    db = Depends(get_database)
+):
+    """Get count of tickets with unread admin responses for a user - for TopBar badge"""
+    try:
+        # Count tickets where:
+        # 1. User owns the ticket
+        # 2. Admin has replied (adminReply exists)
+        # 3. User hasn't seen it yet (userReadAt is null or before repliedAt)
+        count = await db.contact_tickets.count_documents({
+            "username": username,
+            "adminReply": {"$exists": True, "$ne": None},
+            "$or": [
+                {"userReadAt": {"$exists": False}},
+                {"userReadAt": None},
+                {"$expr": {"$lt": ["$userReadAt", "$repliedAt"]}}
+            ]
+        })
+        return {"count": count}
+    except Exception as e:
+        logger.error(f"❌ Error getting unread response count for {username}: {e}")
+        return {"count": 0}
+
+@router.post("/contact/{ticket_id}/mark-read")
+async def mark_ticket_as_read(
+    ticket_id: str,
+    username: str = Query(...),
+    db = Depends(get_database)
+):
+    """Mark a ticket as read by the user"""
+    try:
+        from bson import ObjectId
+        
+        result = await db.contact_tickets.update_one(
+            {"_id": ObjectId(ticket_id), "username": username},
+            {"$set": {"userReadAt": datetime.utcnow()}}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(status_code=404, detail="Ticket not found or not owned by user")
+        
+        return {"success": True, "message": "Ticket marked as read"}
+    except Exception as e:
+        logger.error(f"❌ Error marking ticket as read: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/contact/admin/all")
 async def get_all_tickets(
     status: Optional[str] = Query(None),
