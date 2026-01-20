@@ -10,6 +10,7 @@ import './SwipeableCard.css';
  * @param {Function} props.onSwipeRight - Callback for right swipe (favorite)
  * @param {Function} props.onSwipeLeft - Callback for left swipe (exclude)
  * @param {Function} props.onSwipeUp - Callback for up swipe (shortlist)
+ * @param {Function} props.onSwipeDown - Callback for down swipe (skip/next)
  * @param {Function} props.onSwipeComplete - Callback after swipe action
  * @param {boolean} props.disabled - Disable swipe gestures
  * @param {string} props.className - Additional CSS classes
@@ -19,6 +20,7 @@ const SwipeableCard = ({
   onSwipeRight,
   onSwipeLeft,
   onSwipeUp,
+  onSwipeDown,
   onSwipeComplete,
   disabled = false,
   className = ''
@@ -29,6 +31,7 @@ const SwipeableCard = ({
     onSwipeRight,
     onSwipeLeft,
     onSwipeUp,
+    onSwipeDown,
     onSwipeComplete: (direction) => {
       if (onSwipeComplete) {
         onSwipeComplete(direction);
@@ -45,7 +48,7 @@ const SwipeableCard = ({
     if (isCommitted) {
       // Exit animation - fly off screen
       const exitX = direction === 'right' ? 500 : direction === 'left' ? -500 : 0;
-      const exitY = direction === 'up' ? -500 : 0;
+      const exitY = direction === 'up' ? -500 : direction === 'down' ? 500 : 0;
       const exitRotation = direction === 'right' ? 30 : direction === 'left' ? -30 : 0;
       
       return {
@@ -78,8 +81,8 @@ const SwipeableCard = ({
   const getOverlayOpacity = (targetDirection) => {
     if (!isDragging || direction !== targetDirection) return 0;
     
-    const threshold = targetDirection === 'up' ? 80 : 100;
-    const distance = targetDirection === 'up' ? Math.abs(deltaY) : Math.abs(deltaX);
+    const threshold = (targetDirection === 'up' || targetDirection === 'down') ? 80 : 100;
+    const distance = (targetDirection === 'up' || targetDirection === 'down') ? Math.abs(deltaY) : Math.abs(deltaX);
     
     return Math.min(distance / threshold, 1) * 0.8;
   };
@@ -88,6 +91,7 @@ const SwipeableCard = ({
   const rightOpacity = getOverlayOpacity('right');
   const leftOpacity = getOverlayOpacity('left');
   const upOpacity = getOverlayOpacity('up');
+  const downOpacity = getOverlayOpacity('down');
 
   if (disabled) {
     return <div className={className}>{children}</div>;
@@ -127,6 +131,14 @@ const SwipeableCard = ({
           <span className="swipe-overlay-icon">📋</span>
           <span className="swipe-overlay-text">Shortlist</span>
         </div>
+        
+        <div 
+          className="swipe-overlay swipe-overlay-down"
+          style={{ opacity: downOpacity }}
+        >
+          <span className="swipe-overlay-icon">⏭️</span>
+          <span className="swipe-overlay-text">Skip</span>
+        </div>
 
         {/* Card Content */}
         <div className="swipeable-card-content">
@@ -145,6 +157,9 @@ const SwipeableCard = ({
           </div>
           <div className="swipe-hint swipe-hint-up">
             <span>↑</span>
+          </div>
+          <div className="swipe-hint swipe-hint-down">
+            <span>↓</span>
           </div>
         </div>
       )}

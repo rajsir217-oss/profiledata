@@ -49,28 +49,28 @@ class NotificationService:
         return NotificationPreferences(**prefs)
     
     async def create_default_preferences(self, username: str) -> NotificationPreferences:
-        """Create default preferences for new user"""
-        from models.notification_models import QuietHours, SMSOptimization
+        """Create default preferences for new user - Daily Digest is DEFAULT for all users"""
+        from models.notification_models import QuietHours, SMSOptimization, DigestSettings
         
         default_prefs = NotificationPreferences(
             username=username,
             channels={
-                # Matches
+                # Matches - batched to daily digest by default
                 NotificationTrigger.NEW_MATCH: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
-                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+                NotificationTrigger.MUTUAL_FAVORITE: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.FAVORITED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.SHORTLIST_ADDED: [NotificationChannel.EMAIL],
                 
-                # Messages
-                NotificationTrigger.NEW_MESSAGE: [NotificationChannel.SMS, NotificationChannel.PUSH],
-                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+                # Messages - batched to daily digest by default
+                NotificationTrigger.NEW_MESSAGE: [NotificationChannel.PUSH],
+                NotificationTrigger.UNREAD_MESSAGES: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 
-                # Profile Activity
+                # Profile Activity - batched to daily digest by default
                 NotificationTrigger.PROFILE_VIEW: [NotificationChannel.PUSH],
                 
-                # PII/Privacy
-                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
-                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.SMS, NotificationChannel.PUSH],
+                # PII/Privacy - batched to daily digest by default
+                NotificationTrigger.PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
+                NotificationTrigger.PENDING_PII_REQUEST: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.PII_GRANTED: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
                 NotificationTrigger.SUSPICIOUS_LOGIN: [NotificationChannel.EMAIL, NotificationChannel.SMS],
                 
@@ -78,10 +78,14 @@ class NotificationService:
                 NotificationTrigger.POLL_REMINDER: [NotificationChannel.EMAIL, NotificationChannel.PUSH],
             },
             frequency={
-                "instant": [NotificationTrigger.NEW_MATCH, NotificationTrigger.PII_REQUEST],
+                "instant": [NotificationTrigger.SUSPICIOUS_LOGIN],  # Only security alerts are instant
                 "digest": {
                     NotificationTrigger.PROFILE_VIEW: "daily",
-                    NotificationTrigger.NEW_MESSAGE: "hourly"
+                    NotificationTrigger.NEW_MESSAGE: "daily",
+                    NotificationTrigger.FAVORITED: "daily",
+                    NotificationTrigger.SHORTLIST_ADDED: "daily",
+                    NotificationTrigger.PII_REQUEST: "daily",
+                    NotificationTrigger.NEW_MATCH: "daily"
                 }
             },
             quietHours=QuietHours(
@@ -89,13 +93,26 @@ class NotificationService:
                 start="22:00",
                 end="08:00",
                 timezone="UTC",
-                exceptions=[NotificationTrigger.PII_REQUEST, NotificationTrigger.SUSPICIOUS_LOGIN]
+                exceptions=[NotificationTrigger.SUSPICIOUS_LOGIN]  # Only security alerts bypass quiet hours
             ),
             smsOptimization=SMSOptimization(
                 verifiedUsersOnly=True,
                 priorityOnly=False,
                 costLimit=100.00,
                 dailyLimit=10
+            ),
+            # Daily Digest is ON by default for all users
+            digestSettings=DigestSettings(
+                enabled=True,
+                frequency="daily",
+                preferredTime="08:00",
+                timezone="UTC",
+                skipIfNoActivity=True,
+                batchFavorites=True,
+                batchShortlists=True,
+                batchProfileViews=True,
+                batchPiiRequests=True,
+                batchNewMatches=True
             )
         )
         

@@ -285,17 +285,32 @@ class EventDispatcher:
         try:
             # Get target's notification preferences
             prefs = await self.db.notification_preferences.find_one({"username": target_username})
+            
+            # Default digest settings (daily digest ON for all users)
+            default_digest = {
+                "enabled": True,
+                "batchFavorites": True,
+                "batchShortlists": True,
+                "batchProfileViews": True,
+                "batchPiiRequests": True,
+                "batchNewMatches": True
+            }
+            
             if not prefs:
-                return False  # No preferences = default (send immediately)
+                # No preferences = use defaults (batch to digest)
+                should_batch = default_digest.get(batch_type, True)
+                if should_batch:
+                    logger.info(f"📬 Batching notification for {target_username} (no prefs) - using default digest")
+                return should_batch
             
             digest_settings = prefs.get("digestSettings", {})
             
-            # Check if digest is enabled
-            if not digest_settings.get("enabled", False):
-                return False  # Digest disabled = send immediately
+            # Check if digest is enabled (default True)
+            if not digest_settings.get("enabled", True):
+                return False  # Digest explicitly disabled = send immediately
             
-            # Check if this specific type should be batched
-            should_batch = digest_settings.get(batch_type, False)
+            # Check if this specific type should be batched (default True)
+            should_batch = digest_settings.get(batch_type, True)
             
             if should_batch:
                 logger.info(f"📬 Batching notification for {target_username} - {batch_type} enabled in digest settings")
@@ -304,7 +319,7 @@ class EventDispatcher:
             
         except Exception as e:
             logger.warning(f"⚠️ Error checking digest settings for {target_username}: {e}")
-            return False  # Default to sending immediately on error
+            return True  # Default to batching on error (daily digest is default)
 
     async def _check_actor_privacy(self, actor_username: str, privacy_type: str) -> bool:
         """
