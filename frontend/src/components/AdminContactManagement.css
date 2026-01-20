@@ -701,11 +701,154 @@
 
 @media (max-width: 768px) {
   .admin-contact-page {
-    padding: 15px;
+    padding: 10px;
   }
 
+  .admin-header {
+    margin-bottom: 12px;
+  }
+
+  .admin-header h1 {
+    font-size: 18px;
+  }
+
+  .admin-header p {
+    font-size: 12px;
+  }
+
+  /* Stats grid - horizontal scroll on mobile */
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 8px;
+    margin-bottom: 12px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .stats-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stat-card {
+    min-width: 70px;
+    flex-shrink: 0;
+    padding: 10px 8px;
+  }
+
+  .stat-icon {
+    font-size: 20px;
+  }
+
+  .stat-value {
+    font-size: 18px;
+  }
+
+  .stat-label {
+    font-size: 9px;
+  }
+
+  /* Inbox layout - single column */
+  .inbox-layout {
+    grid-template-columns: 1fr;
+    height: auto;
+    gap: 12px;
+  }
+
+  .tickets-panel {
+    max-height: none;
+    border-radius: 10px;
+  }
+
+  /* Filters - stack vertically */
+  .filters-bar {
+    padding: 10px;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .search-input {
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  .filter-select {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  /* Ticket list items */
+  .ticket-item {
+    padding: 12px;
+  }
+
+  .ticket-item-subject {
+    font-size: 14px;
+  }
+
+  .ticket-item-from {
+    font-size: 12px;
+  }
+
+  .ticket-item-preview {
+    font-size: 12px;
+  }
+
+  /* Ticket detail panel */
+  .ticket-detail-panel {
+    min-height: auto;
+    border-radius: 10px;
+  }
+
+  .no-selection {
+    padding: 40px 20px;
+  }
+
+  .no-selection-icon {
+    font-size: 50px;
+  }
+
+  .no-selection h3 {
+    font-size: 18px;
+  }
+
+  .no-selection p {
+    font-size: 14px;
+  }
+
+  .ticket-detail-header {
+    padding: 16px;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .ticket-detail-title h2 {
+    font-size: 18px;
+  }
+
+  .ticket-badges {
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+
+  .ticket-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .status-dropdown {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  .btn-sm {
+    padding: 8px 12px;
+    font-size: 12px;
   }
   
   .status-bubble {
@@ -718,22 +861,103 @@
   }
   
   .ticket-info-section {
+    padding: 12px;
     grid-template-columns: 1fr;
     gap: 8px;
   }
-  
-  .ticket-detail-header {
+
+  .info-row {
+    font-size: 12px;
+  }
+
+  .info-row strong {
+    min-width: 70px;
+    font-size: 11px;
+  }
+
+  /* Conversation */
+  .ticket-conversation {
+    padding: 16px;
+  }
+
+  .message-bubble {
+    max-width: 95%;
+    padding: 12px;
+  }
+
+  .message-header strong {
+    font-size: 13px;
+  }
+
+  .message-body {
+    font-size: 13px;
+  }
+
+  /* Reply section */
+  .reply-section {
+    padding: 16px;
+  }
+
+  .reply-section h4 {
+    font-size: 14px;
+  }
+
+  .reply-textarea {
+    font-size: 14px;
+    min-height: 80px;
+  }
+
+  .reply-actions {
     flex-direction: column;
-    gap: 16px;
   }
-  
-  .ticket-actions {
+
+  .reply-actions .btn {
     width: 100%;
-    justify-content: stretch;
+    margin: 0;
   }
-  
-  .status-dropdown {
-    flex: 1;
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .admin-contact-page {
+    padding: 8px;
+  }
+
+  .stat-card {
+    min-width: 60px;
+    padding: 8px 6px;
+  }
+
+  .stat-icon {
+    font-size: 18px;
+  }
+
+  .stat-value {
+    font-size: 16px;
+  }
+
+  .stat-label {
+    font-size: 8px;
+  }
+
+  .ticket-item {
+    padding: 10px;
+  }
+
+  .ticket-detail-header {
+    padding: 12px;
+  }
+
+  .ticket-detail-title h2 {
+    font-size: 16px;
+  }
+
+  .ticket-conversation {
+    padding: 12px;
+  }
+
+  .reply-section {
+    padding: 12px;
   }
 }
 
