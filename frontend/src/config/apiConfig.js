@@ -7,9 +7,9 @@
  * Only use POD config in production - don't fallback to production URLs in dev
  */
 const POD_CONFIG = {
-  backend: process.env.REACT_APP_POD_BACKEND_URL || null,
-  api: process.env.REACT_APP_POD_API_URL || null,
-  ws: process.env.REACT_APP_POD_WS_URL || null
+  backend: process.env.REACT_APP_POD_BACKEND_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app' || null,
+  api: process.env.REACT_APP_POD_API_URL || 'https://matrimonial-backend-7cxoxmouuq-uc.a.run.app/api/users' || null,
+  ws: process.env.REACT_APP_POD_WS_URL || 'wss://matrimonial-backend-7cxoxmouuq-uc.a.run.app' || null
 };
 
 /**
