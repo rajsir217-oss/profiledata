@@ -376,6 +376,13 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         action: () => navigate('/admin')
       });
       
+      items.push({
+        icon: '📨',
+        label: 'Contact Support',
+        subLabel: 'Manage user inquiries',
+        action: () => navigate('/admin/contact')
+      });
+      
       items.push({ isHeader: true, label: 'MONITORING' });
       
       items.push({

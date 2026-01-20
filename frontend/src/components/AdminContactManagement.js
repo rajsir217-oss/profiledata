@@ -42,9 +42,9 @@ const AdminContactManagement = () => {
   ];
 
   useEffect(() => {
-    // Check admin role - MUST use userRole, not username
+    // Check admin or moderator role - MUST use userRole, not username
     const userRole = localStorage.getItem('userRole');
-    if (userRole !== 'admin') {
+    if (userRole !== 'admin' && userRole !== 'moderator') {
       console.warn('⚠️ Unauthorized access attempt to AdminContactManagement');
       navigate('/dashboard');
       return;

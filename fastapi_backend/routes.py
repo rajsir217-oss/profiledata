@@ -25,6 +25,7 @@ from models import (
 from database import get_database
 from auth.password_utils import PasswordManager
 from auth.jwt_auth import JWTManager, get_current_user_dependency as get_current_user, get_current_user_optional, get_current_user_from_token
+from auth.authorization import require_moderator_or_admin
 from l3v3l_matching_engine import matching_engine
 from l3v3l_ml_enhancer import ml_enhancer
 from config import settings
@@ -9937,9 +9938,10 @@ async def get_user_tickets(
 
 @router.get("/contact/admin/open-count")
 async def get_open_ticket_count(
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Get count of open support tickets (admin only) - for TopBar badge"""
+    """Get count of open support tickets (admin/moderator only) - for TopBar badge"""
     try:
         # Count tickets that are not resolved or closed
         count = await db.contact_tickets.count_documents({
@@ -10003,9 +10005,10 @@ async def get_all_tickets(
     status: Optional[str] = Query(None),
     category: Optional[str] = Query(None),
     priority: Optional[str] = Query(None),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Get all support tickets (admin only)"""
+    """Get all support tickets (admin/moderator only)"""
     logger.info("📨 Admin fetching all contact tickets")
     
     try:
@@ -10082,9 +10085,10 @@ async def get_single_ticket(
 async def update_ticket_status(
     ticket_id: str,
     status: str = Body(..., embed=True),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Update ticket status (admin only)"""
+    """Update ticket status (admin/moderator only)"""
     logger.info(f"🔄 Updating ticket {ticket_id} status to {status}")
     
     try:
@@ -10138,9 +10142,10 @@ async def reply_to_ticket(
     ticket_id: str,
     adminReply: str = Body(...),
     adminName: str = Body(...),
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Send admin reply to ticket"""
+    """Send admin reply to ticket (admin/moderator only)"""
     logger.info(f"💬 Admin {adminName} replying to ticket {ticket_id}")
     
     try:
@@ -10265,9 +10270,10 @@ async def download_attachment(
 @router.delete("/contact/{ticket_id}")
 async def delete_ticket(
     ticket_id: str,
+    current_user: dict = Depends(require_moderator_or_admin),
     db = Depends(get_database)
 ):
-    """Delete a support ticket and its attachments (admin only)"""
+    """Delete a support ticket and its attachments (admin/moderator only)"""
     logger.info(f"🗑️ Deleting ticket {ticket_id}")
     
     try:
