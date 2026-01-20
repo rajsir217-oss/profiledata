@@ -30,15 +30,11 @@ echo ""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 BACKEND_DIR="$PROJECT_ROOT/fastapi_backend"
-
-# GCP Configuration
-PROJECT_ID="matrimonial-staging"
-REGION="us-central1"
+ENV_PRODUCTION="$BACKEND_DIR/.env.production"
 
 echo -e "${YELLOW}📋 Configuration:${NC}"
-echo "   Project: $PROJECT_ID"
-echo "   Region: $REGION"
 echo "   Backend Dir: $BACKEND_DIR"
+echo "   Env File: $ENV_PRODUCTION"
 echo ""
 
 # Check if --dry-run flag is passed
@@ -49,17 +45,24 @@ if [ "$1" == "--dry-run" ]; then
     echo ""
 fi
 
-# Fetch MongoDB URL from GCP Secret Manager
-echo -e "${BLUE}🔐 Fetching MongoDB URL from GCP Secret Manager...${NC}"
-MONGODB_URL=$(gcloud secrets versions access latest --secret="MONGODB_URL" --project="$PROJECT_ID" 2>/dev/null)
-
-if [ -z "$MONGODB_URL" ]; then
-    echo -e "${RED}❌ Failed to fetch MONGODB_URL from Secret Manager${NC}"
-    echo "   Make sure you have access to the secret and gcloud is configured."
+# Check if .env.production exists
+if [ ! -f "$ENV_PRODUCTION" ]; then
+    echo -e "${RED}❌ .env.production not found at $ENV_PRODUCTION${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ MongoDB URL retrieved successfully${NC}"
+# Extract MongoDB URL from .env.production
+echo -e "${BLUE}🔐 Reading MongoDB URL from .env.production...${NC}"
+MONGODB_URL=$(grep "^MONGODB_URL=" "$ENV_PRODUCTION" | cut -d'=' -f2- | tr -d '"')
+
+if [ -z "$MONGODB_URL" ]; then
+    echo -e "${RED}❌ Failed to extract MONGODB_URL from .env.production${NC}"
+    exit 1
+fi
+
+# Show partial URL for confirmation (hide password)
+MONGODB_URL_DISPLAY=$(echo "$MONGODB_URL" | sed 's/:.*@/:***@/')
+echo -e "${GREEN}✅ MongoDB URL: ${MONGODB_URL_DISPLAY}${NC}"
 echo ""
 
 # Set environment variables for the migration script
@@ -69,6 +72,12 @@ export ENV="production"
 
 # Change to backend directory
 cd "$BACKEND_DIR"
+
+# Activate virtual environment if it exists
+if [ -d "venv" ]; then
+    echo -e "${BLUE}🐍 Activating virtual environment...${NC}"
+    source venv/bin/activate
+fi
 
 echo -e "${BLUE}🚀 Running migration script...${NC}"
 echo ""
