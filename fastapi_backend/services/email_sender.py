@@ -2,11 +2,14 @@
 Direct Email Sender
 For sending emails outside the notification queue (e.g., invitations)
 Uses Resend as primary provider with SMTP fallback.
+Includes rate limiting to stay under Resend's 2 req/sec limit.
 """
 
 import smtplib
 import os
 import logging
+import asyncio
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from config import Settings
@@ -14,17 +17,48 @@ from config import Settings
 settings = Settings()
 logger = logging.getLogger(__name__)
 
+# Rate limiting for Resend API (2 requests per second max)
+_last_resend_call = 0.0
+_RESEND_MIN_INTERVAL = 0.55  # 550ms between calls = ~1.8 req/sec (safely under 2/sec limit)
+
 
 async def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
-    """Try to send email via Resend API"""
+    """Try to send email via Resend API with rate limiting"""
+    global _last_resend_call
+    
     try:
         import resend
+        from utils.gcp_secrets import get_secret
         
-        resend_api_key = os.environ.get("RESEND_API_KEY") or getattr(settings, 'resend_api_key', None)
+        # Rate limiting: wait if we're calling too fast (Resend limit: 2 req/sec)
+        now = time.time()
+        elapsed = now - _last_resend_call
+        if elapsed < _RESEND_MIN_INTERVAL:
+            wait_time = _RESEND_MIN_INTERVAL - elapsed
+            print(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call", flush=True)
+            await asyncio.sleep(wait_time)
+        
+        _last_resend_call = time.time()
+        
+        # Try multiple sources for the API key: env var, GCP Secret Manager, settings
+        resend_api_key = os.environ.get("RESEND_API_KEY")
+        key_source = "env"
+        
         if not resend_api_key:
-            print("📧 [email_sender] Resend API key not configured, skipping Resend", flush=True)
-            logger.warning("📧 Resend API key not configured, skipping Resend")
+            resend_api_key = get_secret("RESEND_API_KEY")
+            key_source = "gcp_secret"
+        
+        if not resend_api_key:
+            resend_api_key = getattr(settings, 'resend_api_key', None)
+            key_source = "settings"
+        
+        if not resend_api_key:
+            print("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend", flush=True)
+            logger.warning("📧 Resend API key not configured (checked: env, GCP Secret Manager, settings)")
             return False
+        
+        print(f"📧 [email_sender] Using Resend API key from: {key_source}", flush=True)
+        logger.info(f"📧 Resend API key source: {key_source}")
         
         resend.api_key = resend_api_key
         from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')

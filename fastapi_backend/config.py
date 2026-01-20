@@ -44,10 +44,10 @@ class Settings(BaseSettings):
     gcs_project_id: Optional[str] = None
     
     # Email Configuration
-    email_provider: Optional[str] = "smtp"  # Options: "courier", "smtp"
+    email_provider: Optional[str] = "resend"  # Options: "resend", "smtp"
     
-    # Courier API (Recommended - 10k emails/month free)
-    courier_api_key: Optional[str] = None
+    # Resend API (Recommended - 3k emails/month free)
+    resend_api_key: Optional[str] = None
     
     # SMTP Email Configuration (Legacy/Backup)
     smtp_host: Optional[str] = None

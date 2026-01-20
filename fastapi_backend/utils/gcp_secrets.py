@@ -17,7 +17,7 @@ def get_secret(secret_id: str, default: Optional[str] = None) -> Optional[str]:
     Get a secret from GCP Secret Manager with local .env fallback
     
     Args:
-        secret_id: The secret ID (e.g., 'COURIER_API_KEY')
+        secret_id: The secret ID (e.g., 'RESEND_API_KEY')
         default: Default value if secret not found
         
     Returns:
@@ -102,7 +102,7 @@ def get_email_config() -> dict:
     """
     config = {
         'provider': 'smtp',  # Default to SMTP
-        'courier_api_key': None,
+        'resend_api_key': None,
         'smtp_host': None,
         'smtp_port': 587,
         'smtp_user': None,
@@ -120,14 +120,14 @@ def get_email_config() -> dict:
         config['smtp_user'] = smtp_user
         config['smtp_password'] = smtp_password
     
-    # Try Courier first (preferred)
-    courier_key = get_secret('COURIER_API_KEY')
-    if courier_key:
-        config['provider'] = 'courier'
-        config['courier_api_key'] = courier_key
+    # Try Resend first (preferred)
+    resend_key = get_secret('RESEND_API_KEY')
+    if resend_key:
+        config['provider'] = 'resend'
+        config['resend_api_key'] = resend_key
         config['from_email'] = get_secret('FROM_EMAIL', 'noreply@l3v3lmatches.com')
         config['from_name'] = get_secret('FROM_NAME', 'L3V3L MATCHES')
-        logger.info("📧 Using Courier for email delivery (SMTP fallback available)")
+        logger.info("📧 Using Resend for email delivery (SMTP fallback available)")
         return config
     
     # Fallback to Gmail SMTP only
@@ -135,10 +135,10 @@ def get_email_config() -> dict:
         config['provider'] = 'smtp'
         config['from_email'] = get_secret('FROM_EMAIL', smtp_user)
         config['from_name'] = get_secret('FROM_NAME', 'L3V3L MATCHES')
-        logger.info("📧 Using Gmail SMTP for email delivery (Courier fallback)")
+        logger.info("📧 Using Gmail SMTP for email delivery (Resend not configured)")
         return config
     
-    logger.error("❌ No email configuration available (neither Courier nor SMTP)")
+    logger.error("❌ No email configuration available (neither Resend nor SMTP)")
     return config
 
 
@@ -168,8 +168,7 @@ def create_gcp_secrets():
     
     # Secrets to create (get from current environment)
     secrets = {
-        'COURIER_API_KEY': os.environ.get('COURIER_API_KEY'),
-        'COURIER_CLIENT_KEY': os.environ.get('COURIER_CLIENT_KEY'),
+        'RESEND_API_KEY': os.environ.get('RESEND_API_KEY'),
         'SMTP_HOST': os.environ.get('SMTP_HOST', 'smtp.gmail.com'),
         'SMTP_PORT': os.environ.get('SMTP_PORT', '587'),
         'SMTP_USER': os.environ.get('SMTP_USER'),
@@ -226,8 +225,8 @@ if __name__ == "__main__":
     print(f"  Provider: {email_config['provider']}")
     print(f"  From: {email_config['from_name']} <{email_config['from_email']}>")
     
-    if email_config['provider'] == 'courier':
-        print(f"  Courier API Key: {'SET' if email_config['courier_api_key'] else 'NOT SET'}")
+    if email_config['provider'] == 'resend':
+        print(f"  Resend API Key: {'SET' if email_config['resend_api_key'] else 'NOT SET'}")
     else:
         print(f"  SMTP Host: {email_config['smtp_host']}")
         print(f"  SMTP User: {email_config['smtp_user']}")

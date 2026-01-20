@@ -35,7 +35,7 @@ class EmailNotifierTemplate(JobTemplate):
         email_config = get_email_config()
         
         self.email_provider = email_config['provider']
-        self.courier_api_key = email_config['courier_api_key']
+        self.resend_api_key = email_config['resend_api_key']
         self.smtp_host = email_config['smtp_host'] or settings.smtp_host
         self.smtp_port = email_config['smtp_port'] or settings.smtp_port
         self.smtp_user = email_config['smtp_user'] or settings.smtp_user
