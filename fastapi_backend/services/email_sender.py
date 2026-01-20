@@ -19,7 +19,8 @@ logger = logging.getLogger(__name__)
 
 # Rate limiting for Resend API (2 requests per second max)
 _last_resend_call = 0.0
-_RESEND_MIN_INTERVAL = 0.55  # 550ms between calls = ~1.8 req/sec (safely under 2/sec limit)
+_RESEND_MIN_INTERVAL = 0.6  # 600ms between calls = ~1.67 req/sec (safely under 2/sec limit)
+_resend_lock = asyncio.Lock()  # Lock to prevent concurrent rate limit issues
 
 
 async def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
@@ -30,15 +31,17 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
         import resend
         from utils.gcp_secrets import get_secret
         
-        # Rate limiting: wait if we're calling too fast (Resend limit: 2 req/sec)
-        now = time.time()
-        elapsed = now - _last_resend_call
-        if elapsed < _RESEND_MIN_INTERVAL:
-            wait_time = _RESEND_MIN_INTERVAL - elapsed
-            print(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call", flush=True)
-            await asyncio.sleep(wait_time)
-        
-        _last_resend_call = time.time()
+        # Use lock to ensure rate limiting works across concurrent requests
+        async with _resend_lock:
+            # Rate limiting: wait if we're calling too fast (Resend limit: 2 req/sec)
+            now = time.time()
+            elapsed = now - _last_resend_call
+            if elapsed < _RESEND_MIN_INTERVAL:
+                wait_time = _RESEND_MIN_INTERVAL - elapsed
+                print(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call", flush=True)
+                await asyncio.sleep(wait_time)
+            
+            _last_resend_call = time.time()
         
         # Try multiple sources for the API key: env var, GCP Secret Manager, settings
         resend_api_key = os.environ.get("RESEND_API_KEY")
