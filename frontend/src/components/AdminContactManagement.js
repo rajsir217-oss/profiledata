@@ -26,6 +26,9 @@ const AdminContactManagement = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // 2-click delete pattern - no browser modals
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
 
   const categories = [
     { value: 'all', label: 'All Categories' },
@@ -188,21 +191,35 @@ const AdminContactManagement = () => {
     }
   };
 
-  const deleteTicket = async (ticketId) => {
-    if (!window.confirm('Are you sure you want to delete this ticket? This action cannot be undone.')) {
-      return;
+  // 2-click delete: first click sets pending, second click confirms
+  const handleDeleteClick = (ticketId) => {
+    if (pendingDeleteId === ticketId) {
+      // Second click - confirm delete
+      confirmDelete(ticketId);
+    } else {
+      // First click - set pending
+      setPendingDeleteId(ticketId);
+      showStatus('info', '⚠️ Click Delete again to confirm');
+      // Auto-cancel after 3 seconds
+      setTimeout(() => {
+        setPendingDeleteId(prev => prev === ticketId ? null : prev);
+      }, 3000);
     }
-    
+  };
+
+  const confirmDelete = async (ticketId) => {
     try {
       await api.delete(`/contact/${ticketId}`);
       setTickets(tickets.filter(t => t._id !== ticketId));
       if (selectedTicket?._id === ticketId) {
         setSelectedTicket(null);
       }
+      setPendingDeleteId(null);
       showStatus('success', '✅ Ticket deleted successfully!');
     } catch (err) {
       const errorMsg = err.response?.data?.detail || err.message || 'Failed to delete ticket';
       showStatus('error', 'Failed to delete ticket: ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg)));
+      setPendingDeleteId(null);
     }
   };
 
@@ -420,11 +437,11 @@ const AdminContactManagement = () => {
                   </select>
                   
                   <button
-                    onClick={() => deleteTicket(selectedTicket._id)}
-                    className="btn btn-danger btn-sm"
-                    title="Delete Ticket"
+                    onClick={() => handleDeleteClick(selectedTicket._id)}
+                    className={`btn btn-sm ${pendingDeleteId === selectedTicket._id ? 'btn-danger-confirm' : 'btn-danger'}`}
+                    title={pendingDeleteId === selectedTicket._id ? 'Click again to confirm delete' : 'Delete Ticket'}
                   >
-                    🗑️ Delete
+                    {pendingDeleteId === selectedTicket._id ? '⚠️ Confirm Delete' : '🗑️ Delete'}
                   </button>
                 </div>
               </div>

@@ -505,6 +505,116 @@
   }
 }
 
+/* Support Tickets Button - Admin Only */
+.btn-support-tickets {
+  position: relative;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.btn-support-tickets:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-support-tickets:active {
+  transform: scale(0.95);
+}
+
+.support-ticket-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #f59e0b; /* Orange/amber for support tickets */
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid #667eea;
+  animation: pulse-ticket 2s infinite;
+}
+
+@keyframes pulse-ticket {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+}
+
+/* Support Response Button - User Alert for Admin Replies */
+.btn-support-response {
+  position: relative;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: white;
+  border-radius: 12px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+}
+
+.btn-support-response:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-support-response:active {
+  transform: scale(0.95);
+}
+
+.support-response-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #10b981; /* Green for positive - you got a response! */
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+  border: 2px solid #667eea;
+  animation: pulse-response 2s infinite;
+}
+
+@keyframes pulse-response {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
 /* Buttons - Rounded squares, transparent like other buttons */
 .btn-logout,
 .btn-login {
@@ -683,7 +793,9 @@
   }
   
   .btn-messages,
-  .btn-refer-friend {
+  .btn-refer-friend,
+  .btn-support-tickets,
+  .btn-support-response {
     width: 44px;
     height: 44px;
     font-size: 20px;

@@ -28,6 +28,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [violations, setViolations] = useState(null);
   const [onlineCount, setOnlineCount] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const [openTicketCount, setOpenTicketCount] = useState(0); // Admin support ticket count
+  const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
   const navigate = useNavigate();
 
   // Get page title based on current route
@@ -289,6 +291,56 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, [currentUser]);
 
+  // Poll for open support tickets (admin only)
+  useEffect(() => {
+    if (userRole !== 'admin') {
+      setOpenTicketCount(0);
+      return;
+    }
+
+    const fetchOpenTicketCount = async () => {
+      try {
+        const response = await api.get('/contact/admin/open-count');
+        setOpenTicketCount(response.data.count || 0);
+      } catch (error) {
+        logger.error('Error fetching open ticket count:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchOpenTicketCount();
+
+    // Poll every 60 seconds
+    const interval = setInterval(fetchOpenTicketCount, 60000);
+
+    return () => clearInterval(interval);
+  }, [userRole]);
+
+  // Poll for unread admin responses (all logged-in users)
+  useEffect(() => {
+    if (!currentUser) {
+      setUnreadResponseCount(0);
+      return;
+    }
+
+    const fetchUnreadResponseCount = async () => {
+      try {
+        const response = await api.get(`/contact/user/${currentUser}/unread-count`);
+        setUnreadResponseCount(response.data.count || 0);
+      } catch (error) {
+        logger.error('Error fetching unread response count:', error);
+      }
+    };
+
+    // Fetch immediately
+    fetchUnreadResponseCount();
+
+    // Poll every 60 seconds
+    const interval = setInterval(fetchUnreadResponseCount, 60000);
+
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
   if (!isLoggedIn) {
     return (
       <div className={`top-bar ${isOpen ? 'sidebar-open' : ''}`}>
@@ -376,6 +428,32 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <span className="refer-icon">🔍</span>
             <span className="refer-text">Search</span>
           </button>
+          
+          {/* Support Tickets Alert - Admin Only */}
+          {userRole === 'admin' && (
+            <button 
+              className="btn-support-tickets" 
+              onClick={() => navigate('/admin/contact')}
+              title={`Open Support Tickets${openTicketCount > 0 ? ` (${openTicketCount})` : ''}`}
+            >
+              🎫
+              {openTicketCount > 0 && (
+                <span className="support-ticket-badge">{openTicketCount > 99 ? '99+' : openTicketCount}</span>
+              )}
+            </button>
+          )}
+          
+          {/* Support Response Alert - All Users (when they have unread admin responses) */}
+          {unreadResponseCount > 0 && (
+            <button 
+              className="btn-support-response" 
+              onClick={() => navigate('/contact')}
+              title={`You have ${unreadResponseCount} unread support response${unreadResponseCount > 1 ? 's' : ''}`}
+            >
+              📩
+              <span className="support-response-badge">{unreadResponseCount > 99 ? '99+' : unreadResponseCount}</span>
+            </button>
+          )}
           
           {/* Messages Icon with Dropdown */}
           <div className="messages-icon-container">
