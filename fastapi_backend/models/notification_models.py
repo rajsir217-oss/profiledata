@@ -176,8 +176,8 @@ class PrivacySettings(BaseModel):
 class DigestSettings(BaseModel):
     """Daily digest email settings to reduce notification spam"""
     enabled: bool = Field(
-        default=False,
-        description="Enable daily digest emails"
+        default=True,
+        description="Enable daily digest emails (default ON for all users)"
     )
     frequency: str = Field(
         default="daily",
@@ -215,8 +215,8 @@ class DigestSettings(BaseModel):
         description="Batch 'profile view' notifications into digest"
     )
     batchPiiRequests: bool = Field(
-        default=False,
-        description="Batch PII request notifications into digest (not recommended)"
+        default=True,
+        description="Batch PII request notifications into digest"
     )
     batchNewMatches: bool = Field(
         default=True,

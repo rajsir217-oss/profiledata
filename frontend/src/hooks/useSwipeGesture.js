@@ -10,6 +10,7 @@ import { useState, useRef, useCallback } from 'react';
  * @param {Function} options.onSwipeRight - Callback when swiped right (favorite)
  * @param {Function} options.onSwipeLeft - Callback when swiped left (exclude)
  * @param {Function} options.onSwipeUp - Callback when swiped up (shortlist)
+ * @param {Function} options.onSwipeDown - Callback when swiped down (skip/next)
  * @param {Function} options.onSwipeComplete - Callback after any swipe action
  * @returns {Object} Gesture state and event handlers
  */
@@ -19,6 +20,7 @@ const useSwipeGesture = ({
   onSwipeRight,
   onSwipeLeft,
   onSwipeUp,
+  onSwipeDown,
   onSwipeComplete
 } = {}) => {
   // Use refs for position tracking (avoid re-renders during drag)
@@ -30,7 +32,7 @@ const useSwipeGesture = ({
   const [swipeState, setSwipeState] = useState({
     deltaX: 0,
     deltaY: 0,
-    direction: null, // 'left' | 'right' | 'up' | null
+    direction: null, // 'left' | 'right' | 'up' | 'down' | null
     isDragging: false,
     isCommitted: false
   });
@@ -41,8 +43,9 @@ const useSwipeGesture = ({
     const absY = Math.abs(deltaY);
     
     // Vertical swipe takes priority if moving more vertically
-    if (absY > absX && deltaY < -thresholdY / 2) {
-      return 'up';
+    if (absY > absX) {
+      if (deltaY < -thresholdY / 2) return 'up';
+      if (deltaY > thresholdY / 2) return 'down';
     }
     
     if (absX > absY) {
@@ -60,6 +63,8 @@ const useSwipeGesture = ({
     
     // Up swipe committed
     if (deltaY < -thresholdY && absY > absX) return true;
+    // Down swipe committed
+    if (deltaY > thresholdY && absY > absX) return true;
     // Right swipe committed
     if (deltaX > thresholdX && absX > absY) return true;
     // Left swipe committed
@@ -122,6 +127,8 @@ const useSwipeGesture = ({
         onSwipeLeft();
       } else if (direction === 'up' && onSwipeUp) {
         onSwipeUp();
+      } else if (direction === 'down' && onSwipeDown) {
+        onSwipeDown();
       }
       
       if (onSwipeComplete) {
@@ -144,7 +151,7 @@ const useSwipeGesture = ({
         isCommitted: false
       });
     }
-  }, [getDirection, isCommitted, onSwipeRight, onSwipeLeft, onSwipeUp, onSwipeComplete]);
+  }, [getDirection, isCommitted, onSwipeRight, onSwipeLeft, onSwipeUp, onSwipeDown, onSwipeComplete]);
 
   // Touch event handlers
   const onTouchStart = useCallback((e) => {

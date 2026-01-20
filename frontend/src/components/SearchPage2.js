@@ -2132,6 +2132,9 @@ const SearchPage2 = () => {
       // Shortlist
       handleProfileAction(null, username, 'shortlist');
       toastService.success(`📋 Added ${user.firstName || username} to shortlist`);
+    } else if (direction === 'down') {
+      // Skip/Next - just advance without any action
+      toastService.info(`⏭️ Skipped ${user.firstName || username}`);
     }
     
     // Advance to next card after a short delay for animation
@@ -2908,6 +2911,7 @@ const SearchPage2 = () => {
                           onSwipeRight={() => handleSwipeAction('right', user)}
                           onSwipeLeft={() => handleSwipeAction('left', user)}
                           onSwipeUp={() => handleSwipeAction('up', user)}
+                          onSwipeDown={() => handleSwipeAction('down', user)}
                         >
                           <SearchResultCard
                             key={user.username}
@@ -3060,6 +3064,30 @@ const SearchPage2 = () => {
                     title="Favorite (swipe right)"
                   >
                     ⭐
+                  </button>
+                  <button
+                    onClick={() => handleSwipeAction('down', currentRecords[swipeIndex])}
+                    style={{
+                      width: '20px',
+                      height: '20px',
+                      minWidth: '20px',
+                      minHeight: '20px',
+                      padding: 0,
+                      borderRadius: '50%',
+                      border: '1px solid var(--text-secondary)',
+                      background: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontSize: '10px',
+                      lineHeight: 1,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Skip (swipe down)"
+                  >
+                    ⏭️
                   </button>
                 </div>
               )}
