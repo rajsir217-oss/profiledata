@@ -99,6 +99,7 @@ class DailyDigestTemplate(JobTemplate):
         hours_lookback = params.get("hours_lookback", 24)
         dry_run = params.get("dry_run", False)
         force_send = params.get("force_send", False)
+        test_username = params.get("test_username", None)  # For testing single user
         
         if db is None:
             return JobResult(
@@ -119,9 +120,14 @@ class DailyDigestTemplate(JobTemplate):
             current_hour = now.hour
             
             # Find users with digest enabled
-            users_with_digest = await db.notification_preferences.find({
-                "digestSettings.enabled": True
-            }).to_list(length=None)
+            query = {"digestSettings.enabled": True}
+            
+            # If test_username is specified, only process that user
+            if test_username:
+                query["username"] = test_username
+                context.log("info", f"🧪 Test mode: only processing user '{test_username}'")
+            
+            users_with_digest = await db.notification_preferences.find(query).to_list(length=None)
             
             context.log("info", f"📬 Found {len(users_with_digest)} users with digest enabled")
             
@@ -258,16 +264,25 @@ class DailyDigestTemplate(JobTemplate):
             for fav in favorites:
                 actor = await db.users.find_one({"username": fav.get("userUsername")})
                 if actor:
+                    # Build location from city/state (not encrypted location field)
+                    location_parts = []
+                    if actor.get("city"):
+                        location_parts.append(actor.get("city"))
+                    if actor.get("state"):
+                        location_parts.append(actor.get("state"))
+                    location = ", ".join(location_parts) if location_parts else ""
+                    
                     activity["favorited_by"].append({
                         "username": fav.get("userUsername"),
                         "firstName": actor.get("firstName", ""),
                         "lastName": actor.get("lastName", ""),
                         "education": actor.get("education", ""),
                         "occupation": actor.get("occupation", ""),
-                        "location": actor.get("location", ""),
+                        "location": location,
                         "timestamp": fav.get("createdAt")
                     })
             activity["stats"]["total_favorites"] = len(activity["favorited_by"])
+            activity["favorited_by_count"] = len(activity["favorited_by"])
         
         # Collect shortlisted by (if batching enabled)
         if digest_settings.get("batchShortlists", True):
@@ -279,15 +294,24 @@ class DailyDigestTemplate(JobTemplate):
             for sl in shortlists:
                 actor = await db.users.find_one({"username": sl.get("userUsername")})
                 if actor:
+                    # Build location from city/state (not encrypted location field)
+                    location_parts = []
+                    if actor.get("city"):
+                        location_parts.append(actor.get("city"))
+                    if actor.get("state"):
+                        location_parts.append(actor.get("state"))
+                    location = ", ".join(location_parts) if location_parts else ""
+                    
                     activity["shortlisted_by"].append({
                         "username": sl.get("userUsername"),
                         "firstName": actor.get("firstName", ""),
                         "lastName": actor.get("lastName", ""),
                         "education": actor.get("education", ""),
                         "occupation": actor.get("occupation", ""),
-                        "location": actor.get("location", ""),
+                        "location": location,
                         "timestamp": sl.get("createdAt")
                     })
+            activity["shortlisted_by_count"] = len(activity["shortlisted_by"])
         
         # Collect profile views (if batching enabled)
         if digest_settings.get("batchProfileViews", True):
@@ -303,17 +327,26 @@ class DailyDigestTemplate(JobTemplate):
                 if viewer_username and viewer_username not in viewers:
                     viewer = await db.users.find_one({"username": viewer_username})
                     if viewer:
+                        # Build location from city/state (not encrypted location field)
+                        location_parts = []
+                        if viewer.get("city"):
+                            location_parts.append(viewer.get("city"))
+                        if viewer.get("state"):
+                            location_parts.append(viewer.get("state"))
+                        location = ", ".join(location_parts) if location_parts else ""
+                        
                         viewers[viewer_username] = {
                             "username": viewer_username,
                             "firstName": viewer.get("firstName", ""),
                             "lastName": viewer.get("lastName", ""),
                             "education": viewer.get("education", ""),
                             "occupation": viewer.get("occupation", ""),
-                            "location": viewer.get("location", ""),
+                            "location": location,
                             "timestamp": view.get("viewedAt")
                         }
             activity["profile_views"] = list(viewers.values())[:20]
             activity["stats"]["total_views"] = len(views)
+            activity["profile_views_count"] = len(activity["profile_views"])
         
         # Collect PII requests (if batching enabled - not recommended)
         if digest_settings.get("batchPiiRequests", False):
@@ -362,6 +395,7 @@ class DailyDigestTemplate(JobTemplate):
         
         activity["new_messages"] = list(senders.values())
         activity["stats"]["total_messages"] = len(unread_messages)
+        activity["new_messages_count"] = len(activity["new_messages"])
         
         # Check for expiring PII access (within 2 days)
         expiring_soon = datetime.utcnow() + timedelta(days=2)
