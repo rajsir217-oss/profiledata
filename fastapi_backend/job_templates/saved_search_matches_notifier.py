@@ -26,6 +26,15 @@ from .base import JobTemplate, JobExecutionContext, JobResult
 from config import settings
 from services.notification_service import NotificationService
 from crypto_utils import PIIEncryption
+from utils.profile_display import (
+    extract_profile_display_data,
+    extract_education,
+    extract_occupation,
+    extract_profile_picture,
+    extract_location,
+    render_profile_card_html,
+    convert_to_gcs_url
+)
 from models.notification_models import (
     NotificationTrigger, 
     NotificationChannel, 
@@ -760,39 +769,8 @@ async def send_matches_email(
             # Location - use decrypted values
             location = decrypted_match.get('location') or decrypted_match.get('state') or 'Location not specified'
             
-            # Education - check educationHistory array first, then fallbacks
-            education = ''
-            
-            # 1. Check educationHistory array (primary field)
-            edu_history = decrypted_match.get('educationHistory', [])
-            if isinstance(edu_history, list) and len(edu_history) > 0:
-                first_edu = edu_history[0]
-                if isinstance(first_edu, dict):
-                    # Build education string: "Degree from Institution" or just "Degree/Level"
-                    degree = first_edu.get('degree') or first_edu.get('level') or ''
-                    institution = first_edu.get('institution') or ''
-                    if degree and institution:
-                        education = f"{degree} from {institution}"
-                    elif degree:
-                        education = degree
-                    elif institution:
-                        education = institution
-            
-            # 2. Fallback to education field (can be string or array)
-            if not education and decrypted_match.get('education'):
-                edu_data = decrypted_match['education']
-                if isinstance(edu_data, str) and edu_data.strip():
-                    education = edu_data
-                elif isinstance(edu_data, list) and len(edu_data) > 0:
-                    first_edu = edu_data[0]
-                    if isinstance(first_edu, dict):
-                        education = first_edu.get('degree') or first_edu.get('qualification') or first_edu.get('level', '')
-                    elif isinstance(first_edu, str):
-                        education = first_edu
-            
-            # 3. Fallback to highestEducation or educationLevel
-            if not education:
-                education = decrypted_match.get('highestEducation') or decrypted_match.get('educationLevel') or ''
+            # Education - use shared utility
+            education = extract_education(decrypted_match)
             # Education detail (only show if specified)
             education_detail = ''
             if education:
@@ -813,25 +791,8 @@ async def send_matches_email(
                 </div>
                 '''
             
-            # Occupation - check occupation field first, then workExperience array for current job
-            occupation = decrypted_match.get('occupation')
-            if not occupation:
-                work_exp = decrypted_match.get('workExperience', [])
-                if isinstance(work_exp, list) and len(work_exp) > 0:
-                    # Find current job (isCurrent=True) or use the first entry
-                    current_job = None
-                    for job in work_exp:
-                        if isinstance(job, dict) and job.get('isCurrent'):
-                            current_job = job
-                            break
-                    if not current_job and work_exp:
-                        current_job = work_exp[0] if isinstance(work_exp[0], dict) else None
-                    
-                    if current_job:
-                        job_title = current_job.get('jobTitle') or current_job.get('title') or current_job.get('position')
-                        company = current_job.get('company') or current_job.get('employer')
-                        if job_title:
-                            occupation = f"{job_title}" + (f" at {company}" if company else "")
+            # Occupation - use shared utility
+            occupation = extract_occupation(decrypted_match)
             
             occupation_detail = ''
             if occupation:
@@ -858,62 +819,8 @@ async def send_matches_email(
             # Get profileId
             profile_id = decrypted_match.get('profileId', '')
             
-            # Get profile photo URL
-            # Priority: imageVisibility.profilePic > images[0] > photos[0] > profilePhoto
-            profile_photo_url = ''
-            
-            # 1. Check imageVisibility.profilePic (new 3-bucket system)
-            image_visibility = decrypted_match.get('imageVisibility', {})
-            if image_visibility and image_visibility.get('profilePic'):
-                profile_photo_url = image_visibility['profilePic']
-            
-            # 2. Fallback to images array (main storage)
-            if not profile_photo_url:
-                images = decrypted_match.get('images', [])
-                if images and isinstance(images, list) and len(images) > 0:
-                    first_image = images[0]
-                    if isinstance(first_image, str):
-                        profile_photo_url = first_image
-                    elif isinstance(first_image, dict):
-                        profile_photo_url = first_image.get('url', first_image.get('path', ''))
-            
-            # 3. Fallback to photos array (legacy)
-            if not profile_photo_url:
-                photos = decrypted_match.get('photos', [])
-                if photos and isinstance(photos, list) and len(photos) > 0:
-                    first_photo = photos[0]
-                    if isinstance(first_photo, dict):
-                        profile_photo_url = first_photo.get('url', first_photo.get('thumbnail', ''))
-                    elif isinstance(first_photo, str):
-                        profile_photo_url = first_photo
-            
-            # 4. Fallback to profilePhoto field
-            if not profile_photo_url:
-                profile_photo_url = decrypted_match.get('profilePhoto', decrypted_match.get('photoUrl', ''))
-            
-            # Convert relative paths to full URLs
-            # For emails, images must be publicly accessible (no auth required)
-            # Use GCS bucket URL for all images
-            gcs_bucket = settings.gcs_bucket_name or 'matrimonial-uploads-matrimonial-staging'
-            
-            if profile_photo_url:
-                # Handle GCS bucket paths (e.g., /matrimonial-uploads-matrimonial-staging/uploads/...)
-                if profile_photo_url.startswith('/matrimonial-uploads'):
-                    # This is a GCS bucket path - convert to full GCS URL
-                    profile_photo_url = f"https://storage.googleapis.com{profile_photo_url}"
-                elif profile_photo_url.startswith('/uploads/'):
-                    # Handle /uploads/filename.jpg - convert to GCS URL (public bucket)
-                    filename = profile_photo_url.split('/uploads/')[-1]
-                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}/uploads/{filename}"
-                elif profile_photo_url.startswith('https://storage.googleapis.com'):
-                    # Already a full GCS URL - keep as is
-                    pass
-                elif profile_photo_url.startswith('/'):
-                    # Handle other relative paths - convert to GCS
-                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}{profile_photo_url}"
-                elif not profile_photo_url.startswith('http'):
-                    # Handle bare filenames - convert to GCS URL
-                    profile_photo_url = f"https://storage.googleapis.com/{gcs_bucket}/uploads/{profile_photo_url}"
+            # Get profile photo URL using shared utility and convert to public URL for emails
+            profile_photo_url = extract_profile_picture(decrypted_match, convert_to_public_url=True)
             
             # Use placeholder if no photo - use ui-avatars.com for a nice avatar with initials
             if not profile_photo_url:
