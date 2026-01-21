@@ -62,10 +62,10 @@ def extract_user_display_data(user: Dict[str, Any]) -> Dict[str, str]:
         # 2. Check workExperience array for current job
         work_exp = user.get('workExperience', [])
         if isinstance(work_exp, list) and len(work_exp) > 0:
-            # Find current job (isCurrent=True) or use the first entry
+            # Find current job (isCurrent=True or status='current') or use the first entry
             current_job = None
             for job in work_exp:
-                if isinstance(job, dict) and job.get('isCurrent'):
+                if isinstance(job, dict) and (job.get('isCurrent') or job.get('status') == 'current'):
                     current_job = job
                     break
             if not current_job and work_exp:
@@ -76,6 +76,10 @@ def extract_user_display_data(user: Dict[str, Any]) -> Dict[str, str]:
                 company = current_job.get('company') or current_job.get('employer')
                 if job_title:
                     occupation = f"{job_title}" + (f" at {company}" if company else "")
+                elif current_job.get('description'):
+                    # Fallback to description, truncate to first 50 chars
+                    desc = current_job.get('description', '')
+                    occupation = desc[:50] + "..." if len(desc) > 50 else desc
     
     result["occupation"] = occupation or ""
     
