@@ -16,6 +16,9 @@ BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
+    # Environment
+    env: str = "development"  # Options: "development", "production", "testing"
+    
     # Database Configuration
     mongodb_url: str = "mongodb://localhost:27017"
     database_name: str = "matrimonialDB"

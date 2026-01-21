@@ -8,8 +8,31 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   const [paymentType, setPaymentType] = useState('monthly'); // 'one-time' or 'monthly'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [hasLoggedShown, setHasLoggedShown] = useState(false);
 
   const amounts = [5, 10, 15];
+
+  // Log activity to backend (fire and forget)
+  const logActivity = async (action, amount = null, pType = null) => {
+    try {
+      const token = localStorage.getItem('token');
+      await fetch(`${getBackendUrl()}/api/stripe/log-contribution-activity`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          action,
+          amount,
+          paymentType: pType
+        })
+      });
+    } catch (err) {
+      // Silent fail - don't disrupt user experience
+      console.debug('Activity log failed:', err);
+    }
+  };
 
   // ESC key handler
   useEffect(() => {
@@ -27,25 +50,35 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     };
   }, [isOpen, loading]);
 
-  // Prevent body scroll when modal is open
+  // Prevent body scroll when modal is open & log popup shown
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
+      // Log popup shown only once per open
+      if (!hasLoggedShown) {
+        logActivity('popup_shown');
+        setHasLoggedShown(true);
+      }
     } else {
       document.body.style.overflow = 'unset';
+      setHasLoggedShown(false);
     }
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, hasLoggedShown]);
 
   const handleSessionDismiss = () => {
+    // Log the close action
+    logActivity('closed');
     // Dismiss for current session only
     sessionStorage.setItem('contribution_dismissed', 'true');
     onClose();
   };
 
   const handleRemindNextWeek = () => {
+    // Log the remind later action
+    logActivity('remind_later');
     // Set reminder for 7 days from now
     const remindAt = Date.now() + (7 * 24 * 60 * 60 * 1000);
     localStorage.setItem('contribution_remind_at', remindAt.toString());
@@ -81,6 +114,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
       const data = await response.json();
 
       if (data.success && data.url) {
+        // Log proceed to payment action
+        logActivity('proceed_to_payment', amount, paymentType);
         // Record that popup was shown
         localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
         // Redirect to Stripe Checkout
