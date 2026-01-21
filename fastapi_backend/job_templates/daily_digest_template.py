@@ -251,15 +251,15 @@ class DailyDigestTemplate(JobTemplate):
         # Collect favorited by (if batching enabled)
         if digest_settings.get("batchFavorites", True):
             favorites = await db.favorites.find({
-                "targetUsername": username,
+                "favoriteUsername": username,
                 "createdAt": {"$gte": start_time, "$lte": end_time}
             }).to_list(length=50)
             
             for fav in favorites:
-                actor = await db.users.find_one({"username": fav.get("username")})
+                actor = await db.users.find_one({"username": fav.get("userUsername")})
                 if actor:
                     activity["favorited_by"].append({
-                        "username": fav.get("username"),
+                        "username": fav.get("userUsername"),
                         "firstName": actor.get("firstName", ""),
                         "lastName": actor.get("lastName", ""),
                         "education": actor.get("education", ""),
@@ -271,16 +271,16 @@ class DailyDigestTemplate(JobTemplate):
         
         # Collect shortlisted by (if batching enabled)
         if digest_settings.get("batchShortlists", True):
-            shortlists = await db.shortlist.find({
-                "targetUsername": username,
+            shortlists = await db.shortlists.find({
+                "shortlistedUsername": username,
                 "createdAt": {"$gte": start_time, "$lte": end_time}
             }).to_list(length=50)
             
             for sl in shortlists:
-                actor = await db.users.find_one({"username": sl.get("username")})
+                actor = await db.users.find_one({"username": sl.get("userUsername")})
                 if actor:
                     activity["shortlisted_by"].append({
-                        "username": sl.get("username"),
+                        "username": sl.get("userUsername"),
                         "firstName": actor.get("firstName", ""),
                         "lastName": actor.get("lastName", ""),
                         "education": actor.get("education", ""),
@@ -318,7 +318,7 @@ class DailyDigestTemplate(JobTemplate):
         # Collect PII requests (if batching enabled - not recommended)
         if digest_settings.get("batchPiiRequests", False):
             pii_requests = await db.pii_requests.find({
-                "targetUsername": username,
+                "profileUsername": username,
                 "status": "pending",
                 "createdAt": {"$gte": start_time, "$lte": end_time}
             }).to_list(length=20)
@@ -330,7 +330,7 @@ class DailyDigestTemplate(JobTemplate):
                         "username": req.get("requesterUsername"),
                         "firstName": requester.get("firstName", ""),
                         "lastName": requester.get("lastName", ""),
-                        "requestedTypes": req.get("requestedTypes", []),
+                        "requestedTypes": [req.get("requestType", "contact_info")],
                         "timestamp": req.get("createdAt")
                     })
             activity["stats"]["total_pii_requests"] = len(activity["pii_requests"])
@@ -338,7 +338,7 @@ class DailyDigestTemplate(JobTemplate):
         # Collect new messages (always include summary)
         unread_messages = await db.messages.find({
             "toUsername": username,
-            "read": False,
+            "isRead": False,
             "createdAt": {"$gte": start_time, "$lte": end_time}
         }).to_list(length=50)
         
