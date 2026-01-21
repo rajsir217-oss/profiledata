@@ -522,6 +522,106 @@ async def get_all_contributions(
         raise HTTPException(status_code=500, detail="Failed to get contributions")
 
 
+class ContributionActivityRequest(BaseModel):
+    """Request model for logging contribution popup activity"""
+    action: str = Field(..., description="Action: 'popup_shown', 'closed', 'remind_later', 'proceed_to_payment', 'contributed'")
+    amount: Optional[float] = Field(None, description="Amount if applicable")
+    paymentType: Optional[str] = Field(None, description="Payment type if applicable")
+
+
+@router.post("/log-contribution-activity")
+async def log_contribution_activity(
+    request: ContributionActivityRequest,
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
+):
+    """Log user interaction with the contribution popup"""
+    from datetime import datetime
+    
+    try:
+        activity = {
+            "username": current_user["username"],
+            "action": request.action,
+            "amount": request.amount,
+            "paymentType": request.paymentType,
+            "timestamp": datetime.utcnow(),
+            "userAgent": None  # Could be added from request headers if needed
+        }
+        
+        await db.contribution_activity.insert_one(activity)
+        
+        logger.debug(f"💝 Contribution activity logged: {current_user['username']} - {request.action}")
+        
+        return {"success": True, "message": "Activity logged"}
+    except Exception as e:
+        logger.error(f"Error logging contribution activity: {e}")
+        # Don't fail the request if logging fails
+        return {"success": True, "message": "Activity logging skipped"}
+
+
+@router.get("/admin/contribution-activity")
+async def get_contribution_activity(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database),
+    page: int = 1,
+    limit: int = 50,
+    action_filter: Optional[str] = None
+):
+    """Get contribution popup activity log (admin only)"""
+    if current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    try:
+        # Build query
+        query = {}
+        if action_filter and action_filter != "all":
+            query["action"] = action_filter
+        
+        # Get total count
+        total = await db.contribution_activity.count_documents(query)
+        
+        # Get activities with pagination
+        skip = (page - 1) * limit
+        activities = await db.contribution_activity.find(query).sort("timestamp", -1).skip(skip).limit(limit).to_list(length=limit)
+        
+        # Format for frontend
+        formatted_activities = []
+        for a in activities:
+            formatted_activities.append({
+                "id": str(a.get("_id")),
+                "username": a.get("username"),
+                "action": a.get("action"),
+                "amount": a.get("amount"),
+                "paymentType": a.get("paymentType"),
+                "timestamp": a.get("timestamp").isoformat() if a.get("timestamp") else None
+            })
+        
+        # Get action summary stats
+        pipeline = [
+            {"$group": {
+                "_id": "$action",
+                "count": {"$sum": 1}
+            }}
+        ]
+        action_stats = await db.contribution_activity.aggregate(pipeline).to_list(length=20)
+        stats = {s["_id"]: s["count"] for s in action_stats}
+        
+        return {
+            "success": True,
+            "activities": formatted_activities,
+            "pagination": {
+                "page": page,
+                "limit": limit,
+                "total": total,
+                "totalPages": (total + limit - 1) // limit if total > 0 else 1
+            },
+            "stats": stats
+        }
+    except Exception as e:
+        logger.error(f"Error getting contribution activity: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get contribution activity")
+
+
 @router.post("/apply-promo")
 async def apply_promo_code(
     plan_id: str,

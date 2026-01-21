@@ -142,7 +142,7 @@ const PrivacyPolicy = () => {
 
           <h3>7.4 How to Exercise Your Rights</h3>
           <p>
-            To exercise any of these rights, contact us at <strong>privacy@matrimonialapp.com</strong> or use the settings in your account dashboard.
+            To exercise any of these rights, contact us at <strong>privacy@l3v3lmatches.com</strong> or use the settings in your account dashboard.
           </p>
         </section>
 
@@ -180,7 +180,7 @@ const PrivacyPolicy = () => {
             <strong>Our Service is NOT intended for individuals under 18 years of age.</strong> We do not knowingly collect personal information from children. If we discover that a child has provided us with personal information, we will delete it immediately.
           </p>
           <p>
-            If you believe a child has registered, please contact us immediately at <strong>privacy@matrimonialapp.com</strong>.
+            If you believe a child has registered, please contact us immediately at <strong>privacy@l3v3lmatches.com</strong>.
           </p>
         </section>
 
@@ -236,12 +236,12 @@ const PrivacyPolicy = () => {
           </p>
           <p className="contact-info">
             <strong>Privacy Team</strong><br />
-            <strong>Email:</strong> privacy@matrimonialapp.com<br />
-            <strong>Address:</strong> [Your Business Address]<br />
-            <strong>Phone:</strong> [Your Contact Number]
+            <strong>Email:</strong> privacy@l3v3lmatches.com<br />
+            <strong>Address:</strong> L3V3L Matches Inc., San Francisco, CA, USA<br />
+            <strong>Phone:</strong> +1 (800) 555-L3V3L
           </p>
           <p>
-            <strong>Data Protection Officer (DPO):</strong> dpo@matrimonialapp.com (if required by GDPR)
+            <strong>Data Protection Officer (DPO):</strong> privacy@l3v3lmatches.com
           </p>
         </section>
 
@@ -288,7 +288,7 @@ const PrivacyPolicy = () => {
             We may share personally identifiable information (such as name, address, email or phone) with trusted partners in order to provide you with relevant advertising, offers or services.
           </p>
           <p>
-            California residents are legally entitled (at no charge and no more than once annually) to request information about how we may have shared your information with others for direct marketing purposes. Contact us for this information: privacy@matrimonialapp.com.
+            California residents are legally entitled (at no charge and no more than once annually) to request information about how we may have shared your information with others for direct marketing purposes. Contact us for this information: privacy@l3v3lmatches.com.
           </p>
           <p>
             No mobile information will be shared with third parties/affiliates for marketing/promotional purposes. All the above categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties.
@@ -307,7 +307,7 @@ const PrivacyPolicy = () => {
             You can ask privacy questions.
           </p>
           <p>
-            If you have any questions or concerns about our privacy policies, please contact us: privacy@matrimonialapp.com.
+            If you have any questions or concerns about our privacy policies, please contact us: privacy@l3v3lmatches.com.
           </p>
           
           <h3>Vendors</h3>

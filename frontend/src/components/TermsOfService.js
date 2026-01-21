@@ -176,9 +176,9 @@ const TermsOfService = () => {
             If you have questions about these Terms of Service, please contact us at:
           </p>
           <p className="contact-info">
-            <strong>Email:</strong> legal@matrimonialapp.com<br />
-            <strong>Address:</strong> [Your Business Address]<br />
-            <strong>Phone:</strong> [Your Contact Number]
+            <strong>Email:</strong> support@l3v3lmatches.com<br />
+            <strong>Address:</strong> L3V3L Matches Inc., San Francisco, CA, USA<br />
+            <strong>Phone:</strong> +1 (800) 555-L3V3L
           </p>
         </section>
 
@@ -199,7 +199,7 @@ const TermsOfService = () => {
             <li>By downloading or otherwise using the service, you acknowledge and agree that you have the right to change and/or terminate the service at any time, with or without cause and/or advance notice.</li>
           </ul>
           <p>
-            <strong>Questions?</strong> Contact <strong>L3V3LMATCHES by Nimble Data Solutions LLC</strong> at [Your phone number].
+            <strong>Questions?</strong> Contact <strong>L3V3LMATCHES by Nimble Data Solutions LLC</strong> at +1 (800) 555-L3V3L.
           </p>
           <p>
             <strong>Will I be charged for the text messages I receive?</strong><br />

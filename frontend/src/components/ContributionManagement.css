@@ -105,6 +105,44 @@
   letter-spacing: 0.3px;
 }
 
+/* Main Tabs */
+.main-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.main-tab {
+  padding: 12px 24px;
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--surface-color);
+  color: var(--text-secondary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.main-tab:hover {
+  color: var(--text-color);
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+}
+
+.main-tab.active {
+  color: white;
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+.main-tab.active::after {
+  display: none;
+}
+
 /* Filter Tabs */
 .filter-tabs {
   display: flex;
@@ -227,6 +265,55 @@
 .user-cell .username {
   font-weight: 500;
   color: var(--primary-color);
+}
+
+.username-link {
+  font-weight: 500;
+  color: var(--primary-color);
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.username-link:hover {
+  text-decoration: underline;
+  opacity: 0.8;
+}
+
+/* Action Badges for Activity Log */
+.action-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.action-badge.action-shown {
+  background: rgba(99, 102, 241, 0.1);
+  color: #6366f1;
+}
+
+.action-badge.action-closed {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.action-badge.action-remind {
+  background: rgba(245, 158, 11, 0.1);
+  color: #f59e0b;
+}
+
+.action-badge.action-payment {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+}
+
+.action-badge.action-contributed {
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
 }
 
 .amount-cell .amount {

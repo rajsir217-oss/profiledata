@@ -69,6 +69,7 @@ import TooltipDemo from './components/TooltipDemo';
 import ProtectedRoute from './components/ProtectedRoute';
 import TermsOfService from './components/TermsOfService';
 import PrivacyPolicy from './components/PrivacyPolicy';
+import RefundPolicy from './components/RefundPolicy';
 import CommunityGuidelines from './components/CommunityGuidelines';
 import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
@@ -107,7 +108,7 @@ const applyTheme = (themeId) => {
 // Auth Guard Component - checks token before rendering protected content
 function AuthGuard({ children }) {
   const location = useLocation();
-  const publicRoutes = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+  const publicRoutes = ['/', '/login', '/register', '/register2', '/verify-email', '/verify-email-sent', '/forgot-password', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
   const isPublicRoute = publicRoutes.some(route => location.pathname === route || location.pathname.startsWith(route + '/'));
   const token = localStorage.getItem('token');
   
@@ -357,6 +358,7 @@ function AppContent() {
               {/* Legal pages - accessible to all */}
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
+              <Route path="/refund" element={<RefundPolicy />} />
               <Route path="/community-guidelines" element={<CommunityGuidelines />} />
               <Route path="/cookie-policy" element={<CookiePolicy />} />
               <Route path="/about" element={<PrivacyPolicy />} />

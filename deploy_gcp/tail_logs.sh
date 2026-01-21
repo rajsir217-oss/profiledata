@@ -4,9 +4,9 @@
 # Tails production logs in real-time
 
 # Configuration
-PROJECT_ID="usvedika"
-BACKEND_SERVICE="profiledata-backend"
-FRONTEND_SERVICE="profiledata-frontend"
+PROJECT_ID="matrimonial-staging"
+BACKEND_SERVICE="matrimonial-backend"
+FRONTEND_SERVICE="matrimonial-frontend"
 REGION="us-central1"
 
 # Colors for output

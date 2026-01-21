@@ -62,18 +62,22 @@ log_format = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 # Setup handlers - both console and file
 handlers = [logging.StreamHandler()]  # Console output
 
-# Add file handler if log_file is configured
-if settings.log_file:
+# Add file handler if log_file is configured (skip in production - Cloud Run captures stdout)
+if settings.log_file and settings.env != "production":
     from logging.handlers import RotatingFileHandler
-    log_dir = Path(settings.log_file).parent
-    log_dir.mkdir(parents=True, exist_ok=True)
-    file_handler = RotatingFileHandler(
-        settings.log_file,
-        maxBytes=10*1024*1024,  # 10MB per file
-        backupCount=5  # Keep 5 backup files
-    )
-    file_handler.setFormatter(logging.Formatter(log_format))
-    handlers.append(file_handler)
+    try:
+        log_dir = Path(settings.log_file).parent
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler = RotatingFileHandler(
+            settings.log_file,
+            maxBytes=10*1024*1024,  # 10MB per file
+            backupCount=5  # Keep 5 backup files
+        )
+        file_handler.setFormatter(logging.Formatter(log_format))
+        handlers.append(file_handler)
+    except (PermissionError, OSError) as e:
+        # Skip file logging if directory is not writable (e.g., in containers)
+        print(f"⚠️ File logging disabled: {e}")
 
 logging.basicConfig(
     level=log_level,
@@ -92,9 +96,11 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 logger = logging.getLogger(__name__)
-logger.info(f"Logger initialized in {settings.log_level.upper()} mode")
-if settings.log_file:
+logger.info(f"Logger initialized in {settings.log_level.upper()} mode (env: {settings.env})")
+if settings.log_file and settings.env != "production":
     logger.info(f"📁 Logging to file: {settings.log_file}")
+elif settings.env == "production":
+    logger.info("📡 Production mode: Using stdout logging (Cloud Run captures automatically)")
 
 async def lifespan(app: FastAPI):
     # Startup
