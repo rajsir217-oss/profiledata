@@ -404,10 +404,65 @@ class NotificationService:
                 result = result.replace(double_brace, str_value)
                 result = result.replace(single_brace, str_value)
         
+        # Handle for loops {% for item in list %}...{% endfor %}
+        result = self._process_for_loops(result, variables)
+        
         # Handle conditional blocks {% if condition %}...{% endif %}
         result = self._process_conditionals(result, variables)
         
         return result
+    
+    def _process_for_loops(self, template: str, variables: Dict[str, Any]) -> str:
+        """Process {% for item in list %}...{% endfor %} loops"""
+        
+        # Pattern to match for loops: {% for item in collection %}...{% endfor %}
+        for_pattern = r'\{%\s*for\s+(\w+)\s+in\s+(\w+(?:\.\w+)*)\s*%\}(.*?)\{%\s*endfor\s*%\}'
+        
+        def process_loop(match):
+            item_name = match.group(1)  # e.g., "msg"
+            collection_path = match.group(2)  # e.g., "activity.new_messages"
+            loop_content = match.group(3)  # Content inside the loop
+            
+            # Get the collection from variables
+            collection = self._get_nested_value(variables, collection_path)
+            
+            if not collection or not isinstance(collection, list):
+                return ''  # No items or not a list
+            
+            result_parts = []
+            for item in collection:
+                # Render the loop content for each item
+                item_content = loop_content
+                
+                if isinstance(item, dict):
+                    # Replace {item.key} and {{item.key}} patterns
+                    for key, value in item.items():
+                        double_brace = f"{{{{{item_name}.{key}}}}}"
+                        single_brace = f"{{{item_name}.{key}}}"
+                        str_value = str(value) if value is not None else ""
+                        item_content = item_content.replace(double_brace, str_value)
+                        item_content = item_content.replace(single_brace, str_value)
+                else:
+                    # Simple value replacement
+                    double_brace = f"{{{{{item_name}}}}}"
+                    single_brace = f"{{{item_name}}}"
+                    str_value = str(item) if item is not None else ""
+                    item_content = item_content.replace(double_brace, str_value)
+                    item_content = item_content.replace(single_brace, str_value)
+                
+                result_parts.append(item_content)
+            
+            return ''.join(result_parts)
+        
+        # Process all for loops (may need multiple passes for nested loops)
+        max_iterations = 5
+        for _ in range(max_iterations):
+            new_template = re.sub(for_pattern, process_loop, template, flags=re.DOTALL)
+            if new_template == template:
+                break
+            template = new_template
+        
+        return template
     
     def _process_conditionals(self, template: str, variables: Dict[str, Any]) -> str:
         """Process {% if %} conditional blocks"""
