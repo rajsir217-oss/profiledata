@@ -8,126 +8,9 @@ from datetime import datetime, timedelta
 from typing import Dict, Any, List, Optional
 import logging
 from .base import JobTemplate, JobResult, JobExecutionContext
+from utils.profile_display import extract_profile_display_data
 
 logger = logging.getLogger(__name__)
-
-
-def extract_user_display_data(user: Dict[str, Any]) -> Dict[str, str]:
-    """
-    Extract display-friendly data from a user document.
-    Uses the same logic as saved_search_matches_notifier for consistency.
-    """
-    result = {
-        "education": "",
-        "occupation": "",
-        "profilePicture": "",
-        "location": ""
-    }
-    
-    # === EDUCATION ===
-    # 1. Check educationHistory array (primary field)
-    edu_history = user.get('educationHistory', [])
-    if isinstance(edu_history, list) and len(edu_history) > 0:
-        first_edu = edu_history[0]
-        if isinstance(first_edu, dict):
-            degree = first_edu.get('degree') or first_edu.get('level') or ''
-            institution = first_edu.get('institution') or ''
-            if degree and institution:
-                result["education"] = f"{degree} from {institution}"
-            elif degree:
-                result["education"] = degree
-            elif institution:
-                result["education"] = institution
-    
-    # 2. Fallback to education field (can be string or array)
-    if not result["education"] and user.get('education'):
-        edu_data = user['education']
-        if isinstance(edu_data, str) and edu_data.strip():
-            result["education"] = edu_data
-        elif isinstance(edu_data, list) and len(edu_data) > 0:
-            first_edu = edu_data[0]
-            if isinstance(first_edu, dict):
-                result["education"] = first_edu.get('degree') or first_edu.get('qualification') or first_edu.get('level', '')
-            elif isinstance(first_edu, str):
-                result["education"] = first_edu
-    
-    # 3. Fallback to highestEducation or educationLevel
-    if not result["education"]:
-        result["education"] = user.get('highestEducation') or user.get('educationLevel') or ''
-    
-    # === OCCUPATION ===
-    # 1. Check occupation field first
-    occupation = user.get('occupation')
-    if not occupation:
-        # 2. Check workExperience array for current job
-        work_exp = user.get('workExperience', [])
-        if isinstance(work_exp, list) and len(work_exp) > 0:
-            # Find current job (isCurrent=True or status='current') or use the first entry
-            current_job = None
-            for job in work_exp:
-                if isinstance(job, dict) and (job.get('isCurrent') or job.get('status') == 'current'):
-                    current_job = job
-                    break
-            if not current_job and work_exp:
-                current_job = work_exp[0] if isinstance(work_exp[0], dict) else None
-            
-            if current_job:
-                job_title = current_job.get('jobTitle') or current_job.get('title') or current_job.get('position')
-                company = current_job.get('company') or current_job.get('employer')
-                if job_title:
-                    occupation = f"{job_title}" + (f" at {company}" if company else "")
-                elif current_job.get('description'):
-                    # Fallback to description, truncate to first 50 chars
-                    desc = current_job.get('description', '')
-                    occupation = desc[:50] + "..." if len(desc) > 50 else desc
-    
-    result["occupation"] = occupation or ""
-    
-    # === PROFILE PICTURE ===
-    # Priority: imageVisibility.profilePic > images[0] > photos[0] > profilePhoto
-    profile_photo_url = ''
-    
-    # 1. Check imageVisibility.profilePic (new 3-bucket system)
-    image_visibility = user.get('imageVisibility', {})
-    if image_visibility and image_visibility.get('profilePic'):
-        profile_photo_url = image_visibility['profilePic']
-    
-    # 2. Fallback to images array (main storage)
-    if not profile_photo_url:
-        images = user.get('images', [])
-        if images and isinstance(images, list) and len(images) > 0:
-            first_image = images[0]
-            if isinstance(first_image, str):
-                profile_photo_url = first_image
-            elif isinstance(first_image, dict):
-                profile_photo_url = first_image.get('url', first_image.get('path', ''))
-    
-    # 3. Fallback to photos array (legacy)
-    if not profile_photo_url:
-        photos = user.get('photos', [])
-        if photos and isinstance(photos, list) and len(photos) > 0:
-            first_photo = photos[0]
-            if isinstance(first_photo, dict):
-                profile_photo_url = first_photo.get('url', first_photo.get('thumbnail', ''))
-            elif isinstance(first_photo, str):
-                profile_photo_url = first_photo
-    
-    # 4. Fallback to profilePhoto/profilePicture field
-    if not profile_photo_url:
-        profile_photo_url = user.get('profilePhoto') or user.get('profilePicture') or user.get('photoUrl', '')
-    
-    result["profilePicture"] = profile_photo_url
-    
-    # === LOCATION ===
-    # Build from city/state (not encrypted location field)
-    location_parts = []
-    if user.get("city"):
-        location_parts.append(user.get("city"))
-    if user.get("state"):
-        location_parts.append(user.get("state"))
-    result["location"] = ", ".join(location_parts) if location_parts else ""
-    
-    return result
 
 
 class DailyDigestTemplate(JobTemplate):
@@ -391,7 +274,7 @@ class DailyDigestTemplate(JobTemplate):
                 actor = await db.users.find_one({"username": fav.get("userUsername")})
                 if actor:
                     # Use helper function to extract display data
-                    display_data = extract_user_display_data(actor)
+                    display_data = extract_profile_display_data(actor)
                     
                     activity["favorited_by"].append({
                         "username": fav.get("userUsername"),
@@ -417,7 +300,7 @@ class DailyDigestTemplate(JobTemplate):
                 actor = await db.users.find_one({"username": sl.get("userUsername")})
                 if actor:
                     # Use helper function to extract display data
-                    display_data = extract_user_display_data(actor)
+                    display_data = extract_profile_display_data(actor)
                     
                     activity["shortlisted_by"].append({
                         "username": sl.get("userUsername"),
@@ -446,7 +329,7 @@ class DailyDigestTemplate(JobTemplate):
                     viewer = await db.users.find_one({"username": viewer_username})
                     if viewer:
                         # Use helper function to extract display data
-                        display_data = extract_user_display_data(viewer)
+                        display_data = extract_profile_display_data(viewer)
                         
                         viewers[viewer_username] = {
                             "username": viewer_username,
