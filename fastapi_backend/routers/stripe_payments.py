@@ -352,9 +352,13 @@ async def get_contribution_status(
         site_settings = await db.site_settings.find_one({"_id": "site_settings"})
         contribution_config = site_settings.get("contributions", {}) if site_settings else {}
         
+        # Debug logging
+        site_enabled = contribution_config.get("enabled", False)
+        logger.info(f"💝 Contribution status for {current_user['username']}: site_settings={site_settings is not None}, contribution_config={contribution_config}, siteEnabled={site_enabled}")
+        
         return {
             "success": True,
-            "siteEnabled": contribution_config.get("enabled", False),  # Default: disabled
+            "siteEnabled": site_enabled,  # Default: disabled
             "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
             "lastContributionDate": contributions.get("lastContributionDate"),
