@@ -194,18 +194,18 @@ const SearchPage2 = () => {
   const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
   const [sortOrder, setSortOrder] = useState('desc'); // desc or asc (desc = newest first)
 
-  // Resizable columns state for rows view
+  // Resizable columns state for rows view - widths optimized for content
   const [columnWidths, setColumnWidths] = useState({
-    index: 40,
-    photo: 32,
-    name: 120,
-    score: 50,
-    age: 55,
-    height: 70,
-    location: 100,
-    education: 120,
-    occupation: 80,
-    actions: 90
+    index: 35,      // #1, #2, etc - narrow
+    photo: 40,      // Small avatar
+    name: 140,      // Names need more space
+    score: 45,      // Score badge - compact
+    age: 40,        // "38y" - narrow
+    height: 50,     // "6'0"" - narrow
+    location: 110,  // City names - medium
+    education: 140, // "BS, One of the Top..." - wider
+    occupation: 100, // "Marketing..." - medium
+    actions: 80     // 3 icon buttons
   });
   const resizingColumnRef = useRef(null);
   const startXRef = useRef(0);
@@ -3117,17 +3117,18 @@ const SearchPage2 = () => {
                     textTransform: 'uppercase',
                     letterSpacing: '0.5px',
                     borderRadius: '4px 4px 0 0',
+                    border: '1px solid var(--border-color)',
                     position: 'sticky',
                     top: 0,
                     zIndex: 10
                   }}
                 >
-                  <span style={{ paddingRight: '6px' }}>#</span>
-                  <span style={{ paddingRight: '6px' }}></span>
+                  <span style={{ paddingRight: '6px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}>#</span>
+                  <span style={{ paddingRight: '6px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}></span>
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('firstName'); setSortOrder(sortBy === 'firstName' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '2px', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%' }}
                     title="Sort by name"
                   >
                     Name {sortBy === 'firstName' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3136,7 +3137,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('matchScore'); setSortOrder(sortBy === 'matchScore' && sortOrder === 'desc' ? 'asc' : 'desc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by L3V3L compatibility score"
                   >
                     🎯 {sortBy === 'matchScore' && (sortOrder === 'desc' ? '↓' : '↑')}
@@ -3145,7 +3146,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('age'); setSortOrder(sortBy === 'age' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by age"
                   >
                     Age {sortBy === 'age' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3154,7 +3155,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('heightInches'); setSortOrder(sortBy === 'heightInches' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', textAlign: 'center', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     title="Sort by height"
                   >
                     Height {sortBy === 'heightInches' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3163,7 +3164,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('location'); setSortOrder(sortBy === 'location' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by location"
                   >
                     Location {sortBy === 'location' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3172,7 +3173,7 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('education'); setSortOrder(sortBy === 'education' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by education"
                   >
                     Education {sortBy === 'education' && (sortOrder === 'asc' ? '↑' : '↓')}
@@ -3181,14 +3182,14 @@ const SearchPage2 = () => {
                   <span 
                     className="resizable-header"
                     onClick={() => { setSortBy('occupation'); setSortOrder(sortBy === 'occupation' && sortOrder === 'asc' ? 'desc' : 'asc'); }}
-                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px' }}
+                    style={{ cursor: 'pointer', position: 'relative', paddingRight: '10px', borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}
                     title="Sort by occupation"
                   >
-                    Occupation {sortBy === 'occupation' && (sortOrder === 'asc' ? '↑' : '↓')}
+                    Occupati... {sortBy === 'occupation' && (sortOrder === 'asc' ? '↑' : '↓')}
                     <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'occupation')} />
                   </span>
-                  <span>Tags</span>
-                  <span style={{ textAlign: 'right' }}>Actions</span>
+                  <span style={{ borderRight: '1px solid rgba(255,255,255,0.2)', height: '100%', display: 'flex', alignItems: 'center' }}>Tags</span>
+                  <span style={{ textAlign: 'right', display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Actions</span>
                 </div>
               )}
               {currentRecords.map((user, index) => {
