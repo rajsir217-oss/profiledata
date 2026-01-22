@@ -128,47 +128,53 @@ class DailyDigestTemplate(JobTemplate):
             lookback_time = now - timedelta(hours=hours_lookback)
             current_hour = now.hour
             
-            # Find users with digest enabled
-            query = {"digestSettings.enabled": True}
+            # Format current hour as HH:00 string to match preferredTime format
+            current_hour_str = f"{current_hour:02d}:00"
             
-            # If test_username is specified, only process that user
+            # Build query to find users with digest enabled AND matching preferred time
+            # This is much more efficient than loading all users and filtering in Python
             if test_username:
-                query["username"] = test_username
+                # Test mode: only process specific user (bypass time check)
+                query = {
+                    "digestSettings.enabled": True,
+                    "username": test_username
+                }
                 context.log("info", f"🧪 Test mode: only processing user '{test_username}'")
+            elif force_send:
+                # Force send: process all users with digest enabled (bypass time check)
+                query = {"digestSettings.enabled": True}
+                context.log("info", f"⚡ Force send mode: bypassing preferred time check")
+            else:
+                # Normal mode: only query users whose preferred time matches current hour
+                # Match users with preferredTime = current hour OR no preferredTime set (default 08:00)
+                query = {
+                    "digestSettings.enabled": True,
+                    "$or": [
+                        {"digestSettings.preferredTime": current_hour_str},
+                        # Also match users with default time (08:00) if current hour is 8
+                        {"digestSettings.preferredTime": {"$exists": False}, "$expr": {"$eq": [current_hour, 8]}}
+                    ]
+                }
+                context.log("info", f"⏰ Querying users with preferred time {current_hour_str} (UTC hour: {current_hour})")
             
-            users_with_digest = await db.notification_preferences.find(query).to_list(length=None)
+            users_with_digest = await db.notification_preferences.find(query).to_list(length=batch_size)
             
-            context.log("info", f"📬 Found {len(users_with_digest)} users with digest enabled")
+            if not users_with_digest:
+                context.log("info", f"📭 No users found for current time slot ({current_hour_str}). Job complete.")
+                return JobResult(
+                    status="success",
+                    message=f"No users scheduled for {current_hour_str} UTC",
+                    records_processed=0,
+                    records_affected=0,
+                    details={"current_hour": current_hour_str, "users_found": 0},
+                    duration_seconds=(datetime.utcnow() - start_time).total_seconds()
+                )
+            
+            context.log("info", f"📬 Found {len(users_with_digest)} users for time slot {current_hour_str}")
             
             for user_prefs in users_with_digest:
                 username = user_prefs.get("username")
                 digest_settings = user_prefs.get("digestSettings", {})
-                
-                # Check if it's the right time to send digest for this user
-                preferred_time = digest_settings.get("preferredTime", "08:00")
-                user_timezone = digest_settings.get("timezone", "UTC")
-                
-                # Parse preferred hour (e.g., "08:00" -> 8)
-                try:
-                    preferred_hour = int(preferred_time.split(":")[0])
-                except (ValueError, AttributeError):
-                    preferred_hour = 8
-                
-                # Convert current UTC time to user's timezone and check if it matches
-                # For simplicity, we check if current UTC hour matches preferred hour
-                # (For production, use pytz for proper timezone conversion)
-                if user_timezone == "UTC":
-                    user_current_hour = current_hour
-                else:
-                    # Basic timezone offset handling (simplified)
-                    # In production, use: from pytz import timezone
-                    user_current_hour = current_hour  # Fallback to UTC
-                
-                # Only process if current hour matches user's preferred hour (unless force_send is enabled)
-                # This allows the job to run hourly and only send to users at their preferred time
-                if not force_send and user_current_hour != preferred_hour:
-                    context.log("debug", f"⏰ Skipping {username} - not their preferred time ({preferred_hour}:00, current: {user_current_hour}:00)")
-                    continue
                 
                 try:
                     # Collect activity for this user
