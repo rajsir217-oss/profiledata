@@ -483,12 +483,13 @@ const SearchResultCard = ({
         onMouseLeave={(e) => e.currentTarget.style.background = 'var(--surface-color)'}
       >
         {/* Col 1: Index */}
-        <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>
+        <span style={{ color: 'var(--text-muted)', fontWeight: 500, borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }}>
           {debugIndex ? `#${debugIndex}` : ''}
         </span>
         
         {/* Col 2: Avatar (tiny) - always show DefaultAvatar as base */}
-        <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
+        <div style={{ borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: '28px', height: '28px', borderRadius: '50%', overflow: 'hidden', flexShrink: 0, position: 'relative' }}>
           <DefaultAvatar gender={user.gender} initials={getShortName(user)} size="small" />
           {user.images && user.images.length > 0 && imageUrlWithToken && (
             <img 
@@ -498,15 +499,16 @@ const SearchResultCard = ({
               onError={(e) => e.target.style.display = 'none'}
             />
           )}
+          </div>
         </div>
         
         {/* Col 3: Name */}
-        <span style={{ fontWeight: 600, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ fontWeight: 600, color: 'var(--text-color)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }}>
           {getDisplayName(user)}
         </span>
         
         {/* Col 4: L3V3L Score */}
-        <span style={{ textAlign: 'center' }}>
+        <span style={{ textAlign: 'center', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {matchScore ? (
             <span style={{ 
               fontSize: '10px', 
@@ -524,32 +526,32 @@ const SearchResultCard = ({
         </span>
         
         {/* Col 5: Age */}
-        <span style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <span style={{ color: 'var(--text-secondary)', textAlign: 'center', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {displayAge && displayAge !== 'N/A' ? `${displayAge}y` : '-'}
         </span>
         
         {/* Col 6: Height */}
-        <span style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <span style={{ color: 'var(--text-secondary)', textAlign: 'center', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {displayHeight || '-'}
         </span>
         
         {/* Col 7: Location */}
-        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }}>
           {user.location || '-'}
         </span>
         
         {/* Col 8: Education */}
-        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayEducation}>
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }} title={displayEducation}>
           {displayEducation || '-'}
         </span>
         
         {/* Col 9: Occupation */}
-        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={displayOccupation}>
+        <span style={{ color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', display: 'flex', alignItems: 'center' }} title={displayOccupation}>
           {displayOccupation || '-'}
         </span>
         
         {/* Col 10: Tags */}
-        <span style={{ display: 'flex', gap: '2px', flexWrap: 'nowrap', overflow: 'hidden' }}>
+        <span style={{ display: 'flex', gap: '2px', flexWrap: 'nowrap', overflow: 'hidden', borderRight: '1px solid var(--border-color)', paddingRight: '8px', height: '100%', alignItems: 'center' }}>
           {user.religion && <span style={{ fontSize: '10px', padding: '1px 4px', background: 'var(--primary-color)', color: 'white', borderRadius: '3px', whiteSpace: 'nowrap' }}>{user.religion}</span>}
         </span>
         
