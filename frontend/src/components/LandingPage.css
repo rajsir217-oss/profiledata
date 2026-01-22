@@ -271,6 +271,21 @@
 .how-it-works {
   padding: 80px 24px;
   background: white;
+  text-align: center;
+}
+
+.how-title-badge {
+  display: block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  width: fit-content;
 }
 
 .section-title {
@@ -390,6 +405,7 @@
   font-weight: 800;
   margin-bottom: 8px;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  color: #1a1a1a;
 }
 
 .stat-label {
@@ -397,18 +413,22 @@
   opacity: 0.95;
   font-weight: 600;
   margin-bottom: 6px;
+  color: #1a1a1a;
 }
 
 .stat-description {
   font-size: 14px;
   opacity: 0.8;
   line-height: 1.4;
+  color: #1a1a1a;
 }
 
 /* About Section */
 .about-section {
   padding: 80px 24px;
-  background: #f8f9fb;
+  background: linear-gradient(135deg, #f8f9fb 0%, #eef2ff 100%);
+  border-top: 1px solid #e5e7eb;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .about-container {
@@ -418,6 +438,20 @@
 
 .about-content {
   text-align: center;
+}
+
+.about-title-badge {
+  display: block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 auto 30px auto;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  width: fit-content;
 }
 
 .about-description {
@@ -461,6 +495,21 @@
 .services-section {
   padding: 80px 24px;
   background: white;
+  text-align: center;
+}
+
+.services-title-badge {
+  display: block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  width: fit-content;
 }
 
 .services-grid {
@@ -526,10 +575,372 @@
   margin-bottom: 24px;
 }
 
+/* Virtual Meetups Section */
+.virtual-meetups-section {
+  padding: 80px 24px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: white;
+  position: relative;
+  overflow: hidden;
+  text-align: center;
+}
+
+.virtual-meetups-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+.virtual-meetups-section .section-subtitle {
+  color: white;
+  position: relative;
+  z-index: 1;
+}
+
+.meetups-title-badge {
+  display: block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  position: relative;
+  z-index: 1;
+  width: fit-content;
+}
+
+.section-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #ec4899 0%, #a78bfa 100%);
+  color: white;
+  padding: 8px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.meetups-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.meetups-description {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.meetups-intro {
+  font-size: 18px;
+  line-height: 1.8;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.meetups-intro strong {
+  color: #a78bfa;
+}
+
+.meetups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.meetup-card {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  padding: 32px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+  text-align: left;
+}
+
+.meetup-card:hover {
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(167, 139, 250, 0.5);
+}
+
+.meetup-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.meetup-card h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  color: white;
+}
+
+.meetup-card p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.8);
+  margin-bottom: 16px;
+}
+
+.meetup-frequency {
+  display: inline-block;
+  background: rgba(167, 139, 250, 0.2);
+  color: #a78bfa;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.meetups-benefits {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.meetups-benefits .benefit-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 12px 20px;
+  border-radius: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.meetups-benefits .benefit-icon {
+  color: #10b981;
+  font-weight: bold;
+}
+
+.meetups-benefits span:last-child {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 14px;
+}
+
+/* Social Events Section */
+.social-events-section {
+  padding: 80px 24px;
+  background: white;
+  position: relative;
+  text-align: center;
+}
+
+.events-title-badge {
+  display: block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin: 0 auto 20px auto;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+  width: fit-content;
+}
+
+.events-content {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.events-description {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.events-intro {
+  font-size: 18px;
+  line-height: 1.8;
+  color: #4a5568;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.events-intro strong {
+  color: #6366f1;
+}
+
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.event-card {
+  background: #f8f9fb;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.event-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.15);
+  border-color: #a78bfa;
+}
+
+.event-image-placeholder {
+  height: 120px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 48px;
+}
+
+.event-details {
+  padding: 24px;
+  text-align: left;
+}
+
+.event-details h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.event-details p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a5568;
+  margin-bottom: 16px;
+}
+
+.event-location {
+  display: inline-block;
+  color: #6366f1;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.events-highlights {
+  display: flex;
+  justify-content: center;
+  gap: 48px;
+  margin-bottom: 48px;
+  flex-wrap: wrap;
+}
+
+.highlight-stat {
+  text-align: center;
+}
+
+.highlight-stat .stat-number {
+  display: block;
+  font-size: 48px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+
+.highlight-stat .stat-text {
+  font-size: 14px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+.events-cta {
+  text-align: center;
+  padding: 40px;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+  border-radius: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.events-cta p {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+/* Responsive for new sections */
+@media (max-width: 768px) {
+  .meetups-grid,
+  .events-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .meetups-benefits {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .events-highlights {
+    gap: 32px;
+  }
+  
+  .highlight-stat .stat-number {
+    font-size: 36px;
+  }
+}
+
 /* Pricing Section */
 .pricing-section {
   padding: 80px 24px;
   background: #f8f9fb;
+}
+
+.pricing-header-wrapper {
+  text-align: center;
+  max-width: 1200px;
+  margin: 0 auto 40px auto;
+}
+
+.pricing-title-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 16px 48px;
+  border-radius: 50px;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.35);
+}
+
+.pricing-header-wrapper .section-subtitle {
+  text-align: center !important;
+  display: block;
+  width: 100%;
+  margin-top: 16px;
 }
 
 .pricing-grid {

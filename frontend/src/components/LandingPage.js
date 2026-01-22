@@ -86,7 +86,7 @@ const LandingPage = () => {
 
       {/* How L3V3L Works Section */}
       <section className="how-it-works">
-        <h2 className="section-title">How L3V3L Transforms Matchmaking</h2>
+        <span className="how-title-badge">How L3V3L Transforms Matchmaking</span>
         <p className="section-subtitle">Science meets intuition. Data meets destiny.</p>
         
         <div className="process-grid">
@@ -154,7 +154,7 @@ const LandingPage = () => {
       <section className="about-section">
         <div className="about-container">
           <div className="about-content">
-            <h2 className="section-title">About L3V3L Matches</h2>
+            <span className="about-title-badge">About L3V3L Matches</span>
             <p className="about-description">
               L3V3L Matches is a premium <strong>matrimonial and matchmaking platform</strong> designed to help individuals find meaningful, long-term relationships leading to marriage. Founded with the belief that compatibility goes beyond surface-level attraction, we use advanced AI algorithms to analyze 50+ compatibility factors.
             </p>
@@ -185,7 +185,7 @@ const LandingPage = () => {
 
       {/* What We Offer Section */}
       <section className="services-section">
-        <h2 className="section-title">What We Offer</h2>
+        <span className="services-title-badge">What We Offer</span>
         <p className="section-subtitle">Comprehensive matchmaking services designed for serious relationships</p>
         
         <div className="services-grid">
@@ -234,10 +234,151 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* Virtual Meetups Section */}
+      <section className="virtual-meetups-section">
+        <div className="section-badge">🎥 NEW</div>
+        <span className="meetups-title-badge">Virtual Meetups & Zoom Sessions</span>
+        <p className="section-subtitle">Connect face-to-face from anywhere in the world</p>
+        
+        <div className="meetups-content">
+          <div className="meetups-description">
+            <p className="meetups-intro">
+              We believe meaningful connections happen through real conversations. That's why L3V3L hosts <strong>exclusive virtual meetups</strong> via Zoom, giving our members the opportunity to interact in a safe, moderated environment before meeting in person.
+            </p>
+          </div>
+          
+          <div className="meetups-grid">
+            <div className="meetup-card">
+              <div className="meetup-icon">🎯</div>
+              <h3>Speed Dating Sessions</h3>
+              <p>5-minute rotating video chats with pre-matched compatible members. Meet 8-10 potential matches in one evening from the comfort of your home.</p>
+              <span className="meetup-frequency">Every Saturday • 7 PM PST</span>
+            </div>
+            
+            <div className="meetup-card">
+              <div className="meetup-icon">💬</div>
+              <h3>Compatibility Workshops</h3>
+              <p>Interactive group sessions led by relationship experts. Discuss values, communication styles, and what makes relationships work.</p>
+              <span className="meetup-frequency">Bi-weekly • Wednesdays</span>
+            </div>
+            
+            <div className="meetup-card">
+              <div className="meetup-icon">🌍</div>
+              <h3>Cultural Connection Calls</h3>
+              <p>Themed meetups celebrating diverse backgrounds. Connect with members who share your heritage, traditions, and cultural values.</p>
+              <span className="meetup-frequency">Monthly • Various times</span>
+            </div>
+            
+            <div className="meetup-card">
+              <div className="meetup-icon">☕</div>
+              <h3>Coffee Chat Mixers</h3>
+              <p>Casual, low-pressure video hangouts. Grab your favorite beverage and join small group conversations with fellow members.</p>
+              <span className="meetup-frequency">Sundays • 10 AM PST</span>
+            </div>
+          </div>
+          
+          <div className="meetups-benefits">
+            <div className="benefit-item">
+              <span className="benefit-icon">✓</span>
+              <span>Professional moderation for safety</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">✓</span>
+              <span>Pre-screened, verified participants only</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">✓</span>
+              <span>No pressure—participate at your comfort level</span>
+            </div>
+            <div className="benefit-item">
+              <span className="benefit-icon">✓</span>
+              <span>Free for Premium members</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Events Section */}
+      <section className="social-events-section">
+        <div className="section-badge">🎉 EXCLUSIVE</div>
+        <span className="events-title-badge">In-Person Social Events</span>
+        <p className="section-subtitle">Where online connections become real-world relationships</p>
+        
+        <div className="events-content">
+          <div className="events-description">
+            <p className="events-intro">
+              L3V3L organizes <strong>exclusive in-person events</strong> in major cities across the US. These curated gatherings provide the perfect setting to meet your matches face-to-face in a fun, relaxed atmosphere.
+            </p>
+          </div>
+          
+          <div className="events-grid">
+            <div className="event-card">
+              <div className="event-image-placeholder">🍷</div>
+              <div className="event-details">
+                <h3>Wine & Dine Mixers</h3>
+                <p>Elegant evening events at upscale venues. Enjoy fine wine, gourmet appetizers, and meaningful conversations with compatible matches.</p>
+                <span className="event-location">📍 San Francisco, LA, NYC</span>
+              </div>
+            </div>
+            
+            <div className="event-card">
+              <div className="event-image-placeholder">🎨</div>
+              <div className="event-details">
+                <h3>Activity-Based Meetups</h3>
+                <p>Cooking classes, art workshops, hiking groups, and more. Bond over shared interests while getting to know potential partners.</p>
+                <span className="event-location">📍 Multiple cities</span>
+              </div>
+            </div>
+            
+            <div className="event-card">
+              <div className="event-image-placeholder">🎭</div>
+              <div className="event-details">
+                <h3>Cultural Celebrations</h3>
+                <p>Festival gatherings, holiday parties, and cultural events. Celebrate traditions together and meet like-minded individuals.</p>
+                <span className="event-location">📍 Nationwide</span>
+              </div>
+            </div>
+            
+            <div className="event-card">
+              <div className="event-image-placeholder">🏖️</div>
+              <div className="event-details">
+                <h3>Weekend Retreats</h3>
+                <p>Exclusive multi-day getaways for serious members. Workshops, activities, and ample time to form genuine connections.</p>
+                <span className="event-location">📍 Premium destinations</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="events-highlights">
+            <div className="highlight-stat">
+              <span className="stat-number">50+</span>
+              <span className="stat-text">Events hosted annually</span>
+            </div>
+            <div className="highlight-stat">
+              <span className="stat-number">12</span>
+              <span className="stat-text">Cities across the US</span>
+            </div>
+            <div className="highlight-stat">
+              <span className="stat-number">500+</span>
+              <span className="stat-text">Couples met at our events</span>
+            </div>
+          </div>
+          
+          <div className="events-cta">
+            <p>Join L3V3L to get exclusive invites to our events</p>
+            <button className="btn-get-started" onClick={() => navigate('/register2')}>
+              Become a Member
+            </button>
+          </div>
+        </div>
+      </section>
+
       {/* Pricing Section */}
       <section className="pricing-section">
-        <h2 className="section-title">Membership Plans</h2>
-        <p className="section-subtitle">Choose the plan that fits your journey</p>
+        <div className="pricing-header-wrapper">
+          <span className="pricing-title-badge">Membership Plans</span>
+          <p className="section-subtitle">Choose the plan that fits your journey</p>
+        </div>
         
         <div className="pricing-grid">
           <div className="pricing-card">
