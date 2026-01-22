@@ -352,13 +352,15 @@ async def get_contribution_status(
         site_settings = await db.site_settings.find_one({"_id": "site_settings"})
         contribution_config = site_settings.get("contributions", {}) if site_settings else {}
         
+        # Get site-level enabled setting - MUST be explicitly True to show popup
+        site_enabled = contribution_config.get("enabled") is True  # Strict check: only True, not truthy
+        
         # Debug logging
-        site_enabled = contribution_config.get("enabled", False)
-        logger.info(f"💝 Contribution status for {current_user['username']}: site_settings={site_settings is not None}, contribution_config={contribution_config}, siteEnabled={site_enabled}")
+        logger.info(f"💝 Contribution status for {current_user['username']}: site_settings exists={site_settings is not None}, contributions={contribution_config}, siteEnabled={site_enabled}")
         
         return {
             "success": True,
-            "siteEnabled": site_enabled,  # Default: disabled
+            "siteEnabled": site_enabled,  # Only True if explicitly enabled
             "userDisabledByAdmin": user.get("contributionPopupDisabledByAdmin", False),
             "hasActiveRecurringContribution": contributions.get("hasActiveRecurring", False),
             "lastContributionDate": contributions.get("lastContributionDate"),
