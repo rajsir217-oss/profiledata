@@ -553,8 +553,9 @@ const UnifiedPreferences = () => {
 
     try {
       await changePassword({
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword,
+        confirm_password: passwordData.confirmPassword
       });
       setPasswordMessage({ type: 'success', text: 'Password changed successfully!' });
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });

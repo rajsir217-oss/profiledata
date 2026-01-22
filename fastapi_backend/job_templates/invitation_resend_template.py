@@ -4,6 +4,7 @@ Automatically resends invitation emails to recipients who haven't registered yet
 Targets invitations where emailStatus is "sent" but no registration has occurred.
 """
 
+import asyncio
 from typing import Dict, Any, Tuple, Optional
 from datetime import datetime, timedelta
 from bson import ObjectId
@@ -261,6 +262,11 @@ class InvitationResendTemplate(JobTemplate):
                     )
                     
                     resent_count += 1
+                    
+                    # Rate limiting: wait 1 second between emails to stay under Resend's 2 req/sec limit
+                    # This is in addition to the rate limiting in email_sender.py for extra safety
+                    if not test_mode:
+                        await asyncio.sleep(1.0)
                     
                 except Exception as e:
                     failed_count += 1
