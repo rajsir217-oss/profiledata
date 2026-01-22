@@ -32,6 +32,8 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
         from utils.gcp_secrets import get_secret
         
         # Use lock to ensure rate limiting works across concurrent requests
+        # IMPORTANT: Keep the entire Resend call inside the lock to prevent concurrent requests
+        # from exceeding the 2 req/sec limit
         async with _resend_lock:
             # Rate limiting: wait if we're calling too fast (Resend limit: 2 req/sec)
             now = time.time()
@@ -41,54 +43,56 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
                 print(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call", flush=True)
                 await asyncio.sleep(wait_time)
             
+            # Try multiple sources for the API key: env var, GCP Secret Manager, settings
+            resend_api_key = os.environ.get("RESEND_API_KEY")
+            key_source = "env"
+            
+            if not resend_api_key:
+                resend_api_key = get_secret("RESEND_API_KEY")
+                key_source = "gcp_secret"
+            
+            if not resend_api_key:
+                resend_api_key = getattr(settings, 'resend_api_key', None)
+                key_source = "settings"
+            
+            if not resend_api_key:
+                print("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend", flush=True)
+                logger.warning("📧 Resend API key not configured (checked: env, GCP Secret Manager, settings)")
+                return False
+            
+            print(f"📧 [email_sender] Using Resend API key from: {key_source}", flush=True)
+            logger.info(f"📧 Resend API key source: {key_source}")
+            
+            resend.api_key = resend_api_key
+            from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
+            from_name_raw = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+            from_email = from_email_raw.strip()
+            from_name = from_name_raw.strip()
+            
+            # Debug: Log if newline was stripped (to verify fix is deployed)
+            if from_email_raw != from_email or from_name_raw != from_name:
+                print(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!", flush=True)
+                logger.warning(f"📧 STRIPPED NEWLINE from FROM_EMAIL (raw len={len(from_email_raw)}, clean len={len(from_email)})")
+            
+            print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
+            logger.info(f"📧 Attempting to send via Resend to {to_email}")
+            
+            params = {
+                "from": f"{from_name} <{from_email}>",
+                "to": [to_email],
+                "subject": subject,
+                "html": html_content,
+                "text": text_content
+            }
+            
+            response = resend.Emails.send(params)
+            
+            # Update timestamp AFTER successful send
             _last_resend_call = time.time()
-        
-        # Try multiple sources for the API key: env var, GCP Secret Manager, settings
-        resend_api_key = os.environ.get("RESEND_API_KEY")
-        key_source = "env"
-        
-        if not resend_api_key:
-            resend_api_key = get_secret("RESEND_API_KEY")
-            key_source = "gcp_secret"
-        
-        if not resend_api_key:
-            resend_api_key = getattr(settings, 'resend_api_key', None)
-            key_source = "settings"
-        
-        if not resend_api_key:
-            print("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend", flush=True)
-            logger.warning("📧 Resend API key not configured (checked: env, GCP Secret Manager, settings)")
-            return False
-        
-        print(f"📧 [email_sender] Using Resend API key from: {key_source}", flush=True)
-        logger.info(f"📧 Resend API key source: {key_source}")
-        
-        resend.api_key = resend_api_key
-        from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
-        from_name_raw = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
-        from_email = from_email_raw.strip()
-        from_name = from_name_raw.strip()
-        
-        # Debug: Log if newline was stripped (to verify fix is deployed)
-        if from_email_raw != from_email or from_name_raw != from_name:
-            print(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!", flush=True)
-            logger.warning(f"📧 STRIPPED NEWLINE from FROM_EMAIL (raw len={len(from_email_raw)}, clean len={len(from_email)})")
-        
-        print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
-        logger.info(f"📧 Attempting to send via Resend to {to_email}")
-        
-        params = {
-            "from": f"{from_name} <{from_email}>",
-            "to": [to_email],
-            "subject": subject,
-            "html": html_content,
-            "text": text_content
-        }
-        
-        response = resend.Emails.send(params)
-        print(f"✅ [email_sender] Resend SUCCESS: {response}", flush=True)
-        logger.info(f"✅ Resend success: {response}")
-        return True
+            
+            print(f"✅ [email_sender] Resend SUCCESS: {response}", flush=True)
+            logger.info(f"✅ Resend success: {response}")
+            return True
         
     except Exception as e:
         print(f"⚠️ [email_sender] Resend FAILED: {e}", flush=True)
