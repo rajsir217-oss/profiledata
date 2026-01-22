@@ -1061,17 +1061,30 @@ class EmailNotifierTemplate(JobTemplate):
         """Build a section for the daily digest"""
         items_html = ""
         for item in items[:5]:
-            name = f"{item.get('firstName', '')} {item.get('lastName', '')}".strip() or item.get('username', 'Someone')
+            first_name = item.get('firstName', '')
+            last_name = item.get('lastName', '')
+            name = f"{first_name} {last_name}".strip() or item.get('username', 'Someone')
             location = item.get('location', '')
             occupation = item.get('occupation', '')
             details = f"{occupation}" if occupation else ""
             if location:
                 details = f"{details} • {location}" if details else location
             
+            # Generate initials for avatar (first letter of first name + first letter of last name)
+            initials = ""
+            if first_name:
+                initials += first_name[0].upper()
+            if last_name:
+                initials += last_name[0].upper()
+            if not initials:
+                # Fallback to username initials
+                username = item.get('username', 'U')
+                initials = username[:2].upper()
+            
             items_html += f"""
             <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: {color}20; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                    <span style="font-size: 18px;">{title[0]}</span>
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: {color}; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                    <span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span>
                 </div>
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: #333;">{name}</div>
