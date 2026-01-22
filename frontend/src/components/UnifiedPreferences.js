@@ -534,17 +534,60 @@ const UnifiedPreferences = () => {
     }
   };
 
+  // Password validation helper
+  const validatePassword = (password) => {
+    const errors = [];
+    if (password.length < 8) {
+      errors.push('At least 8 characters');
+    }
+    if (!/[A-Z]/.test(password)) {
+      errors.push('At least one uppercase letter (A-Z)');
+    }
+    if (!/[a-z]/.test(password)) {
+      errors.push('At least one lowercase letter (a-z)');
+    }
+    if (!/[0-9]/.test(password)) {
+      errors.push('At least one number (0-9)');
+    }
+    if (!/[!@#$%^&*()_+\-=[\]{}|;:,.<>?]/.test(password)) {
+      errors.push('At least one special character (!@#$%^&*...)');
+    }
+    return errors;
+  };
+
+  // Get password strength indicator
+  const getPasswordStrength = (password) => {
+    if (!password) return { level: 0, label: '', color: '' };
+    const errors = validatePassword(password);
+    const strength = 5 - errors.length;
+    if (strength <= 1) return { level: 1, label: 'Weak', color: '#e74c3c' };
+    if (strength <= 2) return { level: 2, label: 'Fair', color: '#f39c12' };
+    if (strength <= 3) return { level: 3, label: 'Good', color: '#3498db' };
+    if (strength <= 4) return { level: 4, label: 'Strong', color: '#27ae60' };
+    return { level: 5, label: 'Excellent', color: '#2ecc71' };
+  };
+
   // Password change handler
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     
+    // Validate new password meets requirements
+    const passwordErrors = validatePassword(passwordData.newPassword);
+    if (passwordErrors.length > 0) {
+      setPasswordMessage({ 
+        type: 'error', 
+        text: `Password requirements not met:\n• ${passwordErrors.join('\n• ')}` 
+      });
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       setPasswordMessage({ type: 'error', text: 'New passwords do not match' });
       return;
     }
 
-    if (passwordData.newPassword.length < 6) {
-      setPasswordMessage({ type: 'error', text: 'Password must be at least 6 characters' });
+    if (!passwordData.currentPassword) {
+      setPasswordMessage({ type: 'error', text: 'Please enter your current password' });
       return;
     }
 
@@ -561,7 +604,17 @@ const UnifiedPreferences = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showToast('Password changed successfully!', 'success');
     } catch (error) {
-      const errorMessage = error.error || error.message || 'Failed to change password';
+      // Parse error message from backend
+      let errorMessage = 'Failed to change password';
+      if (error.detail) {
+        errorMessage = error.detail;
+      } else if (error.error) {
+        errorMessage = error.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
       setPasswordMessage({ type: 'error', text: errorMessage });
       showToast(errorMessage, 'error');
     } finally {
@@ -1011,6 +1064,38 @@ const UnifiedPreferences = () => {
                     {showPasswords.new ? '👁️' : '👁️‍🗨️'}
                   </button>
                 </div>
+                {/* Password Strength Indicator */}
+                {passwordData.newPassword && (
+                  <div className="password-strength-container">
+                    <div className="password-strength-bar">
+                      {[1, 2, 3, 4, 5].map((level) => (
+                        <div
+                          key={level}
+                          className="strength-segment"
+                          style={{
+                            backgroundColor: level <= getPasswordStrength(passwordData.newPassword).level 
+                              ? getPasswordStrength(passwordData.newPassword).color 
+                              : 'var(--border-color)'
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <span className="strength-label" style={{ color: getPasswordStrength(passwordData.newPassword).color }}>
+                      {getPasswordStrength(passwordData.newPassword).label}
+                    </span>
+                  </div>
+                )}
+                {/* Password Requirements Checklist */}
+                {passwordData.newPassword && validatePassword(passwordData.newPassword).length > 0 && (
+                  <div className="password-requirements">
+                    <small>Requirements:</small>
+                    <ul>
+                      {validatePassword(passwordData.newPassword).map((req, idx) => (
+                        <li key={idx} className="requirement-missing">✗ {req}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
 
               <div className="form-group">
@@ -1030,6 +1115,16 @@ const UnifiedPreferences = () => {
                     {showPasswords.confirm ? '👁️' : '👁️‍🗨️'}
                   </button>
                 </div>
+                {/* Password Match Indicator */}
+                {passwordData.confirmPassword && (
+                  <div className="password-match-indicator">
+                    {passwordData.newPassword === passwordData.confirmPassword ? (
+                      <span className="match-success">✓ Passwords match</span>
+                    ) : (
+                      <span className="match-error">✗ Passwords do not match</span>
+                    )}
+                  </div>
+                )}
               </div>
 
               {passwordMessage.text && (

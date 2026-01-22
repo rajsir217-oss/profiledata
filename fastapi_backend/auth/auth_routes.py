@@ -765,9 +765,9 @@ async def change_password(
         
         security = user.get("security", {})
         
-        # Verify current password
-        current_password_hash = security.get("password_hash")
-        if not PasswordManager.verify_password(request.current_password, current_password_hash):
+        # Verify current password - check both new location (security.password_hash) and legacy location (password)
+        current_password_hash = security.get("password_hash") or user.get("password")
+        if not current_password_hash or not PasswordManager.verify_password(request.current_password, current_password_hash):
             logger.warning(f"⚠️ Password change failed for {username}: Invalid current password")
             await AuditLogger.log_event(
                 db=db,
@@ -818,6 +818,7 @@ async def change_password(
                     "security.password_expires_at": password_expires_at,
                     "security.password_history": updated_history,
                     "security.force_password_change": False,
+                    "password": new_password_hash,  # Also update legacy password field for compatibility with /api/users/login
                     "updated_at": datetime.utcnow()
                 }
             }

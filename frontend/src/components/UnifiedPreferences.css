@@ -254,6 +254,84 @@
   background: var(--danger-light);
   color: var(--danger-color);
   border: 1px solid var(--danger-color);
+  white-space: pre-line;
+}
+
+/* Password Strength Indicator */
+.password-strength-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.password-strength-bar {
+  display: flex;
+  gap: 4px;
+  flex: 1;
+  max-width: 200px;
+}
+
+.strength-segment {
+  height: 4px;
+  flex: 1;
+  border-radius: 2px;
+  transition: background-color 0.3s ease;
+}
+
+.strength-label {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Password Requirements */
+.password-requirements {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.password-requirements small {
+  color: var(--text-secondary);
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.password-requirements ul {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+}
+
+.password-requirements li {
+  font-size: 12px;
+  padding: 2px 0;
+}
+
+.password-requirements .requirement-missing {
+  color: var(--danger-color);
+}
+
+.password-requirements .requirement-met {
+  color: var(--success-color);
+}
+
+/* Password Match Indicator */
+.password-match-indicator {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.password-match-indicator .match-success {
+  color: var(--success-color);
+}
+
+.password-match-indicator .match-error {
+  color: var(--danger-color);
 }
 
 /* Notification Settings */

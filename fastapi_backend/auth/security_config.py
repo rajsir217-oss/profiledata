@@ -220,6 +220,7 @@ SECURITY_EVENTS = {
     "LOGIN_FAILED": "login_failed",
     "LOGOUT": "logout",
     "PASSWORD_CHANGED": "password_changed",
+    "PASSWORD_CHANGE_FAILED": "password_change_failed",
     "PASSWORD_RESET_REQUESTED": "password_reset_requested",
     "PASSWORD_RESET_COMPLETED": "password_reset_completed",
     "ACCOUNT_LOCKED": "account_locked",

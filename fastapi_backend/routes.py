@@ -1315,9 +1315,10 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
             detail="Invalid credentials"
         )
     
-    # Verify password
+    # Verify password - check both legacy (password) and new (security.password_hash) locations
     logger.debug(f"Verifying password for user '{login_data.username}'")
-    if not verify_password(login_data.password, user["password"]):
+    password_hash = user.get("password") or user.get("security", {}).get("password_hash")
+    if not password_hash or not verify_password(login_data.password, password_hash):
         logger.warning(f"⚠️ Login failed: Invalid password for user '{login_data.username}'")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
