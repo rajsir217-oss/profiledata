@@ -769,7 +769,7 @@ async def change_password(
         current_password_hash = security.get("password_hash")
         if not PasswordManager.verify_password(request.current_password, current_password_hash):
             logger.warning(f"⚠️ Password change failed for {username}: Invalid current password")
-            await AuditLogger.log(
+            await AuditLogger.log_event(
                 db=db,
                 user_id=str(user.get("_id")),
                 username=username,
@@ -824,7 +824,7 @@ async def change_password(
         )
         
         # Log successful password change
-        await AuditLogger.log(
+        await AuditLogger.log_event(
             db=db,
             user_id=str(user.get("_id")),
             username=username,
