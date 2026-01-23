@@ -277,10 +277,10 @@
   text-overflow: unset;
   white-space: normal;
   min-height: auto;
-  text-align: center;
+  text-align: left;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   flex-wrap: wrap;
 }
@@ -318,7 +318,7 @@
   font-size: 11px;
   color: var(--text-secondary, #4b5563);
   margin: 2px 0;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .user-height-dob .height-info,
@@ -338,7 +338,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   line-height: 1.3;
-  text-align: center;
+  text-align: left;
 }
 
 .user-location .icon,
@@ -365,7 +365,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  text-align: center;
+  text-align: left;
 }
 
 .view-count {
@@ -1172,51 +1172,63 @@ body.theme-ultra-black .user-action-btn {
   z-index: 10;
 }
 
-/* Bottom Actions Section */
+/* Bottom Actions Section - Center aligned with gradient */
 .user-card-bottom-actions {
-  display: flex;
-  gap: var(--spacing-md);
-  padding: var(--spacing-md);
-  background: var(--card-background);
-  border-top: 1px solid var(--divider-color);
-  justify-content: center;
+  display: flex !important;
+  gap: 8px !important;
+  padding: 6px 10px !important;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%) !important;
+  border-radius: 0 0 16px 16px !important;
+  justify-content: center !important;
   position: relative;
   z-index: 1;
 }
 
-.bottom-action-btn {
-  width: 38px !important;
-  height: 38px !important;
-  min-width: 38px !important;
-  min-height: 38px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  border: 2px solid var(--border-color);
-  background: var(--card-background);
-  color: var(--text-color);
-  font-size: 14px;
+.user-card-bottom-actions .bottom-action-btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  font-size: 11px !important;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   z-index: 1;
   pointer-events: auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 24px !important;
+  box-shadow: none !important;
 }
 
-.bottom-action-btn .btn-icon {
-  font-size: 16px;
+.user-card-bottom-actions .bottom-action-btn .btn-icon {
+  font-size: 11px !important;
   line-height: 1;
   flex-shrink: 0;
 }
 
-.bottom-action-btn .btn-label {
-  display: none;
+.user-card-bottom-actions .bottom-action-btn .btn-label {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  position: absolute !important;
+  visibility: hidden !important;
 }
 
-.bottom-action-btn:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.user-card-bottom-actions .bottom-action-btn:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: scale(1.15) !important;
 }
 
 .bottom-action-btn:active {
@@ -1229,60 +1241,45 @@ body.theme-ultra-black .user-action-btn {
   transform: none;
 }
 
-/* Button Variants */
-.bottom-action-btn.btn-primary {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-  border-color: var(--primary-color);
+/* Button Variants - All use white semi-transparent on gradient background */
+/* Override Bootstrap and global .btn-primary styles */
+.user-card-bottom-actions .bottom-action-btn.btn-primary,
+.user-card-bottom-actions .bottom-action-btn.btn-secondary,
+.user-card-bottom-actions .bottom-action-btn.btn-success,
+.user-card-bottom-actions .bottom-action-btn.btn-danger,
+.user-card-bottom-actions .bottom-action-btn.btn-warning,
+.user-card-bottom-actions .bottom-action-btn.btn-info,
+.user-card-bottom-actions .bottom-action-btn {
+  background: rgba(255, 255, 255, 0.2) !important;
+  color: white !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  min-height: 24px !important;
+  max-width: 24px !important;
+  max-height: 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  flex: 0 0 24px !important;
+  box-shadow: none !important;
 }
 
-.bottom-action-btn.btn-primary:hover {
-  box-shadow: 0 4px 12px var(--primary-shadow);
+.user-card-bottom-actions .bottom-action-btn.btn-primary:hover,
+.user-card-bottom-actions .bottom-action-btn.btn-secondary:hover,
+.user-card-bottom-actions .bottom-action-btn.btn-success:hover,
+.user-card-bottom-actions .bottom-action-btn.btn-danger:hover,
+.user-card-bottom-actions .bottom-action-btn.btn-warning:hover,
+.user-card-bottom-actions .bottom-action-btn.btn-info:hover,
+.user-card-bottom-actions .bottom-action-btn:hover {
+  background: rgba(255, 255, 255, 0.35) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  transform: scale(1.15) !important;
+  box-shadow: none !important;
 }
 
-.bottom-action-btn.btn-secondary {
-  background: var(--surface-color);
-  color: var(--text-color);
-  border-color: var(--border-color);
-}
-
-.bottom-action-btn.btn-secondary:hover {
-  background: var(--hover-background);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.bottom-action-btn.btn-success {
-  background: var(--success-color);
-  color: white;
-  border-color: var(--success-color);
-}
-
-.bottom-action-btn.btn-success:hover {
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-}
-
-.bottom-action-btn.btn-danger {
-  background: var(--danger-color);
-  color: white;
-  border-color: var(--danger-color);
-}
-
-.bottom-action-btn.btn-danger:hover {
-  box-shadow: 0 4px 12px var(--danger-shadow);
-}
-
-.bottom-action-btn.btn-warning {
-  background: var(--warning-color);
-  color: white;
-  border-color: var(--warning-color);
-}
-
-.bottom-action-btn.btn-warning:hover {
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-}
-
-.bottom-action-btn.btn-info {
+/* Keep this for compatibility */
+.bottom-action-btn.btn-info-compat {
   background: var(--info-color);
   color: white;
   border-color: var(--info-color);
@@ -1292,7 +1289,7 @@ body.theme-ultra-black .user-action-btn {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
 }
 
-/* Mobile Responsive */
+/* Mobile Responsive - Keep buttons small */
 @media (max-width: 768px) {
   .user-card-header-actions {
     top: var(--spacing-xs);
@@ -1300,35 +1297,46 @@ body.theme-ultra-black .user-action-btn {
   }
 
   .user-card-bottom-actions {
-    padding: var(--spacing-sm);
-    gap: var(--spacing-sm);
+    padding: 6px 10px !important;
+    gap: 8px !important;
   }
 
-  .bottom-action-btn {
-    width: 36px !important;
-    height: 36px !important;
-    min-width: 36px !important;
-    min-height: 36px !important;
+  .user-card-bottom-actions .bottom-action-btn,
+  .user-card-bottom-actions .bottom-action-btn.btn-primary,
+  .user-card-bottom-actions .bottom-action-btn.btn-danger {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    max-width: 24px !important;
+    max-height: 24px !important;
+    flex: 0 0 24px !important;
   }
 
-  .bottom-action-btn .btn-icon {
-    font-size: 15px;
+  .user-card-bottom-actions .bottom-action-btn .btn-icon {
+    font-size: 11px !important;
   }
 }
 
 @media (max-width: 480px) {
   .user-card-bottom-actions {
-    gap: var(--spacing-sm);
+    gap: 6px !important;
+    padding: 5px 8px !important;
   }
 
-  .bottom-action-btn {
-    width: 34px !important;
-    height: 34px !important;
-    min-width: 34px !important;
-    min-height: 34px !important;
+  .user-card-bottom-actions .bottom-action-btn,
+  .user-card-bottom-actions .bottom-action-btn.btn-primary,
+  .user-card-bottom-actions .bottom-action-btn.btn-danger {
+    width: 22px !important;
+    height: 22px !important;
+    min-width: 22px !important;
+    min-height: 22px !important;
+    max-width: 22px !important;
+    max-height: 22px !important;
+    flex: 0 0 22px !important;
   }
 
-  .bottom-action-btn .btn-icon {
-    font-size: 14px;
+  .user-card-bottom-actions .bottom-action-btn .btn-icon {
+    font-size: 10px !important;
   }
 }
