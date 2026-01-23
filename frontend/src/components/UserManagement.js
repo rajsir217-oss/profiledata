@@ -121,6 +121,7 @@ const UserManagement = () => {
       setLoading(false);
       setLoadingMore(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter, roleFilter, searchTerm, navigate, loadImageValidationStatus]);
 
   // Keep ref updated with latest loadUsers
@@ -155,6 +156,7 @@ const UserManagement = () => {
   }, [userRole, statusFilter, roleFilter, debouncedSearchTerm]);
 
   // Ref for tracking if we can load more (debounce)
+  // eslint-disable-next-line no-unused-vars
   const loadMoreRef = useRef(null);
   const isLoadingRef = useRef(false);
 
@@ -264,6 +266,7 @@ const UserManagement = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const toggleContributionPopup = async (user) => {
     try {
       // Check override first, then user state

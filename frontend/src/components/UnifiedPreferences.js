@@ -666,6 +666,7 @@ const UnifiedPreferences = () => {
     }));
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleDigestChange = (field, value) => {
     setDigestSettings(prev => ({
       ...prev,

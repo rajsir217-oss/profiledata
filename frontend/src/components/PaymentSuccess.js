@@ -12,7 +12,19 @@ const PaymentSuccess = () => {
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
-    if (sessionId) {
+    const provider = searchParams.get('provider');
+    const transactionId = searchParams.get('transaction_id');
+    
+    if (provider === 'braintree') {
+      // Braintree payment - already verified on backend
+      setVerified(true);
+      setPaymentDetails({ 
+        provider: 'braintree',
+        transactionId: transactionId 
+      });
+      setVerifying(false);
+    } else if (sessionId) {
+      // Stripe payment - verify session
       verifyPayment(sessionId);
     } else {
       setVerifying(false);
@@ -66,9 +78,20 @@ const PaymentSuccess = () => {
         </p>
         {paymentDetails && (
           <div className="payment-details">
-            <p><strong>Amount:</strong> ${paymentDetails.amountTotal?.toFixed(2)}</p>
-            {paymentDetails.customerEmail && (
-              <p><strong>Receipt sent to:</strong> {paymentDetails.customerEmail}</p>
+            {paymentDetails.provider === 'braintree' ? (
+              <>
+                <p><strong>Payment Provider:</strong> Braintree</p>
+                {paymentDetails.transactionId && (
+                  <p><strong>Transaction ID:</strong> {paymentDetails.transactionId}</p>
+                )}
+              </>
+            ) : (
+              <>
+                <p><strong>Amount:</strong> ${paymentDetails.amountTotal?.toFixed(2)}</p>
+                {paymentDetails.customerEmail && (
+                  <p><strong>Receipt sent to:</strong> {paymentDetails.customerEmail}</p>
+                )}
+              </>
             )}
           </div>
         )}

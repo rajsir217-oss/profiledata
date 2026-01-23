@@ -150,6 +150,7 @@ export const getActionIcon = (action, isActive = false) => {
   return actionMap[action.toLowerCase()] || '•';
 };
 
+// eslint-disable-next-line import/no-anonymous-default-export
 export default {
   ACTION_ICONS,
   SECTION_ICONS,

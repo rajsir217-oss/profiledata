@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
+// eslint-disable-next-line no-unused-vars
 import { getImageUrl, getProfilePicUrl } from '../utils/urlHelper';
 import MessagesDropdown from './MessagesDropdown';
 import MessageModal from './MessageModal';

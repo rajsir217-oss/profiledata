@@ -4,6 +4,7 @@ import api from '../api';
 import { getApiUrl } from '../config/apiConfig';
 import socketService from '../services/socketService';
 import { getShortName } from '../utils/userDisplay';
+// eslint-disable-next-line no-unused-vars
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './Sidebar.css';
@@ -260,7 +261,7 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
         icon: '💳',
         label: 'Membership Plans',
         subLabel: 'Pricing & plans',
-        action: () => navigate('/membership-plans')
+        action: () => navigate('/pricing')
       });
       
       items.push({

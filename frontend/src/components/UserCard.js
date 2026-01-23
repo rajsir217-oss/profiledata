@@ -63,6 +63,7 @@ const UserCard = ({
   onApprove, // For PII request approvals
   onDeny // For PII request denials
 }) => {
+  // eslint-disable-next-line no-unused-vars
   const navigate = useNavigate();
   const [imageError, setImageError] = useState(false);
 

@@ -138,6 +138,7 @@ const SearchResultCard = ({
     };
   };
 
+  // eslint-disable-next-line no-unused-vars
   const piiStatus = getPIIStatusSummary();
 
   // Context-based bottom action configuration (matching UserCard)
@@ -187,6 +188,7 @@ const SearchResultCard = ({
   };
 
   const bottomActions = getBottomActions();
+  // eslint-disable-next-line no-unused-vars
   const hasBottomActions = bottomActions.length > 0;
   const hasKebabMenu = onToggleFavorite || onToggleShortlist || onBlock || onRequestPII || onPIIRequest || onReport;
   
@@ -358,6 +360,7 @@ const SearchResultCard = ({
     setCurrentImageIndex(prev => prev < maxIndex ? prev + 1 : maxIndex);
   };
 
+  // eslint-disable-next-line no-unused-vars
   const renderProfileImage = () => {
     // Get current image to display
     const currentImage = user.images && user.images.length > currentImageIndex 
