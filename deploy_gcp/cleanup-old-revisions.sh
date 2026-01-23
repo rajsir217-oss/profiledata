@@ -1,12 +1,20 @@
 #!/bin/bash
 # Cleanup old Cloud Run revisions
 # Keeps only the latest N revisions per service
+# Usage: ./cleanup-old-revisions.sh [--all]
+#   --all : Skip confirmation prompts and delete all old revisions
 
 set -e
 
 PROJECT_ID="matrimonial-staging"
 REGION="us-central1"
 KEEP_COUNT=7  # Keep latest 7 revisions
+
+# Parse arguments
+AUTO_YES=false
+if [[ "$1" == "--all" ]] || [[ "$1" == "-a" ]]; then
+  AUTO_YES=true
+fi
 
 # Services to clean up
 SERVICES=("matrimonial-backend" "matrimonial-frontend")
@@ -79,13 +87,17 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   fi
   echo ""
   
-  # Ask for confirmation
-  read -p "Delete these $TO_DELETE revisions from $SERVICE_NAME? (y/N) " -n 1 -r
-  echo
-  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "⏭️  Skipped $SERVICE_NAME"
-    echo ""
-    continue
+  # Ask for confirmation (skip if --all flag is set)
+  if [ "$AUTO_YES" = true ]; then
+    echo "🚀 Auto-confirm enabled (--all flag)"
+  else
+    read -p "Delete these $TO_DELETE revisions from $SERVICE_NAME? (y/N) " -n 1 -r
+    echo
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+      echo "⏭️  Skipped $SERVICE_NAME"
+      echo ""
+      continue
+    fi
   fi
   
   # Delete revisions

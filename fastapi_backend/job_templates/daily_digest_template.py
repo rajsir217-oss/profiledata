@@ -124,33 +124,46 @@ class DailyDigestTemplate(JobTemplate):
             now = datetime.utcnow()
             lookback_time = now - timedelta(hours=hours_lookback)
             
-            # Simple query: find all users with digest enabled
-            # Job runs at scheduled time (e.g., 8AM daily) - no user-configurable time
+            # Calculate start of today (UTC) for tracking which users already received digest today
+            today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            
+            # Build query to find users who:
+            # 1. Have digest enabled
+            # 2. Haven't received a digest today (lastDigestSentAt < today OR doesn't exist)
             if test_username:
-                # Test mode: only process specific user
+                # Test mode: only process specific user (bypass lastDigestSentAt check)
                 query = {
                     "digestSettings.enabled": True,
                     "username": test_username
                 }
                 context.log("info", f"🧪 Test mode: only processing user '{test_username}'")
             else:
-                # Normal mode: process all users with digest enabled
-                query = {"digestSettings.enabled": True}
+                # Normal mode: process users who haven't received digest today
+                query = {
+                    "digestSettings.enabled": True,
+                    "$or": [
+                        # Never received a digest
+                        {"digestSettings.lastDigestSentAt": {"$exists": False}},
+                        # Last digest was before today
+                        {"digestSettings.lastDigestSentAt": {"$lt": today_start}}
+                    ]
+                }
+                context.log("info", f"📅 Processing users who haven't received digest since {today_start.isoformat()}")
             
             users_with_digest = await db.notification_preferences.find(query).to_list(length=batch_size)
             
             if not users_with_digest:
-                context.log("info", f"📭 No users with digest enabled. Job complete.")
+                context.log("info", f"📭 No users pending digest. All users processed for today.")
                 return JobResult(
                     status="success",
-                    message="No users with digest enabled",
+                    message="No users pending digest - all processed for today",
                     records_processed=0,
                     records_affected=0,
-                    details={"users_found": 0},
+                    details={"users_found": 0, "today_start": today_start.isoformat()},
                     duration_seconds=(datetime.utcnow() - start_time).total_seconds()
                 )
             
-            context.log("info", f"📬 Found {len(users_with_digest)} users with digest enabled")
+            context.log("info", f"📬 Found {len(users_with_digest)} users pending digest")
             
             for user_prefs in users_with_digest:
                 username = user_prefs.get("username")
@@ -166,6 +179,12 @@ class DailyDigestTemplate(JobTemplate):
                     
                     # Skip if no activity and skipIfNoActivity is enabled
                     if digest_settings.get("skipIfNoActivity", True) and not activity["has_activity"]:
+                        # Still update lastDigestSentAt to mark user as processed today
+                        if not dry_run:
+                            await db.notification_preferences.update_one(
+                                {"username": username},
+                                {"$set": {"digestSettings.lastDigestSentAt": now}}
+                            )
                         digests_skipped += 1
                         context.log("debug", f"⏭️ Skipping digest for {username} - no activity")
                         continue
@@ -187,6 +206,12 @@ class DailyDigestTemplate(JobTemplate):
                     
                     # Skip if no channels enabled for daily digest
                     if not digest_channels:
+                        # Still update lastDigestSentAt to mark user as processed today
+                        if not dry_run:
+                            await db.notification_preferences.update_one(
+                                {"username": username},
+                                {"$set": {"digestSettings.lastDigestSentAt": now}}
+                            )
                         digests_skipped += 1
                         context.log("debug", f"⏭️ Skipping digest for {username} - no channels enabled")
                         continue
@@ -196,6 +221,13 @@ class DailyDigestTemplate(JobTemplate):
                         await self._queue_digest_notification(
                             db, username, email, user, activity, digest_settings, digest_channels
                         )
+                        
+                        # Update lastDigestSentAt to track this user was processed today
+                        await db.notification_preferences.update_one(
+                            {"username": username},
+                            {"$set": {"digestSettings.lastDigestSentAt": now}}
+                        )
+                        
                         digests_sent += 1
                         context.log("info", f"✅ Queued digest for {username}")
                     else:
