@@ -11,6 +11,7 @@ from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
 from models.notification_models import NotificationChannel
 from config import settings
+from utils.profile_display import extract_profile_picture
 
 
 class EmailNotifierTemplate(JobTemplate):
@@ -1070,22 +1071,28 @@ class EmailNotifierTemplate(JobTemplate):
             if location:
                 details = f"{details} • {location}" if details else location
             
-            # Generate initials for avatar (first letter of first name + first letter of last name)
+            # Get profile picture URL (convert to public URL for emails)
+            profile_photo_url = extract_profile_picture(item, convert_to_public_url=True)
+            
+            # Generate initials for fallback avatar
             initials = ""
             if first_name:
                 initials += first_name[0].upper()
             if last_name:
                 initials += last_name[0].upper()
             if not initials:
-                # Fallback to username initials
                 username = item.get('username', 'U')
                 initials = username[:2].upper()
             
+            # Use profile picture if available, otherwise use initials avatar
+            if profile_photo_url:
+                avatar_html = f'<img src="{profile_photo_url}" alt="{name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';" /><div style="width: 40px; height: 40px; border-radius: 50%; background: {color}; display: none; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            else:
+                avatar_html = f'<div style="width: 40px; height: 40px; border-radius: 50%; background: {color}; display: flex; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            
             items_html += f"""
             <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: {color}; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                    <span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span>
-                </div>
+                {avatar_html}
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: #333;">{name}</div>
                     <div style="font-size: 12px; color: #666;">{details}</div>
@@ -1114,17 +1121,36 @@ class EmailNotifierTemplate(JobTemplate):
         """Build messages section for daily digest"""
         items_html = ""
         for msg in messages[:5]:
-            name = f"{msg.get('firstName', '')} {msg.get('lastName', '')}".strip() or msg.get('username', 'Someone')
+            first_name = msg.get('firstName', '')
+            last_name = msg.get('lastName', '')
+            name = f"{first_name} {last_name}".strip() or msg.get('username', 'Someone')
             count = msg.get('count', 1)
             preview = msg.get('lastMessage', '')[:50]
             if len(msg.get('lastMessage', '')) > 50:
                 preview += "..."
             
+            # Get profile picture URL (convert to public URL for emails)
+            profile_photo_url = extract_profile_picture(msg, convert_to_public_url=True)
+            
+            # Generate initials for fallback
+            initials = ""
+            if first_name:
+                initials += first_name[0].upper()
+            if last_name:
+                initials += last_name[0].upper()
+            if not initials:
+                username = msg.get('username', 'U')
+                initials = username[:2].upper()
+            
+            # Use profile picture if available, otherwise use initials avatar
+            if profile_photo_url:
+                avatar_html = f'<img src="{profile_photo_url}" alt="{name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';" /><div style="width: 40px; height: 40px; border-radius: 50%; background: #2ecc71; display: none; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            else:
+                avatar_html = f'<div style="width: 40px; height: 40px; border-radius: 50%; background: #2ecc71; display: flex; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            
             items_html += f"""
             <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: #2ecc7120; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                    <span style="font-size: 18px;">💬</span>
-                </div>
+                {avatar_html}
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: #333;">{name} <span style="font-weight: normal; color: #666;">({count} message{'s' if count > 1 else ''})</span></div>
                     <div style="font-size: 12px; color: #666; font-style: italic;">"{preview}"</div>
@@ -1146,7 +1172,9 @@ class EmailNotifierTemplate(JobTemplate):
         """Build expiring access section for daily digest"""
         items_html = ""
         for item in expiring[:3]:
-            name = f"{item.get('firstName', '')} {item.get('lastName', '')}".strip() or item.get('username', 'Someone')
+            first_name = item.get('firstName', '')
+            last_name = item.get('lastName', '')
+            name = f"{first_name} {last_name}".strip() or item.get('username', 'Someone')
             expires_at = item.get('expiresAt')
             if expires_at:
                 from datetime import datetime
@@ -1157,11 +1185,28 @@ class EmailNotifierTemplate(JobTemplate):
             else:
                 expires_str = "soon"
             
+            # Get profile picture URL (convert to public URL for emails)
+            profile_photo_url = extract_profile_picture(item, convert_to_public_url=True)
+            
+            # Generate initials for fallback
+            initials = ""
+            if first_name:
+                initials += first_name[0].upper()
+            if last_name:
+                initials += last_name[0].upper()
+            if not initials:
+                username = item.get('username', 'U')
+                initials = username[:2].upper()
+            
+            # Use profile picture if available, otherwise use initials avatar
+            if profile_photo_url:
+                avatar_html = f'<img src="{profile_photo_url}" alt="{name}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; margin-right: 12px;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';" /><div style="width: 40px; height: 40px; border-radius: 50%; background: #e67e22; display: none; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            else:
+                avatar_html = f'<div style="width: 40px; height: 40px; border-radius: 50%; background: #e67e22; display: flex; align-items: center; justify-content: center; margin-right: 12px;"><span style="font-size: 14px; font-weight: 600; color: white;">{initials}</span></div>'
+            
             items_html += f"""
             <div style="display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee;">
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: #e67e2220; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                    <span style="font-size: 18px;">⏰</span>
-                </div>
+                {avatar_html}
                 <div style="flex: 1;">
                     <div style="font-weight: 600; color: #333;">{name}</div>
                     <div style="font-size: 12px; color: #e67e22;">Access expires {expires_str}</div>
