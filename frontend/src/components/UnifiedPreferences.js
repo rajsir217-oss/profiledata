@@ -88,9 +88,6 @@ const UnifiedPreferences = () => {
   // Daily Digest Settings State
   const [digestSettings, setDigestSettings] = useState({
     enabled: false,
-    frequency: 'daily',
-    preferredTime: '08:00',
-    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
     minMatchScore: 0,
     skipIfNoActivity: true,
     batchFavorites: true,
@@ -296,9 +293,6 @@ const UnifiedPreferences = () => {
           setDigestSettings(prev => ({
             ...prev,
             enabled: data.digestSettings.enabled || false,
-            frequency: data.digestSettings.frequency || 'daily',
-            preferredTime: data.digestSettings.preferredTime || '08:00',
-            timezone: data.digestSettings.timezone || prev.timezone,
             minMatchScore: data.digestSettings.minMatchScore || 0,
             skipIfNoActivity: data.digestSettings.skipIfNoActivity !== false,
             batchFavorites: data.digestSettings.batchFavorites !== false,
@@ -1707,7 +1701,7 @@ const UnifiedPreferences = () => {
                 </strong>
                 <p style={{ margin: '6px 0 0 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                   {digestSettings.enabled 
-                    ? `Enabled - You'll receive a digest at ${digestSettings.preferredTime}`
+                    ? 'Enabled - You\'ll receive a daily digest at 8:00 AM UTC'
                     : 'Disabled - You receive individual notifications immediately'}
                 </p>
               </div>
@@ -1730,46 +1724,6 @@ const UnifiedPreferences = () => {
                 padding: '20px',
                 marginBottom: '20px'
               }}>
-                {/* Frequency & Time Row */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '20px' }}>
-                  <div className="form-group">
-                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>📅 Frequency</label>
-                    <select
-                      value={digestSettings.frequency}
-                      onChange={(e) => handleDigestChange('frequency', e.target.value)}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    >
-                      <option value="daily">Daily (once per day)</option>
-                      <option value="twice_daily">Twice Daily (morning & evening)</option>
-                      <option value="weekly">Weekly (every Monday)</option>
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>⏰ Preferred Time</label>
-                    <input
-                      type="time"
-                      value={digestSettings.preferredTime}
-                      onChange={(e) => handleDigestChange('preferredTime', e.target.value)}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label style={{ fontWeight: '600', marginBottom: '8px', display: 'block' }}>🌍 Timezone</label>
-                    <input
-                      type="text"
-                      value={digestSettings.timezone}
-                      onChange={(e) => handleDigestChange('timezone', e.target.value)}
-                      className="form-control"
-                      style={{ width: '100%' }}
-                      placeholder="America/New_York"
-                    />
-                  </div>
-                </div>
-
                 {/* Skip if no activity */}
                 <div style={{
                   display: 'flex',

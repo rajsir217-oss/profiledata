@@ -2,6 +2,11 @@
 Daily Digest Email Job Template
 Sends a consolidated daily digest email to users who have enabled this feature.
 Aggregates activity from the past 24 hours (or configured period).
+
+Simplified logic:
+- Job runs at scheduled time (e.g., 8AM daily via Dynamic Scheduler)
+- Processes ALL users with digestSettings.enabled = true
+- No user-configurable preferred time - everyone gets digest when job runs
 """
 
 from datetime import datetime, timedelta
@@ -53,12 +58,6 @@ class DailyDigestTemplate(JobTemplate):
                 "description": "If true, don't actually send emails (for testing)",
                 "default": False
             },
-            "force_send": {
-                "type": "boolean",
-                "label": "Force Send (Ignore Time)",
-                "description": "If true, bypass preferred time check and send to all users now (for testing)",
-                "default": False
-            },
             "test_username": {
                 "type": "string",
                 "label": "Test Username (Optional)",
@@ -85,7 +84,6 @@ class DailyDigestTemplate(JobTemplate):
             "batch_size": 50,
             "hours_lookback": 24,
             "dry_run": False,
-            "force_send": False,
             "test_username": ""
         }
     
@@ -107,7 +105,6 @@ class DailyDigestTemplate(JobTemplate):
         batch_size = params.get("batch_size", 50)
         hours_lookback = params.get("hours_lookback", 24)
         dry_run = params.get("dry_run", False)
-        force_send = params.get("force_send", False)
         test_username = params.get("test_username", "") or None  # For testing single user (empty string = all users)
         
         if db is None:
@@ -126,51 +123,34 @@ class DailyDigestTemplate(JobTemplate):
             # Get current time and lookback period
             now = datetime.utcnow()
             lookback_time = now - timedelta(hours=hours_lookback)
-            current_hour = now.hour
             
-            # Format current hour as HH:00 string to match preferredTime format
-            current_hour_str = f"{current_hour:02d}:00"
-            
-            # Build query to find users with digest enabled AND matching preferred time
-            # This is much more efficient than loading all users and filtering in Python
+            # Simple query: find all users with digest enabled
+            # Job runs at scheduled time (e.g., 8AM daily) - no user-configurable time
             if test_username:
-                # Test mode: only process specific user (bypass time check)
+                # Test mode: only process specific user
                 query = {
                     "digestSettings.enabled": True,
                     "username": test_username
                 }
                 context.log("info", f"🧪 Test mode: only processing user '{test_username}'")
-            elif force_send:
-                # Force send: process all users with digest enabled (bypass time check)
-                query = {"digestSettings.enabled": True}
-                context.log("info", f"⚡ Force send mode: bypassing preferred time check")
             else:
-                # Normal mode: only query users whose preferred time matches current hour
-                # Match users with preferredTime = current hour OR no preferredTime set (default 08:00)
-                query = {
-                    "digestSettings.enabled": True,
-                    "$or": [
-                        {"digestSettings.preferredTime": current_hour_str},
-                        # Also match users with default time (08:00) if current hour is 8
-                        {"digestSettings.preferredTime": {"$exists": False}, "$expr": {"$eq": [current_hour, 8]}}
-                    ]
-                }
-                context.log("info", f"⏰ Querying users with preferred time {current_hour_str} (UTC hour: {current_hour})")
+                # Normal mode: process all users with digest enabled
+                query = {"digestSettings.enabled": True}
             
             users_with_digest = await db.notification_preferences.find(query).to_list(length=batch_size)
             
             if not users_with_digest:
-                context.log("info", f"📭 No users found for current time slot ({current_hour_str}). Job complete.")
+                context.log("info", f"📭 No users with digest enabled. Job complete.")
                 return JobResult(
                     status="success",
-                    message=f"No users scheduled for {current_hour_str} UTC",
+                    message="No users with digest enabled",
                     records_processed=0,
                     records_affected=0,
-                    details={"current_hour": current_hour_str, "users_found": 0},
+                    details={"users_found": 0},
                     duration_seconds=(datetime.utcnow() - start_time).total_seconds()
                 )
             
-            context.log("info", f"📬 Found {len(users_with_digest)} users for time slot {current_hour_str}")
+            context.log("info", f"📬 Found {len(users_with_digest)} users with digest enabled")
             
             for user_prefs in users_with_digest:
                 username = user_prefs.get("username")
@@ -201,10 +181,20 @@ class DailyDigestTemplate(JobTemplate):
                         context.log("warning", f"⚠️ No email for {username}, skipping")
                         continue
                     
-                    # Generate and queue digest email
+                    # Get user's channel preferences for daily_digest
+                    channels_config = user_prefs.get("channels", {})
+                    digest_channels = channels_config.get("daily_digest", ["email"])  # Default to email
+                    
+                    # Skip if no channels enabled for daily digest
+                    if not digest_channels:
+                        digests_skipped += 1
+                        context.log("debug", f"⏭️ Skipping digest for {username} - no channels enabled")
+                        continue
+                    
+                    # Generate and queue digest notification
                     if not dry_run:
-                        await self._queue_digest_email(
-                            db, username, email, user, activity, digest_settings
+                        await self._queue_digest_notification(
+                            db, username, email, user, activity, digest_settings, digest_channels
                         )
                         digests_sent += 1
                         context.log("info", f"✅ Queued digest for {username}")
@@ -432,30 +422,33 @@ class DailyDigestTemplate(JobTemplate):
         
         return activity
     
-    async def _queue_digest_email(
+    async def _queue_digest_notification(
         self,
         db,
         username: str,
         email: str,
         user: Dict[str, Any],
         activity: Dict[str, Any],
-        digest_settings: Dict[str, Any]
+        digest_settings: Dict[str, Any],
+        channels: List[str]
     ):
-        """Queue the digest email for sending."""
+        """Queue the digest notification for sending via user's preferred channels."""
         
         first_name = user.get("firstName", username)
+        phone = user.get("phone") or user.get("contactNumber")
         
-        # Create notification queue entry
+        # Create notification queue entry with user's channel preferences
         notification = {
             "username": username,
             "trigger": "daily_digest",
             "priority": "low",
-            "channels": ["email"],
+            "channels": channels,  # Use user's channel preferences
             "templateData": {
                 "recipient": {
                     "username": username,
                     "firstName": first_name,
-                    "email": email
+                    "email": email,
+                    "phone": phone
                 },
                 "activity": activity,
                 "stats": activity["stats"],
