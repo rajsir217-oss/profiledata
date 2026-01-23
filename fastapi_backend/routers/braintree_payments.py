@@ -35,9 +35,10 @@ class SubscriptionRequest(BaseModel):
 @router.get("/status")
 async def get_braintree_status():
     """Check if Braintree is configured and available."""
+    from config import settings
     return {
         "configured": braintree_service.is_configured(),
-        "environment": "sandbox" if braintree_service.is_configured() else None
+        "environment": settings.braintree_environment if braintree_service.is_configured() else None
     }
 
 
