@@ -2385,8 +2385,18 @@ const SearchPage2 = () => {
         className="floating-search-trigger"
         onClick={() => setIsSearchModalOpen(true)}
         title="Open Search Filters"
+        style={{ 
+          position: 'fixed', 
+          bottom: '30px', 
+          right: '30px',
+          width: '36px',
+          height: '36px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
       >
-        <span className="trigger-icon">🔍</span>
+        <span style={{ fontSize: '16px', lineHeight: 1 }}>🔍</span>
         <span className="trigger-text">Search Filters</span>
       </button>
 
