@@ -42,7 +42,7 @@ class DailyDigestTemplate(JobTemplate):
                 "description": "Number of users to process per batch",
                 "default": 50,
                 "min": 10,
-                "max": 200
+                "max": 1000
             },
             "hours_lookback": {
                 "type": "integer",
