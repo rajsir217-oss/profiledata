@@ -206,6 +206,133 @@
   margin: 0 auto;
 }
 
+/* Payment Method Selector */
+.payment-method-section {
+  margin-bottom: 1.5rem;
+}
+
+.payment-method-section > label {
+  display: block;
+  color: var(--text-color);
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+.payment-methods {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.payment-method-option {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--surface-color);
+}
+
+.payment-method-option:hover {
+  border-color: var(--primary-color);
+  background: var(--hover-background);
+}
+
+.payment-method-option.selected {
+  border-color: var(--primary-color);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+}
+
+.payment-method-icon {
+  font-size: 1.75rem;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-background);
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+}
+
+.payment-method-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.payment-method-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 1rem;
+}
+
+.payment-method-desc {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+/* Braintree Drop-in Container */
+.braintree-container {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-color);
+  min-height: 200px;
+}
+
+.braintree-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.braintree-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 0.75rem;
+}
+
+/* Braintree Drop-in UI Overrides */
+#braintree-dropin .braintree-dropin {
+  font-family: inherit;
+}
+
+#braintree-dropin .braintree-sheet {
+  border-color: var(--border-color);
+  background: var(--card-background);
+}
+
+#braintree-dropin .braintree-sheet__header {
+  border-color: var(--border-color);
+}
+
+#braintree-dropin .braintree-sheet__text {
+  color: var(--text-color);
+}
+
+#braintree-dropin .braintree-form__label {
+  color: var(--text-color);
+}
+
+#braintree-dropin .braintree-form__hosted-field {
+  border-color: var(--border-color);
+  background: var(--input-bg);
+}
+
 .promo-section {
   margin-bottom: 1.5rem;
 }

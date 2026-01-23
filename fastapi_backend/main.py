@@ -47,6 +47,7 @@ from routers.payments import router as payments_router
 from routers.site_settings import router as site_settings_router
 from routers.notes import router as notes_router
 from routers.stripe_payments import router as stripe_payments_router
+from routers.braintree_payments import router as braintree_payments_router
 from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
@@ -343,6 +344,7 @@ app.include_router(payments_router)  # Payment history routes (already has /api/
 app.include_router(site_settings_router)  # Site settings routes (already has /api/site-settings prefix)
 app.include_router(notes_router)  # Profile notes routes (already has /api/notes prefix)
 app.include_router(stripe_payments_router)  # Stripe payment routes (already has /api/payments prefix)
+app.include_router(braintree_payments_router)  # Braintree/PayPal payment routes (already has /api/braintree prefix)
 
 # Health check endpoint
 @app.get("/health")
