@@ -4095,33 +4095,28 @@ async def search_users(
             seven_days_ago = datetime.now() - timedelta(days=7)
             query["createdAt"] = {"$gte": seven_days_ago.isoformat()}
         
-        # Days back filter - filter by adminApprovedAt date (when profile was approved by admin)
-        # If daysBack=30, show profiles approved in the last 30 days (e.g., today Jan 10 - 30 = Dec 11)
+        # Days back filter - filter by adminApprovedAt or createdAt date
+        # If daysBack=30, show profiles created/approved in the last 30 days
         if daysBack > 0:
             from datetime import datetime, timedelta
             cutoff_date = datetime.utcnow() - timedelta(days=daysBack)
-            cutoff_iso = cutoff_date.isoformat()
             
-            # Use adminApprovedAt date (when admin approved the profile)
-            # The field can be stored as datetime or ISO string, so check both formats
-            # Fall back to createdAt if adminApprovedAt doesn't exist
+            # Simplified query: check adminApprovedAt first, fall back to createdAt
+            # Use datetime comparison (works for both datetime objects and ISO strings in MongoDB)
             days_back_query = {"$or": [
-                # adminApprovedAt as datetime object
-                {"adminApprovedAt": {"$gte": cutoff_date, "$type": "date"}},
-                # adminApprovedAt as ISO string (lexicographic comparison works for ISO dates)
-                {"adminApprovedAt": {"$gte": cutoff_iso, "$type": "string"}},
-                # Fallback: if no adminApprovedAt, use createdAt
+                # Has adminApprovedAt and it's >= cutoff
+                {"adminApprovedAt": {"$gte": cutoff_date}},
+                # No adminApprovedAt, use createdAt instead
                 {"$and": [
-                    {"adminApprovedAt": {"$exists": False}},
-                    {"createdAt": {"$gte": cutoff_iso}}
-                ]},
-                {"$and": [
-                    {"adminApprovedAt": None},
-                    {"createdAt": {"$gte": cutoff_iso}}
+                    {"$or": [
+                        {"adminApprovedAt": {"$exists": False}},
+                        {"adminApprovedAt": None}
+                    ]},
+                    {"createdAt": {"$gte": cutoff_date}}
                 ]}
             ]}
             and_conditions.append(days_back_query)
-            logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} ({cutoff_iso})")
+            logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date}")
 
     # Sort options - always add _id as secondary sort for stable pagination
     sort_options = {

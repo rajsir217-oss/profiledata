@@ -389,9 +389,15 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
   // Check if email exists in database
   // Uses public endpoint that doesn't require authentication
-  const checkEmailAvailability = async (email) => {
+  // In edit mode, also checks but allows user to keep their original email
+  const checkEmailAvailability = async (email, originalEmail = null) => {
     if (!email || !email.includes('@')) {
       return; // Don't check if email is invalid
+    }
+    
+    // In edit mode, if email hasn't changed from original, skip check
+    if (originalEmail && email.toLowerCase().trim() === originalEmail.toLowerCase().trim()) {
+      return;
     }
 
     try {
@@ -895,9 +901,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       await checkUsernameAvailability(value);
     }
     
-    // Check email availability on blur (only in register mode)
-    if (name === 'contactEmail' && !isEditMode && value && !error) {
-      await checkEmailAvailability(value);
+    // Check email availability on blur (both register and edit mode)
+    if (name === 'contactEmail' && value && !error) {
+      // In edit mode, pass the original email so we can skip check if unchanged
+      const originalEmail = isEditMode ? savedUser?.contactEmail : null;
+      await checkEmailAvailability(value, originalEmail);
     }
   };
 
