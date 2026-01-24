@@ -452,14 +452,27 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         stats['searches_due_now'] += 1
                         logger.info(f"  ✅ Processing '{search_name}' - due for notification")
                         
-                        # Find matches for this search
-                        matches = await find_matches_for_search(db, username, criteria, lookback_hours)
+                        # Get last notification time for this search (to filter only NEW profiles)
+                        last_notification_time = None
+                        if not clear_tracking:
+                            tracking_doc = await db.saved_search_notifications.find_one({
+                                'username': username,
+                                'search_id': search_id
+                            })
+                            if tracking_doc:
+                                last_notification_time = tracking_doc.get('last_notification_sent')
+                                if last_notification_time:
+                                    logger.info(f"  📅 Last notification sent: {last_notification_time}")
+                        
+                        # Find matches for this search (only profiles created AFTER last notification)
+                        matches = await find_matches_for_search(db, username, criteria, lookback_hours, last_notification_time)
                         
                         if not matches:
                             logger.info(f"  No new matches for search '{search_name}'")
                             continue
                         
                         # Clear tracking if requested (for manual testing)
+                        # Note: We already got last_notification_time above, so clearing now is fine
                         if clear_tracking:
                             await db.saved_search_notifications.delete_one({
                                 'username': username,
@@ -467,7 +480,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                             })
                             logger.debug(f"  🗑️ Cleared tracking for '{search_name}' to allow resending")
                         
-                        # Filter out previously notified matches
+                        # Filter out previously notified matches (backup check - time filter should handle most cases)
                         new_matches = await filter_new_matches(db, username, search_id, matches)
                         
                         if not new_matches:
@@ -541,9 +554,19 @@ async def find_matches_for_search(
     db: AsyncIOMotorDatabase,
     username: str,
     criteria: Dict[str, Any],
-    lookback_hours: int
+    lookback_hours: int,
+    last_notification_time: datetime = None
 ) -> List[Dict[str, Any]]:
-    """Find users matching the search criteria"""
+    """Find users matching the search criteria
+    
+    Args:
+        db: Database instance
+        username: Current user's username (to exclude from results)
+        criteria: Search criteria from saved search
+        lookback_hours: Fallback lookback period (used if no last_notification_time)
+        last_notification_time: When the last notification was sent for this search
+                               If provided, only profiles created AFTER this time are returned
+    """
     
     # Build MongoDB query from criteria
     query: Dict[str, Any] = {
@@ -641,11 +664,32 @@ async def find_matches_for_search(
     if criteria.get('occupation'):
         query['occupation'] = {'$regex': criteria['occupation'], '$options': 'i'}
     
-    # Only get recent profiles (created in lookback period)
-    # NOTE: For scheduled runs, we want to notify about NEW profiles only
-    # For manual runs, lookback_hours is set to 0 to check ALL profiles
-    if lookback_hours > 0:
+    # Filter by time - prioritize last_notification_time, then daysBack from criteria, then lookback_hours
+    # This ensures we only notify about NEW profiles since the last notification
+    cutoff_time = None
+    
+    # Priority 1: Use last_notification_time if provided (profiles created AFTER last notification)
+    if last_notification_time:
+        cutoff_time = last_notification_time
+        logger.info(f"📅 Using last notification time: {cutoff_time}")
+    
+    # Priority 2: Use daysBack from search criteria if specified
+    elif criteria.get('daysBack'):
+        try:
+            days_back = int(criteria['daysBack'])
+            if days_back > 0:
+                cutoff_time = datetime.utcnow() - timedelta(days=days_back)
+                logger.info(f"📅 Using daysBack from criteria: {days_back} days -> {cutoff_time}")
+        except (ValueError, TypeError):
+            pass
+    
+    # Priority 3: Use lookback_hours parameter (fallback)
+    elif lookback_hours > 0:
         cutoff_time = datetime.utcnow() - timedelta(hours=lookback_hours)
+        logger.info(f"📅 Using lookback_hours: {lookback_hours} hours -> {cutoff_time}")
+    
+    # Apply the time filter if we have a cutoff
+    if cutoff_time:
         cutoff_iso = cutoff_time.isoformat()
         query_and.append({
             '$or': [
@@ -655,14 +699,17 @@ async def find_matches_for_search(
                 {'created_at': {'$gte': cutoff_iso}}
             ]
         })
-        logger.info(f"📅 Filtering profiles created after {cutoff_time} (last {lookback_hours} hours)")
+        logger.info(f"📅 Filtering profiles created after {cutoff_time}")
+    else:
+        logger.info(f"📅 No time filter applied - checking all profiles")
     
     # Log the final query
     logger.info(f"📊 Final MongoDB query: {query}")
     
     # Fetch matches - sorted by createdAt descending (newest first)
-    cursor = db.users.find(query).sort("createdAt", -1).limit(20)  # Limit to top 20 matches, newest first
-    matches = await cursor.to_list(length=20)
+    # No hard limit - we rely on time filtering and notified_matches tracking to keep results reasonable
+    cursor = db.users.find(query).sort("createdAt", -1).limit(100)  # Soft limit of 100 for safety
+    matches = await cursor.to_list(length=100)
     
     logger.info(f"✅ Found {len(matches)} matches for query")
     
