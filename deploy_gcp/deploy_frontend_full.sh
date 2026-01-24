@@ -35,7 +35,7 @@ RUNTIME_ENVIRONMENT="${RUNTIME_ENVIRONMENT:-pod}"
 ENABLE_WEBSOCKETS="${ENABLE_WEBSOCKETS:-true}"
 ENABLE_NOTIFICATIONS="${ENABLE_NOTIFICATIONS:-true}"
 DEBUG_RUNTIME="${DEBUG_RUNTIME:-false}"
-LOG_LEVEL="${LOG_LEVEL:-INFO}"
+LOG_LEVEL="${LOG_LEVEL:-WARNING}"
 
 # -----------------------------------------------------------------------------
 # Pre-flight checks

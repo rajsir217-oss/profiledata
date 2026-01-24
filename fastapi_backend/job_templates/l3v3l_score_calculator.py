@@ -374,4 +374,4 @@ if __name__ == "__main__":
     else:
         result = asyncio.run(run_job({}))
     
-    print(result)
+    logger.info(result)

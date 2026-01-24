@@ -40,7 +40,7 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
             elapsed = now - _last_resend_call
             if elapsed < _RESEND_MIN_INTERVAL:
                 wait_time = _RESEND_MIN_INTERVAL - elapsed
-                print(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call", flush=True)
+                logger.debug(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call")
                 await asyncio.sleep(wait_time)
             
             # Try multiple sources for the API key: env var, GCP Secret Manager, settings
@@ -56,11 +56,10 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
                 key_source = "settings"
             
             if not resend_api_key:
-                print("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend", flush=True)
-                logger.warning("📧 Resend API key not configured (checked: env, GCP Secret Manager, settings)")
+                logger.warning("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend")
                 return False
             
-            print(f"📧 [email_sender] Using Resend API key from: {key_source}", flush=True)
+            logger.debug(f"📧 [email_sender] Using Resend API key from: {key_source}")
             logger.info(f"📧 Resend API key source: {key_source}")
             
             resend.api_key = resend_api_key
@@ -71,10 +70,10 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
             
             # Debug: Log if newline was stripped (to verify fix is deployed)
             if from_email_raw != from_email or from_name_raw != from_name:
-                print(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!", flush=True)
+                logger.warning(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!")
                 logger.warning(f"📧 STRIPPED NEWLINE from FROM_EMAIL (raw len={len(from_email_raw)}, clean len={len(from_email)})")
             
-            print(f"📧 [email_sender] Attempting Resend to {to_email}", flush=True)
+            logger.debug(f"📧 [email_sender] Attempting Resend to {to_email}")
             logger.info(f"📧 Attempting to send via Resend to {to_email}")
             
             params = {
@@ -90,12 +89,12 @@ async def _send_via_resend(to_email: str, subject: str, html_content: str, text_
             # Update timestamp AFTER successful send
             _last_resend_call = time.time()
             
-            print(f"✅ [email_sender] Resend SUCCESS: {response}", flush=True)
+            logger.debug(f"✅ [email_sender] Resend SUCCESS: {response}")
             logger.info(f"✅ Resend success: {response}")
             return True
         
     except Exception as e:
-        print(f"⚠️ [email_sender] Resend FAILED: {e}", flush=True)
+        logger.error(f"⚠️ [email_sender] Resend FAILED: {e}")
         logger.warning(f"⚠️ Resend failed: {e}")
         return False
 
@@ -112,7 +111,7 @@ async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_co
     if not smtp_user or not smtp_password:
         raise Exception("SMTP credentials not configured")
     
-    print(f"📧 [email_sender] Sending via SMTP ({smtp_user}) to {to_email}", flush=True)
+    logger.debug(f"📧 [email_sender] Sending via SMTP ({smtp_user}) to {to_email}")
     logger.info(f"📧 Sending via SMTP ({smtp_user}) to {to_email}")
     
     # Create email - use SMTP_USER as from address (Gmail requires this)
@@ -133,7 +132,7 @@ async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_co
         # Use sendmail() with explicit recipient to ensure To: header is respected
         server.sendmail(smtp_user, [to_email], msg.as_string())
     
-    print(f"✅ [email_sender] SMTP SUCCESS to {to_email}", flush=True)
+    logger.debug(f"✅ [email_sender] SMTP SUCCESS to {to_email}")
     logger.info(f"✅ SMTP success to {to_email}")
     return True
 
@@ -141,7 +140,7 @@ async def _send_via_smtp(to_email: str, subject: str, html_content: str, text_co
 async def _send_email_with_fallback(to_email: str, subject: str, html_content: str, text_content: str) -> dict:
     """Send email using Resend as primary, SMTP as fallback. Returns result dict."""
     email_provider = os.environ.get("EMAIL_PROVIDER", "resend").lower()
-    print(f"📧 [email_sender] EMAIL_PROVIDER={email_provider}", flush=True)
+    logger.debug(f"📧 [email_sender] EMAIL_PROVIDER={email_provider}")
     
     result = {
         "success": False,
@@ -164,7 +163,7 @@ async def _send_email_with_fallback(to_email: str, subject: str, html_content: s
             result["resend_error"] = str(e)
         
         # Fall back to SMTP
-        print("📧 [email_sender] Resend failed, falling back to SMTP...", flush=True)
+        logger.info("📧 [email_sender] Resend failed, falling back to SMTP...")
         logger.info("📧 Falling back to SMTP...")
         result["smtp_attempted"] = True
         try:
@@ -176,7 +175,7 @@ async def _send_email_with_fallback(to_email: str, subject: str, html_content: s
             raise
     else:
         # SMTP only
-        print("📧 [email_sender] Using SMTP only (EMAIL_PROVIDER != resend)", flush=True)
+        logger.debug("📧 [email_sender] Using SMTP only (EMAIL_PROVIDER != resend)")
         result["smtp_attempted"] = True
         try:
             await _send_via_smtp(to_email, subject, html_content, text_content)

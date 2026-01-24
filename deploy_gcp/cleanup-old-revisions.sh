@@ -131,6 +131,50 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   echo "✅ Deleted $DELETED_COUNT revisions from $SERVICE_NAME"
   echo "📊 Remaining: $REMAINING revisions"
   echo ""
+
+  # --- NEW: Artifact Registry Image Cleanup ---
+  echo "🧹 Cleaning up associated images in Artifact Registry..."
+  
+  # Get repository name (usually based on project and region)
+  REPO_NAME="cloud-run-source-deploy"
+  
+  # Get all image digests for this service in the repository
+  # Images are usually tagged with the service name or similar
+  # For Cloud Run source deploys, they are in the cloud-run-source-deploy repo
+  IMAGES=$(gcloud artifacts docker images list "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME" \
+    --filter="package ~ $SERVICE_NAME" \
+    --format="value(format('{0}@{1}', package, version))" 2>/dev/null || echo "")
+  
+  if [ -n "$IMAGES" ]; then
+    # Get images still in use by ANY remaining revision
+    STILL_IN_USE=$(gcloud run revisions list \
+      --service=$SERVICE_NAME \
+      --region=$REGION \
+      --project=$PROJECT_ID \
+      --format="value(spec.template.spec.containers[0].image)")
+    
+    IMAGE_DELETED_COUNT=0
+    while IFS= read -r image_full; do
+      if [ -z "$image_full" ]; then continue; fi
+      
+      # Check if this specific image (with digest) is in the STILL_IN_USE list
+      if echo "$STILL_IN_USE" | grep -q "$image_full"; then
+        # echo "  ✅ Keeping image: $image_full (in use)"
+        continue
+      fi
+      
+      echo "  🗑️ Deleting orphaned image: $image_full"
+      if gcloud artifacts docker images delete "$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME/$image_full" \
+        --project=$PROJECT_ID \
+        --quiet --delete-tags 2>/dev/null; then
+        IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+      fi
+    done <<< "$IMAGES"
+    echo "  ✅ Deleted $IMAGE_DELETED_COUNT orphaned images for $SERVICE_NAME"
+  else
+    echo "  ℹ️ No images found to clean up in $REPO_NAME"
+  fi
+  echo ""
 done
 
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

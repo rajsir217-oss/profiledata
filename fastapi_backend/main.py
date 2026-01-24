@@ -78,7 +78,7 @@ if settings.log_file and settings.env != "production":
         handlers.append(file_handler)
     except (PermissionError, OSError) as e:
         # Skip file logging if directory is not writable (e.g., in containers)
-        print(f"⚠️ File logging disabled: {e}")
+        logger.warning(f"⚠️ File logging disabled: {e}")
 
 logging.basicConfig(
     level=log_level,
@@ -201,9 +201,9 @@ if env != "production" and os.path.exists(settings.upload_dir):
 frontend_url = os.getenv("FRONTEND_URL", "https://l3v3lmatches.com")
 
 # Log environment for debugging
-print(f"🔍 CORS Configuration:")
-print(f"   ENV = {env}")
-print(f"   FRONTEND_URL = {frontend_url}")
+logger.debug(f"🔍 CORS Configuration:")
+logger.debug(f"   ENV = {env}")
+logger.debug(f"   FRONTEND_URL = {frontend_url}")
 
 if env == "production":
     # Production: Use actual domains + Capacitor Android app origin
@@ -218,7 +218,6 @@ if env == "production":
         "capacitor://localhost",         # Capacitor custom scheme
     ]
     cors_regex = None  # No regex needed for production - explicit origins only
-    print(f"🔒 Production CORS enabled for: {cors_origins}")
     logger.info(f"🔒 Production CORS enabled for: {cors_origins}")
 else:
     # Development: Allow localhost
@@ -232,7 +231,6 @@ else:
     ]
     # Regex for dev to catch any localhost variations
     cors_regex = r"https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+)(:\d+)?"
-    print(f"🔓 Development CORS enabled for: {cors_origins}")
     logger.info(f"🔓 Development CORS enabled for: {cors_origins}")
 
 # Add CORS middleware with conditional regex

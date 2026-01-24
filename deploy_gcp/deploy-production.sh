@@ -74,12 +74,14 @@ for arg in "$@"; do
 done
 
 # Determine log level based on SHOW_LOGS
+# Default to WARNING in production to save Cloud Logging costs
 if [[ "$SHOW_LOGS" == "false" ]]; then
   LOG_LEVEL="ERROR"
   LOG_MODE="PRODUCTION (errors only)"
 else
-  LOG_LEVEL="INFO"
-  LOG_MODE="VERBOSE (all logs)"
+  # Use WARNING as the default for "all logs" in production to avoid INFO noise
+  LOG_LEVEL="${LOG_LEVEL:-WARNING}"
+  LOG_MODE="VERBOSE ($LOG_LEVEL)"
 fi
 
 echo "============================================="

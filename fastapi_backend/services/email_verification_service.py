@@ -12,6 +12,9 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from urllib.parse import quote, unquote
 from config import Settings
 from crypto_utils import get_encryptor
+import logging
+
+logger = logging.getLogger(__name__)
 
 settings = Settings()
 
@@ -35,7 +38,7 @@ def _decrypt_contact_info(value: str) -> str:
             decrypted = encryptor.decrypt(value)
             return decrypted
         except Exception as e:
-            print(f"❌ Failed to decrypt contact info: {e}")
+            logger.error(f"❌ Failed to decrypt contact info: {e}")
             return None
     
     # Not encrypted, return as-is
@@ -93,7 +96,7 @@ class EmailVerificationService:
             return None
             
         except Exception as e:
-            print(f"Error creating verification token: {e}")
+            logger.error(f"Error creating verification token: {e}")
             return None
     
     async def send_verification_email(self, username: str, email: str, first_name: str = "") -> bool:
@@ -120,7 +123,7 @@ class EmailVerificationService:
             verification_url = f"{settings.frontend_url}/verify-email?token={token}&username={encoded_username}"
             
             # Log the verification URL for debugging (without full token for security)
-            print(f"📧 Generated verification URL for {username}: {settings.frontend_url}/verify-email?token={token[:10]}...&username={encoded_username}")
+            logger.debug(f"📧 Generated verification URL for {username}")
             
             # Create email content
             subject = "Verify Your Email - Activate Your Profile"
@@ -256,7 +259,7 @@ class EmailVerificationService:
             return success
             
         except Exception as e:
-            print(f"Error sending verification email: {e}")
+            logger.error(f"Error sending verification email: {e}")
             return False
     
     async def _send_email(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
@@ -275,12 +278,10 @@ class EmailVerificationService:
         try:
             from services.email_sender import send_email
             await send_email(to_email, subject, html_content, text_content)
-            print(f"✅ Verification email sent to: {to_email}")
+            logger.info(f"✅ Verification email sent to: {to_email}")
             return True
         except Exception as e:
-            import traceback
-            print(f"❌ Error sending email: {e}")
-            print(f"❌ Full traceback: {traceback.format_exc()}")
+            logger.error(f"❌ Error sending email: {e}")
             return False
     
     async def verify_token(self, username: str, token: str) -> Dict[str, Any]:
@@ -295,14 +296,13 @@ class EmailVerificationService:
             Dictionary with success status and message
         """
         try:
-            print(f"🔍 Verifying email for username: {username}")
-            print(f"🔑 Token received: {token[:20]}..." if token and len(token) > 20 else f"🔑 Token: {token}")
+            logger.debug(f"🔍 Verifying email for username: {username}")
             
             # Find user (case-insensitive)
             user = await self.users_collection.find_one(get_username_query(username))
             
             if not user:
-                print(f"❌ User '{username}' not found in database")
+                logger.warning(f"❌ User '{username}' not found in database")
                 return {
                     "success": False,
                     "message": "User not found"
@@ -310,7 +310,7 @@ class EmailVerificationService:
             
             # Check if already verified
             if user.get("emailVerified"):
-                print(f"✅ User '{username}' email already verified")
+                logger.info(f"✅ User '{username}' email already verified")
                 return {
                     "success": True,
                     "message": "Email already verified",
@@ -319,11 +319,10 @@ class EmailVerificationService:
             
             # Check if token matches
             stored_token = user.get("emailVerificationToken")
-            print(f"🔑 Stored token: {stored_token[:20]}..." if stored_token and len(stored_token) > 20 else f"🔑 Stored token: {stored_token}")
             
             # Check if token exists in database
             if not stored_token:
-                print(f"❌ No verification token found for user '{username}' - may have been used already")
+                logger.warning(f"❌ No verification token found for user '{username}'")
                 return {
                     "success": False,
                     "message": "Verification token not found. It may have already been used or expired. Please request a new verification email.",
@@ -336,13 +335,7 @@ class EmailVerificationService:
             
             if stored_token_clean != token_clean:
                 attempts = user.get("emailVerificationAttempts", 1)
-                print(f"❌ Token mismatch!")
-                print(f"   Stored token (len={len(stored_token_clean)}): {stored_token_clean[:30]}...")
-                print(f"   Received token (len={len(token_clean)}): {token_clean[:30]}...")
-                print(f"   User has requested {attempts} verification email(s)")
-                # Check if it's a partial match (URL truncation issue)
-                if stored_token_clean.startswith(token_clean) or token_clean.startswith(stored_token_clean):
-                    print(f"   ⚠️ Partial match detected - possible URL truncation in email client")
+                logger.warning(f"❌ Token mismatch for {username}!")
                 
                 # Provide helpful error message based on number of attempts
                 if attempts > 1:
@@ -358,6 +351,7 @@ class EmailVerificationService:
             # Check if token expired
             expiry = user.get("emailVerificationTokenExpiry")
             if not expiry or datetime.utcnow() > expiry:
+                logger.warning(f"❌ Token expired for {username}")
                 return {
                     "success": False,
                     "message": "Verification token has expired. Please request a new one.",
@@ -378,6 +372,8 @@ class EmailVerificationService:
                 }
             )
             
+            logger.info(f"✅ User '{username}' email verified successfully")
+            
             # Notify admin about new user pending approval
             await self._notify_admin_new_user(username)
             
@@ -388,7 +384,7 @@ class EmailVerificationService:
             }
             
         except Exception as e:
-            print(f"Error verifying token: {e}")
+            logger.error(f"Error verifying token for {username}: {e}")
             return {
                 "success": False,
                 "message": "An error occurred during verification"
@@ -482,7 +478,7 @@ class EmailVerificationService:
                 }
                 
         except Exception as e:
-            print(f"Error resending verification email: {e}")
+            logger.error(f"Error resending verification email: {e}")
             return {
                 "success": False,
                 "message": "An error occurred while sending email"
@@ -713,7 +709,7 @@ class EmailVerificationService:
             return await self._send_email(email, subject, html_content, text_content)
             
         except Exception as e:
-            print(f"❌ Error sending welcome email: {e}")
+            logger.error(f"❌ Error sending welcome email: {e}")
             return False
     
     async def _notify_admin_new_user(self, username: str):
@@ -725,7 +721,7 @@ class EmailVerificationService:
             # - In-app notification
             # - Slack/Discord webhook
             # - Dashboard alert
-            print(f"📬 Admin notification: New user {username} pending approval")
+            logger.info(f"📬 Admin notification: New user {username} pending approval")
             pass
         except Exception as e:
-            print(f"Error notifying admin: {e}")
+            logger.error(f"Error notifying admin: {e}")
