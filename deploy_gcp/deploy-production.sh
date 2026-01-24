@@ -218,7 +218,8 @@ case $choice in
         echo "   ✅ CORS: ENV=production, FRONTEND_URL=https://l3v3lmatches.com"
         echo ""
         cd "$PROJECT_ROOT"
-        LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
+        # SKIP_FRONTEND_PROMPT=true prevents double frontend deployment
+        SKIP_FRONTEND_PROMPT=true LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_backend_simple.sh
         
         # Database migrations commented out (manually run if needed)
         # echo ""

@@ -109,25 +109,28 @@ echo "Service URL: $BACKEND_URL"
 
 # ============================================================================
 # IMPORTANT: Recommend frontend redeployment
+# Skip this prompt if called from deploy-production.sh (SKIP_FRONTEND_PROMPT=true)
 # ============================================================================
-echo ""
-echo "⚠️  IMPORTANT: You may need to redeploy frontend to clear caches"
-echo ""
-echo "To deploy frontend (clears CDN cache and rebuilds React app):"
-echo "  cd $PROJECT_ROOT/deploy_gcp"
-echo "  ./deploy-production.sh"
-echo "  Choose: 2 (Frontend only)"
-echo ""
-read -p "Deploy frontend now? (y/N): " -n 1 -r
-echo ""
+if [[ "$SKIP_FRONTEND_PROMPT" != "true" ]]; then
+  echo ""
+  echo "⚠️  IMPORTANT: You may need to redeploy frontend to clear caches"
+  echo ""
+  echo "To deploy frontend (clears CDN cache and rebuilds React app):"
+  echo "  cd $PROJECT_ROOT/deploy_gcp"
+  echo "  ./deploy-production.sh"
+  echo "  Choose: 2 (Frontend only)"
+  echo ""
+  read -p "Deploy frontend now? (y/N): " -n 1 -r
+  echo ""
 
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  echo "🚀 Deploying frontend..."
-  cd "$PROJECT_ROOT"
-  LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
-else
-  echo "⏭️  Skipping frontend deployment"
-  echo "   You can deploy it later with: ./deploy_gcp/deploy-production.sh"
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    echo "🚀 Deploying frontend..."
+    cd "$PROJECT_ROOT"
+    LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
+  else
+    echo "⏭️  Skipping frontend deployment"
+    echo "   You can deploy it later with: ./deploy_gcp/deploy-production.sh"
+  fi
 fi
 
 echo ""
