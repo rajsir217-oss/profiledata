@@ -442,6 +442,10 @@ async def login(
         tokens = create_token_pair(user, request.remember_me)
         
         # Create session
+        # Use 7-day expiry for session record to match refresh token life
+        # The 8-hour hard limit is enforced separately by middleware/refresh logic
+        session_expires_delta = timedelta(days=7)
+        
         session_doc = {
             "user_id": str(user["_id"]),
             "username": request.username,
@@ -451,7 +455,7 @@ async def login(
             "ip_address": http_request.client.host,
             "user_agent": http_request.headers.get("user-agent"),
             "created_at": datetime.utcnow(),
-            "expires_at": datetime.utcnow() + timedelta(seconds=tokens["expires_in"]),
+            "expires_at": datetime.utcnow() + session_expires_delta,
             "last_activity": datetime.utcnow(),
             "revoked": False
         }
@@ -585,13 +589,14 @@ async def refresh_token(
             expires_delta=timedelta(minutes=15)
         )
         
-        # Update session last_activity
+        # Update session last_activity and extend expires_at
         await db.sessions.update_one(
             {"_id": session["_id"]},
             {
                 "$set": {
                     "token": access_token,
                     "last_activity": datetime.utcnow(),
+                    "expires_at": datetime.utcnow() + timedelta(days=7), # Extend session life
                     "ip_address": http_request.client.host
                 }
             }

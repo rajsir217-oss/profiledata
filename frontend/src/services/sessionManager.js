@@ -21,6 +21,8 @@ class SessionManager {
     this.refreshInterval = null;
     this.inactivityInterval = null; // Dedicated inactivity check interval
     this.lastActivity = Date.now();
+    this.lastStorageUpdate = Date.now(); // Track last time localStorage was updated
+    this.isRefreshing = false; // In-memory lock
     this.loginTime = null;
     this.isActive = false;
     
@@ -30,6 +32,11 @@ class SessionManager {
     this.HARD_LIMIT = 8 * 60 * 60 * 1000; // 8 hour hard limit (full work day)
     this.WARNING_TIME = 7.5 * 60 * 60 * 1000; // Warn at 7.5 hours
     this.INACTIVITY_LOGOUT = 30 * 60 * 1000; // Log out after 30 minutes of inactivity
+    
+    // EDGE CASE: Clock drift buffer (30 seconds)
+    // We log out slightly BEFORE the server limit to ensure a graceful experience
+    this.CLOCK_DRIFT_BUFFER = 30 * 1000; 
+    
     this.warningShown = false;
     this.isLoggingOut = false;
   }
@@ -94,6 +101,9 @@ class SessionManager {
     // Set up visibility change listener (for when user returns to tab)
     this.setupVisibilityListener();
 
+    // Set up storage listener (for cross-tab synchronization)
+    this.setupStorageListener();
+
     // Start refresh interval
     this.startRefreshInterval();
 
@@ -107,19 +117,19 @@ class SessionManager {
   checkSessionExpiredOnInit() {
     // Check hard limit first
     const timeSinceLogin = Date.now() - this.loginTime;
-    if (timeSinceLogin >= this.HARD_LIMIT) {
-      logger.warn(`Session exceeded 8-hour hard limit on init (${Math.round(timeSinceLogin / 3600000)} hours)`);
+    if (timeSinceLogin >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
+      logger.warn(`Session near or exceeded 8-hour hard limit on init (${Math.round(timeSinceLogin / 3600000)} hours)`);
       toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
-      this.logout();
+      this.logout('init_hard_limit_exceeded');
       return true;
     }
     
     // Check inactivity
     const timeSinceActivity = Date.now() - this.lastActivity;
-    if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
-      logger.warn(`Session expired due to inactivity on init (${Math.round(timeSinceActivity / 60000)} minutes)`);
+    if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
+      logger.warn(`Session near or exceeded inactivity limit on init (${Math.round(timeSinceActivity / 60000)} minutes)`);
       toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-      this.logout();
+      this.logout('init_inactivity_exceeded');
       return true;
     }
     
@@ -177,31 +187,33 @@ class SessionManager {
       
       // Check if user has been inactive too long
       const timeSinceActivity = Date.now() - actualLastActivity;
-      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+      if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes (from localStorage), logging out`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-        this.logout();
+        this.logout('tab_return_inactivity');
         return;
       }
 
       // Check hard limit
       const timeSinceLogin = Date.now() - actualLoginTime;
-      if (timeSinceLogin >= this.HARD_LIMIT) {
-        logger.warn(`Session exceeded 8-hour hard limit on tab return (${Math.round(timeSinceLogin / 3600000)} hours)`);
+      if (timeSinceLogin >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
+        logger.warn(`Session near 8-hour hard limit on tab return (${Math.round(timeSinceLogin / 3600000)} hours)`);
         toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
-        this.logout();
+        this.logout('tab_return_hard_limit');
         return;
       }
 
-      // Try to refresh token to verify session is still valid
-      try {
+      // EDGE CASE: If token is "old" (e.g. interval was throttled), refresh immediately
+      const lastUpdate = localStorage.getItem('sessionLastTokenUpdate');
+      const now = Date.now();
+      if (!lastUpdate || (now - parseInt(lastUpdate, 10) > (this.REFRESH_INTERVAL - 30000))) {
+        logger.debug('Token may be stale due to background throttling, refreshing...');
         await this.refreshToken();
-        // Reset activity on successful return
-        this.lastActivity = Date.now();
-        localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
-      } catch (error) {
-        logger.error('Failed to refresh token on tab return:', error);
       }
+
+      // Reset activity on successful return
+      this.lastActivity = Date.now();
+      localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
     }
   }
 
@@ -214,7 +226,62 @@ class SessionManager {
     document.removeEventListener('click', this.handleActivity);
     document.removeEventListener('touchstart', this.handleActivity);
     document.removeEventListener('scroll', this.handleActivity);
+    document.removeEventListener('input', this.handleActivity);
+    document.removeEventListener('change', this.handleActivity);
     document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+  }
+
+  /**
+   * Set up storage listener
+   * This handles cross-tab synchronization of session state
+   */
+  setupStorageListener() {
+    window.addEventListener('storage', this.handleStorageChange);
+  }
+
+  /**
+   * Handle storage changes from other tabs
+   */
+  handleStorageChange = (event) => {
+    if (!this.isActive) {
+      // EDGE CASE: If we are not active (e.g. on Login page) but a token appears,
+      // it means the user logged in in another tab.
+      if (event.key === 'token' && event.newValue) {
+        logger.info('Token detected from another tab, reloading to sync state');
+        window.location.href = '/dashboard';
+      }
+      return;
+    }
+
+    if (event.key === 'sessionLastActivity' && event.newValue) {
+      const remoteActivity = parseInt(event.newValue, 10);
+      if (remoteActivity > this.lastActivity) {
+        logger.debug('Session activity synced from another tab:', new Date(remoteActivity).toISOString());
+        this.lastActivity = remoteActivity;
+      }
+    }
+
+    if (event.key === 'sessionLoginTime' && event.newValue) {
+      const remoteLogin = parseInt(event.newValue, 10);
+      if (this.loginTime !== remoteLogin) {
+        logger.debug('Session login time synced from another tab');
+        this.loginTime = remoteLogin;
+      }
+    }
+    
+    // EDGE CASE: If token or username changes to a different value, 
+    // it means another user logged in. Force reload to prevent state corruption.
+    if ((event.key === 'token' || event.key === 'username') && event.newValue && event.oldValue && event.newValue !== event.oldValue) {
+      logger.warn('Identity change detected from another tab, forcing reload');
+      window.location.reload();
+      return;
+    }
+    
+    // If token was removed in another tab (logout), logout here too
+    if (event.key === 'token' && !event.newValue) {
+      logger.info('Token removed in another tab, logging out');
+      this.logout('token_removed_external');
+    }
   }
 
   /**
@@ -224,14 +291,19 @@ class SessionManager {
   handleActivity = () => {
     const now = Date.now();
     
-    // Throttle: Only update if more than 10 seconds since last update
-    // This prevents excessive localStorage writes on every mouse move
-    if (now - this.lastActivity > 10000) {
-      this.lastActivity = now;
+    // DEBUG: Log activity firing (throttled for console)
+    if (now - (this._lastLogTime || 0) > 60000) {
+      logger.debug('Activity detected (throttled log)');
+      this._lastLogTime = now;
+    }
+    
+    this.lastActivity = now;
+    
+    // Throttle: Only update localStorage if more than 30 seconds since last update
+    // This prevents excessive writes while ensuring other tabs see the activity
+    if (now - this.lastStorageUpdate > 30000) {
+      this.lastStorageUpdate = now;
       localStorage.setItem('sessionLastActivity', now.toString());
-    } else {
-      // Still update in-memory value for accurate checks
-      this.lastActivity = now;
     }
   }
 
@@ -302,10 +374,10 @@ class SessionManager {
       
       const timeSinceActivity = Date.now() - lastActivityTime;
       
-      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
-        logger.warn(`Session expired due to inactivity (${Math.round(timeSinceActivity / 60000)} minutes)`);
+      if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
+        logger.warn(`Session near inactivity limit (${Math.round(timeSinceActivity / 60000)} minutes)`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-        this.logout();
+        this.logout('inactivity_interval_check');
       }
     }, 60 * 1000); // Check every 1 minute
   }
@@ -316,10 +388,10 @@ class SessionManager {
   async checkAndRefresh() {
     try {
       // Check hard limit first
-      if (this.hasExceededHardLimit()) {
-        logger.warn('Session exceeded 8-hour hard limit');
+      if (Date.now() - this.loginTime >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
+        logger.warn('Session near 8-hour hard limit in refresh check');
         toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
-        this.logout();
+        this.logout('refresh_check_hard_limit');
         return;
       }
 
@@ -332,10 +404,10 @@ class SessionManager {
 
       // Check if user has been inactive too long - log them out
       const timeSinceActivity = Date.now() - this.lastActivity;
-      if (timeSinceActivity >= this.INACTIVITY_LOGOUT) {
+      if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-        this.logout();
+        this.logout('refresh_check_inactivity');
         return;
       }
 
@@ -364,6 +436,26 @@ class SessionManager {
       return;
     }
 
+    // EDGE CASE: Prevent multiple tabs from refreshing simultaneously
+    // Check if another tab is already refreshing (lock expires after 30s)
+    const refreshLock = localStorage.getItem('sessionRefreshLock');
+    const now = Date.now();
+    if (refreshLock && (now - parseInt(refreshLock, 10) < 30000)) {
+      logger.debug('Refresh already in progress in another tab, skipping');
+      return;
+    }
+
+    // EDGE CASE: Avoid redundant refreshes if token was updated very recently (< 2 mins)
+    const lastUpdate = localStorage.getItem('sessionLastTokenUpdate');
+    if (lastUpdate && (now - parseInt(lastUpdate, 10) < 120000)) {
+      logger.debug('Token was refreshed very recently, skipping');
+      return;
+    }
+
+    if (this.isRefreshing) return;
+    this.isRefreshing = true;
+    localStorage.setItem('sessionRefreshLock', now.toString());
+
     try {
       logger.debug('Refreshing access token...');
       
@@ -380,6 +472,7 @@ class SessionManager {
       if (response.data && response.data.access_token) {
         // Update access token
         localStorage.setItem('token', response.data.access_token);
+        localStorage.setItem('sessionLastTokenUpdate', Date.now().toString());
         logger.info('Access token refreshed successfully');
         
         // Reset warning flag if we successfully refreshed
@@ -393,24 +486,38 @@ class SessionManager {
       }
     } catch (error) {
       if (error.response?.status === 401) {
-        logger.warn('Token refresh failed - session expired');
+        logger.warn('Token refresh failed - session expired (401)');
+        
+        // Log detailed error for debugging silent timeouts
+        if (error.response.data) {
+          logger.debug('Refresh error data:', error.response.data);
+        }
+        
         toastService.warning('Your session has expired. Please log in again.', 4000);
-        this.logout();
+        this.logout('refresh_failed_401');
       } else {
-        logger.error('Token refresh error:', error);
+        // EDGE CASE: Network error during refresh should NOT log out immediately
+        // unless it's a persistent failure. For now, just log it.
+        logger.error('Token refresh error (network?):', error);
       }
+    } finally {
+      this.isRefreshing = false;
+      localStorage.removeItem('sessionRefreshLock');
     }
   }
 
   /**
    * Logout and cleanup
+   * @param {string} reason - Optional reason for logout for logging
    */
-  logout() {
+  logout(reason = 'unknown') {
     // Prevent multiple logout calls
     if (this.isLoggingOut) {
       return;
     }
     this.isLoggingOut = true;
+    
+    logger.info(`SessionManager.logout() triggered. Reason: ${reason}`);
     
     // Clear intervals
     if (this.refreshInterval) {
@@ -430,11 +537,13 @@ class SessionManager {
 
     // Remove listeners
     this.removeActivityListeners();
+    window.removeEventListener('storage', this.handleStorageChange);
 
     // Clear state
     this.isActive = false;
     this.loginTime = null;
     this.lastActivity = Date.now();
+    this.lastStorageUpdate = Date.now();
     this.warningShown = false;
 
     // Clear storage
@@ -445,6 +554,8 @@ class SessionManager {
     localStorage.removeItem('userStatus');
     localStorage.removeItem('sessionLoginTime');
     localStorage.removeItem('sessionLastActivity');
+    localStorage.removeItem('sessionLastTokenUpdate');
+    localStorage.removeItem('sessionRefreshLock');
     
     // Mark as logged out to prevent duplicate handling
     sessionStorage.setItem('hasLoggedOut', 'true');
