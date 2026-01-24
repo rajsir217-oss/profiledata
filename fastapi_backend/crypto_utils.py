@@ -8,6 +8,7 @@ from cryptography.fernet import Fernet, InvalidToken
 from typing import Optional, List, Dict, Any
 import logging
 import base64
+import hashlib
 import os
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,33 @@ class PIIEncryption:
         'location',
         'linkedinUrl',
     }
+    
+    # Fields that need a hash for uniqueness checking
+    HASH_FIELDS = {
+        'contactEmail': 'contactEmailHash',
+        'contactNumber': 'contactNumberHash',
+    }
+    
+    @staticmethod
+    def hash_for_lookup(value: Optional[str]) -> Optional[str]:
+        """
+        Create a deterministic hash of a value for uniqueness checking.
+        Uses SHA-256 with normalized (lowercase, stripped) input.
+        
+        Args:
+            value: Plaintext value to hash
+            
+        Returns:
+            Hex-encoded SHA-256 hash, or None if input is None/empty
+        """
+        if not value or value == "":
+            return None
+        
+        # Normalize: lowercase and strip whitespace
+        normalized = value.lower().strip()
+        
+        # Create SHA-256 hash
+        return hashlib.sha256(normalized.encode('utf-8')).hexdigest()
     
     def __init__(self, encryption_key: Optional[str] = None):
         """
@@ -141,16 +169,27 @@ class PIIEncryption:
     
     def encrypt_user_pii(self, user_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Encrypt all PII fields in user data before storing to database
+        Encrypt all PII fields in user data before storing to database.
+        Also creates hash fields for uniqueness checking (email/phone).
         
         Args:
             user_data: User document with plaintext PII
             
         Returns:
-            User document with encrypted PII fields
+            User document with encrypted PII fields and hash fields
         """
         encrypted_data = user_data.copy()
         
+        # First, create hash fields for uniqueness checking (before encryption)
+        for field, hash_field in self.HASH_FIELDS.items():
+            if field in user_data and user_data[field]:
+                try:
+                    encrypted_data[hash_field] = self.hash_for_lookup(user_data[field])
+                    logger.debug(f"🔑 Created hash for field: {field} -> {hash_field}")
+                except Exception as e:
+                    logger.error(f"❌ Failed to create hash for {field}: {e}")
+        
+        # Then encrypt the actual fields
         for field in self.ENCRYPTED_FIELDS:
             if field in encrypted_data and encrypted_data[field]:
                 try:
