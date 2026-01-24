@@ -2884,13 +2884,18 @@ const SearchPage2 = () => {
               <div className="swipe-instructions" style={{
                 marginBottom: '20px',
                 display: 'flex',
-                gap: '20px',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '8px',
                 fontSize: '12px',
                 color: 'var(--text-muted)'
               }}>
-                <span>← Pass</span>
-                <span>↑ Shortlist</span>
-                <span>Favorite →</span>
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  <span>← Pass</span>
+                  <span>↑ Shortlist</span>
+                  <span>Favorite →</span>
+                </div>
+                <span style={{ fontSize: '11px', opacity: 0.7 }}>Double-click to open profile</span>
               </div>
               
               {/* Card Stack */}
@@ -2918,6 +2923,7 @@ const SearchPage2 = () => {
                     >
                       {isTopCard ? (
                         <SwipeableCard
+                          username={user.username}
                           onSwipeRight={() => handleSwipeAction('right', user)}
                           onSwipeLeft={() => handleSwipeAction('left', user)}
                           onSwipeUp={() => handleSwipeAction('up', user)}

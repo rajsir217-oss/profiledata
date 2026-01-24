@@ -1463,48 +1463,49 @@
   font-size: 11px;
 }
 
-/* Details Grid */
-.card-details-grid {
+/* Stats Pills Row - Height, DOB, Religion */
+.card-stats-pills {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 14px;
-}
-
-.card-details-left {
-  flex: 1;
-}
-
-.card-details-right {
-  display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 8px;
-  align-items: flex-end;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border-color);
 }
 
-.card-detail-line {
-  margin: 0 0 4px 0;
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.3;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.card-detail-line:last-child {
-  margin-bottom: 0;
-}
-
-.card-details-right .card-detail-line {
+.card-stat-pill {
   background: var(--surface-color);
-  padding: 4px 8px;
+  padding: 4px 10px;
   border-radius: 6px;
   border: 1px solid var(--border-color);
   font-size: 11px;
   font-weight: 500;
-  margin: 0;
   color: var(--text-color);
+  white-space: nowrap;
+}
+
+.card-stat-pill strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+/* Details List - Single Column */
+.card-details-list {
+  padding: 10px 14px;
+}
+
+.card-detail-line {
+  margin: 0 0 6px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.card-detail-line:last-child {
+  margin-bottom: 0;
 }
 
 /* Looking For Summary */
@@ -1875,12 +1876,12 @@
     padding: 12px 14px;
   }
 
-  .card-details-grid {
-    padding: 12px 14px;
+  .card-stats-pills {
+    padding: 8px 14px;
   }
 
-  .card-badges {
-    padding: 8px 14px 10px 14px;
+  .card-details-list {
+    padding: 10px 14px;
   }
 
   .card-looking-for {
@@ -1935,20 +1936,18 @@
     font-size: 12px;
   }
 
-  .card-details-grid {
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
+  .card-stats-pills {
+    padding: 6px 12px;
+    gap: 6px;
   }
 
-  .card-details-right {
-    flex-direction: row;
-    flex-wrap: wrap;
-    align-items: flex-start;
+  .card-stat-pill {
+    padding: 3px 8px;
+    font-size: 10px;
   }
 
-  .card-badges {
-    padding: 6px 12px 8px 12px;
+  .card-details-list {
+    padding: 8px 12px;
   }
 
   .card-looking-for {

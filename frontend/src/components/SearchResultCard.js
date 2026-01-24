@@ -710,17 +710,18 @@ const SearchResultCard = ({
             )}
           </div>
 
-          {/* User Details - Two Column Layout */}
-          <div className="card-details-grid">
-            <div className="card-details-left">
-              <p className="card-detail-line">📍 {user.location || 'Location not specified'}</p>
-              <p className="card-detail-line">💼 {displayOccupation || 'Not specified'}</p>
-              <p className="card-detail-line">🎓 {displayEducation || 'Not specified'}</p>
-            </div>
-            <div className="card-details-right">
-              {displayHeight && <p className="card-detail-line"><strong>HEIGHT:</strong> {displayHeight}</p>}
-              {displayDOB && <p className="card-detail-line"><strong>DOB:</strong> {displayDOB}</p>}
-            </div>
+          {/* Quick Stats Pills Row - Height, DOB, Religion */}
+          <div className="card-stats-pills">
+            {displayHeight && <span className="card-stat-pill">{displayHeight}</span>}
+            {displayDOB && <span className="card-stat-pill">{displayDOB}</span>}
+            {user.religion && <span className="card-stat-pill">{user.religion}</span>}
+          </div>
+
+          {/* User Details - Single Column with Icons */}
+          <div className="card-details-list">
+            <p className="card-detail-line">📍 {user.location || 'Location not specified'}</p>
+            <p className="card-detail-line">💼 {displayOccupation || 'Not specified'}</p>
+            <p className="card-detail-line">🎓 {displayEducation || 'Not specified'}</p>
           </div>
 
           {/* Looking For Summary */}
@@ -728,16 +729,10 @@ const SearchResultCard = ({
             const lookingForSummary = generateLookingForSummary(user);
             return lookingForSummary ? (
               <p className="card-looking-for">
-                <span className="looking-for-label">Looking for:</span> {lookingForSummary}
+                <span className="looking-for-label">LOOKING FOR:</span> {lookingForSummary}
               </p>
             ) : null;
           })()}
-
-          {/* Badges */}
-          <div className="card-badges">
-            {user.religion && <span className="card-badge">{user.religion}</span>}
-            {user.eatingPreference && <span className="card-badge">{user.eatingPreference}</span>}
-          </div>
 
           {/* Action Buttons Row - Request Pics, Favorite & Message */}
           <div className="card-action-buttons-row">
