@@ -206,6 +206,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [touchedFields, setTouchedFields] = useState({});
   const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showDraftModal, setShowDraftModal] = useState(false);
   const [draftData, setDraftData] = useState(null);
@@ -386,7 +387,41 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     }
   };
 
-  // Email availability check is handled by backend during registration
+  // Check if email exists in database
+  // Uses public endpoint that doesn't require authentication
+  const checkEmailAvailability = async (email) => {
+    if (!email || !email.includes('@')) {
+      return; // Don't check if email is invalid
+    }
+
+    try {
+      setCheckingEmail(true);
+      const response = await api.get(`/check-email/${encodeURIComponent(email)}`);
+      
+      // Check if email is NOT available
+      if (response.data && !response.data.available) {
+        const reason = response.data.reason || "Email already registered. Please use a different email.";
+        setFieldErrors((prev) => ({ 
+          ...prev, 
+          contactEmail: `❌ ${reason}` 
+        }));
+      } else {
+        // Email is available - clear any existing error
+        setFieldErrors((prev) => {
+          const newErrors = { ...prev };
+          if (newErrors.contactEmail && newErrors.contactEmail.includes("already registered")) {
+            delete newErrors.contactEmail;
+          }
+          return newErrors;
+        });
+      }
+    } catch (error) {
+      // Network errors are ignored - allow to proceed
+      console.error('Error checking email:', error);
+    } finally {
+      setCheckingEmail(false);
+    }
+  }
 
   // Generate username from first and last name
   const generateUsername = (firstName, lastName) => {
@@ -858,6 +893,11 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     // Check username availability on blur (only in register mode)
     if (name === 'username' && !isEditMode && value && !error) {
       await checkUsernameAvailability(value);
+    }
+    
+    // Check email availability on blur (only in register mode)
+    if (name === 'contactEmail' && !isEditMode && value && !error) {
+      await checkEmailAvailability(value);
     }
   };
 
@@ -2220,11 +2260,19 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </div>
           </div>
           <div className="col-md-6">
-            <label className="form-label">Contact Email <span className="text-danger">*</span></label>
+            <label className="form-label">
+              Contact Email <span className="text-danger">*</span>
+              {checkingEmail && (
+                <span className="text-muted small ms-2">
+                  <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                  Checking availability...
+                </span>
+              )}
+            </label>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <input 
                 type="email" 
-                className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : ''}`}
+                className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : touchedFields.contactEmail && !checkingEmail && !fieldErrors.contactEmail && formData.contactEmail ? 'is-valid' : ''}`}
                 name="contactEmail" 
                 value={formData.contactEmail} 
                 onChange={handleChange}
@@ -2260,6 +2308,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             </div>
             {fieldErrors.contactEmail && touchedFields.contactEmail && (
               <div className="invalid-feedback d-block">{fieldErrors.contactEmail}</div>
+            )}
+            {!fieldErrors.contactEmail && touchedFields.contactEmail && !checkingEmail && formData.contactEmail && formData.contactEmail.includes('@') && (
+              <div className="valid-feedback d-block">✅ Email is available!</div>
             )}
           </div>
         </div>

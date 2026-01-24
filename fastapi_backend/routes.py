@@ -861,6 +861,41 @@ async def check_username_availability(
     logger.info(f"✅ Username '{username}' is available")
     return {"available": True, "username": username}
 
+
+@router.get("/check-email/{email:path}")
+async def check_email_availability(
+    email: str,
+    db = Depends(get_database)
+):
+    """
+    Public endpoint to check if an email is available.
+    No authentication required - used during registration.
+    Returns: {"available": true/false, "email": "..."}
+    
+    Uses hash field for O(1) indexed lookup instead of decrypting all emails.
+    """
+    logger.info(f"🔍 Checking email availability")
+    
+    # Basic email validation
+    if not email or "@" not in email:
+        return {"available": False, "email": email, "reason": "Invalid email format"}
+    
+    # Use hash for O(1) lookup
+    from crypto_utils import PIIEncryption
+    try:
+        email_hash = PIIEncryption.hash_for_lookup(email)
+        existing = await db.users.find_one({"contactEmailHash": email_hash})
+        if existing:
+            logger.info(f"❌ Email is already registered")
+            return {"available": False, "email": email}
+    except Exception as e:
+        logger.warning(f"⚠️ Could not check email hash: {e}")
+        # Fall through to return available (better UX than blocking)
+    
+    logger.info(f"✅ Email is available")
+    return {"available": True, "email": email}
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     # Basic Information
@@ -1055,38 +1090,42 @@ async def register_user(
             detail="Username already exists"
         )
     
-    # Check if email already exists (must check encrypted value since DB stores encrypted emails)
-    encryptor = get_encryptor()
+    # Check if email already exists using hash field (O(1) indexed lookup)
+    from crypto_utils import PIIEncryption
     if contactEmail:
         logger.debug(f"Checking if email exists...")
         try:
-            encrypted_email = encryptor.encrypt(contactEmail)
-            existing_email = await db.users.find_one({"contactEmail": encrypted_email})
+            email_hash = PIIEncryption.hash_for_lookup(contactEmail)
+            existing_email = await db.users.find_one({"contactEmailHash": email_hash})
             if existing_email:
                 logger.warning(f"⚠️ Registration failed: Email already registered")
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Email already registered"
                 )
+        except HTTPException:
+            raise  # Re-raise HTTP exceptions
         except Exception as e:
             logger.warning(f"⚠️ Could not check email uniqueness: {e}")
-            # Continue with registration - better to allow than block on encryption error
+            # Continue with registration - better to allow than block on hash error
     
-    # Check if phone number already exists (must check encrypted value)
+    # Check if phone number already exists using hash field (O(1) indexed lookup)
     if contactNumber:
         logger.debug(f"Checking if phone number exists...")
         try:
-            encrypted_phone = encryptor.encrypt(contactNumber)
-            existing_phone = await db.users.find_one({"contactNumber": encrypted_phone})
+            phone_hash = PIIEncryption.hash_for_lookup(contactNumber)
+            existing_phone = await db.users.find_one({"contactNumberHash": phone_hash})
             if existing_phone:
                 logger.warning(f"⚠️ Registration failed: Phone number already registered")
                 raise HTTPException(
                     status_code=status.HTTP_409_CONFLICT,
                     detail="Phone number already registered"
                 )
+        except HTTPException:
+            raise  # Re-raise HTTP exceptions
         except Exception as e:
             logger.warning(f"⚠️ Could not check phone uniqueness: {e}")
-            # Continue with registration - better to allow than block on encryption error
+            # Continue with registration - better to allow than block on hash error
     
     # Validate and save images
     image_paths = []
@@ -1986,10 +2025,50 @@ async def update_user_profile(
         update_data["firstName"] = firstName.strip()
     if lastName is not None and lastName.strip():
         update_data["lastName"] = lastName.strip()
+    
+    # Handle contactNumber update with uniqueness check
     if contactNumber is not None and contactNumber.strip():
-        update_data["contactNumber"] = contactNumber.strip()
+        new_phone = contactNumber.strip()
+        # Check if phone is actually changing
+        from crypto_utils import PIIEncryption
+        new_phone_hash = PIIEncryption.hash_for_lookup(new_phone)
+        current_phone_hash = user.get("contactNumberHash")
+        
+        if new_phone_hash != current_phone_hash:
+            # Phone is changing - check if new phone is already used by another user
+            existing = await db.users.find_one({
+                "contactNumberHash": new_phone_hash,
+                "username": {"$ne": username}  # Exclude current user
+            })
+            if existing:
+                logger.warning(f"⚠️ Update failed: Phone number already registered to another user")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Phone number already registered to another user"
+                )
+        update_data["contactNumber"] = new_phone
+    
+    # Handle contactEmail update with uniqueness check
     if contactEmail is not None and contactEmail.strip():
-        update_data["contactEmail"] = contactEmail.strip()
+        new_email = contactEmail.strip()
+        # Check if email is actually changing
+        from crypto_utils import PIIEncryption
+        new_email_hash = PIIEncryption.hash_for_lookup(new_email)
+        current_email_hash = user.get("contactEmailHash")
+        
+        if new_email_hash != current_email_hash:
+            # Email is changing - check if new email is already used by another user
+            existing = await db.users.find_one({
+                "contactEmailHash": new_email_hash,
+                "username": {"$ne": username}  # Exclude current user
+            })
+            if existing:
+                logger.warning(f"⚠️ Update failed: Email already registered to another user")
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Email already registered to another user"
+                )
+        update_data["contactEmail"] = new_email
     if smsOptIn is not None:
         update_data["smsOptIn"] = smsOptIn
     
