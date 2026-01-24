@@ -3,9 +3,12 @@ Centralized branding utility
 Reads app name and branding from whitelabel.json
 """
 
+import logging
 import json
 import os
 from functools import lru_cache
+
+logger = logging.getLogger(__name__)
 
 @lru_cache(maxsize=1)
 def get_app_branding():
@@ -51,7 +54,7 @@ def get_app_branding():
         }
         
     except Exception as e:
-        print(f"Warning: Could not load whitelabel.json: {e}")
+        logger.warning(f"Warning: Could not load whitelabel.json: {e}")
         return {
             "app_name": "L3V3L MATCHES",
             "app_name_short": "L3V3L",

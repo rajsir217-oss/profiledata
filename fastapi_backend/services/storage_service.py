@@ -2,12 +2,14 @@
 """
 Storage service that supports both local filesystem and Google Cloud Storage
 """
-import os
-import uuid
 import logging
+import uuid
+import os
+import io
 from pathlib import Path
 from typing import Optional
 from fastapi import UploadFile
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -48,12 +50,25 @@ class StorageService:
             Public URL or relative path to the file
         """
         # Generate unique filename
-        file_extension = Path(upload_file.filename).suffix
+        file_extension = Path(upload_file.filename).suffix.lower()
         unique_filename = f"{uuid.uuid4()}{file_extension}"
         
         # Read file content
         content = await upload_file.read()
-        file_size_mb = len(content) / (1024 * 1024)
+        original_size_mb = len(content) / (1024 * 1024)
+        
+        # Compress image if it's a common image format
+        if file_extension in ['.jpg', '.jpeg', '.png', '.webp']:
+            try:
+                content = self._compress_image(content, file_extension)
+                new_size_mb = len(content) / (1024 * 1024)
+                logger.info(f"✨ Compressed image: {original_size_mb:.2f}MB -> {new_size_mb:.2f}MB ({(1 - new_size_mb/original_size_mb)*100:.1f}% reduction)")
+                file_size_mb = new_size_mb
+            except Exception as e:
+                logger.warning(f"⚠️ Image compression failed, saving original: {e}")
+                file_size_mb = original_size_mb
+        else:
+            file_size_mb = original_size_mb
         
         # Log storage destination
         storage_type = "GCS" if self.use_gcs else "Local"
@@ -63,6 +78,62 @@ class StorageService:
             return await self._save_to_gcs(unique_filename, content, folder, file_size_mb)
         else:
             return await self._save_to_local(unique_filename, content, folder, file_size_mb)
+
+    def generate_signed_url(self, filename: str, folder: str = "uploads", expiration_minutes: int = 15) -> Optional[str]:
+        """
+        Generate a signed URL for direct GCS access.
+        This saves CPU/Network costs by offloading file serving to GCS directly.
+        """
+        if not self.use_gcs:
+            return None
+            
+        try:
+            from datetime import timedelta
+            blob_path = f"{folder}/{filename}"
+            blob = self.gcs_bucket.blob(blob_path)
+            
+            url = blob.generate_signed_url(
+                version="v4",
+                expiration=timedelta(minutes=expiration_minutes),
+                method="GET",
+            )
+            return url
+        except Exception as e:
+            logger.error(f"❌ Failed to generate signed URL for {filename}: {e}")
+            return None
+
+    def _compress_image(self, content: bytes, extension: str) -> bytes:
+        """
+        Resize and compress image to reduce storage and network egress costs
+        Target: Max width/height 1600px, quality 80
+        """
+        img = Image.open(io.BytesIO(content))
+        
+        # Convert RGBA to RGB if saving as JPEG
+        if img.mode in ('RGBA', 'P') and extension in ['.jpg', '.jpeg']:
+            img = img.convert('RGB')
+            
+        # 1. Resize if too large (1600px is plenty for web profiles)
+        max_size = 1600
+        if img.width > max_size or img.height > max_size:
+            ratio = min(max_size / img.width, max_size / img.height)
+            new_size = (int(img.width * ratio), int(img.height * ratio))
+            img = img.resize(new_size, Image.LANCZOS)
+            
+        # 2. Compress and save to buffer
+        output = io.BytesIO()
+        
+        # Use JPEG for best compression of photos
+        save_format = 'JPEG' if extension in ['.jpg', '.jpeg'] else img.format
+        if not save_format:
+            save_format = 'PNG'
+            
+        save_params = {'optimize': True}
+        if save_format == 'JPEG':
+            save_params['quality'] = 80  # 80 is the "sweet spot" for quality vs size
+            
+        img.save(output, format=save_format, **save_params)
+        return output.getvalue()
     
     async def _save_to_gcs(self, filename: str, content: bytes, folder: str, file_size_mb: float) -> str:
         """Save file to Google Cloud Storage"""
