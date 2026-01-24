@@ -89,6 +89,12 @@ class SavedSearchMatchesNotifierTemplate(JobTemplate):
                 "min": 0,
                 "max": 720
             },
+            "ignoreUserSchedule": {
+                "type": "boolean",
+                "label": "Ignore User Schedule",
+                "description": "If true, send to all users when job runs (ignore user-level time/day settings). Use for weekly job schedules.",
+                "default": True
+            },
             "appUrl": {
                 "type": "string",
                 "label": "App URL",
@@ -346,6 +352,7 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
         batch_size = params.get('batchSize', 50)
         lookback_hours = params.get('lookbackHours', 168)  # Check for profiles created in last 7 days (168 hours)
         app_url = params.get('appUrl') or settings.frontend_url
+        ignore_user_schedule = params.get('ignoreUserSchedule', True)  # Default True for weekly job schedules
 
         # Apply overrides for manual runs
         if is_manual_run:
@@ -436,7 +443,8 @@ async def run_saved_search_notifier(db, params: Dict[str, Any]) -> JobResult:
                         stats['searches_with_schedule'] += 1
                         
                         # Check if it's time to send based on schedule
-                        if not is_notification_due(search, db, username, search_id, force_run, notifications=notifications):
+                        # ignore_user_schedule=True means we send to all users when job runs (for weekly schedules)
+                        if not is_notification_due(search, db, username, search_id, force_run, notifications=notifications, ignore_user_schedule=ignore_user_schedule):
                             stats['skipped_not_due'] += 1
                             logger.debug(f"  ⏰ Skipping '{search_name}' - not due yet based on schedule")
                             continue
@@ -917,7 +925,7 @@ async def send_matches_email(
         return False
 
 
-def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str, force_run: bool = False, notifications: Optional[Dict[str, Any]] = None) -> bool:
+def is_notification_due(search: Dict[str, Any], db, username: str, search_id: str, force_run: bool = False, notifications: Optional[Dict[str, Any]] = None, ignore_user_schedule: bool = False) -> bool:
     """
     Check if it's time to send notification based on the search's schedule
     
@@ -927,6 +935,7 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
         username: Username
         search_id: Search ID
         force_run: If True, bypass schedule check (for testing)
+        ignore_user_schedule: If True, skip user-level time/day checks (for weekly job runs)
         
     Returns:
         True if notification should be sent now, False otherwise
@@ -938,6 +947,14 @@ def is_notification_due(search: Dict[str, Any], db, username: str, search_id: st
     notifications = notifications if isinstance(notifications, dict) else (search.get('notifications') or {})
     if not notifications.get('enabled'):
         return False
+    
+    # If ignore_user_schedule is True, skip time/day checks
+    # This is used when the job itself runs on a weekly schedule (e.g., Cron: 00 02**1)
+    # In this case, we send to ALL users with enabled notifications when the job runs,
+    # regardless of their individual time preferences
+    if ignore_user_schedule:
+        logger.debug(f"Schedule check for '{search.get('name')}': ignore_user_schedule=True, returning True")
+        return True
     
     frequency = notifications.get('frequency', 'daily')
     notification_time = notifications.get('time', '09:00')  # HH:MM format

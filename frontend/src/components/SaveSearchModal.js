@@ -329,6 +329,8 @@ const SaveSearchModal = ({
                   </label>
                 </div>
 
+                {/* DISABLED: Frequency/Time settings - job now runs on fixed weekly schedule
+                   User-level scheduling is no longer needed. Re-enable if per-user scheduling is restored.
                 {enableNotifications && (
                   <>
                     <div className="form-group">
@@ -376,6 +378,7 @@ const SaveSearchModal = ({
                     </div>
                   </>
                 )}
+                */}
                 
                 {/* Set as Default checkbox */}
                 <div className="form-group" style={{marginTop: '20px', paddingTop: '20px', borderTop: '1px solid var(--border-color)'}}>
@@ -459,6 +462,8 @@ const SaveSearchModal = ({
                   </label>
                 </div>
 
+                {/* DISABLED: Frequency/Time settings - job now runs on fixed weekly schedule
+                   User-level scheduling is no longer needed. Re-enable if per-user scheduling is restored.
                 {enableNotifications && (
                   <>
                     <div className="form-group">
@@ -506,6 +511,7 @@ const SaveSearchModal = ({
                     </div>
                   </>
                 )}
+                */}
               </div>
 
               <div className="modal-actions">
@@ -562,7 +568,7 @@ const SaveSearchModal = ({
                             </p>
                             {search.notifications?.enabled && (
                               <div className="notification-badge">
-                                📧 {search.notifications.frequency === 'daily' ? 'Daily' : search.notifications.dayOfWeek} at {formatTimeDisplay(search.notifications.time)}
+                                📧 Email notifications enabled
                               </div>
                             )}
                           </div>
