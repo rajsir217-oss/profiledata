@@ -227,12 +227,12 @@ case $choice in
         # python3 migrations/run_migrations.py || echo "⚠️  Migration warnings (non-fatal)"
         
         echo ""
-        echo "� Updating Notification Templates..."
+        echo "📧 Updating Notification Templates..."
         cd "$PROJECT_ROOT/fastapi_backend"
         python3 update_pii_granted_template.py || echo "⚠️  Template update warnings (non-fatal)"
         
         echo ""
-        echo "�� Deploying Frontend..."
+        echo "📦 Deploying Frontend..."
         echo "   Log Level: $LOG_LEVEL"
         cd "$PROJECT_ROOT"
         LOG_LEVEL="$LOG_LEVEL" ./deploy_gcp/deploy_frontend_full.sh
