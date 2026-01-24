@@ -190,6 +190,8 @@ const SearchFiltersModal = ({
                             </label>
                           </div>
                           
+                          {/* DISABLED: Frequency/Time settings - job now runs on fixed weekly schedule
+                             User-level scheduling is no longer needed. Re-enable if per-user scheduling is restored.
                           {scheduleEnabled && (
                             <>
                               <div className="schedule-options">
@@ -236,6 +238,7 @@ const SearchFiltersModal = ({
                               </div>
                             </>
                           )}
+                          */}
                         </div>
                         <div className="schedule-edit-footer">
                           <button type="button" className="btn btn-secondary" onClick={cancelInlineScheduleEdit}>Cancel</button>
