@@ -1,4 +1,5 @@
 # fastapi_backend/services/activity_logger.py
+import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models.activity_models import (
     ActivityLog, ActivityType, ActivityLogFilter, 
@@ -9,6 +10,8 @@ from datetime import datetime, timedelta
 import asyncio
 from collections import defaultdict
 import json
+
+logger = logging.getLogger(__name__)
 
 class ActivityLogger:
     """Service for logging user activities with batch processing and privacy controls"""
@@ -30,7 +33,7 @@ class ActivityLogger:
                 index_info = existing_indexes["timestamp_1"]
                 # If it doesn't have expireAfterSeconds, drop it
                 if "expireAfterSeconds" not in index_info:
-                    print("⚠️ Dropping old timestamp index without TTL")
+                    logger.warning("⚠️ Dropping old timestamp index without TTL")
                     await self.collection.drop_index("timestamp_1")
             
             # Create indexes for performance
@@ -47,13 +50,13 @@ class ActivityLogger:
                 name="timestamp_1"
             )
             
-            print("✅ Activity logger initialized with indexes")
+            logger.info("✅ Activity logger initialized with indexes")
             
             # Start periodic flush task
             self._flush_task = asyncio.create_task(self._periodic_flush())
             
         except Exception as e:
-            print(f"❌ Error initializing activity logger: {e}")
+            logger.error(f"❌ Error initializing activity logger: {e}")
     
     async def _periodic_flush(self):
         """Periodically flush batch queue"""
@@ -116,9 +119,9 @@ class ActivityLogger:
             
             if batch_to_insert:
                 await self.collection.insert_many(batch_to_insert)
-                print(f"✅ Flushed {len(batch_to_insert)} activity logs to database")
+                logger.debug(f"✅ Flushed {len(batch_to_insert)} activity logs to database")
         except Exception as e:
-            print(f"❌ Error flushing activity logs: {e}")
+            logger.error(f"❌ Error flushing activity logs: {e}")
             # Re-add to queue if failed
             self.batch_queue.extend(batch_to_insert)
     
@@ -255,7 +258,7 @@ class ActivityLogger:
         }
         
         result = await self.collection.delete_many(query)
-        print(f"🗑️ Deleted {result.deleted_count} old activity logs (older than {days} days)")
+        logger.info(f"🗑️ Deleted {result.deleted_count} old activity logs (older than {days} days)")
         return result.deleted_count
     
     async def export_logs(

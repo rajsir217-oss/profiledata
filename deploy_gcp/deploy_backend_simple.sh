@@ -21,8 +21,8 @@ REDIS_URL="redis://default:2svzScwOza6YUFifjx32WIWqWHytrq12@redis-11872.c263.us-
 
 echo "✅ Production environment variables configured"
 
-# Use LOG_LEVEL from environment or default to INFO
-LOG_LEVEL="${LOG_LEVEL:-INFO}"
+# Use LOG_LEVEL from environment or default to WARNING for production
+LOG_LEVEL="${LOG_LEVEL:-WARNING}"
 
 echo "======================================"
 echo "🚀 Simple Backend Deployment"

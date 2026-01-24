@@ -154,13 +154,13 @@ def create_gcp_secrets():
     try:
         from google.cloud import secretmanager
     except ImportError:
-        print("❌ google-cloud-secret-manager not installed")
-        print("   Run: pip install google-cloud-secret-manager")
+        logger.error("❌ google-cloud-secret-manager not installed")
+        logger.info("   Run: pip install google-cloud-secret-manager")
         return
     
     project_id = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('GCS_PROJECT_ID')
     if not project_id:
-        print("❌ No GCP project ID found. Set GOOGLE_CLOUD_PROJECT or GCS_PROJECT_ID")
+        logger.error("❌ No GCP project ID found. Set GOOGLE_CLOUD_PROJECT or GCS_PROJECT_ID")
         return
     
     client = secretmanager.SecretManagerServiceClient()
@@ -179,7 +179,7 @@ def create_gcp_secrets():
     
     for secret_id, secret_value in secrets.items():
         if not secret_value:
-            print(f"⚠️ Skipping {secret_id} - no value set in environment")
+            logger.warning(f"⚠️ Skipping {secret_id} - no value set in environment")
             continue
         
         try:
@@ -191,12 +191,12 @@ def create_gcp_secrets():
                     "secret": {"replication": {"automatic": {}}},
                 }
             )
-            print(f"✅ Created secret: {secret_id}")
+            logger.info(f"✅ Created secret: {secret_id}")
         except Exception as e:
             if "already exists" in str(e).lower():
-                print(f"ℹ️ Secret already exists: {secret_id}")
+                logger.info(f"ℹ️ Secret already exists: {secret_id}")
             else:
-                print(f"❌ Error creating secret {secret_id}: {e}")
+                logger.error(f"❌ Error creating secret {secret_id}: {e}")
                 continue
         
         # Add the secret version
@@ -207,26 +207,26 @@ def create_gcp_secrets():
                     "payload": {"data": secret_value.encode("UTF-8")},
                 }
             )
-            print(f"   Added version for {secret_id}")
+            logger.info(f"   Added version for {secret_id}")
         except Exception as e:
-            print(f"❌ Error adding version for {secret_id}: {e}")
+            logger.error(f"❌ Error adding version for {secret_id}: {e}")
     
-    print("\n✅ Done! Secrets are now in GCP Secret Manager")
-    print("   The app will automatically use them when running on Cloud Run")
+    logger.info("\n✅ Done! Secrets are now in GCP Secret Manager")
+    logger.info("   The app will automatically use them when running on Cloud Run")
 
 
 if __name__ == "__main__":
     # Test the secret retrieval
-    print("Testing GCP Secret Manager utility...")
+    logger.info("Testing GCP Secret Manager utility...")
     
     # Test email config
     email_config = get_email_config()
-    print(f"\nEmail Configuration:")
-    print(f"  Provider: {email_config['provider']}")
-    print(f"  From: {email_config['from_name']} <{email_config['from_email']}>")
+    logger.info(f"\nEmail Configuration:")
+    logger.info(f"  Provider: {email_config['provider']}")
+    logger.info(f"  From: {email_config['from_name']} <{email_config['from_email']}>")
     
     if email_config['provider'] == 'resend':
-        print(f"  Resend API Key: {'SET' if email_config['resend_api_key'] else 'NOT SET'}")
+        logger.info(f"  Resend API Key: {'SET' if email_config['resend_api_key'] else 'NOT SET'}")
     else:
-        print(f"  SMTP Host: {email_config['smtp_host']}")
-        print(f"  SMTP User: {email_config['smtp_user']}")
+        logger.info(f"  SMTP Host: {email_config['smtp_host']}")
+        logger.info(f"  SMTP User: {email_config['smtp_user']}")

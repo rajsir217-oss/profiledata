@@ -10,8 +10,10 @@ This job recalculates and updates:
 Recommended Schedule: Daily at 2 AM (cron: 0 2 * * *)
 """
 
+import logging
 from datetime import datetime
 
+logger = logging.getLogger(__name__)
 
 async def execute(db, params=None):
     """
@@ -24,12 +26,12 @@ async def execute(db, params=None):
     Returns:
         dict: Execution results with counts of fixed users
     """
-    print("🔧 Starting message statistics sync job...")
+    logger.info("🔧 Starting message statistics sync job...")
     
     # Get all users
     users = await db.users.find({}).to_list(length=None)
     total_users = len(users)
-    print(f"📊 Found {total_users} users to process")
+    logger.info(f"📊 Found {total_users} users to process")
     
     fixed_count = 0
     error_count = 0
@@ -88,14 +90,14 @@ async def execute(db, params=None):
                     }}
                 )
                 
-                print(f"  ✅ Synced {username}: "
+                logger.info(f"  ✅ Synced {username}: "
                       f"Sent {current_sent}→{sent_count}, "
                       f"Rcvd {current_received}→{received_count}, "
                       f"Pending {current_pending}→{pending_count}")
                 fixed_count += 1
         
         except Exception as e:
-            print(f"  ❌ Error processing user {username}: {e}")
+            logger.error(f"  ❌ Error processing user {username}: {e}")
             error_count += 1
             continue
     
@@ -108,11 +110,11 @@ async def execute(db, params=None):
         "message": f"Synced {fixed_count} users, {total_users - fixed_count - error_count} already accurate"
     }
     
-    print(f"\n🎉 Message stats sync completed:")
-    print(f"   Total users: {total_users}")
-    print(f"   Updated: {fixed_count}")
-    print(f"   Already accurate: {total_users - fixed_count - error_count}")
-    print(f"   Errors: {error_count}")
+    logger.info(f"🎉 Message stats sync completed:")
+    logger.info(f"   Total users: {total_users}")
+    logger.info(f"   Updated: {fixed_count}")
+    logger.info(f"   Already accurate: {total_users - fixed_count - error_count}")
+    logger.info(f"   Errors: {error_count}")
     
     return result
 

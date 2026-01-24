@@ -3,6 +3,7 @@ Email & SMS Verification API Routes
 Endpoints for user email/SMS verification and account activation
 """
 
+import logging
 from fastapi import APIRouter, Depends, HTTPException, Query
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
@@ -13,6 +14,8 @@ from services.sms_verification_service import SMSVerificationService
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 
 router = APIRouter(prefix="/api/verification", tags=["verification"])
+
+logger = logging.getLogger(__name__)
 
 # Pydantic models
 class VerifyEmailRequest(BaseModel):
@@ -221,7 +224,7 @@ async def admin_approve_user(
             update_fields["emailVerifiedAt"] = datetime.utcnow()
             update_fields["emailVerificationToken"] = None  # Clear token
             update_fields["emailVerificationTokenExpiry"] = None
-            print(f"✅ Admin override: Email verification bypassed for {username}")
+            logger.info(f"✅ Admin override: Email verification bypassed for {username}")
         
         # Update user status
         result = await db.users.update_one(
@@ -240,11 +243,11 @@ async def admin_approve_user(
             if email:
                 email_sent = await service.send_welcome_email(username, email, first_name)
                 if email_sent:
-                    print(f"✅ Welcome email sent to {username} at {email}")
+                    logger.info(f"✅ Welcome email sent to {username} at {email}")
                 else:
-                    print(f"⚠️ Failed to send welcome email to {username}")
+                    logger.warning(f"⚠️ Failed to send welcome email to {username}")
             else:
-                print(f"⚠️ No email address found for {username}")
+                logger.warning(f"⚠️ No email address found for {username}")
             
             # Build success message
             message = f"User {username} approved successfully"

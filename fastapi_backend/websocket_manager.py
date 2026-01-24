@@ -11,7 +11,7 @@ import os
 # Function to get allowed origins (called at runtime, not module load)
 def get_cors_origins():
     env = os.getenv('ENV', 'development')
-    print(f"🔍 Socket.IO CORS - ENV={env}")
+    logger.debug(f"🔍 Socket.IO CORS - ENV={env}")
     
     if env == 'production':
         # Production: Allow actual domain
@@ -22,7 +22,7 @@ def get_cors_origins():
             'https://www.l3v3lmatches.com',
             'https://matrimonial-frontend-7cxoxmouuq-uc.a.run.app'
         ]
-        print(f"🔒 Production Socket.IO CORS: {origins}")
+        logger.info(f"🔒 Production Socket.IO CORS: {origins}")
         return origins
     else:
         # Development: Allow localhost
@@ -32,20 +32,20 @@ def get_cors_origins():
             'http://127.0.0.1:3000',
             'http://127.0.0.1:3001'
         ]
-        print(f"🔓 Development Socket.IO CORS: {origins}")
+        logger.info(f"🔓 Development Socket.IO CORS: {origins}")
         return origins
 
 # Create Socket.IO server with Redis session management for production
 env = os.getenv('ENV', 'development')
 redis_url = os.getenv('REDIS_URL')
 
-print(f"🔍 Socket.IO Configuration:")
-print(f"   ENV: {env}")
-print(f"   Redis URL: {'configured' if redis_url else 'not configured'}")
+logger.info(f"🔍 Socket.IO Configuration:")
+logger.info(f"   ENV: {env}")
+logger.info(f"   Redis URL: {'configured' if redis_url else 'not configured'}")
 
 # Use Redis for session management in production
 if env == 'production' and redis_url:
-    print(f"🔴 Configuring Redis session manager for production...")
+    logger.info(f"🔴 Configuring Redis session manager for production...")
     try:
         # Import Redis manager from python-socketio
         from socketio import AsyncRedisManager
@@ -61,12 +61,12 @@ if env == 'production' and redis_url:
             logger=True,
             engineio_logger=True
         )
-        print(f"✅ Socket.IO configured with Redis session manager")
-        print(f"   Sessions will persist across multiple Cloud Run instances")
+        logger.info(f"✅ Socket.IO configured with Redis session manager")
+        logger.info(f"   Sessions will persist across multiple Cloud Run instances")
         
     except ImportError as e:
-        print(f"⚠️  Failed to import AsyncRedisManager: {e}")
-        print(f"   Falling back to in-memory sessions")
+        logger.warning(f"⚠️  Failed to import AsyncRedisManager: {e}")
+        logger.info(f"   Falling back to in-memory sessions")
         sio = socketio.AsyncServer(
             async_mode='asgi',
             cors_allowed_origins='*',
@@ -75,8 +75,8 @@ if env == 'production' and redis_url:
             engineio_logger=True
         )
     except Exception as e:
-        print(f"⚠️  Redis manager initialization failed: {e}")
-        print(f"   Falling back to in-memory sessions")
+        logger.warning(f"⚠️  Redis manager initialization failed: {e}")
+        logger.info(f"   Falling back to in-memory sessions")
         sio = socketio.AsyncServer(
             async_mode='asgi',
             cors_allowed_origins='*',
@@ -86,7 +86,7 @@ if env == 'production' and redis_url:
         )
 else:
     # Development or no Redis: Use in-memory sessions
-    print(f"📝 Using in-memory Socket.IO sessions (development mode)")
+    logger.info(f"📝 Using in-memory Socket.IO sessions (development mode)")
     sio = socketio.AsyncServer(
         async_mode='asgi',
         cors_allowed_origins='*',

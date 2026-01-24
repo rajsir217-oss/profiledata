@@ -44,7 +44,7 @@ class PIIEncryption:
             encryption_key = settings.encryption_key
         
         if not encryption_key:
-            raise ValueError("ENCRYPTION_KEY not configured. Generate with: python -c 'from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())'")
+            raise ValueError("ENCRYPTION_KEY not configured.")
         
         try:
             # Ensure key is bytes
@@ -252,8 +252,8 @@ def get_encryptor() -> PIIEncryption:
 
 if __name__ == "__main__":
     # CLI utility for generating keys
-    print("=== PII Encryption Key Generator ===")
-    print("\nGenerated encryption key (add to .env as ENCRYPTION_KEY):")
-    print(generate_encryption_key())
-    print("\nExample .env entry:")
-    print(f"ENCRYPTION_KEY={generate_encryption_key()}")
+    logger.info("=== PII Encryption Key Generator ===")
+    logger.info("\nGenerated encryption key (add to .env as ENCRYPTION_KEY):")
+    logger.info(generate_encryption_key())
+    logger.info("\nExample .env entry:")
+    logger.info(f"ENCRYPTION_KEY={generate_encryption_key()}")

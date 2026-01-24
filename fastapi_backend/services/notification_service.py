@@ -149,15 +149,12 @@ class NotificationService:
         
         # Get user preferences
         prefs = await self.get_preferences(create_data.username)
-        print(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}", flush=True)
-        print(f"📧 User prefs channels: {prefs.channels}", flush=True)
-        logger.info(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}")
-        logger.info(f"📧 User prefs channels: {prefs.channels}")
+        logger.debug(f"📧 enqueue_notification for {create_data.username}, trigger={create_data.trigger}, channels={create_data.channels}")
+        logger.debug(f"📧 User prefs channels: {prefs.channels}")
         
         # Check if user wants this notification
         should_send = await self._should_send(create_data.trigger, create_data.channels, prefs)
-        print(f"📧 _should_send returned: {should_send}", flush=True)
-        logger.info(f"📧 _should_send returned: {should_send}")
+        logger.debug(f"📧 _should_send returned: {should_send}")
         if not should_send:
             logger.warning(f"❌ User {create_data.username} has disabled {create_data.trigger} notifications")
             raise HTTPException(
@@ -280,7 +277,7 @@ class NotificationService:
         )
         
         if result.modified_count > 0:
-            print(f"🔄 Reset {result.modified_count} stuck PROCESSING notifications")
+            logger.info(f"🔄 Reset {result.modified_count} stuck PROCESSING notifications")
         
         return result.modified_count
     
@@ -299,13 +296,13 @@ class NotificationService:
         try:
             obj_id = ObjectId(notification_id)
         except Exception as e:
-            print(f"⚠️ Warning: Could not convert to ObjectId: {notification_id}, error: {e}")
+            logger.warning(f"⚠️ Warning: Could not convert to ObjectId: {notification_id}, error: {e}")
             obj_id = notification_id
         
         # Get current notification to check attempts
         notification = await self.queue_collection.find_one({"_id": obj_id})
         if not notification:
-            print(f"❌ Notification not found: {obj_id}")
+            logger.error(f"❌ Notification not found: {obj_id}")
             return
         
         current_attempts = notification.get("attempts", 0) + 1  # Increment for this attempt
@@ -324,7 +321,7 @@ class NotificationService:
             if error:  # Clear any previous error
                 set_fields["error"] = None
                 set_fields["statusReason"] = None
-            print(f"✅ Notification sent successfully: {obj_id}")
+            logger.info(f"✅ Notification sent successfully: {obj_id}")
         else:
             # FAILED - Check if we should retry
             if current_attempts < max_attempts:
@@ -341,16 +338,16 @@ class NotificationService:
                 set_fields["statusReason"] = error or "Unknown error"
                 set_fields["error"] = error
                 
-                print(f"🔄 Retry {current_attempts}/{max_attempts} scheduled for {next_retry.strftime('%Y-%m-%d %H:%M:%S')}: {obj_id}")
+                logger.info(f"🔄 Retry {current_attempts}/{max_attempts} scheduled for {next_retry.strftime('%Y-%m-%d %H:%M:%S')}: {obj_id}")
             else:
                 # MAX ATTEMPTS REACHED - Mark as failed
                 set_fields["status"] = NotificationStatus.FAILED
-                set_fields["statusReason"] = error or "Max retry attempts reached"
+                set_fields["statusReason"] = f"Max attempts ({max_attempts}) reached. Last error: {error}"
                 set_fields["error"] = error
                 set_fields["failedAt"] = datetime.utcnow()
                 
-                print(f"❌ Notification failed after {current_attempts} attempts: {obj_id}")
-                print(f"   Reason: {error}")
+                logger.error(f"❌ Notification failed after {current_attempts} attempts: {obj_id}")
+                logger.error(f"   Reason: {error}")
         
         update_doc = {
             "$set": set_fields,
@@ -363,7 +360,7 @@ class NotificationService:
             update_doc
         )
         
-        print(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
+        logger.debug(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
     
     # ============================================
     # Template Rendering

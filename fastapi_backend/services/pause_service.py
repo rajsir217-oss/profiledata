@@ -6,6 +6,7 @@ Created: November 2, 2025
 Purpose: Handle user account pause/unpause functionality
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 from motor.motor_asyncio import AsyncIOMotorDatabase
@@ -24,6 +25,7 @@ class PauseService:
         self.db = db
         self.users_collection = db.users
         self.notification_service = NotificationService(db)
+        self.logger = logging.getLogger(__name__)
     
     async def pause_user(
         self,
@@ -93,7 +95,7 @@ class PauseService:
             )
         except Exception as e:
             # Log error but don't fail the pause operation
-            print(f"Failed to send pause notification: {e}")
+            self.logger.error(f"Failed to send pause notification: {e}")
         
         duration_text = ""
         if paused_until:
@@ -172,7 +174,7 @@ class PauseService:
             )
         except Exception as e:
             # Log error but don't fail the unpause operation
-            print(f"Failed to send unpause notification: {e}")
+            self.logger.error(f"Failed to send unpause notification: {e}")
         
         return {
             "success": True,

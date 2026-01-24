@@ -100,7 +100,8 @@ class UnifiedScheduler:
     async def run_job(self, job: ScheduledJob):
         """Execute a single job"""
         try:
-            logger.info(f"▶️ Running job: '{job.name}'")
+            # Use debug level for job start/stop to reduce production log volume
+            logger.debug(f"▶️ Running job: '{job.name}'")
             
             if job.is_async:
                 await job.func()
@@ -109,7 +110,7 @@ class UnifiedScheduler:
                 loop = asyncio.get_event_loop()
                 await loop.run_in_executor(None, job.func)
             
-            logger.info(f"✅ Job completed: '{job.name}'")
+            logger.debug(f"✅ Job completed: '{job.name}'")
             
         except Exception as e:
             logger.error(f"❌ Error in job '{job.name}': {e}", exc_info=True)
@@ -140,8 +141,11 @@ class UnifiedScheduler:
                 # Check and run dynamic jobs from database
                 await self.check_dynamic_jobs()
                 
-                # Sleep for a short interval (check every 30 seconds)
-                await asyncio.sleep(30)
+                # Sleep for a longer interval in production to reduce logging noise
+                # Check every 60 seconds instead of 30 if env is production
+                from config import settings
+                sleep_interval = 60 if settings.env == "production" else 30
+                await asyncio.sleep(sleep_interval)
                 
             except Exception as e:
                 logger.error(f"❌ Error in scheduler loop: {e}", exc_info=True)
@@ -160,7 +164,8 @@ class UnifiedScheduler:
             jobs_to_run = await registry.get_jobs_ready_to_run()
             
             if jobs_to_run:
-                logger.info(f"📋 Found {len(jobs_to_run)} dynamic job(s) ready to run")
+                # Only log info if there are actually jobs to run, otherwise use debug
+                logger.debug(f"📋 Found {len(jobs_to_run)} dynamic job(s) ready to run")
                 
                 for job in jobs_to_run:
                     try:

@@ -23,6 +23,9 @@ from models.notification_models import (
 from services.notification_service import NotificationService
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
@@ -42,7 +45,7 @@ async def get_notification_preferences(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Get user's notification preferences (creates defaults if not found)"""
-    print(f"✅ GET /preferences - User: {current_user.get('username')}")
+    logger.debug(f"GET /preferences - User: {current_user.get('username')}")
     prefs = await service.get_preferences(current_user["username"])
     if not prefs:
         # Auto-create default preferences for new users
@@ -57,7 +60,7 @@ async def update_notification_preferences(
     service: NotificationService = Depends(get_notification_service)
 ):
     """Update user's notification preferences"""
-    print(f"✅ PUT /preferences - User: {current_user.get('username')}, Updates: {updates.dict(exclude_unset=True)}")
+    logger.debug(f"PUT /preferences - User: {current_user.get('username')}, Updates: {updates.dict(exclude_unset=True)}")
     try:
         prefs = await service.update_preferences(
             current_user["username"],
@@ -69,7 +72,7 @@ async def update_notification_preferences(
             data=prefs.dict()
         )
     except Exception as e:
-        print(f"❌ PUT /preferences - Error: {e}")
+        logger.error(f"❌ PUT /preferences - Error: {e}")
         return NotificationResponse(
             success=False,
             message="Failed to update preferences",
@@ -199,7 +202,7 @@ async def get_notification_queue(
             notifications.append(NotificationQueueItem(**transformed))
         except Exception as e:
             # If validation still fails, skip this item with a warning
-            print(f"⚠️ Skipping invalid notification {doc.get('_id')}: {e}")
+            logger.warning(f"⚠️ Skipping invalid notification {doc.get('_id')}: {e}")
             continue
     
     return notifications
@@ -647,9 +650,9 @@ async def get_templates(
     """Get all notification templates (admin only)"""
     # Skip job templates by default to avoid import errors
     if include_job_templates:
-        print(f"⚠️ Warning: Job template loading may produce import errors")
-    print(f"📧 GET /templates - User: {current_user.get('username')}")
-    print(f"   Filters: channel={channel}, category={category}, include_job_templates={include_job_templates}")
+        logger.debug(f"⚠️ Warning: Job template loading may produce import errors")
+    logger.debug(f"📧 GET /templates - User: {current_user.get('username')}")
+    logger.debug(f"   Filters: channel={channel}, category={category}, include_job_templates={include_job_templates}")
     
     try:
         # Build query
@@ -706,13 +709,13 @@ async def get_templates(
                             # These use relative imports which fail when loaded dynamically
                             pass
         
-        print(f"✅ Found {len(templates)} templates")
+        logger.debug(f"✅ Found {len(templates)} templates")
         return templates
         
     except Exception as e:
-        print(f"❌ Error fetching templates: {e}")
+        logger.error(f"❌ Error fetching templates: {e}")
         import traceback
-        traceback.print_exc()
+        logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to fetch templates: {str(e)}")
 
 
@@ -745,7 +748,7 @@ async def get_template(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"❌ Error fetching template: {e}")
+        logger.error(f"❌ Error fetching template: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch template: {str(e)}")
 
 
@@ -770,7 +773,7 @@ async def create_template(
         }
         
     except Exception as e:
-        print(f"❌ Error creating template: {e}")
+        logger.error(f"❌ Error creating template: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create template: {str(e)}")
 
 
@@ -805,7 +808,7 @@ async def update_template(
         }
         
     except Exception as e:
-        print(f"❌ Error updating template: {e}")
+        logger.error(f"❌ Error updating template: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update template: {str(e)}")
 
 
@@ -830,7 +833,7 @@ async def delete_template(
         }
         
     except Exception as e:
-        print(f"❌ Error deleting template: {e}")
+        logger.error(f"❌ Error deleting template: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete template: {str(e)}")
 
 
@@ -873,7 +876,7 @@ async def get_scheduled_notifications(
         return {"success": True, "scheduled": scheduled}
         
     except Exception as e:
-        print(f"❌ Error fetching scheduled notifications: {e}")
+        logger.error(f"❌ Error fetching scheduled notifications: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch scheduled notifications: {str(e)}")
 
 
@@ -928,9 +931,9 @@ async def create_scheduled_notification(
         )
         
     except Exception as e:
-        print(f"❌ Error creating scheduled notification: {e}")
+        logger.error(f"❌ Error creating scheduled notification: {e}")
         import traceback
-        traceback.print_exc()
+        logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to create scheduled notification: {str(e)}")
 
 
@@ -969,7 +972,7 @@ async def update_scheduled_notification(
         )
         
     except Exception as e:
-        print(f"❌ Error updating scheduled notification: {e}")
+        logger.error(f"❌ Error updating scheduled notification: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to update scheduled notification: {str(e)}")
 
 
@@ -1001,5 +1004,5 @@ async def delete_scheduled_notification(
         )
         
     except Exception as e:
-        print(f"❌ Error deleting scheduled notification: {e}")
+        logger.error(f"❌ Error deleting scheduled notification: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete scheduled notification: {str(e)}")

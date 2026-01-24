@@ -12,6 +12,9 @@ from typing import Optional
 import io
 import csv
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/activity-logs", tags=["activity-logs"])
 
@@ -36,28 +39,17 @@ async def get_activity_logs(
 ):
     """
     Get activity logs with filters (Admin only)
-    
-    **Query Parameters:**
-    - username: Filter by user who performed action
-    - action_type: Filter by single activity type
-    - action_types: Comma-separated list of activity types (multi-select)
-    - target_username: Filter by target user
-    - start_date: Filter from date (ISO format)
-    - end_date: Filter to date (ISO format)
-    - session_id: Filter by session
-    - page: Page number (default: 1)
-    - limit: Results per page (default: 50, max: 100)
     """
     check_admin(current_user)
     
     try:
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         
         # Parse multi-select action_types if provided
         action_types_list = None
         if action_types:
             action_types_list = [t.strip() for t in action_types.split(',') if t.strip()]
-            print(f"🔍 Filtering by action_types: {action_types_list}", flush=True)
+            logger.debug(f"🔍 Filtering by action_types: {action_types_list}")
         
         filters = ActivityLogFilter(
             username=username,
@@ -71,8 +63,8 @@ async def get_activity_logs(
             limit=limit
         )
         
-        logs, total = await logger.get_logs(filters)
-        print(f"🔍 Found {total} logs matching filters", flush=True)
+        logs, total = await activity_logger_instance.get_logs(filters)
+        logger.debug(f"🔍 Found {total} logs matching filters")
         pages = (total + limit - 1) // limit  # Ceiling division
         
         return ActivityLogResponse(
@@ -83,7 +75,7 @@ async def get_activity_logs(
             limit=limit
         )
     except Exception as e:
-        print(f"❌ Error fetching activity logs: {e}")
+        logger.error(f"❌ Error fetching activity logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch activity logs: {str(e)}")
 
 @router.get("/stats", response_model=ActivityStats)
@@ -94,19 +86,15 @@ async def get_activity_stats(
 ):
     """
     Get activity statistics (Admin only)
-    
-    **Query Parameters:**
-    - start_date: Stats from date (ISO format, default: 30 days ago)
-    - end_date: Stats to date (ISO format, default: now)
     """
     check_admin(current_user)
     
     try:
-        logger = get_activity_logger()
-        stats = await logger.get_stats(start_date, end_date)
+        activity_logger_instance = get_activity_logger()
+        stats = await activity_logger_instance.get_stats(start_date, end_date)
         return stats
     except Exception as e:
-        print(f"❌ Error fetching activity stats: {e}")
+        logger.error(f"❌ Error fetching activity stats: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to fetch stats: {str(e)}")
 
 @router.get("/export")
@@ -122,16 +110,11 @@ async def export_activity_logs(
 ):
     """
     Export activity logs (Admin only)
-    
-    **Query Parameters:**
-    - format: Export format ('json' or 'csv')
-    - Other filters same as get_activity_logs
-    - limit: Max 10,000 for exports (default: 10000)
     """
     check_admin(current_user)
     
     try:
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         
         # For exports, we want to get all logs without pagination limits
         # So we use limit=100 (max allowed by model) but fetch all pages
@@ -145,12 +128,12 @@ async def export_activity_logs(
             limit=100  # Use max allowed by model
         )
         
-        print(f"📥 Exporting logs with format: {format}")
-        print(f"   Filters: {filters}")
+        logger.debug(f"📥 Exporting logs with format: {format}")
+        logger.debug(f"   Filters: {filters}")
         
-        logs_data = await logger.export_logs(filters, format)
+        logs_data = await activity_logger_instance.export_logs(filters, format)
         
-        print(f"✅ Got {len(logs_data)} logs for export")
+        logger.debug(f"✅ Got {len(logs_data)} logs for export")
         
         if format == "csv":
             # Create CSV in memory
@@ -181,9 +164,9 @@ async def export_activity_logs(
                 }
             )
     except Exception as e:
-        print(f"❌ Error exporting activity logs: {e}")
+        logger.error(f"❌ Error exporting activity logs: {e}")
         import traceback
-        traceback.print_exc()
+        logger.debug(traceback.format_exc())
         raise HTTPException(status_code=500, detail=f"Failed to export logs: {str(e)}")
 
 @router.post("/log")
@@ -197,10 +180,10 @@ async def create_activity_log(
     **Note:** Most logs are created automatically. This endpoint is for special cases.
     """
     try:
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         username = current_user.get("username")
         
-        await logger.log_activity(
+        await activity_logger_instance.log_activity(
             username=username,
             action_type=log_data.action_type,
             target_username=log_data.target_username,
@@ -213,7 +196,7 @@ async def create_activity_log(
         
         return {"success": True, "message": "Activity logged successfully"}
     except Exception as e:
-        print(f"❌ Error creating activity log: {e}")
+        logger.error(f"❌ Error creating activity log: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to log activity: {str(e)}")
 
 
@@ -231,7 +214,7 @@ async def create_batch_activity_logs(
     **Note:** This endpoint is used by the frontend useActivityLogger hook for batched logging.
     """
     try:
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         username = current_user.get("username")
         activities = data.get("activities", [])
         
@@ -249,10 +232,10 @@ async def create_batch_activity_logs(
                 try:
                     action_type = ActivityType(action_type_str)
                 except ValueError:
-                    print(f"⚠️ Unknown activity type: {action_type_str}")
+                    logger.warning(f"⚠️ Unknown activity type: {action_type_str}")
                     continue
                 
-                await logger.log_activity(
+                await activity_logger_instance.log_activity(
                     username=username,
                     action_type=action_type,
                     target_username=activity.get("target_username"),
@@ -263,12 +246,12 @@ async def create_batch_activity_logs(
                 )
                 logged_count += 1
             except Exception as activity_err:
-                print(f"⚠️ Failed to log activity: {activity_err}")
+                logger.error(f"⚠️ Failed to log activity: {activity_err}")
                 continue
         
         return {"success": True, "message": f"Logged {logged_count} activities", "logged_count": logged_count}
     except Exception as e:
-        print(f"❌ Error creating batch activity logs: {e}")
+        logger.error(f"❌ Error creating batch activity logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to log activities: {str(e)}")
 
 @router.delete("/cleanup")
@@ -278,17 +261,12 @@ async def cleanup_old_logs(
 ):
     """
     Delete old activity logs (Admin only)
-    
-    **Query Parameters:**
-    - days: Delete logs older than this many days (default: 30, max: 365)
-    
-    **Note:** Audit logs (PII requests, admin actions) are never deleted
     """
     check_admin(current_user)
     
     try:
-        logger = get_activity_logger()
-        deleted_count = await logger.delete_old_logs(days)
+        activity_logger_instance = get_activity_logger()
+        deleted_count = await activity_logger_instance.delete_old_logs(days)
         
         return {
             "success": True,
@@ -297,7 +275,7 @@ async def cleanup_old_logs(
             "days": days
         }
     except Exception as e:
-        print(f"❌ Error cleaning up logs: {e}")
+        logger.error(f"❌ Error cleaning up logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to cleanup logs: {str(e)}")
 
 @router.get("/action-types")
@@ -332,9 +310,9 @@ async def delete_activity_log(
     
     try:
         from bson import ObjectId
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         
-        result = await logger.db.activity_logs.delete_one({"_id": ObjectId(log_id)})
+        result = await activity_logger_instance.db.activity_logs.delete_one({"_id": ObjectId(log_id)})
         
         if result.deleted_count == 0:
             raise HTTPException(status_code=404, detail="Log not found")
@@ -344,7 +322,7 @@ async def delete_activity_log(
             "message": "Activity log deleted"
         }
     except Exception as e:
-        print(f"❌ Error deleting log: {e}")
+        logger.error(f"❌ Error deleting log: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete log: {str(e)}")
 
 @router.post("/delete-bulk")
@@ -359,10 +337,10 @@ async def delete_bulk_logs(
     
     try:
         from bson import ObjectId
-        logger = get_activity_logger()
+        activity_logger_instance = get_activity_logger()
         
         object_ids = [ObjectId(log_id) for log_id in log_ids]
-        result = await logger.db.activity_logs.delete_many({"_id": {"$in": object_ids}})
+        result = await activity_logger_instance.db.activity_logs.delete_many({"_id": {"$in": object_ids}})
         
         return {
             "success": True,
@@ -370,5 +348,5 @@ async def delete_bulk_logs(
             "deleted_count": result.deleted_count
         }
     except Exception as e:
-        print(f"❌ Error deleting logs: {e}")
+        logger.error(f"❌ Error deleting logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete logs: {str(e)}")
