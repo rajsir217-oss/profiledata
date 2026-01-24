@@ -3,6 +3,7 @@ import axios from "axios";
 import { getApiUrl, getBackendUrl } from './config/apiConfig';
 import toastService from './services/toastService';
 import sessionManager from './services/sessionManager';
+import logger from './utils/logger';
 
 // Use centralized API config
 const getAPIUrl = getApiUrl;
@@ -46,13 +47,13 @@ api.interceptors.response.use(
       // Only handle once per session to avoid spam
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
-        console.warn('🔒 Session expired or invalid token');
-        console.warn('📍 Endpoint:', url);
-        console.warn('➡️  Redirecting to login...');
+        logger.warn('🔒 Session expired or invalid token (401 from API)');
+        logger.warn(`📍 Endpoint: ${url}`);
+        logger.info('➡️  Redirecting to login via sessionManager...');
         sessionStorage.setItem('hasLoggedOut', 'true');
         
         // Use session manager's logout which shows overlay
-        sessionManager.logout();
+        sessionManager.logout(`api_response_401_${url}`);
       }
     }
     return Promise.reject(error);
@@ -260,11 +261,11 @@ imageAccessApi.interceptors.response.use(
     if (error.response?.status === 401) {
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
-        console.warn('🔒 Image Access API: Session expired - redirecting to login');
+        logger.warn('🔒 Image Access API: Session expired (401)');
         sessionStorage.setItem('hasLoggedOut', 'true');
         
         // Use session manager for consistent logout experience
-        sessionManager.logout();
+        sessionManager.logout('image_access_api_401');
       }
     }
     return Promise.reject(error);
@@ -471,11 +472,11 @@ notificationsApi.interceptors.response.use(
     if (error.response?.status === 401) {
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
-        console.warn('🔒 Notifications API: Session expired - redirecting to login');
+        logger.warn('🔒 Notifications API: Session expired (401)');
         sessionStorage.setItem('hasLoggedOut', 'true');
         
         // Use session manager for consistent logout experience
-        sessionManager.logout();
+        sessionManager.logout('notifications_api_401');
       }
     }
     return Promise.reject(error);
@@ -578,9 +579,9 @@ export const createApiInstance = (baseURL = null) => {
       if (error.response?.status === 401) {
         const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
         if (!hasLoggedOut) {
-          console.warn('🔒 Session expired - redirecting to login');
+          logger.warn('🔒 Custom API Instance: Session expired (401)');
           sessionStorage.setItem('hasLoggedOut', 'true');
-          sessionManager.logout();
+          sessionManager.logout('custom_api_instance_401');
         }
       }
       return Promise.reject(error);

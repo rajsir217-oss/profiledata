@@ -145,10 +145,7 @@ function AppContent() {
       if (isProtectedRoute && !token) {
         // No token on protected route - redirect to login
         logger.warn('No token found on protected route, redirecting to login');
-        sessionManager.showSessionExpiredOverlay();
-        setTimeout(() => {
-          window.location.href = '/login';
-        }, 1500);
+        sessionManager.logout('protected_route_no_token');
         return;
       }
       
@@ -166,7 +163,7 @@ function AppContent() {
           } else if (response.status === 401) {
             // Token expired - trigger session expiry
             logger.warn('Token expired (401 from profile fetch)');
-            sessionManager.logout();
+            sessionManager.logout('profile_fetch_401');
           }
         } catch (error) {
           logger.error('Failed to fetch current user profile:', error);
