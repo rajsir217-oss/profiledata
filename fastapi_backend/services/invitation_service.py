@@ -4,6 +4,7 @@ Created: November 2, 2025
 Purpose: Business logic for invitation management
 """
 
+import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from datetime import datetime, timedelta
 from typing import Optional, List, Dict
@@ -27,6 +28,7 @@ class InvitationService:
     def __init__(self, db: AsyncIOMotorDatabase):
         self.db = db
         self.collection = db.invitations
+        self.logger = logging.getLogger(__name__)
         
     def _generate_token(self, length: int = 32) -> str:
         """Generate secure random token for invitation"""
@@ -294,7 +296,7 @@ class InvitationService:
             
             return result.modified_count > 0
         except Exception as e:
-            print(f"Error archiving invitation {invitation_id}: {e}")
+            self.logger.error(f"Error archiving invitation {invitation_id}: {e}")
             raise
     
     async def delete_invitation(self, invitation_id: str) -> bool:

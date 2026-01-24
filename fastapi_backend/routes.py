@@ -123,8 +123,28 @@ async def verify_turnstile(token: str) -> bool:
 def get_password_hash(password: str) -> str:
     return PasswordManager.hash_password(password)
 
-# MongoDB projection for dashboard card display (only fetch needed fields)
-# Note: MongoDB requires ONLY inclusions OR ONLY exclusions (_id is exception)
+# MongoDB projection for dashboard card display (lean version to save network egress)
+SEARCH_RESULT_PROJECTION = {
+    "_id": 0,
+    "username": 1,
+    "firstName": 1,
+    "lastName": 1,
+    "age": 1,
+    "gender": 1,
+    "region": 1,
+    "city": 1,
+    "occupation": 1,
+    "profileImage": 1,
+    "images": 1,
+    "lastActive": 1,
+    "onlineStatus": 1,
+    "matchScore": 1,
+    "compatibilityLevel": 1,
+    "createdAt": 1,
+    "adminApprovedAt": 1,
+}
+
+# Full projection for detailed profile view
 DASHBOARD_USER_PROJECTION = {
     "_id": 0,  # Special case: _id can be excluded with inclusions
     # Include only fields needed for dashboard/search cards
@@ -688,8 +708,27 @@ async def get_protected_media(
     # Serve from GCS if enabled, else local filesystem
     if settings.use_gcs and settings.gcs_bucket_name:
         try:
-            from google.cloud import storage
-            client = storage.Client()
+            from services.storage_service import get_storage_service
+            storage = get_storage_service()
+            
+            # If user has full access, use Signed URL to save CPU and Network costs
+            # This redirects the browser to fetch directly from Google Storage
+            if has_full_access:
+                signed_url = storage.generate_signed_url(filename)
+                if signed_url:
+                    # Mark one-time view as used before redirecting
+                    if is_one_time_view:
+                        await _mark_image_as_viewed(db, requester_username, owner_username, filename)
+                    
+                    logger.info(f"🔗 Redirecting {requester_username} to Signed URL for {filename}")
+                    from fastapi.responses import RedirectResponse
+                    return RedirectResponse(url=signed_url)
+            
+            # Fallback for blurred images or if signed URL generation fails
+            # We must proxy through the backend to apply blurring logic (future) 
+            # or if the file needs to be read into memory
+            from google.cloud import storage as gcs_storage
+            client = gcs_storage.Client()
             bucket = client.bucket(settings.gcs_bucket_name)
             blob = bucket.blob(f"uploads/{filename}")
             if not blob.exists():
@@ -3420,9 +3459,8 @@ async def get_all_users(
         total_pages = (total_count + limit - 1) // limit  # Ceiling division
         
         # Fetch users with pagination
-        skip = (page - 1) * limit
-        users_cursor = db.users.find(query).skip(skip).limit(limit)
-        users = await users_cursor.to_list(length=limit)
+        cursor = db.users.find(query, SEARCH_RESULT_PROJECTION).sort(sort).skip(skip).limit(limit)
+        users = await cursor.to_list(length=limit)
         
         # Remove sensitive data and decrypt PII
         for i, user in enumerate(users):
@@ -4066,8 +4104,8 @@ async def search_users(
                 # Stage 1: Match base query
                 {"$match": query},
                 
-                # Stage 1.5: Project only needed fields (performance optimization)
-                {"$project": DASHBOARD_USER_PROJECTION},
+                # Stage 1.5: Project lean fields for search results
+                {"$project": SEARCH_RESULT_PROJECTION},
                 
                 # Stage 2: Add calculated age field
                 {"$addFields": {

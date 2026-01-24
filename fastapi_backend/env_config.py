@@ -2,10 +2,13 @@
 Environment Configuration Management
 Automatically loads the right configuration based on environment detection
 """
+import logging
 import os
 from pathlib import Path
 from typing import Dict, Optional
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 class EnvironmentManager:
     """Manages environment configuration based on deployment context"""
@@ -54,7 +57,7 @@ class EnvironmentManager:
         if env is None:
             env = EnvironmentManager.detect_environment()
             
-        print(f"🔧 Loading configuration for environment: {env}")
+        logger.info(f"🔧 Loading configuration for environment: {env}")
         
         # Get the base directory
         base_dir = Path(__file__).resolve().parent
@@ -74,15 +77,15 @@ class EnvironmentManager:
         
         # Check if specific env file exists, fallback to .env
         if not env_path.exists():
-            print(f"⚠️ {env_file} not found, using default .env")
+            logger.warning(f"⚠️ {env_file} not found, using default .env")
             env_path = base_dir / '.env'
             
         # Load the environment file
         if env_path.exists():
             load_dotenv(env_path, override=True)
-            print(f"✅ Loaded configuration from {env_path.name}")
+            logger.info(f"✅ Loaded configuration from {env_path.name}")
         else:
-            print(f"❌ No configuration file found at {env_path}")
+            logger.error(f"❌ No configuration file found at {env_path}")
             
         # Return current environment variables
         return dict(os.environ)
@@ -166,10 +169,10 @@ class EnvironmentManager:
                     missing.append(key)
         
         if missing:
-            print(f"❌ Missing required configurations: {', '.join(missing)}")
+            logger.error(f"❌ Missing required configurations: {', '.join(missing)}")
             return False
             
-        print("✅ All required configurations are present")
+        logger.info("✅ All required configurations are present")
         return True
 
 # Usage example
@@ -177,7 +180,7 @@ if __name__ == "__main__":
     # Auto-detect and load environment
     env_manager = EnvironmentManager()
     current_env = env_manager.detect_environment()
-    print(f"Detected environment: {current_env}")
+    logger.info(f"Detected environment: {current_env}")
     
     # Load configuration
     config = env_manager.load_environment_config()
@@ -186,9 +189,9 @@ if __name__ == "__main__":
     is_valid = env_manager.validate_config()
     
     # Show some key configurations (without sensitive data)
-    print("\n📋 Current Configuration:")
-    print(f"  - MongoDB: {config.get('MONGODB_URL', 'Not set')[:30]}...")
-    print(f"  - Frontend URL: {config.get('FRONTEND_URL', 'Not set')}")
-    print(f"  - Backend URL: {config.get('BACKEND_URL', 'Not set')}")
-    print(f"  - Use GCS: {config.get('USE_GCS', 'Not set')}")
-    print(f"  - Debug Mode: {config.get('DEBUG_MODE', 'Not set')}")
+    logger.info("\n📋 Current Configuration:")
+    logger.info(f"  - MongoDB: {config.get('MONGODB_URL', 'Not set')[:30]}...")
+    logger.info(f"  - Frontend URL: {config.get('FRONTEND_URL', 'Not set')}")
+    logger.info(f"  - Backend URL: {config.get('BACKEND_URL', 'Not set')}")
+    logger.info(f"  - Use GCS: {config.get('USE_GCS', 'Not set')}")
+    logger.info(f"  - Debug Mode: {config.get('DEBUG_MODE', 'Not set')}")
