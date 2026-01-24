@@ -14,6 +14,7 @@ import './SwipeableCard.css';
  * @param {Function} props.onSwipeComplete - Callback after swipe action
  * @param {boolean} props.disabled - Disable swipe gestures
  * @param {string} props.className - Additional CSS classes
+ * @param {string} props.username - Username for double-click to open profile
  */
 const SwipeableCard = ({
   children,
@@ -23,7 +24,8 @@ const SwipeableCard = ({
   onSwipeDown,
   onSwipeComplete,
   disabled = false,
-  className = ''
+  className = '',
+  username = null
 }) => {
   const { swipeState, handlers, resetSwipe } = useSwipeGesture({
     thresholdX: 100,
@@ -93,6 +95,15 @@ const SwipeableCard = ({
   const upOpacity = getOverlayOpacity('up');
   const downOpacity = getOverlayOpacity('down');
 
+  // Handle double-click to open profile in new tab
+  const handleDoubleClick = (e) => {
+    if (username) {
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(`/profile/${username}`, '_blank');
+    }
+  };
+
   if (disabled) {
     return <div className={className}>{children}</div>;
   }
@@ -101,7 +112,8 @@ const SwipeableCard = ({
     <div 
       className={`swipeable-card-wrapper ${className} ${isDragging ? 'is-dragging' : ''}`}
       {...handlers}
-      style={{ touchAction: 'none' }}
+      onDoubleClick={handleDoubleClick}
+      style={{ touchAction: 'none', cursor: username ? 'pointer' : 'default' }}
     >
       <div 
         className="swipeable-card"
