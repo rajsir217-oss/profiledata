@@ -43,6 +43,14 @@ api.interceptors.response.use(
   async (error) => {
     if (error.response?.status === 401) {
       const url = error.config?.url || 'unknown';
+      const token = localStorage.getItem('token');
+      
+      // Only show session expired if user WAS logged in (had a token)
+      // Don't show it on first app launch when user was never logged in
+      if (!token) {
+        logger.debug('401 received but no token exists - user not logged in, skipping session expired');
+        return Promise.reject(error);
+      }
       
       // Only handle once per session to avoid spam
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
@@ -218,6 +226,11 @@ export const changePassword = async (passwordData) => {
       (response) => response,
       async (error) => {
         if (error.response?.status === 401) {
+          const token = localStorage.getItem('token');
+          // Only show session expired if user WAS logged in
+          if (!token) {
+            return Promise.reject(error);
+          }
           const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
           if (!hasLoggedOut) {
             sessionStorage.setItem('hasLoggedOut', 'true');
@@ -259,6 +272,11 @@ imageAccessApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      const token = localStorage.getItem('token');
+      // Only show session expired if user WAS logged in
+      if (!token) {
+        return Promise.reject(error);
+      }
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
         logger.warn('🔒 Image Access API: Session expired (401)');
@@ -470,6 +488,11 @@ notificationsApi.interceptors.response.use(
   (response) => response,
   async (error) => {
     if (error.response?.status === 401) {
+      const token = localStorage.getItem('token');
+      // Only show session expired if user WAS logged in
+      if (!token) {
+        return Promise.reject(error);
+      }
       const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
       if (!hasLoggedOut) {
         logger.warn('🔒 Notifications API: Session expired (401)');
@@ -577,6 +600,11 @@ export const createApiInstance = (baseURL = null) => {
     (response) => response,
     (error) => {
       if (error.response?.status === 401) {
+        const token = localStorage.getItem('token');
+        // Only show session expired if user WAS logged in
+        if (!token) {
+          return Promise.reject(error);
+        }
         const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
         if (!hasLoggedOut) {
           logger.warn('🔒 Custom API Instance: Session expired (401)');
