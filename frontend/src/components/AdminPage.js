@@ -114,7 +114,8 @@ const AdminPage = () => {
     }
   }, [navigate]);
 
-  // Reload users when filters change (server-side filtering)
+  // Reload users when dropdown filters change (server-side filtering)
+  // NOTE: searchTerm and emailSearch are NOT in dependencies - only trigger on Search button click
   useEffect(() => {
     // Skip if not authenticated yet
     const token = localStorage.getItem('token');
@@ -129,14 +130,15 @@ const AdminPage = () => {
       search: searchTerm,
       emailSearch: emailSearch
     });
-  }, [statusFilter, genderFilter, searchTerm, emailSearch, loadUsers]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, genderFilter, loadUsers]);
 
-  // Handle manual search button click (for email search)
-  const handleEmailSearch = () => {
+  // Handle manual search button click - triggers search for username/email fields
+  const handleSearch = () => {
     loadUsers({
       status: statusFilter,
       gender: genderFilter,
-      search: searchTerm,
+      search: searchTerm.trim(),
       emailSearch: emailSearch.trim()
     });
   };
@@ -376,7 +378,7 @@ const AdminPage = () => {
             placeholder="🔍 Username or name..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
           
           <input
@@ -385,7 +387,7 @@ const AdminPage = () => {
             placeholder="📧 Email (partial)..."
             value={emailSearch}
             onChange={(e) => setEmailSearch(e.target.value)}
-            onKeyPress={(e) => e.key === 'Enter' && handleEmailSearch()}
+            onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           />
           
           <select
@@ -416,7 +418,7 @@ const AdminPage = () => {
           
           <button
             className="admin-search-btn"
-            onClick={handleEmailSearch}
+            onClick={handleSearch}
             title="Search"
           >
             🔍 Search

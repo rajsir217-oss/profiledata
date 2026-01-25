@@ -112,13 +112,16 @@ async def get_all_users(
         # NOTE: Since emails are encrypted, we can't do regex search on encrypted data.
         # We'll fetch users and filter after decryption for email search.
         email_search_term = email_search.lower().strip() if email_search else None
+        search_term = search.strip() if search else None
         
-        if not email_search_term and search:
+        # Username/name search (case-insensitive) - only if no email search
+        # When email search is active, we filter by username AFTER decryption
+        if not email_search_term and search_term:
             query["$or"] = [
-                {"username": {"$regex": search, "$options": "i"}},
-                {"contactEmail": {"$regex": search, "$options": "i"}},  # Primary email field
-                {"firstName": {"$regex": search, "$options": "i"}},
-                {"lastName": {"$regex": search, "$options": "i"}}
+                {"username": {"$regex": search_term, "$options": "i"}},
+                {"contactEmail": {"$regex": search_term, "$options": "i"}},  # Primary email field
+                {"firstName": {"$regex": search_term, "$options": "i"}},
+                {"lastName": {"$regex": search_term, "$options": "i"}}
             ]
         
         # Remove sensitive data and decrypt PII
@@ -132,7 +135,7 @@ async def get_all_users(
             users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).sort("created_at", -1)
             all_users = await users_cursor.to_list(length=10000)  # Reasonable max
             
-            # Decrypt and filter by email
+            # Decrypt and filter by email (and optionally username/name)
             filtered_users = []
             for user in all_users:
                 user["_id"] = str(user["_id"])
@@ -140,16 +143,28 @@ async def get_all_users(
                     decrypted_user = encryptor.decrypt_user_pii(user)
                     dec_email = (decrypted_user.get('contactEmail') or '').lower()
                     
-                    # Check if email contains search term (partial match)
-                    if email_search_term in dec_email:
-                        # Remove sensitive data
-                        if "security" in decrypted_user:
-                            decrypted_user["security"].pop("password_hash", None)
-                            decrypted_user["security"].pop("password_history", None)
-                        if "mfa" in decrypted_user:
-                            decrypted_user["mfa"].pop("mfa_secret", None)
-                            decrypted_user["mfa"].pop("mfa_backup_codes", None)
-                        filtered_users.append(decrypted_user)
+                    # Check if email contains search term (partial match, case-insensitive)
+                    if email_search_term not in dec_email:
+                        continue
+                    
+                    # If username/name search is also provided, filter by that too (case-insensitive)
+                    if search_term:
+                        username = (decrypted_user.get('username') or '').lower()
+                        first_name = (decrypted_user.get('firstName') or '').lower()
+                        last_name = (decrypted_user.get('lastName') or '').lower()
+                        search_lower = search_term.lower()
+                        
+                        if not (search_lower in username or search_lower in first_name or search_lower in last_name):
+                            continue
+                    
+                    # Remove sensitive data
+                    if "security" in decrypted_user:
+                        decrypted_user["security"].pop("password_hash", None)
+                        decrypted_user["security"].pop("password_history", None)
+                    if "mfa" in decrypted_user:
+                        decrypted_user["mfa"].pop("mfa_secret", None)
+                        decrypted_user["mfa"].pop("mfa_backup_codes", None)
+                    filtered_users.append(decrypted_user)
                 except Exception as decrypt_err:
                     logger.error(f"❌ Decryption failed for {user.get('username', 'unknown')}: {decrypt_err}")
             
