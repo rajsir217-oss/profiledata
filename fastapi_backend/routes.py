@@ -4100,23 +4100,28 @@ async def search_users(
         if daysBack > 0:
             from datetime import datetime, timedelta
             cutoff_date = datetime.utcnow() - timedelta(days=daysBack)
+            cutoff_iso = cutoff_date.isoformat()
             
-            # Simplified query: check adminApprovedAt first, fall back to createdAt
-            # Use datetime comparison (works for both datetime objects and ISO strings in MongoDB)
+            # Handle both datetime objects AND ISO string dates in database
+            # Production has mixed formats - some datetime, some string
             days_back_query = {"$or": [
-                # Has adminApprovedAt and it's >= cutoff
-                {"adminApprovedAt": {"$gte": cutoff_date}},
-                # No adminApprovedAt, use createdAt instead
+                # adminApprovedAt as datetime object
+                {"adminApprovedAt": {"$gte": cutoff_date, "$type": "date"}},
+                # adminApprovedAt as ISO string (lexicographic comparison works)
+                {"adminApprovedAt": {"$gte": cutoff_iso, "$type": "string"}},
+                # No adminApprovedAt, fall back to createdAt (datetime)
                 {"$and": [
-                    {"$or": [
-                        {"adminApprovedAt": {"$exists": False}},
-                        {"adminApprovedAt": None}
-                    ]},
-                    {"createdAt": {"$gte": cutoff_date}}
+                    {"$or": [{"adminApprovedAt": {"$exists": False}}, {"adminApprovedAt": None}]},
+                    {"createdAt": {"$gte": cutoff_date, "$type": "date"}}
+                ]},
+                # No adminApprovedAt, fall back to createdAt (string)
+                {"$and": [
+                    {"$or": [{"adminApprovedAt": {"$exists": False}}, {"adminApprovedAt": None}]},
+                    {"createdAt": {"$gte": cutoff_iso, "$type": "string"}}
                 ]}
             ]}
             and_conditions.append(days_back_query)
-            logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date}")
+            logger.info(f"📅 Days back filter: {daysBack} days, cutoff: {cutoff_date} / {cutoff_iso}")
 
     # Sort options - always add _id as secondary sort for stable pagination
     sort_options = {
