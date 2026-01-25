@@ -3,37 +3,45 @@
 Migration: Add contactEmailHash and contactNumberHash fields to existing users
 This enables O(1) uniqueness checking for encrypted email/phone fields.
 
-Run: python -m migrations.add_email_phone_hash
+Run locally:  python -m migrations.add_email_phone_hash
+Run on prod:  python -m migrations.add_email_phone_hash --mongodb-url "mongodb+srv://..." --encryption-key "..."
+
+Or set environment variables:
+  MONGODB_URL=mongodb+srv://...
+  ENCRYPTION_KEY=...
+  python -m migrations.add_email_phone_hash
 """
 
 import asyncio
 import sys
 import os
+import argparse
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from motor.motor_asyncio import AsyncIOMotorClient
-from crypto_utils import PIIEncryption, get_encryptor
-from config import settings
+from crypto_utils import PIIEncryption
 import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-async def migrate():
+async def migrate(mongodb_url: str, database_name: str, encryption_key: str):
     """Add hash fields to all existing users for email/phone uniqueness checking"""
     
     # Connect to MongoDB
-    client = AsyncIOMotorClient(settings.mongodb_url)
-    db = client[settings.database_name]
+    logger.info(f"🔗 Connecting to MongoDB: {mongodb_url[:30]}...")
+    client = AsyncIOMotorClient(mongodb_url)
+    db = client[database_name]
     
     logger.info("🚀 Starting migration: Add email/phone hash fields")
     
-    # Get encryptor for decrypting existing data
+    # Initialize encryptor with provided key
     try:
-        encryptor = get_encryptor()
+        encryptor = PIIEncryption(encryption_key)
+        logger.info("✅ Encryptor initialized")
     except Exception as e:
         logger.error(f"❌ Failed to initialize encryptor: {e}")
         return
@@ -122,5 +130,39 @@ async def migrate():
     client.close()
 
 
+def main():
+    parser = argparse.ArgumentParser(description='Add email/phone hash fields to existing users')
+    parser.add_argument('--mongodb-url', type=str, help='MongoDB connection URL')
+    parser.add_argument('--database-name', type=str, default='matrimonialDB', help='Database name (default: matrimonialDB)')
+    parser.add_argument('--encryption-key', type=str, help='Encryption key for decrypting PII')
+    args = parser.parse_args()
+    
+    # Get values from args or environment or config
+    mongodb_url = args.mongodb_url or os.environ.get('MONGODB_URL')
+    database_name = args.database_name or os.environ.get('DATABASE_NAME', 'matrimonialDB')
+    encryption_key = args.encryption_key or os.environ.get('ENCRYPTION_KEY')
+    
+    # Fall back to config if not provided
+    if not mongodb_url or not encryption_key:
+        try:
+            from config import settings
+            mongodb_url = mongodb_url or settings.mongodb_url
+            encryption_key = encryption_key or settings.encryption_key
+            database_name = database_name or settings.database_name
+        except Exception as e:
+            logger.error(f"❌ Could not load config: {e}")
+    
+    if not mongodb_url:
+        logger.error("❌ MongoDB URL required. Use --mongodb-url or set MONGODB_URL env var")
+        sys.exit(1)
+    
+    if not encryption_key:
+        logger.error("❌ Encryption key required. Use --encryption-key or set ENCRYPTION_KEY env var")
+        sys.exit(1)
+    
+    logger.info(f"📦 Database: {database_name}")
+    asyncio.run(migrate(mongodb_url, database_name, encryption_key))
+
+
 if __name__ == "__main__":
-    asyncio.run(migrate())
+    main()
