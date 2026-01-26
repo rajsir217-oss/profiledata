@@ -3,6 +3,7 @@ import api from '../api';
 import ProfileCreatorBadge from './ProfileCreatorBadge';
 import logger from '../utils/logger';
 import { getProfilePicUrl } from '../utils/urlHelper';
+import { formatShortDateTime } from '../utils/timeFormatter';
 import './ChatWindow.css';
 
 const QUICK_REPLY_TEMPLATES = [
@@ -59,8 +60,7 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    return formatShortDateTime(timestamp);
   };
 
   const handleSend = (e) => {

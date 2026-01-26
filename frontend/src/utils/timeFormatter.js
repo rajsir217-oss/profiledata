@@ -112,3 +112,26 @@ export const formatTime = (dateValue) => {
     hour12: true
   });
 };
+
+/**
+ * Format a compact date + time (e.g., "Jan 25, 07:28 PM")
+ * @param {string|Date} dateValue - ISO string or Date object
+ * @returns {string} - Formatted date and time
+ */
+export const formatShortDateTime = (dateValue) => {
+  if (!dateValue) return 'N/A';
+
+  const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+
+  const now = new Date();
+  const includeYear = date.getFullYear() !== now.getFullYear();
+
+  return date.toLocaleString('en-US', {
+    month: 'short',
+    day: '2-digit',
+    ...(includeYear ? { year: '2-digit' } : {}),
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};

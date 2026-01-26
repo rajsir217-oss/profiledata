@@ -219,7 +219,7 @@
 }
 
 .conversation-time {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-muted, #999);
 }
 
@@ -310,7 +310,7 @@ p.conversation-preview.unread {
   }
   
   .message-list .conversation-time {
-    font-size: 11px;
+    font-size: 10px;
     color: var(--text-muted);
     flex-shrink: 0;
   }
