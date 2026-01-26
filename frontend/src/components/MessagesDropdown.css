@@ -272,9 +272,9 @@
 }
 
 .conversation-time {
-  font-size: 12px;
+  font-size: 10px;
   color: var(--text-muted, #999);
-}
+ }
 
 /* Online status badge removed - now using name background color instead */
 
@@ -393,7 +393,7 @@
   }
   
   .messages-dropdown .conversation-time {
-    font-size: 12px;
+    font-size: 11px;
     color: var(--text-muted);
   }
 }
