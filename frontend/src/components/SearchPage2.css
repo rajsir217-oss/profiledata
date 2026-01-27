@@ -29,7 +29,7 @@
 .search-results {
   background: var(--card-background, white);
   border-radius: 12px;
-  padding: 12px;
+  padding: 6px;
   min-height: 300px;
   flex: 1;
   box-sizing: border-box;
@@ -467,7 +467,7 @@
   .search-results {
     width: 100%;
     margin-left: 0;
-    padding: 12px;
+    /* padding: 12px; */
   }
 
   .results-grid {
@@ -542,7 +542,7 @@
   }
 
   .search-results {
-    padding: 12px;
+    /* padding: 12px; */
   }
 
   .results-controls-bottom {
@@ -840,7 +840,7 @@
   background: var(--surface-color);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  padding: 12px 20px;
+  padding: 6px 20px;
   margin-bottom: 20px;
   display: flex;
   justify-content: space-between;
