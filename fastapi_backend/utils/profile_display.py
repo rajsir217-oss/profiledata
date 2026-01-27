@@ -253,13 +253,20 @@ def convert_to_gcs_url(url: str) -> str:
         return url
     
     # Convert relative path to GCS URL
-    gcs_bucket = getattr(settings, 'gcs_bucket_name', 'matrimonial-uploads-matrimonial-staging')
+    gcs_bucket = getattr(settings, 'gcs_bucket_name', None)
     
     # Remove leading slash if present
     if url.startswith('/'):
         url = url[1:]
     
-    return f"https://storage.googleapis.com/{gcs_bucket}/{url}"
+    if gcs_bucket:
+        return f"https://storage.googleapis.com/{gcs_bucket}/{url}"
+
+    backend_url = getattr(settings, "backend_url", "").rstrip("/")
+    if backend_url:
+        return f"{backend_url}/{url}"
+
+    return url
 
 
 def render_profile_card_html(
@@ -292,7 +299,9 @@ def render_profile_card_html(
     
     # Default avatar if no profile picture
     if not profile_pic:
-        profile_pic = "https://storage.googleapis.com/matrimonial-uploads-matrimonial-staging/default-avatar.png"
+        import urllib.parse
+        encoded_name = urllib.parse.quote(name)
+        profile_pic = f"https://ui-avatars.com/api/?name={encoded_name}&background=667eea&color=fff&size=80&bold=true"
     
     # Build optional detail rows
     education_html = ""

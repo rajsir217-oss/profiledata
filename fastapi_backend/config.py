@@ -13,7 +13,18 @@ env_manager.load_environment_config(current_env)
 
 # Get the directory where this config file is located
 BASE_DIR = Path(__file__).resolve().parent
-ENV_FILE = BASE_DIR / ".env"
+# Prefer the environment-specific env file (local -> .env.local, etc.)
+_env_files = {
+    "local": ".env.local",
+    "staging": ".env.staging",
+    "production": ".env.production",
+    "docker": ".env.docker",
+    "test": ".env.test",
+}
+ENV_FILE = BASE_DIR / _env_files.get(current_env, ".env")
+
+if not ENV_FILE.exists():
+    ENV_FILE = BASE_DIR / ".env"
 
 class Settings(BaseSettings):
     # Environment
@@ -144,7 +155,7 @@ class Settings(BaseSettings):
     gcp_redis_url: Optional[str] = None
 
     model_config = ConfigDict(
-        env_file=".env",
+        env_file=str(ENV_FILE),
         case_sensitive=False,
         extra="ignore"  # Ignore extra fields in .env
     )
