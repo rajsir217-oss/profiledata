@@ -4,14 +4,21 @@ Processes email notification queue and sends emails
 Uses centralized email_sender.py for Resend + SMTP fallback
 """
 
-from typing import Dict, Any, Tuple, Optional
+from typing import Dict, Any, Optional, List, Tuple
 from datetime import datetime
 
 from .base import JobTemplate, JobExecutionContext, JobResult
 from services.notification_service import NotificationService
-from models.notification_models import NotificationChannel
+from models.notification_models import (
+    NotificationQueueItem,
+    NotificationChannel,
+    NotificationStatus,
+)
+
+from utils.profile_display import extract_profile_display_data, render_profile_card_html
 from config import settings
-from utils.profile_display import extract_profile_picture
+from utils.branding import get_app_name
+from utils.gcp_secrets import get_email_config
 
 
 class EmailNotifierTemplate(JobTemplate):
@@ -268,6 +275,33 @@ class EmailNotifierTemplate(JobTemplate):
         tracking_id = str(notification.id)
         backend_url = settings.backend_url
         frontend_url = settings.frontend_url
+
+        # Inject reusable profile card HTML for specific templates
+        if notification.trigger == "conversation_cold" and isinstance(template_data, dict):
+            match_data = template_data.get("match")
+            match_username = None
+            if isinstance(match_data, dict):
+                match_username = match_data.get("username")
+
+            if match_username:
+                match_user = await db.users.find_one({"username": match_username})
+                if match_user:
+                    match_display = extract_profile_display_data(match_user)
+                    match_profile_url = f"{frontend_url}/profile/{match_username}"
+                    profile_card_html = render_profile_card_html(
+                        match_display,
+                        style="compact",
+                        show_education=True,
+                        show_occupation=True,
+                        show_location=True,
+                        profile_url=match_profile_url
+                    )
+
+                    # Provide both flat and nested variants for template compatibility
+                    template_data["match_profileCardHtml"] = profile_card_html
+                    if isinstance(match_data, dict):
+                        match_data["profileCardHtml"] = profile_card_html
+                        template_data["match"] = match_data
         
         # Build profile URL for the relevant user on the frontend.
         # NOTE: event templates frequently provide `match.username` (not `actor.username`).

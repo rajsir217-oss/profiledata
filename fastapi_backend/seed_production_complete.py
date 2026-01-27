@@ -47,6 +47,8 @@ def create_template(trigger, category, subject, color, priority, description, ct
             
             <div class="card">
                 <p>DESCRIPTION</p>
+                <p style="color: #666; font-size: 12px; margin-top: 10px;">Profile ID: <a href="{profile_url}" style="color: #667eea; font-weight: bold; text-decoration: none;">{match.profileId}</a></p>
+                {% if match_profileCardHtml %}{match_profileCardHtml}{% endif %}
             </div>
             
             <center>
