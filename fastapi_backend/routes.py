@@ -1962,6 +1962,7 @@ async def update_user_profile(
     partnerPreference: Optional[str] = Form(None),
     partnerCriteria: Optional[str] = Form(None),  # NEW: JSON object with all criteria
     customAboutMe: Optional[str] = Form(None),  # User's custom About Me content (overrides auto-generated)
+    customPartnerPreference: Optional[str] = Form(None),  # User's custom "What You're Looking For" content (overrides auto-generated)
     images: List[UploadFile] = File(default=[]),
     imagesToDelete: Optional[str] = Form(None),
     imageOrder: Optional[str] = Form(None),  # NEW: JSON array of image URLs in desired order
@@ -2181,6 +2182,15 @@ async def update_user_profile(
             update_data["customAboutMe"] = ""
         elif customAboutMe.strip():
             update_data["customAboutMe"] = customAboutMe.strip()
+    
+    # Custom Partner Preference (user-edited "What You're Looking For" that overrides auto-generated)
+    # Note: "__RESET__" means "reset to auto-generated" - clear the field
+    if customPartnerPreference is not None:
+        if customPartnerPreference.strip() == "__RESET__":
+            # Special value to reset - set to empty string (frontend checks for truthy)
+            update_data["customPartnerPreference"] = ""
+        elif customPartnerPreference.strip():
+            update_data["customPartnerPreference"] = customPartnerPreference.strip()
     
     # Profile Creator Metadata
     if profileCreatedBy is not None:
