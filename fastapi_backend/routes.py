@@ -6206,6 +6206,114 @@ async def get_conversations_enhanced(
         logger.error(f"❌ Error fetching conversations: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
+# IMPORTANT: /messages/unattended MUST be before /messages/{username} to avoid route conflict!
+@router.get("/messages/unattended")
+async def get_unattended_chats(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get unattended conversations for current user.
+    Returns conversations where:
+    - User received a message but hasn't replied
+    - Message is 24+ hours old
+    - Conversation is not closed
+    """
+    username = current_user["username"]
+    logger.info(f"📬 Getting unattended chats for {username}")
+    
+    try:
+        now = datetime.utcnow()
+        one_day_ago = now - timedelta(days=1)
+        
+        # Get user's exclusion list
+        exclusion_doc = await db.exclusions.find_one({"username": username})
+        excluded_users = exclusion_doc.get("excludedUsers", []) if exclusion_doc else []
+        
+        # Get conversations where user is recipient and hasn't replied
+        pipeline = [
+            {"$match": {"toUsername": username, "fromUsername": {"$nin": excluded_users}}},
+            {"$sort": {"createdAt": -1}},
+            {"$group": {"_id": "$fromUsername", "lastReceivedMessage": {"$first": "$$ROOT"}, "lastReceivedAt": {"$first": "$createdAt"}}}
+        ]
+        
+        received_convos = await db.messages.aggregate(pipeline).to_list(100)
+        unattended = []
+        
+        for convo in received_convos:
+            sender = convo["_id"]
+            last_received = convo["lastReceivedMessage"]
+            last_received_at = last_received.get("createdAt")
+            
+            # Parse date if string
+            if isinstance(last_received_at, str):
+                try:
+                    last_received_at = datetime.fromisoformat(last_received_at.replace('Z', '+00:00'))
+                except:
+                    try:
+                        from dateutil import parser
+                        last_received_at = parser.parse(last_received_at)
+                    except:
+                        continue
+            
+            # Make timezone-naive for comparison
+            if last_received_at and hasattr(last_received_at, 'tzinfo') and last_received_at.tzinfo is not None:
+                last_received_at = last_received_at.replace(tzinfo=None)
+            
+            # Check if conversation is closed
+            conv_status = await db.conversation_status.find_one({"participants": {"$all": [username, sender]}, "status": "closed"})
+            if conv_status:
+                continue
+            
+            # Check if user has replied after this message
+            user_reply = await db.messages.find_one({"fromUsername": username, "toUsername": sender}, sort=[("createdAt", -1)])
+            if user_reply:
+                user_reply_at = user_reply.get("createdAt")
+                if isinstance(user_reply_at, str):
+                    try:
+                        user_reply_at = datetime.fromisoformat(user_reply_at.replace('Z', '+00:00'))
+                    except:
+                        try:
+                            from dateutil import parser
+                            user_reply_at = parser.parse(user_reply_at)
+                        except:
+                            user_reply_at = None
+                if user_reply_at and hasattr(user_reply_at, 'tzinfo') and user_reply_at.tzinfo is not None:
+                    user_reply_at = user_reply_at.replace(tzinfo=None)
+                if user_reply_at and last_received_at and user_reply_at > last_received_at:
+                    continue
+            
+            # Check if message is 24+ hours old
+            if last_received_at and last_received_at < one_day_ago:
+                waiting_days = (now - last_received_at).days if isinstance(last_received_at, datetime) else 1
+                urgency = "critical" if waiting_days >= 7 else ("high" if waiting_days >= 3 else "medium")
+                
+                sender_user = await db.users.find_one({"username": sender}, {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1})
+                if sender_user:
+                    images = sender_user.get("images", [])
+                    public_images = sender_user.get("publicImages", [])
+                    profile_image = get_full_image_url(public_images[0]) if public_images else (get_full_image_url(images[0]) if images else None)
+                    
+                    unattended.append({
+                        "sender": {"username": sender, "firstName": sender_user.get("firstName", ""), "lastName": (sender_user.get("lastName", "")[:1] + ".") if sender_user.get("lastName") else "", "profileImage": profile_image},
+                        "lastMessage": {"text": last_received.get("message", "")[:100] + ("..." if len(last_received.get("message", "")) > 100 else ""), "sentAt": last_received_at.isoformat() if isinstance(last_received_at, datetime) else str(last_received_at), "waitingDays": waiting_days},
+                        "urgency": urgency
+                    })
+        
+        urgency_order = {"critical": 0, "high": 1, "medium": 2}
+        unattended.sort(key=lambda x: (urgency_order.get(x["urgency"], 3), -x["lastMessage"]["waitingDays"]))
+        
+        critical_count = sum(1 for u in unattended if u["urgency"] == "critical")
+        high_count = sum(1 for u in unattended if u["urgency"] == "high")
+        medium_count = sum(1 for u in unattended if u["urgency"] == "medium")
+        
+        logger.info(f"✅ Found {len(unattended)} unattended chats for {username} (critical: {critical_count}, high: {high_count}, medium: {medium_count})")
+        
+        return {"unattendedCount": len(unattended), "criticalCount": critical_count, "highCount": high_count, "mediumCount": medium_count, "mustAddress": critical_count > 0, "conversations": unattended}
+    except Exception as e:
+        logger.error(f"❌ Error getting unattended chats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get("/messages/poll/{username}")
 async def poll_messages(
     username: str,
@@ -7083,185 +7191,7 @@ async def delete_conversation(
 
 
 # ===== UNATTENDED CHATS SYSTEM =====
-
-@router.get("/messages/unattended")
-async def get_unattended_chats(
-    current_user: dict = Depends(get_current_user),
-    db = Depends(get_database)
-):
-    """
-    Get unattended conversations for current user.
-    Returns conversations where:
-    - User received a message but hasn't replied
-    - Message is 24+ hours old
-    - Conversation is not closed
-    """
-    username = current_user["username"]
-    logger.info(f"📬 Getting unattended chats for {username}")
-    
-    try:
-        now = datetime.utcnow()
-        one_day_ago = now - timedelta(days=1)
-        three_days_ago = now - timedelta(days=3)
-        seven_days_ago = now - timedelta(days=7)
-        
-        # Get user's exclusion list
-        exclusion_doc = await db.exclusions.find_one({"username": username})
-        excluded_users = exclusion_doc.get("excludedUsers", []) if exclusion_doc else []
-        
-        # Get conversations where user is recipient and hasn't replied
-        pipeline = [
-            # Match messages TO this user
-            {
-                "$match": {
-                    "toUsername": username,
-                    "fromUsername": {"$nin": excluded_users}
-                }
-            },
-            # Sort by date descending
-            {"$sort": {"createdAt": -1}},
-            # Group by sender to get last message from each
-            {
-                "$group": {
-                    "_id": "$fromUsername",
-                    "lastReceivedMessage": {"$first": "$$ROOT"},
-                    "lastReceivedAt": {"$first": "$createdAt"}
-                }
-            }
-        ]
-        
-        received_convos = await db.messages.aggregate(pipeline).to_list(100)
-        
-        unattended = []
-        
-        for convo in received_convos:
-            sender = convo["_id"]
-            last_received = convo["lastReceivedMessage"]
-            last_received_at = last_received.get("createdAt")
-            
-            # Parse date if string - handle multiple formats
-            if isinstance(last_received_at, str):
-                try:
-                    # Try ISO format first
-                    last_received_at = datetime.fromisoformat(last_received_at.replace('Z', '+00:00'))
-                except:
-                    try:
-                        # Try parsing common date formats
-                        from dateutil import parser
-                        last_received_at = parser.parse(last_received_at)
-                    except:
-                        logger.warning(f"Could not parse date: {last_received_at}")
-                        continue
-            
-            # Make datetime timezone-naive for comparison
-            if last_received_at and hasattr(last_received_at, 'tzinfo') and last_received_at.tzinfo is not None:
-                last_received_at = last_received_at.replace(tzinfo=None)
-            
-            # Check if conversation is closed
-            conv_status = await db.conversation_status.find_one({
-                "participants": {"$all": [username, sender]},
-                "status": "closed"
-            })
-            if conv_status:
-                continue  # Skip closed conversations
-            
-            # Check if user has replied after this message
-            # Need to handle both datetime and string comparisons
-            user_reply = await db.messages.find_one({
-                "fromUsername": username,
-                "toUsername": sender
-            }, sort=[("createdAt", -1)])
-            
-            # If user has sent any message to this sender, check if it's after the received message
-            if user_reply:
-                user_reply_at = user_reply.get("createdAt")
-                if isinstance(user_reply_at, str):
-                    try:
-                        user_reply_at = datetime.fromisoformat(user_reply_at.replace('Z', '+00:00'))
-                    except:
-                        try:
-                            from dateutil import parser
-                            user_reply_at = parser.parse(user_reply_at)
-                        except:
-                            user_reply_at = None
-                
-                if user_reply_at and hasattr(user_reply_at, 'tzinfo') and user_reply_at.tzinfo is not None:
-                    user_reply_at = user_reply_at.replace(tzinfo=None)
-                
-                if user_reply_at and last_received_at and user_reply_at > last_received_at:
-                    continue  # User has replied after the last received message
-            
-            # Check if message is 24+ hours old
-            if last_received_at and last_received_at < one_day_ago:
-                # Calculate waiting days
-                if isinstance(last_received_at, datetime):
-                    waiting_days = (now - last_received_at).days
-                else:
-                    waiting_days = 1
-                
-                # Determine urgency
-                if waiting_days >= 7:
-                    urgency = "critical"
-                elif waiting_days >= 3:
-                    urgency = "high"
-                else:
-                    urgency = "medium"
-                
-                # Get sender info
-                sender_user = await db.users.find_one(
-                    {"username": sender},
-                    {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1}
-                )
-                
-                if sender_user:
-                    # Get profile image
-                    images = sender_user.get("images", [])
-                    public_images = sender_user.get("publicImages", [])
-                    profile_image = None
-                    if public_images:
-                        profile_image = get_full_image_url(public_images[0]) if public_images[0] else None
-                    elif images:
-                        profile_image = get_full_image_url(images[0]) if images[0] else None
-                    
-                    unattended.append({
-                        "sender": {
-                            "username": sender,
-                            "firstName": sender_user.get("firstName", ""),
-                            "lastName": sender_user.get("lastName", "")[:1] + "." if sender_user.get("lastName") else "",
-                            "profileImage": profile_image
-                        },
-                        "lastMessage": {
-                            "text": last_received.get("message", "")[:100] + "..." if len(last_received.get("message", "")) > 100 else last_received.get("message", ""),
-                            "sentAt": last_received_at.isoformat() if isinstance(last_received_at, datetime) else str(last_received_at),
-                            "waitingDays": waiting_days
-                        },
-                        "urgency": urgency
-                    })
-        
-        # Sort by urgency (critical first, then high, then medium)
-        urgency_order = {"critical": 0, "high": 1, "medium": 2}
-        unattended.sort(key=lambda x: (urgency_order.get(x["urgency"], 3), -x["lastMessage"]["waitingDays"]))
-        
-        # Count by urgency
-        critical_count = sum(1 for u in unattended if u["urgency"] == "critical")
-        high_count = sum(1 for u in unattended if u["urgency"] == "high")
-        medium_count = sum(1 for u in unattended if u["urgency"] == "medium")
-        
-        logger.info(f"✅ Found {len(unattended)} unattended chats for {username} (critical: {critical_count}, high: {high_count}, medium: {medium_count})")
-        
-        return {
-            "unattendedCount": len(unattended),
-            "criticalCount": critical_count,
-            "highCount": high_count,
-            "mediumCount": medium_count,
-            "mustAddress": critical_count > 0,
-            "conversations": unattended
-        }
-        
-    except Exception as e:
-        logger.error(f"❌ Error getting unattended chats: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
+# NOTE: The /messages/unattended endpoint is defined earlier (before /messages/{username}) to avoid route conflicts
 
 @router.post("/messages/conversation/{other_username}/close")
 async def close_conversation(
