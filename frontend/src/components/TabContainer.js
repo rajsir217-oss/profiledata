@@ -12,6 +12,7 @@ import './TabContainer.css';
  * - Auto-save on tab switch (optional)
  * - Validation per tab
  * - Theme-aware styling
+ * - Vertical layout option for edit mode
  * 
  * @param {Object} props
  * @param {Array} tabs - Array of tab objects: { id, label, icon, content }
@@ -21,6 +22,7 @@ import './TabContainer.css';
  * @param {Function} onAutoSave - Callback for auto-save on tab switch
  * @param {boolean} enableAutoSave - Enable auto-save on tab switch (default: true)
  * @param {string} activeTabId - Controlled active tab (optional)
+ * @param {string} layout - 'horizontal' (default) or 'vertical'
  */
 const TabContainer = ({
   tabs = [],
@@ -31,6 +33,7 @@ const TabContainer = ({
   enableAutoSave = true,
   activeTabId: controlledActiveTabId,
   isEditMode = false,
+  layout = 'horizontal',
   children
 }) => {
   const [activeTab, setActiveTab] = useState(controlledActiveTabId || tabs[0]?.id);
@@ -123,9 +126,9 @@ const TabContainer = ({
   };
 
   return (
-    <div className="tab-container">
+    <div className={`tab-container ${layout === 'vertical' ? 'tab-container-vertical' : ''}`}>
       {/* Sticky Tab Bar */}
-      <div className="tab-bar">
+      <div className={`tab-bar ${layout === 'vertical' ? 'tab-bar-vertical' : ''}`}>
         {tabs.map(tab => {
           const progress = tabProgress[tab.id] || 0;
           const hasErrors = tabErrors[tab.id] && Object.keys(tabErrors[tab.id]).length > 0;
