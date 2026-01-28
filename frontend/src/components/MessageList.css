@@ -218,9 +218,55 @@
   }
 }
 
+.conversation-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .conversation-time {
   font-size: 11px;
   color: var(--text-muted, #999);
+}
+
+/* Urgency Badges */
+.urgency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.urgency-badge.urgency-critical {
+  background: var(--danger-color, #ef4444);
+  color: white;
+  animation: pulse-urgent 1.5s ease-in-out infinite;
+}
+
+.urgency-badge.urgency-high {
+  background: var(--warning-color, #f59e0b);
+  color: white;
+}
+
+.urgency-badge.urgency-medium {
+  background: var(--info-color, #3b82f6);
+  color: white;
+}
+
+@keyframes pulse-urgent {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
 }
 
 p.conversation-preview {

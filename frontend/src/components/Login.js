@@ -122,15 +122,47 @@ const Login = () => {
         sessionStorage.setItem('mfa_warning', JSON.stringify(res.data.mfa_warning));
       }
       
-      // Redirect to user's preferred home page (default: dashboard)
-      const homePage = res.data.user.homePage || 'dashboard';
-      localStorage.setItem('homePage', homePage);
-      const homeRoutes = {
-        'dashboard': '/dashboard',
-        'search': '/search',
-        'messages': '/messages'
-      };
-      const redirectPath = homeRoutes[homePage] || '/dashboard';
+      // Check for unattended chats before redirecting
+      let redirectPath = '/dashboard';
+      try {
+        console.log('🔍 Checking for unattended chats...');
+        const unattendedRes = await api.get('/messages/unattended');
+        const unattendedData = unattendedRes.data;
+        console.log('📬 Unattended chats response:', unattendedData);
+        
+        // If there are ANY unattended chats, redirect to messages (not just critical)
+        if (unattendedData.unattendedCount > 0) {
+          console.log(`⚠️ ${unattendedData.unattendedCount} unattended chats found (critical: ${unattendedData.criticalCount}), redirecting to messages`);
+          redirectPath = '/messages';
+          // Store flag to show toast notification
+          sessionStorage.setItem('unattendedChatsAlert', JSON.stringify({
+            count: unattendedData.unattendedCount,
+            critical: unattendedData.criticalCount
+          }));
+        } else {
+          // Redirect to user's preferred home page (default: dashboard)
+          const homePage = res.data.user.homePage || 'dashboard';
+          localStorage.setItem('homePage', homePage);
+          const homeRoutes = {
+            'dashboard': '/dashboard',
+            'search': '/search',
+            'messages': '/messages'
+          };
+          redirectPath = homeRoutes[homePage] || '/dashboard';
+        }
+      } catch (unattendedErr) {
+        console.warn('Could not check unattended chats:', unattendedErr);
+        // Fall back to user's preferred home page
+        const homePage = res.data.user.homePage || 'dashboard';
+        localStorage.setItem('homePage', homePage);
+        const homeRoutes = {
+          'dashboard': '/dashboard',
+          'search': '/search',
+          'messages': '/messages'
+        };
+        redirectPath = homeRoutes[homePage] || '/dashboard';
+      }
+      
       navigate(redirectPath, { state: { user: res.data.user } });
     } catch (err) {
       console.error("Login error:", err);

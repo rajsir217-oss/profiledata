@@ -9,6 +9,53 @@
   background: var(--background-color);
 }
 
+/* Unattended Chats Warning Banner */
+.unattended-banner {
+  background: linear-gradient(135deg, var(--warning-color) 0%, var(--warning-dark, #d97706) 100%);
+  color: white;
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.unattended-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.unattended-icon {
+  font-size: 24px;
+}
+
+.unattended-text {
+  flex: 1;
+}
+
+.unattended-text strong {
+  display: block;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.unattended-counts {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  opacity: 0.95;
+}
+
+.urgency-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.urgency-count.critical {
+  font-weight: 600;
+}
+
 /* Override Bootstrap container max-width for messages page parent */
 .container:has(.messages-page) {
   max-width: 98% !important;
