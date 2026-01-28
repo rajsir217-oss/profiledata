@@ -6806,6 +6806,37 @@ async def get_unread_count(
 
 # ===== ENHANCED MESSAGING WITH PRIVACY =====
 
+@router.get("/messages/block-status/{other_username}")
+async def get_block_status(
+    other_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Check block/exclusion status between current user and another user.
+    Returns who blocked whom (if any).
+    """
+    username = current_user["username"]
+    
+    # Check if current user blocked the other
+    i_blocked_them = await db.exclusions.find_one({
+        "userUsername": username,
+        "excludedUsername": other_username
+    })
+    
+    # Check if other user blocked current user
+    they_blocked_me = await db.exclusions.find_one({
+        "userUsername": other_username,
+        "excludedUsername": username
+    })
+    
+    return {
+        "iBlockedThem": i_blocked_them is not None,
+        "theyBlockedMe": they_blocked_me is not None,
+        "canMessage": i_blocked_them is None and they_blocked_me is None
+    }
+
+
 async def check_message_visibility(username1: str, username2: str, db) -> bool:
     """Check if messages should be visible between two users"""
     # Check if either user has excluded/blocked the other
@@ -6927,6 +6958,24 @@ async def send_message_enhanced(
     
     # Check if messaging is allowed (not blocked/excluded)
     is_visible = await check_message_visibility(username, message_data.toUsername, db)
+    
+    # If blocked, reject the message entirely
+    if not is_visible:
+        # Check who blocked whom for appropriate error message
+        they_blocked_me = await db.exclusions.find_one({
+            "userUsername": message_data.toUsername,
+            "excludedUsername": username
+        })
+        if they_blocked_me:
+            raise HTTPException(
+                status_code=403,
+                detail="This user is not accepting messages from you."
+            )
+        else:
+            raise HTTPException(
+                status_code=403,
+                detail="You cannot send messages to users in your exclusion list."
+            )
     
     # Create message
     message = {
