@@ -9,6 +9,7 @@ const ProtectedRoute = ({ children }) => {
   const [userStatus, setUserStatus] = useState(null);
   const [currentUsername, setCurrentUsername] = useState(null);
   const [shouldRedirectToLogin, setShouldRedirectToLogin] = useState(false);
+  const [hasUnattendedChats, setHasUnattendedChats] = useState(false);
   const location = useLocation();
   
   // Check token synchronously on initial render
@@ -74,6 +75,33 @@ const ProtectedRoute = ({ children }) => {
     };
 
     checkUserStatus();
+    
+    // Check for unattended chats (only if not on messages page)
+    const checkUnattendedChats = async () => {
+      if (location.pathname === '/messages') {
+        setHasUnattendedChats(false);
+        return;
+      }
+      
+      try {
+        const response = await api.get('/messages/unattended');
+        const data = response.data;
+        // Block navigation if there are ANY unattended chats (not just critical)
+        if (data.unattendedCount > 0) {
+          console.log(`⚠️ User has ${data.unattendedCount} unattended chats - blocking navigation`);
+          setHasUnattendedChats(true);
+        } else {
+          setHasUnattendedChats(false);
+        }
+      } catch (error) {
+        console.warn('Could not check unattended chats:', error);
+        setHasUnattendedChats(false);
+      }
+    };
+    
+    if (localStorage.getItem('token')) {
+      checkUnattendedChats();
+    }
   }, [location.pathname]); // Re-check on route change
 
   // Handle redirect to login
@@ -119,6 +147,13 @@ const ProtectedRoute = ({ children }) => {
       `Your account status is "${userStatus}". Please complete your profile and wait for admin approval to access other features.`
     );
     return <Navigate to={`/profile/${currentUsername}`} replace />;
+  }
+
+  // If user has unattended chats and is not on messages page, redirect to messages
+  if (hasUnattendedChats && location.pathname !== '/messages') {
+    console.log('🚫 Blocking navigation - user has unattended chats');
+    sessionStorage.setItem('unattendedChatsBlock', 'true');
+    return <Navigate to="/messages" replace />;
   }
 
   // User is active, allow access

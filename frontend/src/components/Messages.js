@@ -76,6 +76,16 @@ const Messages = () => {
     // Log page visit
     logPageVisit('Messages Page');
     
+    // Check if user was blocked from navigating away
+    const wasBlocked = sessionStorage.getItem('unattendedChatsBlock');
+    if (wasBlocked) {
+      sessionStorage.removeItem('unattendedChatsBlock');
+      // Show toast notification
+      import('../services/toastService').then(({ default: toastService }) => {
+        toastService.warning('Please respond to or decline your pending messages before navigating to other areas.');
+      });
+    }
+    
     loadConversations();
     loadUnattendedChats();
 
