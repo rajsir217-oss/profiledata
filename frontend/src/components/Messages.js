@@ -14,6 +14,8 @@ const Messages = () => {
   const [otherUser, setOtherUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [unattendedData, setUnattendedData] = useState(null);
+  const [conversationStatus, setConversationStatus] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('messagesSidebarWidth');
     return saved ? parseInt(saved, 10) : 280;
@@ -75,6 +77,7 @@ const Messages = () => {
     logPageVisit('Messages Page');
     
     loadConversations();
+    loadUnattendedChats();
 
     // Check if we should open a specific conversation
     const urlParams = new URLSearchParams(location.search);
@@ -150,15 +153,54 @@ const Messages = () => {
     }
   };
 
+  const loadUnattendedChats = async () => {
+    try {
+      const response = await api.get('/messages/unattended');
+      setUnattendedData(response.data);
+      console.log('📬 Unattended chats:', response.data);
+    } catch (err) {
+      console.error('Error loading unattended chats:', err);
+    }
+  };
+
+  const loadConversationStatus = async (username) => {
+    try {
+      const response = await api.get(`/messages/conversation/${username}/status`);
+      setConversationStatus(response.data);
+    } catch (err) {
+      console.error('Error loading conversation status:', err);
+      setConversationStatus(null);
+    }
+  };
+
+  const handleCloseConversation = async (username) => {
+    try {
+      const response = await api.post(`/messages/conversation/${username}/close`);
+      if (response.data.success) {
+        // Reload data
+        await loadConversations();
+        await loadUnattendedChats();
+        await loadConversationStatus(username);
+      }
+    } catch (err) {
+      console.error('Error closing conversation:', err);
+      setError('Failed to close conversation');
+    }
+  };
+
   const handleSelectUser = async (username) => {
     setSelectedUser(username);
     setMessages([]);
     setOtherUser(null);
+    setConversationStatus(null);
 
     try {
       const response = await api.get(`/messages/conversation/${username}?username=${currentUsername}`);
       setMessages(response.data.messages || []);
       setOtherUser(response.data.otherUser);
+      
+      // Load conversation status
+      await loadConversationStatus(username);
     } catch (err) {
       console.error('Error loading conversation:', err);
       setError('Failed to load conversation');
@@ -220,6 +262,29 @@ const Messages = () => {
 
   return (
     <div className="messages-page">
+      {/* Unattended Chats Warning Banner */}
+      {unattendedData && unattendedData.unattendedCount > 0 && (
+        <div className="unattended-banner">
+          <div className="unattended-banner-content">
+            <span className="unattended-icon">⚠️</span>
+            <div className="unattended-text">
+              <strong>You have {unattendedData.unattendedCount} message{unattendedData.unattendedCount > 1 ? 's' : ''} waiting for your response</strong>
+              <div className="unattended-counts">
+                {unattendedData.criticalCount > 0 && (
+                  <span className="urgency-count critical">🔴 {unattendedData.criticalCount} critical (7+ days)</span>
+                )}
+                {unattendedData.highCount > 0 && (
+                  <span className="urgency-count high">🟠 {unattendedData.highCount} high</span>
+                )}
+                {unattendedData.mediumCount > 0 && (
+                  <span className="urgency-count medium">🟡 {unattendedData.mediumCount} medium</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {error && (
         <div className="alert alert-danger alert-dismissible fade show" role="alert">
           {error}
@@ -237,6 +302,7 @@ const Messages = () => {
           selectedUser={selectedUser}
           onSelectUser={handleSelectUser}
           currentUsername={currentUsername}
+          unattendedData={unattendedData}
         />
         <div 
           className="messages-resizer"
@@ -249,6 +315,8 @@ const Messages = () => {
           onSendMessage={handleSendMessage}
           onMessageDeleted={handleMessageDeleted}
           onBack={handleBackToList}
+          conversationStatus={conversationStatus}
+          onCloseConversation={handleCloseConversation}
         />
       </div>
     </div>

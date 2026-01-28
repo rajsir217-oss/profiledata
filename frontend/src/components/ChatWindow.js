@@ -27,13 +27,13 @@ const QUICK_REPLY_TEMPLATES = [
     "Hi, just following up on our earlier message. Looking forward to hearing from you.",
     "Hope you had a chance to review our profile. Let us know your thoughts."
   ]},
-  { category: 'Decline', icon: '🙏', messages: [
+  { category: 'Decline', icon: '🙏', isDecline: true, messages: [
     "Thank you for your interest, but we don't feel this is the right match for us. Best wishes!",
     "We appreciate you reaching out, but we're currently exploring other options."
   ]}
 ];
 
-const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack }) => {
+const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMessageDeleted, onBack, conversationStatus, onCloseConversation }) => {
   const messagesEndRef = useRef(null);
   const [messageText, setMessageText] = useState('');
   const [deletingMessage, setDeletingMessage] = useState(null);
@@ -184,6 +184,22 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
         </div>
       )}
 
+      {/* Conversation Closed Banner */}
+      {conversationStatus?.status === 'closed' && (
+        <div className="chat-closed-notice">
+          <span className="closed-notice-icon">💔</span>
+          <div className="closed-notice-text">
+            <strong>This conversation has ended</strong>
+            <p>
+              {conversationStatus.closedBy === currentUsername 
+                ? "You closed this conversation."
+                : "This member has indicated they're not the right match. Don't worry - there are many great matches waiting for you!"
+              }
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Delete Error Toast */}
       {deleteError && (
         <div className="chat-error-toast">
@@ -302,14 +318,31 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               {QUICK_REPLY_TEMPLATES[selectedCategory].messages.map((msg, idx) => (
                 <button
                   key={idx}
-                  className="quick-message-btn"
-                  onClick={() => {
-                    setMessageText(msg);
-                    setShowQuickReplies(false);
-                    setSelectedCategory(null);
+                  className={`quick-message-btn ${QUICK_REPLY_TEMPLATES[selectedCategory].isDecline ? 'decline-btn' : ''}`}
+                  onClick={async () => {
+                    if (QUICK_REPLY_TEMPLATES[selectedCategory].isDecline) {
+                      // For decline messages: send message, then close conversation
+                      onSendMessage(msg);
+                      setShowQuickReplies(false);
+                      setSelectedCategory(null);
+                      // Close the conversation after sending decline message
+                      if (onCloseConversation && otherUser?.username) {
+                        setTimeout(() => {
+                          onCloseConversation(otherUser.username);
+                        }, 500); // Small delay to ensure message is sent first
+                      }
+                    } else {
+                      setMessageText(msg);
+                      setShowQuickReplies(false);
+                      setSelectedCategory(null);
+                    }
                   }}
                 >
+                  {QUICK_REPLY_TEMPLATES[selectedCategory].isDecline && <span className="decline-icon">🚪</span>}
                   {msg}
+                  {QUICK_REPLY_TEMPLATES[selectedCategory].isDecline && (
+                    <span className="decline-note">(closes conversation)</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -318,36 +351,42 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       )}
 
       {/* Message Input */}
-      <div className="message-input-container">
-        <button
-          type="button"
-          className="quick-replies-toggle"
-          onClick={() => setShowQuickReplies(!showQuickReplies)}
-          title="Quick messages"
-          disabled={otherUser.accountStatus === 'paused'}
-        >
-          ⚡
-        </button>
-        <form onSubmit={handleSend} className="message-input-form">
-          <input
-            type="text"
-            value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder={otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'}
-            className="message-input"
-            maxLength={1000}
-            disabled={otherUser.accountStatus === 'paused'}
-          />
+      {conversationStatus?.status === 'closed' ? (
+        <div className="message-input-disabled">
+          <span>🚫 This conversation is closed. You cannot send messages.</span>
+        </div>
+      ) : (
+        <div className="message-input-container">
           <button
-            type="submit"
-            className="send-button"
-            disabled={!messageText.trim() || otherUser.accountStatus === 'paused'}
+            type="button"
+            className="quick-replies-toggle"
+            onClick={() => setShowQuickReplies(!showQuickReplies)}
+            title="Quick messages"
+            disabled={otherUser.accountStatus === 'paused'}
           >
-            <span className="send-text">Send </span><span className="send-icon">➤</span>
+            ⚡
           </button>
-        </form>
-      </div>
+          <form onSubmit={handleSend} className="message-input-form">
+            <input
+              type="text"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={otherUser.accountStatus === 'paused' ? 'User is paused - messages disabled' : 'Type a message...'}
+              className="message-input"
+              maxLength={1000}
+              disabled={otherUser.accountStatus === 'paused'}
+            />
+            <button
+              type="submit"
+              className="send-button"
+              disabled={!messageText.trim() || otherUser.accountStatus === 'paused'}
+            >
+              <span className="send-text">Send </span><span className="send-icon">➤</span>
+            </button>
+          </form>
+        </div>
+      )}
     </div>
   );
 };

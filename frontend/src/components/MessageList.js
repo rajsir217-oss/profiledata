@@ -6,7 +6,17 @@ import { getProfilePicUrl } from '../utils/urlHelper';
 import { formatShortDateTime } from '../utils/timeFormatter';
 import './MessageList.css';
 
-const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername }) => {
+const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsername, unattendedData }) => {
+  // Get urgency info for a conversation
+  const getUrgencyInfo = (username) => {
+    if (!unattendedData?.conversations) return null;
+    const unattended = unattendedData.conversations.find(c => c.sender.username === username);
+    if (!unattended) return null;
+    return {
+      urgency: unattended.urgency,
+      waitingDays: unattended.lastMessage.waitingDays
+    };
+  };
   const navigate = useNavigate();
   const [imageErrors, setImageErrors] = useState({});
   
@@ -95,7 +105,17 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                       <span className="pause-badge" title="User is on a break">⏸️</span>
                     )}
                   </span>
-                  <span className="conversation-time">{formatTime(conv.lastMessageTime)}</span>
+                  <div className="conversation-meta">
+                    {getUrgencyInfo(conv.username) && (
+                      <span className={`urgency-badge urgency-${getUrgencyInfo(conv.username).urgency}`} title={`Waiting ${getUrgencyInfo(conv.username).waitingDays} days`}>
+                        {getUrgencyInfo(conv.username).urgency === 'critical' && '🔴'}
+                        {getUrgencyInfo(conv.username).urgency === 'high' && '🟠'}
+                        {getUrgencyInfo(conv.username).urgency === 'medium' && '🟡'}
+                        {getUrgencyInfo(conv.username).waitingDays}d
+                      </span>
+                    )}
+                    <span className="conversation-time">{formatTime(conv.lastMessageTime)}</span>
+                  </div>
                 </div>
                 <p className={`conversation-preview ${conv.unreadCount > 0 ? 'unread' : ''}`}>
                   {truncateMessage(conv.lastMessage)}
