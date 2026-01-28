@@ -1,9 +1,30 @@
 # Unattended Chats System - Design Document
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** January 27, 2026  
 **Status:** Draft - Pending Review  
 **Author:** System Design
+
+---
+
+## Implementation Approach
+
+### ✅ SIMPLIFIED: Enhance Existing Messages UI
+
+**Instead of building a new modal, we enhance the existing Messages page with:**
+- Urgency badges (🔴🟠🟡) on conversation list
+- Warning banner at top of Messages page
+- Enhanced Decline button (already exists in Quick Messages)
+- Redirect to Messages on login if unattended chats exist
+
+### Why This Approach?
+| Aspect | New Modal (Old) | Enhanced Messages (New) |
+|--------|-----------------|-------------------------|
+| New components | 5+ files | 0 new files |
+| Lines of code | 800+ | ~160 |
+| Development time | 2 weeks | 3-4 days |
+| User experience | Disruptive | Familiar |
+| Reuses existing | No | Yes (Quick Messages, Decline) |
 
 ---
 
@@ -11,7 +32,7 @@
 
 | Phase | Focus | Status |
 |-------|-------|--------|
-| **Phase 1** | Force response to pending messages, graceful closure | 🎯 Current |
+| **Phase 1** | Enhance Messages UI, urgency badges, graceful closure | 🎯 Current |
 | **Phase 2** | Mutual exclusions, profile hiding, advanced blocking | 📋 Future |
 
 ---
@@ -91,13 +112,9 @@ A conversation is considered **unattended** when:
 ┌─────────────────────────────────────────────────────────────────┐
 │              SYSTEM: Check for unattended chats                 │
 │                                                                 │
-│  Query: conversations WHERE                                     │
-│    - lastMessage.sender != currentUser                          │
-│    - lastMessage.timestamp < (now - 24 hours)                   │
-│    - myLastReply IS NULL OR myLastReply < lastMessage.timestamp │
-│    - conversation.status != 'closed'                            │
-│    - sender NOT IN my_exclusions                                │
-│    - I am NOT IN sender's exclusions                            │
+│  API Call: GET /api/messages/unattended                         │
+│                                                                 │
+│  Returns: { criticalCount, highCount, mediumCount }             │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
@@ -107,92 +124,72 @@ A conversation is considered **unattended** when:
 ┌─────────────────────────┐     ┌─────────────────────────────────┐
 │  No unattended chats    │     │  Has unattended chats           │
 │                         │     │                                 │
-│  → Proceed to Dashboard │     │  → Show Unattended Chats Modal  │
+│  → Proceed to Dashboard │     │  → Redirect to /messages        │
+│                         │     │    with warning banner          │
 └─────────────────────────┘     └─────────────────────────────────┘
-                                              │
-                                              ▼
-                              ┌───────────────────────────────────┐
-                              │     UNATTENDED CHATS MODAL        │
-                              │                                   │
-                              │  "You have X messages waiting     │
-                              │   for your response"              │
-                              │                                   │
-                              │  [List of pending conversations]  │
-                              │                                   │
-                              │  For each conversation:           │
-                              │  - Sender photo + name            │
-                              │  - Message preview                │
-                              │  - Wait time (e.g., "5 days ago") │
-                              │  - Action buttons                 │
-                              └───────────────────────────────────┘
-                                              │
-                                              ▼
-                              ┌───────────────────────────────────┐
-                              │         ACTION OPTIONS            │
-                              │                                   │
-                              │  [💬 Reply] - Opens conversation  │
-                              │  [⚡ Quick Reply] - Send template │
-                              │  [❌ Not Interested] - Decline    │
-                              │  [⏰ Remind Later] - Snooze 24h   │
-                              └───────────────────────────────────┘
-                                              │
-                                              ▼
-                              ┌───────────────────────────────────┐
-                              │  All critical chats addressed?    │
-                              │                                   │
-                              │  YES → Proceed to Dashboard       │
-                              │  NO  → Stay on modal              │
-                              └───────────────────────────────────┘
 ```
 
-### 4.2 Decline Flow (Phase 1 - Graceful Closure)
+### 4.2 Enhanced Messages Page UI
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│  User A sends message to User B                                 │
+│  💬 My Messages                                                 │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ ⚠️ You have 3 messages waiting for your response          │  │
+│  │    Please respond to continue using all features.         │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  CONVERSATION LIST (with urgency badges):                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ [Photo] Ananya Maganti    🔴 8 days - RESPOND NOW         │  │
+│  │         "Hi, we ca..."                                    │  │
+│  ├───────────────────────────────────────────────────────────┤  │
+│  │ [Photo] Ananya Sangineni  🟠 4 days                        │  │
+│  │         "Namaste!..."                                     │  │
+│  ├───────────────────────────────────────────────────────────┤  │
+│  │ [Photo] Ramalakshmi       🟡 2 days                        │  │
+│  │         "I just spok..."                                  │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                                                                 │
+│  EXISTING QUICK MESSAGES (already built):                       │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │ ⚡ Quick Messages                                          │  │
+│  │ [👋 Introduction] [💕 Interest] [📱 More Info]            │  │
+│  │ [📞 Next Steps] [🔔 Follow-up] [🙏 Decline] ← ENHANCE     │  │
+│  └───────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### 4.3 Decline Flow (Using Existing Decline Button)
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  User B opens conversation with User A                          │
+│  User B clicks existing "🙏 Decline" button in Quick Messages   │
 └─────────────────────────────────────────────────────────────────┘
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│  User B receives message, sees in "Unattended" modal            │
+│                    ENHANCED DECLINE LOGIC                       │
+│                                                                 │
+│  1. Mark conversation as "closed"                               │
+│                                                                 │
+│  2. Send notification to User A:                                │
+│     "This member has indicated they're not the right match.     │
+│      Don't worry - there are many great matches waiting for     │
+│      you!"                                                      │
+│                                                                 │
+│  3. Update UI:                                                  │
+│     - Show "Conversation Ended" banner                          │
+│     - Disable reply input                                       │
+│     - Gray out conversation in list                             │
+│                                                                 │
+│  ⚠️ Phase 1: NO exclusion list changes                          │
 └─────────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-              ┌───────────────┴───────────────┐
-              │                               │
-              ▼                               ▼
-┌─────────────────────────────┐     ┌─────────────────────────────────┐
-│  User B clicks "Reply"      │     │  User B clicks "Not Interested" │
-│                             │     │                                 │
-│  → Normal conversation      │     │  → Trigger Graceful Closure     │
-└─────────────────────────────┘     └─────────────────────────────────┘
-                                              │
-                                              ▼
-                              ┌───────────────────────────────────┐
-                              │       GRACEFUL CLOSURE            │
-                              │       (PHASE 1 - SIMPLE)          │
-                              │                                   │
-                              │  1. Mark conversation as "closed" │
-                              │                                   │
-                              │  2. Send notification to User A:  │
-                              │     "This member has indicated    │
-                              │      they're not the right match. │
-                              │      Don't worry - there are many │
-                              │      great matches waiting for    │
-                              │      you!"                        │
-                              │                                   │
-                              │  3. Update User A's conversation: │
-                              │     - Show "Conversation Ended"   │
-                              │     - Disable reply button        │
-                              │     - Gray out conversation       │
-                              │                                   │
-                              │  ⚠️ Phase 1: NO exclusion list    │
-                              │     changes. User A can still see │
-                              │     User B in search.             │
-                              └───────────────────────────────────┘
 ```
 
-### 4.2.1 Phase 1 Limitations & Future Enhancements
+### 4.4 Phase 1 Limitations & Future Enhancements
 
 | Phase 1 Behavior | Phase 2 Enhancement |
 |------------------|---------------------|
@@ -201,7 +198,7 @@ A conversation is considered **unattended** when:
 | User A can start new conversation | Block new messages after decline |
 | No tracking of who declined whom | Track decline history for analytics |
 
-### 4.3 Sender's View (When Excluded)
+### 4.5 Sender's View (When Declined)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -232,52 +229,39 @@ A conversation is considered **unattended** when:
 
 ## 5. Feature Details
 
-### 5.1 Unattended Chats Modal
+### 5.1 Warning Banner (Top of Messages Page)
 
-**Trigger:** Shown immediately after successful login if unattended chats exist
+**Trigger:** Shown when user has unattended chats
 
-**Modal Components:**
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  ╔═══════════════════════════════════════════════════════════╗  │
-│  ║  💬 Messages Waiting for Your Response                    ║  │
-│  ║                                                           ║  │
-│  ║  You have 3 members waiting to hear from you.             ║  │
-│  ║  Please respond to continue using the platform.           ║  │
-│  ╠═══════════════════════════════════════════════════════════╣  │
-│  ║                                                           ║  │
-│  ║  🔴 CRITICAL (7+ days)                                    ║  │
-│  ║  ┌─────────────────────────────────────────────────────┐  ║  │
-│  ║  │ [Photo] Priya S.                      8 days ago   │  ║  │
-│  ║  │ "Hi! I loved your profile and..."                  │  ║  │
-│  ║  │ [💬 Reply] [⚡ Quick] [❌ Decline] [⏰ Later]       │  ║  │
-│  ║  └─────────────────────────────────────────────────────┘  ║  │
-│  ║                                                           ║  │
-│  ║  🟠 HIGH (3-7 days)                                       ║  │
-│  ║  ┌─────────────────────────────────────────────────────┐  ║  │
-│  ║  │ [Photo] Rahul M.                      4 days ago   │  ║  │
-│  ║  │ "Hello, I think we might be a good..."             │  ║  │
-│  ║  │ [💬 Reply] [⚡ Quick] [❌ Decline] [⏰ Later]       │  ║  │
-│  ║  └─────────────────────────────────────────────────────┘  ║  │
-│  ║                                                           ║  │
-│  ║  🟡 MEDIUM (1-3 days)                                     ║  │
-│  ║  ┌─────────────────────────────────────────────────────┐  ║  │
-│  ║  │ [Photo] Anita K.                      2 days ago   │  ║  │
-│  ║  │ "Your hobbies section caught my..."                │  ║  │
-│  ║  │ [💬 Reply] [⚡ Quick] [❌ Decline] [⏰ Later]       │  ║  │
-│  ║  └─────────────────────────────────────────────────────┘  ║  │
-│  ║                                                           ║  │
-│  ╠═══════════════════════════════════════════════════════════╣  │
-│  ║  ⚠️ You must address all CRITICAL messages to continue   ║  │
-│  ║                                                           ║  │
-│  ║  Progress: [████████░░] 2/3 addressed                     ║  │
-│  ╚═══════════════════════════════════════════════════════════╝  │
-└─────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│ ⚠️ You have 3 messages waiting for your response              │
+│    🔴 1 critical (7+ days)  🟠 1 high  🟡 1 medium            │
+│    Please respond to continue using all features.             │
+└───────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Quick Reply Templates
+### 5.2 Urgency Badges (Conversation List)
 
-Pre-written responses for common scenarios:
+| Badge | Wait Time | Appearance |
+|-------|-----------|------------|
+| 🔴 | 7+ days | Red dot + "RESPOND NOW" text |
+| 🟠 | 3-7 days | Orange dot + "X days" |
+| 🟡 | 1-3 days | Yellow dot + "X days" |
+
+### 5.3 Enhanced Decline Button
+
+**Existing:** Quick Messages already has "🙏 Decline" button
+
+**Enhancement:** When clicked:
+1. Close conversation (mark as closed)
+2. Send graceful notification to sender
+3. Update UI to show closed state
+4. Remove from unattended count
+
+### 5.4 Quick Reply Templates (Already Exist)
+
+Existing templates in Quick Messages:
 
 | Template | Text |
 |----------|------|
@@ -286,26 +270,17 @@ Pre-written responses for common scenarios:
 | **Polite Decline** | "Thank you for your interest. After reviewing your profile, I don't think we're the right match. I wish you all the best in your search!" |
 | **Custom** | [Opens text input for custom message] |
 
-### 5.3 Snooze/Remind Later
-
-- **Max Snoozes:** 2 per conversation
-- **Snooze Duration:** 24 hours
-- **After Max Snoozes:** Must respond or decline
-- **Visual:** Shows "Snoozed until [date/time]" badge
-
-### 5.4 Bypass Prevention
+### 5.5 Bypass Prevention (Phase 1 - Soft)
 
 **Critical Messages (7+ days):**
-- ❌ Cannot access Search
-- ❌ Cannot access L3V3L Matches
-- ❌ Cannot view other profiles
-- ❌ Cannot send new messages
-- ✅ Can only access Messages and Settings
+- Redirect to /messages on login
+- Warning banner shown prominently
+- Toast reminder when navigating away
 
 **High/Medium Messages:**
-- Can dismiss modal once per session
-- Reminder shown on next login
-- Gentle banner on dashboard
+- Warning banner on Messages page
+- Badge count in sidebar
+- Reminder on next login
 
 ---
 
@@ -581,62 +556,57 @@ async function handleDecline(declinerUsername, declinedUsername, conversationId)
 
 | Component | Location | Description |
 |-----------|----------|-------------|
-| `UnattendedChatsModal` | `/components/UnattendedChatsModal.js` | Main modal shown on login |
-| `UnattendedChatCard` | `/components/UnattendedChatCard.js` | Individual chat card in modal |
-| `QuickReplySelector` | `/components/QuickReplySelector.js` | Template selection dropdown |
-| `ResponseBadge` | `/components/ResponseBadge.js` | Badge shown on profiles |
-| `ConversationClosedBanner` | `/components/ConversationClosedBanner.js` | Banner in closed conversations |
+| `UrgencyBadge` | `/components/UrgencyBadge.js` | Small badge (🔴🟠🟡) for conversation list (~20 lines) |
+| `UnattendedBanner` | `/components/UnattendedBanner.js` | Warning banner for Messages page (~30 lines) |
+| `ConversationClosedBanner` | `/components/ConversationClosedBanner.js` | Banner in closed conversations (~25 lines) |
+
+**Total new code: ~75 lines** (vs 800+ for modal approach)
 
 ### 10.2 Modified Components
 
-| Component | Changes |
-|-----------|---------|
-| `App.js` | Add unattended check after login |
-| `Messages.js` | Show closed conversation state |
-| `MessageThread.js` | Disable reply for closed conversations |
-| `Profile.js` | Show response badge |
-| `SearchResultCard.js` | Show response badge |
-| `UserCard.js` | Show response badge |
+| Component | Changes | Lines |
+|-----------|---------|-------|
+| `App.js` | Add unattended check after login, redirect to /messages | ~15 |
+| `Messages.js` | Add warning banner, urgency badges, enhance Decline | ~50 |
+| `MessageThread.js` | Disable reply for closed conversations | ~20 |
+| `Messages.css` | Styles for badges and banner | ~40 |
+
+**Total modifications: ~125 lines**
+
+### 10.3 Reused Components (No Changes)
+
+| Component | What We Reuse |
+|-----------|---------------|
+| Quick Messages UI | Already has Decline button |
+| Conversation List | Just add badge |
+| Message Input | Just disable when closed |
 
 ---
 
 ## 11. Implementation Phases
 
-## PHASE 1 IMPLEMENTATION (Current Focus)
+## PHASE 1 IMPLEMENTATION (Current Focus) - SIMPLIFIED
 
-### Week 1-2: Core Unattended Chats
-- [ ] Create `conversation_status` collection
-- [ ] Implement `/api/messages/unattended` endpoint
-- [ ] Build `UnattendedChatsModal` component
-- [ ] Add login flow integration
-- [ ] Implement reply action (opens conversation)
+### Week 1: Backend + Core UI (~3-4 days)
+- [ ] Implement `GET /api/messages/unattended` endpoint
+- [ ] Implement `POST /api/messages/conversation/{username}/close` endpoint
+- [ ] Add `UrgencyBadge` component to conversation list
+- [ ] Add `UnattendedBanner` component to Messages page
+- [ ] Add login redirect to /messages if unattended chats exist
 
-### Week 2-3: Decline & Closure
-- [ ] Implement "Not Interested" → close conversation
-- [ ] Create closure notification system
+### Week 2: Decline Enhancement + Closed State (~2-3 days)
+- [ ] Enhance existing Decline button to call close API
+- [ ] Send graceful closure notification to sender
 - [ ] Build `ConversationClosedBanner` component
-- [ ] Update message thread UI for closed state
-- [ ] **NO exclusion list changes in Phase 1**
+- [ ] Disable reply input for closed conversations
+- [ ] Gray out closed conversations in list
 
-### Week 3-4: Quick Replies & Snooze
-- [ ] Build `QuickReplySelector` component
-- [ ] Implement snooze functionality (max 2, 24hr each)
-- [ ] Add snooze limits and expiration
-- [ ] Create reminder notifications
-
-### Week 4-5: Response Metrics
+### Week 3: Response Metrics (Optional for Phase 1)
 - [ ] Create `response_metrics` collection
 - [ ] Build metrics calculation job (daily)
-- [ ] Implement `ResponseBadge` component
-- [ ] Add badges to profiles and cards
-- [ ] Integrate with search ranking
+- [ ] Add response badges to profiles
 
-### Week 5-6: Polish & Testing
-- [ ] Mobile responsive design
-- [ ] Accessibility audit
-- [ ] Performance optimization
-- [ ] User acceptance testing
-- [ ] Bug fixes and refinements
+**Total Phase 1 Estimate: 1-2 weeks** (vs 5-6 weeks for modal approach)
 
 ---
 
