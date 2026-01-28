@@ -276,18 +276,22 @@ const Messages = () => {
       {unattendedData && unattendedData.unattendedCount > 0 && (
         <div className="unattended-banner">
           <div className="unattended-banner-content">
-            <span className="unattended-icon">⚠️</span>
+            <span className="unattended-icon">💬</span>
             <div className="unattended-text">
               <strong>You have {unattendedData.unattendedCount} message{unattendedData.unattendedCount > 1 ? 's' : ''} waiting for your response</strong>
+              <p className="unattended-explanation">
+                Someone took the time to reach out to you! Please respond to each conversation or politely decline using the <strong>⚡ Quick Messages → Decline</strong> option. 
+                You'll be able to browse other areas once all messages are addressed.
+              </p>
               <div className="unattended-counts">
                 {unattendedData.criticalCount > 0 && (
                   <span className="urgency-count critical">🔴 {unattendedData.criticalCount} critical (7+ days)</span>
                 )}
                 {unattendedData.highCount > 0 && (
-                  <span className="urgency-count high">🟠 {unattendedData.highCount} high</span>
+                  <span className="urgency-count high">🟠 {unattendedData.highCount} high (3-7 days)</span>
                 )}
                 {unattendedData.mediumCount > 0 && (
-                  <span className="urgency-count medium">🟡 {unattendedData.mediumCount} medium</span>
+                  <span className="urgency-count medium">🟡 {unattendedData.mediumCount} medium (1-3 days)</span>
                 )}
               </div>
             </div>

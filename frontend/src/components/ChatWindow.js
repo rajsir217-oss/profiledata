@@ -43,6 +43,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [messageImageErrors, setMessageImageErrors] = useState({});
   const [showQuickReplies, setShowQuickReplies] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState(null);
+  const [blockStatus, setBlockStatus] = useState({ iBlockedThem: false, theyBlockedMe: false, canMessage: true });
+  const [addingToExclusion, setAddingToExclusion] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,6 +59,42 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
     setHeaderImageError(false);
     setMessageImageErrors({});
   }, [otherUser]);
+
+  // Check block status when conversation changes
+  useEffect(() => {
+    const checkBlockStatus = async () => {
+      if (!otherUser?.username) return;
+      try {
+        const response = await api.get(`/messages/block-status/${otherUser.username}`);
+        setBlockStatus(response.data);
+      } catch (error) {
+        logger.warn('Could not check block status:', error);
+        setBlockStatus({ iBlockedThem: false, theyBlockedMe: false, canMessage: true });
+      }
+    };
+    checkBlockStatus();
+  }, [otherUser?.username]);
+
+  // Handle adding user to exclusion list
+  const handleAddToExclusion = async () => {
+    if (!otherUser?.username) return;
+    setAddingToExclusion(true);
+    try {
+      const formData = new FormData();
+      formData.append('reason', 'User is not reachable');
+      await api.post(`/exclusions/${otherUser.username}`, formData);
+      setBlockStatus(prev => ({ ...prev, iBlockedThem: true, canMessage: false }));
+      // Show success toast
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success(`${otherUser.firstName || otherUser.username} has been added to your exclusion list.`);
+    } catch (error) {
+      logger.error('Error adding to exclusion:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to add to exclusion list.');
+    } finally {
+      setAddingToExclusion(false);
+    }
+  };
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -196,6 +234,31 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                 : "This member has indicated they're not the right match. Don't worry - there are many great matches waiting for you!"
               }
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* User Not Reachable Banner (they blocked you) */}
+      {blockStatus.theyBlockedMe && !blockStatus.iBlockedThem && (
+        <div className="chat-not-reachable-notice">
+          <span className="not-reachable-icon">🚫</span>
+          <div className="not-reachable-content">
+            <div className="not-reachable-text">
+              <strong>{otherUser?.firstName || otherUser?.username} is not reachable</strong>
+              <p>This user is no longer accepting messages from you. Would you like to add them to your exclusion list to remove this conversation?</p>
+            </div>
+            <div className="not-reachable-actions">
+              <button 
+                className="btn-add-exclusion"
+                onClick={handleAddToExclusion}
+                disabled={addingToExclusion}
+              >
+                {addingToExclusion ? 'Adding...' : 'Yes, Add to My Exclusions'}
+              </button>
+              <button className="btn-cancel-exclusion" onClick={() => {}}>
+                No, Keep Conversation
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -354,6 +417,10 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       {conversationStatus?.status === 'closed' ? (
         <div className="message-input-disabled">
           <span>🚫 This conversation is closed. You cannot send messages.</span>
+        </div>
+      ) : !blockStatus.canMessage ? (
+        <div className="message-input-disabled">
+          <span>🚫 {blockStatus.theyBlockedMe ? 'This user is not accepting messages from you.' : 'You cannot send messages to users in your exclusion list.'}</span>
         </div>
       ) : (
         <div className="message-input-container">
