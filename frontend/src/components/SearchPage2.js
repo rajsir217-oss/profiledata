@@ -2894,6 +2894,7 @@ const SearchPage2 = () => {
                   <span>← Pass</span>
                   <span>↑ Shortlist</span>
                   <span>Favorite →</span>
+                  <span>↓ Next</span>
                 </div>
                 <span style={{ fontSize: '11px', opacity: 0.7 }}>Double-click to open profile</span>
               </div>

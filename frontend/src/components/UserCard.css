@@ -1051,6 +1051,38 @@ body.theme-ultra-light-gray .user-action-btn {
   color: var(--text-color);
 }
 
+/* Ultra Light Gray Theme - Inactive action buttons need better visibility */
+body.theme-ultra-light-gray .user-action-btn.btn-outline-warning,
+body.theme-ultra-light-gray .user-action-btn.btn-outline-info,
+body.theme-ultra-light-gray .user-action-btn.btn-outline-secondary,
+body.theme-ultra-light-gray .user-action-btn.btn-outline-danger {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: rgba(255, 255, 255, 0.7) !important;
+  opacity: 0.8;
+}
+
+body.theme-ultra-light-gray .user-action-btn.btn-outline-warning:hover {
+  background: rgba(255, 193, 7, 0.2) !important;
+  border-color: #ffc107 !important;
+  color: #ffc107 !important;
+  opacity: 1;
+}
+
+body.theme-ultra-light-gray .user-action-btn.btn-outline-info:hover {
+  background: rgba(23, 162, 184, 0.2) !important;
+  border-color: #17a2b8 !important;
+  color: #17a2b8 !important;
+  opacity: 1;
+}
+
+body.theme-ultra-light-gray .user-action-btn.btn-outline-danger:hover {
+  background: rgba(220, 53, 69, 0.2) !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+  opacity: 1;
+}
+
 /* Rose Theme - Bio Section */
 body.theme-rose .user-card-bio-section {
   background: linear-gradient(135deg, #fff5f7 0%, #ffe4e9 100%);
@@ -1115,6 +1147,38 @@ body.theme-ultra-black .user-action-btn {
   background: var(--surface-color, #0a0a0a);
   border-color: var(--border-color, #1f1f1f);
   color: var(--text-color, #e5e5e5);
+}
+
+/* Ultra Black Theme - Inactive action buttons need better visibility */
+body.theme-ultra-black .user-action-btn.btn-outline-warning,
+body.theme-ultra-black .user-action-btn.btn-outline-info,
+body.theme-ultra-black .user-action-btn.btn-outline-secondary,
+body.theme-ultra-black .user-action-btn.btn-outline-danger {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.6) !important;
+  opacity: 0.8;
+}
+
+body.theme-ultra-black .user-action-btn.btn-outline-warning:hover {
+  background: rgba(255, 193, 7, 0.2) !important;
+  border-color: #ffc107 !important;
+  color: #ffc107 !important;
+  opacity: 1;
+}
+
+body.theme-ultra-black .user-action-btn.btn-outline-info:hover {
+  background: rgba(23, 162, 184, 0.2) !important;
+  border-color: #17a2b8 !important;
+  color: #17a2b8 !important;
+  opacity: 1;
+}
+
+body.theme-ultra-black .user-action-btn.btn-outline-danger:hover {
+  background: rgba(220, 53, 69, 0.2) !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+  opacity: 1;
 }
 
 /* Responsive - Bio Section */
