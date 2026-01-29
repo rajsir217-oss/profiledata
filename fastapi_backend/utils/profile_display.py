@@ -340,12 +340,22 @@ def render_profile_card_html(
     
     # Render based on style
     if style == "compact":
+        # Build detail line with education, occupation, location
+        details = []
+        if show_education and education:
+            details.append(f'🎓 {education}')
+        if show_occupation and occupation:
+            details.append(f'💼 {occupation}')
+        if show_location and location:
+            details.append(f'📍 {location}')
+        details_html = ' • '.join(details) if details else ''
+        
         return f'''
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
-            <img src="{profile_pic}" alt="{name}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" />
-            <div>
-                <strong style="color: #1a202c;">{name}</strong>
-                {f'<span style="color: #718096; font-size: 13px;"> • {location}</span>' if location else ''}
+        <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; background: #f8f9fa; border-radius: 8px; margin-bottom: 10px;">
+            <img src="{profile_pic}" alt="{name}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
+            <div style="flex: 1;">
+                <strong style="color: #1a202c; font-size: 15px;">{name}</strong>
+                {f'<div style="color: #4a5568; font-size: 13px; margin-top: 4px; line-height: 1.4;">{details_html}</div>' if details_html else ''}
             </div>
         </div>
         '''
