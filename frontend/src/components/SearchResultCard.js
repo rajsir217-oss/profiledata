@@ -559,11 +559,26 @@ const SearchResultCard = ({
         </span>
         
         {/* Col 10: Actions */}
-        <div style={{ display: 'flex', gap: '4px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }} onClick={(e) => e.stopPropagation()}>
           {showFavoriteButton && onFavorite && (
             <button
               onClick={(e) => { e.stopPropagation(); onFavorite(user); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isFavorited ? 1 : 0.5 }}
+              className="excel-action-btn"
+              style={{ 
+                width: '26px', 
+                height: '26px', 
+                borderRadius: '50%', 
+                border: isFavorited ? '2px solid #ff9800' : '2px solid var(--border-color)', 
+                background: isFavorited ? 'linear-gradient(135deg, #ffc107 0%, #ff9800 100%)' : 'var(--card-background)', 
+                cursor: 'pointer', 
+                fontSize: '14px', 
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isFavorited ? 'white' : 'var(--text-color)',
+                transition: 'all 0.2s ease'
+              }}
               title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
             >
               {isFavorited ? '⭐' : '☆'}
@@ -572,7 +587,22 @@ const SearchResultCard = ({
           {showShortlistButton && onShortlist && (
             <button
               onClick={(e) => { e.stopPropagation(); onShortlist(user); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isShortlisted ? 1 : 0.5 }}
+              className="excel-action-btn"
+              style={{ 
+                width: '26px', 
+                height: '26px', 
+                borderRadius: '50%', 
+                border: isShortlisted ? '2px solid #138496' : '2px solid var(--border-color)', 
+                background: isShortlisted ? 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)' : 'var(--card-background)', 
+                cursor: 'pointer', 
+                fontSize: '12px', 
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isShortlisted ? 'white' : 'var(--text-color)',
+                transition: 'all 0.2s ease'
+              }}
               title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
             >
               {isShortlisted ? '📋' : '📄'}
@@ -581,10 +611,25 @@ const SearchResultCard = ({
           {showExcludeButton && onExclude && (
             <button
               onClick={(e) => { e.stopPropagation(); onExclude(user); }}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', padding: '2px', opacity: isExcluded ? 1 : 0.5 }}
+              className="excel-action-btn"
+              style={{ 
+                width: '26px', 
+                height: '26px', 
+                borderRadius: '50%', 
+                border: isExcluded ? '2px solid #c82333' : '2px solid var(--border-color)', 
+                background: isExcluded ? 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)' : 'var(--card-background)', 
+                cursor: 'pointer', 
+                fontSize: '12px', 
+                padding: 0,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: isExcluded ? 'white' : 'var(--text-color)',
+                transition: 'all 0.2s ease'
+              }}
               title={isExcluded ? 'Remove from Excluded' : 'Exclude'}
             >
-              {isExcluded ? '🚫' : '✕'}
+              {isExcluded ? '🚫' : '⊘'}
             </button>
           )}
         </div>

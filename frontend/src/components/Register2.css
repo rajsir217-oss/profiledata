@@ -349,6 +349,40 @@
   }
 }
 
+/* LinkedIn URL Row - Responsive Layout */
+.linkedin-url-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.linkedin-url-row .form-control {
+  flex: 1;
+  min-width: 0;
+}
+
+.linkedin-url-row .linkedin-visibility {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+/* Mobile: Keep on same row but align checkbox to right */
+@media (max-width: 768px) {
+  .linkedin-url-row {
+    justify-content: space-between;
+  }
+  
+  .linkedin-url-row .form-control {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
 .sms-optin-checkbox .form-check-input {
   width: 16px;
   height: 16px;

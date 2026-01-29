@@ -1746,6 +1746,79 @@
   justify-content: flex-end;
 }
 
+/* Row Actions Compact - Action Buttons */
+.row-actions-compact .btn {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: 16px;
+  transition: all 0.2s ease;
+  background: var(--surface-color);
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.row-actions-compact .btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Inactive state buttons - need better visibility */
+.row-actions-compact .btn-outline-warning,
+.row-actions-compact .btn-outline-info,
+.row-actions-compact .btn-outline-secondary,
+.row-actions-compact .btn-outline-danger {
+  background: var(--surface-color) !important;
+  border: 2px solid var(--border-color) !important;
+  color: var(--text-secondary) !important;
+  opacity: 0.8;
+}
+
+.row-actions-compact .btn-outline-warning:hover {
+  background: rgba(255, 193, 7, 0.15) !important;
+  border-color: #ffc107 !important;
+  color: #ffc107 !important;
+  opacity: 1;
+}
+
+.row-actions-compact .btn-outline-info:hover {
+  background: rgba(23, 162, 184, 0.15) !important;
+  border-color: #17a2b8 !important;
+  color: #17a2b8 !important;
+  opacity: 1;
+}
+
+.row-actions-compact .btn-outline-danger:hover {
+  background: rgba(220, 53, 69, 0.15) !important;
+  border-color: #dc3545 !important;
+  color: #dc3545 !important;
+  opacity: 1;
+}
+
+/* Active state buttons - filled with color */
+.row-actions-compact .btn-warning {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  border: 2px solid #ff9800 !important;
+  color: white !important;
+}
+
+.row-actions-compact .btn-info {
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+  border: 2px solid #138496 !important;
+  color: white !important;
+}
+
+.row-actions-compact .btn-danger {
+  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  border: 2px solid #c82333 !important;
+  color: white !important;
+}
+
 /* PII Icon Button */
 .pii-icon-button {
   background: var(--surface-color);

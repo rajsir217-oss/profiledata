@@ -3208,39 +3208,42 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
         {/* LinkedIn URL Field */}
         <div className="row mb-3">
-          <div className="col-md-6">
+          <div className="col-12">
             <label className="form-label">LinkedIn URL <span className="text-muted">(Optional)</span></label>
-            <input 
-              type="url" 
-              className="form-control"
-              name="linkedinUrl" 
-              value={formData.linkedinUrl || ''} 
-              onChange={handleChange}
-              onBlur={handleBlur}
-              placeholder="https://linkedin.com/in/yourprofile"
-            />
-            {/* Visibility Checkbox for LinkedIn URL */}
-            <div className="form-check mt-2 visibility-checkbox">
+            <div className="linkedin-url-row">
               <input 
-                type="checkbox" 
-                className="form-check-input" 
-                id="linkedinUrlVisible"
-                name="linkedinUrlVisible"
-                checked={formData.linkedinUrlVisible !== false}
-                onChange={(e) => {
-                  const value = e.target.checked;
-                  setFormData(prev => ({ ...prev, linkedinUrlVisible: value }));
-                  if (isEditMode) {
-                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                    autoSaveTimerRef.current = setTimeout(() => {
-                      autoSaveField('linkedinUrlVisible', value, { ...formData, linkedinUrlVisible: value });
-                    }, 500);
-                  }
-                }}
+                type="url" 
+                className="form-control"
+                name="linkedinUrl" 
+                value={formData.linkedinUrl || ''} 
+                onChange={handleChange}
+                onBlur={handleBlur}
+                placeholder="https://linkedin.com/in/yourprofile"
               />
-              <label className="form-check-label" htmlFor="linkedinUrlVisible">
-                👁️ Visible to members (uncheck to require access request)
-              </label>
+              {/* Visibility Checkbox for LinkedIn URL */}
+              <div className="form-check visibility-checkbox linkedin-visibility">
+                <input 
+                  type="checkbox" 
+                  className="form-check-input" 
+                  id="linkedinUrlVisible"
+                  name="linkedinUrlVisible"
+                  checked={formData.linkedinUrlVisible !== false}
+                  onChange={(e) => {
+                    const value = e.target.checked;
+                    setFormData(prev => ({ ...prev, linkedinUrlVisible: value }));
+                    if (isEditMode) {
+                      if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                      autoSaveTimerRef.current = setTimeout(() => {
+                        autoSaveField('linkedinUrlVisible', value, { ...formData, linkedinUrlVisible: value });
+                      }, 500);
+                    }
+                  }}
+                  style={{ margin: 0 }}
+                />
+                <label className="form-check-label" htmlFor="linkedinUrlVisible" style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                  👁️ Visible to members
+                </label>
+              </div>
             </div>
           </div>
         </div>
