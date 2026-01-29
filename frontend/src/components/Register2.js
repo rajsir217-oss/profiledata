@@ -1030,7 +1030,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   
   // Handle Continue/Next button click
   const handleContinue = async () => {
-    const tabOrder = ['about-me', 'background', 'partner-preferences', 'complete'];
+    const tabOrder = ['about-me', 'photos', 'background', 'partner-preferences', 'complete'];
     const currentIndex = tabOrder.indexOf(activeTab);
     
     if (currentIndex < tabOrder.length - 1) {
@@ -1062,7 +1062,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
 
   // Handle Previous button click
   const handlePrevious = () => {
-    const tabOrder = ['about-me', 'background', 'partner-preferences', 'complete'];
+    const tabOrder = ['about-me', 'photos', 'background', 'partner-preferences', 'complete'];
     const currentIndex = tabOrder.indexOf(activeTab);
     
     if (currentIndex > 0) {
@@ -1361,9 +1361,10 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         if (isFilled) filledFields++;
       });
       
-      // Count images - in edit mode, check existingImages instead of newImages
-      totalFields++;
-      if (isEditMode ? existingImages.length > 0 : newImages.length > 0) filledFields++;
+    } else if (tabId === 'photos') {
+      // Photos tab - count images
+      totalFields = 1; // At least 1 photo required
+      if (isEditMode ? existingImages.length > 0 : newImages.length > 0) filledFields = 1;
       
     } else if (tabId === 'background') {
       // Only count fields actually shown on the Qualifications tab
@@ -1849,6 +1850,62 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           <p className="text-muted" style={{ marginBottom: '8px', marginTop: '4px' }}>
             {isEditMode ? 'Update your information across organized tabs' : 'Complete each section to find your perfect match'}
           </p>
+          
+          {/* Overall Progress Bar - Inline in header */}
+          <div className="header-progress-bar" style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '12px',
+            marginTop: '8px',
+            padding: '8px 16px',
+            background: 'var(--surface-color)',
+            borderRadius: '8px',
+            maxWidth: '400px',
+            margin: '8px auto 0'
+          }}>
+            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              Overall Progress:
+            </span>
+            <div style={{
+              flex: 1,
+              height: '8px',
+              background: 'var(--hover-background)',
+              borderRadius: '4px',
+              overflow: 'hidden',
+              minWidth: '120px'
+            }}>
+              <div 
+                className="header-progress-fill"
+                style={{
+                  height: '100%',
+                  width: `${(() => {
+                    const fields = isEditMode 
+                      ? ['firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches']
+                      : ['username', 'password', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches'];
+                    const filled = fields.filter(f => formData[f] && formData[f] !== '').length;
+                    const imagesFilled = isEditMode ? existingImages.length > 0 : newImages.length > 0;
+                    const total = fields.length + 1;
+                    return Math.round(((filled + (imagesFilled ? 1 : 0)) / total) * 100);
+                  })()}%`,
+                  background: 'linear-gradient(90deg, var(--primary-color), var(--secondary-color))',
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease'
+                }}
+              />
+            </div>
+            <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-color)', minWidth: '40px' }}>
+              {(() => {
+                const fields = isEditMode 
+                  ? ['firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches']
+                  : ['username', 'password', 'firstName', 'lastName', 'contactNumber', 'contactEmail', 'birthMonth', 'birthYear', 'gender', 'heightFeet', 'heightInches'];
+                const filled = fields.filter(f => formData[f] && formData[f] !== '').length;
+                const imagesFilled = isEditMode ? existingImages.length > 0 : newImages.length > 0;
+                const total = fields.length + 1;
+                return Math.round(((filled + (imagesFilled ? 1 : 0)) / total) * 100);
+              })()}%
+            </span>
+          </div>
         </div>
       
       {errorMsg && (
@@ -2220,52 +2277,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {fieldErrors.contactNumber && touchedFields.contactNumber && (
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
-            {/* SMS Opt-in Checkbox */}
-            <div className="form-check mt-2 sms-optin-checkbox">
-              <input 
-                type="checkbox" 
-                className="form-check-input" 
-                id="smsOptIn"
-                name="smsOptIn"
-                checked={!!formData.smsOptIn}
-                onChange={(e) => {
-                  const value = e.target.checked;
-                  logger.debug('SMS Opt-in changed:', value);
-                  setFormData(prev => ({ ...prev, smsOptIn: value }));
-                  if (isEditMode) {
-                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                    autoSaveTimerRef.current = setTimeout(() => {
-                      autoSaveField('smsOptIn', value, { ...formData, smsOptIn: value });
-                    }, 500);
-                  }
-                }}
-                style={{cursor: 'pointer', position: 'relative', zIndex: 1}}
-              />
-              <label 
-                className="form-check-label" 
-                htmlFor="smsOptIn" 
-                style={{fontSize: '13px', lineHeight: '1.6', cursor: 'pointer', userSelect: 'none'}}
-                onClick={(e) => {
-                  // Ensure label click toggles checkbox
-                  if (e.target.tagName === 'A') return; // Don't toggle if clicking links
-                  const newValue = !formData.smsOptIn;
-                  setFormData(prev => ({ ...prev, smsOptIn: newValue }));
-                  if (isEditMode) {
-                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
-                    autoSaveTimerRef.current = setTimeout(() => {
-                      autoSaveField('smsOptIn', newValue, { ...formData, smsOptIn: newValue });
-                    }, 500);
-                  }
-                }}
-              >
-                📱 I want to receive SMS notifications and updates
-                <br/><br/>
-                I agree to receive promotional messages sent via an autodialer, and this agreement isn't a condition of any purchase. I also agree to the{' '}
-                <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Terms of Service</a> and{' '}
-                <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>. 
-                Msg & Data Rates may apply. Text STOP to opt out anytime. Text HELP for more information.
-              </label>
-            </div>
           </div>
           <div className="col-md-6">
             <label className="form-label">
@@ -2320,6 +2331,53 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {!fieldErrors.contactEmail && touchedFields.contactEmail && !checkingEmail && formData.contactEmail && formData.contactEmail.includes('@') && (
               <div className="valid-feedback d-block">✅ Email is available!</div>
             )}
+          </div>
+          {/* SMS Opt-in Checkbox - Full width spanning both columns */}
+          <div className="col-12">
+            <div className="sms-optin-checkbox">
+              <input 
+                type="checkbox" 
+                className="sms-checkbox-input" 
+                id="smsOptIn"
+                name="smsOptIn"
+                checked={!!formData.smsOptIn}
+                onChange={(e) => {
+                  const value = e.target.checked;
+                  logger.debug('SMS Opt-in changed:', value);
+                  setFormData(prev => ({ ...prev, smsOptIn: value }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('smsOptIn', value, { ...formData, smsOptIn: value });
+                    }, 500);
+                  }
+                }}
+              />
+              <label 
+                className="sms-checkbox-label" 
+                htmlFor="smsOptIn" 
+                style={{fontSize: '13px', lineHeight: '1.5', cursor: 'pointer', userSelect: 'none', flex: 1}}
+                onClick={(e) => {
+                  if (e.target.tagName === 'A') return;
+                  const newValue = !formData.smsOptIn;
+                  setFormData(prev => ({ ...prev, smsOptIn: newValue }));
+                  if (isEditMode) {
+                    if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                    autoSaveTimerRef.current = setTimeout(() => {
+                      autoSaveField('smsOptIn', newValue, { ...formData, smsOptIn: newValue });
+                    }, 500);
+                  }
+                }}
+              >
+                <span style={{fontWeight: '500'}}>📱 I want to receive SMS notifications and updates</span>
+                <p style={{margin: '8px 0 0 0', fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.5'}}>
+                  I agree to receive promotional messages sent via an autodialer, and this agreement isn't a condition of any purchase. I also agree to the{' '}
+                  <a href="https://l3v3lmatches.com/terms" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Terms of Service</a> and{' '}
+                  <a href="https://l3v3lmatches.com/privacy" target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()}>Privacy Policy</a>. 
+                  Msg & Data Rates may apply. Text STOP to opt out anytime. Text HELP for more information.
+                </p>
+              </label>
+            </div>
           </div>
         </div>
         
@@ -3041,19 +3099,6 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         </div>
 
-        {/* Profile Images - Unified PhotoVisibilityManager for both registration and edit */}
-        <div className="mt-4">
-          <PhotoVisibilityManager
-            existingImages={existingImages}
-            setExistingImages={setExistingImages}
-            newImages={newImages}
-            setNewImages={setNewImages}
-            onError={(msg) => setErrorMsg(msg)}
-            username={editUsername || formData.username}
-            isEditMode={isEditMode}
-          />
-        </div>
-
         {/* Continue Button */}
         <div className="tab-navigation-buttons mt-4">
           <button
@@ -3061,10 +3106,53 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             className="btn btn-primary btn-lg w-100"
             onClick={handleContinue}
           >
-            Continue to Qualifications →
+            Continue to Photos →
           </button>
         </div>
 
+                </div>
+              )
+            },
+            {
+              id: 'photos',
+              label: 'Photos',
+              icon: '📷',
+              content: (
+                <div className="tab-section">
+                  <h3 className="section-title">📷 Profile Photos</h3>
+                  <p className="section-subtitle text-muted mb-4">
+                    Upload up to 5 photos. Your first photo will be your profile picture.
+                    You can control who sees each photo using the visibility settings.
+                  </p>
+                  
+                  {/* Profile Images - Unified PhotoVisibilityManager */}
+                  <PhotoVisibilityManager
+                    existingImages={existingImages}
+                    setExistingImages={setExistingImages}
+                    newImages={newImages}
+                    setNewImages={setNewImages}
+                    onError={(msg) => setErrorMsg(msg)}
+                    username={editUsername || formData.username}
+                    isEditMode={isEditMode}
+                  />
+
+                  {/* Continue Button */}
+                  <div className="tab-navigation-buttons mt-4">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-lg me-2"
+                      onClick={handlePrevious}
+                    >
+                      ← Back to About Me
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-lg"
+                      onClick={handleContinue}
+                    >
+                      Continue to Qualifications →
+                    </button>
+                  </div>
                 </div>
               )
             },
@@ -4518,6 +4606,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           isEditMode={isEditMode}
           activeTabId={activeTab}
           onTabChange={handleTabChange}
+          layout="vertical"
         />
       </form>
       {/* Show backend images after save */}
