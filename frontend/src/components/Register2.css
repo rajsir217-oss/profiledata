@@ -358,7 +358,8 @@
 }
 
 .linkedin-url-row .form-control {
-  flex: 1;
+  flex: 0 0 90%;
+  max-width: 90%;
   min-width: 0;
 }
 

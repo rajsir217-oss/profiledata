@@ -2235,9 +2235,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           </div>
         )}
         <div className="row mb-3">
-          <div className="col-md-6">
+          <div className="col-12 mb-3">
             <label className="form-label">Contact Number <span className="text-danger">*</span></label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="linkedin-url-row">
               <input 
                 type="text" 
                 className={`form-control ${getFieldClass('contactNumber', formData.contactNumber)} ${fieldErrors.contactNumber && touchedFields.contactNumber ? 'is-invalid' : ''}`}
@@ -2247,10 +2247,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 onBlur={handleBlur}
                 required
                 placeholder={isEditMode && !formData.contactNumber ? "Enter your phone number" : ""}
-                style={{ flex: 1 }}
               />
               {/* Visibility Checkbox for Contact Number - inline */}
-              <div className="form-check visibility-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}>
+              <div className="form-check visibility-checkbox linkedin-visibility">
                 <input 
                   type="checkbox" 
                   className="form-check-input" 
@@ -2278,7 +2277,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               <div className="invalid-feedback d-block">{fieldErrors.contactNumber}</div>
             )}
           </div>
-          <div className="col-md-6">
+          <div className="col-12">
             <label className="form-label">
               Contact Email <span className="text-danger">*</span>
               {checkingEmail && (
@@ -2288,7 +2287,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 </span>
               )}
             </label>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="linkedin-url-row">
               <input 
                 type="email" 
                 className={`form-control ${getFieldClass('contactEmail', formData.contactEmail)} ${fieldErrors.contactEmail && touchedFields.contactEmail ? 'is-invalid' : touchedFields.contactEmail && !checkingEmail && !fieldErrors.contactEmail && formData.contactEmail ? 'is-valid' : ''}`}
@@ -2298,10 +2297,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
                 onBlur={handleBlur}
                 required
                 placeholder={isEditMode && !formData.contactEmail ? "Enter your email address" : ""}
-                style={{ flex: 1 }}
               />
               {/* Visibility Checkbox for Contact Email - inline */}
-              <div className="form-check visibility-checkbox" style={{ display: 'flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', margin: 0 }}>
+              <div className="form-check visibility-checkbox linkedin-visibility">
                 <input 
                   type="checkbox" 
                   className="form-check-input" 
