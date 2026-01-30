@@ -107,11 +107,10 @@ const MessageList = ({ conversations, selectedUser, onSelectUser, currentUsernam
                   </span>
                   <div className="conversation-meta">
                     {getUrgencyInfo(conv.username) && (
-                      <span className={`urgency-badge urgency-${getUrgencyInfo(conv.username).urgency}`} title={`Waiting ${getUrgencyInfo(conv.username).waitingDays} days`}>
-                        {getUrgencyInfo(conv.username).urgency === 'critical' && '🔴'}
-                        {getUrgencyInfo(conv.username).urgency === 'high' && '🟠'}
-                        {getUrgencyInfo(conv.username).urgency === 'medium' && '🟡'}
-                        {getUrgencyInfo(conv.username).waitingDays}d
+                      <span className={`urgency-badge urgency-${getUrgencyInfo(conv.username).urgency}`} title={`Waiting ${getUrgencyInfo(conv.username).waitingDays} days for your response`}>
+                        {getUrgencyInfo(conv.username).urgency === 'critical' && '🔴 Reply needed!'}
+                        {getUrgencyInfo(conv.username).urgency === 'high' && '🟠 ' + getUrgencyInfo(conv.username).waitingDays + 'd'}
+                        {getUrgencyInfo(conv.username).urgency === 'medium' && '🟡 ' + getUrgencyInfo(conv.username).waitingDays + 'd'}
                       </span>
                     )}
                     <span className="conversation-time">{formatTime(conv.lastMessageTime)}</span>
