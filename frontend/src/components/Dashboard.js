@@ -167,6 +167,28 @@ const Dashboard = () => {
       }
     }
     
+    // Check for pending messages warning from login
+    const pendingWarningData = sessionStorage.getItem('pendingMessagesWarning');
+    if (pendingWarningData) {
+      try {
+        const data = JSON.parse(pendingWarningData);
+        sessionStorage.removeItem('pendingMessagesWarning');
+        // Show toast notification for pending messages
+        import('../services/toastService').then(({ default: toastService }) => {
+          const details = [];
+          if (data.high > 0) details.push(`${data.high} high priority`);
+          if (data.medium > 0) details.push(`${data.medium} medium priority`);
+          if (data.pending > 0) details.push(`${data.pending} pending`);
+          toastService.info(
+            `You have ${data.count} message${data.count > 1 ? 's' : ''} waiting for a response (${details.join(', ')}). Visit Messages to respond.`,
+            { duration: 8000 }
+          );
+        });
+      } catch (e) {
+        console.error('Failed to parse pending messages warning:', e);
+      }
+    }
+    
     // Small delay to ensure token is set after login
     const timer = setTimeout(() => {
       loadDashboardData(currentUser);

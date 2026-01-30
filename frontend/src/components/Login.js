@@ -130,15 +130,37 @@ const Login = () => {
         const unattendedData = unattendedRes.data;
         console.log('📬 Unattended chats response:', unattendedData);
         
-        // If there are ANY unattended chats, redirect to messages (not just critical)
-        if (unattendedData.unattendedCount > 0) {
-          console.log(`⚠️ ${unattendedData.unattendedCount} unattended chats found (critical: ${unattendedData.criticalCount}), redirecting to messages`);
+        // Check for critical (blocking) or warning messages
+        const hasWarnings = (unattendedData.warningCount || 0) > 0;
+        const hasCritical = (unattendedData.criticalCount || 0) > 0;
+        
+        if (hasCritical) {
+          // Critical messages (10+ days) - redirect to messages, blocks navigation
+          console.log(`🔴 ${unattendedData.criticalCount} critical chats found, redirecting to messages`);
           redirectPath = '/messages';
-          // Store flag to show toast notification
           sessionStorage.setItem('unattendedChatsAlert', JSON.stringify({
-            count: unattendedData.unattendedCount,
-            critical: unattendedData.criticalCount
+            count: unattendedData.criticalCount,
+            critical: unattendedData.criticalCount,
+            warning: unattendedData.warningCount || 0
           }));
+        } else if (hasWarnings) {
+          // Warning messages (1-9 days) - show toast but don't force redirect
+          console.log(`💬 ${unattendedData.warningCount} warning chats found, showing notification`);
+          sessionStorage.setItem('pendingMessagesWarning', JSON.stringify({
+            count: unattendedData.warningCount,
+            high: unattendedData.highCount || 0,
+            medium: unattendedData.mediumCount || 0,
+            pending: unattendedData.pendingCount || 0
+          }));
+          // Continue to user's preferred home page
+          const homePage = res.data.user.homePage || 'dashboard';
+          localStorage.setItem('homePage', homePage);
+          const homeRoutes = {
+            'dashboard': '/dashboard',
+            'search': '/search',
+            'messages': '/messages'
+          };
+          redirectPath = homeRoutes[homePage] || '/dashboard';
         } else {
           // Redirect to user's preferred home page (default: dashboard)
           const homePage = res.data.user.homePage || 'dashboard';
