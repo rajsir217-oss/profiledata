@@ -236,6 +236,23 @@ const Messages = () => {
 
       // Update conversation list
       await loadConversations();
+      
+      // Remove this conversation from unattended list locally (no API call)
+      // Full recalculation only happens on page refresh
+      if (unattendedData?.conversations) {
+        const wasUnattended = unattendedData.conversations.some(c => c.sender.username === selectedUser);
+        if (wasUnattended) {
+          const removedConvo = unattendedData.conversations.find(c => c.sender.username === selectedUser);
+          setUnattendedData(prev => ({
+            ...prev,
+            conversations: prev.conversations.filter(c => c.sender.username !== selectedUser),
+            unattendedCount: Math.max(0, (prev.unattendedCount || 0) - 1),
+            criticalCount: removedConvo?.urgency === 'critical' ? Math.max(0, (prev.criticalCount || 0) - 1) : prev.criticalCount,
+            highCount: removedConvo?.urgency === 'high' ? Math.max(0, (prev.highCount || 0) - 1) : prev.highCount,
+            mediumCount: removedConvo?.urgency === 'medium' ? Math.max(0, (prev.mediumCount || 0) - 1) : prev.mediumCount
+          }));
+        }
+      }
     } catch (err) {
       console.error('Error sending message:', err);
       const errorMessage = err.response?.data?.detail || 'Failed to send message';
