@@ -780,6 +780,75 @@
   color: var(--text-color);
 }
 
+/* You Excluded This User Notice */
+.chat-exclusion-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+  border-left: 4px solid var(--warning-color, #f59e0b);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.3);
+  margin: 0;
+  animation: slideDown 0.3s ease;
+}
+
+.exclusion-notice-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.exclusion-notice-content {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.exclusion-notice-text {
+  flex: 1;
+  min-width: 200px;
+}
+
+.exclusion-notice-text strong {
+  display: block;
+  font-size: 15px;
+  color: var(--text-color);
+  margin-bottom: 4px;
+}
+
+.exclusion-notice-text p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.btn-remove-exclusion {
+  padding: 8px 16px;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-remove-exclusion:hover:not(:disabled) {
+  background: var(--secondary-color);
+  transform: translateY(-1px);
+}
+
+.btn-remove-exclusion:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 /* Disabled Message Input */
 .message-input-disabled {
   padding: 16px 20px;

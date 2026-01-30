@@ -297,8 +297,9 @@ const Messages = () => {
             <div className="unattended-text">
               <strong>You have {unattendedData.unattendedCount} message{unattendedData.unattendedCount > 1 ? 's' : ''} waiting for your response</strong>
               <p className="unattended-explanation">
-                Someone took the time to reach out to you! Please respond to each conversation or politely decline using the <strong>⚡ Quick Messages → Decline</strong> option. 
+                Someone took the time to reach out to you! Please respond to each conversation (open the message by selecting the profile card on the left) or politely decline using the <strong>⚡ Quick Messages → Decline</strong> option. 
                 You'll be able to browse other areas once all messages are addressed.
+                <br /><span className="exclusion-tip">💡 Tip: If you're not interested, you can also add them to your exclusions list to avoid future messages from this profile.</span>
               </p>
               <div className="unattended-counts">
                 {unattendedData.criticalCount > 0 && (

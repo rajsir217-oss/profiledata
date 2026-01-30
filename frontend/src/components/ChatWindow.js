@@ -45,9 +45,11 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [blockStatus, setBlockStatus] = useState({ iBlockedThem: false, theyBlockedMe: false, canMessage: true });
   const [addingToExclusion, setAddingToExclusion] = useState(false);
+  const [removingFromExclusion, setRemovingFromExclusion] = useState(false);
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    // Use block: 'nearest' to prevent page scroll, only scroll within the messages container
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   };
 
   useEffect(() => {
@@ -93,6 +95,26 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       toastService.error('Failed to add to exclusion list.');
     } finally {
       setAddingToExclusion(false);
+    }
+  };
+
+  // Handle removing user from exclusion list
+  const handleRemoveFromExclusion = async () => {
+    if (!otherUser?.username) return;
+    setRemovingFromExclusion(true);
+    try {
+      const currentUsername = localStorage.getItem('username');
+      await api.delete(`/exclusions/${otherUser.username}?username=${encodeURIComponent(currentUsername)}`);
+      setBlockStatus(prev => ({ ...prev, iBlockedThem: false, canMessage: true }));
+      // Show success toast
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success(`${otherUser.firstName || otherUser.username} has been removed from your exclusion list. You can now continue the conversation.`);
+    } catch (error) {
+      logger.error('Error removing from exclusion:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Failed to remove from exclusion list.');
+    } finally {
+      setRemovingFromExclusion(false);
     }
   };
 
@@ -210,6 +232,26 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
           <strong>Be Professional.</strong> No vulgar or abusive language. Violations result in immediate suspension or ban.
         </span>
       </div>
+
+      {/* You Excluded This User Banner */}
+      {blockStatus.iBlockedThem && (
+        <div className="chat-exclusion-notice">
+          <span className="exclusion-notice-icon">🚫</span>
+          <div className="exclusion-notice-content">
+            <div className="exclusion-notice-text">
+              <strong>You excluded this user</strong>
+              <p>You added {otherUser?.firstName || otherUser?.username} to your exclusion list. Remove them from exclusions to continue the conversation.</p>
+            </div>
+            <button 
+              className="btn-remove-exclusion"
+              onClick={handleRemoveFromExclusion}
+              disabled={removingFromExclusion}
+            >
+              {removingFromExclusion ? 'Removing...' : 'Remove from Exclusions'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Pause Status Notice */}
       {otherUser.accountStatus === 'paused' && (
