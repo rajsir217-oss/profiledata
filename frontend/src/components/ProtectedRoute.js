@@ -86,9 +86,10 @@ const ProtectedRoute = ({ children }) => {
       try {
         const response = await api.get('/messages/unattended');
         const data = response.data;
-        // Block navigation if there are ANY unattended chats (not just critical)
-        if (data.unattendedCount > 0) {
-          console.log(`⚠️ User has ${data.unattendedCount} unattended chats - blocking navigation`);
+        // Only block navigation for CRITICAL messages (10+ days)
+        // High/Medium/Pending are warnings only, don't block
+        if (data.criticalCount > 0) {
+          console.log(`🔴 User has ${data.criticalCount} critical chats (10+ days) - blocking navigation`);
           setHasUnattendedChats(true);
         } else {
           setHasUnattendedChats(false);
