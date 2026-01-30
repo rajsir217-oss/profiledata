@@ -40,6 +40,12 @@ const ActivityLogs = () => {
   const [targetSearch, setTargetSearch] = useState('');
   const [exportValue, setExportValue] = useState('');
   
+  // Chart state
+  const [chartData, setChartData] = useState(null);
+  const [chartDays, setChartDays] = useState(30);
+  const [chartLoading, setChartLoading] = useState(false);
+  const [showChart, setShowChart] = useState(true);
+  
   // Admin-only protection
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -69,6 +75,26 @@ const ActivityLogs = () => {
       }
     } catch (error) {
       console.error('Error loading action types:', error);
+    }
+  };
+  
+  // Load chart data
+  const loadChartData = async (days = chartDays) => {
+    setChartLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(getBackendApiUrl(`/api/activity-logs/chart-data?days=${days}`), {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setChartData(data);
+      }
+    } catch (error) {
+      console.error('Error loading chart data:', error);
+    } finally {
+      setChartLoading(false);
     }
   };
   
@@ -169,6 +195,8 @@ const ActivityLogs = () => {
   
   useEffect(() => {
     loadActionTypes();
+    loadChartData(chartDays);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
   useEffect(() => {
@@ -176,6 +204,12 @@ const ActivityLogs = () => {
     loadStats();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+  
+  // Reload chart when days change
+  useEffect(() => {
+    loadChartData(chartDays);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chartDays]);
   
   // Export logs
   const handleExport = async (format) => {
@@ -355,6 +389,100 @@ const ActivityLogs = () => {
   return (
     <div className="activity-logs">
       {/* Toast notifications handled by ToastContainer in App.js */}
+      
+      {/* Activity Chart */}
+      {showChart && (
+        <div className="activity-chart-container">
+          <div className="chart-header">
+            <h3>📊 Activity Over Time</h3>
+            <div className="chart-controls">
+              <select 
+                value={chartDays} 
+                onChange={(e) => setChartDays(parseInt(e.target.value))}
+                className="chart-days-select"
+              >
+                <option value={7}>Last 7 days</option>
+                <option value={14}>Last 14 days</option>
+                <option value={30}>Last 30 days</option>
+                <option value={60}>Last 60 days</option>
+                <option value={90}>Last 90 days</option>
+              </select>
+              <button 
+                className="chart-toggle-btn"
+                onClick={() => setShowChart(false)}
+                title="Hide chart"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+          
+          {chartLoading ? (
+            <div className="chart-loading">Loading chart data...</div>
+          ) : chartData && chartData.dates.length > 0 ? (
+            <div className="chart-wrapper">
+              {/* Activity Type Breakdown - Summary Cards */}
+              <div className="activity-breakdown">
+                <h4>Activity Breakdown ({chartDays} days)</h4>
+                <div className="breakdown-grid">
+                  {Object.keys(chartData.series)
+                    .sort((a, b) => {
+                      const totalA = chartData.series[a].reduce((x, y) => x + y, 0);
+                      const totalB = chartData.series[b].reduce((x, y) => x + y, 0);
+                      return totalB - totalA;
+                    })
+                    .map((actionType) => {
+                      const total = chartData.series[actionType].reduce((a, b) => a + b, 0);
+                      const grandTotal = chartData.totals.reduce((a, b) => a + b, 0);
+                      const percent = grandTotal > 0 ? ((total / grandTotal) * 100).toFixed(1) : 0;
+                      return (
+                        <div key={actionType} className="breakdown-card">
+                          <div className="breakdown-count">{total.toLocaleString()}</div>
+                          <div className="breakdown-label">{actionType.replace(/_/g, ' ')}</div>
+                          <div className="breakdown-percent">{percent}%</div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+              
+              {/* Bar Chart */}
+              <div className="bar-chart">
+                {chartData.dates.map((date, index) => {
+                  const total = chartData.totals[index];
+                  const maxTotal = Math.max(...chartData.totals);
+                  const heightPercent = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
+                  
+                  return (
+                    <div key={date} className="bar-column" title={`${date}: ${total} activities`}>
+                      <div 
+                        className="bar" 
+                        style={{ height: `${heightPercent}%` }}
+                      >
+                        <span className="bar-value">{total}</span>
+                      </div>
+                      <span className="bar-label">
+                        {new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="chart-empty">No activity data for the selected period</div>
+          )}
+        </div>
+      )}
+      
+      {!showChart && (
+        <button 
+          className="show-chart-btn"
+          onClick={() => setShowChart(true)}
+        >
+          📊 Show Activity Chart
+        </button>
+      )}
       
       {/* Stats Cards */}
       {stats && (

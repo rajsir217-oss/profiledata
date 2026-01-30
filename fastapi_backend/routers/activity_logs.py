@@ -7,7 +7,7 @@ from models.activity_models import (
     ActivityStats, ActivityType
 )
 from services.activity_logger import get_activity_logger
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 import io
 import csv
@@ -350,3 +350,89 @@ async def delete_bulk_logs(
     except Exception as e:
         logger.error(f"❌ Error deleting logs: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to delete logs: {str(e)}")
+
+
+@router.get("/chart-data")
+async def get_activity_chart_data(
+    days: int = Query(30, ge=1, le=365, description="Number of days to include"),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Get activity data aggregated by date for charting (Admin only)
+    Returns daily counts by action type for the specified number of days
+    """
+    check_admin(current_user)
+    
+    try:
+        activity_logger_instance = get_activity_logger()
+        
+        # Calculate date range
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # Aggregate by date and action type
+        pipeline = [
+            {
+                "$match": {
+                    "timestamp": {"$gte": start_date, "$lte": end_date}
+                }
+            },
+            {
+                "$group": {
+                    "_id": {
+                        "date": {"$dateToString": {"format": "%Y-%m-%d", "date": "$timestamp"}},
+                        "action_type": "$action_type"
+                    },
+                    "count": {"$sum": 1}
+                }
+            },
+            {
+                "$sort": {"_id.date": 1}
+            }
+        ]
+        
+        cursor = activity_logger_instance.collection.aggregate(pipeline)
+        results = await cursor.to_list(length=None)
+        
+        # Transform data for chart consumption
+        # Format: { dates: [...], series: { action_type: [...counts...] } }
+        dates_set = set()
+        action_data = {}
+        
+        for doc in results:
+            date = doc["_id"]["date"]
+            action_type = doc["_id"]["action_type"]
+            count = doc["count"]
+            
+            dates_set.add(date)
+            if action_type not in action_data:
+                action_data[action_type] = {}
+            action_data[action_type][date] = count
+        
+        # Sort dates
+        dates = sorted(list(dates_set))
+        
+        # Build series with counts for each date (0 if no data)
+        series = {}
+        for action_type, date_counts in action_data.items():
+            series[action_type] = [date_counts.get(date, 0) for date in dates]
+        
+        # Also get total per day
+        totals = []
+        for date in dates:
+            total = sum(action_data.get(at, {}).get(date, 0) for at in action_data)
+            totals.append(total)
+        
+        return {
+            "dates": dates,
+            "series": series,
+            "totals": totals,
+            "period": {
+                "start": start_date.isoformat(),
+                "end": end_date.isoformat(),
+                "days": days
+            }
+        }
+    except Exception as e:
+        logger.error(f"❌ Error fetching chart data: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch chart data: {str(e)}")
