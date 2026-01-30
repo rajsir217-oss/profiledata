@@ -29,6 +29,7 @@ const CategorySection = ({
   color = '#667eea',
   data = [],
   sectionKey,
+  id, // Optional HTML id for anchor links
   isExpanded = true,
   onToggle,
   onRender, // Function to render each item
@@ -130,7 +131,7 @@ const CategorySection = ({
   const currentDragOverIndex = dragOverIndex !== undefined ? dragOverIndex : localDragOverIndex;
 
   return (
-    <div className="category-section">
+    <div className="category-section" id={id}>
       {/* Header */}
       <div 
         className={`category-section-header ${isDragOverHeader ? 'drag-over-header' : ''}`}

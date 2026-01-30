@@ -4496,6 +4496,18 @@ async def search_users(
 
         logger.info(f"✅ Search completed - found {len(users)} users (total: {total})")
         
+        # Check if profileId search returned no results due to exclusion
+        excluded_profile_message = None
+        if profileId and len(users) == 0:
+            # Check if this profileId exists in user's exclusions
+            excluded_user = await db.users.find_one(
+                {"profileId": {"$regex": f"^{profileId}$", "$options": "i"}},
+                {"username": 1, "profileId": 1}
+            )
+            if excluded_user and excluded_user.get("username") in excluded_usernames:
+                excluded_profile_message = f"This profile ({profileId}) is in your exclusions list"
+                logger.info(f"🚫 Profile {profileId} found but excluded by user {current_username}")
+        
         # Log search activity (direct insert to bypass batch queue)
         try:
             from models.activity_models import ActivityType
@@ -4546,13 +4558,19 @@ async def search_users(
         except Exception as log_err:
             logger.warning(f"⚠️ Failed to log search activity: {log_err}")
         
-        return {
+        response = {
             "users": users,
             "total": total,
             "page": page,
             "limit": limit,
             "totalPages": (total + limit - 1) // limit
         }
+        
+        # Add exclusion message if applicable
+        if excluded_profile_message:
+            response["excludedProfileMessage"] = excluded_profile_message
+        
+        return response
     except Exception as e:
         logger.error(f"❌ Search execution error: {e}", exc_info=True)
         raise HTTPException(

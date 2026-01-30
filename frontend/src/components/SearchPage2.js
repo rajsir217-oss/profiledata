@@ -45,6 +45,7 @@ const SearchPage2 = () => {
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
   const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
+  const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
 
   // User interaction state
   const [users, setUsers] = useState([]);
@@ -1497,6 +1498,13 @@ const SearchPage2 = () => {
       
       // Server now handles: filtering, L3V3L scores via $lookup
       let filteredUsers = response.data.users || [];
+      
+      // Check for excluded profile message (when profileId search returns no results due to exclusion)
+      if (response.data.excludedProfileMessage) {
+        setExcludedProfileMessage(response.data.excludedProfileMessage);
+      } else {
+        setExcludedProfileMessage(null);
+      }
 
       // Update pagination state
       const total = response.data.total || 0;
@@ -2499,8 +2507,22 @@ const SearchPage2 = () => {
 
           {!loading && currentRecords.length === 0 && (
             <div className="no-results">
-              <h5>No profiles found</h5>
-              <p>Try adjusting your search criteria or use broader filters.</p>
+              {excludedProfileMessage ? (
+                <>
+                  <h5>🚫 Profile Hidden</h5>
+                  <p style={{ color: 'var(--warning-color)', fontWeight: 500 }}>{excludedProfileMessage}</p>
+                  <p style={{ marginTop: '12px' }}>
+                    <a href="/dashboard#search-exclude" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 500 }}>
+                      Manage your exclusions →
+                    </a>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h5>No profiles found</h5>
+                  <p>Try adjusting your search criteria or use broader filters.</p>
+                </>
+              )}
             </div>
           )}
 

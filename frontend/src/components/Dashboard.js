@@ -425,6 +425,25 @@ const Dashboard = () => {
     localStorage.setItem('dashboardGroups', JSON.stringify(expandedGroups));
   }, [expandedGroups]);
 
+  // Handle hash scrolling (e.g., /dashboard#search-exclude)
+  useEffect(() => {
+    if (!loading && window.location.hash) {
+      const hash = window.location.hash.substring(1); // Remove the #
+      const element = document.getElementById(hash);
+      if (element) {
+        // Ensure the section is expanded
+        if (hash === 'search-exclude') {
+          setActiveSections(prev => ({ ...prev, myExclusions: true }));
+          setExpandedGroups(prev => ({ ...prev, myActivities: true }));
+        }
+        // Scroll after a short delay to allow DOM updates
+        setTimeout(() => {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+      }
+    }
+  }, [loading]);
+
   const toggleSection = (section) => {
     setActiveSections(prev => ({
       ...prev,
@@ -878,7 +897,7 @@ const Dashboard = () => {
   };
 
   // Render section using new CategorySection component with context mapping
-  const renderSection = (title, data, sectionKey, icon, color, removeHandler = null) => {
+  const renderSection = (title, data, sectionKey, icon, color, removeHandler = null, sectionId = null) => {
     const isDraggable = ['myFavorites', 'myShortlists', 'myExclusions'].includes(sectionKey);
     
     // Map section keys to contexts
@@ -911,6 +930,7 @@ const Dashboard = () => {
         color={color}
         data={data}
         sectionKey={sectionKey}
+        id={sectionId}
         isExpanded={activeSections[sectionKey]}
         onToggle={toggleSection}
         onRender={(user) => renderUserCard(user, context, removeHandler)}
@@ -1207,7 +1227,7 @@ const Dashboard = () => {
               {renderSection('Favorites', dashboardData.myFavorites, 'myFavorites', SECTION_ICONS.MY_FAVORITES, '#d4a574', handleRemoveFromFavorites)}
               {renderSection('Shortlists', dashboardData.myShortlists, 'myShortlists', SECTION_ICONS.MY_SHORTLISTS, '#6ba8a0', handleRemoveFromShortlist)}
               {renderSection('Photo Requests', dashboardData.myRequests, 'myRequests', SECTION_ICONS.MY_PHOTO_REQUESTS, '#8b7bb5', handleCancelPIIRequest)}
-              {renderSection('Search Exclude', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions)}
+              {renderSection('Search Exclude', dashboardData.myExclusions, 'myExclusions', SECTION_ICONS.NOT_INTERESTED, '#8a9499', handleRemoveFromExclusions, 'search-exclude')}
             </div>
           )}
         </div>
