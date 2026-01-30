@@ -16,6 +16,7 @@ const Messages = () => {
   const [error, setError] = useState('');
   const [unattendedData, setUnattendedData] = useState(null);
   const [conversationStatus, setConversationStatus] = useState(null);
+  const [pendingDismissed, setPendingDismissed] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
     const saved = localStorage.getItem('messagesSidebarWidth');
     return saved ? parseInt(saved, 10) : 280;
@@ -286,9 +287,6 @@ const Messages = () => {
     setOtherUser(null);
     setMessages([]);
   };
-
-  // State for dismissing pending warning
-  const [pendingDismissed, setPendingDismissed] = useState(false);
 
   return (
     <div className="messages-page">
