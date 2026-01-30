@@ -6226,9 +6226,15 @@ async def get_unattended_chats(
         now = datetime.utcnow()
         one_day_ago = now - timedelta(days=1)
         
-        # Get user's exclusion list
-        exclusion_doc = await db.exclusions.find_one({"username": username})
-        excluded_users = exclusion_doc.get("excludedUsers", []) if exclusion_doc else []
+        # Get user's exclusion list (uses userUsername/excludedUsername schema)
+        exclusions_cursor = db.exclusions.find({"userUsername": username}, {"excludedUsername": 1})
+        exclusions_list = await exclusions_cursor.to_list(100)
+        excluded_users = [exc["excludedUsername"] for exc in exclusions_list]
+        
+        # Also get users who have excluded the current user (bidirectional block)
+        excluded_by_cursor = db.exclusions.find({"excludedUsername": username}, {"userUsername": 1})
+        excluded_by_list = await excluded_by_cursor.to_list(100)
+        excluded_users.extend([exc["userUsername"] for exc in excluded_by_list])
         
         # Get conversations where user is recipient and hasn't replied
         pipeline = [
@@ -6259,6 +6265,11 @@ async def get_unattended_chats(
             # Make timezone-naive for comparison
             if last_received_at and hasattr(last_received_at, 'tzinfo') and last_received_at.tzinfo is not None:
                 last_received_at = last_received_at.replace(tzinfo=None)
+            
+            # Check message visibility (same as conversations endpoint)
+            is_visible = await check_message_visibility(username, sender, db)
+            if not is_visible:
+                continue
             
             # Check if conversation is closed
             conv_status = await db.conversation_status.find_one({"participants": {"$all": [username, sender]}, "status": "closed"})
