@@ -67,7 +67,8 @@ def extract_profile_display_data(user: Dict[str, Any]) -> Dict[str, str]:
     
     # === PROFILE PICTURE ===
     # Use default avatar if no picture found (for emails)
-    result["profilePicture"] = extract_profile_picture(user, use_default_avatar=True)
+    # Convert to public URL so email clients can access the image
+    result["profilePicture"] = extract_profile_picture(user, convert_to_public_url=True, use_default_avatar=True)
     
     # === LOCATION ===
     result["location"] = extract_location(user)
