@@ -7300,18 +7300,20 @@ async def close_conversation(
             raise HTTPException(status_code=404, detail="Conversation not found")
         
         # Create or update conversation status
+        # Note: Cannot include 'participants' in both query and $setOnInsert
+        sorted_participants = sorted([username, other_username])
         await db.conversation_status.update_one(
-            {"participants": {"$all": [username, other_username]}},
+            {"participants": sorted_participants},
             {
                 "$set": {
                     "status": "closed",
                     "closedBy": username,
                     "closedAt": datetime.utcnow(),
                     "closureReason": "declined",
-                    "updatedAt": datetime.utcnow()
+                    "updatedAt": datetime.utcnow(),
+                    "participants": sorted_participants  # Ensure participants is set
                 },
                 "$setOnInsert": {
-                    "participants": sorted([username, other_username]),
                     "createdAt": datetime.utcnow()
                 }
             },
