@@ -287,31 +287,56 @@ const Messages = () => {
     setMessages([]);
   };
 
+  // State for dismissing pending warning
+  const [pendingDismissed, setPendingDismissed] = useState(false);
+
   return (
     <div className="messages-page">
-      {/* Unattended Chats Warning Banner */}
-      {unattendedData && unattendedData.unattendedCount > 0 && (
+      {/* Warning Banner for High/Medium/Pending messages (dismissible, non-blocking) */}
+      {unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !pendingDismissed && (
+        <div className="pending-warning-banner">
+          <div className="pending-warning-content">
+            <span className="pending-icon">💬</span>
+            <div className="pending-text">
+              <strong>You have {unattendedData.warningCount} message{unattendedData.warningCount > 1 ? 's' : ''} waiting for a response</strong>
+              <span className="pending-subtext">
+                {unattendedData.highCount > 0 && `🟠 ${unattendedData.highCount} high (6-9 days) `}
+                {unattendedData.mediumCount > 0 && `🟡 ${unattendedData.mediumCount} medium (3-5 days) `}
+                {unattendedData.pendingCount > 0 && `💬 ${unattendedData.pendingCount} pending (1-2 days)`}
+              </span>
+            </div>
+            <button 
+              className="pending-action-btn"
+              onClick={() => {
+                const warningConvo = unattendedData.conversations?.find(c => ['high', 'medium', 'pending'].includes(c.urgency));
+                if (warningConvo) handleSelectUser(warningConvo.sender.username);
+              }}
+            >
+              View Messages
+            </button>
+            <button 
+              className="pending-dismiss-btn"
+              onClick={() => setPendingDismissed(true)}
+              title="Dismiss"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Critical Chats Banner (10+ days - BLOCKS navigation) */}
+      {unattendedData && unattendedData.criticalCount > 0 && (
         <div className="unattended-banner">
           <div className="unattended-banner-content">
-            <span className="unattended-icon">💬</span>
+            <span className="unattended-icon">�</span>
             <div className="unattended-text">
-              <strong>You have {unattendedData.unattendedCount} message{unattendedData.unattendedCount > 1 ? 's' : ''} waiting for your response</strong>
+              <strong>You have {unattendedData.criticalCount} critical message{unattendedData.criticalCount > 1 ? 's' : ''} (10+ days) requiring your response</strong>
               <p className="unattended-explanation">
                 Someone took the time to reach out to you! Please respond to each conversation (open the message by selecting the profile card on the left) or politely decline using the <strong>⚡ Quick Messages → Decline</strong> option. 
-                You'll be able to browse other areas once all messages are addressed.
+                You'll be able to browse other areas once critical messages are addressed.
                 <br /><span className="exclusion-tip">💡 Tip: If you're not interested, you can also add them to your exclusions list to avoid future messages from this profile.</span>
               </p>
-              <div className="unattended-counts">
-                {unattendedData.criticalCount > 0 && (
-                  <span className="urgency-count critical">🔴 {unattendedData.criticalCount} critical (7+ days)</span>
-                )}
-                {unattendedData.highCount > 0 && (
-                  <span className="urgency-count high">🟠 {unattendedData.highCount} high (3-7 days)</span>
-                )}
-                {unattendedData.mediumCount > 0 && (
-                  <span className="urgency-count medium">🟡 {unattendedData.mediumCount} medium (1-3 days)</span>
-                )}
-              </div>
             </div>
           </div>
         </div>

@@ -6312,34 +6312,56 @@ async def get_unattended_chats(
                 if user_reply_at and last_received_at and user_reply_at > last_received_at:
                     continue
             
-            # Check if message is 24+ hours old
-            if last_received_at and last_received_at < one_day_ago:
-                waiting_days = (now - last_received_at).days if isinstance(last_received_at, datetime) else 1
-                urgency = "critical" if waiting_days >= 7 else ("high" if waiting_days >= 3 else "medium")
+            # Check message age and assign urgency
+            waiting_days = (now - last_received_at).days if isinstance(last_received_at, datetime) else 0
+            one_day_ago = now - timedelta(days=1)
+            three_days_ago = now - timedelta(days=3)
+            
+            # Only include messages from active users
+            sender_user = await db.users.find_one({"username": sender, "accountStatus": "active"}, {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1})
+            if not sender_user:
+                continue
+            
+            images = sender_user.get("images", [])
+            public_images = sender_user.get("publicImages", [])
+            profile_image = get_full_image_url(public_images[0]) if public_images else (get_full_image_url(images[0]) if images else None)
+            
+            # Urgency thresholds: Critical 10+, High 6-9, Medium 3-5, Pending 1-2 days
+            if last_received_at and last_received_at < three_days_ago:
+                # 3+ days = unattended (medium, high, critical)
+                if waiting_days >= 10:
+                    urgency = "critical"
+                elif waiting_days >= 6:
+                    urgency = "high"
+                else:
+                    urgency = "medium"
                 
-                # Only include messages from active users (same filter as conversations list)
-                sender_user = await db.users.find_one({"username": sender, "accountStatus": "active"}, {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1})
-                if sender_user:
-                    images = sender_user.get("images", [])
-                    public_images = sender_user.get("publicImages", [])
-                    profile_image = get_full_image_url(public_images[0]) if public_images else (get_full_image_url(images[0]) if images else None)
-                    
-                    unattended.append({
-                        "sender": {"username": sender, "firstName": sender_user.get("firstName", ""), "lastName": (sender_user.get("lastName", "")[:1] + ".") if sender_user.get("lastName") else "", "profileImage": profile_image},
-                        "lastMessage": {"text": last_received.get("message", "")[:100] + ("..." if len(last_received.get("message", "")) > 100 else ""), "sentAt": last_received_at.isoformat() if isinstance(last_received_at, datetime) else str(last_received_at), "waitingDays": waiting_days},
-                        "urgency": urgency
-                    })
+                unattended.append({
+                    "sender": {"username": sender, "firstName": sender_user.get("firstName", ""), "lastName": (sender_user.get("lastName", "")[:1] + ".") if sender_user.get("lastName") else "", "profileImage": profile_image},
+                    "lastMessage": {"text": last_received.get("message", "")[:100] + ("..." if len(last_received.get("message", "")) > 100 else ""), "sentAt": last_received_at.isoformat() if isinstance(last_received_at, datetime) else str(last_received_at), "waitingDays": waiting_days},
+                    "urgency": urgency
+                })
+            elif last_received_at and last_received_at < one_day_ago:
+                # 1-2 days = pending (warning only, not blocking)
+                unattended.append({
+                    "sender": {"username": sender, "firstName": sender_user.get("firstName", ""), "lastName": (sender_user.get("lastName", "")[:1] + ".") if sender_user.get("lastName") else "", "profileImage": profile_image},
+                    "lastMessage": {"text": last_received.get("message", "")[:100] + ("..." if len(last_received.get("message", "")) > 100 else ""), "sentAt": last_received_at.isoformat() if isinstance(last_received_at, datetime) else str(last_received_at), "waitingDays": waiting_days},
+                    "urgency": "pending"
+                })
         
-        urgency_order = {"critical": 0, "high": 1, "medium": 2}
-        unattended.sort(key=lambda x: (urgency_order.get(x["urgency"], 3), -x["lastMessage"]["waitingDays"]))
+        urgency_order = {"critical": 0, "high": 1, "medium": 2, "pending": 3}
+        unattended.sort(key=lambda x: (urgency_order.get(x["urgency"], 4), -x["lastMessage"]["waitingDays"]))
         
         critical_count = sum(1 for u in unattended if u["urgency"] == "critical")
         high_count = sum(1 for u in unattended if u["urgency"] == "high")
         medium_count = sum(1 for u in unattended if u["urgency"] == "medium")
+        pending_count = sum(1 for u in unattended if u["urgency"] == "pending")
+        # Only critical blocks navigation; high/medium/pending are warnings only
+        warning_count = high_count + medium_count + pending_count
         
-        logger.info(f"✅ Found {len(unattended)} unattended chats for {username} (critical: {critical_count}, high: {high_count}, medium: {medium_count})")
+        logger.info(f"✅ Found {critical_count} critical (blocking) + {warning_count} warning chats for {username}")
         
-        return {"unattendedCount": len(unattended), "criticalCount": critical_count, "highCount": high_count, "mediumCount": medium_count, "mustAddress": critical_count > 0, "conversations": unattended}
+        return {"unattendedCount": critical_count, "criticalCount": critical_count, "highCount": high_count, "mediumCount": medium_count, "pendingCount": pending_count, "warningCount": warning_count, "mustAddress": critical_count > 0, "conversations": unattended}
     except Exception as e:
         logger.error(f"❌ Error getting unattended chats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
