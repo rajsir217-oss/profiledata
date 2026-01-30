@@ -64,6 +64,18 @@ class SystemCleanupTemplate(JobTemplate):
                     "minimum": 1,
                     "maximum": 365,
                     "default": 30
+                },
+                "cleanup_excluded_messages": {
+                    "type": "boolean",
+                    "description": "Clean up messages from excluded users after grace period",
+                    "default": True
+                },
+                "excluded_messages_days": {
+                    "type": "integer",
+                    "description": "Days after exclusion before deleting messages",
+                    "minimum": 7,
+                    "maximum": 365,
+                    "default": 30
                 }
             },
             "required": []
@@ -83,9 +95,11 @@ class SystemCleanupTemplate(JobTemplate):
         cleanup_sessions = params.get("cleanup_sessions", True)
         cleanup_job_executions = params.get("cleanup_job_executions", True)
         cleanup_notification_logs = params.get("cleanup_notification_logs", True)
+        cleanup_excluded_messages = params.get("cleanup_excluded_messages", True)
         session_days = params.get("session_days_to_keep", 7)
         job_exec_days = params.get("job_execution_days_to_keep", 30)
         notif_log_days = params.get("notification_log_days_to_keep", 30)
+        excluded_msg_days = params.get("excluded_messages_days", 30)
         
         context.log("INFO", "🧹 Starting system cleanup...")
         
@@ -157,6 +171,44 @@ class SystemCleanupTemplate(JobTemplate):
             except Exception as e:
                 errors.append(f"Sent notifications cleanup failed: {str(e)}")
                 context.log("ERROR", f"   ❌ Sent notifications cleanup failed: {str(e)}")
+            
+            # 5. Clean up messages from excluded users (after grace period)
+            if cleanup_excluded_messages:
+                try:
+                    cutoff = datetime.utcnow() - timedelta(days=excluded_msg_days)
+                    
+                    # Find exclusions older than the grace period
+                    old_exclusions = await context.db.exclusions.find({
+                        "createdAt": {"$lt": cutoff}
+                    }).to_list(1000)
+                    
+                    messages_deleted = 0
+                    exclusions_processed = 0
+                    
+                    for exclusion in old_exclusions:
+                        user1 = exclusion.get("userUsername")
+                        user2 = exclusion.get("excludedUsername")
+                        
+                        if not user1 or not user2:
+                            continue
+                        
+                        # Delete messages between these two users
+                        result = await context.db.messages.delete_many({
+                            "$or": [
+                                {"fromUsername": user1, "toUsername": user2},
+                                {"fromUsername": user2, "toUsername": user1}
+                            ]
+                        })
+                        messages_deleted += result.deleted_count
+                        exclusions_processed += 1
+                    
+                    cleanup_results["excluded_messages"] = messages_deleted
+                    cleanup_results["exclusions_processed"] = exclusions_processed
+                    total_deleted += messages_deleted
+                    context.log("INFO", f"   ✅ Excluded Messages: Deleted {messages_deleted} messages from {exclusions_processed} exclusions (>{excluded_msg_days} days old)")
+                except Exception as e:
+                    errors.append(f"Excluded messages cleanup failed: {str(e)}")
+                    context.log("ERROR", f"   ❌ Excluded messages cleanup failed: {str(e)}")
             
             duration = time.time() - start_time
             
