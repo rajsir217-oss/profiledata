@@ -6288,7 +6288,8 @@ async def get_unattended_chats(
                 waiting_days = (now - last_received_at).days if isinstance(last_received_at, datetime) else 1
                 urgency = "critical" if waiting_days >= 7 else ("high" if waiting_days >= 3 else "medium")
                 
-                sender_user = await db.users.find_one({"username": sender}, {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1})
+                # Only include messages from active users (same filter as conversations list)
+                sender_user = await db.users.find_one({"username": sender, "accountStatus": "active"}, {"firstName": 1, "lastName": 1, "images": 1, "publicImages": 1})
                 if sender_user:
                     images = sender_user.get("images", [])
                     public_images = sender_user.get("publicImages", [])

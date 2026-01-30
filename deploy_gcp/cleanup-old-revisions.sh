@@ -142,8 +142,9 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   # Get all image digests for this service in the repository
   # Format: package@sha256:digest
   echo "  📋 Fetching all images for $SERVICE_NAME..."
-  IMAGES=$(gcloud artifacts docker images list "$REGISTRY_PATH" \
-    --filter="package ~ $SERVICE_NAME" \
+  # Use --include-tags to get proper image references
+  IMAGES=$(gcloud artifacts docker images list "$REGISTRY_PATH/$SERVICE_NAME" \
+    --include-tags \
     --format="value(format('{0}@{1}', package, version))" 2>/dev/null || echo "")
   
   IMAGE_COUNT=$(echo "$IMAGES" | grep -c . || echo "0")
