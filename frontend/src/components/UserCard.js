@@ -110,24 +110,43 @@ const UserCard = ({
     return null;
   };
 
-  // Format DOB for display (MM/YYYY format)
+  // Calculate age from birth year
+  const calculateAge = (birthYear) => {
+    if (!birthYear) return null;
+    const currentYear = new Date().getFullYear();
+    return currentYear - birthYear;
+  };
+
+  // Format DOB for display (MM/YYYY format) with age
   const getDisplayDOB = () => {
+    let dobStr = null;
+    let age = null;
+    
     // Try birthMonth and birthYear first
     if (profileData?.birthMonth && profileData?.birthYear) {
       const month = String(profileData.birthMonth).padStart(2, '0');
-      return `${month}/${profileData.birthYear}`;
+      dobStr = `${month}/${profileData.birthYear}`;
+      age = calculateAge(profileData.birthYear);
     }
     // Try dateOfBirth field
-    if (profileData?.dateOfBirth) {
+    else if (profileData?.dateOfBirth) {
       try {
         const date = new Date(profileData.dateOfBirth);
         const month = String(date.getMonth() + 1).padStart(2, '0');
-        return `${month}/${date.getFullYear()}`;
+        dobStr = `${month}/${date.getFullYear()}`;
+        age = calculateAge(date.getFullYear());
       } catch {
         return null;
       }
     }
-    return null;
+    
+    if (!dobStr) return null;
+    
+    // Return DOB with age if available
+    if (age) {
+      return `${dobStr} (${age} yrs)`;
+    }
+    return dobStr;
   };
 
   const displayHeight = getDisplayHeight();
