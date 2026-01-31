@@ -844,6 +844,104 @@
   box-shadow: var(--shadow-md);
 }
 
+/* Excel-like Row View - cells flow directly into parent grid */
+.row-cell {
+  cursor: pointer;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: var(--text-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--surface-color);
+  transition: background 0.15s ease;
+}
+
+.row-cell:hover {
+  background: var(--hover-color, rgba(102, 126, 234, 0.08));
+}
+
+.row-photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.row-avatar-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.row-photo .default-avatar {
+  width: 40px !important;
+  height: 40px !important;
+  font-size: 14px !important;
+}
+
+.row-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+}
+
+.row-name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.row-age,
+.row-height {
+  text-align: center;
+  font-weight: 500;
+}
+
+.row-location,
+.row-education,
+.row-occupation {
+  color: var(--text-secondary);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.row-action-btn {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border: none;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  transition: transform 0.15s ease, background 0.15s ease;
+  padding: 0;
+}
+
+.row-action-btn:hover {
+  transform: scale(1.1);
+  background: var(--primary-hover);
+}
+
+.row-action-btn.btn-secondary {
+  background: var(--secondary-color, #6c757d);
+}
+
+.row-action-btn.btn-primary {
+  background: var(--primary-color);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .user-card-avatar .avatar-placeholder::before {

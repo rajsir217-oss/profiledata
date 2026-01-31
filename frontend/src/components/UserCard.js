@@ -218,6 +218,63 @@ const UserCard = ({
   // Use context-based actions if available, fallback to legacy actions prop
   const displayActions = hasBottomActions ? bottomActions : actions;
 
+  // Get education display
+  const displayEducation = profileData?.education || profileData?.educationHistory?.[0]?.degree || '';
+
+  // Excel-like Row View Render - returns fragment with cells that flow into parent grid
+  if (viewMode === 'rows') {
+    return (
+      <>
+        {/* Photo */}
+        <div className="row-cell row-photo" onClick={handleCardClick}>
+          {avatar && !imageError ? (
+            <img 
+              src={avatar} 
+              alt={displayName} 
+              className="row-avatar-img"
+              onError={() => setImageError(true)}
+            />
+          ) : (
+            <DefaultAvatar 
+              gender={gender} 
+              initials={initials} 
+              size="small" 
+            />
+          )}
+        </div>
+        {/* Name */}
+        <div className="row-cell row-name" onClick={handleCardClick}>
+          <span className="row-name-text">{displayName}</span>
+          {showOnlineStatus && <OnlineStatusBadge username={username} size="tiny" />}
+        </div>
+        {/* Age */}
+        <div className="row-cell row-age" onClick={handleCardClick}>{profileData?.age || '-'}</div>
+        {/* Height */}
+        <div className="row-cell row-height" onClick={handleCardClick}>{displayHeight || '-'}</div>
+        {/* Location */}
+        <div className="row-cell row-location" onClick={handleCardClick}>{profileData?.location || '-'}</div>
+        {/* Education */}
+        <div className="row-cell row-education" onClick={handleCardClick} title={displayEducation}>{displayEducation || '-'}</div>
+        {/* Occupation */}
+        <div className="row-cell row-occupation" onClick={handleCardClick} title={displayOccupation}>{displayOccupation || '-'}</div>
+        {/* Actions */}
+        <div className="row-cell row-actions">
+          {displayActions.slice(0, 3).map((action, idx) => (
+            <button
+              key={idx}
+              className={`row-action-btn ${action.className || ''}`}
+              onClick={(e) => { e.stopPropagation(); action.handler && action.handler(); }}
+              title={action.label}
+            >
+              {action.icon}
+            </button>
+          ))}
+        </div>
+      </>
+    );
+  }
+
+  // Card View Render (default)
   return (
     <div 
       className={`user-card user-card-${variant} user-card-view-${viewMode}`}

@@ -1397,10 +1397,76 @@
   align-items: stretch; /* Ensure all cards stretch to same height */
 }
 
-/* Row view - single column layout */
+/* Row view grid layout - 9 columns matching header */
 .tab-content-grid.view-rows {
-  grid-template-columns: 1fr;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: 35px 50px 150px 45px 55px 100px minmax(120px, 1fr) minmax(120px, 1fr) 80px;
+  gap: 0;
+  overflow-x: auto;
+  padding: 0;
+}
+
+/* Excel-like header columns for row view */
+.excel-col {
+  padding: 10px 8px;
+  background: var(--primary-color);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 2px solid var(--primary-color);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+}
+
+/* Row index cell */
+.row-index {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  font-weight: 500;
+  padding: 8px 4px;
+  background: var(--surface-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Resizable header columns */
+.resizable-header {
+  position: relative;
+  user-select: none;
+}
+
+.resize-handle {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.resize-handle:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.resize-handle:active {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Sortable columns - cursor only, no background change */
+.excel-col.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.excel-col.sortable:hover {
+  background: var(--primary-color) !important;
 }
 
 .tab-content-item {
