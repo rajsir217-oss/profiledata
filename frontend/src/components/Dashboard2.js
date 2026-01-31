@@ -169,16 +169,33 @@ const Dashboard2 = () => {
   const [exclusionLoading, setExclusionLoading] = useState(false);
   const [selectedUserForExclusion, setSelectedUserForExclusion] = useState(null);
   
-  // View mode and drag-drop states
-  const [viewMode, setViewMode] = useState(() => {
-    return localStorage.getItem('dashboardViewMode') || 'cards';
-  }); // 'cards' or 'rows'
+  // Per-tab view mode state - each tab can have its own view mode
+  const [tabViewModes, setTabViewModes] = useState(() => {
+    const saved = localStorage.getItem('dashboardTabViewModes');
+    return saved ? JSON.parse(saved) : {
+      myMessages: 'cards',
+      myNotes: 'cards',
+      myFavorites: 'cards',
+      myShortlists: 'cards',
+      myExclusions: 'cards',
+      myViews: 'cards',
+      myRequests: 'cards',
+      theirFavorites: 'cards',
+      theirShortlists: 'cards'
+    };
+  });
   
-  // Handler to change view mode and persist to localStorage
-  const handleViewModeChange = (mode) => {
-    setViewMode(mode);
-    localStorage.setItem('dashboardViewMode', mode);
+  // Handler to change view mode for a specific tab
+  const handleTabViewModeChange = (tabKey, mode) => {
+    setTabViewModes(prev => {
+      const updated = { ...prev, [tabKey]: mode };
+      localStorage.setItem('dashboardTabViewModes', JSON.stringify(updated));
+      return updated;
+    });
   };
+  
+  // Legacy viewMode for backward compatibility (uses active tab's mode)
+  const viewMode = tabViewModes[myActiveCategory] || 'cards';
   
   // Resizable columns state for row view
   const [columnWidths, setColumnWidths] = useState(() => {
@@ -1352,7 +1369,7 @@ const Dashboard2 = () => {
   };
 
   // Render user card using new UserCard component with context-aware actions
-  const renderUserCard = (user, context = 'default', removeHandler = null) => {
+  const renderUserCard = (user, context = 'default', removeHandler = null, tabViewMode = 'cards') => {
     if (!user) return null;
 
     // Handle different data structures (regular users vs PII requests)
@@ -1395,7 +1412,7 @@ const Dashboard2 = () => {
       <UserCard
         user={displayUser}
         variant="dashboard"
-        viewMode={viewMode}
+        viewMode={tabViewMode}
         context={context}
         onClick={() => handleProfileClick(username)}
         // Kebab menu handlers
@@ -1537,17 +1554,17 @@ const Dashboard2 = () => {
               </button>
             )}
           </div>
-          {/* View Mode Toggle */}
+          {/* View Mode Toggle - Per Tab */}
           <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px' }}>
             <button
-              onClick={() => handleViewModeChange('cards')}
-              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              onClick={() => handleTabViewModeChange(sectionKey, 'cards')}
+              className={`view-toggle-btn ${(tabViewModes[sectionKey] || 'cards') === 'cards' ? 'active' : ''}`}
               title="Card View"
               style={{
                 padding: '4px 8px',
                 borderRadius: '4px',
                 border: 'none',
-                background: viewMode === 'cards' ? 'rgba(255,255,255,0.3)' : 'transparent',
+                background: (tabViewModes[sectionKey] || 'cards') === 'cards' ? 'rgba(255,255,255,0.3)' : 'transparent',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: '14px'
@@ -1556,14 +1573,14 @@ const Dashboard2 = () => {
               ▦
             </button>
             <button
-              onClick={() => handleViewModeChange('rows')}
-              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              onClick={() => handleTabViewModeChange(sectionKey, 'rows')}
+              className={`view-toggle-btn ${(tabViewModes[sectionKey] || 'cards') === 'rows' ? 'active' : ''}`}
               title="Row View"
               style={{
                 padding: '4px 8px',
                 borderRadius: '4px',
                 border: 'none',
-                background: viewMode === 'rows' ? 'rgba(255,255,255,0.3)' : 'transparent',
+                background: (tabViewModes[sectionKey] || 'cards') === 'rows' ? 'rgba(255,255,255,0.3)' : 'transparent',
                 color: 'white',
                 cursor: 'pointer',
                 fontSize: '14px'
@@ -1582,13 +1599,13 @@ const Dashboard2 = () => {
           </div>
         ) : (
           <div 
-            className={`tab-content-grid ${viewMode === 'rows' ? 'view-rows' : ''}`}
-            style={viewMode === 'rows' ? {
+            className={`tab-content-grid ${(tabViewModes[sectionKey] || 'cards') === 'rows' ? 'view-rows' : ''}`}
+            style={(tabViewModes[sectionKey] || 'cards') === 'rows' ? {
               gridTemplateColumns: `${columnWidths.index}px ${columnWidths.photo}px ${columnWidths.name}px ${columnWidths.age}px ${columnWidths.height}px ${columnWidths.location}px ${columnWidths.education}px ${columnWidths.occupation}px ${columnWidths.actions}px`
             } : undefined}
           >
             {/* Excel-like header row for row view with resize handles and sorting */}
-            {viewMode === 'rows' && (
+            {(tabViewModes[sectionKey] || 'cards') === 'rows' && (
               <>
                 <span className="excel-col excel-col-index">#</span>
                 <span className="excel-col excel-col-photo"></span>
@@ -1639,8 +1656,8 @@ const Dashboard2 = () => {
             )}
             {sortData(data).map((user, index) => (
               <React.Fragment key={user.username || index}>
-                {viewMode === 'rows' && <span className="row-cell row-index">{index + 1}</span>}
-                {renderUserCard(user, context, removeHandler)}
+                {(tabViewModes[sectionKey] || 'cards') === 'rows' && <span className="row-cell row-index">{index + 1}</span>}
+                {renderUserCard(user, context, removeHandler, tabViewModes[sectionKey] || 'cards')}
               </React.Fragment>
             ))}
           </div>
@@ -2780,13 +2797,13 @@ const Dashboard2 = () => {
 
       {/* Bottom Fixed Action Buttons */}
       <div className="dashboard-bottom-actions">
-        {/* View Mode Toggle */}
+        {/* View Mode Toggle - toggles current active tab's view mode */}
         <button
-          className={`btn-view-toggle ${viewMode}`}
-          onClick={() => setViewMode(viewMode === 'cards' ? 'rows' : 'cards')}
-          title={viewMode === 'cards' ? 'Switch to Row View' : 'Switch to Card View'}
+          className={`btn-view-toggle ${tabViewModes[myActiveCategory] || 'cards'}`}
+          onClick={() => handleTabViewModeChange(myActiveCategory, (tabViewModes[myActiveCategory] || 'cards') === 'cards' ? 'rows' : 'cards')}
+          title={(tabViewModes[myActiveCategory] || 'cards') === 'cards' ? 'Switch to Row View' : 'Switch to Card View'}
         >
-          {viewMode === 'cards' ? '⊞' : '☰'}
+          {(tabViewModes[myActiveCategory] || 'cards') === 'cards' ? '⊞' : '☰'}
         </button>
         
         {/* Refresh Button */}
