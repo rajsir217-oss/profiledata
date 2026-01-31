@@ -45,7 +45,10 @@ const CategorySection = ({
   dragOverIndex,
   onRefresh, // Function to refresh this section's data
   isRefreshing = false, // Loading state for refresh
-  children // Support for custom content instead of data-driven rendering
+  children, // Support for custom content instead of data-driven rendering
+  badgeCount = 0, // Badge count for special indicators (e.g., contact attempts)
+  badgeIcon = '💬', // Icon for the badge
+  badgeTooltip = '' // Tooltip for the badge
 }) => {
   
   const [localDraggedIndex, setLocalDraggedIndex] = useState(null);
@@ -145,6 +148,11 @@ const CategorySection = ({
           <span className="category-icon">{icon}</span>
           <h3>{title}</h3>
           <span className="category-count">{count}</span>
+          {badgeCount > 0 && (
+            <span className="category-badge" title={badgeTooltip}>
+              {badgeIcon} {badgeCount}
+            </span>
+          )}
           {onRefresh && (
             <button 
               className={`section-refresh-btn ${isRefreshing ? 'spinning' : ''}`}

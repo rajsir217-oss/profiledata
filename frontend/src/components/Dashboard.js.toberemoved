@@ -72,6 +72,13 @@ const Dashboard = () => {
   // Current user profile for display name
   const [userProfile, setUserProfile] = useState(null);
   
+  // Contact attempts from excluded users (for badge)
+  const [contactAttempts, setContactAttempts] = useState({ contactAttemptCount: 0, attemptsByUser: {} });
+  
+  // Reconnect requests (people wanting to reconnect with current user)
+  const [reconnectRequests, setReconnectRequests] = useState([]);
+  const [respondingToRequest, setRespondingToRequest] = useState(null);
+  
   // Section expand/collapse states
   const [activeSections, setActiveSections] = useState(() => {
     const saved = localStorage.getItem('dashboardSections');
@@ -244,7 +251,8 @@ const Dashboard = () => {
         requestsRes,
         incomingRequestsRes,
         theirFavoritesRes,
-        theirShortlistsRes
+        theirShortlistsRes,
+        reconnectRequestsRes
       ] = await Promise.all([
         api.get(`/profile/${user}?requester=${user}`),
         api.get(`/messages/conversations?username=${user}`),
@@ -255,7 +263,11 @@ const Dashboard = () => {
         api.get(`/pii-requests/${user}/outgoing`),
         api.get(`/pii-requests/${user}/incoming?status_filter=pending`),
         api.get(`/their-favorites/${user}`),
-        api.get(`/their-shortlists/${user}`)
+        api.get(`/their-shortlists/${user}`),
+        api.get('/exclusions/reconnect-requests/pending').catch(err => {
+          console.error('❌ Failed to load reconnect requests:', err.response?.status, err.response?.data);
+          return { data: { requests: [] } };
+        })
       ]);
       
       // Extract last login time from profile
@@ -294,6 +306,10 @@ const Dashboard = () => {
         othersActivities: othersActivitiesCount > 0
       });
       
+      // Set reconnect requests from the API response
+      console.log('🔔 Reconnect requests from API:', reconnectRequestsRes.data);
+      setReconnectRequests(reconnectRequestsRes.data.requests || []);
+      
       // Set view metrics
       setViewMetrics({
         uniqueViewers: profileViewsRes.data.uniqueViewers || 0,
@@ -311,6 +327,52 @@ const Dashboard = () => {
       setError(`Failed to load dashboard: ${errorMessage}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  // Load contact attempts from excluded users (lazy loaded for performance)
+  const loadContactAttempts = async () => {
+    try {
+      const response = await api.get(`/exclusions/${currentUser}/contact-attempts`);
+      setContactAttempts(response.data);
+    } catch (err) {
+      logger.warn('Failed to load contact attempts:', err);
+    }
+  };
+
+  // Load pending reconnect requests (people wanting to reconnect with current user)
+  const loadReconnectRequests = async () => {
+    try {
+      const response = await api.get('/exclusions/reconnect-requests/pending');
+      console.log('🔔 Reconnect requests loaded:', response.data);
+      setReconnectRequests(response.data.requests || []);
+    } catch (err) {
+      console.error('❌ Failed to load reconnect requests:', err);
+      logger.warn('Failed to load reconnect requests:', err);
+    }
+  };
+
+  // Handle responding to a reconnect request
+  const handleReconnectResponse = async (requestId, action, fromUsername) => {
+    setRespondingToRequest(requestId);
+    try {
+      await api.post(`/exclusions/reconnect-requests/${requestId}/respond?action=${action}`);
+      
+      // Remove from local state
+      setReconnectRequests(prev => prev.filter(r => r._id !== requestId));
+      
+      if (action === 'accept') {
+        // Refresh exclusions list since we unblocked someone
+        loadDashboardData();
+        toast.success(`You've unblocked the user. They can now message you.`);
+      } else {
+        toast.info('Reconnect request declined.');
+      }
+    } catch (err) {
+      logger.error('Failed to respond to reconnect request:', err);
+      toast.error('Failed to process request. Please try again.');
+    } finally {
+      setRespondingToRequest(null);
     }
   };
 
@@ -465,12 +527,28 @@ const Dashboard = () => {
       }
     }
   }, [loading]);
+  
+  // Load contact attempts and reconnect requests on initial load if exclusions section is expanded
+  useEffect(() => {
+    if (!loading && activeSections.myExclusions) {
+      loadContactAttempts();
+      loadReconnectRequests();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   const toggleSection = (section) => {
+    const newState = !activeSections[section];
     setActiveSections(prev => ({
       ...prev,
-      [section]: !prev[section]
+      [section]: newState
     }));
+    
+    // Lazy load contact attempts and reconnect requests when Search Exclude section is expanded
+    if (section === 'myExclusions' && newState) {
+      loadContactAttempts();
+      loadReconnectRequests();
+    }
   };
 
   // Toggle group (column) expand/collapse
@@ -945,12 +1023,24 @@ const Dashboard = () => {
     const context = contextMap[sectionKey] || 'default';
     const tooltip = tooltipMap[sectionKey];
     
+    // For exclusions, enrich data with contact attempt info
+    let enrichedData = data;
+    let badgeCount = 0;
+    if (sectionKey === 'myExclusions' && contactAttempts.attemptsByUser) {
+      badgeCount = contactAttempts.contactAttemptCount || 0;
+      enrichedData = data.map(user => ({
+        ...user,
+        hasTriedToContact: !!contactAttempts.attemptsByUser[user.username],
+        contactAttemptInfo: contactAttempts.attemptsByUser[user.username] || null
+      }));
+    }
+    
     return (
       <CategorySection
         title={title}
         icon={icon}
         color={color}
-        data={data}
+        data={enrichedData}
         sectionKey={sectionKey}
         id={sectionId}
         isExpanded={activeSections[sectionKey]}
@@ -966,7 +1056,55 @@ const Dashboard = () => {
         onDrop={handleDrop}
         draggedIndex={draggedIndex}
         dragOverIndex={dragOverIndex}
+        badgeCount={badgeCount}
+        badgeIcon="💬"
+        badgeTooltip="Users who tried to contact you"
       />
+    );
+  };
+
+  // Render reconnect requests section (separate from renderSection to avoid nesting issues)
+  const renderReconnectRequestsSection = () => {
+    console.log('🔔 renderReconnectRequestsSection called, reconnectRequests:', reconnectRequests);
+    if (!reconnectRequests || reconnectRequests.length === 0) return null;
+    
+    return (
+      <div className="reconnect-requests-section">
+        <h4 className="reconnect-requests-title">
+          🔔 Reconnect Requests ({reconnectRequests.length})
+        </h4>
+        <p className="reconnect-requests-subtitle">
+          These users would like you to reconsider and allow them to message you again.
+        </p>
+        <div className="reconnect-requests-list">
+          {reconnectRequests.map(request => (
+            <div key={request._id} className="reconnect-request-card">
+              <div className="reconnect-request-info">
+                <span className="reconnect-request-name">{request.fromName || request.fromUsername}</span>
+                <span className="reconnect-request-time">
+                  {new Date(request.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+              <div className="reconnect-request-actions">
+                <button
+                  className="btn-accept-reconnect"
+                  onClick={() => handleReconnectResponse(request._id, 'accept', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                >
+                  {respondingToRequest === request._id ? '...' : '✓ Unblock'}
+                </button>
+                <button
+                  className="btn-decline-reconnect"
+                  onClick={() => handleReconnectResponse(request._id, 'decline', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                >
+                  {respondingToRequest === request._id ? '...' : '✕ Decline'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     );
   };
 
@@ -990,6 +1128,86 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-container">
+      {/* DEBUG: Always visible banner to verify code is loaded */}
+      <div style={{
+        background: reconnectRequests.length > 0 ? '#22c55e' : '#ef4444',
+        color: 'white',
+        padding: '8px 16px',
+        borderRadius: '8px',
+        marginBottom: '8px',
+        fontSize: '12px',
+        fontWeight: 'bold'
+      }}>
+        DEBUG: Reconnect requests count = {reconnectRequests.length}
+      </div>
+      
+      {/* RECONNECT REQUESTS BANNER - Show at top when there are pending requests */}
+      {reconnectRequests.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '16px',
+          borderRadius: '12px',
+          marginBottom: '16px',
+          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+        }}>
+          <h3 style={{margin: '0 0 8px 0', fontSize: '16px'}}>🔔 Reconnect Requests ({reconnectRequests.length})</h3>
+          <p style={{margin: '0 0 12px 0', fontSize: '13px', opacity: 0.9}}>
+            Someone you excluded wants to reconnect with you.
+          </p>
+          {reconnectRequests.map(request => (
+            <div key={request._id} style={{
+              background: 'rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <strong>{request.fromName || request.fromUsername}</strong>
+                <div style={{fontSize: '12px', opacity: 0.8}}>
+                  {new Date(request.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div style={{display: 'flex', gap: '8px'}}>
+                <button
+                  onClick={() => handleReconnectResponse(request._id, 'accept', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                  style={{
+                    background: '#22c55e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {respondingToRequest === request._id ? '...' : '✓ Unblock'}
+                </button>
+                <button
+                  onClick={() => handleReconnectResponse(request._id, 'decline', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {respondingToRequest === request._id ? '...' : '✕ Decline'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
       {/* Compact title bar instead of large banner */}
       <div className="compact-page-title">
         <span className="compact-title-icon">💑</span>
@@ -1242,6 +1460,7 @@ const Dashboard = () => {
             </div>
             <span className="column-expand-icon">{expandedGroups.myActivities ? '▼' : '►'}</span>
           </div>
+          
           
           {expandedGroups.myActivities && (
             <div className="column-sections">

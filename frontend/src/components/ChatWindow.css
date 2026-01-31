@@ -780,6 +780,111 @@
   color: var(--text-color);
 }
 
+/* Reconnect Request Section */
+.reconnect-request-section {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color);
+}
+
+.reconnect-divider {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.reconnect-divider span {
+  padding: 0 12px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.reconnect-divider::before,
+.reconnect-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.btn-request-reconnect {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.btn-request-reconnect:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}
+
+.btn-request-reconnect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.reconnect-status {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.reconnect-pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--primary-color);
+  background: rgba(99, 102, 241, 0.1);
+  padding: 10px 16px;
+  border-radius: 8px;
+  animation: pulse-soft 2s infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.reconnect-accepted {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--success-color);
+  background: rgba(34, 197, 94, 0.1);
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.reconnect-declined {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  background: var(--surface-color);
+  padding: 10px 16px;
+  border-radius: 8px;
+}
+
+.reconnect-hint {
+  margin: 8px 0 0 0;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* You Excluded This User Notice */
 .chat-exclusion-notice {
   display: flex;

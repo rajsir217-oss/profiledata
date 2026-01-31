@@ -46,6 +46,8 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [blockStatus, setBlockStatus] = useState({ iBlockedThem: false, theyBlockedMe: false, canMessage: true });
   const [addingToExclusion, setAddingToExclusion] = useState(false);
   const [removingFromExclusion, setRemovingFromExclusion] = useState(false);
+  const [reconnectStatus, setReconnectStatus] = useState({ hasRecentRequest: false, status: null });
+  const [sendingReconnect, setSendingReconnect] = useState(false);
 
   const scrollToBottom = () => {
     // Use block: 'nearest' to prevent page scroll, only scroll within the messages container
@@ -115,6 +117,39 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       toastService.error('Failed to remove from exclusion list.');
     } finally {
       setRemovingFromExclusion(false);
+    }
+  };
+
+  // Check reconnect request status when they blocked us
+  useEffect(() => {
+    const checkReconnectStatus = async () => {
+      if (!otherUser?.username || !blockStatus.theyBlockedMe) return;
+      try {
+        const response = await api.get(`/exclusions/reconnect-status/${otherUser.username}`);
+        setReconnectStatus(response.data);
+      } catch (error) {
+        logger.warn('Could not check reconnect status:', error);
+      }
+    };
+    checkReconnectStatus();
+  }, [otherUser?.username, blockStatus.theyBlockedMe]);
+
+  // Handle sending reconnect request
+  const handleRequestReconnect = async () => {
+    if (!otherUser?.username) return;
+    setSendingReconnect(true);
+    try {
+      await api.post(`/exclusions/request-reconnect/${otherUser.username}`);
+      setReconnectStatus({ hasRecentRequest: true, status: 'pending' });
+      const toastService = (await import('../services/toastService')).default;
+      toastService.success(`Reconnect request sent to ${otherUser.firstName || otherUser.username}!`);
+    } catch (error) {
+      logger.error('Error sending reconnect request:', error);
+      const toastService = (await import('../services/toastService')).default;
+      const message = error.response?.data?.detail || 'Failed to send reconnect request.';
+      toastService.error(message);
+    } finally {
+      setSendingReconnect(false);
     }
   };
 
@@ -300,6 +335,48 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
               <button className="btn-cancel-exclusion" onClick={() => {}}>
                 No, Keep Conversation
               </button>
+            </div>
+            
+            {/* Request to Reconnect Button */}
+            <div className="reconnect-request-section">
+              <div className="reconnect-divider">
+                <span>or</span>
+              </div>
+              {reconnectStatus.hasRecentRequest ? (
+                <div className="reconnect-status">
+                  {reconnectStatus.status === 'pending' && (
+                    <span className="reconnect-pending">
+                      🔔 Reconnect request sent - waiting for response
+                    </span>
+                  )}
+                  {reconnectStatus.status === 'accepted' && (
+                    <span className="reconnect-accepted">
+                      ✅ Your reconnect request was accepted!
+                    </span>
+                  )}
+                  {reconnectStatus.status === 'declined' && (
+                    <span className="reconnect-declined">
+                      Request was declined. You can try again in 24 hours.
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <button 
+                  className="btn-request-reconnect"
+                  onClick={handleRequestReconnect}
+                  disabled={sendingReconnect}
+                  title="Send a notification asking to reconnect"
+                >
+                  {sendingReconnect ? (
+                    <>Sending...</>
+                  ) : (
+                    <>🔔 Request to Reconnect</>
+                  )}
+                </button>
+              )}
+              <p className="reconnect-hint">
+                This will send a notification to {otherUser?.firstName || otherUser?.username} asking them to reconsider.
+              </p>
             </div>
           </div>
         </div>

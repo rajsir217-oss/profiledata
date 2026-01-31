@@ -157,6 +157,10 @@ const Dashboard2 = () => {
   
   // Pause feature state
   const [pauseStatus, setPauseStatus] = useState(null);
+  
+  // Reconnect requests state (people wanting to reconnect with current user)
+  const [reconnectRequests, setReconnectRequests] = useState([]);
+  const [respondingToRequest, setRespondingToRequest] = useState(null);
   const [showPauseSettings, setShowPauseSettings] = useState(false);
   
   // Exclusion preview modal state
@@ -313,13 +317,17 @@ const Dashboard2 = () => {
     logger.info('📦 Lazy loading My Activities data...');
     
     try {
-      const [messagesRes, notesRes, favoritesRes, shortlistsRes, exclusionsRes] = await Promise.all([
+      const [messagesRes, notesRes, favoritesRes, shortlistsRes, exclusionsRes, reconnectRes] = await Promise.all([
         api.get(`/messages/conversations?username=${currentUser}`).then(res => res.data.conversations || []),
         axios.get(`${getBackendUrl()}/api/notes`, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }).then(res => res.data.notes || []).catch(() => []),
         api.get(`/favorites/${currentUser}`).then(res => res.data.favorites || []),
         api.get(`/shortlist/${currentUser}`).then(res => res.data.shortlist || []),
-        api.get(`/exclusions/${currentUser}`).then(res => res.data.exclusions || [])
+        api.get(`/exclusions/${currentUser}`).then(res => res.data.exclusions || []),
+        api.get('/exclusions/reconnect-requests/pending').then(res => res.data.requests || []).catch(() => [])
       ]);
+      
+      // Set reconnect requests
+      setReconnectRequests(reconnectRes);
       
       // Also load views
       await refreshViews(currentUser, true);
@@ -337,6 +345,31 @@ const Dashboard2 = () => {
       logger.info('✅ My Activities data loaded');
     } catch (err) {
       logger.error('Error loading My Activities:', err);
+    }
+  };
+
+  // Handle responding to a reconnect request (accept/decline)
+  const handleReconnectResponse = async (requestId, action, fromUsername) => {
+    setRespondingToRequest(requestId);
+    try {
+      await api.post(`/exclusions/reconnect-requests/${requestId}/respond?action=${action}`);
+      
+      // Remove from local state
+      setReconnectRequests(prev => prev.filter(r => r._id !== requestId));
+      
+      if (action === 'accept') {
+        // Refresh exclusions list since we unblocked someone
+        setLoadedData(prev => ({ ...prev, myActivities: false }));
+        await loadMyActivitiesData(currentUser);
+        toast.success(`You've unblocked ${fromUsername}. They can now message you.`);
+      } else {
+        toast.info('Reconnect request declined.');
+      }
+    } catch (err) {
+      logger.error('Failed to respond to reconnect request:', err);
+      toast.error('Failed to process request. Please try again.');
+    } finally {
+      setRespondingToRequest(null);
     }
   };
 
@@ -1424,6 +1457,73 @@ const Dashboard2 = () => {
 
   return (
     <div className="dashboard-container">
+      {/* RECONNECT REQUESTS BANNER - Show at top when there are pending requests */}
+      {reconnectRequests.length > 0 && (
+        <div style={{
+          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          color: 'white',
+          padding: '16px',
+          borderRadius: '12px',
+          marginBottom: '16px',
+          boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+        }}>
+          <h3 style={{margin: '0 0 8px 0', fontSize: '16px'}}>🔔 Reconnect Requests ({reconnectRequests.length})</h3>
+          <p style={{margin: '0 0 12px 0', fontSize: '13px', opacity: 0.9}}>
+            Someone you excluded wants to reconnect with you.
+          </p>
+          {reconnectRequests.map(request => (
+            <div key={request._id} style={{
+              background: 'rgba(255,255,255,0.15)',
+              borderRadius: '8px',
+              padding: '12px',
+              marginBottom: '8px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <div>
+                <strong>{request.fromName || request.fromUsername}</strong>
+                <div style={{fontSize: '12px', opacity: 0.8}}>
+                  {new Date(request.createdAt).toLocaleDateString()}
+                </div>
+              </div>
+              <div style={{display: 'flex', gap: '8px'}}>
+                <button
+                  onClick={() => handleReconnectResponse(request._id, 'accept', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                  style={{
+                    background: '#22c55e',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {respondingToRequest === request._id ? '...' : '✓ Unblock'}
+                </button>
+                <button
+                  onClick={() => handleReconnectResponse(request._id, 'decline', request.fromUsername)}
+                  disabled={respondingToRequest === request._id}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                    borderRadius: '6px',
+                    padding: '8px 16px',
+                    cursor: 'pointer',
+                    fontWeight: '500'
+                  }}
+                >
+                  {respondingToRequest === request._id ? '...' : '✕ Decline'}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      
       {/* MFA Warning Banner */}
       {mfaWarning && (
         <div className="mfa-warning-banner" style={{
