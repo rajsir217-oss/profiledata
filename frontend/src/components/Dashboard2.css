@@ -2791,6 +2791,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  transform: scale(0.7);
+  transform-origin: center center;
   gap: 6px;
   margin: var(--spacing-xl, 24px) auto var(--spacing-lg, 16px);
   max-width: fit-content;
