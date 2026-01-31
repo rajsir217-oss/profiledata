@@ -1966,3 +1966,134 @@
     border-radius: 10px;
   }
 }
+
+/* Reconnect Requests Section */
+.reconnect-requests-section {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.reconnect-requests-title {
+  margin: 0 0 4px 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.reconnect-requests-subtitle {
+  margin: 0 0 12px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.reconnect-requests-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reconnect-request-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 16px;
+  transition: all 0.2s ease;
+}
+
+.reconnect-request-card:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+}
+
+.reconnect-request-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.reconnect-request-name {
+  font-weight: 600;
+  color: var(--text-color);
+  font-size: 14px;
+}
+
+.reconnect-request-time {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.reconnect-request-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-accept-reconnect {
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--success-color, #22c55e) 0%, #16a34a 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-accept-reconnect:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
+}
+
+.btn-accept-reconnect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-decline-reconnect {
+  padding: 6px 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-decline-reconnect:hover:not(:disabled) {
+  background: var(--hover-background);
+  border-color: var(--danger-color);
+  color: var(--danger-color);
+}
+
+.btn-decline-reconnect:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .reconnect-request-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .reconnect-request-actions {
+    width: 100%;
+  }
+  
+  .btn-accept-reconnect,
+  .btn-decline-reconnect {
+    flex: 1;
+  }
+}

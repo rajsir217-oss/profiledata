@@ -113,6 +113,37 @@
   z-index: 2;
 }
 
+/* Tried to Contact Badge (for exclusions) */
+.tried-contact-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 3;
+  background: var(--primary-color, #6366f1);
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: pulse-contact 2s infinite;
+  cursor: help;
+}
+
+@keyframes pulse-contact {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+  }
+}
+
 /* Bio Section - When no image available */
 .user-card-bio-section {
   width: 100%;

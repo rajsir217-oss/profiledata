@@ -256,6 +256,13 @@ const UserCard = ({
         {showMessageBadge && (
           <MessageBadge username={username} size="small" showCount={true} />
         )}
+        
+        {/* Tried to Contact Badge (for exclusions) */}
+        {user.hasTriedToContact && (
+          <div className="tried-contact-badge" title="This person tried to contact you">
+            💬
+          </div>
+        )}
       </div>
 
       {/* Body Section - ALWAYS shown for consistent card height */}

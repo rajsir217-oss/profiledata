@@ -5557,6 +5557,163 @@ async def reorder_shortlist(
 
 # ===== EXCLUSIONS MANAGEMENT =====
 
+# NOTE: Reconnect routes MUST be defined BEFORE /exclusions/{username} to avoid route conflicts
+# FastAPI matches routes in order, so /exclusions/reconnect-requests/pending would match {username}="reconnect-requests"
+
+@router.get("/exclusions/reconnect-requests/pending")
+async def get_pending_reconnect_requests(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get pending reconnect requests sent TO the current user (people wanting to reconnect)."""
+    username = current_user["username"]
+    
+    requests = await db.reconnect_requests.find({
+        "toUsername": username,
+        "status": "pending"
+    }).sort("createdAt", -1).to_list(length=50)
+    
+    # Convert ObjectId to string
+    for req in requests:
+        req["_id"] = str(req["_id"])
+    
+    return {"requests": requests, "count": len(requests)}
+
+
+@router.get("/exclusions/reconnect-requests/sent")
+async def get_sent_reconnect_requests(
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Get reconnect requests sent BY the current user."""
+    username = current_user["username"]
+    
+    requests = await db.reconnect_requests.find({
+        "fromUsername": username
+    }).sort("createdAt", -1).to_list(length=50)
+    
+    # Convert ObjectId to string
+    for req in requests:
+        req["_id"] = str(req["_id"])
+    
+    return {"requests": requests, "count": len(requests)}
+
+
+@router.get("/exclusions/reconnect-status/{target_username}")
+async def get_reconnect_status(
+    target_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Check if current user has a pending reconnect request to target user."""
+    username = current_user["username"]
+    
+    # Check for recent request (within 24 hours)
+    one_day_ago = datetime.utcnow() - timedelta(hours=24)
+    
+    request = await db.reconnect_requests.find_one({
+        "fromUsername": username,
+        "toUsername": target_username,
+        "createdAt": {"$gte": one_day_ago}
+    })
+    
+    if request:
+        return {
+            "hasRecentRequest": True,
+            "status": request.get("status", "pending"),
+            "requestedAt": request.get("createdAt")
+        }
+    
+    return {"hasRecentRequest": False, "status": None}
+
+
+# POST routes for reconnect - must be before /exclusions/{target_username}
+@router.post("/exclusions/reconnect-requests/{request_id}/respond")
+async def respond_to_reconnect_request(
+    request_id: str,
+    action: str = Query(..., regex="^(accept|decline)$"),
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Respond to a reconnect request.
+    action: 'accept' (removes exclusion) or 'decline' (keeps exclusion)
+    """
+    from bson import ObjectId
+    
+    logger.info(f"🔔 Reconnect respond called: request_id={request_id}, action={action}")
+    username = current_user["username"]
+    
+    try:
+        request_obj_id = ObjectId(request_id)
+    except Exception as e:
+        logger.error(f"❌ Failed to parse ObjectId: {e}")
+        raise HTTPException(status_code=400, detail="Invalid request ID")
+    
+    # Find the request
+    request_doc = await db.reconnect_requests.find_one({
+        "_id": request_obj_id,
+        "toUsername": username,
+        "status": "pending"
+    })
+    
+    if not request_doc:
+        raise HTTPException(status_code=404, detail="Reconnect request not found or already processed")
+    
+    from_username = request_doc["fromUsername"]
+    
+    if action == "accept":
+        # Remove the exclusion
+        result = await db.exclusions.delete_one({
+            "userUsername": username,
+            "excludedUsername": from_username
+        })
+        
+        if result.deleted_count > 0:
+            logger.info(f"✅ Exclusion removed: {username} unblocked {from_username}")
+        
+        # Update request status
+        await db.reconnect_requests.update_one(
+            {"_id": request_obj_id},
+            {"$set": {"status": "accepted", "updatedAt": datetime.utcnow()}}
+        )
+        
+        # Notify the requester
+        try:
+            to_user = await db.users.find_one({"username": username})
+            to_name = f"{to_user.get('firstName', '')} {to_user.get('lastName', '')}".strip() or username
+            
+            notification_doc = {
+                "type": "reconnect_accepted",
+                "recipientUsername": from_username,
+                "senderUsername": username,
+                "senderName": to_name,
+                "title": "Reconnect Request Accepted",
+                "message": f"{to_name} has accepted your reconnect request! You can now message them.",
+                "channel": "in_app",
+                "status": "pending",
+                "priority": "high",
+                "metadata": {"requestId": request_id},
+                "createdAt": datetime.utcnow(),
+                "updatedAt": datetime.utcnow()
+            }
+            await db.notification_queue.insert_one(notification_doc)
+        except Exception as notif_err:
+            logger.warning(f"⚠️ Failed to queue acceptance notification: {notif_err}")
+        
+        return {"success": True, "message": f"You have unblocked {from_username}. They can now message you."}
+    
+    else:  # decline
+        # Update request status
+        await db.reconnect_requests.update_one(
+            {"_id": request_obj_id},
+            {"$set": {"status": "declined", "updatedAt": datetime.utcnow()}}
+        )
+        
+        logger.info(f"❌ Reconnect request declined: {username} declined {from_username}")
+        return {"success": True, "message": "Reconnect request declined."}
+
+
 @router.get("/exclusions/preview/{target_username}")
 async def preview_exclusion_cleanup(
     target_username: str,
@@ -5656,6 +5813,7 @@ async def add_to_exclusions(
     db = Depends(get_database)
 ):
     """Add user to exclusions with full relationship cleanup"""
+    logger.info(f"🚫 add_to_exclusions called with target_username={target_username}")
     # Non-active users cannot add exclusions
     if current_user.get("accountStatus") != "active":
         raise HTTPException(
@@ -5998,6 +6156,163 @@ async def reorder_exclusions(
     except Exception as e:
         logger.error(f"❌ Error reordering exclusions: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.get("/exclusions/{username}/contact-attempts")
+async def get_exclusion_contact_attempts(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get contact attempts from excluded users (separate endpoint for performance).
+    Returns which excluded users have tried to message the current user.
+    """
+    if current_user["username"] != username and current_user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Not authorized")
+    
+    try:
+        # Get user's exclusion list
+        exclusions = await db.exclusions.find(
+            {"userUsername": username},
+            {"excludedUsername": 1}
+        ).to_list(100)
+        excluded_usernames = [exc["excludedUsername"] for exc in exclusions]
+        
+        if not excluded_usernames:
+            return {"contactAttemptCount": 0, "attemptsByUser": {}}
+        
+        # Aggregate blocked attempts by sender
+        pipeline = [
+            {"$match": {"toUsername": username, "fromUsername": {"$in": excluded_usernames}}},
+            {"$group": {
+                "_id": "$fromUsername",
+                "count": {"$sum": 1},
+                "lastAttempt": {"$max": "$attemptedAt"}
+            }}
+        ]
+        attempts = await db.blocked_message_attempts.aggregate(pipeline).to_list(100)
+        
+        # Build response
+        attempts_by_user = {}
+        for attempt in attempts:
+            attempts_by_user[attempt["_id"]] = {
+                "count": attempt["count"],
+                "lastAttempt": attempt["lastAttempt"].isoformat() if attempt["lastAttempt"] else None
+            }
+        
+        logger.info(f"📬 Found {len(attempts_by_user)} excluded users who tried to contact {username}")
+        return {
+            "contactAttemptCount": len(attempts_by_user),
+            "attemptsByUser": attempts_by_user
+        }
+    except Exception as e:
+        logger.error(f"❌ Error getting contact attempts: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/exclusions/request-reconnect/{target_username}")
+async def request_reconnect(
+    target_username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Request to reconnect with a user who has excluded you.
+    Rate limited: 1 request per user per 24 hours, max 3 pending requests total.
+    """
+    username = current_user["username"]
+    logger.info(f"🔔 Reconnect request: {username} → {target_username}")
+    
+    # Verify the target user has actually excluded the current user
+    exclusion = await db.exclusions.find_one({
+        "userUsername": target_username,
+        "excludedUsername": username
+    })
+    
+    if not exclusion:
+        raise HTTPException(
+            status_code=400,
+            detail="You can only request reconnection with users who have excluded you."
+        )
+    
+    # Rate limit: Check if already sent a request in the last 24 hours
+    one_day_ago = datetime.utcnow() - timedelta(hours=24)
+    recent_request = await db.reconnect_requests.find_one({
+        "fromUsername": username,
+        "toUsername": target_username,
+        "createdAt": {"$gte": one_day_ago}
+    })
+    
+    if recent_request:
+        raise HTTPException(
+            status_code=429,
+            detail="You have already sent a reconnect request to this user in the last 24 hours."
+        )
+    
+    # Rate limit: Max 3 pending requests total
+    pending_count = await db.reconnect_requests.count_documents({
+        "fromUsername": username,
+        "status": "pending"
+    })
+    
+    if pending_count >= 3:
+        raise HTTPException(
+            status_code=429,
+            detail="You have reached the maximum of 3 pending reconnect requests. Please wait for responses."
+        )
+    
+    # Get user profiles for notification
+    from_user = await db.users.find_one({"username": username})
+    to_user = await db.users.find_one({"username": target_username})
+    
+    if not from_user or not to_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    from_name = f"{from_user.get('firstName', '')} {from_user.get('lastName', '')}".strip() or username
+    
+    # Create reconnect request
+    request_doc = {
+        "fromUsername": username,
+        "fromName": from_name,
+        "toUsername": target_username,
+        "status": "pending",  # pending, accepted, declined, expired
+        "createdAt": datetime.utcnow(),
+        "updatedAt": datetime.utcnow()
+    }
+    
+    result = await db.reconnect_requests.insert_one(request_doc)
+    logger.info(f"✅ Reconnect request created: {result.inserted_id}")
+    
+    # Queue notification for the excluder
+    try:
+        notification_doc = {
+            "type": "reconnect_request",
+            "recipientUsername": target_username,
+            "senderUsername": username,
+            "senderName": from_name,
+            "title": "Reconnect Request",
+            "message": f"{from_name} would like to reconnect with you",
+            "channel": "in_app",
+            "status": "pending",
+            "priority": "medium",
+            "metadata": {
+                "requestId": str(result.inserted_id),
+                "fromUsername": username
+            },
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        await db.notification_queue.insert_one(notification_doc)
+        logger.info(f"📬 Notification queued for {target_username}")
+    except Exception as notif_err:
+        logger.warning(f"⚠️ Failed to queue notification: {notif_err}")
+    
+    return {
+        "success": True,
+        "message": "Reconnect request sent successfully",
+        "requestId": str(result.inserted_id)
+    }
+
 
 @router.delete("/exclusions/{target_username}")
 async def remove_from_exclusions(
@@ -6867,6 +7182,7 @@ async def get_block_status(
     """
     Check block/exclusion status between current user and another user.
     Returns who blocked whom (if any).
+    Also logs contact attempt if the other user has blocked current user.
     """
     username = current_user["username"]
     
@@ -6881,6 +7197,28 @@ async def get_block_status(
         "userUsername": other_username,
         "excludedUsername": username
     })
+    
+    # Log contact attempt if they blocked me (user is trying to view/contact blocked profile)
+    if they_blocked_me:
+        try:
+            # Check if we already logged an attempt in the last hour (avoid spam)
+            one_hour_ago = datetime.utcnow() - timedelta(hours=1)
+            recent_attempt = await db.blocked_message_attempts.find_one({
+                "fromUsername": username,
+                "toUsername": other_username,
+                "attemptedAt": {"$gte": one_hour_ago}
+            })
+            
+            if not recent_attempt:
+                await db.blocked_message_attempts.insert_one({
+                    "fromUsername": username,
+                    "toUsername": other_username,
+                    "attemptedAt": datetime.utcnow(),
+                    "reason": "viewed_blocked_profile"
+                })
+                logger.info(f"📝 Logged contact attempt (view): {username} → {other_username}")
+        except Exception as log_err:
+            logger.warning(f"⚠️ Failed to log contact attempt: {log_err}")
     
     return {
         "iBlockedThem": i_blocked_them is not None,
@@ -7019,6 +7357,18 @@ async def send_message_enhanced(
             "excludedUsername": username
         })
         if they_blocked_me:
+            # Log the blocked attempt for "tried to contact" feature
+            try:
+                await db.blocked_message_attempts.insert_one({
+                    "fromUsername": username,
+                    "toUsername": message_data.toUsername,
+                    "attemptedAt": datetime.utcnow(),
+                    "reason": "excluded_by_recipient"
+                })
+                logger.info(f"📝 Logged blocked message attempt: {username} → {message_data.toUsername}")
+            except Exception as log_err:
+                logger.warning(f"⚠️ Failed to log blocked attempt: {log_err}")
+            
             raise HTTPException(
                 status_code=403,
                 detail="This user is not accepting messages from you."
