@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import axios from 'axios';
@@ -170,7 +170,128 @@ const Dashboard2 = () => {
   const [selectedUserForExclusion, setSelectedUserForExclusion] = useState(null);
   
   // View mode and drag-drop states
-  const [viewMode, setViewMode] = useState('cards'); // 'cards' or 'rows'
+  const [viewMode, setViewMode] = useState(() => {
+    return localStorage.getItem('dashboardViewMode') || 'cards';
+  }); // 'cards' or 'rows'
+  
+  // Handler to change view mode and persist to localStorage
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('dashboardViewMode', mode);
+  };
+  
+  // Resizable columns state for row view
+  const [columnWidths, setColumnWidths] = useState(() => {
+    const saved = localStorage.getItem('dashboardColumnWidths');
+    return saved ? JSON.parse(saved) : {
+      index: 35,
+      photo: 50,
+      name: 150,
+      age: 45,
+      height: 55,
+      location: 100,
+      education: 150,
+      occupation: 150,
+      actions: 80
+    };
+  });
+  
+  // Refs for column resizing
+  const resizingColumnRef = useRef(null);
+  const startXRef = useRef(0);
+  const startWidthRef = useRef(0);
+  
+  // Column resize handlers
+  const handleResizeMove = useCallback((e) => {
+    if (!resizingColumnRef.current) return;
+    const diff = e.clientX - startXRef.current;
+    const newWidth = Math.max(30, startWidthRef.current + diff);
+    setColumnWidths(prev => {
+      const updated = { ...prev, [resizingColumnRef.current]: newWidth };
+      localStorage.setItem('dashboardColumnWidths', JSON.stringify(updated));
+      return updated;
+    });
+  }, []);
+  
+  const handleResizeEnd = useCallback(() => {
+    resizingColumnRef.current = null;
+    document.removeEventListener('mousemove', handleResizeMove);
+    document.removeEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, [handleResizeMove]);
+  
+  const handleResizeStart = useCallback((e, columnKey) => {
+    e.preventDefault();
+    e.stopPropagation();
+    resizingColumnRef.current = columnKey;
+    startXRef.current = e.clientX;
+    startWidthRef.current = columnWidths[columnKey];
+    document.addEventListener('mousemove', handleResizeMove);
+    document.addEventListener('mouseup', handleResizeEnd);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [columnWidths, handleResizeMove, handleResizeEnd]);
+  
+  // Sorting state for row view
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
+  
+  // Sort handler
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
+    }
+  };
+  
+  // Sort data function
+  const sortData = (data) => {
+    if (!data || viewMode !== 'rows') return data;
+    
+    return [...data].sort((a, b) => {
+      const profileA = a.viewerProfile || a.userProfile || a;
+      const profileB = b.viewerProfile || b.userProfile || b;
+      
+      let valA, valB;
+      
+      switch (sortBy) {
+        case 'name':
+          valA = (profileA.firstName || profileA.username || '').toLowerCase();
+          valB = (profileB.firstName || profileB.username || '').toLowerCase();
+          break;
+        case 'age':
+          valA = profileA.age || 0;
+          valB = profileB.age || 0;
+          break;
+        case 'height':
+          valA = profileA.heightInches || 0;
+          valB = profileB.heightInches || 0;
+          break;
+        case 'location':
+          valA = (profileA.location || '').toLowerCase();
+          valB = (profileB.location || '').toLowerCase();
+          break;
+        case 'education':
+          valA = (profileA.education || profileA.educationHistory?.[0]?.degree || '').toLowerCase();
+          valB = (profileB.education || profileB.educationHistory?.[0]?.degree || '').toLowerCase();
+          break;
+        case 'occupation':
+          valA = (profileA.occupation || profileA.workExperience?.[0]?.description || '').toLowerCase();
+          valB = (profileB.occupation || profileB.workExperience?.[0]?.description || '').toLowerCase();
+          break;
+        default:
+          return 0;
+      }
+      
+      if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+  
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const [dragSection, setDragSection] = useState(null);
@@ -1397,7 +1518,7 @@ const Dashboard2 = () => {
       <div className="tab-content-wrapper" style={{ '--tab-color': color }}>
         {/* Category header with color indicator */}
         <div className="tab-content-header" style={{ background: color }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
             <span className="tab-content-icon">{icon}</span>
             <span className="tab-content-title">{title}</span>
             <span className="tab-content-count">{data?.length || 0}</span>
@@ -1416,6 +1537,41 @@ const Dashboard2 = () => {
               </button>
             )}
           </div>
+          {/* View Mode Toggle */}
+          <div className="view-mode-toggle" style={{ display: 'flex', gap: '4px' }}>
+            <button
+              onClick={() => handleViewModeChange('cards')}
+              className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
+              title="Card View"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: 'none',
+                background: viewMode === 'cards' ? 'rgba(255,255,255,0.3)' : 'transparent',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              ▦
+            </button>
+            <button
+              onClick={() => handleViewModeChange('rows')}
+              className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
+              title="Row View"
+              style={{
+                padding: '4px 8px',
+                borderRadius: '4px',
+                border: 'none',
+                background: viewMode === 'rows' ? 'rgba(255,255,255,0.3)' : 'transparent',
+                color: 'white',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              ☰
+            </button>
+          </div>
         </div>
         
         {/* Content area */}
@@ -1425,11 +1581,67 @@ const Dashboard2 = () => {
             <p>No {title.toLowerCase()} yet</p>
           </div>
         ) : (
-          <div className={`tab-content-grid ${viewMode === 'rows' ? 'view-rows' : ''}`}>
-            {data.map((user, index) => (
-              <div key={user.username || index} className="tab-content-item">
+          <div 
+            className={`tab-content-grid ${viewMode === 'rows' ? 'view-rows' : ''}`}
+            style={viewMode === 'rows' ? {
+              gridTemplateColumns: `${columnWidths.index}px ${columnWidths.photo}px ${columnWidths.name}px ${columnWidths.age}px ${columnWidths.height}px ${columnWidths.location}px ${columnWidths.education}px ${columnWidths.occupation}px ${columnWidths.actions}px`
+            } : undefined}
+          >
+            {/* Excel-like header row for row view with resize handles and sorting */}
+            {viewMode === 'rows' && (
+              <>
+                <span className="excel-col excel-col-index">#</span>
+                <span className="excel-col excel-col-photo"></span>
+                <span 
+                  className={`excel-col excel-col-name resizable-header sortable ${sortBy === 'name' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('name')}
+                >
+                  NAME {sortBy === 'name' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'name')} />
+                </span>
+                <span 
+                  className={`excel-col excel-col-age resizable-header sortable ${sortBy === 'age' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('age')}
+                >
+                  AGE {sortBy === 'age' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'age')} />
+                </span>
+                <span 
+                  className={`excel-col excel-col-height resizable-header sortable ${sortBy === 'height' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('height')}
+                >
+                  HEIGHT {sortBy === 'height' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'height')} />
+                </span>
+                <span 
+                  className={`excel-col excel-col-location resizable-header sortable ${sortBy === 'location' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('location')}
+                >
+                  LOCATION {sortBy === 'location' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'location')} />
+                </span>
+                <span 
+                  className={`excel-col excel-col-education resizable-header sortable ${sortBy === 'education' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('education')}
+                >
+                  EDUCATION {sortBy === 'education' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'education')} />
+                </span>
+                <span 
+                  className={`excel-col excel-col-occupation resizable-header sortable ${sortBy === 'occupation' ? 'sorted' : ''}`}
+                  onClick={() => handleSort('occupation')}
+                >
+                  OCCUPATION {sortBy === 'occupation' && (sortOrder === 'asc' ? '🔼' : '🔽')}
+                  <div className="resize-handle" onMouseDown={(e) => handleResizeStart(e, 'occupation')} />
+                </span>
+                <span className="excel-col excel-col-actions">ACTIONS</span>
+              </>
+            )}
+            {sortData(data).map((user, index) => (
+              <React.Fragment key={user.username || index}>
+                {viewMode === 'rows' && <span className="row-cell row-index">{index + 1}</span>}
                 {renderUserCard(user, context, removeHandler)}
-              </div>
+              </React.Fragment>
             ))}
           </div>
         )}
