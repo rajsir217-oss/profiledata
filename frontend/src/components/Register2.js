@@ -1970,6 +1970,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             {fieldErrors.firstName && touchedFields.firstName && (
               <div className="invalid-feedback d-block">{fieldErrors.firstName}</div>
             )}
+            {formData.firstName && formData.firstName.trim().length > 0 && formData.firstName.trim().length < 4 && !fieldErrors.firstName && (
+              <div className="name-warning-bubble">
+                <span className="warning-icon">⚠️</span>
+                <span>First name seems short. Please verify it's correct.</span>
+              </div>
+            )}
           </div>
           <div className="col-md-6">
             <label className="form-label">
@@ -1987,6 +1993,12 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             />
             {fieldErrors.lastName && touchedFields.lastName && (
               <div className="invalid-feedback d-block">{fieldErrors.lastName}</div>
+            )}
+            {formData.lastName && formData.lastName.trim().length > 0 && formData.lastName.trim().length < 4 && !fieldErrors.lastName && (
+              <div className="name-warning-bubble">
+                <span className="warning-icon">⚠️</span>
+                <span>Last name seems short. Please verify it's correct.</span>
+              </div>
             )}
           </div>
         </div>
