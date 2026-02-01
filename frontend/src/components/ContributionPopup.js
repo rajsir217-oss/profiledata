@@ -1,14 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
+import toastService from '../services/toastService';
 import './ContributionPopup.css';
 
 const ContributionPopup = ({ isOpen, onClose }) => {
   const [selectedAmount, setSelectedAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
   const [paymentType, setPaymentType] = useState('monthly'); // 'one-time' or 'monthly'
+  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe' or 'paypal'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasLoggedShown, setHasLoggedShown] = useState(false);
+  const [paypalConfigured, setPaypalConfigured] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState(null);
+  const [paypalReady, setPaypalReady] = useState(false);
+  const paypalContainerRef = useRef(null);
 
   const amounts = [5, 10, 15];
 
@@ -59,6 +65,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
         logActivity('popup_shown');
         setHasLoggedShown(true);
       }
+      // Check PayPal config
+      checkPayPalConfig();
     } else {
       document.body.style.overflow = 'unset';
       setHasLoggedShown(false);
@@ -67,6 +75,131 @@ const ContributionPopup = ({ isOpen, onClose }) => {
       document.body.style.overflow = 'unset';
     };
   }, [isOpen, hasLoggedShown]);
+
+  // Check PayPal configuration
+  const checkPayPalConfig = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${getBackendUrl()}/api/paypal/config`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      setPaypalConfigured(data.configured);
+      if (data.configured && data.client_id) {
+        setPaypalClientId(data.client_id);
+      }
+    } catch (err) {
+      console.debug('PayPal config check failed:', err);
+    }
+  };
+
+  // Initialize PayPal when selected and one-time payment
+  useEffect(() => {
+    if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && paymentType === 'one-time') {
+      initializePayPal();
+    }
+    return () => {
+      if (paypalContainerRef.current) {
+        paypalContainerRef.current.innerHTML = '';
+      }
+      setPaypalReady(false);
+    };
+  }, [paymentMethod, paypalConfigured, paypalClientId, paymentType, selectedAmount, customAmount]);
+
+  const initializePayPal = async () => {
+    if (!window.paypal) {
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
+      script.async = true;
+      script.onload = () => renderPayPalButtons();
+      script.onerror = () => setError('Failed to load PayPal');
+      document.body.appendChild(script);
+    } else {
+      renderPayPalButtons();
+    }
+  };
+
+  const renderPayPalButtons = () => {
+    if (!window.paypal || !paypalContainerRef.current) return;
+    
+    paypalContainerRef.current.innerHTML = '';
+    
+    const amount = selectedAmount === 'custom' ? parseFloat(customAmount) : selectedAmount;
+    if (!amount || amount < 1) return;
+    
+    const token = localStorage.getItem('token');
+    
+    try {
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal',
+          height: 40
+        },
+        createOrder: async () => {
+          const response = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              amount: amount.toFixed(2),
+              currency: 'USD',
+              plan_id: 'contribution',
+              description: `Contribution - $${amount.toFixed(2)}`
+            })
+          });
+          const data = await response.json();
+          if (data.order_id) {
+            logActivity('proceed_to_payment', amount, 'one-time');
+            return data.order_id;
+          }
+          throw new Error(data.detail || 'Failed to create order');
+        },
+        onApprove: async (data) => {
+          setLoading(true);
+          try {
+            const response = await fetch(`${getBackendUrl()}/api/paypal/capture-order`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ order_id: data.orderID })
+            });
+            const captureData = await response.json();
+            if (captureData.success) {
+              logActivity('contributed', amount, 'one-time');
+              localStorage.setItem('contribution_popup_last_shown', Date.now().toString());
+              onClose();
+              // Show success toast
+              toastService.success('Thank you for your contribution! 💜');
+            } else {
+              setError(captureData.detail || 'Payment failed');
+            }
+          } catch (err) {
+            setError('Payment failed. Please try again.');
+          } finally {
+            setLoading(false);
+          }
+        },
+        onCancel: () => {
+          logActivity('closed');
+        },
+        onError: (err) => {
+          console.error('PayPal error:', err);
+          setError('PayPal encountered an error');
+        }
+      }).render(paypalContainerRef.current);
+      
+      setPaypalReady(true);
+    } catch (err) {
+      console.error('Error rendering PayPal:', err);
+    }
+  };
 
   const handleSessionDismiss = () => {
     // Log the close action
@@ -220,7 +353,10 @@ const ContributionPopup = ({ isOpen, onClose }) => {
               </button>
               <button
                 className={`payment-type-btn ${paymentType === 'monthly' ? 'active' : ''}`}
-                onClick={() => setPaymentType('monthly')}
+                onClick={() => {
+                  setPaymentType('monthly');
+                  setPaymentMethod('stripe'); // Monthly only via Stripe
+                }}
                 disabled={loading}
               >
                 Monthly
@@ -228,20 +364,59 @@ const ContributionPopup = ({ isOpen, onClose }) => {
             </div>
           </div>
 
-          <button 
-            className="contribution-proceed-btn"
-            onClick={handleProceedToPayment}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <span className="spinner"></span>
-                Processing...
-              </>
-            ) : (
-              <>💜 Proceed to Payment</>
-            )}
-          </button>
+          {/* Payment Method Selection - only for one-time */}
+          {paymentType === 'one-time' && paypalConfigured && (
+            <div className="payment-method-section">
+              <span className="payment-type-label">Pay with:</span>
+              <div className="payment-method-toggle">
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'stripe' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('stripe')}
+                  disabled={loading}
+                >
+                  💳 Card
+                </button>
+                <button
+                  className={`payment-method-btn ${paymentMethod === 'paypal' ? 'active' : ''}`}
+                  onClick={() => setPaymentMethod('paypal')}
+                  disabled={loading}
+                >
+                  <span className="paypal-p">P</span> PayPal
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* PayPal Buttons */}
+          {paymentMethod === 'paypal' && paymentType === 'one-time' && (
+            <div className="contribution-paypal-container">
+              <div ref={paypalContainerRef} id="contribution-paypal-buttons"></div>
+              {!paypalReady && (
+                <div className="paypal-loading">
+                  <span className="spinner"></span>
+                  Loading PayPal...
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Stripe Button - show when not using PayPal */}
+          {(paymentMethod === 'stripe' || paymentType === 'monthly') && (
+            <button 
+              className="contribution-proceed-btn"
+              onClick={handleProceedToPayment}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <span className="spinner"></span>
+                  Processing...
+                </>
+              ) : (
+                <>💜 Proceed to Payment</>
+              )}
+            </button>
+          )}
 
           <button 
             className="contribution-remind-btn"
