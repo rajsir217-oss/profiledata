@@ -16,10 +16,14 @@ const PricingPage = () => {
   const [subscriptionStatus, setSubscriptionStatus] = useState(null);
   const [stripeConfigured, setStripeConfigured] = useState(false);
   const [braintreeConfigured, setBraintreeConfigured] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe' or 'braintree'
+  const [paypalConfigured, setPaypalConfigured] = useState(false);
+  const [paypalClientId, setPaypalClientId] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe', 'braintree', or 'paypal'
   const [braintreeReady, setBraintreeReady] = useState(false);
   const [braintreeInstance, setBraintreeInstance] = useState(null);
+  const [paypalReady, setPaypalReady] = useState(false);
   const braintreeContainerRef = useRef(null);
+  const paypalContainerRef = useRef(null);
 
   useEffect(() => {
     loadPlans();
@@ -51,6 +55,20 @@ const PricingPage = () => {
     } catch (error) {
       console.error('Error checking Braintree config:', error);
     }
+    
+    // Check PayPal Direct
+    try {
+      const paypalResponse = await fetch(`${getBackendUrl()}/api/paypal/config`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const paypalData = await paypalResponse.json();
+      setPaypalConfigured(paypalData.configured);
+      if (paypalData.configured && paypalData.client_id) {
+        setPaypalClientId(paypalData.client_id);
+      }
+    } catch (error) {
+      console.error('Error checking PayPal config:', error);
+    }
   };
 
   // Initialize Braintree Drop-in when payment method changes to braintree
@@ -60,14 +78,33 @@ const PricingPage = () => {
     }
     
     return () => {
-      // Cleanup Braintree instance
-      if (braintreeInstance) {
-        braintreeInstance.teardown();
+      // Cleanup Braintree instance - check if teardown hasn't been called
+      if (braintreeInstance && typeof braintreeInstance.teardown === 'function') {
+        try {
+          braintreeInstance.teardown().catch(() => {});
+        } catch (e) {
+          // Ignore teardown errors
+        }
         setBraintreeInstance(null);
         setBraintreeReady(false);
       }
     };
   }, [paymentMethod, braintreeConfigured, selectedPlan]);
+
+  // Initialize PayPal SDK when payment method changes to paypal
+  useEffect(() => {
+    if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && selectedPlan) {
+      initializePayPal();
+    }
+    
+    return () => {
+      // Cleanup PayPal buttons
+      if (paypalContainerRef.current) {
+        paypalContainerRef.current.innerHTML = '';
+      }
+      setPaypalReady(false);
+    };
+  }, [paymentMethod, paypalConfigured, paypalClientId, selectedPlan]);
 
   const initializeBraintree = async () => {
     if (!window.braintree) {
@@ -82,6 +119,110 @@ const PricingPage = () => {
     }
   };
 
+  const initializePayPal = async () => {
+    // Check if PayPal SDK is already loaded
+    if (!window.paypal) {
+      const script = document.createElement('script');
+      script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
+      script.async = true;
+      script.onload = () => renderPayPalButtons();
+      script.onerror = () => {
+        toastService.error('Failed to load PayPal SDK');
+      };
+      document.body.appendChild(script);
+    } else {
+      renderPayPalButtons();
+    }
+  };
+
+  const renderPayPalButtons = async () => {
+    if (!window.paypal || !paypalContainerRef.current) return;
+    
+    // Clear previous buttons
+    paypalContainerRef.current.innerHTML = '';
+    
+    const plan = plans.find(p => p.id === selectedPlan);
+    if (!plan) return;
+    
+    const amount = getSelectedPlanPrice().toFixed(2);
+    const token = localStorage.getItem('token');
+    
+    try {
+      window.paypal.Buttons({
+        style: {
+          layout: 'vertical',
+          color: 'gold',
+          shape: 'rect',
+          label: 'paypal'
+        },
+        createOrder: async () => {
+          try {
+            const response = await fetch(`${getBackendUrl()}/api/paypal/create-order`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                amount: amount,
+                currency: 'USD',
+                plan_id: selectedPlan,
+                description: `${plan.name} Membership`
+              })
+            });
+            const data = await response.json();
+            if (data.order_id) {
+              return data.order_id;
+            } else {
+              throw new Error(data.detail || 'Failed to create PayPal order');
+            }
+          } catch (error) {
+            toastService.error(error.message || 'Failed to create PayPal order');
+            throw error;
+          }
+        },
+        onApprove: async (data) => {
+          setCheckingOut(true);
+          try {
+            const response = await fetch(`${getBackendUrl()}/api/paypal/capture-order`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                order_id: data.orderID
+              })
+            });
+            const captureData = await response.json();
+            if (captureData.success) {
+              toastService.success('Payment successful! Welcome to Premium!');
+              navigate(`/payment/success?provider=paypal&transaction_id=${captureData.capture_id || ''}`);
+            } else {
+              toastService.error(captureData.detail || 'Payment capture failed');
+            }
+          } catch (error) {
+            toastService.error('Payment failed. Please try again.');
+          } finally {
+            setCheckingOut(false);
+          }
+        },
+        onCancel: () => {
+          toastService.warning('Payment cancelled');
+        },
+        onError: (err) => {
+          console.error('PayPal error:', err);
+          toastService.error('PayPal encountered an error. Please try again.');
+        }
+      }).render(paypalContainerRef.current);
+      
+      setPaypalReady(true);
+    } catch (error) {
+      console.error('Error rendering PayPal buttons:', error);
+      toastService.error('Failed to initialize PayPal');
+    }
+  };
+
   const setupBraintreeDropin = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -91,7 +232,7 @@ const PricingPage = () => {
       const data = await response.json();
       
       if (!data.clientToken) {
-        toastService.error('Failed to initialize PayPal payment');
+        toastService.error('Failed to initialize Braintree payment');
         return;
       }
 
@@ -203,6 +344,7 @@ const PricingPage = () => {
     } else if (paymentMethod === 'braintree') {
       await handleBraintreeCheckout();
     }
+    // PayPal checkout is handled by the PayPal buttons directly
   };
 
   const handleStripeCheckout = async () => {
@@ -329,7 +471,7 @@ const PricingPage = () => {
     <div className="pricing-page">
       <div className="pricing-container">
         <div className="pricing-header"><h1>Choose Your Membership</h1><p>Unlock premium features and find your perfect match</p></div>
-        {!stripeConfigured && !braintreeConfigured && <div className="stripe-warning">Payment system is being configured. Please check back soon.</div>}
+        {!stripeConfigured && !braintreeConfigured && !paypalConfigured && <div className="stripe-warning">Payment system is being configured. Please check back soon.</div>}
         <div className="plans-grid">
           {plans.map(plan => (
             <div key={plan.id} className={`plan-card ${selectedPlan === plan.id ? 'selected' : ''} ${plan.isPopular ? 'popular' : ''}`} onClick={() => { setSelectedPlan(plan.id); setPromoApplied(null); }}>
@@ -343,7 +485,7 @@ const PricingPage = () => {
         </div>
         <div className="checkout-section">
           {/* Payment Method Selector */}
-          {(stripeConfigured || braintreeConfigured) && (
+          {(stripeConfigured || braintreeConfigured || paypalConfigured) && (
             <div className="payment-method-section">
               <label>Choose Payment Method</label>
               <div className="payment-methods">
@@ -359,6 +501,21 @@ const PricingPage = () => {
                     </div>
                     <div className={`radio-button ${paymentMethod === 'stripe' ? 'checked' : ''}`}>
                       {paymentMethod === 'stripe' && <div className="radio-inner"></div>}
+                    </div>
+                  </div>
+                )}
+                {paypalConfigured && (
+                  <div 
+                    className={`payment-method-option ${paymentMethod === 'paypal' ? 'selected' : ''}`}
+                    onClick={() => setPaymentMethod('paypal')}
+                  >
+                    <div className="payment-method-icon paypal-icon">P</div>
+                    <div className="payment-method-info">
+                      <span className="payment-method-name">PayPal</span>
+                      <span className="payment-method-desc">Pay with PayPal account or card</span>
+                    </div>
+                    <div className={`radio-button ${paymentMethod === 'paypal' ? 'checked' : ''}`}>
+                      {paymentMethod === 'paypal' && <div className="radio-inner"></div>}
                     </div>
                   </div>
                 )}
@@ -378,6 +535,19 @@ const PricingPage = () => {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* PayPal Buttons Container */}
+          {paymentMethod === 'paypal' && selectedPlan && (
+            <div className="paypal-container">
+              <div ref={paypalContainerRef} id="paypal-buttons"></div>
+              {!paypalReady && (
+                <div className="paypal-loading">
+                  <div className="spinner"></div>
+                  <p>Loading PayPal...</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -412,20 +582,25 @@ const PricingPage = () => {
               </>
             )}
           </div>
-          <button 
-            className="btn-checkout" 
-            onClick={handleCheckout} 
-            disabled={
-              !selectedPlan || 
-              checkingOut || 
-              (paymentMethod === 'stripe' && !stripeConfigured) ||
-              (paymentMethod === 'braintree' && (!braintreeConfigured || !braintreeReady))
-            }
-          >
-            {checkingOut ? 'Processing...' : `Proceed to Payment - $${getSelectedPlanPrice().toFixed(2)}`}
-          </button>
+          {/* Only show checkout button for non-PayPal methods (PayPal has its own buttons) */}
+          {paymentMethod !== 'paypal' && (
+            <button 
+              className="btn-checkout" 
+              onClick={handleCheckout} 
+              disabled={
+                !selectedPlan || 
+                checkingOut || 
+                (paymentMethod === 'stripe' && !stripeConfigured) ||
+                (paymentMethod === 'braintree' && (!braintreeConfigured || !braintreeReady))
+              }
+            >
+              {checkingOut ? 'Processing...' : `Proceed to Payment - $${getSelectedPlanPrice().toFixed(2)}`}
+            </button>
+          )}
           <p className="secure-notice">
-            {paymentMethod === 'stripe' ? '🔒 Secure payment powered by Stripe' : '🔒 Secure payment powered by PayPal'}
+            {paymentMethod === 'stripe' && '🔒 Secure payment powered by Stripe'}
+            {paymentMethod === 'paypal' && '🔒 Secure payment powered by PayPal'}
+            {paymentMethod === 'braintree' && '🔒 Secure payment powered by Braintree'}
           </p>
         </div>
       </div>
