@@ -92,6 +92,25 @@
   color: var(--warning-color, #f59e0b) !important;
 }
 
+/* Name Warning Bubble - for short names */
+.name-warning-bubble {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 12px;
+  background: var(--warning-background, #fffbeb);
+  border: 1px solid var(--warning-color, #f59e0b);
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--text-color);
+}
+
+.name-warning-bubble .warning-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
 .register-container .text-info {
   color: var(--info-color, #6366f1) !important;
 }
