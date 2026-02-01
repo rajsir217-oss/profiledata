@@ -26,7 +26,8 @@
   border-radius: 28px;
   width: 100%;
   max-width: 360px;
-  overflow: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   box-shadow: 
@@ -476,6 +477,88 @@
 .contribution-remind-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Payment Method Selection */
+.payment-method-section {
+  margin-bottom: 16px;
+}
+
+.payment-method-toggle {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.payment-method-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border: 2px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  background: var(--surface-color, #fff);
+  color: var(--text-color, #333);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.payment-method-btn:hover {
+  border-color: var(--primary-color, #8b5cf6);
+  background: var(--hover-background, #f9fafb);
+}
+
+.payment-method-btn.active {
+  border-color: var(--primary-color, #8b5cf6);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+  color: var(--primary-color, #8b5cf6);
+}
+
+.payment-method-btn .paypal-p {
+  background: #0070ba;
+  color: white;
+  font-weight: bold;
+  font-style: italic;
+  border-radius: 3px;
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+}
+
+/* PayPal Container in Contribution Popup */
+.contribution-paypal-container {
+  margin: 16px 0;
+  padding: 12px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 12px;
+  background: var(--surface-color, #fff);
+  min-height: 60px;
+}
+
+.contribution-paypal-container .paypal-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--text-secondary, #6b7280);
+  font-size: 14px;
+}
+
+.contribution-paypal-container .spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-color, #e5e7eb);
+  border-top-color: #0070ba;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Responsive */
