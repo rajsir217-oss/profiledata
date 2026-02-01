@@ -277,6 +277,48 @@
   color: var(--text-secondary);
 }
 
+/* PayPal Buttons Container */
+.paypal-container {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  background: var(--surface-color);
+  min-height: 150px;
+}
+
+.paypal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  color: var(--text-secondary);
+}
+
+.paypal-loading .spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color);
+  border-top-color: #0070ba;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 0.75rem;
+}
+
+.paypal-icon {
+  background: #0070ba;
+  color: white;
+  font-weight: bold;
+  font-style: italic;
+  border-radius: 4px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Braintree Drop-in Container */
 .braintree-container {
   margin-bottom: 1.5rem;

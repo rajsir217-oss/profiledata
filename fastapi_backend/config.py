@@ -140,11 +140,16 @@ class Settings(BaseSettings):
     stripe_publishable_key: Optional[str] = None
     stripe_webhook_secret: Optional[str] = None
     
-    # Braintree Payment Configuration (PayPal)
+    # Braintree Payment Configuration (PayPal via Braintree)
     braintree_environment: Optional[str] = "sandbox"  # "sandbox" or "production"
     braintree_merchant_id: Optional[str] = None
     braintree_public_key: Optional[str] = None
     braintree_private_key: Optional[str] = None
+    
+    # Direct PayPal Checkout Configuration
+    paypal_client_id: Optional[str] = None
+    paypal_client_secret: Optional[str] = None
+    paypal_mode: Optional[str] = "sandbox"  # "sandbox" or "live"
     
     # Logging Configuration
     log_level: Optional[str] = "INFO"
