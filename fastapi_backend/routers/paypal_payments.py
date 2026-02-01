@@ -5,10 +5,13 @@ Handles PayPal order creation, capture, and management.
 """
 
 from fastapi import APIRouter, Depends, HTTPException
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from services.paypal_service import paypal_service
+from database import get_database
 from config import settings
 import logging
 
@@ -119,7 +122,8 @@ async def create_paypal_order(
 @router.post("/capture-order")
 async def capture_paypal_order(
     request: CaptureOrderRequest,
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
+    db: AsyncIOMotorDatabase = Depends(get_database)
 ):
     """
     Capture payment for an approved PayPal order.
@@ -140,8 +144,36 @@ async def capture_paypal_order(
     
     logger.info(f"PayPal payment captured for {username}: order={request.order_id}, capture={result.get('capture_id')}")
     
-    # TODO: Update user's membership status in database
-    # This should be handled by the payment_service or a webhook
+    # Log payment to contributions/payments collection
+    try:
+        amount = float(result.get("amount", 0))
+        payment_record = {
+            "username": username,
+            "amount": amount,
+            "paymentType": "contribution_one_time",
+            "paymentProvider": "paypal",
+            "status": "completed",
+            "paypalOrderId": result.get("order_id"),
+            "paypalCaptureId": result.get("capture_id"),
+            "payerEmail": result.get("payer_email"),
+            "description": f"PayPal payment - ${amount:.2f}",
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        await db.payments.insert_one(payment_record)
+        logger.info(f"💝 PayPal payment logged for {username}: ${amount}")
+        
+        # Update user's contribution stats
+        await db.users.update_one(
+            {"username": username},
+            {
+                "$inc": {"contributions.totalContributed": amount},
+                "$set": {"contributions.lastContributionDate": datetime.utcnow()}
+            }
+        )
+    except Exception as e:
+        logger.error(f"Error logging PayPal payment: {e}")
+        # Don't fail the request if logging fails
     
     return {
         "success": True,
