@@ -6,8 +6,8 @@ import './ContributionPopup.css';
 const ContributionPopup = ({ isOpen, onClose }) => {
   const [selectedAmount, setSelectedAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
-  const [paymentType, setPaymentType] = useState('monthly'); // 'one-time' or 'monthly'
-  const [paymentMethod, setPaymentMethod] = useState('stripe'); // 'stripe' or 'paypal'
+  const [paymentType, setPaymentType] = useState('one-time'); // 'one-time' or 'monthly' - default to one-time for PayPal
+  const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'stripe' or 'paypal' - default to PayPal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hasLoggedShown, setHasLoggedShown] = useState(false);
@@ -341,7 +341,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
             </label>
           </div>
 
-          <div className="payment-type-section">
+          {/* Payment Type Selection - COMMENTED OUT: Only PayPal one-time for now */}
+          {/* <div className="payment-type-section">
             <span className="payment-type-label">Payment Type:</span>
             <div className="payment-type-toggle">
               <button
@@ -362,10 +363,10 @@ const ContributionPopup = ({ isOpen, onClose }) => {
                 Monthly
               </button>
             </div>
-          </div>
+          </div> */}
 
-          {/* Payment Method Selection - only for one-time */}
-          {paymentType === 'one-time' && paypalConfigured && (
+          {/* Payment Method Selection - COMMENTED OUT: Only PayPal for now */}
+          {/* {paymentType === 'one-time' && paypalConfigured && (
             <div className="payment-method-section">
               <span className="payment-type-label">Pay with:</span>
               <div className="payment-method-toggle">
@@ -385,7 +386,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
                 </button>
               </div>
             </div>
-          )}
+          )} */}
 
           {/* PayPal Buttons */}
           {paymentMethod === 'paypal' && paymentType === 'one-time' && (
@@ -400,8 +401,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Stripe Button - show when not using PayPal */}
-          {(paymentMethod === 'stripe' || paymentType === 'monthly') && (
+          {/* Stripe Button - COMMENTED OUT: Only PayPal for now */}
+          {/* {(paymentMethod === 'stripe' || paymentType === 'monthly') && (
             <button 
               className="contribution-proceed-btn"
               onClick={handleProceedToPayment}
@@ -416,7 +417,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
                 <>💜 Proceed to Payment</>
               )}
             </button>
-          )}
+          )} */}
 
           <button 
             className="contribution-remind-btn"
