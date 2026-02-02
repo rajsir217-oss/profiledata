@@ -46,6 +46,8 @@ const SearchPage2 = () => {
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
   const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
   const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
+  const [excludedProfileId, setExcludedProfileId] = useState(null); // Profile ID of excluded profile
+  const [excludedProfileUsername, setExcludedProfileUsername] = useState(null); // Username of excluded profile
 
   // User interaction state
   const [users, setUsers] = useState([]);
@@ -733,6 +735,12 @@ const SearchPage2 = () => {
           // Execute the search with explicit criteria AND minMatchScore
           // Delay slightly to ensure state is processed by React
           setTimeout(() => {
+            // Check if user has entered a profileId - if so, skip auto-search
+            const profileIdInput = document.getElementById('profileId-input');
+            if (profileIdInput && profileIdInput.value.trim()) {
+              logger.info('⏭️ Skipping auto-search - user has entered profileId:', profileIdInput.value);
+              return;
+            }
             logger.info('🔍 Auto-executing default saved search');
             handleSearch(1, loadedMinScore, defaultSearch.criteria);
             toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
@@ -859,6 +867,12 @@ const SearchPage2 = () => {
           // Execute search with explicit criteria (don't rely on async state)
           // Note: Users already cleared at line 628 at start of function
           setTimeout(() => {
+            // Check if user has entered a profileId - if so, skip auto-search
+            const profileIdInput = document.getElementById('profileId-input');
+            if (profileIdInput && profileIdInput.value.trim()) {
+              logger.info('⏭️ Skipping auto-search - user has entered profileId:', profileIdInput.value);
+              return;
+            }
             logger.info('🔍 Auto-executing search with partnerCriteria defaults');
             handleSearch(1, 0, partnerCriteriaDefaults);
           }, 100);
@@ -1515,8 +1529,12 @@ const SearchPage2 = () => {
       // Check for excluded profile message (when profileId search returns no results due to exclusion)
       if (response.data.excludedProfileMessage) {
         setExcludedProfileMessage(response.data.excludedProfileMessage);
+        setExcludedProfileId(response.data.excludedProfileId || null);
+        setExcludedProfileUsername(response.data.excludedProfileUsername || null);
       } else {
         setExcludedProfileMessage(null);
+        setExcludedProfileId(null);
+        setExcludedProfileUsername(null);
       }
 
       // Update pagination state
@@ -1614,10 +1632,16 @@ const SearchPage2 = () => {
 
   // Server-side pagination: fetch next page
   const handleLoadMore = useCallback(async () => {
-    logger.info(`📄 handleLoadMore called: loadingMore=${loadingMore}, currentPage=${currentPage}, loadingPageRef=${loadingPageRef.current}`);
+    logger.info(`📄 handleLoadMore called: loadingMore=${loadingMore}, currentPage=${currentPage}, loadingPageRef=${loadingPageRef.current}, usersCount=${users.length}`);
     
     if (loadingMore) {
       logger.info(`📄 handleLoadMore: Skipping - already loading`);
+      return;
+    }
+    
+    // Don't load more if there are no users (e.g., profileId search returned 0 or excluded)
+    if (users.length === 0) {
+      logger.info(`📄 handleLoadMore: Skipping - no users to paginate`);
       return;
     }
     
@@ -1639,7 +1663,7 @@ const SearchPage2 = () => {
       setLoadingMore(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingMore, currentPage]);
+  }, [loadingMore, currentPage, users.length]);
 
   // IntersectionObserver for infinite scroll (server-side pagination)
   useEffect(() => {
@@ -2525,7 +2549,24 @@ const SearchPage2 = () => {
               {excludedProfileMessage ? (
                 <>
                   <h5>🚫 Profile Hidden</h5>
-                  <p style={{ color: 'var(--warning-color)', fontWeight: 500 }}>{excludedProfileMessage}</p>
+                  <p style={{ color: 'var(--warning-color)', fontWeight: 500 }}>
+                    This profile (
+                    <a 
+                      href={`/profile/${excludedProfileUsername}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ 
+                        color: 'var(--primary-color)', 
+                        fontWeight: 600, 
+                        textDecoration: 'underline',
+                        cursor: 'pointer'
+                      }}
+                      title="Click to view this profile (opens in new tab)"
+                    >
+                      {excludedProfileId}
+                    </a>
+                    ) is in your exclusions list
+                  </p>
                   <p style={{ marginTop: '12px' }}>
                     <a href="/dashboard#search-exclude" style={{ color: 'var(--primary-color)', textDecoration: 'none', fontWeight: 500 }}>
                       Manage your exclusions →
