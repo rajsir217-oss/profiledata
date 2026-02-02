@@ -4498,14 +4498,20 @@ async def search_users(
         
         # Check if profileId search returned no results due to exclusion
         excluded_profile_message = None
+        excluded_profile_id = None
+        excluded_profile_username = None
         if profileId and len(users) == 0:
             # Check if this profileId exists in user's exclusions
+            # Use case-insensitive regex to match the search query behavior
             excluded_user = await db.users.find_one(
                 {"profileId": {"$regex": f"^{profileId}$", "$options": "i"}},
                 {"username": 1, "profileId": 1}
             )
+            logger.info(f"🔍 Exclusion check: profileId={profileId}, excluded_user={excluded_user}, excluded_usernames={excluded_usernames}")
             if excluded_user and excluded_user.get("username") in excluded_usernames:
                 excluded_profile_message = f"This profile ({profileId}) is in your exclusions list"
+                excluded_profile_id = excluded_user.get("profileId")  # Use actual profileId from DB
+                excluded_profile_username = excluded_user.get("username")
                 logger.info(f"🚫 Profile {profileId} found but excluded by user {current_username}")
         
         # Log search activity (direct insert to bypass batch queue)
@@ -4569,6 +4575,8 @@ async def search_users(
         # Add exclusion message if applicable
         if excluded_profile_message:
             response["excludedProfileMessage"] = excluded_profile_message
+            response["excludedProfileId"] = excluded_profile_id
+            response["excludedProfileUsername"] = excluded_profile_username
         
         return response
     except Exception as e:

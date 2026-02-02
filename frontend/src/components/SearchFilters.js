@@ -135,6 +135,7 @@ const SearchFilters = ({
               type="text"
               className="form-control"
               name="profileId"
+              id="profileId-input"
               value={searchCriteria.profileId || ''}
               onChange={handleInputChange}
               placeholder="e.g., STHa9Lor"
