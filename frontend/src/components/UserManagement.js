@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { createApiInstance } from '../api';
 import './UserManagement.css';
@@ -15,6 +16,8 @@ const UserManagement = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Debounced search term
   const [statusFilter, setStatusFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState(''); // Show all roles by default
+  const [promoCodeFilter, setPromoCodeFilter] = useState(''); // Promo code filter
+  const [contributionPopupFilter, setContributionPopupFilter] = useState(''); // Contribution popup filter
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalUsers, setTotalUsers] = useState(0);
@@ -71,7 +74,10 @@ const UserManagement = () => {
       if (statusFilter) params.append('status_filter', statusFilter);
       if (roleFilter) params.append('role', roleFilter);
       if (debouncedSearchTerm) params.append('search', debouncedSearchTerm);
+      if (promoCodeFilter) params.append('promo_code', promoCodeFilter);
+      if (contributionPopupFilter) params.append('contribution_popup', contributionPopupFilter);
 
+      console.log('🔍 UserManagement API call:', `/api/admin/users?${params.toString()}`);
       const response = await adminApi.get(`/api/admin/users?${params.toString()}`);
       
       const loadedUsers = response.data.users || [];
@@ -122,7 +128,7 @@ const UserManagement = () => {
       setLoadingMore(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statusFilter, roleFilter, searchTerm, navigate, loadImageValidationStatus]);
+  }, [statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, searchTerm, navigate, loadImageValidationStatus]);
 
   // Keep ref updated with latest loadUsers
   useEffect(() => {
@@ -153,7 +159,7 @@ const UserManagement = () => {
       loadUsers(1, false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole, statusFilter, roleFilter, debouncedSearchTerm]);
+  }, [userRole, statusFilter, roleFilter, promoCodeFilter, contributionPopupFilter, debouncedSearchTerm]);
 
   // Ref for tracking if we can load more (debounce)
   // eslint-disable-next-line no-unused-vars
@@ -202,44 +208,46 @@ const UserManagement = () => {
     };
   }, [page, totalPages]);
 
-  // Close dropdown when clicking outside or scrolling
+  // Close dropdown when clicking outside (not on scroll - causes flickering)
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (openDropdown && !event.target.closest('.action-dropdown-container')) {
+      // Check if click is outside both the dropdown button AND the portal-rendered menu
+      if (openDropdown && 
+          !event.target.closest('.action-dropdown-container') && 
+          !event.target.closest('.actions-dropdown-menu')) {
         setOpenDropdown(null);
       }
     };
     
-    const handleScroll = () => {
-      if (openDropdown) {
-        setOpenDropdown(null);
-      }
+    // Use mousedown with a small delay to avoid race conditions
+    const handleClickOutsideDelayed = (event) => {
+      setTimeout(() => handleClickOutside(event), 10);
     };
     
-    document.addEventListener('mousedown', handleClickOutside);
-    window.addEventListener('scroll', handleScroll, true); // true for capture phase to catch all scrolls
+    document.addEventListener('mousedown', handleClickOutsideDelayed);
     
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      window.removeEventListener('scroll', handleScroll, true);
+      document.removeEventListener('mousedown', handleClickOutsideDelayed);
     };
   }, [openDropdown]);
 
-  // ESC key handler for cleanup modal
+  // ESC key handler for cleanup modal and dropdown
   useEffect(() => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape') {
-        if (showCleanupModal) {
+        if (openDropdown) {
+          setOpenDropdown(null);
+        } else if (showCleanupModal) {
           setShowCleanupModal(false);
         }
       }
     };
 
-    if (showCleanupModal) {
+    if (showCleanupModal || openDropdown) {
       document.addEventListener('keydown', handleEscKey);
       return () => document.removeEventListener('keydown', handleEscKey);
     }
-  }, [showCleanupModal]);
+  }, [showCleanupModal, openDropdown]);
 
   const handleValidateImages = async (username) => {
     try {
@@ -633,6 +641,26 @@ const UserManagement = () => {
           <option value="free_user">Free User</option>
         </select>
 
+        <select
+          value={promoCodeFilter}
+          onChange={(e) => setPromoCodeFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="">All Promo Codes</option>
+          <option value="has_promo">Has Promo Code</option>
+          <option value="no_promo">No Promo Code</option>
+        </select>
+
+        <select
+          value={contributionPopupFilter}
+          onChange={(e) => setContributionPopupFilter(e.target.value)}
+          className="filter-select"
+        >
+          <option value="">Contribution Popup</option>
+          <option value="enabled">Enabled</option>
+          <option value="disabled">Disabled by Admin</option>
+        </select>
+
         <button onClick={() => { setPage(1); setUsers([]); loadUsers(1, false); }} className="btn-refresh">
           🔄 Refresh
         </button>
@@ -734,8 +762,13 @@ const UserManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {sortedUsers.map((user) => (
-              <tr key={user.username} className={selectedUsers.includes(user.username) ? 'selected-row' : ''}>
+            {sortedUsers.map((user) => {
+              // Get contribution status for this user (override takes precedence)
+              const contributionDisabled = contributionToggleOverrides[user.username] !== undefined 
+                ? contributionToggleOverrides[user.username] 
+                : !!user.contributionPopupDisabledByAdmin;
+              return (
+              <tr key={`${user.username}-${contributionDisabled}`} className={selectedUsers.includes(user.username) ? 'selected-row' : ''}>
                 <td className="td-checkbox">
                   <input
                     type="checkbox"
@@ -751,14 +784,17 @@ const UserManagement = () => {
                       ref={(el) => (dropdownRefs.current[user.username] = el)}
                       className="btn-actions-menu"
                       onClick={(e) => {
+                        console.log('🔽 Kebab clicked for:', user.username, 'current openDropdown:', openDropdown);
                         if (openDropdown === user.username) {
                           setOpenDropdown(null);
                         } else {
                           const rect = e.currentTarget.getBoundingClientRect();
-                          setDropdownPosition({
+                          const newPosition = {
                             top: rect.bottom + window.scrollY,
                             left: rect.left + window.scrollX
-                          });
+                          };
+                          console.log('🔽 Setting dropdown position:', newPosition);
+                          setDropdownPosition(newPosition);
                           setOpenDropdown(user.username);
                         }
                       }}
@@ -773,12 +809,16 @@ const UserManagement = () => {
                       const isContributionDisabled = contributionToggleOverrides[freshUser.username] !== undefined 
                         ? contributionToggleOverrides[freshUser.username] 
                         : !!freshUser.contributionPopupDisabledByAdmin;
-                      return (
+                      console.log('🔽 Dropdown rendering for:', freshUser.username, 'position:', dropdownPosition);
+                      // Use React Portal to render dropdown outside table container to avoid clipping
+                      return ReactDOM.createPortal(
                       <div 
                         className="actions-dropdown-menu"
                         style={{
+                          position: 'fixed',
                           top: `${dropdownPosition.top}px`,
-                          left: `${dropdownPosition.left}px`
+                          left: `${dropdownPosition.left}px`,
+                          zIndex: 99999
                         }}
                       >
                         <button
@@ -888,10 +928,15 @@ const UserManagement = () => {
                             const currentState = contributionToggleOverrides[freshUser.username] !== undefined 
                               ? contributionToggleOverrides[freshUser.username] 
                               : freshUser.contributionPopupDisabledByAdmin === true;
-                            setContributionToggleOverrides(prev => ({
-                              ...prev,
-                              [freshUser.username]: !currentState
-                            }));
+                            console.log(`🔄 Toggle contribution for ${freshUser.username}: currentState=${currentState}, newState=${!currentState}`);
+                            setContributionToggleOverrides(prev => {
+                              const newOverrides = {
+                                ...prev,
+                                [freshUser.username]: !currentState
+                              };
+                              console.log('🔄 New overrides:', newOverrides);
+                              return newOverrides;
+                            });
                             setOpenDropdown(null);
                             
                             // Then make API call
@@ -918,7 +963,8 @@ const UserManagement = () => {
                           <span className="dropdown-icon">{isContributionDisabled ? '💵' : '💰'}</span>
                           {isContributionDisabled ? 'Enable Contribution Popup' : 'Disable Contribution Popup'}
                         </button>
-                      </div>
+                      </div>,
+                      document.body
                     )})()}
                   </div>
                 </td>
@@ -944,9 +990,11 @@ const UserManagement = () => {
                 </td>
                 <td style={{textAlign: 'center'}}>
                   {(() => {
-                    const isDisabled = contributionToggleOverrides[user.username] !== undefined 
-                      ? contributionToggleOverrides[user.username] 
+                    const overrideValue = contributionToggleOverrides[user.username];
+                    const isDisabled = overrideValue !== undefined 
+                      ? overrideValue 
                       : !!user.contributionPopupDisabledByAdmin;
+                    console.log(`📊 Contribution status for ${user.username}: override=${overrideValue}, dbValue=${user.contributionPopupDisabledByAdmin}, isDisabled=${isDisabled}`);
                     return (
                       <span 
                         className={`status-badge ${isDisabled ? 'status-inactive' : 'status-active'}`}
@@ -959,7 +1007,8 @@ const UserManagement = () => {
                 </td>
                 <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

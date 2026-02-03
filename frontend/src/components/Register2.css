@@ -53,6 +53,18 @@
   border-left: 4px solid var(--info-color, #6366f1) !important;
 }
 
+/* Auto-save Banner - Theme-aware */
+.auto-save-banner {
+  background-color: var(--card-background, var(--background-color));
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+  font-size: 14px;
+  color: var(--text-color);
+}
+
 /* Danger/Error Alert - Red banner */
 .register-container .alert-danger {
   background-color: var(--danger-light, #ffebee) !important;

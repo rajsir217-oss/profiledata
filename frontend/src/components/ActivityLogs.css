@@ -242,6 +242,19 @@
   background: #dc2626;
 }
 
+/* User link styling */
+.user-link {
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.user-link:hover {
+  color: var(--primary-hover);
+  text-decoration: underline;
+}
+
 .btn-info {
   background: var(--info-color);
   color: white;

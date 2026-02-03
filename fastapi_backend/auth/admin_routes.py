@@ -65,19 +65,25 @@ async def get_all_users(
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=10000),
     status: Optional[str] = None,
+    status_filter: Optional[str] = None,
     role: Optional[str] = None,
     gender: Optional[str] = Query(None, description="Filter by gender (Male/Female)"),
     search: Optional[str] = None,
     email_search: Optional[str] = Query(None, description="Search by email (searches both encrypted and plaintext)"),
+    promo_code: Optional[str] = Query(None, description="Filter by promo code (has_promo/no_promo)"),
+    contribution_popup: Optional[str] = Query(None, description="Filter by contribution popup status (enabled/disabled)"),
     db = Depends(get_database)
 ):
     """
     Get all users with pagination and filtering (Admin only)
     
     - status: Filter by accountStatus (pending_admin_approval, active, etc.)
+    - status_filter: Alias for status filter
     - gender: Filter by gender (Male/Female)
     - search: General search across username, firstName, lastName, contactEmail
     - email_search: Dedicated email search that tries both encrypted and plaintext formats
+    - promo_code: Filter by promo code (has_promo/no_promo)
+    - contribution_popup: Filter by contribution popup status (enabled/disabled)
     
     Performance optimized: Uses projection to fetch only needed fields.
     """
@@ -85,12 +91,54 @@ async def get_all_users(
         # Build query
         query = {}
         
-        if status:
+        # Use status_filter if provided, otherwise fall back to status
+        effective_status = status_filter or status
+        
+        if effective_status:
             # Use accountStatus (unified field) - no fallback to legacy status.status
-            query["accountStatus"] = status
+            query["accountStatus"] = effective_status
         
         if role:
             query["role_name"] = role
+        
+        # Promo code filter
+        if promo_code:
+            if promo_code == "has_promo":
+                query["$and"] = query.get("$and", []) + [{
+                    "$and": [
+                        {"promoCode": {"$exists": True}},
+                        {"promoCode": {"$ne": None}},
+                        {"promoCode": {"$ne": ""}}
+                    ]
+                }]
+            elif promo_code == "no_promo":
+                query["$or"] = [
+                    {"promoCode": {"$exists": False}},
+                    {"promoCode": None},
+                    {"promoCode": ""}
+                ]
+        
+        # Contribution popup filter
+        if contribution_popup:
+            if contribution_popup == "enabled":
+                # Users where popup is NOT disabled by admin (field is false or doesn't exist)
+                popup_filter = {
+                    "$or": [
+                        {"contributionPopupDisabledByAdmin": {"$exists": False}},
+                        {"contributionPopupDisabledByAdmin": False}
+                    ]
+                }
+            elif contribution_popup == "disabled":
+                # Users where popup IS disabled by admin
+                popup_filter = {"contributionPopupDisabledByAdmin": True}
+            else:
+                popup_filter = None
+            
+            if popup_filter:
+                if "$and" in query:
+                    query["$and"].append(popup_filter)
+                else:
+                    query["$and"] = [popup_filter]
         
         if gender:
             # Gender field can be 'sex', 'gender', or 'Sex' - use $or for compatibility

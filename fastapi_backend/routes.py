@@ -162,6 +162,7 @@ SEARCH_RESULT_PROJECTION = {
     "partnerCriteria": 1,
     "createdAt": 1,
     "adminApprovedAt": 1,
+    "contributionPopupDisabledByAdmin": 1,
 }
 
 # Full projection for detailed profile view
@@ -3509,11 +3510,13 @@ async def get_all_users(
     search: Optional[str] = None,
     status_filter: Optional[str] = None,
     role: Optional[str] = None,
+    promo_code: Optional[str] = None,
+    contribution_popup: Optional[str] = None,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Get all users with pagination and filtering - Admin only endpoint"""
-    logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status_filter={status_filter}, role={role})")
+    logger.info(f"🔐 Admin request: Get users (page={page}, limit={limit}, search={search}, status_filter={status_filter}, role={role}, promo_code={promo_code}, contribution_popup={contribution_popup})")
     
     # 🛑 CRITICAL SECURITY CHECK
     if current_user.get("role") != "admin":
@@ -3560,11 +3563,52 @@ async def get_all_users(
                 query_conditions.append({"role_name": role})
             logger.debug(f"👤 Role filter applied: {role}")
         
+        # Promo code filter
+        if promo_code:
+            if promo_code == "has_promo":
+                # Users who have a promo code applied
+                query_conditions.append({
+                    "$and": [
+                        {"promoCode": {"$exists": True}},
+                        {"promoCode": {"$ne": None}},
+                        {"promoCode": {"$ne": ""}}
+                    ]
+                })
+            elif promo_code == "no_promo":
+                # Users who don't have a promo code
+                query_conditions.append({
+                    "$or": [
+                        {"promoCode": {"$exists": False}},
+                        {"promoCode": None},
+                        {"promoCode": ""}
+                    ]
+                })
+            logger.debug(f"🎟️ Promo code filter applied: {promo_code}")
+        
+        # Contribution popup filter
+        if contribution_popup:
+            logger.info(f"💰 Contribution popup filter received: '{contribution_popup}'")
+            if contribution_popup == "enabled":
+                # Users where popup is NOT disabled by admin
+                query_conditions.append({
+                    "$or": [
+                        {"contributionPopupDisabledByAdmin": {"$exists": False}},
+                        {"contributionPopupDisabledByAdmin": False}
+                    ]
+                })
+                logger.info(f"💰 Added ENABLED filter condition")
+            elif contribution_popup == "disabled":
+                # Users where popup IS disabled by admin
+                query_conditions.append({"contributionPopupDisabledByAdmin": True})
+                logger.info(f"💰 Added DISABLED filter condition")
+        
         # Combine all conditions with $and
         query = {"$and": query_conditions} if query_conditions else {}
+        logger.info(f"📊 Final query: {query}, conditions count: {len(query_conditions)}")
         
         # Get total count for pagination
         total_count = await db.users.count_documents(query)
+        logger.info(f"📊 Total count matching query: {total_count}")
         total_pages = (total_count + limit - 1) // limit  # Ceiling division
         
         # Fetch users with pagination

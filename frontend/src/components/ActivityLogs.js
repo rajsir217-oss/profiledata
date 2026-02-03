@@ -696,13 +696,35 @@ const ActivityLogs = () => {
                         />
                       </td>
                       <td className="timestamp">{formatDate(log.timestamp)}</td>
-                      <td className="username">{log.username}</td>
+                      <td className="username">
+                        <a 
+                          href={`/profile/${log.username}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="user-link"
+                          title="Open profile in new tab"
+                        >
+                          {log.username}
+                        </a>
+                      </td>
                       <td>
                         <span className={`action-badge badge-${badge.color}`}>
                           {badge.icon} {badge.label}
                         </span>
                       </td>
-                      <td>{log.target_username || '-'}</td>
+                      <td>
+                        {log.target_username ? (
+                          <a 
+                            href={`/profile/${log.target_username}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="user-link"
+                            title="Open profile in new tab"
+                          >
+                            {log.target_username}
+                          </a>
+                        ) : '-'}
+                      </td>
                       <td className="ip-address">{log.ip_address || '-'}</td>
                       <td className="duration">{log.duration_ms ? `${log.duration_ms}ms` : '-'}</td>
                       <td>
