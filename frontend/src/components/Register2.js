@@ -1934,9 +1934,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
       
       {isEditMode && (
-        <div className="alert alert-info" style={{ fontSize: '14px', marginBottom: '12px' }}>
+        <div className="auto-save-banner">
           💡 <strong>Auto-save enabled:</strong> Your changes are automatically saved as you edit. 
-          Look for the <span className="text-success">✓</span> or <span className="text-danger">✗</span> next to each field label.
+          Look for the <span style={{ color: 'var(--success-color)' }}>✓</span> or <span style={{ color: 'var(--danger-color)' }}>✗</span> next to each field label.
         </div>
       )}
       <form onSubmit={handleSubmit} encType="multipart/form-data">
