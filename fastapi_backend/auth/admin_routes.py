@@ -120,6 +120,7 @@ async def get_all_users(
         
         # Contribution popup filter
         if contribution_popup:
+            logger.info(f"💰 Contribution popup filter: {contribution_popup}")
             if contribution_popup == "enabled":
                 # Users where popup is NOT disabled by admin (field is false or doesn't exist)
                 popup_filter = {
@@ -224,6 +225,7 @@ async def get_all_users(
             logger.info(f"🔍 Email search '{email_search_term}': found {total} matches")
         else:
             # Standard query without email search - use projection for performance
+            logger.info(f"📊 Final query: {query}")
             total = await db.users.count_documents(query)
             skip = (page - 1) * limit
             users_cursor = db.users.find(query, ADMIN_USER_LIST_PROJECTION).skip(skip).limit(limit).sort("created_at", -1)
