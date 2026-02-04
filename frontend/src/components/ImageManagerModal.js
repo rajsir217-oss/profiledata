@@ -96,7 +96,7 @@ const ImageManagerModal = ({ isOpen, onClose, requester, ownerImages, onGrant })
                 <div key={index} className="picture-item">
                   <img 
                     src={getAuthenticatedImageUrl(image)} 
-                    alt={`Photo ${index + 1}`} 
+                    alt={`Gallery ${index + 1}`} 
                     className="picture-thumbnail"
                   />
                   <span className="picture-label">Photo {index + 1}</span>

@@ -105,6 +105,7 @@ const PIIRequestModal = ({
   const piiTypes = allPiiTypes;
 
   // Get list of member-visible fields for info message (kept for reference)
+  // eslint-disable-next-line no-unused-vars
   const memberVisibleFields = allPiiTypes.filter(type => {
     const visibilityKey = visibilityKeyMap[type.value];
     return visibilityKey && visibilitySettings[visibilityKey] === true;

@@ -604,6 +604,7 @@ const SaveSearchModal = ({
 };
 
 // Helper function to format time display
+// eslint-disable-next-line no-unused-vars
 function formatTimeDisplay(time) {
   if (!time) return '';
   const [hours, minutes] = time.split(':');

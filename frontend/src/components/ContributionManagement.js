@@ -45,6 +45,7 @@ const ContributionManagement = () => {
     } else {
       loadActivities();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate, filter, activeTab, activityFilter]);
 
   const loadContributions = async (page = 1) => {

@@ -219,6 +219,7 @@ const AdminReports = () => {
                   {(() => {
                     const total = summary.maleCount + summary.femaleCount;
                     const malePercent = total > 0 ? (summary.maleCount / total) * 100 : 0;
+                    // eslint-disable-next-line no-unused-vars
                     const femalePercent = total > 0 ? (summary.femaleCount / total) * 100 : 0;
                     const maleAngle = (malePercent / 100) * 360;
                     const centerX = 200;

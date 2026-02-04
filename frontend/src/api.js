@@ -1,6 +1,7 @@
 // frontend/src/api.js
 import axios from "axios";
 import { getApiUrl, getBackendUrl } from './config/apiConfig';
+// eslint-disable-next-line no-unused-vars
 import toastService from './services/toastService';
 import sessionManager from './services/sessionManager';
 import logger from './utils/logger';

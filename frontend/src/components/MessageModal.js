@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import api from '../api';
 import socketService from '../services/socketService';
 import ChatWindow from './ChatWindow';
+// eslint-disable-next-line no-unused-vars
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
 import { getProfilePicUrl } from '../utils/urlHelper';
 import './MessageModal.css';

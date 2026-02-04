@@ -6,7 +6,9 @@ import './ContributionPopup.css';
 const ContributionPopup = ({ isOpen, onClose }) => {
   const [selectedAmount, setSelectedAmount] = useState(10);
   const [customAmount, setCustomAmount] = useState('');
+  // eslint-disable-next-line no-unused-vars
   const [paymentType, setPaymentType] = useState('one-time'); // 'one-time' or 'monthly' - default to one-time for PayPal
+  // eslint-disable-next-line no-unused-vars
   const [paymentMethod, setPaymentMethod] = useState('paypal'); // 'stripe' or 'paypal' - default to PayPal
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -54,6 +56,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     return () => {
       document.removeEventListener('keydown', handleEscKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, loading]);
 
   // Prevent body scroll when modal is open & log popup shown
@@ -98,12 +101,14 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     if (paymentMethod === 'paypal' && paypalConfigured && paypalClientId && paymentType === 'one-time') {
       initializePayPal();
     }
+    const containerRef = paypalContainerRef.current;
     return () => {
-      if (paypalContainerRef.current) {
-        paypalContainerRef.current.innerHTML = '';
+      if (containerRef) {
+        containerRef.innerHTML = '';
       }
       setPaypalReady(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod, paypalConfigured, paypalClientId, paymentType, selectedAmount, customAmount]);
 
   const initializePayPal = async () => {
@@ -219,6 +224,7 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     onClose();
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleProceedToPayment = async () => {
     const amount = selectedAmount === 'custom' ? parseFloat(customAmount) : selectedAmount;
     
