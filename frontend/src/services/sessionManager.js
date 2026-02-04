@@ -115,12 +115,24 @@ class SessionManager {
    * Returns true if session is expired and logout was triggered
    */
   checkSessionExpiredOnInit() {
+    // Define public pages where session expiration should be silent (no overlay)
+    const publicPaths = ['/', '/home', '/login', '/register', '/forgot-password', '/reset-password', '/pricing'];
+    const currentPath = window.location.pathname;
+    const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
+    
     // Check hard limit first
     const timeSinceLogin = Date.now() - this.loginTime;
     if (timeSinceLogin >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
       logger.warn(`Session near or exceeded 8-hour hard limit on init (${Math.round(timeSinceLogin / 3600000)} hours)`);
-      toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
-      this.logout('init_hard_limit_exceeded');
+      
+      if (isPublicPage) {
+        // On public pages, silently clear tokens without showing overlay
+        logger.info('Session expired on public page - silently clearing tokens');
+        this.silentLogout('init_hard_limit_public_page');
+      } else {
+        toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
+        this.logout('init_hard_limit_exceeded');
+      }
       return true;
     }
     
@@ -128,8 +140,15 @@ class SessionManager {
     const timeSinceActivity = Date.now() - this.lastActivity;
     if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
       logger.warn(`Session near or exceeded inactivity limit on init (${Math.round(timeSinceActivity / 60000)} minutes)`);
-      toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-      this.logout('init_inactivity_exceeded');
+      
+      if (isPublicPage) {
+        // On public pages, silently clear tokens without showing overlay
+        logger.info('Session expired due to inactivity on public page - silently clearing tokens');
+        this.silentLogout('init_inactivity_public_page');
+      } else {
+        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+        this.logout('init_inactivity_exceeded');
+      }
       return true;
     }
     
@@ -571,6 +590,64 @@ class SessionManager {
     }, 1500);
 
     logger.info('Session manager cleaned up - redirecting to login');
+  }
+  
+  /**
+   * Silent logout - clears tokens without showing overlay or redirecting
+   * Used when session expires on public pages where user can continue browsing
+   * @param {string} reason - Optional reason for logout for logging
+   */
+  silentLogout(reason = 'unknown') {
+    logger.info(`SessionManager.silentLogout() triggered. Reason: ${reason}`);
+    
+    // Clear intervals
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+    
+    if (this.inactivityInterval) {
+      clearInterval(this.inactivityInterval);
+      this.inactivityInterval = null;
+    }
+
+    if (this.activityTimeout) {
+      clearTimeout(this.activityTimeout);
+      this.activityTimeout = null;
+    }
+
+    // Remove listeners
+    this.removeActivityListeners();
+    window.removeEventListener('storage', this.handleStorageChange);
+
+    // Clear state
+    this.isActive = false;
+    this.loginTime = null;
+    this.lastActivity = Date.now();
+    this.lastStorageUpdate = Date.now();
+    this.warningShown = false;
+    this.isLoggingOut = false;
+
+    // Clear storage (tokens and session data)
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('userStatus');
+    localStorage.removeItem('sessionLoginTime');
+    localStorage.removeItem('sessionLastActivity');
+    localStorage.removeItem('sessionLastTokenUpdate');
+    localStorage.removeItem('sessionRefreshLock');
+    
+    // Mark as logged out to prevent duplicate handling
+    sessionStorage.setItem('hasLoggedOut', 'true');
+    
+    // Clear the hasLoggedOut flag after a short delay so user can log in again
+    setTimeout(() => {
+      sessionStorage.removeItem('hasLoggedOut');
+    }, 1000);
+
+    logger.info('Session silently cleared - user can continue browsing public pages');
   }
   
   /**
