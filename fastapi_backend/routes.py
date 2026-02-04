@@ -1110,23 +1110,9 @@ async def register_user(
             logger.warning(f"⚠️ Could not check email uniqueness: {e}")
             # Continue with registration - better to allow than block on hash error
     
-    # Check if phone number already exists using hash field (O(1) indexed lookup)
-    if contactNumber:
-        logger.debug(f"Checking if phone number exists...")
-        try:
-            phone_hash = PIIEncryption.hash_for_lookup(contactNumber)
-            existing_phone = await db.users.find_one({"contactNumberHash": phone_hash})
-            if existing_phone:
-                logger.warning(f"⚠️ Registration failed: Phone number already registered")
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Phone number already registered"
-                )
-        except HTTPException:
-            raise  # Re-raise HTTP exceptions
-        except Exception as e:
-            logger.warning(f"⚠️ Could not check phone uniqueness: {e}")
-            # Continue with registration - better to allow than block on hash error
+    # NOTE: Phone number uniqueness check REMOVED to allow parents to create
+    # multiple profiles for their children using the same contact number.
+    # The contactNumberHash is still stored for lookup purposes, but not enforced as unique.
     
     # Validate and save images
     image_paths = []
@@ -2028,27 +2014,9 @@ async def update_user_profile(
     if lastName is not None and lastName.strip():
         update_data["lastName"] = lastName.strip()
     
-    # Handle contactNumber update with uniqueness check
+    # Handle contactNumber update (uniqueness check REMOVED to allow same phone for multiple profiles)
     if contactNumber is not None and contactNumber.strip():
-        new_phone = contactNumber.strip()
-        # Check if phone is actually changing
-        from crypto_utils import PIIEncryption
-        new_phone_hash = PIIEncryption.hash_for_lookup(new_phone)
-        current_phone_hash = user.get("contactNumberHash")
-        
-        if new_phone_hash != current_phone_hash:
-            # Phone is changing - check if new phone is already used by another user
-            existing = await db.users.find_one({
-                "contactNumberHash": new_phone_hash,
-                "username": {"$ne": username}  # Exclude current user
-            })
-            if existing:
-                logger.warning(f"⚠️ Update failed: Phone number already registered to another user")
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Phone number already registered to another user"
-                )
-        update_data["contactNumber"] = new_phone
+        update_data["contactNumber"] = contactNumber.strip()
     
     # Handle contactEmail update with uniqueness check
     if contactEmail is not None and contactEmail.strip():
