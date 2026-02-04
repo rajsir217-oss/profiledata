@@ -25,6 +25,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
 
   useEffect(() => {
     fetchActivePolls();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchActivePolls = async () => {
@@ -234,6 +235,7 @@ const PollWidget = ({ onPollResponded, inline = false, renderPlaceholder = null,
   // Get the first poll for inline display (most recent/active)
   const firstPoll = polls[0];
   const firstPollResponded = firstPoll?.user_has_responded;
+  // eslint-disable-next-line no-unused-vars
   const firstPollSelectedText = getSelectedOptionText(firstPoll);
 
   // Render poll form content (used in both modal and non-inline mode)

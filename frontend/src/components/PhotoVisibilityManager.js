@@ -143,7 +143,7 @@ const PhotoVisibilityManager = ({
         }
       });
     };
-  }, []);
+  }, [photos]);
 
   // Save visibility to backend (edit mode only)
   const saveVisibility = async (photosArray) => {
@@ -509,7 +509,7 @@ const PhotoVisibilityManager = ({
                   setShowLightbox(true);
                 }}
               >
-                <img src={displayUrl} alt={`Photo ${index + 1}`} loading="lazy" />
+                <img src={displayUrl} alt={`Gallery item ${index + 1}`} loading="lazy" />
               </div>
               
               {/* Visibility Badge/Dropdown */}

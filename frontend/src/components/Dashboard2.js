@@ -7,6 +7,7 @@ import './Dashboard2.css';
 import MessageModal from './MessageModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
+// eslint-disable-next-line no-unused-vars
 import AccessRequestManager from './AccessRequestManager';
 import PIIRequestsTable from './PIIRequestsTable';
 import logger from '../utils/logger';
@@ -18,7 +19,6 @@ import ContactRequestsModal from './ContactRequestsModal';
 import UserCard from './UserCard';
 import CategorySection from './CategorySection';
 import socketService from '../services/socketService';
-import { getDisplayName } from '../utils/userDisplay';
 import useToast from '../hooks/useToast';
 import { formatRelativeTime } from '../utils/timeFormatter';
 import PauseSettings from './PauseSettings';
@@ -392,6 +392,7 @@ const Dashboard2 = () => {
       socketService.off('user_offline', handleUserOffline);
       document.removeEventListener('keydown', handleEscKey);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [navigate]);
 
   const loadDashboardData = async (username) => {
@@ -1080,6 +1081,7 @@ const Dashboard2 = () => {
     }
   };
 
+  // eslint-disable-next-line no-unused-vars
   const handleCancelPIIRequest = async (requestUsername) => {
     try {
       // Call API to cancel the request
@@ -1436,6 +1438,7 @@ const Dashboard2 = () => {
   };
 
   // Render section using new CategorySection component with context mapping
+  // eslint-disable-next-line no-unused-vars
   const renderSection = (title, data, sectionKey, icon, color, removeHandler = null) => {
     const isDraggable = ['myFavorites', 'myShortlists', 'myExclusions'].includes(sectionKey);
     

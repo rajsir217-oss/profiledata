@@ -9,7 +9,9 @@ import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
 import OnlineStatusBadge from './OnlineStatusBadge';
+// eslint-disable-next-line no-unused-vars
 import UniversalTabContainer from './UniversalTabContainer';
+// eslint-disable-next-line no-unused-vars
 import SearchFilters from './SearchFilters';
 import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
@@ -23,6 +25,7 @@ import './SearchPage2.css';
 
 const SearchPage2 = () => {
   // Activity logger hook
+  // eslint-disable-next-line no-unused-vars
   const { logPageVisit, logSearchResultsViewed, logFilterApplied, logSortChanged } = useActivityLogger();
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
@@ -43,6 +46,7 @@ const SearchPage2 = () => {
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
+  // eslint-disable-next-line no-unused-vars
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
   const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
   const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
@@ -97,6 +101,7 @@ const SearchPage2 = () => {
   
   // Split-screen layout state
   const [selectedProfileForDetail, setSelectedProfileForDetail] = useState(null);
+  // eslint-disable-next-line no-unused-vars
   const [expandedSections, setExpandedSections] = useState({
     aboutMe: true,
     lookingFor: true,

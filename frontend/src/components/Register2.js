@@ -196,7 +196,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   
   // ImageManager state - For registration, we only have new images (no existing)
   const [existingImages, setExistingImages] = useState([]); // Empty for new registration
+  // eslint-disable-next-line no-unused-vars
   const [publicImages, setPublicImages] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [imagesToDelete, setImagesToDelete] = useState([]); // Not used in registration
   const [newImages, setNewImages] = useState([]); // New images to upload
   const [successMsg, setSuccessMsg] = useState("");

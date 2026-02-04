@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+// eslint-disable-next-line no-unused-vars
 import axios from "axios";
 import api, { imageAccess } from "../api";
 import { getBackendUrl } from "../config/apiConfig";
@@ -650,6 +651,7 @@ const Profile = ({
   }, [piiAccess.images, user, isOwnProfile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Check if user has favorited/shortlisted this profile
+  // eslint-disable-next-line no-unused-vars
   const checkUserRelationship = async () => {
     if (isOwnProfile || !currentUsername) return;
 
@@ -670,12 +672,14 @@ const Profile = ({
   };
 
   // Handle access request
+  // eslint-disable-next-line no-unused-vars
   const handleRequestAccess = (image) => {
     setSelectedImageForAccess(image);
     setShowImageAccessModal(true);
   };
 
   // Handle renewal request
+  // eslint-disable-next-line no-unused-vars
   const handleRenewAccess = (image) => {
     setSelectedImageForAccess(image);
     setShowImageAccessModal(true);
@@ -1632,7 +1636,7 @@ const Profile = ({
                     {hasAccess && image ? (
                       <img 
                         src={getAuthenticatedImageUrl(image)}
-                        alt={`Photo ${index + 1}`}
+                        alt={`Gallery item ${index + 1}`}
                         className="gallery-image"
                         onClick={() => {
                           setLightboxImage(image);

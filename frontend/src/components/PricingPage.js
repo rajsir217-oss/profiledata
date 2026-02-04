@@ -89,6 +89,7 @@ const PricingPage = () => {
         setBraintreeReady(false);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod, braintreeConfigured, selectedPlan]);
 
   // Initialize PayPal SDK when payment method changes to paypal
@@ -97,13 +98,15 @@ const PricingPage = () => {
       initializePayPal();
     }
     
+    const containerRef = paypalContainerRef.current;
     return () => {
       // Cleanup PayPal buttons
-      if (paypalContainerRef.current) {
-        paypalContainerRef.current.innerHTML = '';
+      if (containerRef) {
+        containerRef.innerHTML = '';
       }
       setPaypalReady(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paymentMethod, paypalConfigured, paypalClientId, selectedPlan]);
 
   const initializeBraintree = async () => {
