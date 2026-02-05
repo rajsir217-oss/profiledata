@@ -8,7 +8,7 @@ set -e
 
 PROJECT_ID="matrimonial-staging"
 REGION="us-central1"
-KEEP_COUNT=7  # Keep latest 7 revisions
+KEEP_COUNT=3  # Keep latest 3 revisions (reduced from 7 to save storage costs)
 
 # Parse arguments
 AUTO_YES=false
