@@ -267,7 +267,7 @@ const UserCard = ({
           {showOnlineStatus && <OnlineStatusBadge username={username} size="tiny" />}
         </div>
         {/* Age */}
-        <div className="row-cell row-age" onClick={handleCardClick}>{profileData?.age || '-'}</div>
+        <div className="row-cell row-age" onClick={handleCardClick}>{profileData?.age || calculateAge(profileData?.birthYear) || '-'}</div>
         {/* Height */}
         <div className="row-cell row-height" onClick={handleCardClick}>{displayHeight || '-'}</div>
         {/* Location */}
@@ -317,9 +317,9 @@ const UserCard = ({
         )}
         
         {/* Age Badge - Top of avatar */}
-        {profileData?.age && (
+        {(profileData?.age || profileData?.birthYear) && (
           <div className="age-badge-overlay">
-            <span className="age-badge-pill">{profileData.age}yrs</span>
+            <span className="age-badge-pill">{profileData?.age || calculateAge(profileData?.birthYear)}yrs</span>
           </div>
         )}
         
@@ -345,7 +345,7 @@ const UserCard = ({
       <div className="user-card-body">
         <h4 className="user-name">
           {displayName}
-          {profileData?.age && <span className="user-age-badge">{profileData.age}y</span>}
+          {(profileData?.age || profileData?.birthYear) && <span className="user-age-badge">{profileData?.age || calculateAge(profileData?.birthYear)}y</span>}
         </h4>
         
         {/* Location */}
