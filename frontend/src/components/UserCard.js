@@ -110,11 +110,21 @@ const UserCard = ({
     return null;
   };
 
-  // Calculate age from birth year
-  const calculateAge = (birthYear) => {
+  // Calculate age from birth year and month (more accurate)
+  const calculateAge = (birthYear, birthMonth = null) => {
     if (!birthYear) return null;
-    const currentYear = new Date().getFullYear();
-    return currentYear - birthYear;
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1; // 1-indexed
+    
+    let age = currentYear - birthYear;
+    
+    // If birthMonth provided, check if birthday hasn't occurred yet this year
+    if (birthMonth && currentMonth < birthMonth) {
+      age -= 1;
+    }
+    
+    return age;
   };
 
   // Format DOB for display (MM/YYYY format) with age
@@ -126,7 +136,7 @@ const UserCard = ({
     if (profileData?.birthMonth && profileData?.birthYear) {
       const month = String(profileData.birthMonth).padStart(2, '0');
       dobStr = `${month}/${profileData.birthYear}`;
-      age = calculateAge(profileData.birthYear);
+      age = calculateAge(profileData.birthYear, profileData.birthMonth);
     }
     // Try dateOfBirth field
     else if (profileData?.dateOfBirth) {
@@ -134,7 +144,7 @@ const UserCard = ({
         const date = new Date(profileData.dateOfBirth);
         const month = String(date.getMonth() + 1).padStart(2, '0');
         dobStr = `${month}/${date.getFullYear()}`;
-        age = calculateAge(date.getFullYear());
+        age = calculateAge(date.getFullYear(), date.getMonth() + 1);
       } catch {
         return null;
       }
@@ -267,7 +277,7 @@ const UserCard = ({
           {showOnlineStatus && <OnlineStatusBadge username={username} size="tiny" />}
         </div>
         {/* Age */}
-        <div className="row-cell row-age" onClick={handleCardClick}>{profileData?.age || calculateAge(profileData?.birthYear) || '-'}</div>
+        <div className="row-cell row-age" onClick={handleCardClick}>{profileData?.age || calculateAge(profileData?.birthYear, profileData?.birthMonth) || '-'}</div>
         {/* Height */}
         <div className="row-cell row-height" onClick={handleCardClick}>{displayHeight || '-'}</div>
         {/* Location */}
@@ -319,7 +329,7 @@ const UserCard = ({
         {/* Age Badge - Top of avatar */}
         {(profileData?.age || profileData?.birthYear) && (
           <div className="age-badge-overlay">
-            <span className="age-badge-pill">{profileData?.age || calculateAge(profileData?.birthYear)}yrs</span>
+            <span className="age-badge-pill">{profileData?.age || calculateAge(profileData?.birthYear, profileData?.birthMonth)}yrs</span>
           </div>
         )}
         
@@ -345,7 +355,7 @@ const UserCard = ({
       <div className="user-card-body">
         <h4 className="user-name">
           {displayName}
-          {(profileData?.age || profileData?.birthYear) && <span className="user-age-badge">{profileData?.age || calculateAge(profileData?.birthYear)}y</span>}
+          {(profileData?.age || profileData?.birthYear) && <span className="user-age-badge">{profileData?.age || calculateAge(profileData?.birthYear, profileData?.birthMonth)}y</span>}
         </h4>
         
         {/* Location */}

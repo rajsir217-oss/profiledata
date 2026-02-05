@@ -21,6 +21,7 @@ import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import toastService from '../services/toastService';
 import useActivityLogger from '../hooks/useActivityLogger';
+import GraphView from './GraphView';
 import './SearchPage2.css';
 
 const SearchPage2 = () => {
@@ -2669,6 +2670,24 @@ const SearchPage2 = () => {
                   >
                     <span className="layout-toggle-btn-icon">👆</span><span className="layout-toggle-btn-text"> Swipe</span>
                   </button>
+                  <button
+                    onClick={() => handleViewModeChange('graph')}
+                    className={`layout-toggle-btn ${viewMode === 'graph' ? 'active' : ''}`}
+                    title="Graph view - Radial visualization with drag-and-drop"
+                    style={{
+                      padding: '6px 12px',
+                      fontSize: '14px',
+                      borderRadius: 'var(--radius-sm)',
+                      border: viewMode === 'graph' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                      background: viewMode === 'graph' ? 'var(--primary-color)' : 'var(--surface-color)',
+                      color: viewMode === 'graph' ? 'white' : 'var(--text-color)',
+                      cursor: 'pointer',
+                      fontWeight: viewMode === 'graph' ? 600 : 400,
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    <span className="layout-toggle-btn-icon">◎</span><span className="layout-toggle-btn-text"> Graph</span>
+                  </button>
                 </div>
               </div>
               
@@ -3192,6 +3211,17 @@ const SearchPage2 = () => {
                 </div>
               )}
             </div>
+          ) : viewMode === 'graph' ? (
+            /* Graph View - Radial visualization */
+            <GraphView
+              users={currentRecords}
+              currentUserProfile={currentUserProfile}
+              sortBy={sortBy}
+              favoritedUsers={favoritedUsers}
+              shortlistedUsers={shortlistedUsers}
+              excludedUsers={excludedUsers}
+              onProfileAction={handleProfileAction}
+            />
           ) : (
             /* Cards/Rows Layout - wrapped in scroll container for rows view */
             <div className={viewMode === 'rows' ? 'rows-scroll-container' : undefined}>
