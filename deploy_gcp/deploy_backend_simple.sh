@@ -55,7 +55,9 @@ gcloud run deploy $SERVICE_NAME \
   --cpu 1 \
   --timeout 300 \
   --min-instances 0 \
-  --max-instances 10 \
+  --max-instances 3 \
+  --concurrency 80 \
+  --cpu-throttling \
   --set-env-vars "\
 ENV=production,\
 MONGODB_URL=$MONGODB_URL,\

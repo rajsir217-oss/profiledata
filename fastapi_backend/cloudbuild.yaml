@@ -43,5 +43,17 @@ steps:
       - '80'
       - '--cpu-throttling'
 
+  # Cleanup old images (keep only 3 most recent)
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        # List all image digests except the 3 most recent, then delete them
+        gcloud container images list-tags gcr.io/$PROJECT_ID/matrimonial-backend \
+          --format='get(digest)' --sort-by='~timestamp' \
+          | tail -n +4 \
+          | xargs -I {} gcloud container images delete gcr.io/$PROJECT_ID/matrimonial-backend@sha256:{} --quiet --force-delete-tags 2>/dev/null || true
+
 images:
   - 'gcr.io/$PROJECT_ID/matrimonial-backend:latest'
