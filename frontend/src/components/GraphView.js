@@ -216,7 +216,7 @@ const GraphView = ({
       education,
       matchScore,
       x: pos.x,
-      y: pos.y - 45, // Position above the node
+      y: pos.y, // Raw node position - smart positioning done in render
     });
   }, [dragState, userPositions]);
 
@@ -227,26 +227,38 @@ const GraphView = ({
     }
   }, [dragState]);
 
-  // Handle mouse down - start drag
+  // Handle mouse down - prepare for potential drag
   const handleMouseDown = useCallback((user, e) => {
     e.preventDefault();
-    e.stopPropagation();
     const svgPos = screenToSVG(e.clientX, e.clientY);
     const pos = userPositions.get(user.username);
     
+    // Store initial state - actual drag starts only after movement
     setDragState({
       user,
       startPos: pos,
-      currentPos: svgPos,
+      currentPos: pos, // Start at node position
       offsetX: pos.x - svgPos.x,
       offsetY: pos.y - svgPos.y,
+      isDragging: false, // Not actually dragging yet
+      startScreenX: e.clientX,
+      startScreenY: e.clientY,
     });
-    setTooltip(null); // Hide tooltip while dragging
   }, [screenToSVG, userPositions]);
 
   // Handle mouse move - update drag position
   const handleMouseMove = useCallback((e) => {
     if (!dragState) return;
+    
+    // Check if we've moved enough to start actual dragging (5px threshold)
+    const dx = e.clientX - dragState.startScreenX;
+    const dy = e.clientY - dragState.startScreenY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (!dragState.isDragging && distance < 5) {
+      // Not enough movement yet - don't start dragging
+      return;
+    }
     
     const svgPos = screenToSVG(e.clientX, e.clientY);
     const newX = svgPos.x + dragState.offsetX;
@@ -255,18 +267,29 @@ const GraphView = ({
     setDragState(prev => ({
       ...prev,
       currentPos: { x: newX, y: newY },
+      isDragging: true, // Now actually dragging
     }));
+    setTooltip(null); // Hide tooltip while dragging
     
     // Determine which drop zone we're over
     const zone = getDropZoneFromPosition(newX, newY);
     setDropZone(zone);
   }, [dragState, screenToSVG, getDropZoneFromPosition]);
 
-  // Handle mouse up - complete drag
+  // Handle mouse up - complete drag or handle click
   const handleMouseUp = useCallback((e) => {
     if (!dragState) return;
     
-    const { user } = dragState;
+    const { user, isDragging } = dragState;
+    
+    // If not actually dragging (just clicked), open profile
+    if (!isDragging) {
+      window.open(`/profile/${user.username}`, '_blank');
+      setDragState(null);
+      setDropZone(null);
+      return;
+    }
+    
     const currentRing = getUserRing(user);
     
     // Execute the action based on drop zone
@@ -292,7 +315,7 @@ const GraphView = ({
           onProfileAction(e, username, 'exclude');
         }
       }, 100);
-    } else if (dropZone === null && currentRing !== 'neutral' && onProfileAction) {
+    } else if (dropZone === null && currentRing !== 'neutral' && onProfileAction && isDragging) {
       // Dropped in neutral zone - remove from current ring
       const username = user.username;
       if (currentRing === 'favorites') {
@@ -578,7 +601,7 @@ const GraphView = ({
           );
         })()}
 
-        {/* SVG Tooltip - Rich profile card */}
+        {/* SVG Tooltip - Rich profile card with smart positioning */}
         {tooltip && !dragState && (() => {
           const lines = [];
           // Line 1: Name, Age
@@ -599,9 +622,27 @@ const GraphView = ({
           const padding = 10;
           const tooltipHeight = lines.length * lineHeight + padding * 2;
           const tooltipWidth = 180;
+          const nodeRadius = 20; // Match actual node radius
+          const gap = 5; // Small gap between node and tooltip
+          
+          // Smart positioning - keep tooltip within SVG bounds
+          let tooltipX = tooltip.x;
+          // Default: position tooltip so its bottom edge is just above the node
+          let tooltipY = tooltip.y - nodeRadius - gap;
+          
+          // Check if tooltip would clip at top (need space for full tooltip height)
+          if (tooltipY - tooltipHeight < 5) {
+            // Position below the node instead - tooltip top edge just below node
+            tooltipY = tooltip.y + nodeRadius + gap + tooltipHeight;
+          }
+          
+          // Clamp X position to keep tooltip within bounds
+          const minX = tooltipWidth / 2 + 5;
+          const maxX = SVG_WIDTH - tooltipWidth / 2 - 5;
+          tooltipX = Math.max(minX, Math.min(maxX, tooltipX));
           
           return (
-            <g className="svg-tooltip" transform={`translate(${tooltip.x}, ${tooltip.y - tooltipHeight/2})`}>
+            <g className="svg-tooltip" transform={`translate(${tooltipX}, ${tooltipY})`}>
               <rect
                 x={-tooltipWidth/2}
                 y={-tooltipHeight}
@@ -622,7 +663,7 @@ const GraphView = ({
               {lines.map((line, idx) => (
                 <text
                   key={idx}
-                  x="0"
+                  x={0}
                   y={-tooltipHeight + padding + (idx + 1) * lineHeight - 4}
                   textAnchor="middle"
                   className={`tooltip-text ${idx === 0 ? 'tooltip-name' : 'tooltip-detail'}`}
