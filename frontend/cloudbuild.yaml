@@ -17,7 +17,7 @@ steps:
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/matrimonial-frontend:latest']
   
-  # Deploy to Cloud Run
+  # Deploy to Cloud Run (cost-optimized)
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
     entrypoint: gcloud
     args:
@@ -33,6 +33,17 @@ steps:
       - '--allow-unauthenticated'
       - '--port'
       - '8080'
+      - '--memory'
+      - '256Mi'
+      - '--cpu'
+      - '1'
+      - '--max-instances'
+      - '2'
+      - '--min-instances'
+      - '0'
+      - '--concurrency'
+      - '100'
+      - '--cpu-throttling'
 
 images:
   - 'gcr.io/$PROJECT_ID/matrimonial-frontend:latest'
