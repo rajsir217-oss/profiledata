@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import api from '../api';
+import api, { createApiInstance } from '../api';
 import socketService from '../services/socketService';
 import { getApiUrl } from '../config/apiConfig';
 // eslint-disable-next-line no-unused-vars
@@ -29,7 +29,9 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
   const [violations, setViolations] = useState(null);
   const [onlineCount, setOnlineCount] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-  const [openTicketCount, setOpenTicketCount] = useState(0); // Admin support ticket count
+  const [adminPendingCounts, setAdminPendingCounts] = useState(null); // Unified admin pending counts
+  const [showAdminActions, setShowAdminActions] = useState(false); // Admin Action Center dropdown
+  const adminActionsRef = useRef(null); // Ref for click-outside detection
   const [unreadResponseCount, setUnreadResponseCount] = useState(0); // User unread admin responses
   const navigate = useNavigate();
 
@@ -292,30 +294,40 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
   }, [currentUser]);
 
-  // Poll for open support tickets (admin only)
+  // Poll for admin pending counts (admin only) - unified endpoint
   useEffect(() => {
     if (userRole !== 'admin') {
-      setOpenTicketCount(0);
+      setAdminPendingCounts(null);
       return;
     }
 
-    const fetchOpenTicketCount = async () => {
+    const fetchAdminPendingCounts = async () => {
       try {
-        const response = await api.get('/contact/admin/open-count');
-        setOpenTicketCount(response.data.count || 0);
+        const adminApi = createApiInstance();
+        const response = await adminApi.get('/api/admin/pending-counts');
+        setAdminPendingCounts(response.data);
       } catch (error) {
-        logger.error('Error fetching open ticket count:', error);
+        logger.error('Error fetching admin pending counts:', error);
       }
     };
 
-    // Fetch immediately
-    fetchOpenTicketCount();
-
-    // Poll every 60 seconds
-    const interval = setInterval(fetchOpenTicketCount, 60000);
-
+    fetchAdminPendingCounts();
+    const interval = setInterval(fetchAdminPendingCounts, 60000);
     return () => clearInterval(interval);
   }, [userRole]);
+
+  // Close admin actions dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (adminActionsRef.current && !adminActionsRef.current.contains(e.target)) {
+        setShowAdminActions(false);
+      }
+    };
+    if (showAdminActions) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAdminActions]);
 
   // Poll for unread admin responses (all logged-in users)
   useEffect(() => {
@@ -430,18 +442,55 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
             <span className="refer-text">Search</span>
           </button>
           
-          {/* Support Tickets Alert - Admin Only */}
-          {userRole === 'admin' && (
-            <button 
-              className="btn-support-tickets" 
-              onClick={() => navigate('/admin/contact')}
-              title={`Open Support Tickets${openTicketCount > 0 ? ` (${openTicketCount})` : ''}`}
-            >
-              🎫
-              {openTicketCount > 0 && (
-                <span className="support-ticket-badge">{openTicketCount > 99 ? '99+' : openTicketCount}</span>
+          {/* Admin Action Center - Unified pending items indicator */}
+          {userRole === 'admin' && adminPendingCounts && (
+            <div className="admin-actions-container" ref={adminActionsRef}>
+              <button 
+                className={`btn-admin-actions ${adminPendingCounts.total > 0 ? 'has-pending' : ''}`}
+                onClick={() => setShowAdminActions(!showAdminActions)}
+                title={`Admin Actions${adminPendingCounts.total > 0 ? ` (${adminPendingCounts.total} pending)` : ''}`}
+              >
+                🔔
+                {adminPendingCounts.total > 0 && (
+                  <span className="admin-actions-badge">{adminPendingCounts.total > 99 ? '99+' : adminPendingCounts.total}</span>
+                )}
+              </button>
+              {showAdminActions && (
+                <div className="admin-actions-dropdown">
+                  <div className="admin-actions-header">Admin Actions Needed</div>
+                  <button 
+                    className="admin-action-item"
+                    onClick={() => { navigate('/admin'); setShowAdminActions(false); }}
+                  >
+                    <span className="action-icon">👤</span>
+                    <span className="action-label">Users pending approval</span>
+                    <span className={`action-count ${adminPendingCounts.pendingApprovals > 0 ? 'has-items' : ''}`}>
+                      {adminPendingCounts.pendingApprovals}
+                    </span>
+                  </button>
+                  <button 
+                    className="admin-action-item"
+                    onClick={() => { navigate('/admin/contact'); setShowAdminActions(false); }}
+                  >
+                    <span className="action-icon">🎫</span>
+                    <span className="action-label">Open support tickets</span>
+                    <span className={`action-count ${adminPendingCounts.openTickets > 0 ? 'has-items' : ''}`}>
+                      {adminPendingCounts.openTickets}
+                    </span>
+                  </button>
+                  <button 
+                    className="admin-action-item"
+                    onClick={() => { navigate('/testimonials'); setShowAdminActions(false); }}
+                  >
+                    <span className="action-icon">⭐</span>
+                    <span className="action-label">Pending testimonials</span>
+                    <span className={`action-count ${adminPendingCounts.pendingTestimonials > 0 ? 'has-items' : ''}`}>
+                      {adminPendingCounts.pendingTestimonials}
+                    </span>
+                  </button>
+                </div>
               )}
-            </button>
+            </div>
           )}
           
           {/* Support Response Alert - All Users (when they have unread admin responses) */}
@@ -488,7 +537,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
                 </div>
               )}
             </div>
-            <span className="user-name">{userProfile ? getFirstName(userProfile) : currentUser}</span>
+            {/* Name hidden - profile pic/initials only */}
           </div>
         </div>
         

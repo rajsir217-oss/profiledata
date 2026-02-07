@@ -1149,3 +1149,48 @@ async def update_user_cleanup_settings(
     except Exception as e:
         logger.error(f"❌ Error updating cleanup settings for {username}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# ===== ADMIN ACTION CENTER =====
+
+@router.get("/pending-counts", dependencies=[Depends(require_admin)])
+async def get_admin_pending_counts(
+    db = Depends(get_database)
+):
+    """
+    Get counts of all admin-actionable pending items in a single call.
+    Used by the Admin Action Center badge in the TopBar.
+    """
+    try:
+        # 1. Users pending admin approval
+        pending_approvals = await db.users.count_documents({
+            "accountStatus": "pending_admin_approval"
+        })
+
+        # 2. Open support tickets (open or in_progress)
+        open_tickets = await db.contact_tickets.count_documents({
+            "status": {"$in": ["open", "in_progress"]}
+        })
+
+        # 3. Pending testimonials awaiting admin review
+        pending_testimonials = await db.testimonials.count_documents({
+            "status": "pending"
+        })
+
+        total = pending_approvals + open_tickets + pending_testimonials
+
+        return {
+            "pendingApprovals": pending_approvals,
+            "openTickets": open_tickets,
+            "pendingTestimonials": pending_testimonials,
+            "total": total
+        }
+
+    except Exception as e:
+        logger.error(f"❌ Error fetching admin pending counts: {e}", exc_info=True)
+        return {
+            "pendingApprovals": 0,
+            "openTickets": 0,
+            "pendingTestimonials": 0,
+            "total": 0
+        }
