@@ -246,6 +246,24 @@ const GraphView = ({
     });
   }, [screenToSVG, userPositions]);
 
+  // Handle touch start - prepare for potential drag (mobile)
+  const handleTouchStart = useCallback((user, e) => {
+    const touch = e.touches[0];
+    const svgPos = screenToSVG(touch.clientX, touch.clientY);
+    const pos = userPositions.get(user.username);
+    
+    setDragState({
+      user,
+      startPos: pos,
+      currentPos: pos,
+      offsetX: pos.x - svgPos.x,
+      offsetY: pos.y - svgPos.y,
+      isDragging: false,
+      startScreenX: touch.clientX,
+      startScreenY: touch.clientY,
+    });
+  }, [screenToSVG, userPositions]);
+
   // Handle mouse move - update drag position
   const handleMouseMove = useCallback((e) => {
     if (!dragState) return;
@@ -275,6 +293,74 @@ const GraphView = ({
     const zone = getDropZoneFromPosition(newX, newY);
     setDropZone(zone);
   }, [dragState, screenToSVG, getDropZoneFromPosition]);
+
+  // Handle touch move - update drag position (mobile)
+  const handleTouchMove = useCallback((e) => {
+    if (!dragState) return;
+    const touch = e.touches[0];
+    
+    const dx = touch.clientX - dragState.startScreenX;
+    const dy = touch.clientY - dragState.startScreenY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (!dragState.isDragging && distance < 10) {
+      return;
+    }
+    
+    // Prevent page scrolling while dragging a node
+    e.preventDefault();
+    
+    const svgPos = screenToSVG(touch.clientX, touch.clientY);
+    const newX = svgPos.x + dragState.offsetX;
+    const newY = svgPos.y + dragState.offsetY;
+    
+    setDragState(prev => ({
+      ...prev,
+      currentPos: { x: newX, y: newY },
+      isDragging: true,
+    }));
+    setTooltip(null);
+    
+    const zone = getDropZoneFromPosition(newX, newY);
+    setDropZone(zone);
+  }, [dragState, screenToSVG, getDropZoneFromPosition]);
+
+  // Handle touch end - complete drag or handle click (mobile)
+  const handleTouchEnd = useCallback((e) => {
+    if (!dragState) return;
+    
+    const { user, isDragging } = dragState;
+    
+    if (!isDragging) {
+      window.open(`/profile/${user.username}`, '_blank');
+      setDragState(null);
+      setDropZone(null);
+      return;
+    }
+    
+    const currentRing = getUserRing(user);
+    
+    if (dropZone && dropZone !== currentRing && onProfileAction) {
+      const username = user.username;
+      if (currentRing === 'favorites') onProfileAction(e, username, 'unfavorite');
+      else if (currentRing === 'shortlists') onProfileAction(e, username, 'unshortlist');
+      else if (currentRing === 'excluder') onProfileAction(e, username, 'unexclude');
+      
+      setTimeout(() => {
+        if (dropZone === 'favorites') onProfileAction(e, username, 'favorite');
+        else if (dropZone === 'shortlists') onProfileAction(e, username, 'shortlist');
+        else if (dropZone === 'excluder') onProfileAction(e, username, 'exclude');
+      }, 100);
+    } else if (dropZone === null && currentRing !== 'neutral' && onProfileAction && isDragging) {
+      const username = user.username;
+      if (currentRing === 'favorites') onProfileAction(e, username, 'unfavorite');
+      else if (currentRing === 'shortlists') onProfileAction(e, username, 'unshortlist');
+      else if (currentRing === 'excluder') onProfileAction(e, username, 'unexclude');
+    }
+    
+    setDragState(null);
+    setDropZone(null);
+  }, [dragState, dropZone, onProfileAction, getUserRing]);
 
   // Handle mouse up - complete drag or handle click
   const handleMouseUp = useCallback((e) => {
@@ -412,6 +498,9 @@ const GraphView = ({
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     >
       <svg 
         ref={svgRef}
@@ -514,7 +603,8 @@ const GraphView = ({
                 onMouseEnter={(e) => handleMouseEnter(user, e)}
                 onMouseLeave={handleMouseLeave}
                 onMouseDown={(e) => handleMouseDown(user, e)}
-                style={{ cursor: dragState ? 'grabbing' : 'grab' }}
+                onTouchStart={(e) => handleTouchStart(user, e)}
+                style={{ cursor: dragState ? 'grabbing' : 'grab', touchAction: 'none' }}
               >
                 {/* Node background */}
                 <circle
