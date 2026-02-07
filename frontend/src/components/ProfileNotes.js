@@ -18,6 +18,25 @@ notesApi.interceptors.request.use((config) => {
   return config;
 });
 
+// Add 401 response interceptor to handle session expiry
+notesApi.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      const token = localStorage.getItem('token');
+      if (token) {
+        const hasLoggedOut = sessionStorage.getItem('hasLoggedOut');
+        if (!hasLoggedOut) {
+          sessionStorage.setItem('hasLoggedOut', 'true');
+          const sessionManager = require('../services/sessionManager').default;
+          sessionManager.logout('notes_api_401');
+        }
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 /**
  * ProfileNotes Component
  * Allows users to save private notes about profiles they're interested in.
