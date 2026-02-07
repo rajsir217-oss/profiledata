@@ -128,8 +128,8 @@ const Sidebar = ({ isCollapsed, onToggle }) => {
           action: handleLogin
         },
         { 
-          icon: '📝', 
-          label: 'Register', 
+          icon: '�', 
+          label: 'Register (Invitation Only)', 
           action: () => navigate('/register2')
         },
       ];

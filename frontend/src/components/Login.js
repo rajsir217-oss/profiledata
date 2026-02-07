@@ -619,7 +619,7 @@ const Login = () => {
             }}
             onMouseEnter={(e) => e.target.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.target.style.textDecoration = 'none'}
-            >Create Account</Link>
+            >Registration is by invitation only</Link>
           </p>
         </div>
       )}

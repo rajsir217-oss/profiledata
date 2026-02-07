@@ -59,8 +59,8 @@ const LandingPage = () => {
           </p>
           
           <div className="hero-cta">
-            <button className="btn-get-started" onClick={() => navigate('/register2')}>
-              Get Started Free
+            <button className="btn-get-started" onClick={() => navigate('/login')}>
+              Member Login
             </button>
             <button className="btn-learn-more" onClick={() => document.querySelector('.how-it-works').scrollIntoView({ behavior: 'smooth' })}>
               Learn How It Works
@@ -228,8 +228,8 @@ const LandingPage = () => {
         
         <div className="services-cta">
           <p>Ready to find your life partner?</p>
-          <button className="btn-get-started" onClick={() => navigate('/register2')}>
-            Start Your Journey Free
+          <button className="btn-get-started" onClick={() => navigate('/login')}>
+            Member Login
           </button>
         </div>
       </section>
@@ -366,7 +366,7 @@ const LandingPage = () => {
           
           <div className="events-cta">
             <p>Join L3V3L to get exclusive invites to our events</p>
-            <button className="btn-get-started" onClick={() => navigate('/register2')}>
+            <button className="btn-get-started" onClick={() => navigate('/login')}>
               Become a Member
             </button>
           </div>
@@ -397,7 +397,7 @@ const LandingPage = () => {
               <li>✗ Send messages</li>
               <li>✗ See who viewed you</li>
             </ul>
-            <button className="btn-pricing" onClick={() => navigate('/register2')}>Get Started</button>
+            <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
           </div>
           
           <div className="pricing-card featured">
@@ -417,7 +417,7 @@ const LandingPage = () => {
               <li>✓ Priority customer support</li>
               <li>✓ Hide your activity</li>
             </ul>
-            <button className="btn-pricing featured" onClick={() => navigate('/register2')}>Start Free Trial</button>
+            <button className="btn-pricing featured" onClick={() => navigate('/login')}>Start Free Trial</button>
           </div>
           
           <div className="pricing-card">
@@ -436,7 +436,7 @@ const LandingPage = () => {
               <li>✓ Read receipts on messages</li>
               <li>✓ Early access to new features</li>
             </ul>
-            <button className="btn-pricing" onClick={() => navigate('/register2')}>Get Started</button>
+            <button className="btn-pricing" onClick={() => navigate('/login')}>Get Started</button>
           </div>
         </div>
         

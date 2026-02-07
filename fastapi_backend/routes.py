@@ -897,6 +897,15 @@ async def check_email_availability(
     return {"available": True, "email": email}
 
 
+@router.get("/registration-status")
+async def get_registration_status():
+    """Public endpoint: returns whether registration is open or invitation-only."""
+    return {
+        "registrationOpen": settings.registration_open,
+        "message": "Registration is currently by invitation only. You need to be referred by an existing member to join." if not settings.registration_open else "Registration is open to everyone."
+    }
+
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_user(
     # Basic Information
@@ -981,6 +990,28 @@ async def register_user(
     """Register a new user with profile details and images"""
     logger.info(f"📝 Registration attempt for username: {username}")
     logger.debug(f"Registration data - Email: {contactEmail}, Name: {firstName} {lastName}")
+    
+    # ===== INVITATION-ONLY GATE =====
+    # If public registration is closed, require a valid invitation token
+    if not settings.registration_open:
+        if not invitationToken:
+            logger.warning(f"⚠️ Registration blocked: No invitation token (registration is invitation-only)")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Registration is currently by invitation only. You need to be referred by an existing member to join."
+            )
+        # Validate the invitation token exists and is valid
+        invitation = await db.invitations.find_one({
+            "token": invitationToken,
+            "status": {"$in": ["pending", "sent", "resent"]}
+        })
+        if not invitation:
+            logger.warning(f"⚠️ Registration blocked: Invalid/expired invitation token '{invitationToken}'")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Invalid or expired invitation link. Please request a new invitation from an existing member."
+            )
+        logger.info(f"✅ Valid invitation token verified for username '{username}'")
     
     # Validate legal consents (CRITICAL FOR LEGAL COMPLIANCE)
     if not agreedToAge:
