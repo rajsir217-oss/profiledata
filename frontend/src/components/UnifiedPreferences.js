@@ -187,7 +187,7 @@ const UnifiedPreferences = () => {
       name: 'Indian Celebration',
       icon: '🪔',
       description: 'Vibrant marigold and gold celebrating Indian weddings',
-      preview: { primary: '#ff6b35', secondary: '#f7931e', background: '#fffaf0', text: '#7c2d12' }
+      preview: { primary: '#ff6b35', secondary: '#f7931e', background: '#fefce8', text: '#7c2d12' }
     },
     {
       id: 'newspaper',
