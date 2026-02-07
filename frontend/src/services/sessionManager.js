@@ -579,15 +579,28 @@ class SessionManager {
     // Mark as logged out to prevent duplicate handling
     sessionStorage.setItem('hasLoggedOut', 'true');
 
-    // Show session expired overlay immediately to prevent broken UI
-    this.showSessionExpiredOverlay();
+    // Check if we're on a public page — if so, skip the overlay and redirect immediately
+    const publicPaths = ['/', '/home', '/login', '/register', '/register2', '/forgot-password', '/reset-password', '/verify-email', '/verify-email-sent', '/pricing', '/terms', '/privacy', '/refund', '/community-guidelines', '/cookie-policy', '/l3v3l-info', '/help'];
+    const currentPath = window.location.pathname;
+    const isPublicPage = publicPaths.some(path => currentPath === path || currentPath.startsWith(path + '/'));
 
-    // Redirect to login after brief delay for user to see message
-    setTimeout(() => {
+    if (isPublicPage) {
+      // On public pages, just redirect without showing overlay
+      logger.debug('On public page, skipping session expired overlay');
       this.isLoggingOut = false;
       sessionStorage.removeItem('hasLoggedOut');
       window.location.href = '/login';
-    }, 1500);
+    } else {
+      // Show session expired overlay on protected pages
+      this.showSessionExpiredOverlay();
+
+      // Redirect to login after brief delay for user to see message
+      setTimeout(() => {
+        this.isLoggingOut = false;
+        sessionStorage.removeItem('hasLoggedOut');
+        window.location.href = '/login';
+      }, 1500);
+    }
 
     logger.info('Session manager cleaned up - redirecting to login');
   }

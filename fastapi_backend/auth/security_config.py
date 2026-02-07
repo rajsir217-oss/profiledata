@@ -15,7 +15,7 @@ class SecuritySettings(BaseSettings):
     # ===== JWT Configuration =====
     JWT_SECRET_KEY: str = "your-secret-key-change-in-production"  # Change in production!
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15  # 15 minutes (refreshed automatically)
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30  # 30 minutes (refreshed automatically by session manager)
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7  # 7 days (reduced from 30 for security - Jan 13, 2026)
     
     # ===== Password Policy =====
