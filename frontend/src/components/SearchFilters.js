@@ -409,26 +409,48 @@ const SearchFilters = ({
             </div>
           </div>
         </div>
-        <div className="col-days-back">
-          <div className="form-group">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              Days Back
+        {/* Row: Days Back + Has Photo Toggle */}
+        <div className="filter-row-days-photo">
+          <div className="col-days-back">
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Days Back
+                <Tooltip 
+                  text="Show only profiles created within the last X days. Useful for finding new members."
+                  position="top"
+                  icon 
+                />
+              </label>
+              <input
+                type="number"
+                className="form-control"
+                name="daysBack"
+                value={searchCriteria.daysBack || ''}
+                onChange={handleInputChange}
+                min="1"
+                max="365"
+                placeholder="30"
+              />
+            </div>
+          </div>
+          <div className="col-has-photo">
+            <label className="has-photo-toggle-label">
+              <input
+                type="checkbox"
+                name="hasPhoto"
+                checked={searchCriteria.hasPhoto || false}
+                onChange={handleInputChange}
+                className="has-photo-checkbox"
+              />
+              <span className="has-photo-toggle-text">
+                📸 Has Photo Only
+              </span>
               <Tooltip 
-                text="Show only profiles created within the last X days. Useful for finding new members."
+                text="Only show profiles that have at least one photo. Profiles without photos are always deprioritized in results."
                 position="top"
                 icon 
               />
             </label>
-            <input
-              type="number"
-              className="form-control"
-              name="daysBack"
-              value={searchCriteria.daysBack || ''}
-              onChange={handleInputChange}
-              min="1"
-              max="365"
-              placeholder="30"
-            />
           </div>
         </div>
       </div>

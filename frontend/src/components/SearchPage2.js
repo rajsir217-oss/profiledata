@@ -79,6 +79,7 @@ const SearchPage2 = () => {
     relationshipStatus: '',
     newlyAdded: false,
     daysBack: 30, // Number of days to look back for profile creation (default: 30)
+    hasPhoto: true, // Default ON - only show profiles with photos
   });
   const [favoritedUsers, setFavoritedUsers] = useState(new Set());
   const [shortlistedUsers, setShortlistedUsers] = useState(new Set());
@@ -860,6 +861,7 @@ const SearchPage2 = () => {
             relationshipStatus: '',
             newlyAdded: false,
             daysBack: 30, // Default to 30 days for production (many profiles)
+            hasPhoto: true, // Default ON - only show profiles with photos
           };
           
           logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
@@ -1310,7 +1312,8 @@ const SearchPage2 = () => {
       heightMinInches: defaultHeightMinInches,
       heightMaxFeet: defaultHeightMaxFeet,
       heightMaxInches: defaultHeightMaxInches,
-      daysBack: 30
+      daysBack: 30,
+      hasPhoto: true
     };
   };
 
@@ -1370,6 +1373,7 @@ const SearchPage2 = () => {
         bodyType: '',
         newlyAdded: false,
         daysBack: 30,
+        hasPhoto: true,
         sortBy: 'age',
         sortOrder: 'asc'
       });
@@ -1400,6 +1404,7 @@ const SearchPage2 = () => {
         bodyType: '',
         newlyAdded: false,
         daysBack: defaults.daysBack || 30,
+        hasPhoto: true,
         sortBy: 'age',
         sortOrder: 'asc'
       });
@@ -1818,7 +1823,8 @@ const SearchPage2 = () => {
     // Apply default daysBack if not set in saved search (for backward compatibility)
     const criteriaWithDefaults = {
       ...savedSearch.criteria,
-      daysBack: savedSearch.criteria.daysBack || 30
+      daysBack: savedSearch.criteria.daysBack || 30,
+      hasPhoto: savedSearch.criteria.hasPhoto !== undefined ? savedSearch.criteria.hasPhoto : true
     };
     
     setSearchCriteria(criteriaWithDefaults);
@@ -2420,7 +2426,7 @@ const SearchPage2 = () => {
     if (searchCriteria.onlineOnly) summary.push('🟢 Online');
     
     // With photos only
-    if (searchCriteria.withPhotosOnly) summary.push('📷 With Photos');
+    if (searchCriteria.hasPhoto) summary.push('📸 Photos Only');
     
     // Days back filter
     if (searchCriteria.daysBack && searchCriteria.daysBack > 0) {

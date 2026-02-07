@@ -26,6 +26,18 @@ import { SECTION_ICONS, STATS_ICONS } from '../constants/icons';
 import PollWidget from './PollWidget';
 import ProfileNotes from './ProfileNotes';
 
+// Shared context map for section keys → UserCard contexts
+const SECTION_CONTEXT_MAP = {
+  'myMessages': 'my-messages',
+  'myFavorites': 'my-favorites',
+  'myShortlists': 'my-shortlists',
+  'myExclusions': 'my-exclusions',
+  'myViews': 'profile-views',
+  'myRequests': 'pii-requests',
+  'theirFavorites': 'their-favorites',
+  'theirShortlists': 'their-shortlists'
+};
+
 const Dashboard2 = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -323,24 +335,7 @@ const Dashboard2 = () => {
       return;
     }
     
-    // Load user profile for display name and check for photos
-    const loadUserProfile = async () => {
-      try {
-        const response = await api.get(`/profile/${currentUser}?requester=${currentUser}`);
-        setUserProfile(response.data);
-        
-        // Check if user has no photos and hasn't dismissed the reminder this session
-        const photoReminderDismissed = sessionStorage.getItem('photoReminderDismissed');
-        const userImages = response.data?.images || [];
-        if (userImages.length === 0 && !photoReminderDismissed) {
-          setShowPhotoReminder(true);
-        }
-      } catch (error) {
-        logger.error('Error loading user profile:', error);
-      }
-    };
-    
-    loadUserProfile();
+    // Profile is loaded inside loadDashboardData → refreshProfile (no separate call needed)
     checkMfaStatus(currentUser);
     loadPauseStatus(currentUser);
     
@@ -449,8 +444,8 @@ const Dashboard2 = () => {
   };
 
   // LAZY LOADING: Load My Activities data when section is expanded
-  const loadMyActivitiesData = async (user) => {
-    if (loadedData.myActivities) return; // Already loaded
+  const loadMyActivitiesData = async (user, forceReload = false) => {
+    if (loadedData.myActivities && !forceReload) return; // Already loaded
     
     const currentUser = user || localStorage.getItem('username');
     logger.info('📦 Lazy loading My Activities data...');
@@ -498,8 +493,7 @@ const Dashboard2 = () => {
       
       if (action === 'accept') {
         // Refresh exclusions list since we unblocked someone
-        setLoadedData(prev => ({ ...prev, myActivities: false }));
-        await loadMyActivitiesData(currentUser);
+        await loadMyActivitiesData(currentUser, true);
         toast.success(`You've unblocked ${fromUsername}. They can now message you.`);
       } else {
         toast.info('Reconnect request declined.');
@@ -1056,10 +1050,6 @@ const Dashboard2 = () => {
         )
       }));
       
-      // Refresh dashboard data to ensure sync
-      const currentUser = localStorage.getItem('username');
-      await loadDashboardData(currentUser);
-      
       logger.info(`Successfully deleted conversation with: ${targetUsername}`);
     } catch (err) {
       console.error('🗑️ Delete failed:', err);
@@ -1437,22 +1427,28 @@ const Dashboard2 = () => {
     );
   };
 
+  // Shared refresh function lookup for all section keys
+  const getRefreshFunction = (sectionKey) => {
+    const map = {
+      'myMessages': () => refreshMessages(currentUser),
+      'myFavorites': () => refreshFavorites(currentUser),
+      'myShortlists': () => refreshShortlists(currentUser),
+      'myExclusions': () => refreshExclusions(currentUser),
+      'myViews': () => refreshViews(currentUser),
+      'theirFavorites': () => refreshTheirFavorites(currentUser),
+      'theirShortlists': () => refreshTheirShortlists(currentUser),
+      'myRequests': () => refreshPiiRequests(currentUser),
+      'piiInbox': () => refreshIncomingRequests(currentUser),
+      'piiSent': () => refreshPiiRequests(currentUser),
+      'piiHistory': () => refreshReceivedAccess(currentUser)
+    };
+    return map[sectionKey];
+  };
+
   // Render section using new CategorySection component with context mapping
   // eslint-disable-next-line no-unused-vars
   const renderSection = (title, data, sectionKey, icon, color, removeHandler = null) => {
     const isDraggable = ['myFavorites', 'myShortlists', 'myExclusions'].includes(sectionKey);
-    
-    // Map section keys to contexts
-    const contextMap = {
-      'myMessages': 'my-messages',
-      'myFavorites': 'my-favorites',
-      'myShortlists': 'my-shortlists',
-      'myExclusions': 'my-exclusions',
-      'myViews': 'profile-views',
-      'myRequests': 'pii-requests',
-      'theirFavorites': 'their-favorites',
-      'theirShortlists': 'their-shortlists'
-    };
     
     // Tooltips for sections with retention policies
     const tooltipMap = {
@@ -1462,20 +1458,8 @@ const Dashboard2 = () => {
       'theirShortlists': 'Profiles who have shortlisted you (last 45 days)'
     };
     
-    const context = contextMap[sectionKey] || 'default';
+    const context = SECTION_CONTEXT_MAP[sectionKey] || 'default';
     const tooltip = tooltipMap[sectionKey];
-    
-    // Map section keys to refresh functions
-    const refreshMap = {
-      'myMessages': () => refreshMessages(currentUser),
-      'myFavorites': () => refreshFavorites(currentUser),
-      'myShortlists': () => refreshShortlists(currentUser),
-      'myExclusions': () => refreshExclusions(currentUser),
-      'myViews': () => refreshViews(currentUser),
-      'theirFavorites': () => refreshTheirFavorites(currentUser),
-      'theirShortlists': () => refreshTheirShortlists(currentUser),
-      'myRequests': () => refreshPiiRequests(currentUser)
-    };
     
     return (
       <CategorySection
@@ -1491,7 +1475,7 @@ const Dashboard2 = () => {
         viewMode={viewMode}
         emptyMessage={`No ${title.toLowerCase()} yet`}
         tooltip={tooltip}
-        onRefresh={refreshMap[sectionKey]}
+        onRefresh={getRefreshFunction(sectionKey)}
         isRefreshing={refreshing[sectionKey]}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -1505,34 +1489,7 @@ const Dashboard2 = () => {
 
   // Render tab content directly without collapsible wrapper (for tab-based layout)
   const renderTabContent = (title, data, sectionKey, icon, color, removeHandler = null) => {
-    // Map section keys to contexts
-    const contextMap = {
-      'myMessages': 'my-messages',
-      'myFavorites': 'my-favorites',
-      'myShortlists': 'my-shortlists',
-      'myExclusions': 'my-exclusions',
-      'myViews': 'profile-views',
-      'myRequests': 'pii-requests',
-      'theirFavorites': 'their-favorites',
-      'theirShortlists': 'their-shortlists'
-    };
-    
-    const context = contextMap[sectionKey] || 'default';
-
-    // Map section keys to refresh functions
-    const refreshMap = {
-      'myMessages': () => refreshMessages(currentUser),
-      'myFavorites': () => refreshFavorites(currentUser),
-      'myShortlists': () => refreshShortlists(currentUser),
-      'myExclusions': () => refreshExclusions(currentUser),
-      'myViews': () => refreshViews(currentUser),
-      'theirFavorites': () => refreshTheirFavorites(currentUser),
-      'theirShortlists': () => refreshTheirShortlists(currentUser),
-      'myRequests': () => refreshPiiRequests(currentUser),
-      'piiInbox': () => refreshIncomingRequests(currentUser),
-      'piiSent': () => refreshPiiRequests(currentUser),
-      'piiHistory': () => refreshReceivedAccess(currentUser)
-    };
+    const context = SECTION_CONTEXT_MAP[sectionKey] || 'default';
     
     return (
       <div className="tab-content-wrapper" style={{ '--tab-color': color }}>
@@ -1542,12 +1499,12 @@ const Dashboard2 = () => {
             <span className="tab-content-icon">{icon}</span>
             <span className="tab-content-title">{title}</span>
             <span className="tab-content-count">{data?.length || 0}</span>
-            {refreshMap[sectionKey] && (
+            {getRefreshFunction(sectionKey) && (
               <button 
                 className={`section-refresh-btn ${refreshing[sectionKey] ? 'spinning' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation();
-                  refreshMap[sectionKey]();
+                  getRefreshFunction(sectionKey)();
                 }}
                 title={`Refresh ${title}`}
                 disabled={refreshing[sectionKey]}
@@ -1888,8 +1845,12 @@ const Dashboard2 = () => {
           <div className="photo-reminder-content">
             <div className="photo-reminder-icon">📸</div>
             <div className="photo-reminder-text">
-              <strong>Add photos to get 10x more profile views!</strong>
-              <p>Profiles with photos receive significantly more interest. Upload your best photos now!</p>
+              <strong>Your profile is hidden from most search results!</strong>
+              <p>Profiles without photos are deprioritized and may be filtered out by other members. Upload at least one photo to appear in search results and get up to 10x more views.
+              {userProfile?.role_name !== 'admin' && userProfile?.role_name !== 'moderator' && userProfile?.username !== 'admin' && (
+                <><br/><strong style={{ color: '#fff' }}>⚠️ Warning: Your profile will be deactivated after {Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0)} more login{Math.max(10 - (userProfile?.noPhotoLoginCount || 0), 0) !== 1 ? 's' : ''} without a photo.</strong></>
+              )}
+              </p>
             </div>
             <div className="photo-reminder-actions">
               <button 
@@ -2617,94 +2578,38 @@ const Dashboard2 = () => {
               <button className="mobile-pii-modal-close" onClick={() => setShowMobileActivityModal(false)}>✕</button>
             </div>
             <div className="mobile-pii-modal-body">
-              {mobileActivityCategory === 'myFavorites' && (
-                <div className="mobile-activity-list">
-                  {dashboardData.myFavorites.length === 0 ? (
-                    <div className="no-data-message">No favorites yet</div>
-                  ) : (
-                    dashboardData.myFavorites.map((user, index) => (
-                      <div 
-                        key={index} 
-                        className="mobile-activity-item"
-                        onClick={() => {
-                          setShowMobileActivityModal(false);
-                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
-                        }}
-                      >
-                        <span className="mobile-activity-icon">⭐</span>
-                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
-                        <span className="mobile-activity-arrow">→</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-              {mobileActivityCategory === 'myShortlists' && (
-                <div className="mobile-activity-list">
-                  {dashboardData.myShortlists.length === 0 ? (
-                    <div className="no-data-message">No shortlists yet</div>
-                  ) : (
-                    dashboardData.myShortlists.map((user, index) => (
-                      <div 
-                        key={index} 
-                        className="mobile-activity-item"
-                        onClick={() => {
-                          setShowMobileActivityModal(false);
-                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
-                        }}
-                      >
-                        <span className="mobile-activity-icon">📋</span>
-                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
-                        <span className="mobile-activity-arrow">→</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-              {mobileActivityCategory === 'theirFavorites' && (
-                <div className="mobile-activity-list">
-                  {dashboardData.theirFavorites.length === 0 ? (
-                    <div className="no-data-message">No one has favorited you yet</div>
-                  ) : (
-                    dashboardData.theirFavorites.map((user, index) => (
-                      <div 
-                        key={index} 
-                        className="mobile-activity-item"
-                        onClick={() => {
-                          setShowMobileActivityModal(false);
-                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
-                        }}
-                      >
-                        <span className="mobile-activity-icon">💕</span>
-                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
-                        <span className="mobile-activity-arrow">→</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-              {mobileActivityCategory === 'theirShortlists' && (
-                <div className="mobile-activity-list">
-                  {dashboardData.theirShortlists.length === 0 ? (
-                    <div className="no-data-message">No one has shortlisted you yet</div>
-                  ) : (
-                    dashboardData.theirShortlists.map((user, index) => (
-                      <div 
-                        key={index} 
-                        className="mobile-activity-item"
-                        onClick={() => {
-                          setShowMobileActivityModal(false);
-                          navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
-                        }}
-                      >
-                        <span className="mobile-activity-icon">🔖</span>
-                        <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
-                        <span className="mobile-activity-arrow">→</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+              {(() => {
+                const categoryConfig = {
+                  myFavorites: { data: dashboardData.myFavorites, icon: '⭐', empty: 'No favorites yet' },
+                  myShortlists: { data: dashboardData.myShortlists, icon: '📋', empty: 'No shortlists yet' },
+                  theirFavorites: { data: dashboardData.theirFavorites, icon: '💕', empty: 'No one has favorited you yet' },
+                  theirShortlists: { data: dashboardData.theirShortlists, icon: '🔖', empty: 'No one has shortlisted you yet' }
+                };
+                const config = categoryConfig[mobileActivityCategory];
+                if (!config) return null;
+                return (
+                  <div className="mobile-activity-list">
+                    {config.data.length === 0 ? (
+                      <div className="no-data-message">{config.empty}</div>
+                    ) : (
+                      config.data.map((user, index) => (
+                        <div 
+                          key={index} 
+                          className="mobile-activity-item"
+                          onClick={() => {
+                            setShowMobileActivityModal(false);
+                            navigate(`/profile/${typeof user === 'string' ? user : user.username}`);
+                          }}
+                        >
+                          <span className="mobile-activity-icon">{config.icon}</span>
+                          <span className="mobile-activity-name">{typeof user === 'string' ? user : user.username}</span>
+                          <span className="mobile-activity-arrow">→</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           </div>
         </div>
