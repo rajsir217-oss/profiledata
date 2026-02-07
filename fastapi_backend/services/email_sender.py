@@ -19,83 +19,94 @@ logger = logging.getLogger(__name__)
 
 # Rate limiting for Resend API (2 requests per second max)
 _last_resend_call = 0.0
-_RESEND_MIN_INTERVAL = 0.6  # 600ms between calls = ~1.67 req/sec (safely under 2/sec limit)
+_RESEND_MIN_INTERVAL = 1.1  # 1100ms between calls = ~0.9 req/sec (safely under 2/sec limit)
 _resend_lock = asyncio.Lock()  # Lock to prevent concurrent rate limit issues
+_RESEND_MAX_RETRIES = 3  # Max retries on 429 rate limit errors
+_RESEND_RETRY_BASE_DELAY = 2.0  # Base delay in seconds for exponential backoff
 
 
 async def _send_via_resend(to_email: str, subject: str, html_content: str, text_content: str) -> bool:
-    """Try to send email via Resend API with rate limiting"""
+    """Try to send email via Resend API with rate limiting and retry on 429"""
     global _last_resend_call
     
     try:
         import resend
         from utils.gcp_secrets import get_secret
         
-        # Use lock to ensure rate limiting works across concurrent requests
-        # IMPORTANT: Keep the entire Resend call inside the lock to prevent concurrent requests
-        # from exceeding the 2 req/sec limit
-        async with _resend_lock:
-            # Rate limiting: wait if we're calling too fast (Resend limit: 2 req/sec)
-            now = time.time()
-            elapsed = now - _last_resend_call
-            if elapsed < _RESEND_MIN_INTERVAL:
-                wait_time = _RESEND_MIN_INTERVAL - elapsed
-                logger.debug(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call")
-                await asyncio.sleep(wait_time)
-            
-            # Try multiple sources for the API key: env var, GCP Secret Manager, settings
-            resend_api_key = os.environ.get("RESEND_API_KEY")
-            key_source = "env"
-            
-            if not resend_api_key:
-                resend_api_key = get_secret("RESEND_API_KEY")
-                key_source = "gcp_secret"
-            
-            if not resend_api_key:
-                resend_api_key = getattr(settings, 'resend_api_key', None)
-                key_source = "settings"
-            
-            if not resend_api_key:
-                logger.warning("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend")
-                return False
-            
-            logger.debug(f"📧 [email_sender] Using Resend API key from: {key_source}")
-            logger.info(f"📧 Resend API key source: {key_source}")
-            
-            resend.api_key = resend_api_key
-            from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
-            from_name_raw = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
-            from_email = from_email_raw.strip()
-            from_name = from_name_raw.strip()
-            
-            # Debug: Log if newline was stripped (to verify fix is deployed)
-            if from_email_raw != from_email or from_name_raw != from_name:
-                logger.warning(f"📧 [email_sender] ⚠️ STRIPPED NEWLINE from FROM_EMAIL/FROM_NAME!")
-                logger.warning(f"📧 STRIPPED NEWLINE from FROM_EMAIL (raw len={len(from_email_raw)}, clean len={len(from_email)})")
-            
-            logger.debug(f"📧 [email_sender] Attempting Resend to {to_email}")
-            logger.info(f"📧 Attempting to send via Resend to {to_email}")
-            
-            params = {
-                "from": f"{from_name} <{from_email}>",
-                "to": [to_email],
-                "subject": subject,
-                "html": html_content,
-                "text": text_content
-            }
-            
-            response = resend.Emails.send(params)
-            
-            # Update timestamp AFTER successful send
-            _last_resend_call = time.time()
-            
-            logger.debug(f"✅ [email_sender] Resend SUCCESS: {response}")
-            logger.info(f"✅ Resend success: {response}")
-            return True
+        # Try multiple sources for the API key: env var, GCP Secret Manager, settings
+        resend_api_key = os.environ.get("RESEND_API_KEY")
+        key_source = "env"
+        
+        if not resend_api_key:
+            resend_api_key = get_secret("RESEND_API_KEY")
+            key_source = "gcp_secret"
+        
+        if not resend_api_key:
+            resend_api_key = getattr(settings, 'resend_api_key', None)
+            key_source = "settings"
+        
+        if not resend_api_key:
+            logger.warning("📧 [email_sender] Resend API key not configured in env, GCP secrets, or settings - skipping Resend")
+            return False
+        
+        resend.api_key = resend_api_key
+        from_email_raw = os.environ.get("FROM_EMAIL") or getattr(settings, 'from_email', 'noreply@l3v3lmatches.com')
+        from_name_raw = os.environ.get("FROM_NAME") or getattr(settings, 'from_name', 'L3V3L MATCHES')
+        from_email = from_email_raw.strip()
+        from_name = from_name_raw.strip()
+        
+        params = {
+            "from": f"{from_name} <{from_email}>",
+            "to": [to_email],
+            "subject": subject,
+            "html": html_content,
+            "text": text_content
+        }
+        
+        # Retry loop with exponential backoff for 429 rate limit errors
+        for attempt in range(_RESEND_MAX_RETRIES):
+            try:
+                # Use lock to ensure rate limiting works across concurrent requests
+                async with _resend_lock:
+                    # Rate limiting: wait if we're calling too fast
+                    now = time.time()
+                    elapsed = now - _last_resend_call
+                    if elapsed < _RESEND_MIN_INTERVAL:
+                        wait_time = _RESEND_MIN_INTERVAL - elapsed
+                        logger.debug(f"📧 [email_sender] Rate limiting: waiting {wait_time:.2f}s before Resend call")
+                        await asyncio.sleep(wait_time)
+                    
+                    # Update timestamp BEFORE send to ensure spacing even on failure
+                    _last_resend_call = time.time()
+                    
+                    logger.debug(f"📧 [email_sender] Attempting Resend to {to_email} (attempt {attempt + 1}/{_RESEND_MAX_RETRIES})")
+                    
+                    response = resend.Emails.send(params)
+                
+                logger.info(f"✅ Resend success to {to_email}: {response}")
+                return True
+                
+            except Exception as e:
+                error_str = str(e).lower()
+                # Check if this is a 429 rate limit error - retry with backoff
+                if '429' in error_str or 'rate limit' in error_str or 'too many' in error_str:
+                    if attempt < _RESEND_MAX_RETRIES - 1:
+                        backoff = _RESEND_RETRY_BASE_DELAY * (2 ** attempt)  # 2s, 4s, 8s
+                        logger.warning(f"📧 [email_sender] Resend 429 rate limit for {to_email}, retrying in {backoff}s (attempt {attempt + 1}/{_RESEND_MAX_RETRIES})")
+                        await asyncio.sleep(backoff)
+                        continue
+                    else:
+                        logger.error(f"⚠️ [email_sender] Resend 429 rate limit exhausted after {_RESEND_MAX_RETRIES} retries for {to_email}")
+                        return False
+                else:
+                    # Non-rate-limit error - don't retry
+                    logger.error(f"⚠️ [email_sender] Resend FAILED for {to_email}: {e}")
+                    return False
+        
+        return False
         
     except Exception as e:
-        logger.error(f"⚠️ [email_sender] Resend FAILED: {e}")
-        logger.warning(f"⚠️ Resend failed: {e}")
+        logger.error(f"⚠️ [email_sender] Resend FAILED (setup): {e}")
         return False
 
 
