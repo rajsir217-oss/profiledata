@@ -505,8 +505,12 @@
   }
 }
 
-/* Support Tickets Button - Admin Only */
-.btn-support-tickets {
+/* Admin Action Center - Unified pending items indicator */
+.admin-actions-container {
+  position: relative;
+}
+
+.btn-admin-actions {
   position: relative;
   background: rgba(255, 255, 255, 0.2);
   border: none;
@@ -523,21 +527,30 @@
   padding: 0;
 }
 
-.btn-support-tickets:hover {
+.btn-admin-actions:hover {
   background: rgba(255, 255, 255, 0.3);
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.btn-support-tickets:active {
+.btn-admin-actions:active {
   transform: scale(0.95);
 }
 
-.support-ticket-badge {
+.btn-admin-actions.has-pending {
+  animation: admin-swell 2s ease-in-out infinite;
+}
+
+@keyframes admin-swell {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.18); }
+}
+
+.admin-actions-badge {
   position: absolute;
   top: -4px;
   right: -4px;
-  background: #f59e0b; /* Orange/amber for support tickets */
+  background: var(--danger-color, #ef4444);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -545,19 +558,100 @@
   border-radius: 10px;
   min-width: 18px;
   text-align: center;
-  border: 2px solid #667eea;
-  animation: pulse-ticket 2s infinite;
+  border: 2px solid var(--primary-color, #667eea);
+  animation: pulse-admin 2s infinite;
 }
 
-@keyframes pulse-ticket {
+@keyframes pulse-admin {
   0%, 100% {
     transform: scale(1);
-    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
   }
   50% {
     transform: scale(1.05);
-    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
   }
+}
+
+.admin-actions-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: var(--surface-color, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 280px;
+  z-index: 1000;
+  overflow: hidden;
+  animation: dropdown-slide 0.2s ease;
+}
+
+@keyframes dropdown-slide {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-actions-header {
+  padding: 12px 16px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  background: var(--hover-background, #f8fafc);
+}
+
+.admin-action-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  text-align: left;
+  font-size: 14px;
+  color: var(--text-color, #1e293b);
+}
+
+.admin-action-item:hover {
+  background: var(--hover-background, #f1f5f9);
+}
+
+.admin-action-item:not(:last-child) {
+  border-bottom: 1px solid var(--divider-color, #f1f5f9);
+}
+
+.admin-action-item .action-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.admin-action-item .action-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.admin-action-item .action-count {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: var(--hover-background, #f1f5f9);
+  color: var(--text-muted, #94a3b8);
+  min-width: 28px;
+  text-align: center;
+}
+
+.admin-action-item .action-count.has-items {
+  background: var(--danger-color, #ef4444);
+  color: white;
 }
 
 /* Support Response Button - User Alert for Admin Replies */
@@ -794,11 +888,16 @@
   
   .btn-messages,
   .btn-refer-friend,
-  .btn-support-tickets,
+  .btn-admin-actions,
   .btn-support-response {
     width: 44px;
     height: 44px;
     font-size: 20px;
+  }
+  
+  .admin-actions-dropdown {
+    min-width: 260px;
+    right: -20px;
   }
   
   /* Make user icon bigger and more visible */
