@@ -193,6 +193,8 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
   const [invitedBy, setInvitedBy] = useState(null); // Username of member who sent invitation
   const [, setInvitationData] = useState(null); // eslint-disable-line no-unused-vars
   const [, setLoadingInvitation] = useState(false); // eslint-disable-line no-unused-vars
+  const [registrationOpen, setRegistrationOpen] = useState(true); // Assume open until checked
+  const [registrationChecked, setRegistrationChecked] = useState(false); // Has the check completed?
   
   // ImageManager state - For registration, we only have new images (no existing)
   const [existingImages, setExistingImages] = useState([]); // Empty for new registration
@@ -1512,10 +1514,28 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
     }
   }, [isEditMode]);
 
-  // Load invitation data if invitation token is present in URL
+  // Load invitation data if invitation token is present in URL + check registration status
   useEffect(() => {
     const loadInvitationData = async () => {
       if (!isEditMode) {
+        // Check if registration is open or invitation-only
+        try {
+          const response = await api.get('/registration-status');
+          const { registrationOpen: isOpen } = response.data;
+          setRegistrationOpen(isOpen);
+          
+          // If registration is closed and no invitation token, gate will show
+          const hasToken = searchParams.get('invitation');
+          if (!isOpen && !hasToken) {
+            setRegistrationChecked(true);
+            return; // Don't proceed - show invitation gate
+          }
+        } catch (err) {
+          // If check fails, allow registration (fail open for UX)
+          logger.error('Failed to check registration status:', err);
+        }
+        setRegistrationChecked(true);
+
         // Check for email parameter in URL first (direct prefill)
         const emailParam = searchParams.get('email');
         if (emailParam) {
@@ -1794,8 +1814,97 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         }}></div>
       )}
       
-      {/* Content wrapper to center the card */}
-      <div style={{
+      {/* Invitation-Only Gate */}
+      {!isEditMode && registrationChecked && !registrationOpen && !invitationToken && (
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '80vh',
+          position: 'relative',
+          zIndex: 1,
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.98)',
+            backdropFilter: 'blur(10px)',
+            borderRadius: '20px',
+            padding: '48px 40px',
+            maxWidth: '520px',
+            width: '100%',
+            textAlign: 'center',
+            boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)'
+          }}>
+            <div style={{ fontSize: '56px', marginBottom: '16px' }}>🔒</div>
+            <h2 style={{
+              fontSize: '26px',
+              fontWeight: '700',
+              color: '#1e293b',
+              marginBottom: '12px'
+            }}>Invitation Only</h2>
+            <p style={{
+              fontSize: '16px',
+              color: '#475569',
+              lineHeight: '1.6',
+              marginBottom: '28px'
+            }}>
+              To register on our platform, you need to be invited by an existing member. 
+              Please ask someone you know who is already a member to send you an invitation.
+            </p>
+            <div style={{
+              background: '#f1f5f9',
+              borderRadius: '12px',
+              padding: '16px 20px',
+              marginBottom: '28px',
+              textAlign: 'left'
+            }}>
+              <p style={{ fontSize: '14px', color: '#64748b', margin: '0 0 8px 0', fontWeight: '600' }}>How it works:</p>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '14px', color: '#64748b', lineHeight: '1.8' }}>
+                <li>Ask an existing member to invite you via their dashboard</li>
+                <li>You'll receive an email with a unique invitation link</li>
+                <li>Click the link to complete your registration</li>
+              </ul>
+            </div>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => navigate('/login')}
+                style={{
+                  padding: '12px 28px',
+                  borderRadius: '12px',
+                  border: 'none',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #a78bfa 100%)',
+                  color: 'white',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Already a Member? Log In
+              </button>
+              <button 
+                onClick={() => navigate('/')}
+                style={{
+                  padding: '12px 28px',
+                  borderRadius: '12px',
+                  border: '2px solid #e2e8f0',
+                  background: 'white',
+                  color: '#475569',
+                  fontSize: '15px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content wrapper to center the card - only show if registration is allowed */}
+      {(isEditMode || registrationOpen || invitationToken) && <div style={{
         width: '100%',
         maxWidth: '1200px',
         margin: '0 auto',
@@ -4750,6 +4859,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
       )}
         </div>
       </div>
+      }
     </div>
     </>
   );

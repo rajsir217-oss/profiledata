@@ -97,6 +97,7 @@ class Settings(BaseSettings):
     enable_scheduler: Optional[bool] = True
     enable_websockets: Optional[bool] = True
     debug_mode: Optional[bool] = False
+    registration_open: Optional[bool] = False  # False = invitation-only, True = public registration
     
     # ==========================================================================
     # PROFILE PICTURE VISIBILITY SETTING
