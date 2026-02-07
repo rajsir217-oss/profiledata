@@ -219,7 +219,7 @@ const SearchPage2 = () => {
     setViewMode(mode);
     localStorage.setItem('searchViewMode', mode);
     // Auto-select first profile when switching to split view
-    if (mode === 'split' && users.length > 0 && !selectedProfileForDetail) {
+    if (mode === 'split' && users.length > 0) {
       setSelectedProfileForDetail(users[0]);
     }
     // Reset swipe index when switching to swipe mode
@@ -501,7 +501,7 @@ const SearchPage2 = () => {
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
             setExcludedUsers(new Set(state.excludedUsers || []));
             // Don't restore selectedSearch - let fresh search determine this
-            if (state.selectedProfileForDetail) setSelectedProfileForDetail(state.selectedProfileForDetail);
+            // Don't restore selectedProfileForDetail - auto-select first result from fresh search instead
             
             // Restore scroll position after a short delay to let DOM render
             setTimeout(() => {
@@ -1291,6 +1291,10 @@ const SearchPage2 = () => {
         setHasMoreResults(hasMore);
         setUsers(filteredUsers);
         setCurrentPage(1);
+        // Auto-select first profile in split view so right panel isn't blank
+        if (viewMode === 'split' && filteredUsers.length > 0) {
+          setSelectedProfileForDetail(filteredUsers[0]);
+        }
         logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
         
         // Log search results viewed activity
@@ -3003,21 +3007,21 @@ const SearchPage2 = () => {
               <div className="view-toggle-selector">
                 <button
                   className={`view-toggle-btn ${viewMode === 'split' ? 'active' : ''}`}
-                  onClick={() => setViewMode('split')}
+                  onClick={() => handleViewModeChange('split')}
                   title="Split view"
                 >
                   ⚏
                 </button>
                 <button
                   className={`view-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-                  onClick={() => setViewMode('cards')}
+                  onClick={() => handleViewModeChange('cards')}
                   title="Card view"
                 >
                   ▦
                 </button>
                 <button
                   className={`view-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
-                  onClick={() => setViewMode('rows')}
+                  onClick={() => handleViewModeChange('rows')}
                   title="Row view"
                 >
                   ☰
