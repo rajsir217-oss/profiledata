@@ -202,7 +202,9 @@
 }
 
 /* ========== VIEW TOGGLE ========== */
-.view-toggle-selector {
+/* Shared container styles for toggle/selector pill groups */
+.view-toggle-selector,
+.cards-per-row-selector {
   display: flex !important;
   align-items: center !important;
   gap: 6px !important;
@@ -212,11 +214,12 @@
   border-radius: 20px !important;
 }
 
-.view-toggle-btn {
+/* Shared base for toggle/selector buttons */
+.view-toggle-btn,
+.cards-btn {
   min-width: 28px;
   height: 28px;
   padding: 3px 8px;
-  font-size: 16px;
   font-weight: 600;
   border: none;
   background: transparent;
@@ -229,63 +232,36 @@
   justify-content: center;
 }
 
-.view-toggle-btn:hover {
+.view-toggle-btn:hover,
+.cards-btn:hover {
   background: var(--hover-background, rgba(102, 126, 234, 0.1));
   color: var(--primary-color);
 }
 
-.view-toggle-btn.active {
+.view-toggle-btn.active,
+.cards-btn.active {
   background: var(--primary-color);
   color: white;
   box-shadow: var(--shadow-sm);
 }
 
-/* ========== CARDS PER ROW SELECTOR ========== */
-.cards-per-row-selector {
-  display: flex;
-  align-items: center;
-  gap: 6px !important;
-  padding: 4px 12px !important;
-  background: var(--surface-color, #f8f9fa) !important;
-  border: 1px solid var(--border-color, #ddd) !important;
-  border-radius: 20px !important;
+/* Size overrides for each button type */
+.view-toggle-btn {
+  font-size: 16px;
 }
 
+.cards-btn {
+  font-size: 12px;
+  line-height: 1;
+}
+
+/* ========== CARDS PER ROW SELECTOR ========== */
 .cards-per-row-selector .selector-label {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-secondary, #666);
   margin-right: 2px;
   user-select: none;
-}
-
-.cards-btn {
-  min-width: 28px;
-  height: 28px;
-  padding: 3px 8px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary, #666);
-  border-radius: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-}
-
-.cards-btn:hover {
-  background: var(--hover-background, rgba(102, 126, 234, 0.1));
-  color: var(--primary-color);
-}
-
-.cards-btn.active {
-  background: var(--primary-color);
-  color: white;
-  box-shadow: var(--shadow-sm);
 }
 
 /* ========== BOTTOM CONTROLS ========== */
@@ -539,10 +515,6 @@
     width: 100%;
     padding: 2px;
     max-width: 100%;
-  }
-
-  .search-results {
-    /* padding: 12px; */
   }
 
   .results-controls-bottom {
@@ -994,12 +966,8 @@
   transform: translateY(-1px);
 }
 
-/* Hide text on mobile for layout toggle buttons */
+/* Extra compact layout toggle on small screens (text already hidden at 768px) */
 @media (max-width: 576px) {
-  .layout-toggle-btn-text {
-    display: none;
-  }
-  
   .layout-toggle-btn {
     padding: 6px 10px !important;
   }
@@ -1240,9 +1208,6 @@
   position: relative;
   display: flex;
   flex-direction: column;
-}
-
-.result-card .card {
   will-change: auto;
 }
 
@@ -1782,40 +1747,40 @@
 
 .row-actions-compact .btn-outline-warning:hover {
   background: rgba(255, 193, 7, 0.15) !important;
-  border-color: #ffc107 !important;
-  color: #ffc107 !important;
+  border-color: var(--warning-color, #ffc107) !important;
+  color: var(--warning-color, #ffc107) !important;
   opacity: 1;
 }
 
 .row-actions-compact .btn-outline-info:hover {
   background: rgba(23, 162, 184, 0.15) !important;
-  border-color: #17a2b8 !important;
-  color: #17a2b8 !important;
+  border-color: var(--info-color, #17a2b8) !important;
+  color: var(--info-color, #17a2b8) !important;
   opacity: 1;
 }
 
 .row-actions-compact .btn-outline-danger:hover {
   background: rgba(220, 53, 69, 0.15) !important;
-  border-color: #dc3545 !important;
-  color: #dc3545 !important;
+  border-color: var(--danger-color, #dc3545) !important;
+  color: var(--danger-color, #dc3545) !important;
   opacity: 1;
 }
 
 /* Active state buttons - filled with color */
 .row-actions-compact .btn-warning {
-  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%) !important;
+  background: linear-gradient(135deg, var(--warning-color, #ffc107) 0%, #ff9800 100%) !important;
   border: 2px solid #ff9800 !important;
   color: white !important;
 }
 
 .row-actions-compact .btn-info {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%) !important;
+  background: linear-gradient(135deg, var(--info-color, #17a2b8) 0%, #138496 100%) !important;
   border: 2px solid #138496 !important;
   color: white !important;
 }
 
 .row-actions-compact .btn-danger {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%) !important;
+  background: linear-gradient(135deg, var(--danger-color, #dc3545) 0%, #c82333 100%) !important;
   border: 2px solid #c82333 !important;
   color: white !important;
 }
