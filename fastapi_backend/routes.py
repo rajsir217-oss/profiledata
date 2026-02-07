@@ -1362,7 +1362,7 @@ async def register_user(
     }
 
 @router.post("/login")
-async def login_user(login_data: LoginRequest, db = Depends(get_database)):
+async def login_user(login_data: LoginRequest, request: Request, db = Depends(get_database)):
     """Login user and return access token"""
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
     
@@ -1534,13 +1534,41 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
     # Determine user role - admin gets "admin" role, others get "user"
     user_role = "admin" if user["username"] == "admin" else user.get("role", "user")
     
+    token_data = {
+        "sub": user["username"],
+        "role": user_role
+    }
+    
     access_token = create_access_token(
-        data={
-            "sub": user["username"],
-            "role": user_role
-        }, 
+        data=token_data, 
         expires_delta=access_token_expires
     )
+    
+    # Create refresh token for session management
+    refresh_token = JWTManager.create_refresh_token(token_data)
+    
+    # Store user _id before popping it for session creation
+    user_id = str(user.get("_id", ""))
+    
+    # Create session record in database (required for token refresh to work)
+    try:
+        session_doc = {
+            "user_id": user_id,
+            "username": user["username"],
+            "token": access_token,
+            "refresh_token": refresh_token,
+            "session_type": "web",
+            "ip_address": request.client.host if request.client else "unknown",
+            "user_agent": request.headers.get("user-agent", "unknown"),
+            "created_at": datetime.utcnow(),
+            "expires_at": datetime.utcnow() + timedelta(days=7),
+            "last_activity": datetime.utcnow(),
+            "revoked": False
+        }
+        await db.sessions.insert_one(session_doc)
+        logger.debug(f"Session record created for user '{login_data.username}'")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to create session record for {login_data.username}: {e}")
     
     # Remove password and _id from response
     user.pop("password", None)
@@ -1624,7 +1652,9 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
         "message": "Login successful",
         "user": user,
         "access_token": access_token,
-        "token_type": "bearer"
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": settings.access_token_expire_minutes * 60
     }
     
     # Add MFA warning if present

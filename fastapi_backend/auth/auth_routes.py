@@ -583,10 +583,10 @@ async def refresh_token(
             "permissions": user.get("custom_permissions", [])
         }
         
-        # New access token with 15-minute expiry (will be refreshed again if user is active)
+        # New access token with configured expiry (will be refreshed again if user is active)
         access_token = JWTManager.create_access_token(
             token_data,
-            expires_delta=timedelta(minutes=15)
+            expires_delta=timedelta(minutes=security_settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
         )
         
         # Update session last_activity and extend expires_at
@@ -617,7 +617,7 @@ async def refresh_token(
         return {
             "access_token": access_token,
             "token_type": "bearer",
-            "expires_in": 900  # 15 minutes in seconds
+            "expires_in": security_settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
         }
     
     except HTTPException:
