@@ -834,8 +834,7 @@ input:focus, select:focus, textarea:focus {
 
 /* Cozy Sidebar Style */
 .sidebar {
-  background: rgba(var(--card-background), 0.95);
-  backdrop-filter: blur(10px);
+  background: var(--surface-color, #ffffff);
   border-right: none;
   box-shadow: var(--shadow-md);
 }
