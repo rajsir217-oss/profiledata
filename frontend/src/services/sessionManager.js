@@ -406,8 +406,14 @@ class SessionManager {
    */
   async checkAndRefresh() {
     try {
+      // Read from localStorage for accurate cross-tab values (in-memory can be stale in background tabs)
+      const storedLoginTime = localStorage.getItem('sessionLoginTime');
+      const effectiveLoginTime = storedLoginTime ? parseInt(storedLoginTime, 10) : this.loginTime;
+      const storedLastActivity = localStorage.getItem('sessionLastActivity');
+      const effectiveLastActivity = storedLastActivity ? parseInt(storedLastActivity, 10) : this.lastActivity;
+
       // Check hard limit first
-      if (Date.now() - this.loginTime >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
+      if (Date.now() - effectiveLoginTime >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn('Session near 8-hour hard limit in refresh check');
         toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
         this.logout('refresh_check_hard_limit');
@@ -416,13 +422,13 @@ class SessionManager {
 
       // Show warning if approaching limit
       if (this.shouldShowWarning()) {
-        const remainingMinutes = Math.ceil((this.HARD_LIMIT - (Date.now() - this.loginTime)) / 60000);
+        const remainingMinutes = Math.ceil((this.HARD_LIMIT - (Date.now() - effectiveLoginTime)) / 60000);
         toastService.warning(`Your session will expire in ${remainingMinutes} minutes. Save your work!`, 10000);
         this.warningShown = true;
       }
 
       // Check if user has been inactive too long - log them out
-      const timeSinceActivity = Date.now() - this.lastActivity;
+      const timeSinceActivity = Date.now() - effectiveLastActivity;
       if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes, logging out`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);

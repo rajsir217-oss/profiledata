@@ -73,7 +73,7 @@ import CommunityGuidelines from './components/CommunityGuidelines';
 import CookiePolicy from './components/CookiePolicy';
 import './styles/index.css'; // Consolidated styles (includes themes)
 import './App.css'; // App-specific layout only
-import { getUserPreferences } from './api';
+import { getUserPreferences, getUserProfile } from './api';
 import { getApiUrl } from './config/apiConfig';
 import { onMessageListener, requestNotificationPermission } from './services/pushNotificationService';
 import toastService from './services/toastService';
@@ -150,21 +150,11 @@ function AppContent() {
       
       if (username && token) {
         try {
-          const response = await fetch(`${getApiUrl()}/profile/${username}`, {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setCurrentUser(userData);
-          } else if (response.status === 401) {
-            // Token expired - trigger session expiry
-            logger.warn('Token expired (401 from profile fetch)');
-            sessionManager.logout('profile_fetch_401');
-          }
+          const userData = await getUserProfile(username);
+          setCurrentUser(userData);
         } catch (error) {
+          // 401 errors are handled automatically by the api interceptor
+          // which calls sessionManager.logout() — no manual handling needed
           logger.error('Failed to fetch current user profile:', error);
         }
       } else {
