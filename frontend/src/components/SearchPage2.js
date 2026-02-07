@@ -2753,102 +2753,38 @@ const SearchPage2 = () => {
                   marginTop: '12px',
                   opacity: 0.5
                 }}>
-                  <button
-                    onClick={() => handleSwipeAction('left', currentRecords[swipeIndex])}
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      minWidth: '20px',
-                      minHeight: '20px',
-                      padding: 0,
-                      borderRadius: '50%',
-                      border: '1px solid var(--danger-color)',
-                      background: 'transparent',
-                      color: 'var(--danger-color)',
-                      fontSize: '10px',
-                      lineHeight: 1,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Pass (swipe left)"
-                  >
-                    ✕
-                  </button>
-                  <button
-                    onClick={() => handleSwipeAction('up', currentRecords[swipeIndex])}
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      minWidth: '20px',
-                      minHeight: '20px',
-                      padding: 0,
-                      borderRadius: '50%',
-                      border: '1px solid var(--primary-color)',
-                      background: 'transparent',
-                      color: 'var(--primary-color)',
-                      fontSize: '10px',
-                      lineHeight: 1,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Shortlist (swipe up)"
-                  >
-                    📋
-                  </button>
-                  <button
-                    onClick={() => handleSwipeAction('right', currentRecords[swipeIndex])}
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      minWidth: '20px',
-                      minHeight: '20px',
-                      padding: 0,
-                      borderRadius: '50%',
-                      border: '1px solid var(--success-color)',
-                      background: 'transparent',
-                      color: 'var(--success-color)',
-                      fontSize: '10px',
-                      lineHeight: 1,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Favorite (swipe right)"
-                  >
-                    ⭐
-                  </button>
-                  <button
-                    onClick={() => handleSwipeAction('down', currentRecords[swipeIndex])}
-                    style={{
-                      width: '20px',
-                      height: '20px',
-                      minWidth: '20px',
-                      minHeight: '20px',
-                      padding: 0,
-                      borderRadius: '50%',
-                      border: '1px solid var(--text-secondary)',
-                      background: 'transparent',
-                      color: 'var(--text-secondary)',
-                      fontSize: '10px',
-                      lineHeight: 1,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                    title="Skip (swipe down)"
-                  >
-                    ⏭️
-                  </button>
+                  {[
+                    { dir: 'left', color: 'var(--danger-color)', icon: '✕', title: 'Pass (swipe left)' },
+                    { dir: 'up', color: 'var(--primary-color)', icon: '📋', title: 'Shortlist (swipe up)' },
+                    { dir: 'right', color: 'var(--success-color)', icon: '⭐', title: 'Favorite (swipe right)' },
+                    { dir: 'down', color: 'var(--text-secondary)', icon: '⏭️', title: 'Skip (swipe down)' },
+                  ].map(({ dir, color, icon, title }) => (
+                    <button
+                      key={dir}
+                      onClick={() => handleSwipeAction(dir, currentRecords[swipeIndex])}
+                      style={{
+                        width: '20px',
+                        height: '20px',
+                        minWidth: '20px',
+                        minHeight: '20px',
+                        padding: 0,
+                        borderRadius: '50%',
+                        border: `1px solid ${color}`,
+                        background: 'transparent',
+                        color: color,
+                        fontSize: '10px',
+                        lineHeight: 1,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title={title}
+                    >
+                      {icon}
+                    </button>
+                  ))}
                 </div>
               )}
             </div>
