@@ -655,13 +655,6 @@ const SearchResultCard = ({
             {getShortName(user)}
           </h6>
           <div className="card-title-badges">
-            {Number(user.matchScore) > 0 && (
-              <span className="l3v3l-match-badge" title={user.compatibilityLevel || `${user.matchScore}% compatibility`}>
-                🦋 {Math.round(Number(user.matchScore) * 10) / 10}%
-              </span>
-            )}
-            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
-            
             {hasKebabMenu && (
               <SimpleKebabMenu
                 user={user}
@@ -755,11 +748,17 @@ const SearchResultCard = ({
             )}
           </div>
 
-          {/* Quick Stats Pills Row - Height, DOB, Religion */}
+          {/* Quick Stats Pills Row - Height, DOB, Religion, Match Score, Age */}
           <div className="card-stats-pills">
             {displayHeight && <span className="card-stat-pill">{displayHeight}</span>}
             {displayDOB && <span className="card-stat-pill">{displayDOB}</span>}
             {user.religion && <span className="card-stat-pill">{user.religion}</span>}
+            {Number(user.matchScore) > 0 && (
+              <span className="l3v3l-match-badge" title={user.compatibilityLevel || `${user.matchScore}% compatibility`}>
+                🦋{Math.round(Number(user.matchScore) * 10) / 10}%
+              </span>
+            )}
+            {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
           </div>
 
           {/* User Details - Single Column with Icons */}

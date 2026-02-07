@@ -1581,6 +1581,44 @@ async def login_user(login_data: LoginRequest, db = Depends(get_database)):
         logger.warning(f"⚠️ Failed to compute publicImages for {login_data.username}: {e}")
         user["publicImages"] = []
     
+    # Track no-photo login count - increment if user has no photos, deactivate after threshold
+    NO_PHOTO_LOGIN_LIMIT = 10
+    user_images = user.get("images", [])
+    has_photos = user_images and len(user_images) > 0
+    is_privileged_user = user.get("role_name") in ["admin", "moderator"] or user.get("username", "").lower() == "admin"
+    logger.info(f"📸 Photo check for '{login_data.username}': has_photos={has_photos}, images={len(user_images) if user_images else 0}, role_name={user.get('role_name')}, is_privileged={is_privileged_user}")
+    
+    if not has_photos and not is_privileged_user:
+        current_count = user.get("noPhotoLoginCount", 0) + 1
+        update_fields = {"noPhotoLoginCount": current_count}
+        
+        if current_count >= NO_PHOTO_LOGIN_LIMIT:
+            update_fields["status"] = "inactive"
+            update_fields["deactivationReason"] = "no_photo_limit_reached"
+            logger.warning(f"🚫 User '{login_data.username}' deactivated: no photo after {current_count} logins")
+        else:
+            logger.info(f"📸 User '{login_data.username}' has no photos - login {current_count}/{NO_PHOTO_LOGIN_LIMIT}")
+        
+        await db.users.update_one(
+            get_username_query(login_data.username),
+            {"$set": update_fields}
+        )
+        user["noPhotoLoginCount"] = current_count
+        
+        # Block login if limit reached
+        if current_count >= NO_PHOTO_LOGIN_LIMIT:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Your profile has been deactivated because you haven't uploaded a photo after {NO_PHOTO_LOGIN_LIMIT} logins. Please contact support to reactivate."
+            )
+    elif has_photos and user.get("noPhotoLoginCount", 0) > 0:
+        # Reset counter when user has photos
+        await db.users.update_one(
+            get_username_query(login_data.username),
+            {"$set": {"noPhotoLoginCount": 0}, "$unset": {"deactivationReason": ""}}
+        )
+        user["noPhotoLoginCount"] = 0
+    
     logger.info(f"✅ Login successful for user '{login_data.username}'")
     response = {
         "message": "Login successful",
@@ -2360,6 +2398,11 @@ async def update_user_profile(
         update_data["images"] = existing_images
         logger.info(f"📸 Final image count: {len(existing_images)}")
         logger.info(f"📸 Images field in update_data: {existing_images}")
+        
+        # Reset no-photo login counter if user now has photos
+        if len(existing_images) > 0 and user.get("noPhotoLoginCount", 0) > 0:
+            update_data["noPhotoLoginCount"] = 0
+            logger.info(f"📸 Reset noPhotoLoginCount for {username} - user uploaded photos")
 
         try:
             from urllib.parse import urlparse
@@ -3983,6 +4026,7 @@ async def search_users(
     bodyType: str = "",
     newlyAdded: bool = False,
     daysBack: int = 0,
+    hasPhoto: bool = False,
     status_filter: str = "",
     sortBy: str = "newest",
     sortOrder: str = "desc",
@@ -4110,6 +4154,14 @@ async def search_users(
             query["relationshipStatus"] = relationshipStatus
         if bodyType and bodyType.strip():
             query["bodyType"] = bodyType
+
+        # Has Photo filter - only show profiles with at least one image
+        if hasPhoto:
+            and_conditions.append({"images": {"$exists": True}})
+            and_conditions.append({"images": {"$ne": []}})
+            and_conditions.append({"images": {"$ne": None}})
+            and_conditions.append({"$expr": {"$gt": [{"$size": {"$ifNull": ["$images", []]}}, 0]}})
+            logger.info(f"📸 Has Photo filter applied")
 
         # Newly added filter (last 7 days) - legacy, use daysBack instead
         if newlyAdded:
@@ -4283,17 +4335,26 @@ async def search_users(
                     "as": "l3v3lMatch"
                 }},
                 
-                # Stage 5: Add matchScore field from lookup result
+                # Stage 5: Add matchScore field and hasPhoto flag from lookup result
                 {"$addFields": {
                     "matchScore": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.score", 0]}, 0]},
-                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]}
+                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]},
+                    "_hasPhoto": {"$cond": {
+                        "if": {"$and": [
+                            {"$ne": ["$images", None]},
+                            {"$ne": ["$images", []]},
+                            {"$gt": [{"$size": {"$ifNull": ["$images", []]}}, 0]}
+                        ]},
+                        "then": 1,
+                        "else": 0
+                    }}
                 }},
                 
                 # Stage 6: Remove the lookup array (cleanup)
                 {"$project": {"l3v3lMatch": 0}},
                 
-                # Stage 7: Sort (by matchScore if sorting by that, otherwise original sort)
-                {"$sort": dict(sort)},
+                # Stage 7: Sort - profiles with photos first, then by user's chosen sort
+                {"$sort": {"_hasPhoto": -1, **dict(sort)}},
                 
                 # Stage 8: Facet for pagination and count
                 {"$facet": {
@@ -4404,10 +4465,19 @@ async def search_users(
                 }},
                 {"$addFields": {
                     "matchScore": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.score", 0]}, 0]},
-                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]}
+                    "compatibilityLevel": {"$ifNull": [{"$arrayElemAt": ["$l3v3lMatch.level", 0]}, None]},
+                    "_hasPhoto": {"$cond": {
+                        "if": {"$and": [
+                            {"$ne": ["$images", None]},
+                            {"$ne": ["$images", []]},
+                            {"$gt": [{"$size": {"$ifNull": ["$images", []]}}, 0]}
+                        ]},
+                        "then": 1,
+                        "else": 0
+                    }}
                 }},
                 {"$project": {"l3v3lMatch": 0}},
-                {"$sort": dict(sort)},
+                {"$sort": {"_hasPhoto": -1, **dict(sort)}},
                 {"$facet": {
                     "users": [{"$skip": skip}, {"$limit": limit}],
                     "totalCount": [{"$count": "count"}]

@@ -161,6 +161,7 @@
   
   .basic-filters-section .filter-row-location-age,
   .basic-filters-section .filter-row-height,
+  .basic-filters-section .filter-row-days-photo,
   .advanced-filters-section {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -375,6 +376,52 @@
 .unified-search-filters .btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Fourth row: Days Back + Has Photo Toggle */
+.filter-row-days-photo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: end;
+}
+
+/* Has Photo Toggle */
+.col-has-photo {
+  display: flex;
+  align-items: flex-end;
+  padding-bottom: 4px;
+}
+
+.has-photo-toggle-label {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-color);
+  user-select: none;
+  white-space: nowrap;
+}
+
+input.has-photo-checkbox[type="checkbox"] {
+  width: 16px !important;
+  height: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+  flex-shrink: 0;
+  flex-grow: 0;
+  margin: 0 !important;
+  padding: 0 !important;
+  -webkit-appearance: checkbox;
+  appearance: checkbox;
+}
+
+.has-photo-toggle-text {
+  font-size: 14px;
+  white-space: nowrap;
 }
 
 /* View More/Less Button */

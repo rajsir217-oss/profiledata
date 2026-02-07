@@ -99,6 +99,9 @@ const Login = () => {
       localStorage.setItem('userRole', userRole);
       console.log('👤 User role saved:', userRole);
       
+      // Clear photo reminder dismissal so banner shows fresh each login
+      sessionStorage.removeItem('photoReminderDismissed');
+      
       // Initialize session manager for activity-based token refresh
       sessionManager.init();
       console.log('🔄 Session manager initialized');
