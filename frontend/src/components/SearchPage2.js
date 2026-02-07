@@ -24,6 +24,107 @@ import useActivityLogger from '../hooks/useActivityLogger';
 import GraphView from './GraphView';
 import './SearchPage2.css';
 
+// Shared utility: build default search criteria from a user profile.
+// Computes opposite gender, age range, and height range from partnerCriteria
+// with gender-based fallbacks. Used by loadCurrentUserProfile,
+// loadAndExecuteDefaultSearch, and getDefaultSearchCriteria / handleClearFilters.
+const buildDefaultCriteria = (profile) => {
+  if (!profile) {
+    return { gender: '', ageMin: '', ageMax: '', heightMinFeet: '', heightMinInches: '', heightMaxFeet: '', heightMaxInches: '', daysBack: 30, hasPhoto: true };
+  }
+
+  const userGender = profile.gender?.toLowerCase();
+  let oppositeGender = '';
+  if (userGender === 'male') oppositeGender = 'female';
+  else if (userGender === 'female') oppositeGender = 'male';
+
+  // Calculate user's age
+  let userAge = null;
+  if (profile.birthMonth && profile.birthYear) {
+    const today = new Date();
+    userAge = today.getFullYear() - profile.birthYear;
+    if (today.getMonth() + 1 < profile.birthMonth) userAge--;
+  }
+
+  // Parse user's height
+  let userHeightTotalInches = null;
+  if (profile.height) {
+    const heightMatch = profile.height.match(/(\d+)'(\d+)"/);
+    if (heightMatch) {
+      userHeightTotalInches = parseInt(heightMatch[1]) * 12 + parseInt(heightMatch[2]);
+    }
+  }
+
+  const partnerCriteria = profile.partnerCriteria;
+  let defaultAgeMin = '', defaultAgeMax = '';
+  let defaultHeightMinFeet = '', defaultHeightMinInches = '';
+  let defaultHeightMaxFeet = '', defaultHeightMaxInches = '';
+
+  // Age range: relative offsets → absolute range → gender-based fallback
+  if (partnerCriteria?.ageRangeRelative && userAge) {
+    const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
+    const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
+    defaultAgeMin = Math.max(19, userAge + minOffset).toString();
+    defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
+  } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
+    defaultAgeMin = partnerCriteria.ageRange.min.toString();
+    defaultAgeMax = partnerCriteria.ageRange.max.toString();
+  } else if (userAge && userGender) {
+    if (userGender === 'male') {
+      defaultAgeMin = Math.max(19, userAge - 5).toString();
+      defaultAgeMax = Math.min(100, userAge + 1).toString();
+    } else if (userGender === 'female') {
+      defaultAgeMin = Math.max(19, userAge - 1).toString();
+      defaultAgeMax = Math.min(100, userAge + 5).toString();
+    }
+  }
+
+  // Height range: relative offsets → absolute range → gender-based fallback
+  if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
+    const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
+    const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
+    const minTotalInches = userHeightTotalInches + minInchesOffset;
+    const maxTotalInches = userHeightTotalInches + maxInchesOffset;
+    defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+    defaultHeightMinInches = (minTotalInches % 12).toString();
+    defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+    defaultHeightMaxInches = (maxTotalInches % 12).toString();
+  } else if (partnerCriteria?.heightRange?.minFeet) {
+    defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
+    defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
+    defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
+    defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
+  } else if (userHeightTotalInches && userGender) {
+    if (userGender === 'male') {
+      const minTotalInches = userHeightTotalInches - 6;
+      const maxTotalInches = userHeightTotalInches;
+      defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+      defaultHeightMinInches = (minTotalInches % 12).toString();
+      defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+      defaultHeightMaxInches = (maxTotalInches % 12).toString();
+    } else if (userGender === 'female') {
+      const minTotalInches = userHeightTotalInches + 1;
+      const maxTotalInches = userHeightTotalInches + 6;
+      defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
+      defaultHeightMinInches = (minTotalInches % 12).toString();
+      defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
+      defaultHeightMaxInches = (maxTotalInches % 12).toString();
+    }
+  }
+
+  return {
+    gender: oppositeGender,
+    ageMin: defaultAgeMin,
+    ageMax: defaultAgeMax,
+    heightMinFeet: defaultHeightMinFeet,
+    heightMinInches: defaultHeightMinInches,
+    heightMaxFeet: defaultHeightMaxFeet,
+    heightMaxInches: defaultHeightMaxInches,
+    daysBack: 30,
+    hasPhoto: true
+  };
+};
+
 const SearchPage2 = () => {
   // Activity logger hook
   // eslint-disable-next-line no-unused-vars
@@ -196,6 +297,9 @@ const SearchPage2 = () => {
   // Ref to track which page is currently being loaded (prevents duplicate fetches)
   const loadingPageRef = useRef(0);
   
+  // AbortController ref to cancel in-flight search requests when a new search starts
+  const searchAbortRef = useRef(null);
+  
   // Cache L3V3L scores to avoid re-fetching on subsequent pages
   // eslint-disable-next-line no-unused-vars
   const l3v3lScoresCacheRef = useRef({});
@@ -270,14 +374,11 @@ const SearchPage2 = () => {
 
   // CRITICAL: Clear users on component mount - MUST be FIRST useEffect
   // This prevents stale data from previous sessions showing before new search runs
+  // NOTE: Do NOT clear sessionStorage here — the restore useEffect handles
+  // stale/expired/wrong-user states. Clearing here defeats session restore entirely.
   useEffect(() => {
     logger.info('🧹 FIRST useEffect - clearing stale users on mount');
     setUsers([]);
-    
-    // Also clear sessionStorage to prevent any cached data
-    const currentUser = localStorage.getItem('username');
-    const storageKey = currentUser ? `searchPageState_${currentUser}` : 'searchPageState';
-    sessionStorage.removeItem(storageKey);
   }, []);
 
   // Save search state to sessionStorage whenever it changes
@@ -465,131 +566,10 @@ const SearchPage2 = () => {
         // Note: username is already defined in the outer scope (line 118)
         setIsAdmin(userRole === 'admin' || username === 'admin');
         
-        // Set default gender to opposite gender
-        const userGender = response.data.gender?.toLowerCase();
-        let oppositeGender = '';
-        if (userGender === 'male') {
-          oppositeGender = 'female';
-        } else if (userGender === 'female') {
-          oppositeGender = 'male';
-        }
-        
-        logger.info('🎯 User gender:', userGender, '→ Default search gender:', oppositeGender);
-        
-        // Calculate user's age from birthMonth and birthYear
-        let userAge = null;
-        if (response.data.birthMonth && response.data.birthYear) {
-          const today = new Date();
-          userAge = today.getFullYear() - response.data.birthYear;
-          if (today.getMonth() + 1 < response.data.birthMonth) {
-            userAge--;
-          }
-        }
-        
-        // Parse user's height from format "5'8"" into feet and inches
-        let userHeightFeet = null;
-        let userHeightInches = null;
-        let userHeightTotalInches = null;
-        if (response.data.height) {
-          const heightMatch = response.data.height.match(/(\d+)'(\d+)"/);
-          if (heightMatch) {
-            userHeightFeet = parseInt(heightMatch[1]);
-            userHeightInches = parseInt(heightMatch[2]);
-            userHeightTotalInches = userHeightFeet * 12 + userHeightInches;
-          }
-        }
-        
-        // Set default age range from partnerCriteria (user's saved preferences)
-        let defaultAgeMin = '';
-        let defaultAgeMax = '';
-        const partnerCriteria = response.data.partnerCriteria;
-        
-        // Debug: Log the full partnerCriteria object
-        logger.info('🔍 DEBUG partnerCriteria:', JSON.stringify(partnerCriteria, null, 2));
-        logger.info('🔍 DEBUG userAge:', userAge, 'userHeight:', userHeightTotalInches);
-        
-        if (partnerCriteria?.ageRangeRelative && userAge) {
-          // Use relative age offsets from partner criteria
-          const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
-          const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
-          defaultAgeMin = Math.max(19, userAge + minOffset).toString();
-          defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-          logger.info('🎯 Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset, defaultAgeMin, defaultAgeMax });
-        } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
-          // Fallback to absolute age range if set
-          defaultAgeMin = partnerCriteria.ageRange.min.toString();
-          defaultAgeMax = partnerCriteria.ageRange.max.toString();
-          logger.info('🎯 Using partnerCriteria.ageRange (absolute):', { defaultAgeMin, defaultAgeMax });
-        } else if (userAge && userGender) {
-          // Final fallback: gender-based defaults
-          if (userGender === 'male') {
-            // Male: looking for younger (age - 5) to slightly older (age + 1)
-            defaultAgeMin = Math.max(19, userAge - 5).toString();
-            defaultAgeMax = Math.min(100, userAge + 1).toString();
-          } else if (userGender === 'female') {
-            // Female: looking for slightly younger (age - 1) to older (age + 5)
-            defaultAgeMin = Math.max(19, userAge - 1).toString();
-            defaultAgeMax = Math.min(100, userAge + 5).toString();
-          }
-          logger.info('🎯 Using gender-based age defaults:', { defaultAgeMin, defaultAgeMax });
-        }
-        
-        // Set default height range from partnerCriteria (user's saved preferences)
-        let defaultHeightMinFeet = '';
-        let defaultHeightMinInches = '';
-        let defaultHeightMaxFeet = '';
-        let defaultHeightMaxInches = '';
-        
-        if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
-          // Use relative height offsets from partner criteria
-          const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
-          const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
-          const minTotalInches = userHeightTotalInches + minInchesOffset;
-          const maxTotalInches = userHeightTotalInches + maxInchesOffset;
-          
-          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-          defaultHeightMinInches = (minTotalInches % 12).toString();
-          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-          defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          logger.info('🎯 Using partnerCriteria.heightRangeRelative:', { minInchesOffset, maxInchesOffset, minTotalInches, maxTotalInches });
-        } else if (partnerCriteria?.heightRange?.minFeet) {
-          // Fallback to absolute height range if set
-          defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
-          defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
-          defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
-          defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-          logger.info('🎯 Using partnerCriteria.heightRange (absolute):', { defaultHeightMinFeet, defaultHeightMinInches, defaultHeightMaxFeet, defaultHeightMaxInches });
-        } else if (userHeightTotalInches && userGender) {
-          // Final fallback: gender-based defaults
-          if (userGender === 'male') {
-            // Male: looking for shorter (height - 6") to same height
-            const minTotalInches = userHeightTotalInches - 6;
-            const maxTotalInches = userHeightTotalInches;
-            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-            defaultHeightMinInches = (minTotalInches % 12).toString();
-            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-            defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          } else if (userGender === 'female') {
-            // Female: looking for taller (height + 1") to much taller (height + 6")
-            const minTotalInches = userHeightTotalInches + 1;
-            const maxTotalInches = userHeightTotalInches + 6;
-            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-            defaultHeightMinInches = (minTotalInches % 12).toString();
-            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-            defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          }
-          logger.info('🎯 Using gender-based height defaults');
-        }
-        
-        logger.info('📊 Default search criteria:', {
-          age: userAge,
-          ageMin: defaultAgeMin,
-          ageMax: defaultAgeMax,
-          heightMinFeet: defaultHeightMinFeet,
-          heightMinInches: defaultHeightMinInches,
-          heightMaxFeet: defaultHeightMaxFeet,
-          heightMaxInches: defaultHeightMaxInches
-        });
+        // Compute default criteria for logging (actual criteria set by loadAndExecuteDefaultSearch)
+        const defaults = buildDefaultCriteria(response.data);
+        logger.info('🎯 User gender:', response.data.gender, '→ Default search gender:', defaults.gender);
+        logger.info('📊 Default search criteria (from buildDefaultCriteria):', defaults);
         
         // NOTE: Do NOT set searchCriteria here!
         // loadAndExecuteDefaultSearch will set it properly:
@@ -700,6 +680,7 @@ const SearchPage2 = () => {
 
   // Trigger initial search after user profile is loaded - check for default saved search first
   useEffect(() => {
+    let autoSearchTimerId = null; // Track setTimeout so cleanup can cancel it
     const loadAndExecuteDefaultSearch = async () => {
       if (!currentUserProfile || Object.keys(currentUserProfile).length === 0) {
         logger.info('⚠️ currentUserProfile is empty or null, waiting...');
@@ -741,7 +722,7 @@ const SearchPage2 = () => {
           
           // Execute the search with explicit criteria AND minMatchScore
           // Delay slightly to ensure state is processed by React
-          setTimeout(() => {
+          autoSearchTimerId = setTimeout(() => {
             // Check if user has entered a profileId - if so, skip auto-search
             const profileIdInput = document.getElementById('profileId-input');
             if (profileIdInput && profileIdInput.value.trim()) {
@@ -757,98 +738,12 @@ const SearchPage2 = () => {
           // This ensures fresh results matching the displayed filter criteria
           logger.info('🔍 No default search found - building criteria from partnerCriteria');
           
-          // Build criteria from currentUserProfile (same logic as loadCurrentUserProfile)
-          const userGender = currentUserProfile.gender?.toLowerCase();
-          let oppositeGender = '';
-          if (userGender === 'male') oppositeGender = 'female';
-          else if (userGender === 'female') oppositeGender = 'male';
-          
-          // Calculate user's age
-          let userAge = null;
-          if (currentUserProfile.birthMonth && currentUserProfile.birthYear) {
-            const today = new Date();
-            userAge = today.getFullYear() - currentUserProfile.birthYear;
-            if (today.getMonth() + 1 < currentUserProfile.birthMonth) userAge--;
-          }
-          
-          // Parse user's height
-          let userHeightTotalInches = null;
-          if (currentUserProfile.height) {
-            const heightMatch = currentUserProfile.height.match(/(\d+)'(\d+)"/);
-            if (heightMatch) {
-              userHeightTotalInches = parseInt(heightMatch[1]) * 12 + parseInt(heightMatch[2]);
-            }
-          }
-          
-          // Build default criteria from partnerCriteria
-          const partnerCriteria = currentUserProfile.partnerCriteria;
-          let defaultAgeMin = '', defaultAgeMax = '';
-          let defaultHeightMinFeet = '', defaultHeightMinInches = '';
-          let defaultHeightMaxFeet = '', defaultHeightMaxInches = '';
-          
-          // Age range from partnerCriteria
-          if (partnerCriteria?.ageRangeRelative && userAge) {
-            const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
-            const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
-            defaultAgeMin = Math.max(19, userAge + minOffset).toString();
-            defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-          } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
-            defaultAgeMin = partnerCriteria.ageRange.min.toString();
-            defaultAgeMax = partnerCriteria.ageRange.max.toString();
-          } else if (userAge && userGender) {
-            if (userGender === 'male') {
-              defaultAgeMin = Math.max(19, userAge - 5).toString();
-              defaultAgeMax = Math.min(100, userAge + 1).toString();
-            } else if (userGender === 'female') {
-              defaultAgeMin = Math.max(19, userAge - 1).toString();
-              defaultAgeMax = Math.min(100, userAge + 5).toString();
-            }
-          }
-          
-          // Height range from partnerCriteria
-          if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
-            const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
-            const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
-            const minTotalInches = userHeightTotalInches + minInchesOffset;
-            const maxTotalInches = userHeightTotalInches + maxInchesOffset;
-            defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-            defaultHeightMinInches = (minTotalInches % 12).toString();
-            defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-            defaultHeightMaxInches = (maxTotalInches % 12).toString();
-          } else if (partnerCriteria?.heightRange?.minFeet) {
-            defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
-            defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
-            defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
-            defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-          } else if (userHeightTotalInches && userGender) {
-            if (userGender === 'male') {
-              const minTotalInches = userHeightTotalInches - 6;
-              const maxTotalInches = userHeightTotalInches;
-              defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-              defaultHeightMinInches = (minTotalInches % 12).toString();
-              defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-              defaultHeightMaxInches = (maxTotalInches % 12).toString();
-            } else if (userGender === 'female') {
-              const minTotalInches = userHeightTotalInches + 1;
-              const maxTotalInches = userHeightTotalInches + 6;
-              defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-              defaultHeightMinInches = (minTotalInches % 12).toString();
-              defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-              defaultHeightMaxInches = (maxTotalInches % 12).toString();
-            }
-          }
-          
-          // Build the COMPLETE criteria object (not merging with prev to avoid stale values like daysBack)
+          // Build the COMPLETE criteria object using shared utility
+          const defaults = buildDefaultCriteria(currentUserProfile);
           const partnerCriteriaDefaults = {
             keyword: '',
             profileId: '',
-            gender: oppositeGender,
-            ageMin: defaultAgeMin,
-            ageMax: defaultAgeMax,
-            heightMinFeet: defaultHeightMinFeet,
-            heightMinInches: defaultHeightMinInches,
-            heightMaxFeet: defaultHeightMaxFeet,
-            heightMaxInches: defaultHeightMaxInches,
+            ...defaults,
             heightMin: '',
             heightMax: '',
             location: '',
@@ -860,8 +755,6 @@ const SearchPage2 = () => {
             smoking: '',
             relationshipStatus: '',
             newlyAdded: false,
-            daysBack: 30, // Default to 30 days for production (many profiles)
-            hasPhoto: true, // Default ON - only show profiles with photos
           };
           
           logger.info('📋 Built partnerCriteria defaults:', partnerCriteriaDefaults);
@@ -874,7 +767,7 @@ const SearchPage2 = () => {
           
           // Execute search with explicit criteria (don't rely on async state)
           // Note: Users already cleared at line 628 at start of function
-          setTimeout(() => {
+          autoSearchTimerId = setTimeout(() => {
             // Check if user has entered a profileId - if so, skip auto-search
             const profileIdInput = document.getElementById('profileId-input');
             if (profileIdInput && profileIdInput.value.trim()) {
@@ -891,6 +784,10 @@ const SearchPage2 = () => {
     };
 
     loadAndExecuteDefaultSearch();
+    
+    return () => {
+      if (autoSearchTimerId) clearTimeout(autoSearchTimerId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserProfile]);
   
@@ -1102,70 +999,9 @@ const SearchPage2 = () => {
   const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
   const bodyTypeOptions = ['', 'Slim', 'Athletic', 'Average', 'Curvy'];
 
-  // eslint-disable-next-line no-unused-vars
-  const loadUserFavorites = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        setFavoritedUsers(new Set());
-        return;
-      }
-
-      const response = await api.get(`/favorites/${username}`);
-      const favorites = response.data.favorites || [];
-      const favoritedUsernames = new Set(favorites.map(fav => fav.username));
-      setFavoritedUsers(favoritedUsernames);
-      logger.info('Loaded favorites:', favoritedUsernames);
-    } catch (err) {
-      // Silently handle error - favorites might not exist yet for new users
-      logger.debug('No favorites found or error loading favorites:', err);
-      setFavoritedUsers(new Set());
-    }
-  };
-
-  // eslint-disable-next-line no-unused-vars
-  const loadUserShortlist = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        setShortlistedUsers(new Set());
-        return;
-      }
-
-      const response = await api.get(`/shortlist/${username}`);
-      const shortlist = response.data.shortlist || [];
-      const shortlistedUsernames = new Set(shortlist.map(item => item.username));
-      setShortlistedUsers(shortlistedUsernames);
-      logger.info('Loaded shortlist:', shortlistedUsernames);
-    } catch (err) {
-      // Silently handle error - shortlist might not exist yet for new users
-      logger.debug('No shortlist found or error loading shortlist:', err);
-      setShortlistedUsers(new Set());
-    }
-  };
-
-  // eslint-disable-next-line no-unused-vars
-  const loadUserExclusions = async () => {
-    try {
-      const username = localStorage.getItem('username');
-      if (!username) {
-        setExcludedUsers(new Set());
-        return;
-      }
-
-      logger.info(`Loading exclusions for user: ${username}`);
-      const response = await api.get(`/exclusions/${username}`);
-      const exclusions = response.data.exclusions || [];
-      const excludedUsernames = new Set(exclusions);
-      setExcludedUsers(excludedUsernames);
-      logger.info('Loaded exclusions:', excludedUsernames);
-    } catch (err) {
-      // Silently handle error - exclusions might not exist yet for new users
-      logger.debug('No exclusions found or error loading exclusions:', err);
-      setExcludedUsers(new Set());
-    }
-  };
-
+  // NOTE: Standalone loadUserFavorites, loadUserShortlist, loadUserExclusions
+  // were removed — they duplicated the loadUserData() function (which uses
+  // Promise.all) and were never called.
   const loadSavedSearches = async () => {
     try {
       const username = localStorage.getItem('username');
@@ -1194,127 +1030,11 @@ const SearchPage2 = () => {
   };
 
   // Calculate default search criteria from user profile and partnerCriteria
-  // Uses partnerCriteria (user's saved partner preferences) when available
-  // Falls back to gender-based defaults if no partnerCriteria set
+  // Delegates to shared buildDefaultCriteria utility
   const getDefaultSearchCriteria = () => {
-    let defaultGender = '';
-    let defaultAgeMin = '';
-    let defaultAgeMax = '';
-    let defaultHeightMinFeet = '';
-    let defaultHeightMinInches = '';
-    let defaultHeightMaxFeet = '';
-    let defaultHeightMaxInches = '';
-
-    if (currentUserProfile) {
-      // Calculate opposite gender
-      const userGender = currentUserProfile.gender?.toLowerCase();
-      if (userGender === 'male') {
-        defaultGender = 'female';
-      } else if (userGender === 'female') {
-        defaultGender = 'male';
-      }
-
-      // Calculate user's age
-      let userAge = null;
-      if (currentUserProfile.birthMonth && currentUserProfile.birthYear) {
-        const today = new Date();
-        userAge = today.getFullYear() - currentUserProfile.birthYear;
-        if (today.getMonth() + 1 < currentUserProfile.birthMonth) {
-          userAge--;
-        }
-      }
-
-      // Parse user's height
-      let userHeightTotalInches = null;
-      if (currentUserProfile.height) {
-        const heightMatch = currentUserProfile.height.match(/(\d+)'(\d+)"/);
-        if (heightMatch) {
-          const userHeightFeet = parseInt(heightMatch[1]);
-          const userHeightInches = parseInt(heightMatch[2]);
-          userHeightTotalInches = userHeightFeet * 12 + userHeightInches;
-        }
-      }
-
-      // Get partnerCriteria from user profile (saved partner preferences)
-      const partnerCriteria = currentUserProfile.partnerCriteria;
-
-      // Set default age range from partnerCriteria (priority) or gender-based fallback
-      if (partnerCriteria?.ageRangeRelative && userAge) {
-        // Use relative age offsets from partner criteria
-        const minOffset = partnerCriteria.ageRangeRelative.minOffset || 0;
-        const maxOffset = partnerCriteria.ageRangeRelative.maxOffset || 5;
-        defaultAgeMin = Math.max(19, userAge + minOffset).toString();
-        defaultAgeMax = Math.min(100, userAge + maxOffset).toString();
-        logger.info('🔄 Reset: Using partnerCriteria.ageRangeRelative:', { minOffset, maxOffset });
-      } else if (partnerCriteria?.ageRange?.min && partnerCriteria?.ageRange?.max) {
-        // Fallback to absolute age range if set
-        defaultAgeMin = partnerCriteria.ageRange.min.toString();
-        defaultAgeMax = partnerCriteria.ageRange.max.toString();
-        logger.info('🔄 Reset: Using partnerCriteria.ageRange (absolute)');
-      } else if (userAge && userGender) {
-        // Final fallback: gender-based defaults
-        if (userGender === 'male') {
-          defaultAgeMin = Math.max(19, userAge - 5).toString();
-          defaultAgeMax = Math.min(100, userAge + 1).toString();
-        } else if (userGender === 'female') {
-          defaultAgeMin = Math.max(19, userAge - 1).toString();
-          defaultAgeMax = Math.min(100, userAge + 5).toString();
-        }
-        logger.info('🔄 Reset: Using gender-based age defaults');
-      }
-
-      // Set default height range from partnerCriteria (priority) or gender-based fallback
-      if (partnerCriteria?.heightRangeRelative && userHeightTotalInches) {
-        // Use relative height offsets from partner criteria
-        const minInchesOffset = partnerCriteria.heightRangeRelative.minInches || 0;
-        const maxInchesOffset = partnerCriteria.heightRangeRelative.maxInches || 6;
-        const minTotalInches = userHeightTotalInches + minInchesOffset;
-        const maxTotalInches = userHeightTotalInches + maxInchesOffset;
-        
-        defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-        defaultHeightMinInches = (minTotalInches % 12).toString();
-        defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-        defaultHeightMaxInches = (maxTotalInches % 12).toString();
-        logger.info('🔄 Reset: Using partnerCriteria.heightRangeRelative');
-      } else if (partnerCriteria?.heightRange?.minFeet) {
-        // Fallback to absolute height range if set
-        defaultHeightMinFeet = partnerCriteria.heightRange.minFeet?.toString() || '';
-        defaultHeightMinInches = partnerCriteria.heightRange.minInches?.toString() || '';
-        defaultHeightMaxFeet = partnerCriteria.heightRange.maxFeet?.toString() || '';
-        defaultHeightMaxInches = partnerCriteria.heightRange.maxInches?.toString() || '';
-        logger.info('🔄 Reset: Using partnerCriteria.heightRange (absolute)');
-      } else if (userHeightTotalInches && userGender) {
-        // Final fallback: gender-based defaults
-        if (userGender === 'male') {
-          const minTotalInches = userHeightTotalInches - 6;
-          const maxTotalInches = userHeightTotalInches;
-          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-          defaultHeightMinInches = (minTotalInches % 12).toString();
-          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-          defaultHeightMaxInches = (maxTotalInches % 12).toString();
-        } else if (userGender === 'female') {
-          const minTotalInches = userHeightTotalInches + 1;
-          const maxTotalInches = userHeightTotalInches + 6;
-          defaultHeightMinFeet = Math.floor(minTotalInches / 12).toString();
-          defaultHeightMinInches = (minTotalInches % 12).toString();
-          defaultHeightMaxFeet = Math.floor(maxTotalInches / 12).toString();
-          defaultHeightMaxInches = (maxTotalInches % 12).toString();
-        }
-        logger.info('🔄 Reset: Using gender-based height defaults');
-      }
-    }
-
-    return {
-      gender: defaultGender,
-      ageMin: defaultAgeMin,
-      ageMax: defaultAgeMax,
-      heightMinFeet: defaultHeightMinFeet,
-      heightMinInches: defaultHeightMinInches,
-      heightMaxFeet: defaultHeightMaxFeet,
-      heightMaxInches: defaultHeightMaxInches,
-      daysBack: 30,
-      hasPhoto: true
-    };
+    const defaults = buildDefaultCriteria(currentUserProfile);
+    logger.info('🔄 Reset: computed defaults from buildDefaultCriteria:', defaults);
+    return defaults;
   };
 
   // Wrapper for minMatchScore changes - triggers new search
@@ -1425,6 +1145,13 @@ const SearchPage2 = () => {
     // eslint-disable-next-line no-unused-vars
     const currentUser = localStorage.getItem('username');
     
+    // Cancel any in-flight search request to prevent stale data from overwriting
+    if (searchAbortRef.current) {
+      searchAbortRef.current.abort();
+    }
+    const abortController = new AbortController();
+    searchAbortRef.current = abortController;
+
     try {
       setLoading(true);
       setLoadingStartTime(Date.now()); // Start timer
@@ -1518,7 +1245,7 @@ const SearchPage2 = () => {
       // No separate L3V3L API call needed - scores come with search results
       logger.info(`🚀 Starting search (L3V3L scores included via $lookup)`);
       
-      const response = await api.get('/search', { params });
+      const response = await api.get('/search', { params, signal: abortController.signal });
       logger.info('✅ Search complete');
       
       logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
@@ -1605,6 +1332,11 @@ const SearchPage2 = () => {
       }
 
     } catch (err) {
+      // If this request was aborted by a newer search, silently exit
+      if (err.name === 'AbortError' || err.name === 'CanceledError' || abortController.signal.aborted) {
+        logger.info('🚫 Search request aborted (superseded by newer search)');
+        return;
+      }
       logger.error('Error searching users:', err);
       const errorDetail = err.response?.data?.detail;
       let errorMsg = 'Failed to search users.';
@@ -1642,8 +1374,9 @@ const SearchPage2 = () => {
   }, [loadingStartTime]);
 
   // Server-side pagination: fetch next page
+  // Uses loadingPageRef as source of truth to avoid stale-closure issues with currentPage
   const handleLoadMore = useCallback(async () => {
-    logger.info(`📄 handleLoadMore called: loadingMore=${loadingMore}, currentPage=${currentPage}, loadingPageRef=${loadingPageRef.current}, usersCount=${users.length}`);
+    logger.info(`📄 handleLoadMore called: loadingMore=${loadingMore}, loadingPageRef=${loadingPageRef.current}, usersCount=${users.length}`);
     
     if (loadingMore) {
       logger.info(`📄 handleLoadMore: Skipping - already loading`);
@@ -1656,7 +1389,8 @@ const SearchPage2 = () => {
       return;
     }
     
-    const nextPage = currentPage + 1;
+    // Use ref as source of truth — immune to React batching / stale closures
+    const nextPage = loadingPageRef.current + 1;
     
     logger.info(`📄 handleLoadMore: Will load page ${nextPage}`);
     
@@ -1669,12 +1403,13 @@ const SearchPage2 = () => {
       logger.info(`📄 handleLoadMore: Successfully loaded page ${nextPage}`);
     } catch (err) {
       logger.error('Error loading more results:', err);
-      setCurrentPage(currentPage);
+      loadingPageRef.current = nextPage - 1; // Revert ref on failure
+      setCurrentPage(nextPage - 1);
     } finally {
       setLoadingMore(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loadingMore, currentPage, users.length]);
+  }, [loadingMore, users.length]);
 
   // IntersectionObserver for infinite scroll (server-side pagination)
   useEffect(() => {
@@ -2030,84 +1765,44 @@ const SearchPage2 = () => {
       return;
     }
 
+    // Shared helper for toggling list membership (favorites / shortlist)
+    const toggleListAction = async (listName, apiPath, usersSet, setUsersSet) => {
+      const isCurrentlyInList = usersSet.has(targetUsername);
+      try {
+        if (isCurrentlyInList) {
+          await api.delete(`/${apiPath}/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+          setUsersSet(prev => { const s = new Set(prev); s.delete(targetUsername); return s; });
+          setStatusMessage(`✅ Removed from ${listName}`);
+        } else {
+          await api.post(`/${apiPath}/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
+          setUsersSet(prev => new Set([...prev, targetUsername]));
+          setStatusMessage(`✅ Added to ${listName}`);
+        }
+        setTimeout(() => setStatusMessage(''), 3000);
+        setError('');
+      } catch (err) {
+        logger.error(`Error ${isCurrentlyInList ? 'removing from' : 'adding to'} ${listName}:`, err);
+        if (err.response?.status === 409) {
+          setUsersSet(prev => new Set([...prev, targetUsername]));
+          setStatusMessage(`ℹ️ Already in ${listName}`);
+          setTimeout(() => setStatusMessage(''), 3000);
+        } else {
+          const errorMsg = `Failed to ${isCurrentlyInList ? 'remove from' : 'add to'} ${listName}. ` + (err.response?.data?.detail || err.message);
+          setError(errorMsg);
+          setStatusMessage(`❌ ${errorMsg}`);
+          setTimeout(() => setStatusMessage(''), 3000);
+        }
+      }
+    };
+
     try {
       switch (action) {
         case 'favorite':
-          const isCurrentlyFavorited = favoritedUsers.has(targetUsername);
-
-          try {
-            if (isCurrentlyFavorited) {
-              // Remove from favorites
-              await api.delete(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setFavoritedUsers(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(targetUsername);
-                return newSet;
-              });
-              setStatusMessage('✅ Removed from favorites');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              // Add to favorites
-              await api.post(`/favorites/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setFavoritedUsers(prev => new Set([...prev, targetUsername]));
-              setStatusMessage('✅ Added to favorites');
-              setTimeout(() => setStatusMessage(''), 3000);
-            }
-            setError(''); // Clear any previous errors
-          } catch (err) {
-            logger.error(`Error ${isCurrentlyFavorited ? 'removing from' : 'adding to'} favorites:`, err);
-            
-            // Handle 409 Conflict (already exists)
-            if (err.response?.status === 409) {
-              setFavoritedUsers(prev => new Set([...prev, targetUsername]));
-              setStatusMessage('ℹ️ Already in favorites');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              const errorMsg = `Failed to ${isCurrentlyFavorited ? 'remove from' : 'add to'} favorites. ` + (err.response?.data?.detail || err.message);
-              setError(errorMsg);
-              setStatusMessage(`❌ ${errorMsg}`);
-              setTimeout(() => setStatusMessage(''), 3000);
-            }
-          }
+          await toggleListAction('favorites', 'favorites', favoritedUsers, setFavoritedUsers);
           break;
 
         case 'shortlist':
-          const isCurrentlyShortlisted = shortlistedUsers.has(targetUsername);
-
-          try {
-            if (isCurrentlyShortlisted) {
-              // Remove from shortlist
-              await api.delete(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setShortlistedUsers(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(targetUsername);
-                return newSet;
-              });
-              setStatusMessage('✅ Removed from shortlist');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              // Add to shortlist
-              await api.post(`/shortlist/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-              setShortlistedUsers(prev => new Set([...prev, targetUsername]));
-              setStatusMessage('✅ Added to shortlist');
-              setTimeout(() => setStatusMessage(''), 3000);
-            }
-            setError(''); // Clear any previous errors
-          } catch (err) {
-            logger.error(`Error ${isCurrentlyShortlisted ? 'removing from' : 'adding to'} shortlist:`, err);
-            
-            // Handle 409 Conflict (already exists)
-            if (err.response?.status === 409) {
-              setShortlistedUsers(prev => new Set([...prev, targetUsername]));
-              setStatusMessage('ℹ️ Already in shortlist');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              const errorMsg = `Failed to ${isCurrentlyShortlisted ? 'remove from' : 'add to'} shortlist. ` + (err.response?.data?.detail || err.message);
-              setError(errorMsg);
-              setStatusMessage(`❌ ${errorMsg}`);
-              setTimeout(() => setStatusMessage(''), 3000);
-            }
-          }
+          await toggleListAction('shortlist', 'shortlist', shortlistedUsers, setShortlistedUsers);
           break;
 
         case 'exclude':
@@ -2604,96 +2299,36 @@ const SearchPage2 = () => {
                   Layout:
                 </span>
                 <div className="layout-toggle-buttons" style={{ display: 'flex', gap: '6px' }}>
-                  <button
-                    onClick={() => handleViewModeChange('split')}
-                    className={`layout-toggle-btn ${viewMode === 'split' ? 'active' : ''}`}
-                    title="Split view - List with detail panel"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: viewMode === 'split' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                      background: viewMode === 'split' ? 'var(--primary-color)' : 'var(--surface-color)',
-                      color: viewMode === 'split' ? 'white' : 'var(--text-color)',
-                      cursor: 'pointer',
-                      fontWeight: viewMode === 'split' ? 600 : 400,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span className="layout-toggle-btn-icon">⚏</span><span className="layout-toggle-btn-text"> Split</span>
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('cards')}
-                    className={`layout-toggle-btn ${viewMode === 'cards' ? 'active' : ''}`}
-                    title="Card view - Grid layout"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: viewMode === 'cards' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                      background: viewMode === 'cards' ? 'var(--primary-color)' : 'var(--surface-color)',
-                      color: viewMode === 'cards' ? 'white' : 'var(--text-color)',
-                      cursor: 'pointer',
-                      fontWeight: viewMode === 'cards' ? 600 : 400,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span className="layout-toggle-btn-icon">▦</span><span className="layout-toggle-btn-text"> Cards</span>
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('rows')}
-                    className={`layout-toggle-btn ${viewMode === 'rows' ? 'active' : ''}`}
-                    title="Row view - List layout"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: viewMode === 'rows' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                      background: viewMode === 'rows' ? 'var(--primary-color)' : 'var(--surface-color)',
-                      color: viewMode === 'rows' ? 'white' : 'var(--text-color)',
-                      cursor: 'pointer',
-                      fontWeight: viewMode === 'rows' ? 600 : 400,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span className="layout-toggle-btn-icon">☰</span><span className="layout-toggle-btn-text"> Rows</span>
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('swipe')}
-                    className={`layout-toggle-btn ${viewMode === 'swipe' ? 'active' : ''}`}
-                    title="Swipe view - Tinder-style swiping"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: viewMode === 'swipe' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                      background: viewMode === 'swipe' ? 'var(--primary-color)' : 'var(--surface-color)',
-                      color: viewMode === 'swipe' ? 'white' : 'var(--text-color)',
-                      cursor: 'pointer',
-                      fontWeight: viewMode === 'swipe' ? 600 : 400,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span className="layout-toggle-btn-icon">👆</span><span className="layout-toggle-btn-text"> Swipe</span>
-                  </button>
-                  <button
-                    onClick={() => handleViewModeChange('graph')}
-                    className={`layout-toggle-btn ${viewMode === 'graph' ? 'active' : ''}`}
-                    title="Graph view - Radial visualization with drag-and-drop"
-                    style={{
-                      padding: '6px 12px',
-                      fontSize: '14px',
-                      borderRadius: 'var(--radius-sm)',
-                      border: viewMode === 'graph' ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
-                      background: viewMode === 'graph' ? 'var(--primary-color)' : 'var(--surface-color)',
-                      color: viewMode === 'graph' ? 'white' : 'var(--text-color)',
-                      cursor: 'pointer',
-                      fontWeight: viewMode === 'graph' ? 600 : 400,
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <span className="layout-toggle-btn-icon">◎</span><span className="layout-toggle-btn-text"> Graph</span>
-                  </button>
+                  {[
+                    { mode: 'split', icon: '⚏', label: 'Split', title: 'Split view - List with detail panel' },
+                    { mode: 'cards', icon: '▦', label: 'Cards', title: 'Card view - Grid layout' },
+                    { mode: 'rows', icon: '☰', label: 'Rows', title: 'Row view - List layout' },
+                    { mode: 'swipe', icon: '👆', label: 'Swipe', title: 'Swipe view - Tinder-style swiping' },
+                    { mode: 'graph', icon: '◎', label: 'Graph', title: 'Graph view - Radial visualization with drag-and-drop' },
+                  ].map(({ mode, icon, label, title }) => {
+                    const isActive = viewMode === mode;
+                    return (
+                      <button
+                        key={mode}
+                        onClick={() => handleViewModeChange(mode)}
+                        className={`layout-toggle-btn ${isActive ? 'active' : ''}`}
+                        title={title}
+                        style={{
+                          padding: '6px 12px',
+                          fontSize: '14px',
+                          borderRadius: 'var(--radius-sm)',
+                          border: isActive ? '2px solid var(--primary-color)' : '1px solid var(--border-color)',
+                          background: isActive ? 'var(--primary-color)' : 'var(--surface-color)',
+                          color: isActive ? 'white' : 'var(--text-color)',
+                          cursor: 'pointer',
+                          fontWeight: isActive ? 600 : 400,
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <span className="layout-toggle-btn-icon">{icon}</span><span className="layout-toggle-btn-text"> {label}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
               
