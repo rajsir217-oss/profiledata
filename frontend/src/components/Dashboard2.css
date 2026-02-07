@@ -90,7 +90,7 @@
 }
 
 .pause-banner-content {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  background: linear-gradient(135deg, var(--accent-color, #f093fb) 0%, var(--danger-color, #f5576c) 100%);
   color: white;
   padding: 20px 24px;
   border-radius: var(--radius-md, 8px);
@@ -140,21 +140,18 @@
 }
 
 .btn-unpause {
-  background: white;
-  color: #f5576c;
+  background: var(--card-background, white);
+  color: var(--danger-color, #f5576c);
   border: none;
-  border-radius: 50px !important;
+  border-radius: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 12px 24px;
-  border-radius: var(--radius-md, 8px);
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
   gap: 8px;
   white-space: nowrap;
 }
@@ -176,33 +173,39 @@
   }
 }
 
-/* MFA Notification Banner */
-.mfa-notification-banner {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+/* ============================================
+   SHARED NOTIFICATION BANNER BASE STYLES
+   Used by MFA banner and Photo Reminder banner
+   ============================================ */
+.mfa-notification-banner,
+.photo-reminder-banner {
   border-radius: 12px;
   padding: 20px 24px;
   margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
   animation: slideInDown 0.5s ease-out;
 }
 
-.mfa-notification-content {
+.mfa-notification-content,
+.photo-reminder-content {
   display: flex;
   align-items: center;
   gap: 20px;
 }
 
-.mfa-notification-icon {
+.mfa-notification-icon,
+.photo-reminder-icon {
   font-size: 48px;
   flex-shrink: 0;
 }
 
-.mfa-notification-text {
+.mfa-notification-text,
+.photo-reminder-text {
   flex: 1;
   color: white;
 }
 
-.mfa-notification-text strong {
+.mfa-notification-text strong,
+.photo-reminder-text strong {
   display: block;
   font-size: 18px;
   font-weight: 700;
@@ -210,29 +213,31 @@
   letter-spacing: -0.3px;
 }
 
-.mfa-notification-text p {
+.mfa-notification-text p,
+.photo-reminder-text p {
   margin: 0;
   font-size: 14px;
   opacity: 0.9;
   line-height: 1.4;
 }
 
-.mfa-notification-actions {
+.mfa-notification-actions,
+.photo-reminder-actions {
   display: flex;
   gap: 12px;
   align-items: center;
 }
 
-.btn-enable-mfa {
+/* Shared action button base (Enable MFA / Upload Photos) */
+.btn-enable-mfa,
+.btn-upload-photos {
   background: white;
-  color: var(--primary-color);
   border: none;
-  border-radius: 50px !important;
+  border-radius: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 10px 24px;
-  border-radius: 8px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -240,33 +245,32 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.btn-enable-mfa:hover {
+.btn-enable-mfa:hover,
+.btn-upload-photos:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: #f8f9ff;
 }
 
-.btn-dismiss-mfa {
+/* Shared dismiss button base */
+.btn-dismiss-mfa,
+.btn-dismiss-photo {
   background: rgba(255, 255, 255, 0.2);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px !important;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 18px;
   font-weight: 600;
 }
 
-.btn-dismiss-mfa:hover {
+.btn-dismiss-mfa:hover,
+.btn-dismiss-photo:hover {
   background: rgba(255, 255, 255, 0.3);
   border-color: rgba(255, 255, 255, 0.5);
 }
@@ -282,125 +286,47 @@
   }
 }
 
-/* Responsive MFA Banner */
+/* Responsive banners */
 @media (max-width: 768px) {
-  .mfa-notification-content {
-    flex-direction: column;
-    text-align: center;
-  }
-  
-  .mfa-notification-actions {
-    width: 100%;
-    justify-content: center;
-  }
-}
-
-/* Photo Reminder Banner - Similar to MFA but with warm orange/coral gradient */
-.photo-reminder-banner {
-  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.15);
-  animation: slideInDown 0.5s ease-out;
-}
-
-.photo-reminder-content {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.photo-reminder-icon {
-  font-size: 48px;
-  flex-shrink: 0;
-}
-
-.photo-reminder-text {
-  flex: 1;
-  color: white;
-}
-
-.photo-reminder-text strong {
-  display: block;
-  font-size: 18px;
-  font-weight: 700;
-  margin-bottom: 6px;
-  letter-spacing: -0.3px;
-}
-
-.photo-reminder-text p {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.9;
-  line-height: 1.4;
-}
-
-.photo-reminder-actions {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-}
-
-.btn-upload-photos {
-  background: white;
-  color: #f5576c;
-  border: none;
-  border-radius: 50px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 24px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-}
-
-.btn-upload-photos:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  background: #fff5f6;
-}
-
-.btn-dismiss-photo {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.btn-dismiss-photo:hover {
-  background: rgba(255, 255, 255, 0.3);
-  border-color: rgba(255, 255, 255, 0.5);
-}
-
-/* Responsive Photo Reminder Banner */
-@media (max-width: 768px) {
+  .mfa-notification-content,
   .photo-reminder-content {
     flex-direction: column;
     text-align: center;
   }
   
+  .mfa-notification-actions,
   .photo-reminder-actions {
     width: 100%;
     justify-content: center;
   }
+}
+
+/* --- MFA Banner: unique gradient & colors --- */
+.mfa-notification-banner {
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.btn-enable-mfa {
+  color: var(--primary-color);
+}
+
+.btn-enable-mfa:hover {
+  background: var(--hover-background, #f8f9ff);
+}
+
+/* --- Photo Reminder Banner: unique gradient & colors --- */
+.photo-reminder-banner {
+  background: linear-gradient(135deg, var(--accent-color, #f093fb) 0%, var(--danger-color, #f5576c) 100%);
+  box-shadow: 0 4px 12px rgba(245, 87, 108, 0.15);
+}
+
+.btn-upload-photos {
+  color: var(--danger-color, #f5576c);
+}
+
+.btn-upload-photos:hover {
+  background: var(--hover-background, #fff5f6);
 }
 
 /* View Controls Group - Right aligned within header */
@@ -453,23 +379,19 @@
   background: rgba(255, 255, 255, 0.15);
   color: white;
   border: 1.5px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50px !important;
+  border-radius: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 8px 16px;
-  border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
   gap: 6px;
   white-space: nowrap;
   flex-shrink: 0;
   min-width: 44px;
-  justify-content: center;
 }
 
 .btn-refresh:hover {
@@ -1724,7 +1646,7 @@
 .user-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #667eea;
+  border-color: var(--primary-color, #667eea);
 }
 
 .user-card-header {
@@ -1807,9 +1729,9 @@
   position: absolute;
   top: 0;
   right: 35%;
-  color: #4caf50;
+  color: var(--success-color, #4caf50);
   font-size: 12px;
-  background: white;
+  background: var(--card-background, white);
   border-radius: 50%;
   padding: 2px;
 }
@@ -1823,7 +1745,7 @@
   margin: 0 0 5px 0;
   font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-color, #2c3e50);
 }
 
 .user-age,
@@ -1831,17 +1753,17 @@
 .user-occupation {
   margin: 3px 0;
   font-size: 12px;
-  color: #7f8c8d;
+  color: var(--text-secondary, #7f8c8d);
 }
 
 .last-seen {
   font-size: 10px;
-  color: #95a5a6;
+  color: var(--text-muted, #95a5a6);
   margin-top: 5px;
 }
 
 .view-count-badge {
-  color: #667eea;
+  color: var(--primary-color, #667eea);
   font-weight: 600;
   font-size: 11px;
 }
@@ -1850,7 +1772,7 @@
   display: flex;
   justify-content: space-around;
   padding-top: 10px;
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(--border-color, #e0e0e0);
   gap: 6px;
 }
 
@@ -1858,8 +1780,8 @@
 .btn-message,
 .btn-view-profile,
 .btn-remove {
-  background: white;
-  border: 2px solid #ddd;
+  background: var(--card-background, white);
+  border: 2px solid var(--border-color, #ddd);
   font-size: 20px;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1873,16 +1795,16 @@
 }
 
 .btn-message:hover {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-color: #667eea;
+  background: linear-gradient(135deg, var(--primary-color, #667eea) 0%, var(--secondary-color, #764ba2) 100%);
+  border-color: var(--primary-color, #667eea);
   color: white;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 }
 
 .btn-view-profile:hover {
-  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
-  border-color: #17a2b8;
+  background: linear-gradient(135deg, var(--info-color, #17a2b8) 0%, #138496 100%);
+  border-color: var(--info-color, #17a2b8);
   color: white;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(23, 162, 184, 0.4);
@@ -1893,8 +1815,8 @@
 }
 
 .btn-remove:hover {
-  background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-  border-color: #dc3545;
+  background: linear-gradient(135deg, var(--danger-color, #dc3545) 0%, #c82333 100%);
+  border-color: var(--danger-color, #dc3545);
   color: white;
   transform: scale(1.1);
   box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
@@ -1912,8 +1834,8 @@
 
 .user-action-btn.btn-outline-warning {
   background: transparent !important;
-  border: 2px solid #ddd !important;
-  color: #999 !important;
+  border: 2px solid var(--border-color, #ddd) !important;
+  color: var(--text-muted, #999) !important;
   opacity: 0.6;
 }
 
@@ -1928,8 +1850,8 @@
 
 .user-action-btn.btn-outline-info {
   background: transparent !important;
-  border: 2px solid #ddd !important;
-  color: #999 !important;
+  border: 2px solid var(--border-color, #ddd) !important;
+  color: var(--text-muted, #999) !important;
   opacity: 0.6;
 }
 
@@ -1956,7 +1878,7 @@
 .empty-section {
   text-align: center;
   padding: 40px 20px;
-  color: #95a5a6;
+  color: var(--text-muted, #95a5a6);
 }
 
 .empty-section p {
@@ -1989,19 +1911,19 @@
 .stat-value {
   font-size: 36px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--primary-color, #667eea);
   margin-bottom: 5px;
 }
 .stat-label {
   font-size: 14px;
-  color: #7f8c8d;
+  color: var(--text-secondary, #7f8c8d);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .stat-sublabel {
   font-size: 11px;
-  color: #95a5a6;
+  color: var(--text-muted, #95a5a6);
   margin-top: 4px;
   font-style: italic;
 }
@@ -2019,8 +1941,8 @@
 .spinner {
   width: 50px;
   height: 50px;
-  border: 4px solid #e0e0e0;
-  border-top: 4px solid #667eea;
+  border: 4px solid var(--border-color, #e0e0e0);
+  border-top: 4px solid var(--primary-color, #667eea);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -2040,13 +1962,13 @@
 }
 
 .dashboard-error p {
-  color: #e74c3c;
+  color: var(--danger-color, #e74c3c);
   font-size: 16px;
   margin-bottom: 20px;
 }
 
 .dashboard-error button {
-  background: #667eea;
+  background: var(--primary-color, #667eea);
   color: white;
   border: none;
   padding: 10px 30px;
@@ -2058,7 +1980,7 @@
 }
 
 .dashboard-error button:hover {
-  background: #5a67d8;
+  background: var(--secondary-color, #5a67d8);
   transform: translateY(-2px);
 }
 
@@ -2137,26 +2059,7 @@
     font-size: 13px;
   }
   
-  /* Hide title and subtitle on mobile to save space */
-  .dashboard-container .page-header .page-header-subtitle,
-  .dashboard-container .page-header .page-header-title,
-  .dashboard-container .page-header .page-header-icon {
-    display: none;
-  }
-  
-  /* Hide entire text container on mobile */
-  .dashboard-container .page-header .page-header-text {
-    display: none;
-  }
-  
-  /* Center header actions when title is hidden */
-  .dashboard-container .page-header .page-header-content {
-    justify-content: center;
-  }
-  
-  .dashboard-container .page-header .page-header-actions {
-    margin-left: 0 !important;
-  }
+  /* NOTE: page-header hiding rules already applied at 768px breakpoint above */
   
   /* Keep buttons on one line even on tiny screens */
   .header-actions {
@@ -2250,7 +2153,7 @@
 .btn-quick-action {
   width: 56px;
   height: 56px;
-  border-radius: 50px !important;
+  border-radius: 50px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2261,9 +2164,6 @@
   font-size: 28px;
   cursor: pointer;
   transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
@@ -2535,46 +2435,8 @@
    EXPAND/COLLAPSE FUNCTIONALITY
    ======================================== */
 
-/* View Mode Toggle Button - Theme-Aware */
-.btn-view-toggle {
-  padding: 12px !important;
-  border-radius: 12px !important;
-  font-size: 22px !important;
-  font-weight: 600 !important;
-  border: 2px solid var(--border-color) !important;
-  background: var(--card-background) !important;
-  backdrop-filter: blur(10px) !important;
-  color: var(--text-color) !important;
-  cursor: pointer !important;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 0 !important;
-  white-space: nowrap !important;
-  min-width: 48px !important;
-  min-height: 48px !important;
-  max-width: 48px !important;
-  flex-shrink: 0 !important;
-  line-height: 1 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
-}
-
-.btn-view-toggle:hover {
-  background: var(--hover-background) !important;
-  border-color: var(--primary-color) !important;
-  transform: translateY(-2px) !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-}
-
-.btn-view-toggle:active {
-  transform: translateY(0) !important;
-  background: var(--active-background) !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-}
-
-
-/* Toggle Expand/Collapse Button - Theme-Aware */
+/* View Mode Toggle & Expand/Collapse Button - Theme-Aware (shared styles) */
+.btn-view-toggle,
 .btn-toggle-sections {
   padding: 12px !important;
   border-radius: 12px !important;
@@ -2599,6 +2461,7 @@
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1) !important;
 }
 
+.btn-view-toggle:hover,
 .btn-toggle-sections:hover {
   background: var(--hover-background) !important;
   border-color: var(--primary-color) !important;
@@ -2606,6 +2469,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
 }
 
+.btn-view-toggle:active,
 .btn-toggle-sections:active {
   transform: translateY(0) !important;
   background: var(--active-background) !important;
@@ -2702,16 +2566,7 @@
   transform-origin: top;
 }
 
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+/* NOTE: @keyframes slideDown defined earlier (line ~165) — not duplicated here */
 
 /* Mobile Responsive */
 @media (max-width: 768px) {
@@ -2731,16 +2586,7 @@
     font-size: 20px !important;
   }
   
-  .btn-view-toggle {
-    padding: 10px !important;
-    min-width: 44px !important;
-    min-height: 44px !important;
-    max-width: 44px !important;
-    border-radius: 10px !important;
-    font-size: 20px !important;
-    justify-content: center !important;
-  }
-  
+  .btn-view-toggle,
   .btn-toggle-sections {
     padding: 10px !important;
     min-width: 44px !important;
