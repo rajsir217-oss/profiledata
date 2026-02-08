@@ -20,6 +20,8 @@ const PollManagement = () => {
   
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingPoll, setEditingPoll] = useState(null);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [selectedPoll, setSelectedPoll] = useState(null);
   const [pollResults, setPollResults] = useState(null);
@@ -62,12 +64,13 @@ const PollManagement = () => {
     const handleEscKey = (event) => {
       if (event.key === 'Escape') {
         if (showResultsModal) setShowResultsModal(false);
+        else if (showEditModal) { setShowEditModal(false); setEditingPoll(null); }
         else if (showCreateModal) setShowCreateModal(false);
       }
     };
     document.addEventListener('keydown', handleEscKey);
     return () => document.removeEventListener('keydown', handleEscKey);
-  }, [showCreateModal, showResultsModal]);
+  }, [showCreateModal, showEditModal, showResultsModal]);
 
   const fetchPolls = async () => {
     try {
@@ -188,6 +191,62 @@ const PollManagement = () => {
     } catch (err) {
       console.error('Error creating poll:', err);
       showToast(err.response?.data?.detail || 'Failed to create poll', 'error');
+    } finally {
+      setFormSubmitting(false);
+    }
+  };
+
+  const handleOpenEdit = (poll) => {
+    setEditingPoll(poll);
+    setFormData({
+      title: poll.title || '',
+      description: poll.description || '',
+      poll_type: poll.poll_type || 'rsvp',
+      event_date: poll.event_date ? new Date(poll.event_date).toISOString().split('T')[0] : '',
+      event_time: poll.event_time || '',
+      event_location: poll.event_location || '',
+      event_details: poll.event_details || '',
+      collect_contact_info: poll.collect_contact_info !== false,
+      allow_comments: poll.allow_comments !== false,
+      options: poll.options?.map(o => typeof o === 'string' ? o : o.text) || ['']
+    });
+    setShowEditModal(true);
+  };
+
+  const handleEditPoll = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.title.trim()) {
+      showToast('Please enter a poll title', 'error');
+      return;
+    }
+
+    try {
+      setFormSubmitting(true);
+      
+      const payload = {
+        title: formData.title,
+        description: formData.description || null,
+        event_date: formData.event_date ? new Date(formData.event_date).toISOString() : undefined,
+        event_time: formData.event_time || null,
+        event_location: formData.event_location || null,
+        event_details: formData.event_details || null,
+        collect_contact_info: formData.collect_contact_info,
+        allow_comments: formData.allow_comments
+      };
+
+      const response = await pollsApi.put(`/api/polls/admin/${editingPoll._id}`, payload);
+      
+      if (response.data.success) {
+        showToast('Poll updated successfully!', 'success');
+        setShowEditModal(false);
+        setEditingPoll(null);
+        resetForm();
+        fetchPolls();
+      }
+    } catch (err) {
+      console.error('Error updating poll:', err);
+      showToast(err.response?.data?.detail || 'Failed to update poll', 'error');
     } finally {
       setFormSubmitting(false);
     }
@@ -439,6 +498,15 @@ const PollManagement = () => {
                   📈 Results
                 </button>
                 
+                {(poll.status === 'active' || poll.status === 'draft') && (
+                  <button 
+                    className="poll-action-btn poll-action-edit"
+                    onClick={() => handleOpenEdit(poll)}
+                  >
+                    ✏️ Edit
+                  </button>
+                )}
+                
                 {poll.status === 'draft' && (
                   <button 
                     className="poll-action-btn poll-action-activate"
@@ -634,6 +702,66 @@ const PollManagement = () => {
               >
                 {formSubmitting ? 'Creating...' : 'Create Poll'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Poll Modal */}
+      {showEditModal && editingPoll && (
+        <div className="poll-modal-overlay" onClick={() => { setShowEditModal(false); setEditingPoll(null); resetForm(); }}>
+          <div className="poll-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="poll-modal-header">
+              <h2>✏️ Edit Poll</h2>
+              <button className="poll-modal-close" onClick={() => { setShowEditModal(false); setEditingPoll(null); resetForm(); }}>✕</button>
+            </div>
+            
+            <form onSubmit={handleEditPoll} className="poll-modal-body">
+              <div className="poll-form-group">
+                <label>Poll Title *</label>
+                <input type="text" value={formData.title} onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))} required />
+              </div>
+              <div className="poll-form-group">
+                <label>Description</label>
+                <textarea value={formData.description} onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))} rows={3} />
+              </div>
+              <div className="poll-form-section">
+                <h4>Event Details</h4>
+                <div className="poll-form-row">
+                  <div className="poll-form-group">
+                    <label>Event Date</label>
+                    <input type="date" value={formData.event_date} onChange={(e) => setFormData(prev => ({ ...prev, event_date: e.target.value }))} />
+                  </div>
+                  <div className="poll-form-group">
+                    <label>Event Time</label>
+                    <input type="text" value={formData.event_time} onChange={(e) => setFormData(prev => ({ ...prev, event_time: e.target.value }))} placeholder="e.g., 7:00 PM PST" />
+                  </div>
+                </div>
+                <div className="poll-form-group">
+                  <label>Location / Platform</label>
+                  <input type="text" value={formData.event_location} onChange={(e) => setFormData(prev => ({ ...prev, event_location: e.target.value }))} />
+                </div>
+                <div className="poll-form-group">
+                  <label>Additional Details</label>
+                  <textarea value={formData.event_details} onChange={(e) => setFormData(prev => ({ ...prev, event_details: e.target.value }))} rows={2} />
+                </div>
+              </div>
+              <div className="poll-form-section">
+                <h4>Settings</h4>
+                <label className="poll-checkbox-label">
+                  <input type="checkbox" checked={formData.collect_contact_info} onChange={(e) => setFormData(prev => ({ ...prev, collect_contact_info: e.target.checked }))} />
+                  <span>Collect user's contact information with response</span>
+                </label>
+                <label className="poll-checkbox-label">
+                  <input type="checkbox" checked={formData.allow_comments} onChange={(e) => setFormData(prev => ({ ...prev, allow_comments: e.target.checked }))} />
+                  <span>Allow users to add comments</span>
+                </label>
+              </div>
+            </form>
+            
+            <div className="poll-modal-footer">
+              <button type="button" className="poll-btn-secondary" onClick={() => { setShowEditModal(false); setEditingPoll(null); resetForm(); }} disabled={formSubmitting}>Cancel</button>
+              <button type="submit" className="poll-btn-primary" onClick={handleEditPoll} disabled={formSubmitting}>{formSubmitting ? 'Saving...' : 'Save Changes'}</button>
             </div>
           </div>
         </div>
