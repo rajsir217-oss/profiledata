@@ -1002,14 +1002,22 @@ async def register_user(
             )
         # Validate the invitation token exists and is valid
         invitation = await db.invitations.find_one({
-            "token": invitationToken,
-            "status": {"$in": ["pending", "sent", "resent"]}
+            "invitationToken": invitationToken,
+            "emailStatus": {"$in": ["pending", "sent", "delivered"]}
         })
         if not invitation:
             logger.warning(f"⚠️ Registration blocked: Invalid/expired invitation token '{invitationToken}'")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Invalid or expired invitation link. Please request a new invitation from an existing member."
+            )
+        # Check if token has expired (30-day expiry)
+        token_expires = invitation.get("tokenExpiresAt")
+        if token_expires and token_expires < datetime.utcnow():
+            logger.warning(f"⚠️ Registration blocked: Expired invitation token '{invitationToken}' (expired {token_expires})")
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Your invitation link has expired. Please request a new invitation from an existing member."
             )
         logger.info(f"✅ Valid invitation token verified for username '{username}'")
     
