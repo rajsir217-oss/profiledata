@@ -5,7 +5,7 @@ import { getBackendApiUrl } from '../utils/urlHelper';
 import './DynamicScheduler.css';
 import JobCreationModal from './JobCreationModal';
 import JobExecutionHistory from './JobExecutionHistory';
-import Pagination from './Pagination';
+import './LoadMore.css';
 
 const DynamicScheduler = ({ currentUser }) => {
   const navigate = useNavigate();
@@ -21,9 +21,8 @@ const DynamicScheduler = ({ currentUser }) => {
   const [filterTemplates, setFilterTemplates] = useState([]);  // Changed to array for multi-select
   const [showTemplateDropdown, setShowTemplateDropdown] = useState(false);
   const [filterEnabled, setFilterEnabled] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalJobs, setTotalJobs] = useState(0);
+  const [displayCount, setDisplayCount] = useState(20);
+  const recordsPerPage = 20;
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [userRole, setUserRole] = useState(null);
   const [sortBy, setSortBy] = useState('name');
@@ -116,7 +115,7 @@ const DynamicScheduler = ({ currentUser }) => {
       loadJobs();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterTemplates, filterEnabled, currentPage, refreshTrigger, userRole]);
+  }, [filterTemplates, filterEnabled, refreshTrigger, userRole]);
 
   // Check for pre-selected template from Template Manager
   useEffect(() => {
@@ -165,8 +164,8 @@ const DynamicScheduler = ({ currentUser }) => {
     
     try {
       const params = new URLSearchParams({
-        page: currentPage,
-        limit: 20
+        page: 1,
+        limit: 1000
       });
       
       if (filterTemplates.length > 0) {
@@ -205,8 +204,6 @@ const DynamicScheduler = ({ currentUser }) => {
         console.log('📋 First job data:', data.jobs[0]);
       }
       setJobs(data.jobs || []);
-      setTotalPages(data.pages || 1);
-      setTotalJobs(data.total || (data.jobs || []).length);
     } catch (err) {
       // Ensure error is always a string
       const errorMsg = err.message || 'Failed to load jobs';
@@ -633,7 +630,7 @@ const DynamicScheduler = ({ currentUser }) => {
                       } else {
                         setFilterTemplates(templates.map(t => t.type));
                       }
-                      setCurrentPage(1);
+                      setDisplayCount(recordsPerPage);
                     }}
                   >
                     {filterTemplates.length === templates.length ? 'Clear All' : 'Select All'}
@@ -651,7 +648,7 @@ const DynamicScheduler = ({ currentUser }) => {
                           } else {
                             setFilterTemplates(prev => prev.filter(type => type !== t.type));
                           }
-                          setCurrentPage(1);
+                          setDisplayCount(recordsPerPage);
                         }}
                       />
                       <span>{t.icon} {t.name}</span>
@@ -666,7 +663,7 @@ const DynamicScheduler = ({ currentUser }) => {
           <label>Status:</label>
           <select 
             value={filterEnabled} 
-            onChange={(e) => { setFilterEnabled(e.target.value); setCurrentPage(1); }}
+            onChange={(e) => { setFilterEnabled(e.target.value); setDisplayCount(recordsPerPage); }}
           >
             <option value="all">All</option>
             <option value="enabled">Enabled</option>
@@ -732,7 +729,7 @@ const DynamicScheduler = ({ currentUser }) => {
                 </tr>
               </thead>
               <tbody>
-                {getSortedJobs().map(job => (
+                {getSortedJobs().slice(0, displayCount).map(job => (
                   <tr key={job._id}>
                     <td>
                       {job.last_run_status ? (
@@ -804,17 +801,25 @@ const DynamicScheduler = ({ currentUser }) => {
             </table>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              totalItems={totalJobs}
-              itemsPerPage={20}
-              onPageChange={setCurrentPage}
-              itemLabel="jobs"
-            />
-          )}
+          {/* Load More Controls */}
+          <div className="load-more-container">
+            <div className="load-more-content">
+              {displayCount < getSortedJobs().length && (
+                <button 
+                  className="load-more-button"
+                  onClick={() => setDisplayCount(prev => Math.min(prev + recordsPerPage, getSortedJobs().length))}
+                >
+                  Load {Math.min(recordsPerPage, getSortedJobs().length - displayCount)} more [{displayCount}/{getSortedJobs().length}]
+                </button>
+              )}
+              
+              {displayCount >= getSortedJobs().length && getSortedJobs().length > recordsPerPage && (
+                <div className="load-more-complete">
+                  ✓ All {getSortedJobs().length} jobs loaded
+                </div>
+              )}
+            </div>
+          </div>
         </>
       )}
 
