@@ -265,6 +265,11 @@
   color: var(--info-color);
 }
 
+.poll-action-edit:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
 .poll-action-activate:hover {
   border-color: var(--success-color);
   color: var(--success-color);
