@@ -561,6 +561,77 @@ const Profile = ({
     }
   };
 
+  // ===== SHARED ACTION HANDLERS (used by both sticky sidebar & bottom bar) =====
+  const handleToggleFavorite = async () => {
+    try {
+      const currentUser = localStorage.getItem('username');
+      if (isFavorited) {
+        await api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+        setIsFavorited(false);
+        setSuccessMessage('✅ Removed from favorites');
+      } else {
+        await api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
+        setIsFavorited(true);
+        setSuccessMessage('✅ Added to favorites');
+      }
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      console.error('❌ Favorites error:', err.response?.data || err.message);
+      if (err.response?.status === 409) {
+        setIsFavorited(true);
+        setSuccessMessage('Already in favorites');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
+        setError(errorMsg);
+      }
+    }
+  };
+
+  const handleToggleShortlist = async () => {
+    try {
+      const currentUser = localStorage.getItem('username');
+      if (isShortlisted) {
+        await api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+        setIsShortlisted(false);
+        setSuccessMessage('✅ Removed from shortlist');
+      } else {
+        await api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
+        setIsShortlisted(true);
+        setSuccessMessage('✅ Added to shortlist');
+      }
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err) {
+      setError('Failed to update shortlist');
+    }
+  };
+
+  const handleOpenPIIRequest = async () => {
+    logger.debug('Opening PII Request Modal');
+    await checkPIIAccess();
+    setShowPIIRequestModal(true);
+  };
+
+  const handleToggleExclude = async () => {
+    try {
+      if (isExcluded) {
+        await api.delete(`/exclusions/${username}`);
+        setIsExcluded(false);
+        setSuccessMessage('✅ Removed from not interested');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } else {
+        setExclusionLoading(true);
+        const response = await api.get(`/exclusions/preview/${username}`);
+        setExclusionPreviewData(response.data);
+        setShowExclusionPreview(true);
+        setExclusionLoading(false);
+      }
+    } catch (err) {
+      setExclusionLoading(false);
+      setError('Failed to update not interested');
+    }
+  };
+
   // Load accessible images with privacy settings and expiry info
   const loadAccessibleImages = async () => {
     if (isOwnProfile || !currentUsername || !user) {
@@ -2639,116 +2710,19 @@ const Profile = ({
       {/* Sticky Action Buttons - Desktop Only (right side) */}
       {!isOwnProfile && (
         <div className="profile-sticky-actions">
-          {/* Message Button */}
-          <button
-            className={`btn-sticky-action btn-action-message ${hasMessages ? 'active' : ''}`}
-            onClick={() => setShowMessageModal(true)}
-            disabled={user.accountStatus === 'paused'}
-            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
-          >
+          <button className={`btn-sticky-action btn-action-message ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
             <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
           </button>
-
-          {/* Favorite Button */}
-          <button
-            className={`btn-sticky-action btn-action-favorite ${isFavorited ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                const currentUser = localStorage.getItem('username');
-                if (isFavorited) {
-                  await api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsFavorited(false);
-                  setSuccessMessage('✅ Removed from favorites');
-                } else {
-                  await api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsFavorited(true);
-                  setSuccessMessage('✅ Added to favorites');
-                }
-                setTimeout(() => setSuccessMessage(''), 3000);
-              } catch (err) {
-                console.error('❌ Favorites error:', err.response?.data || err.message);
-                // Handle 409 Conflict (already in favorites) - just update UI state
-                if (err.response?.status === 409) {
-                  setIsFavorited(true);  // Already favorited, sync UI
-                  setSuccessMessage('Already in favorites');
-                  setTimeout(() => setSuccessMessage(''), 3000);
-                } else {
-                  const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
-                  setError(errorMsg);
-                }
-              }
-            }}
-            title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-          >
+          <button className={`btn-sticky-action btn-action-favorite ${isFavorited ? 'active' : ''}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
             <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
           </button>
-
-          {/* Shortlist Button */}
-          <button
-            className={`btn-sticky-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                const currentUser = localStorage.getItem('username');
-                if (isShortlisted) {
-                  await api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsShortlisted(false);
-                  setSuccessMessage('✅ Removed from shortlist');
-                } else {
-                  await api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsShortlisted(true);
-                  setSuccessMessage('✅ Added to shortlist');
-                }
-                setTimeout(() => setSuccessMessage(''), 3000);
-              } catch (err) {
-                setError('Failed to update shortlist');
-              }
-            }}
-            title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
-          >
+          <button className={`btn-sticky-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
             <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
           </button>
-
-          {/* PII Request Button */}
-          <button
-            className="btn-sticky-action btn-action-pii"
-            onClick={async () => {
-              logger.debug('Opening PII Request Modal');
-              await checkPIIAccess();
-              setShowPIIRequestModal(true);
-            }}
-            disabled={hasAllAccess}
-            title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
-          >
+          <button className="btn-sticky-action btn-action-pii" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
           </button>
-
-          {/* Exclude Button */}
-          <button
-            className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                if (isExcluded) {
-                  // Remove exclusion directly
-                  await api.delete(`/exclusions/${username}`);
-                  setIsExcluded(false);
-                  setSuccessMessage('✅ Removed from not interested');
-                  setTimeout(() => setSuccessMessage(''), 3000);
-                } else {
-                  // Show preview modal before excluding
-                  setExclusionLoading(true);
-                  const response = await api.get(`/exclusions/preview/${username}`);
-                  setExclusionPreviewData(response.data);
-                  setShowExclusionPreview(true);
-                  setExclusionLoading(false);
-                }
-              } catch (err) {
-                setExclusionLoading(false);
-                setError('Failed to update not interested');
-              }
-            }}
-            disabled={exclusionLoading}
-            title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
-          >
+          <button className={`btn-sticky-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}>
             <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED)}</span>
           </button>
         </div>
@@ -2757,120 +2731,23 @@ const Profile = ({
       {/* Action Buttons - Mobile Only (bottom bar) */}
       {!isOwnProfile && (
         <div className="profile-action-buttons">
-          {/* Message Button */}
-          <button
-            className={`btn-profile-action btn-action-message ${hasMessages ? 'active' : ''}`}
-            onClick={() => setShowMessageModal(true)}
-            disabled={user.accountStatus === 'paused'}
-            title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}
-          >
+          <button className={`btn-profile-action btn-action-message ${hasMessages ? 'active' : ''}`} onClick={() => setShowMessageModal(true)} disabled={user.accountStatus === 'paused'} title={user.accountStatus === 'paused' ? 'User is paused - messaging disabled' : (hasMessages ? 'Continue conversation' : 'Send Message')}>
             <span className="action-icon">{hasMessages ? ACTION_ICONS.MESSAGE_ACTIVE : ACTION_ICONS.MESSAGE}</span>
             <span className="action-label">{hasMessages ? 'Messages' : 'Message'}</span>
           </button>
-
-          {/* Favorite Button */}
-          <button
-            className={`btn-profile-action btn-action-favorite ${isFavorited ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                const currentUser = localStorage.getItem('username');
-                if (isFavorited) {
-                  await api.delete(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsFavorited(false);
-                  setSuccessMessage('✅ Removed from favorites');
-                } else {
-                  await api.post(`/favorites/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsFavorited(true);
-                  setSuccessMessage('✅ Added to favorites');
-                }
-                setTimeout(() => setSuccessMessage(''), 3000);
-              } catch (err) {
-                console.error('❌ Favorites error:', err.response?.data || err.message);
-                // Handle 409 Conflict (already in favorites) - just update UI state
-                if (err.response?.status === 409) {
-                  setIsFavorited(true);  // Already favorited, sync UI
-                  setSuccessMessage('Already in favorites');
-                  setTimeout(() => setSuccessMessage(''), 3000);
-                } else {
-                  const errorMsg = err.response?.data?.detail || 'Failed to update favorites';
-                  setError(errorMsg);
-                }
-              }
-            }}
-            title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}
-          >
+          <button className={`btn-profile-action btn-action-favorite ${isFavorited ? 'active' : ''}`} onClick={handleToggleFavorite} title={isFavorited ? 'Remove from Favorites' : 'Add to Favorites'}>
             <span className="action-icon">{isFavorited ? ACTION_ICONS.UNFAVORITE : ACTION_ICONS.FAVORITE}</span>
             <span className="action-label">{isFavorited ? 'Favorited' : 'Favorite'}</span>
           </button>
-
-          {/* Shortlist Button */}
-          <button
-            className={`btn-profile-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                const currentUser = localStorage.getItem('username');
-                if (isShortlisted) {
-                  await api.delete(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsShortlisted(false);
-                  setSuccessMessage('✅ Removed from shortlist');
-                } else {
-                  await api.post(`/shortlist/${username}?username=${encodeURIComponent(currentUser)}`);
-                  setIsShortlisted(true);
-                  setSuccessMessage('✅ Added to shortlist');
-                }
-                setTimeout(() => setSuccessMessage(''), 3000);
-              } catch (err) {
-                setError('Failed to update shortlist');
-              }
-            }}
-            title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}
-          >
+          <button className={`btn-profile-action btn-action-shortlist ${isShortlisted ? 'active' : ''}`} onClick={handleToggleShortlist} title={isShortlisted ? 'Remove from Shortlist' : 'Add to Shortlist'}>
             <span className="action-icon">{isShortlisted ? ACTION_ICONS.SHORTLIST_ACTIVE : ACTION_ICONS.SHORTLIST}</span>
             <span className="action-label">{isShortlisted ? 'Shortlisted' : 'Shortlist'}</span>
           </button>
-
-          {/* PII Request Button */}
-          <button
-            className="btn-profile-action btn-action-pii"
-            onClick={async () => {
-              logger.debug('Opening PII Request Modal');
-              await checkPIIAccess();
-              setShowPIIRequestModal(true);
-            }}
-            disabled={hasAllAccess}
-            title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}
-          >
+          <button className="btn-profile-action btn-action-pii" onClick={handleOpenPIIRequest} disabled={hasAllAccess} title={hasAllAccess ? 'You Have All Private Information Access' : 'Request Private Information Access'}>
             <span className="action-icon">{hasAllAccess ? ACTION_ICONS.HAS_ACCESS : ACTION_ICONS.REQUEST_CONTACT}</span>
             <span className="action-label">{hasAllAccess ? 'Full Access' : 'Request PII'}</span>
           </button>
-
-          {/* Exclude Button */}
-          <button
-            className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`}
-            onClick={async () => {
-              try {
-                if (isExcluded) {
-                  // Remove exclusion directly
-                  await api.delete(`/exclusions/${username}`);
-                  setIsExcluded(false);
-                  setSuccessMessage('✅ Removed from not interested');
-                  setTimeout(() => setSuccessMessage(''), 3000);
-                } else {
-                  // Show preview modal before excluding
-                  setExclusionLoading(true);
-                  const response = await api.get(`/exclusions/preview/${username}`);
-                  setExclusionPreviewData(response.data);
-                  setShowExclusionPreview(true);
-                  setExclusionLoading(false);
-                }
-              } catch (err) {
-                setExclusionLoading(false);
-                setError('Failed to update not interested');
-              }
-            }}
-            disabled={exclusionLoading}
-            title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}
-          >
+          <button className={`btn-profile-action btn-action-exclude ${isExcluded ? 'active' : ''}`} onClick={handleToggleExclude} disabled={exclusionLoading} title={isExcluded ? 'Remove from Not Interested' : 'Mark as Not Interested'}>
             <span className="action-icon">{exclusionLoading ? '⏳' : (isExcluded ? ACTION_ICONS.UNBLOCK : ACTION_ICONS.NOT_INTERESTED)}</span>
             <span className="action-label">{isExcluded ? 'Unblock' : 'Not Interested'}</span>
           </button>
