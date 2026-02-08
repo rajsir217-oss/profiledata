@@ -161,7 +161,7 @@ async def list_jobs(
     template_types: Optional[str] = Query(None, description="Filter by template types (comma-separated for multi-select)"),
     enabled: Optional[bool] = Query(None, description="Filter by enabled status"),
     page: int = Query(1, ge=1, description="Page number"),
-    limit: int = Query(20, ge=1, le=100, description="Items per page")
+    limit: int = Query(20, ge=1, le=1000, description="Items per page")
 ):
     """List all dynamic jobs with filtering and pagination"""
     user_role = current_user.get("role_name")
