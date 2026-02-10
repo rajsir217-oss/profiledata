@@ -399,7 +399,15 @@ const PhotoVisibilityManager = ({
         await saveVisibility(newPhotos);
         showStatus('success', `✅ ${files.length} photo${files.length > 1 ? 's' : ''} uploaded!`);
       } catch (error) {
-        showStatus('error', '❌ Upload failed: ' + (error.response?.data?.detail || error.message));
+        const detail = error.response?.data?.detail || error.message;
+        const isFaceError = detail.toLowerCase().includes('face detection');
+        showStatus(
+          'error',
+          isFaceError
+            ? `📸 ${detail}`
+            : `❌ Upload failed: ${detail}`,
+          isFaceError ? 8000 : 4000
+        );
       } finally {
         setUploading(false);
         e.target.value = '';

@@ -1335,6 +1335,9 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
         });
         setShowErrorModal(true);
         scrollToAndFocusField('contactEmail'); // Auto-scroll to email field
+      } else if (errorDetail.toLowerCase().includes('face detection')) {
+        setErrorMsg(`📸 ${errorDetail}`);
+        setActiveTab('photos');
       } else {
         setErrorMsg(errorDetail);
       }  

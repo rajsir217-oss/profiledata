@@ -50,9 +50,21 @@ async def save_upload_file(upload_file: UploadFile) -> str:
         logger.error(f"❌ Error saving file '{upload_file.filename}': {e}", exc_info=True)
         raise
 
-async def save_multiple_files(files: List[UploadFile]) -> List[str]:
-    """Save multiple files and return list of paths"""
+async def save_multiple_files(files: List[UploadFile], validate_faces: bool = True) -> List[str]:
+    """Save multiple files and return list of paths.
+    
+    Args:
+        files: List of UploadFile objects
+        validate_faces: If True, reject images that don't contain a human face
+        
+    Returns:
+        List of saved file paths
+        
+    Raises:
+        ValueError: If any image fails face detection (contains rejected filenames in message)
+    """
     file_paths = []
+    rejected_files = []
     logger.info(f"📁 Processing {len(files)} file(s) for upload...")
     
     for idx, file in enumerate(files, 1):
@@ -70,6 +82,18 @@ async def save_multiple_files(files: List[UploadFile]) -> List[str]:
         if len(content) > 5 * 1024 * 1024:
             logger.warning(f"⚠️ Skipping file {file.filename}: too large ({file_size_mb:.2f}MB > 5MB)")
             continue
+        
+        # Validate human face in image
+        if validate_faces:
+            try:
+                from services.face_detection import validate_human_image
+                is_valid, message = validate_human_image(content)
+                if not is_valid:
+                    rejected_files.append(file.filename or f"image_{idx}")
+                    logger.warning(f"🚫 Face detection rejected '{file.filename}': {message}")
+                    continue
+            except Exception as e:
+                logger.warning(f"⚠️ Face detection check failed for '{file.filename}': {e} – allowing upload")
             
         await file.seek(0)  # Reset file pointer
         
@@ -81,6 +105,14 @@ async def save_multiple_files(files: List[UploadFile]) -> List[str]:
             logger.error(f"❌ Failed to save file {file.filename}: {e}")
             # Continue with other files even if one fails
             continue
+    
+    # If any files were rejected by face detection, raise an error
+    if rejected_files:
+        names = ", ".join(rejected_files)
+        raise ValueError(
+            f"Face detection failed for: {names}. "
+            f"Please upload clear photos showing a human face."
+        )
     
     logger.info(f"✅ Successfully saved {len(file_paths)}/{len(files)} file(s)")
     return file_paths
