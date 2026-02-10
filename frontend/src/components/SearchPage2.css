@@ -1312,7 +1312,6 @@
   max-height: 220px;
   overflow: hidden;
   background: var(--surface-color);
-  z-index: 1;
   flex-shrink: 0;
 }
 

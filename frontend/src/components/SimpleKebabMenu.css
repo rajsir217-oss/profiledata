@@ -36,18 +36,16 @@
   transform: scale(0.95);
 }
 
-/* Menu Popover */
+/* Menu Popover - Fixed positioning to escape stacking contexts */
 .simple-kebab-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 8px;
-  background: white;
+  position: fixed;
+  background: var(--card-background, white);
+  border: 2px solid var(--primary-color, #6366f1);
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.15);
   min-width: 180px;
   padding: 8px 0;
-  z-index: 99999;
+  z-index: 999999;
   animation: menuFadeIn 0.15s ease-out;
 }
 
@@ -62,16 +60,9 @@
   }
 }
 
-/* Arrow pointing up */
+/* Arrow pointing up (hidden with fixed positioning) */
 .menu-arrow {
-  position: absolute;
-  top: -6px;
-  right: 10px;
-  width: 12px;
-  height: 12px;
-  background: white;
-  transform: rotate(45deg);
-  box-shadow: -2px -2px 4px rgba(0, 0, 0, 0.05);
+  display: none;
 }
 
 /* Menu Items */
@@ -82,7 +73,7 @@
   background: none;
   text-align: left;
   font-size: 14px;
-  color: #333;
+  color: var(--text-color, #333);
   cursor: pointer;
   transition: background 0.15s;
   display: flex;
@@ -91,17 +82,18 @@
 }
 
 .simple-kebab-menu button:hover {
-  background: #f5f5f5;
+  background: var(--hover-background, #f5f5f5);
+  color: var(--primary-color);
 }
 
 .simple-kebab-menu button:active {
-  background: #e8e8e8;
+  background: var(--active-background, #e8e8e8);
 }
 
 /* Divider */
-.menu-divider {
+.simple-kebab-menu .menu-divider {
   height: 1px;
-  background: #e0e0e0;
+  background: var(--border-color, #e0e0e0);
   margin: 4px 0;
 }
 
@@ -119,11 +111,7 @@ body.theme-dark .simple-kebab-menu button:hover {
   background: #3a3a4e;
 }
 
-body.theme-dark .menu-arrow {
-  background: #2a2a3e;
-}
-
-body.theme-dark .menu-divider {
+body.theme-dark .simple-kebab-menu .menu-divider {
   background: #444;
 }
 
