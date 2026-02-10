@@ -25,6 +25,7 @@ sse-starlette==1.6.5
 numpy==2.3.3
 scikit-learn==1.7.2
 Pillow==11.0.0  # Image processing and validation
+mediapipe>=0.10.9  # Face detection for profile photo validation
 openpyxl==3.1.5  # Excel file processing for data imports
 
 # Google Cloud Storage (for production file uploads)

@@ -1171,6 +1171,12 @@ async def register_user(
             image_paths = await save_multiple_files(images)
             logger.info(f"✅ Successfully saved {len(image_paths)} image(s) for user '{username}'")
             logger.info(f"📂 Image paths: {image_paths}")
+        except ValueError as ve:
+            logger.warning(f"🚫 Image validation failed for user '{username}': {ve}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(ve)
+            )
         except Exception as e:
             logger.error(f"❌ Error saving images for user '{username}': {e}", exc_info=True)
             raise HTTPException(
@@ -2371,6 +2377,12 @@ async def update_user_profile(
             existing_images = existing_images + new_image_paths
             images_modified = True
             logger.info(f"✅ Added {len(new_image_paths)} new image(s)")
+        except ValueError as ve:
+            logger.warning(f"🚫 Image validation failed for user '{username}': {ve}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(ve)
+            )
         except Exception as e:
             logger.error(f"❌ Error saving images: {e}", exc_info=True)
             raise HTTPException(
@@ -2703,6 +2715,12 @@ async def upload_photos(
             "message": f"{len(new_image_paths)} photo(s) uploaded successfully"
         }
         
+    except ValueError as ve:
+        logger.warning(f"🚫 Image validation failed for user '{username}': {ve}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(ve)
+        )
     except Exception as e:
         logger.error(f"❌ Error uploading photos for user '{username}': {e}", exc_info=True)
         raise HTTPException(
