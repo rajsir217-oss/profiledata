@@ -1726,7 +1726,7 @@ async def get_share_url(
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
-    """Generate (or return cached) real TinyURL for a profile."""
+    """Generate (or return cached) short URL for a profile via is.gd."""
     import httpx
 
     user = await db.users.find_one(
@@ -1736,32 +1736,33 @@ async def get_share_url(
     if not user:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    # Return cached URL if available
-    if user.get("tinyUrl"):
-        return {"tinyUrl": user["tinyUrl"]}
+    # Return cached URL if available (skip old tinyurl.com links)
+    cached = user.get("tinyUrl", "")
+    if cached and "tinyurl.com" not in cached:
+        return {"tinyUrl": cached}
 
-    # Build the long URL that the tiny URL should point to
+    # Build the long URL that the short URL should point to
     long_url = f"{settings.frontend_url}/p/{profile_id}"
 
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.get(
-                "https://tinyurl.com/api-create.php",
-                params={"url": long_url}
+                "https://is.gd/create.php",
+                params={"format": "simple", "url": long_url}
             )
             resp.raise_for_status()
-            tiny_url = resp.text.strip()
+            short_url = resp.text.strip()
 
         # Cache it in the user document
         await db.users.update_one(
             {"_id": user["_id"]},
-            {"$set": {"tinyUrl": tiny_url}}
+            {"$set": {"tinyUrl": short_url}}
         )
-        logger.info(f"🔗 Generated TinyURL for {user['username']}: {tiny_url}")
-        return {"tinyUrl": tiny_url}
+        logger.info(f"🔗 Generated short URL for {user['username']}: {short_url}")
+        return {"tinyUrl": short_url}
 
     except Exception as e:
-        logger.warning(f"⚠️ TinyURL generation failed: {e}")
+        logger.warning(f"⚠️ Short URL generation failed: {e}")
         # Fallback: return the app's own short URL
         fallback = f"{settings.frontend_url}/p/{profile_id}"
         return {"tinyUrl": fallback}
