@@ -1708,6 +1708,18 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
     
     return response
 
+@router.get("/resolve-profile/{profile_id}")
+async def resolve_profile_id(
+    profile_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Resolve a short profileId to a username for shareable tiny URLs."""
+    user = await db.users.find_one({"profileId": profile_id}, {"username": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return {"username": user["username"]}
+
 @router.get("/profile/{username}")
 async def get_user_profile(
     username: str,
