@@ -1510,20 +1510,51 @@ const Profile = ({
               </p>
             )}
             {user.profileId && (
-              <p style={{ 
-                fontSize: '14px', 
-                color: '#6c757d', 
+              <div style={{ 
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
                 margin: '5px 0 0 0',
-                fontFamily: 'monospace',
-                letterSpacing: '1px'
+                flexWrap: 'wrap'
               }}>
-                <strong>Profile ID:</strong> <span style={{ 
-                  backgroundColor: '#f0f0f0', 
-                  padding: '2px 8px', 
-                  borderRadius: '4px',
-                  color: '#495057'
-                }}>{user.profileId}</span>
-              </p>
+                <p style={{ 
+                  fontSize: '14px', 
+                  color: '#6c757d', 
+                  margin: 0,
+                  fontFamily: 'monospace',
+                  letterSpacing: '1px'
+                }}>
+                  <strong>Profile ID:</strong> <span style={{ 
+                    backgroundColor: '#f0f0f0', 
+                    padding: '2px 8px', 
+                    borderRadius: '4px',
+                    color: '#495057'
+                  }}>{user.profileId}</span>
+                </p>
+                <button
+                  className="share-profile-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const origin = window.location.origin;
+                    const tinyUrl = `${origin}/p/${user.profileId}`;
+                    navigator.clipboard.writeText(tinyUrl).then(() => {
+                      showToast('🔗 Profile link copied!', 'success');
+                    }).catch(() => {
+                      // Fallback for older browsers
+                      const input = document.createElement('input');
+                      input.value = tinyUrl;
+                      document.body.appendChild(input);
+                      input.select();
+                      document.execCommand('copy');
+                      document.body.removeChild(input);
+                      showToast('🔗 Profile link copied!', 'success');
+                    });
+                  }}
+                  title="Copy shareable profile link"
+                >
+                  🔗 Share
+                </button>
+              </div>
             )}
             
             {/* Account Status Indicator - Show only for own profile if not fully activated */}

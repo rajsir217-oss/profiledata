@@ -10,6 +10,7 @@ import ForgotPassword from './components/ForgotPassword';
 import LandingPage from './components/LandingPage';
 import VerifyEmail from './components/VerifyEmail';
 import Profile from './components/Profile';
+import ProfileRedirect from './components/ProfileRedirect';
 import MatchingCriteria from './components/MatchingCriteria';
 import TopMatches from './components/TopMatches';
 import SearchPage2 from './components/SearchPage2';
@@ -368,6 +369,7 @@ function AppContent() {
               <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
               <Route path="/admin/change-password" element={<ProtectedRoute><ChangeAdminPassword /></ProtectedRoute>} />
               <Route path="/profile/:username" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+              <Route path="/p/:profileId" element={<ProtectedRoute><ProfileRedirect /></ProtectedRoute>} />
               <Route path="/edit-profile" element={<ProtectedRoute><Register2 mode="edit" /></ProtectedRoute>} />
               <Route path="/preferences" element={<ProtectedRoute><UnifiedPreferences /></ProtectedRoute>} />
               <Route path="/testimonials" element={<ProtectedRoute><Testimonials /></ProtectedRoute>} />
