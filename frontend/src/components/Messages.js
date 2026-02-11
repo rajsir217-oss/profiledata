@@ -87,15 +87,17 @@ const Messages = () => {
       });
     }
     
-    loadConversations();
-    loadUnattendedChats();
-
-    // Check if we should open a specific conversation
     const urlParams = new URLSearchParams(location.search);
     const toUsername = urlParams.get('to');
-    if (toUsername) {
-      handleSelectUser(toUsername);
-    }
+
+    loadConversations().then((convos) => {
+      if (toUsername) {
+        handleSelectUser(toUsername);
+      } else if (convos.length > 0 && !selectedUser) {
+        handleSelectUser(convos[0].username);
+      }
+    });
+    loadUnattendedChats();
 
     // Listen for real-time messages
     const handleNewMessage = (data) => {
@@ -156,11 +158,13 @@ const Messages = () => {
       
       // Log messages page viewed with conversation count
       logMessagesPageViewed(convos.length);
+      return convos;
     } catch (err) {
       console.error('❌ Messages.js: Error loading conversations:', err);
       console.error('❌ Messages.js: Error response:', err.response?.data);
       setError('Failed to load conversations');
       setLoading(false);
+      return [];
     }
   };
 
