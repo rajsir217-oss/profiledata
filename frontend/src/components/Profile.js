@@ -1533,22 +1533,33 @@ const Profile = ({
                 </p>
                 <button
                   className="share-profile-btn"
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    const origin = window.location.origin;
-                    const tinyUrl = `${origin}/p/${user.profileId}`;
-                    navigator.clipboard.writeText(tinyUrl).then(() => {
+                    const btn = e.currentTarget;
+                    const origText = btn.textContent;
+                    btn.textContent = '⏳ ...';
+                    btn.disabled = true;
+                    try {
+                      const res = await api.get(`/share-profile/${user.profileId}`);
+                      const url = res.data?.tinyUrl || `${window.location.origin}/p/${user.profileId}`;
+                      await navigator.clipboard.writeText(url);
                       showToast('🔗 Profile link copied!', 'success');
-                    }).catch(() => {
-                      // Fallback for older browsers
-                      const input = document.createElement('input');
-                      input.value = tinyUrl;
-                      document.body.appendChild(input);
-                      input.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(input);
+                    } catch {
+                      // Fallback: copy the app's own short URL
+                      const fallback = `${window.location.origin}/p/${user.profileId}`;
+                      try { await navigator.clipboard.writeText(fallback); } catch {
+                        const input = document.createElement('input');
+                        input.value = fallback;
+                        document.body.appendChild(input);
+                        input.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(input);
+                      }
                       showToast('🔗 Profile link copied!', 'success');
-                    });
+                    } finally {
+                      btn.textContent = origText;
+                      btn.disabled = false;
+                    }
                   }}
                   title="Copy shareable profile link"
                 >
