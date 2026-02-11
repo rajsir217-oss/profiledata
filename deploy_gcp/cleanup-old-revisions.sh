@@ -132,55 +132,47 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   echo "📊 Remaining: $REMAINING revisions"
   echo ""
 
-  # --- Artifact Registry Image Cleanup ---
-  echo "🧹 Cleaning up orphaned images in Artifact Registry..."
+  # --- Image Cleanup (Artifact Registry + GCR) ---
+  echo "🧹 Cleaning up orphaned container images..."
   
-  # Get repository name (usually based on project and region)
+  # Get images still in use by ANY remaining revision
+  echo "  🔍 Checking which images are still in use by revisions..."
+  STILL_IN_USE=$(gcloud run revisions list \
+    --service=$SERVICE_NAME \
+    --region=$REGION \
+    --project=$PROJECT_ID \
+    --format="value(spec.containers[0].image)" 2>/dev/null || echo "")
+  
+  IN_USE_COUNT=$(echo "$STILL_IN_USE" | grep -c . || echo "0")
+  echo "  📊 Found $IN_USE_COUNT images referenced by active revisions"
+
+  IMAGE_DELETED_COUNT=0
+  IMAGE_FAILED_COUNT=0
+  IMAGE_KEPT_COUNT=0
+  IMAGES_FOUND=false
+
+  # --- 1. Artifact Registry (cloud-run-source-deploy) ---
   REPO_NAME="cloud-run-source-deploy"
   REGISTRY_PATH="$REGION-docker.pkg.dev/$PROJECT_ID/$REPO_NAME"
   
-  # Get all image digests for this service in the repository
-  # Format: package@sha256:digest
-  echo "  📋 Fetching all images for $SERVICE_NAME..."
-  # Use --include-tags to get proper image references
-  IMAGES=$(gcloud artifacts docker images list "$REGISTRY_PATH/$SERVICE_NAME" \
+  echo "  📋 Checking Artifact Registry ($REPO_NAME)..."
+  AR_IMAGES=$(gcloud artifacts docker images list "$REGISTRY_PATH/$SERVICE_NAME" \
     --include-tags \
     --format="value(format('{0}@{1}', package, version))" 2>/dev/null || echo "")
   
-  IMAGE_COUNT=$(echo "$IMAGES" | grep -c . || echo "0")
-  echo "  📊 Found $IMAGE_COUNT images in registry"
-  
-  if [ -n "$IMAGES" ] && [ "$IMAGE_COUNT" -gt 0 ]; then
-    # Get images still in use by ANY remaining revision
-    # FIXED: Use correct path spec.containers[0].image (not spec.template.spec.containers[0].image)
-    echo "  🔍 Checking which images are still in use by revisions..."
-    STILL_IN_USE=$(gcloud run revisions list \
-      --service=$SERVICE_NAME \
-      --region=$REGION \
-      --project=$PROJECT_ID \
-      --format="value(spec.containers[0].image)" 2>/dev/null || echo "")
-    
-    IN_USE_COUNT=$(echo "$STILL_IN_USE" | grep -c . || echo "0")
-    echo "  📊 Found $IN_USE_COUNT images referenced by active revisions"
-    
-    IMAGE_DELETED_COUNT=0
-    IMAGE_FAILED_COUNT=0
-    IMAGE_KEPT_COUNT=0
+  AR_COUNT=$(echo "$AR_IMAGES" | grep -c . || echo "0")
+  if [ -n "$AR_IMAGES" ] && [ "$AR_COUNT" -gt 0 ]; then
+    IMAGES_FOUND=true
+    echo "  📊 Found $AR_COUNT images in Artifact Registry"
     
     while IFS= read -r image_full; do
       if [ -z "$image_full" ]; then continue; fi
-      
-      # Extract just the digest part for comparison (sha256:...)
       IMAGE_DIGEST=$(echo "$image_full" | grep -o 'sha256:[a-f0-9]*')
-      
-      # Check if this digest is referenced by any revision
       if echo "$STILL_IN_USE" | grep -q "$IMAGE_DIGEST"; then
         IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
         continue
       fi
-      
-      echo "  🗑️ Deleting orphaned image: ...@${IMAGE_DIGEST:0:20}..."
-      # image_full already contains the full path
+      echo "  🗑️ Deleting orphaned AR image: ...@${IMAGE_DIGEST:0:20}..."
       if gcloud artifacts docker images delete "$image_full" \
         --project=$PROJECT_ID \
         --quiet --delete-tags 2>/dev/null; then
@@ -188,15 +180,52 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
       else
         IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
       fi
-    done <<< "$IMAGES"
+    done <<< "$AR_IMAGES"
+  else
+    echo "  ℹ️  No images in Artifact Registry for $SERVICE_NAME"
+  fi
+
+  # --- 2. GCR (gcr.io) ---
+  GCR_PATH="gcr.io/$PROJECT_ID/$SERVICE_NAME"
+  
+  echo "  📋 Checking GCR ($GCR_PATH)..."
+  GCR_IMAGES=$(gcloud container images list-tags "$GCR_PATH" \
+    --format="get(digest)" 2>/dev/null || echo "")
+  
+  GCR_COUNT=$(echo "$GCR_IMAGES" | grep -c . || echo "0")
+  if [ -n "$GCR_IMAGES" ] && [ "$GCR_COUNT" -gt 0 ]; then
+    IMAGES_FOUND=true
+    echo "  📊 Found $GCR_COUNT images in GCR"
     
+    while IFS= read -r digest; do
+      if [ -z "$digest" ]; then continue; fi
+      FULL_REF="$GCR_PATH@$digest"
+      if echo "$STILL_IN_USE" | grep -q "$digest"; then
+        IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
+        continue
+      fi
+      echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
+      if gcloud container images delete "$FULL_REF" \
+        --project=$PROJECT_ID \
+        --quiet --force-delete-tags 2>/dev/null; then
+        IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+      else
+        IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
+      fi
+    done <<< "$GCR_IMAGES"
+  else
+    echo "  ℹ️  No images in GCR for $SERVICE_NAME"
+  fi
+
+  # Summary
+  if [ "$IMAGES_FOUND" = true ]; then
     echo "  ✅ Kept $IMAGE_KEPT_COUNT images (in use by revisions)"
     echo "  ✅ Deleted $IMAGE_DELETED_COUNT orphaned images for $SERVICE_NAME"
     if [ $IMAGE_FAILED_COUNT -gt 0 ]; then
       echo "  ⚠️ Failed to delete $IMAGE_FAILED_COUNT images (may require manual cleanup)"
     fi
   else
-    echo "  ℹ️ No images found to clean up in $REPO_NAME"
+    echo "  ℹ️  No images found in any registry for $SERVICE_NAME"
   fi
   echo ""
 done
