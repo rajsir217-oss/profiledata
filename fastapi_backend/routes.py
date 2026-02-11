@@ -1720,6 +1720,52 @@ async def resolve_profile_id(
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"username": user["username"]}
 
+@router.get("/share-profile/{profile_id}")
+async def get_share_url(
+    profile_id: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Generate (or return cached) real TinyURL for a profile."""
+    import httpx
+
+    user = await db.users.find_one(
+        {"profileId": profile_id},
+        {"username": 1, "profileId": 1, "tinyUrl": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Return cached URL if available
+    if user.get("tinyUrl"):
+        return {"tinyUrl": user["tinyUrl"]}
+
+    # Build the long URL that the tiny URL should point to
+    long_url = f"{settings.frontend_url}/p/{profile_id}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://tinyurl.com/api-create.php",
+                params={"url": long_url}
+            )
+            resp.raise_for_status()
+            tiny_url = resp.text.strip()
+
+        # Cache it in the user document
+        await db.users.update_one(
+            {"_id": user["_id"]},
+            {"$set": {"tinyUrl": tiny_url}}
+        )
+        logger.info(f"🔗 Generated TinyURL for {user['username']}: {tiny_url}")
+        return {"tinyUrl": tiny_url}
+
+    except Exception as e:
+        logger.warning(f"⚠️ TinyURL generation failed: {e}")
+        # Fallback: return the app's own short URL
+        fallback = f"{settings.frontend_url}/p/{profile_id}"
+        return {"tinyUrl": fallback}
+
 @router.get("/profile/{username}")
 async def get_user_profile(
     username: str,
