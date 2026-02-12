@@ -780,6 +780,34 @@ const SearchPage2 = () => {
         }
       } catch (err) {
         logger.error('Error loading default saved search:', err);
+        
+        // FALLBACK: If loading default search fails, execute with partner criteria
+        // Without this, no search would ever execute on page load
+        if (!hasAutoExecutedRef.current) {
+          logger.info('🔍 Fallback: executing search with partnerCriteria after error');
+          const defaults = buildDefaultCriteria(currentUserProfile);
+          const fallbackCriteria = {
+            keyword: '',
+            profileId: '',
+            ...defaults,
+            heightMin: '',
+            heightMax: '',
+            location: '',
+            education: '',
+            occupation: '',
+            religion: '',
+            caste: '',
+            drinking: '',
+            smoking: '',
+            relationshipStatus: '',
+            newlyAdded: false,
+          };
+          setSearchCriteria(fallbackCriteria);
+          hasAutoExecutedRef.current = true;
+          autoSearchTimerId = setTimeout(() => {
+            handleSearch(1, 0, fallbackCriteria);
+          }, 100);
+        }
       }
     };
 
