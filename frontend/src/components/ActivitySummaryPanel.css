@@ -1,0 +1,310 @@
+/* Activity Summary Panel - Admin only */
+
+.activity-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 10000;
+  display: flex;
+  justify-content: flex-end;
+  animation: overlayFadeIn 0.2s ease;
+}
+
+@keyframes overlayFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.activity-panel {
+  width: 520px;
+  max-width: 95vw;
+  height: 100vh;
+  background: var(--card-background, #fff);
+  box-shadow: -4px 0 24px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: panelSlideIn 0.25s ease;
+  overflow: hidden;
+}
+
+@keyframes panelSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+.activity-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--border-color, #e0e0e0);
+  background: linear-gradient(135deg, var(--primary-color, #6366f1) 0%, var(--secondary-color, #a78bfa) 100%);
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.activity-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.activity-close-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #fff;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.activity-close-btn:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+.activity-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+/* Sections */
+.activity-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.activity-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.activity-section h4 {
+  margin: 0 0 10px 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-color, #333);
+}
+
+/* Stats row (count pills) */
+.activity-stats-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.activity-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--hover-background, #f5f5f5);
+  min-width: 60px;
+}
+
+.activity-stat .stat-number {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--primary-color, #6366f1);
+  line-height: 1;
+}
+
+.activity-stat .stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 3px;
+}
+
+.activity-stat.approved .stat-number {
+  color: var(--success-color, #22c55e);
+}
+
+.activity-stat.denied .stat-number {
+  color: var(--danger-color, #ef4444);
+}
+
+.activity-stat.pending .stat-number {
+  color: var(--warning-color, #f59e0b);
+}
+
+/* Grid of label/value rows */
+.activity-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.activity-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.activity-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted, #888);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.activity-value {
+  font-size: 12px;
+  color: var(--text-color, #333);
+  text-align: right;
+  word-break: break-word;
+}
+
+.activity-value.highlight {
+  font-weight: 700;
+  color: var(--primary-color, #6366f1);
+}
+
+/* Clickable user links */
+.activity-user-link {
+  color: var(--primary-color, #6366f1);
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 11px;
+  margin-left: 4px;
+}
+
+.activity-user-link:hover {
+  text-decoration: underline;
+}
+
+/* Status badge */
+.activity-status-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-active {
+  background: var(--success-light, #dcfce7);
+  color: var(--success-color, #22c55e);
+}
+
+.status-pending_email_verification,
+.status-pending_admin_approval {
+  background: var(--warning-light, #fef3c7);
+  color: var(--warning-dark, #92400e);
+}
+
+.status-suspended,
+.status-deactivated {
+  background: var(--danger-light, #fee2e2);
+  color: var(--danger-color, #ef4444);
+}
+
+.status-paused {
+  background: var(--info-light, #dbeafe);
+  color: var(--info-color, #3b82f6);
+}
+
+/* Loading state */
+.activity-panel-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 12px;
+  color: var(--text-muted, #888);
+}
+
+.activity-spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border-color, #e0e0e0);
+  border-top-color: var(--primary-color, #6366f1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.activity-panel-error {
+  padding: 20px;
+  color: var(--danger-color, #ef4444);
+  text-align: center;
+}
+
+/* Activity button on profile */
+.activity-summary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--info-color, #3b82f6), var(--primary-color, #6366f1));
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
+}
+
+.activity-summary-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.45);
+  filter: brightness(1.1);
+}
+
+.activity-summary-btn:active {
+  transform: scale(0.96);
+}
+
+/* Mobile responsive */
+@media (max-width: 600px) {
+  .activity-panel {
+    width: 100vw;
+  }
+
+  .activity-stats-row {
+    gap: 6px;
+  }
+
+  .activity-stat {
+    padding: 6px 10px;
+    min-width: 50px;
+  }
+
+  .activity-stat .stat-number {
+    font-size: 16px;
+  }
+
+  .activity-item {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .activity-value {
+    text-align: left;
+  }
+}

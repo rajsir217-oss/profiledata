@@ -1767,6 +1767,191 @@ async def get_share_url(
         fallback = f"{settings.frontend_url}/p/{profile_id}"
         return {"tinyUrl": fallback}
 
+@router.get("/user-activity-summary/{username}")
+async def get_user_activity_summary(
+    username: str,
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """Admin-only: Get a comprehensive activity summary for a user."""
+    is_admin = current_user.get("role") == "admin" or current_user.get("role_name") == "admin"
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    user = await db.users.find_one(
+        {"username": username},
+        {"status": 1, "createdAt": 1, "lastLogin": 1, "accountStatus": 1, "profileCompletionPercentage": 1}
+    )
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    from datetime import datetime, timedelta
+
+    # --- 1. Authentication ---
+    last_seen = user.get("status", {}).get("last_seen")
+    last_login_log = await db.activity_logs.find_one(
+        {"username": username, "action_type": "user_login"},
+        sort=[("timestamp", -1)]
+    )
+
+    # --- 2. PII Requests ---
+    pii_sent_count = await db.pii_requests.count_documents({"requesterUsername": username})
+    pii_received_count = await db.pii_requests.count_documents({"requestedUsername": username})
+    last_pii_sent = await db.pii_requests.find_one(
+        {"requesterUsername": username}, sort=[("createdAt", -1)]
+    )
+    last_pii_received = await db.pii_requests.find_one(
+        {"requestedUsername": username}, sort=[("createdAt", -1)]
+    )
+    pii_approved_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "approved"})
+    pii_denied_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "denied"})
+    pii_pending_count = await db.pii_requests.count_documents({"requestedUsername": username, "status": "pending"})
+
+    # --- 3. Notifications (email/sms received) ---
+    last_email = await db.notification_log.find_one(
+        {"username": username, "channel": "email"}, sort=[("sentAt", -1)]
+    )
+    last_sms = await db.notification_log.find_one(
+        {"username": username, "channel": "sms"}, sort=[("sentAt", -1)]
+    )
+    email_count = await db.notification_log.count_documents({"username": username, "channel": "email"})
+    sms_count = await db.notification_log.count_documents({"username": username, "channel": "sms"})
+
+    # --- 4. Messages ---
+    msgs_sent = await db.messages.count_documents({"from_username": username})
+    msgs_received = await db.messages.count_documents({"to_username": username})
+    last_msg_sent = await db.messages.find_one(
+        {"from_username": username}, sort=[("timestamp", -1)]
+    )
+    last_msg_received = await db.messages.find_one(
+        {"to_username": username}, sort=[("timestamp", -1)]
+    )
+    unique_conversations = len(await db.messages.distinct("to_username", {"from_username": username}))
+
+    # --- 5. Favorites ---
+    favorites_count = await db.favorites.count_documents({"userUsername": username})
+    favorited_by_count = await db.favorites.count_documents({"favoriteUsername": username})
+    last_favorite = await db.favorites.find_one(
+        {"userUsername": username}, sort=[("createdAt", -1)]
+    )
+    last_favorited_by = await db.favorites.find_one(
+        {"favoriteUsername": username}, sort=[("createdAt", -1)]
+    )
+
+    # --- 6. Shortlists ---
+    shortlisted_count = await db.shortlists.count_documents({"userUsername": username})
+    shortlisted_by_count = await db.shortlists.count_documents({"shortlistedUsername": username})
+    last_shortlisted = await db.shortlists.find_one(
+        {"userUsername": username}, sort=[("createdAt", -1)]
+    )
+    last_shortlisted_by = await db.shortlists.find_one(
+        {"shortlistedUsername": username}, sort=[("createdAt", -1)]
+    )
+
+    # --- 7. Profile views ---
+    views_received = await db.profile_views.count_documents({"profileUsername": username})
+    views_made = await db.profile_views.count_documents({"viewer_username": username})
+    last_view_received = await db.profile_views.find_one(
+        {"profileUsername": username}, sort=[("viewed_at", -1)]
+    )
+    last_view_made = await db.profile_views.find_one(
+        {"viewer_username": username}, sort=[("viewed_at", -1)]
+    )
+
+    # --- 8. Searches performed ---
+    searches_count = await db.activity_logs.count_documents(
+        {"username": username, "action_type": "search_performed"}
+    )
+    last_search = await db.activity_logs.find_one(
+        {"username": username, "action_type": "search_performed"},
+        sort=[("timestamp", -1)]
+    )
+
+    # --- 9. Recent activity count (last 7 days) ---
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    recent_activity_count = await db.activity_logs.count_documents(
+        {"username": username, "timestamp": {"$gte": seven_days_ago}}
+    )
+
+    # --- 10. Account age ---
+    created_at = user.get("createdAt")
+
+    def ts(val):
+        """Safely convert to ISO string."""
+        if val is None:
+            return None
+        if isinstance(val, datetime):
+            return val.isoformat()
+        return str(val)
+
+    return {
+        "username": username,
+        "accountCreated": ts(created_at),
+        "accountStatus": user.get("accountStatus", "unknown"),
+        "profileCompletion": user.get("profileCompletionPercentage"),
+        "authentication": {
+            "lastSeen": ts(last_seen),
+            "lastLogin": ts(last_login_log.get("timestamp")) if last_login_log else None,
+        },
+        "piiRequests": {
+            "sentCount": pii_sent_count,
+            "receivedCount": pii_received_count,
+            "lastSent": ts(last_pii_sent.get("createdAt")) if last_pii_sent else None,
+            "lastSentTo": last_pii_sent.get("requestedUsername") if last_pii_sent else None,
+            "lastReceived": ts(last_pii_received.get("createdAt")) if last_pii_received else None,
+            "lastReceivedFrom": last_pii_received.get("requesterUsername") if last_pii_received else None,
+            "approvedCount": pii_approved_count,
+            "deniedCount": pii_denied_count,
+            "pendingCount": pii_pending_count,
+        },
+        "notifications": {
+            "emailCount": email_count,
+            "smsCount": sms_count,
+            "lastEmail": ts(last_email.get("sentAt")) if last_email else None,
+            "lastSms": ts(last_sms.get("sentAt")) if last_sms else None,
+        },
+        "messages": {
+            "sentCount": msgs_sent,
+            "receivedCount": msgs_received,
+            "lastSent": ts(last_msg_sent.get("timestamp")) if last_msg_sent else None,
+            "lastSentTo": last_msg_sent.get("to_username") if last_msg_sent else None,
+            "lastReceived": ts(last_msg_received.get("timestamp")) if last_msg_received else None,
+            "lastReceivedFrom": last_msg_received.get("from_username") if last_msg_received else None,
+            "uniqueConversations": unique_conversations,
+        },
+        "favorites": {
+            "count": favorites_count,
+            "favoritedByCount": favorited_by_count,
+            "lastFavorite": ts(last_favorite.get("createdAt")) if last_favorite else None,
+            "lastFavoriteUser": last_favorite.get("favoriteUsername") if last_favorite else None,
+            "lastFavoritedBy": ts(last_favorited_by.get("createdAt")) if last_favorited_by else None,
+            "lastFavoritedByUser": last_favorited_by.get("userUsername") if last_favorited_by else None,
+        },
+        "shortlists": {
+            "count": shortlisted_count,
+            "shortlistedByCount": shortlisted_by_count,
+            "lastShortlisted": ts(last_shortlisted.get("createdAt")) if last_shortlisted else None,
+            "lastShortlistedUser": last_shortlisted.get("shortlistedUsername") if last_shortlisted else None,
+            "lastShortlistedBy": ts(last_shortlisted_by.get("createdAt")) if last_shortlisted_by else None,
+            "lastShortlistedByUser": last_shortlisted_by.get("userUsername") if last_shortlisted_by else None,
+        },
+        "profileViews": {
+            "received": views_received,
+            "made": views_made,
+            "lastViewReceived": ts(last_view_received.get("viewed_at")) if last_view_received else None,
+            "lastViewReceivedBy": last_view_received.get("viewer_username") if last_view_received else None,
+            "lastViewMade": ts(last_view_made.get("viewed_at")) if last_view_made else None,
+            "lastViewMadeOf": last_view_made.get("profileUsername") if last_view_made else None,
+        },
+        "searches": {
+            "count": searches_count,
+            "lastSearch": ts(last_search.get("timestamp")) if last_search else None,
+        },
+        "recentActivity": {
+            "last7Days": recent_activity_count,
+        },
+    }
+
 @router.get("/profile/{username}")
 async def get_user_profile(
     username: str,

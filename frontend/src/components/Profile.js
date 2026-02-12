@@ -19,6 +19,7 @@ import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
 import { getAuthenticatedImageUrl } from "../utils/imageUtils";
 import logger from "../utils/logger";
+import ActivitySummaryPanel from "./ActivitySummaryPanel";
 import "./Profile.css";
 import { ACTION_ICONS } from "../constants/icons";
 import { createApiInstance } from "../api";
@@ -119,6 +120,7 @@ const Profile = ({
   const [piiRequestStatus, setPiiRequestStatus] = useState({});
   const [showPIIRequestModal, setShowPIIRequestModal] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [showActivityPanel, setShowActivityPanel] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState(null); // For PII request validation
   
   // Image Access states (new privacy system)
@@ -1565,6 +1567,15 @@ const Profile = ({
                 >
                   🔗 Share
                 </button>
+                {isAdmin && (
+                  <button
+                    className="activity-summary-btn"
+                    onClick={() => setShowActivityPanel(true)}
+                    title="View user activity summary (Admin)"
+                  >
+                    📊 Activity
+                  </button>
+                )}
               </div>
             )}
             
@@ -3010,6 +3021,14 @@ const Profile = ({
             onClick={(e) => e.stopPropagation()}
           />
         </div>
+      )}
+
+      {/* Activity Summary Panel - Admin only */}
+      {showActivityPanel && user?.username && (
+        <ActivitySummaryPanel
+          username={user.username}
+          onClose={() => setShowActivityPanel(false)}
+        />
       )}
     </div>
   );
