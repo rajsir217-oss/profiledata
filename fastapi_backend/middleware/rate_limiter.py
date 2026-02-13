@@ -84,7 +84,7 @@ def create_limiter() -> Limiter:
         default_limits=["120/minute"],
         storage_uri=storage_uri,
         strategy="fixed-window",
-        headers_enabled=True,  # Send X-RateLimit-* headers
+        headers_enabled=False,  # Disabled: decorator approach requires response: Response param on each endpoint
     )
 
 

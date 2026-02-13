@@ -1149,7 +1149,13 @@ const Profile = ({
   if (error) return <p className="text-danger">{error}</p>;
   if (!user) return <p>No profile found.</p>;
 
-  const age = user.dateOfBirth ? calculateAge(user.dateOfBirth) : null;
+  const age = (() => {
+    if (!user.birthMonth || !user.birthYear) return null;
+    const today = new Date();
+    let a = today.getFullYear() - user.birthYear;
+    if (today.getMonth() + 1 < user.birthMonth) a--;
+    return a;
+  })();
 
   const publicImages = Array.isArray(user.publicImages) ? user.publicImages : [];
   const publicImageObjects = publicImages.map((img, idx) => ({
@@ -1481,6 +1487,30 @@ const Profile = ({
                 </span>
               )}
             </h2>
+            
+            {/* Quick Info Pills - Age, Born, Height */}
+            {(age || (user.birthMonth && user.birthYear) || user.height) && (
+              <div className="profile-quick-pills">
+                {age && (
+                  <span className="profile-pill">
+                    <span className="pill-icon">🎂</span>
+                    <span className="pill-value">{age} yrs</span>
+                  </span>
+                )}
+                {user.birthMonth && user.birthYear && (
+                  <span className="profile-pill">
+                    <span className="pill-icon">📅</span>
+                    <span className="pill-value">{String(user.birthMonth).padStart(2, '0')}/{user.birthYear}</span>
+                  </span>
+                )}
+                {user.height && (
+                  <span className="profile-pill">
+                    <span className="pill-icon">📏</span>
+                    <span className="pill-value">{user.height}</span>
+                  </span>
+                )}
+              </div>
+            )}
             
             {/* Last Activity Status - Only show for other users' profiles */}
             {!isOwnProfile && user.status?.last_seen && (
