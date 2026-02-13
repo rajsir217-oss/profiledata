@@ -13,7 +13,7 @@ import L3V3LMatchingTable from "./L3V3LMatchingTable";
 import MessageModal from "./MessageModal";
 import { onPIIAccessChange } from "../utils/piiAccessEvents";
 import { getActivityBadgeProps, getRelativeActivityTime } from "../utils/activityFormatter";
-import { generateAboutMe, generatePartnerPreference } from "../utils/profileDescriptionGenerator";
+import { generateAboutMe, generatePartnerPreference, generateLookingForSummary } from "../utils/profileDescriptionGenerator";
 import ProfileCreatorBadge from "./ProfileCreatorBadge";
 import { getWorkingStatus } from "../utils/workStatusHelper";
 import RichTextEditor from "./shared/RichTextEditor";
@@ -1509,6 +1509,15 @@ const Profile = ({
                     <span className="pill-value">{user.height}</span>
                   </span>
                 )}
+                {(() => {
+                  const lookingForSummary = generateLookingForSummary(user);
+                  return lookingForSummary ? (
+                    <span className="profile-pill">
+                      <span className="pill-icon">💍</span>
+                      <span className="pill-value">{lookingForSummary}</span>
+                    </span>
+                  ) : null;
+                })()}
               </div>
             )}
             

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../api';
 import { getAuthenticatedImageUrl } from '../utils/imageUtils';
+import { generateLookingForSummary } from '../utils/profileDescriptionGenerator';
 import './ProfileViewsModal.css';
 
 const ProfileViewsModal = ({ isOpen, onClose, username }) => {
@@ -120,15 +121,31 @@ const ProfileViewsModal = ({ isOpen, onClose, username }) => {
                         <span className="view-location">📍 {profile.location}</span>
                       </div>
                       <div className="view-quick-info">
-                        {profile.age && (
-                          <span className="quick-info-item" title="Age">🎂 {profile.age}y</span>
+                        {(() => {
+                          const age = (profile.birthMonth && profile.birthYear)
+                            ? (() => {
+                                const today = new Date();
+                                let a = today.getFullYear() - profile.birthYear;
+                                if (today.getMonth() + 1 < profile.birthMonth) a--;
+                                return a;
+                              })()
+                            : profile.age || null;
+                          return age ? (
+                            <span className="quick-info-pill" title="Age">🎂 {age} yrs</span>
+                          ) : null;
+                        })()}
+                        {profile.birthMonth && profile.birthYear && (
+                          <span className="quick-info-pill" title="Born">📅 {String(profile.birthMonth).padStart(2, '0')}/{profile.birthYear}</span>
                         )}
                         {profile.height && (
-                          <span className="quick-info-item" title="Height">📏 {profile.height}</span>
+                          <span className="quick-info-pill" title="Height">📏 {profile.height}</span>
                         )}
-                        {(profile.education || profile.highestDegree) && (
-                          <span className="quick-info-item" title="Education">🎓 {profile.highestDegree || profile.education}</span>
-                        )}
+                        {(() => {
+                          const lookingForSummary = generateLookingForSummary(profile);
+                          return lookingForSummary ? (
+                            <span className="quick-info-pill" title="Looking For">💍 {lookingForSummary}</span>
+                          ) : null;
+                        })()}
                       </div>
                       <div className="view-timestamp">
                         <span className="view-count">
