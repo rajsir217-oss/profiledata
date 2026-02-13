@@ -48,6 +48,9 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
   const [removingFromExclusion, setRemovingFromExclusion] = useState(false);
   const [reconnectStatus, setReconnectStatus] = useState({ hasRecentRequest: false, status: null });
   const [sendingReconnect, setSendingReconnect] = useState(false);
+  const [showNotInterestedMenu, setShowNotInterestedMenu] = useState(false);
+  const [notInterestedProcessing, setNotInterestedProcessing] = useState(false);
+  const notInterestedRef = useRef(null);
 
   const scrollToBottom = () => {
     // Use block: 'nearest' to prevent page scroll, only scroll within the messages container
@@ -152,6 +155,53 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
       setSendingReconnect(false);
     }
   };
+
+  // Combined "Not Interested" action: decline msg + close convo + exclude
+  const handleNotInterested = async () => {
+    if (!otherUser?.username || notInterestedProcessing) return;
+    setNotInterestedProcessing(true);
+    try {
+      const toastService = (await import('../services/toastService')).default;
+      const declineMsg = "Thank you for your interest, but we don't feel this is the right match for us. Wishing you the very best!";
+
+      // Step 1: Send decline message
+      onSendMessage(declineMsg);
+
+      // Step 2: Close the conversation (small delay so message sends first)
+      await new Promise(r => setTimeout(r, 500));
+      if (onCloseConversation) {
+        await onCloseConversation(otherUser.username);
+      }
+
+      // Step 3: Add to exclusion list
+      const formData = new FormData();
+      formData.append('reason', 'Not interested - declined via messages');
+      await api.post(`/exclusions/${otherUser.username}`, formData);
+      setBlockStatus(prev => ({ ...prev, iBlockedThem: true, canMessage: false }));
+
+      toastService.success(`Conversation closed and ${otherUser.firstName || otherUser.username} added to your exclusion list.`);
+      setShowNotInterestedMenu(false);
+    } catch (error) {
+      logger.error('Error in Not Interested flow:', error);
+      const toastService = (await import('../services/toastService')).default;
+      toastService.error('Something went wrong. Please try again.');
+    } finally {
+      setNotInterestedProcessing(false);
+    }
+  };
+
+  // Close the Not Interested dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (notInterestedRef.current && !notInterestedRef.current.contains(e.target)) {
+        setShowNotInterestedMenu(false);
+      }
+    };
+    if (showNotInterestedMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showNotInterestedMenu]);
 
   const formatTime = (timestamp) => {
     if (!timestamp) return '';
@@ -258,6 +308,43 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
             <p>{otherUser.location || 'Location not specified'}</p>
           </div>
         </div>
+
+        {/* Not Interested action - only when conversation is active (not already closed/blocked) */}
+        {conversationStatus?.status !== 'closed' && !blockStatus.iBlockedThem && !blockStatus.theyBlockedMe && (
+          <div className="chat-header-actions" ref={notInterestedRef}>
+            <button
+              className={`not-interested-btn ${showNotInterestedMenu ? 'active' : ''}`}
+              onClick={() => setShowNotInterestedMenu(!showNotInterestedMenu)}
+              title="Not interested — decline, close & exclude"
+              disabled={notInterestedProcessing}
+            >
+              {notInterestedProcessing ? '...' : '✋'}
+            </button>
+            {showNotInterestedMenu && (
+              <div className="not-interested-dropdown">
+                <div className="ni-dropdown-header">Not Interested?</div>
+                <p className="ni-dropdown-desc">
+                  This will send a polite decline message, close the conversation, and add {otherUser.firstName || otherUser.username} to your exclusion list.
+                </p>
+                <div className="ni-dropdown-actions">
+                  <button
+                    className="ni-confirm-btn"
+                    onClick={handleNotInterested}
+                    disabled={notInterestedProcessing}
+                  >
+                    {notInterestedProcessing ? 'Processing...' : 'Yes, Not Interested'}
+                  </button>
+                  <button
+                    className="ni-cancel-btn"
+                    onClick={() => setShowNotInterestedMenu(false)}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Community Guidelines Banner */}
