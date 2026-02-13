@@ -29,6 +29,7 @@ from .audit_logger import AuditLogger
 from .authorization import PermissionChecker
 from services.activity_logger import get_activity_logger
 from models.activity_models import ActivityType
+from middleware.rate_limiter import limiter, RATE_LIMITS
 
 logger = logging.getLogger(__name__)
 
@@ -72,30 +73,31 @@ def _decrypt_contact_info(value: str) -> str:
 # ===== REGISTRATION =====
 
 @router.post("/register", response_model=dict)
+@limiter.limit(RATE_LIMITS["auth"])
 async def register(
-    request: RegisterRequest,
-    http_request: Request,
+    request: Request,
+    reg_request: RegisterRequest,
     db = Depends(get_database)
 ):
     """Register a new user"""
     try:
         # Check if username exists
-        existing_user = await db.users.find_one({"username": request.username})
+        existing_user = await db.users.find_one({"username": reg_request.username})
         if existing_user:
             raise HTTPException(status_code=400, detail="Username already exists")
         
         # Check if email exists
-        existing_email = await db.users.find_one({"email": request.email})
+        existing_email = await db.users.find_one({"email": reg_request.email})
         if existing_email:
             raise HTTPException(status_code=400, detail="Email already registered")
         
         # Validate promo code if provided
         promo_validation = None
         validated_promo_code = None
-        if request.promoCode:
+        if reg_request.promoCode:
             from services.promo_code_service import PromoCodeService
             promo_service = PromoCodeService(db)
-            promo_validation = await promo_service.validate_promo_code(request.promoCode)
+            promo_validation = await promo_service.validate_promo_code(reg_request.promoCode)
             
             if not promo_validation.get("valid"):
                 # Return error with message - user can retry without promo code
@@ -110,7 +112,7 @@ async def register(
             validated_promo_code = promo_validation.get("code")
         
         # Hash password
-        password_hash = PasswordManager.hash_password(request.password)
+        password_hash = PasswordManager.hash_password(reg_request.password)
         
         # Calculate password expiry
         password_changed_at = datetime.utcnow()
@@ -122,10 +124,10 @@ async def register(
         
         # Create user document
         user_doc = {
-            "username": request.username,
-            "email": request.email,
-            "firstName": request.firstName,
-            "lastName": request.lastName,
+            "username": reg_request.username,
+            "email": reg_request.email,
+            "firstName": reg_request.firstName,
+            "lastName": reg_request.lastName,
             
             # Security
             "security": {
@@ -166,8 +168,8 @@ async def register(
             "custom_permissions": [],
             
             # GDPR
-            "data_processing_consent": request.data_processing_consent,
-            "marketing_consent": request.marketing_consent,
+            "data_processing_consent": reg_request.data_processing_consent,
+            "marketing_consent": reg_request.marketing_consent,
             "consent_date": datetime.utcnow(),
             
             # Promo Code (default to NOPROMOCODE for organic registrations)
@@ -192,23 +194,23 @@ async def register(
         # Log audit event
         await AuditLogger.log_event(
             db=db,
-            username=request.username,
+            username=reg_request.username,
             action="user_registered",
             resource="user",
             resource_id=user_id,
             status="success",
-            ip_address=http_request.client.host,
-            user_agent=http_request.headers.get("user-agent"),
-            details={"email": request.email}
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent"),
+            details={"email": reg_request.email}
         )
         
-        logger.info(f"New user registered: {request.username}")
+        logger.info(f"New user registered: {reg_request.username}")
         
         # TODO: Send verification email
         
         return {
             "message": "Registration successful",
-            "username": request.username,
+            "username": reg_request.username,
             "email_verification_required": security_settings.EMAIL_VERIFICATION_REQUIRED,
             "verification_token": verification_token if security_settings.EMAIL_VERIFICATION_REQUIRED else None
         }
@@ -222,26 +224,27 @@ async def register(
 # ===== LOGIN =====
 
 @router.post("/login", response_model=LoginResponse)
+@limiter.limit(RATE_LIMITS["auth"])
 async def login(
-    request: LoginRequest,
-    http_request: Request,
+    request: Request,
+    login_request: LoginRequest,
     db = Depends(get_database)
 ):
     """User login"""
     try:
         # Get user (case-insensitive lookup)
-        user = await db.users.find_one(get_username_query(request.username))
+        user = await db.users.find_one(get_username_query(login_request.username))
         
         if not user:
             # Log failed attempt
             await AuditLogger.log_event(
                 db=db,
-                username=request.username,
+                username=login_request.username,
                 action=SECURITY_EVENTS["LOGIN_FAILED"],
                 resource="auth",
                 status="failure",
-                ip_address=http_request.client.host,
-                user_agent=http_request.headers.get("user-agent"),
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent"),
                 details={"reason": "User not found"}
             )
             raise HTTPException(status_code=401, detail="Invalid username or password")
@@ -263,7 +266,7 @@ async def login(
         
         # Verify password
         password_hash = security.get("password_hash")
-        if not PasswordManager.verify_password(request.password, password_hash):
+        if not PasswordManager.verify_password(login_request.password, password_hash):
             # Increment failed attempts
             failed_attempts = security.get("failed_login_attempts", 0) + 1
             
@@ -280,12 +283,12 @@ async def login(
                 await AuditLogger.log_event(
                     db=db,
                     user_id=str(user["_id"]),
-                    username=request.username,
+                    username=login_request.username,
                     action=SECURITY_EVENTS["ACCOUNT_LOCKED"],
                     resource="user",
                     resource_id=str(user["_id"]),
                     status="success",
-                    ip_address=http_request.client.host,
+                    ip_address=request.client.host,
                     details={"reason": "Too many failed login attempts", "locked_until": str(locked_until)}
                 )
             
@@ -294,12 +297,12 @@ async def login(
             await AuditLogger.log_event(
                 db=db,
                 user_id=str(user["_id"]),
-                username=request.username,
+                username=login_request.username,
                 action=SECURITY_EVENTS["LOGIN_FAILED"],
                 resource="auth",
                 status="failure",
-                ip_address=http_request.client.host,
-                user_agent=http_request.headers.get("user-agent"),
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent"),
                 details={"reason": "Invalid password", "failed_attempts": failed_attempts}
             )
             
@@ -309,10 +312,10 @@ async def login(
                 from models.activity_models import ActivityType
                 activity_logger = get_activity_logger()
                 await activity_logger.log_activity(
-                    username=request.username,
+                    username=login_request.username,
                     action_type=ActivityType.FAILED_LOGIN,
-                    ip_address=http_request.client.host,
-                    user_agent=http_request.headers.get("user-agent"),
+                    ip_address=request.client.host,
+                    user_agent=request.headers.get("user-agent"),
                     metadata={"reason": "invalid_password", "failed_attempts": failed_attempts}
                 )
             except Exception as log_err:
@@ -341,14 +344,14 @@ async def login(
                 if not phone or (isinstance(phone, str) and not phone.strip()):
                     mfa_requirements_met = False
                     mfa_missing_items.append("phone number")
-                    logger.warning(f"⚠️ Login MFA check: No valid phone number for {request.username}")
+                    logger.warning(f"⚠️ Login MFA check: No valid phone number for {login_request.username}")
                 
                 # Check if SMS opt-in is enabled
                 sms_opt_in = user.get("smsOptIn", True)
                 if not sms_opt_in:
                     mfa_requirements_met = False
                     mfa_missing_items.append("SMS notifications enabled")
-                    logger.warning(f"⚠️ Login MFA check: SMS opt-in disabled for {request.username}")
+                    logger.warning(f"⚠️ Login MFA check: SMS opt-in disabled for {login_request.username}")
             
             elif mfa_channel == "email":
                 # Check if user has email
@@ -361,7 +364,7 @@ async def login(
             
             # If MFA requirements are not met, skip MFA entirely and add warning
             if not mfa_requirements_met:
-                logger.warning(f"⚠️ MFA enabled for {request.username} but requirements not met: {', '.join(mfa_missing_items)}")
+                logger.warning(f"⚠️ MFA enabled for {login_request.username} but requirements not met: {', '.join(mfa_missing_items)}")
                 mfa_warning = {
                     "mfa_channel": mfa_channel,
                     "missing_items": mfa_missing_items,
@@ -370,7 +373,7 @@ async def login(
                 # Skip MFA verification entirely - proceed to login below
             else:
                 # MFA requirements ARE met - proceed with normal MFA flow
-                if not request.mfa_code:
+                if not login_request.mfa_code:
                     # MFA required and requirements met - return special status with details
                     # Get contact info and DECRYPT if encrypted
                     if mfa_channel == "sms":
@@ -402,8 +405,8 @@ async def login(
                         from services.sms_service import OTPManager
                         otp_manager = OTPManager(db)
                         verify_result = await otp_manager.verify_otp(
-                            identifier=request.username,
-                            code=request.mfa_code,
+                            identifier=login_request.username,
+                            code=login_request.mfa_code,
                             purpose="mfa",
                             mark_as_used=True
                         )
@@ -413,24 +416,24 @@ async def login(
                             backup_codes = mfa.get("mfa_backup_codes", [])
                             backup_code_valid = False
                             
-                            if "-" in request.mfa_code and len(request.mfa_code) == 9:
+                            if "-" in login_request.mfa_code and len(login_request.mfa_code) == 9:
                                 for idx, hashed_code in enumerate(backup_codes):
-                                    if PasswordManager.verify_password(request.mfa_code, hashed_code):
+                                    if PasswordManager.verify_password(login_request.mfa_code, hashed_code):
                                         # Remove used backup code
                                         backup_codes.pop(idx)
                                         await db.users.update_one(
-                                            {"username": request.username},
+                                            {"username": login_request.username},
                                             {"$set": {"mfa.mfa_backup_codes": backup_codes}}
                                         )
                                         backup_code_valid = True
-                                        logger.info(f"✅ Backup code used for login: {request.username}")
+                                        logger.info(f"✅ Backup code used for login: {login_request.username}")
                                         break
                             
                             if not backup_code_valid:
                                 raise HTTPException(status_code=401, detail="Invalid MFA code")
                     else:
                         # TOTP-based MFA (legacy)
-                        if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), request.mfa_code):
+                        if not TokenManager.verify_mfa_code(mfa.get("mfa_secret"), login_request.mfa_code):
                             raise HTTPException(status_code=401, detail="Invalid MFA code")
         
         # Check password expiry
@@ -439,7 +442,7 @@ async def login(
         days_until_expiry = PasswordManager.get_days_until_expiry(password_expires_at)
         
         # Create tokens
-        tokens = create_token_pair(user, request.remember_me)
+        tokens = create_token_pair(user, login_request.remember_me)
         
         # Create session
         # Use 7-day expiry for session record to match refresh token life
@@ -448,12 +451,12 @@ async def login(
         
         session_doc = {
             "user_id": str(user["_id"]),
-            "username": request.username,
+            "username": login_request.username,
             "token": tokens["access_token"],
             "refresh_token": tokens["refresh_token"],
             "session_type": "web",
-            "ip_address": http_request.client.host,
-            "user_agent": http_request.headers.get("user-agent"),
+            "ip_address": request.client.host,
+            "user_agent": request.headers.get("user-agent"),
             "created_at": datetime.utcnow(),
             "expires_at": datetime.utcnow() + session_expires_delta,
             "last_activity": datetime.utcnow(),
@@ -469,7 +472,7 @@ async def login(
                 "$set": {
                     "security.failed_login_attempts": 0,
                     "security.last_login_at": datetime.utcnow(),
-                    "security.last_login_ip": http_request.client.host,
+                    "security.last_login_ip": request.client.host,
                     "status.is_online": True,
                     "status.last_seen": datetime.utcnow()
                 }
@@ -480,12 +483,12 @@ async def login(
         await AuditLogger.log_event(
             db=db,
             user_id=str(user["_id"]),
-            username=request.username,
+            username=login_request.username,
             action=SECURITY_EVENTS["LOGIN_SUCCESS"],
             resource="auth",
             status="success",
-            ip_address=http_request.client.host,
-            user_agent=http_request.headers.get("user-agent")
+            ip_address=request.client.host,
+            user_agent=request.headers.get("user-agent")
         )
         
         # Log activity
@@ -494,16 +497,16 @@ async def login(
             from models.activity_models import ActivityType
             activity_logger = get_activity_logger()
             await activity_logger.log_activity(
-                username=request.username,
+                username=login_request.username,
                 action_type=ActivityType.USER_LOGIN,
-                ip_address=http_request.client.host,
-                user_agent=http_request.headers.get("user-agent"),
-                metadata={"remember_me": request.remember_me}
+                ip_address=request.client.host,
+                user_agent=request.headers.get("user-agent"),
+                metadata={"remember_me": login_request.remember_me}
             )
         except Exception as log_err:
             logger.warning(f"⚠️ Failed to log activity: {log_err}")
         
-        logger.info(f"User logged in: {request.username}")
+        logger.info(f"User logged in: {login_request.username}")
         
         # Prepare user data (remove sensitive info)
         user_data = {
@@ -752,10 +755,11 @@ async def get_current_user(
 # ===== CHANGE PASSWORD =====
 
 @router.post("/change-password")
+@limiter.limit(RATE_LIMITS["auth"])
 async def change_password(
-    request: PasswordChangeRequest,
+    request: Request,
+    pw_request: PasswordChangeRequest,
     current_user: dict = Depends(get_current_user_dependency),
-    http_request: Request = None,
     db = Depends(get_database)
 ):
     """Change user password"""
@@ -772,27 +776,27 @@ async def change_password(
         
         # Verify current password - check both new location (security.password_hash) and legacy location (password)
         current_password_hash = security.get("password_hash") or user.get("password")
-        if not current_password_hash or not PasswordManager.verify_password(request.current_password, current_password_hash):
+        if not current_password_hash or not PasswordManager.verify_password(pw_request.current_password, current_password_hash):
             logger.warning(f"⚠️ Password change failed for {username}: Invalid current password")
             await AuditLogger.log_event(
                 db=db,
                 user_id=str(user.get("_id")),
                 username=username,
                 action=SECURITY_EVENTS["PASSWORD_CHANGE_FAILED"],
-                ip_address=http_request.client.host if http_request else None,
-                user_agent=http_request.headers.get("user-agent") if http_request else None,
+                ip_address=request.client.host if request else None,
+                user_agent=request.headers.get("user-agent") if request else None,
                 status="failure",
                 details={"reason": "Invalid current password"}
             )
             raise HTTPException(status_code=400, detail="Current password is incorrect")
         
         # Validate new password strength
-        is_valid, errors = PasswordManager.validate_password_strength(request.new_password)
+        is_valid, errors = PasswordManager.validate_password_strength(pw_request.new_password)
         if not is_valid:
             raise HTTPException(status_code=400, detail="; ".join(errors))
         
         # Check if new password matches current password
-        if PasswordManager.verify_password(request.new_password, current_password_hash):
+        if PasswordManager.verify_password(pw_request.new_password, current_password_hash):
             raise HTTPException(
                 status_code=400, 
                 detail="New password cannot be the same as current password"
@@ -800,14 +804,14 @@ async def change_password(
         
         # Check password history
         password_history = security.get("password_history", [])
-        if PasswordManager.check_password_in_history(request.new_password, password_history):
+        if PasswordManager.check_password_in_history(pw_request.new_password, password_history):
             raise HTTPException(
                 status_code=400,
                 detail=f"Password was used recently. Please choose a different password (last {security_settings.PASSWORD_HISTORY_COUNT} passwords cannot be reused)"
             )
         
         # Hash new password
-        new_password_hash = PasswordManager.hash_password(request.new_password)
+        new_password_hash = PasswordManager.hash_password(pw_request.new_password)
         
         # Update password and security settings
         password_changed_at = datetime.utcnow()
@@ -835,8 +839,8 @@ async def change_password(
             user_id=str(user.get("_id")),
             username=username,
             action=SECURITY_EVENTS["PASSWORD_CHANGED"],
-            ip_address=http_request.client.host if http_request else None,
-            user_agent=http_request.headers.get("user-agent") if http_request else None,
+            ip_address=request.client.host if request else None,
+            user_agent=request.headers.get("user-agent") if request else None,
             status="success",
             details={"password_expiry": password_expires_at.isoformat()}
         )
@@ -847,8 +851,8 @@ async def change_password(
             await activity_logger.log_activity(
                 username=username,
                 action_type=ActivityType.PASSWORD_CHANGED,
-                ip_address=http_request.client.host if http_request else None,
-                user_agent=http_request.headers.get("user-agent") if http_request else None,
+                ip_address=request.client.host if request else None,
+                user_agent=request.headers.get("user-agent") if request else None,
                 metadata={"password_expiry": password_expires_at.isoformat()}
             )
         except Exception as log_err:

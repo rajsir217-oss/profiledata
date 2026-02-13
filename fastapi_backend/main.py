@@ -53,6 +53,9 @@ from config import settings
 from websocket_manager import sio
 from sse_manager import sse_manager
 from middleware.session_validation import validate_session_middleware
+from middleware.rate_limiter import limiter, rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi import _rate_limit_exceeded_handler
 from unified_scheduler import initialize_unified_scheduler, shutdown_unified_scheduler
 from services.storage_service import initialize_storage_service
 
@@ -190,6 +193,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Rate limiter setup - must be attached to app.state for slowapi to work
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Mount static files for uploads only in non-production
 env = os.getenv("ENV", "development")

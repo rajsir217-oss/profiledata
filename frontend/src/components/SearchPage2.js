@@ -712,6 +712,18 @@ const SearchPage2 = () => {
           // Extract minMatchScore from saved search
           const loadedMinScore = defaultSearch.minMatchScore !== undefined ? defaultSearch.minMatchScore : 0;
           
+          // SAFETY: Enforce opposite-gender filter for non-admin users
+          // Saved searches might have gender='' or wrong gender - override it
+          const userRole = currentUserProfile?.role?.toLowerCase();
+          const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+          if (!isPrivileged) {
+            const defaults = buildDefaultCriteria(currentUserProfile);
+            if (defaults.gender && defaultSearch.criteria.gender !== defaults.gender) {
+              logger.info(`🚻 Overriding saved search gender '${defaultSearch.criteria.gender}' → '${defaults.gender}'`);
+              defaultSearch.criteria.gender = defaults.gender;
+            }
+          }
+          
           // Load criteria and set selected search
           setSearchCriteria(defaultSearch.criteria);
           setMinMatchScore(loadedMinScore);
@@ -1593,6 +1605,17 @@ const SearchPage2 = () => {
       daysBack: savedSearch.criteria.daysBack || 30,
       hasPhoto: savedSearch.criteria.hasPhoto !== undefined ? savedSearch.criteria.hasPhoto : true
     };
+    
+    // SAFETY: Enforce opposite-gender filter for non-admin users
+    const userRole = currentUserProfile?.role?.toLowerCase();
+    const isPrivileged = userRole === 'admin' || userRole === 'moderator';
+    if (!isPrivileged) {
+      const defaults = buildDefaultCriteria(currentUserProfile);
+      if (defaults.gender && criteriaWithDefaults.gender !== defaults.gender) {
+        logger.info(`🚻 Overriding saved search gender '${criteriaWithDefaults.gender}' → '${defaults.gender}'`);
+        criteriaWithDefaults.gender = defaults.gender;
+      }
+    }
     
     setSearchCriteria(criteriaWithDefaults);
     // Restore L3V3L match score if saved

@@ -3,7 +3,7 @@ Unified OTP Routes
 Supports both Email and SMS OTP verification
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from auth.otp_models import (
@@ -16,6 +16,7 @@ from auth.otp_models import (
 )
 from services.sms_service import OTPManager
 from crypto_utils import get_encryptor
+from middleware.rate_limiter import limiter, RATE_LIMITS
 import logging
 from datetime import datetime
 
@@ -53,8 +54,10 @@ def _decrypt_contact_info(value: str) -> str:
 
 
 @router.post("/send", response_model=OTPResponse)
+@limiter.limit(RATE_LIMITS["otp"])
 async def send_otp_code(
-    request: OTPSendCodeRequest,
+    request: Request,
+    otp_request: OTPSendCodeRequest,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -84,8 +87,8 @@ async def send_otp_code(
             user_phone = _decrypt_contact_info(user_phone)
         
         # Determine contact info
-        email = request.email or user_email
-        phone = request.phone or user_phone
+        email = otp_request.email or user_email
+        phone = otp_request.phone or user_phone
         
         # Also decrypt provided email/phone if any
         if email:
@@ -93,20 +96,20 @@ async def send_otp_code(
         if phone:
             phone = _decrypt_contact_info(phone)
         
-        if request.channel == "email" and not email:
+        if otp_request.channel == "email" and not email:
             raise HTTPException(
                 status_code=400,
                 detail="Email address not found. Please provide an email or update your profile."
             )
         
-        if request.channel == "sms" and not phone:
+        if otp_request.channel == "sms" and not phone:
             raise HTTPException(
                 status_code=400,
                 detail="Phone number not found. Please provide a phone or update your profile."
             )
         
         # Check SMS opt-in status before sending
-        if request.channel == "sms":
+        if otp_request.channel == "sms":
             sms_opt_in = user.get("smsOptIn", True)  # Default True for backward compatibility
             if not sms_opt_in:
                 logger.warning(f"⚠️  SMS OTP blocked for {username} - user has opted out")
@@ -119,7 +122,7 @@ async def send_otp_code(
         otp_manager = OTPManager(db)
         result = await otp_manager.create_otp_with_channel(
             identifier=username,
-            channel=request.channel,
+            channel=otp_request.channel,
             phone=phone,
             email=email,
             username=username,
@@ -128,29 +131,29 @@ async def send_otp_code(
         )
         
         if result["success"]:
-            logger.info(f"✅ OTP sent via {request.channel.upper()} to {username}")
+            logger.info(f"✅ OTP sent via {otp_request.channel.upper()} to {username}")
             return OTPResponse(
                 success=True,
-                message=result.get("message", f"Verification code sent via {request.channel}"),
-                channel=request.channel,
+                message=result.get("message", f"Verification code sent via {otp_request.channel}"),
+                channel=otp_request.channel,
                 contact_masked=result.get("contact_masked"),
                 expires_at=result.get("expires_at")
             )
         else:
             # Check if mock code is available (development mode)
             if "mock_code" in result:
-                logger.warning(f"⚠️  {request.channel.upper()} failed, returning mock code for dev")
+                logger.warning(f"⚠️  {otp_request.channel.upper()} failed, returning mock code for dev")
                 return OTPResponse(
                     success=False,
-                    message=f"{request.channel.upper()} service not configured - use mock code for testing",
-                    channel=request.channel,
+                    message=f"{otp_request.channel.upper()} service not configured - use mock code for testing",
+                    channel=otp_request.channel,
                     mock_code=result.get("mock_code"),
                     expires_at=result.get("expires_at")
                 )
             
             raise HTTPException(
                 status_code=500,
-                detail=result.get("error", f"Failed to send OTP via {request.channel}")
+                detail=result.get("error", f"Failed to send OTP via {otp_request.channel}")
             )
     
     except HTTPException:
@@ -161,8 +164,10 @@ async def send_otp_code(
 
 
 @router.post("/verify", response_model=VerificationResponse)
+@limiter.limit(RATE_LIMITS["otp"])
 async def verify_otp_code(
-    request: OTPVerifyCodeRequest,
+    request: Request,
+    otp_request: OTPVerifyCodeRequest,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -178,7 +183,7 @@ async def verify_otp_code(
         otp_manager = OTPManager(db)
         result = await otp_manager.verify_otp(
             identifier=username,
-            code=request.code,
+            code=otp_request.code,
             purpose="verification",
             mark_as_used=True
         )
@@ -218,8 +223,10 @@ async def verify_otp_code(
 
 
 @router.post("/resend", response_model=OTPResponse)
+@limiter.limit(RATE_LIMITS["otp"])
 async def resend_otp_code(
-    request: OTPSendCodeRequest,
+    request: Request,
+    otp_request: OTPSendCodeRequest,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -247,7 +254,7 @@ async def resend_otp_code(
             )
     
     # Use the send endpoint logic
-    return await send_otp_code(request, current_user, db)
+    return await send_otp_code(request=request, otp_request=otp_request, current_user=current_user, db=db)
 
 
 @router.get("/status")
@@ -285,7 +292,7 @@ async def get_verification_status(
 
 @router.post("/preferences", response_model=OTPPreferenceResponse)
 async def update_otp_preference(
-    request: OTPPreferenceRequest,
+    otp_request: OTPPreferenceRequest,
     current_user: dict = Depends(get_current_user),
     db=Depends(get_database)
 ):
@@ -303,7 +310,7 @@ async def update_otp_preference(
             raise HTTPException(status_code=404, detail="User not found")
         
         # Validate user has the required contact info
-        if request.channel == "email":
+        if otp_request.channel == "email":
             email = user.get("contactEmail") or user.get("email")
             # Decrypt to check if actually exists
             email = _decrypt_contact_info(email) if email else None
@@ -312,7 +319,7 @@ async def update_otp_preference(
                     status_code=400,
                     detail="Cannot set email as preferred channel - no email address on file"
                 )
-        elif request.channel == "sms":
+        elif otp_request.channel == "sms":
             phone = user.get("contactNumber")
             # Decrypt to check if actually exists
             phone = _decrypt_contact_info(phone) if phone else None
@@ -327,18 +334,18 @@ async def update_otp_preference(
             {"username": username},
             {
                 "$set": {
-                    "notification_preferences.otp_channel": request.channel,
+                    "notification_preferences.otp_channel": otp_request.channel,
                     "notification_preferences.updated_at": datetime.utcnow()
                 }
             }
         )
         
-        logger.info(f"✅ OTP channel preference updated to {request.channel.upper()} for {username}")
+        logger.info(f"✅ OTP channel preference updated to {otp_request.channel.upper()} for {username}")
         
         return OTPPreferenceResponse(
             success=True,
-            message=f"OTP channel preference updated to {request.channel.upper()}",
-            channel=request.channel
+            message=f"OTP channel preference updated to {otp_request.channel.upper()}",
+            channel=otp_request.channel
         )
     
     except HTTPException:

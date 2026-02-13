@@ -31,6 +31,7 @@ from l3v3l_ml_enhancer import ml_enhancer
 from config import settings
 from utils import get_full_image_url, save_multiple_files
 from crypto_utils import get_encryptor
+from middleware.rate_limiter import limiter, RATE_LIMITS
 
 router = APIRouter(prefix="/api/users", tags=["users"])
 logger = logging.getLogger(__name__)
@@ -907,6 +908,7 @@ async def get_registration_status():
 
 
 @router.post("/register", status_code=status.HTTP_201_CREATED)
+@limiter.limit(RATE_LIMITS["auth"])
 async def register_user(
     # Basic Information
     username: str = Form(...),
@@ -1407,6 +1409,7 @@ async def register_user(
     }
 
 @router.post("/login")
+@limiter.limit(RATE_LIMITS["auth"])
 async def login_user(login_data: LoginRequest, request: Request, db = Depends(get_database)):
     """Login user and return access token"""
     logger.info(f"🔑 Login attempt for username: {login_data.username}")
@@ -1709,19 +1712,43 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
     return response
 
 @router.get("/resolve-profile/{profile_id}")
+@limiter.limit(RATE_LIMITS["profile"])
 async def resolve_profile_id(
+    request: Request,
     profile_id: str,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
 ):
     """Resolve a short profileId to a username for shareable tiny URLs."""
-    user = await db.users.find_one({"profileId": profile_id}, {"username": 1})
+    # Validate viewer has an active account
+    viewer_status = current_user.get("accountStatus", "").lower()
+    if viewer_status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Your account must be fully activated to view shared profiles. Please verify your email."
+        )
+
+    # Resolve profileId and check target profile is active
+    user = await db.users.find_one(
+        {"profileId": profile_id},
+        {"username": 1, "accountStatus": 1}
+    )
     if not user:
         raise HTTPException(status_code=404, detail="Profile not found")
+
+    # Only allow viewing active profiles (admins can see any)
+    is_privileged = _is_admin_user(current_user) or (current_user.get("role_name") == "moderator")
+    target_status = user.get("accountStatus", "").lower()
+    if target_status != "active" and not is_privileged:
+        raise HTTPException(status_code=404, detail="This profile is no longer available")
+
+    logger.info(f"🔗 Profile link resolved: {current_user.get('username')} viewed profile {user['username']} via shared link")
     return {"username": user["username"]}
 
 @router.get("/share-profile/{profile_id}")
+@limiter.limit(RATE_LIMITS["share"])
 async def get_share_url(
+    request: Request,
     profile_id: str,
     current_user: dict = Depends(get_current_user),
     db = Depends(get_database)
@@ -2851,7 +2878,9 @@ async def update_user_profile(
 # ===== PHOTO AUTO-SAVE ENDPOINTS =====
 
 @router.post("/profile/{username}/upload-photos")
+@limiter.limit(RATE_LIMITS["upload"])
 async def upload_photos(
+    request: Request,
     username: str,
     images: List[UploadFile] = File(...),
     existingImages: Optional[str] = Form(None),
@@ -4338,7 +4367,9 @@ async def delete_user_profile(
         )
 # Search endpoint for advanced user search
 @router.get("/search")
+@limiter.limit(RATE_LIMITS["search"])
 async def search_users(
+    request: Request,
     keyword: str = "",
     profileId: str = "",
     gender: str = "",
@@ -4430,7 +4461,21 @@ async def search_users(
             query["gender"] = gender_value
             logger.info(f"🚻 Gender filter applied: query['gender'] = '{gender_value}'")
         else:
-            logger.info(f"🚻 No gender filter provided")
+            # SERVER-SIDE SAFETY: For non-admin/moderator users, auto-apply opposite-gender filter
+            # This prevents same-gender profiles from appearing even if frontend doesn't send gender
+            # (e.g., saved searches missing gender, frontend bugs, etc.)
+            if not is_privileged:
+                user_gender = current_user.get("gender", "").strip().capitalize()
+                if user_gender == "Male":
+                    query["gender"] = "Female"
+                    logger.info(f"🚻 Auto-applied opposite gender filter: Female (user is Male)")
+                elif user_gender == "Female":
+                    query["gender"] = "Male"
+                    logger.info(f"🚻 Auto-applied opposite gender filter: Male (user is Female)")
+                else:
+                    logger.warning(f"🚻 No gender filter - user gender unknown: '{user_gender}'")
+            else:
+                logger.info(f"🚻 No gender filter provided (admin/moderator - allowed)")
 
         # Age filter - Calculate dynamically from birthMonth and birthYear
         # This ensures age is always accurate and never stale

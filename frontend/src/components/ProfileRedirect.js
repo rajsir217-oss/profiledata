@@ -20,8 +20,16 @@ const ProfileRedirect = () => {
         } else {
           setError('Profile not found');
         }
-      } catch {
-        setError('Profile not found or link expired');
+      } catch (err) {
+        const status = err?.response?.status;
+        const detail = err?.response?.data?.detail;
+        if (status === 403) {
+          setError(detail || 'Your account must be fully activated to view shared profiles.');
+        } else if (detail === 'This profile is no longer available') {
+          setError('This profile is no longer available');
+        } else {
+          setError('Profile not found or link expired');
+        }
       }
     };
     resolve();

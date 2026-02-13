@@ -6,12 +6,13 @@ Provides endpoints for:
 """
 
 import logging
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from typing import Optional
 
 from auth.jwt_auth import get_current_user_dependency as get_current_user
 from services.ai_service import rephrase_about_me
+from middleware.rate_limiter import limiter, RATE_LIMITS
 
 logger = logging.getLogger(__name__)
 
@@ -36,8 +37,10 @@ class RephraseResponse(BaseModel):
 
 
 @router.post("/rephrase", response_model=RephraseResponse)
+@limiter.limit(RATE_LIMITS["ai"])
 async def rephrase_text(
-    request: RephraseRequest,
+    request: Request,
+    rephrase_request: RephraseRequest,
     current_user: dict = Depends(get_current_user)
 ):
     """
@@ -49,24 +52,24 @@ async def rephrase_text(
     - casual: Relaxed and conversational
     """
     username = current_user.get("username", "unknown")
-    logger.info(f"🤖 AI rephrase request from user '{username}' (style: {request.style}, provider: {request.provider})")
+    logger.info(f"🤖 AI rephrase request from user '{username}' (style: {rephrase_request.style}, provider: {rephrase_request.provider})")
     
     # Validate style
     valid_styles = ["concise", "warm", "professional", "casual"]
-    style = request.style.lower() if request.style else "warm"
+    style = rephrase_request.style.lower() if rephrase_request.style else "warm"
     if style not in valid_styles:
         style = "warm"
     
     # Validate provider (optional - if specified, use it)
     provider = None
-    if request.provider:
+    if rephrase_request.provider:
         valid_providers = ["groq", "gemini"]
-        provider = request.provider.lower()
+        provider = rephrase_request.provider.lower()
         if provider not in valid_providers:
             provider = None
     
     # Call AI service with optional provider override
-    result = await rephrase_about_me(request.text, style, provider)
+    result = await rephrase_about_me(rephrase_request.text, style, provider)
     
     if result["success"]:
         logger.info(f"✅ AI rephrase successful for user '{username}'")
