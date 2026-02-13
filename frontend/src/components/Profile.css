@@ -55,6 +55,44 @@
   font-size: 18px !important;
 }
 
+/* Profile Quick Info Pills (age, born, height) */
+.profile-quick-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+  margin-bottom: 2px;
+}
+
+.profile-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border-radius: 12px;
+  font-size: 11.5px;
+  font-weight: 500;
+  background: var(--selected-background, rgba(99, 102, 241, 0.1));
+  color: var(--text-secondary, #6b7280);
+  border: 1px solid var(--border-color, #f3f4f6);
+  line-height: 1.4;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.profile-pill:hover {
+  background: var(--hover-background, #fef3c7);
+  color: var(--text-color, #1f2937);
+}
+
+.profile-pill .pill-icon {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.profile-pill .pill-value {
+  white-space: nowrap;
+}
+
 /* Reduce header spacing */
 .profile-header {
   margin-bottom: 1rem !important;
