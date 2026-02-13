@@ -68,73 +68,74 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   echo "📊 Found $TOTAL total revisions"
   
   if [ $TOTAL -le $KEEP_COUNT ]; then
-    echo "✅ No cleanup needed - only $TOTAL revisions exist"
+    echo "✅ No revision cleanup needed - only $TOTAL revisions exist"
     echo ""
-    continue
-  fi
-  
-  # Calculate how many to delete
-  TO_DELETE=$((TOTAL - KEEP_COUNT))
-  echo "🗑️  Will delete $TO_DELETE old revisions (keeping latest $KEEP_COUNT)"
-  echo ""
-  
-  # Get revisions to delete (skip first KEEP_COUNT, delete the rest)
-  REVISIONS_TO_DELETE=$(echo "$ALL_REVISIONS" | tail -n +$((KEEP_COUNT + 1)))
-  
-  # Show what will be deleted
-  echo "Revisions to delete (oldest first):"
-  echo "$REVISIONS_TO_DELETE" | head -10
-  if [ $TO_DELETE -gt 10 ]; then
-    echo "... and $((TO_DELETE - 10)) more"
-  fi
-  echo ""
-  
-  # Ask for confirmation (skip if --all flag is set)
-  if [ "$AUTO_YES" = true ]; then
-    echo "🚀 Auto-confirm enabled (--all flag)"
   else
-    read -p "Delete these $TO_DELETE revisions from $SERVICE_NAME? (y/N) " -n 1 -r
-    echo
-    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-      echo "⏭️  Skipped $SERVICE_NAME"
+    # Calculate how many to delete
+    TO_DELETE=$((TOTAL - KEEP_COUNT))
+    echo "🗑️  Will delete $TO_DELETE old revisions (keeping latest $KEEP_COUNT)"
+    echo ""
+    
+    # Get revisions to delete (skip first KEEP_COUNT, delete the rest)
+    REVISIONS_TO_DELETE=$(echo "$ALL_REVISIONS" | tail -n +$((KEEP_COUNT + 1)))
+    
+    # Show what will be deleted
+    echo "Revisions to delete (oldest first):"
+    echo "$REVISIONS_TO_DELETE" | head -10
+    if [ $TO_DELETE -gt 10 ]; then
+      echo "... and $((TO_DELETE - 10)) more"
+    fi
+    echo ""
+    
+    # Ask for confirmation (skip if --all flag is set)
+    SKIP_REVISIONS=false
+    if [ "$AUTO_YES" = true ]; then
+      echo "🚀 Auto-confirm enabled (--all flag)"
+    else
+      read -p "Delete these $TO_DELETE revisions from $SERVICE_NAME? (y/N) " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "⏭️  Skipped revision cleanup for $SERVICE_NAME"
+        SKIP_REVISIONS=true
+      fi
+    fi
+    
+    if [ "$SKIP_REVISIONS" = false ]; then
+      # Delete revisions
       echo ""
-      continue
+      echo "🗑️  Deleting old revisions..."
+      DELETED_COUNT=0
+      while IFS= read -r revision; do
+        if [ -n "$revision" ]; then
+          # Double-check we're not deleting the serving revision
+          if [ "$revision" = "$SERVING_REVISION" ]; then
+            echo "  ⚠️  Skipped $revision (serving revision)"
+            continue
+          fi
+          
+          echo "  Deleting: $revision"
+          if gcloud run revisions delete "$revision" \
+            --region=$REGION \
+            --project=$PROJECT_ID \
+            --quiet 2>/dev/null; then
+            DELETED_COUNT=$((DELETED_COUNT + 1))
+          else
+            echo "    ⚠️  Failed to delete $revision (might be in use)"
+          fi
+        fi
+      done <<< "$REVISIONS_TO_DELETE"
+      
+      REMAINING=$((TOTAL - DELETED_COUNT))
+      TOTAL_DELETED=$((TOTAL_DELETED + DELETED_COUNT))
+      
+      echo ""
+      echo "✅ Deleted $DELETED_COUNT revisions from $SERVICE_NAME"
+      echo "📊 Remaining: $REMAINING revisions"
+      echo ""
     fi
   fi
-  
-  # Delete revisions
-  echo ""
-  echo "🗑️  Deleting old revisions..."
-  DELETED_COUNT=0
-  while IFS= read -r revision; do
-    if [ -n "$revision" ]; then
-      # Double-check we're not deleting the serving revision
-      if [ "$revision" = "$SERVING_REVISION" ]; then
-        echo "  ⚠️  Skipped $revision (serving revision)"
-        continue
-      fi
-      
-      echo "  Deleting: $revision"
-      if gcloud run revisions delete "$revision" \
-        --region=$REGION \
-        --project=$PROJECT_ID \
-        --quiet 2>/dev/null; then
-        DELETED_COUNT=$((DELETED_COUNT + 1))
-      else
-        echo "    ⚠️  Failed to delete $revision (might be in use)"
-      fi
-    fi
-  done <<< "$REVISIONS_TO_DELETE"
-  
-  REMAINING=$((TOTAL - DELETED_COUNT))
-  TOTAL_DELETED=$((TOTAL_DELETED + DELETED_COUNT))
-  
-  echo ""
-  echo "✅ Deleted $DELETED_COUNT revisions from $SERVICE_NAME"
-  echo "📊 Remaining: $REMAINING revisions"
-  echo ""
 
-  # --- Image Cleanup (Artifact Registry + GCR) ---
+  # --- Image Cleanup (Artifact Registry + GCR) --- (always runs regardless of revision cleanup)
   echo "🧹 Cleaning up orphaned container images..."
   
   # Get images still in use by ANY remaining revision
