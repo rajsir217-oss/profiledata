@@ -183,10 +183,10 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
       echo "  ⚠️  Large cleanup: will delete oldest $MAX_IMAGE_DELETE of $AR_ORPHAN_COUNT. Re-run for more."
     fi
     
-    AR_ROUND_DELETED=0
+    AR_ROUND_ATTEMPTS=0
     while IFS= read -r image_full; do
       if [ -z "$image_full" ]; then continue; fi
-      if [ $AR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+      if [ $AR_ROUND_ATTEMPTS -ge $MAX_IMAGE_DELETE ]; then
         echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
         break
       fi
@@ -195,12 +195,12 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
         IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
         continue
       fi
+      AR_ROUND_ATTEMPTS=$((AR_ROUND_ATTEMPTS + 1))
       echo "  🗑️ Deleting orphaned AR image: ...@${IMAGE_DIGEST:0:20}..."
       if gcloud artifacts docker images delete "$image_full" \
         --project=$PROJECT_ID \
-        --quiet --delete-tags 2>/dev/null; then
+        --quiet --delete-tags 2>&1 | tail -1; then
         IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
-        AR_ROUND_DELETED=$((AR_ROUND_DELETED + 1))
       else
         IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
       fi
@@ -234,7 +234,12 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
     # First pass: count how many would be deleted
     GCR_DELETE_CANDIDATES=0
     while IFS=',' read -r digest timestamp; do
+      digest=$(echo "$digest" | xargs)  # trim whitespace
       if [ -z "$digest" ]; then continue; fi
+      # Ensure digest has sha256: prefix for consistent matching
+      if [[ "$digest" != sha256:* ]]; then
+        digest="sha256:$digest"
+      fi
       # Skip images in use by active revisions
       if echo "$STILL_IN_USE" | grep -q "$digest"; then continue; fi
       # Skip images newer than cutoff
@@ -258,12 +263,17 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
         echo "  ⏭️  Skipped GCR image cleanup for $SERVICE_NAME"
       else
         # Second pass: actually delete (with limit)
-        GCR_ROUND_DELETED=0
+        GCR_ROUND_ATTEMPTS=0
         while IFS=',' read -r digest timestamp; do
+          digest=$(echo "$digest" | xargs)  # trim whitespace
           if [ -z "$digest" ]; then continue; fi
-          if [ $GCR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+          if [ $GCR_ROUND_ATTEMPTS -ge $MAX_IMAGE_DELETE ]; then
             echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
             break
+          fi
+          # Ensure digest has sha256: prefix
+          if [[ "$digest" != sha256:* ]]; then
+            digest="sha256:$digest"
           fi
           FULL_REF="$GCR_PATH@$digest"
           if echo "$STILL_IN_USE" | grep -q "$digest"; then
@@ -275,25 +285,31 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
             IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
             continue
           fi
+          GCR_ROUND_ATTEMPTS=$((GCR_ROUND_ATTEMPTS + 1))
           echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
-          if gcloud container images delete "$FULL_REF" \
+          DELETE_OUTPUT=$(gcloud container images delete "$FULL_REF" \
             --project=$PROJECT_ID \
-            --quiet --force-delete-tags 2>/dev/null; then
+            --quiet --force-delete-tags 2>&1) && {
             IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
-            GCR_ROUND_DELETED=$((GCR_ROUND_DELETED + 1))
-          else
+          } || {
             IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
-          fi
+            echo "    ⚠️  Failed: $(echo "$DELETE_OUTPUT" | tail -1)"
+          }
         done <<< "$GCR_IMAGES_RAW"
       fi
     elif [ $GCR_DELETE_CANDIDATES -gt 0 ]; then
       # Small number, delete without extra prompt
-      GCR_ROUND_DELETED=0
+      GCR_ROUND_ATTEMPTS=0
       while IFS=',' read -r digest timestamp; do
+        digest=$(echo "$digest" | xargs)  # trim whitespace
         if [ -z "$digest" ]; then continue; fi
-        if [ $GCR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+        if [ $GCR_ROUND_ATTEMPTS -ge $MAX_IMAGE_DELETE ]; then
           echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
           break
+        fi
+        # Ensure digest has sha256: prefix
+        if [[ "$digest" != sha256:* ]]; then
+          digest="sha256:$digest"
         fi
         FULL_REF="$GCR_PATH@$digest"
         if echo "$STILL_IN_USE" | grep -q "$digest"; then
@@ -305,15 +321,16 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
           IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
           continue
         fi
+        GCR_ROUND_ATTEMPTS=$((GCR_ROUND_ATTEMPTS + 1))
         echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
-        if gcloud container images delete "$FULL_REF" \
+        DELETE_OUTPUT=$(gcloud container images delete "$FULL_REF" \
           --project=$PROJECT_ID \
-          --quiet --force-delete-tags 2>/dev/null; then
+          --quiet --force-delete-tags 2>&1) && {
           IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
-          GCR_ROUND_DELETED=$((GCR_ROUND_DELETED + 1))
-        else
+        } || {
           IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
-        fi
+          echo "    ⚠️  Failed: $(echo "$DELETE_OUTPUT" | tail -1)"
+        }
       done <<< "$GCR_IMAGES_RAW"
     else
       echo "  ✅ No orphaned images to delete in GCR"
