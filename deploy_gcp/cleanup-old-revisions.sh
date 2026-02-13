@@ -9,6 +9,8 @@ set -e
 PROJECT_ID="matrimonial-staging"
 REGION="us-central1"
 KEEP_COUNT=3  # Keep latest 3 revisions (reduced from 7 to save storage costs)
+IMAGE_KEEP_DAYS=7  # Keep images from the last N days regardless of revision status
+MAX_IMAGE_DELETE=50  # Safety limit: max images to delete per service per run
 
 # Parse arguments
 AUTO_YES=false
@@ -165,8 +167,28 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
     IMAGES_FOUND=true
     echo "  📊 Found $AR_COUNT images in Artifact Registry"
     
+    # Count orphaned images first
+    AR_ORPHAN_COUNT=0
     while IFS= read -r image_full; do
       if [ -z "$image_full" ]; then continue; fi
+      IMAGE_DIGEST=$(echo "$image_full" | grep -o 'sha256:[a-f0-9]*')
+      if echo "$STILL_IN_USE" | grep -q "$IMAGE_DIGEST"; then continue; fi
+      AR_ORPHAN_COUNT=$((AR_ORPHAN_COUNT + 1))
+    done <<< "$AR_IMAGES"
+    
+    echo "  🗑️  $AR_ORPHAN_COUNT orphaned images in Artifact Registry"
+    
+    if [ $AR_ORPHAN_COUNT -gt $MAX_IMAGE_DELETE ]; then
+      echo "  ⚠️  Large cleanup: will delete oldest $MAX_IMAGE_DELETE of $AR_ORPHAN_COUNT. Re-run for more."
+    fi
+    
+    AR_ROUND_DELETED=0
+    while IFS= read -r image_full; do
+      if [ -z "$image_full" ]; then continue; fi
+      if [ $AR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+        echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
+        break
+      fi
       IMAGE_DIGEST=$(echo "$image_full" | grep -o 'sha256:[a-f0-9]*')
       if echo "$STILL_IN_USE" | grep -q "$IMAGE_DIGEST"; then
         IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
@@ -177,6 +199,7 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
         --project=$PROJECT_ID \
         --quiet --delete-tags 2>/dev/null; then
         IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+        AR_ROUND_DELETED=$((AR_ROUND_DELETED + 1))
       else
         IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
       fi
@@ -189,30 +212,111 @@ for SERVICE_NAME in "${SERVICES[@]}"; do
   GCR_PATH="gcr.io/$PROJECT_ID/$SERVICE_NAME"
   
   echo "  📋 Checking GCR ($GCR_PATH)..."
-  GCR_IMAGES=$(gcloud container images list-tags "$GCR_PATH" \
-    --format="get(digest)" 2>/dev/null || echo "")
+  # Get images with timestamps so we can apply age-based retention
+  GCR_IMAGES_RAW=$(gcloud container images list-tags "$GCR_PATH" \
+    --format="csv[no-heading](digest,timestamp.datetime)" \
+    --sort-by="~timestamp" 2>/dev/null || echo "")
   
-  GCR_COUNT=$(echo "$GCR_IMAGES" | grep -c . || echo "0")
-  if [ -n "$GCR_IMAGES" ] && [ "$GCR_COUNT" -gt 0 ]; then
+  GCR_COUNT=$(echo "$GCR_IMAGES_RAW" | grep -c . || echo "0")
+  if [ -n "$GCR_IMAGES_RAW" ] && [ "$GCR_COUNT" -gt 0 ]; then
     IMAGES_FOUND=true
     echo "  📊 Found $GCR_COUNT images in GCR"
     
-    while IFS= read -r digest; do
+    # Calculate cutoff date for age-based retention
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      CUTOFF_DATE=$(date -v-${IMAGE_KEEP_DAYS}d +%Y-%m-%d)
+    else
+      CUTOFF_DATE=$(date -d "-${IMAGE_KEEP_DAYS} days" +%Y-%m-%d)
+    fi
+    echo "  📅 Keeping images newer than $CUTOFF_DATE ($IMAGE_KEEP_DAYS days)"
+    
+    # First pass: count how many would be deleted
+    GCR_DELETE_CANDIDATES=0
+    while IFS=',' read -r digest timestamp; do
       if [ -z "$digest" ]; then continue; fi
-      FULL_REF="$GCR_PATH@$digest"
-      if echo "$STILL_IN_USE" | grep -q "$digest"; then
-        IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
-        continue
-      fi
-      echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
-      if gcloud container images delete "$FULL_REF" \
-        --project=$PROJECT_ID \
-        --quiet --force-delete-tags 2>/dev/null; then
-        IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+      # Skip images in use by active revisions
+      if echo "$STILL_IN_USE" | grep -q "$digest"; then continue; fi
+      # Skip images newer than cutoff
+      IMAGE_DATE=$(echo "$timestamp" | cut -d' ' -f1)
+      if [[ -n "$IMAGE_DATE" && "$IMAGE_DATE" > "$CUTOFF_DATE" ]]; then continue; fi
+      GCR_DELETE_CANDIDATES=$((GCR_DELETE_CANDIDATES + 1))
+    done <<< "$GCR_IMAGES_RAW"
+    
+    echo "  🗑️  $GCR_DELETE_CANDIDATES orphaned images older than $IMAGE_KEEP_DAYS days"
+    
+    # Safety: confirm if deleting many images
+    if [ $GCR_DELETE_CANDIDATES -gt $MAX_IMAGE_DELETE ]; then
+      echo "  ⚠️  Large cleanup: $GCR_DELETE_CANDIDATES images to delete (limit: $MAX_IMAGE_DELETE per run)"
+      echo "  ℹ️  Will delete oldest $MAX_IMAGE_DELETE images this run. Re-run to delete more."
+    fi
+    
+    if [ $GCR_DELETE_CANDIDATES -gt 10 ] && [ "$AUTO_YES" != true ]; then
+      read -p "  Delete up to $MAX_IMAGE_DELETE of $GCR_DELETE_CANDIDATES orphaned GCR images? (y/N) " -n 1 -r
+      echo
+      if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        echo "  ⏭️  Skipped GCR image cleanup for $SERVICE_NAME"
       else
-        IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
+        # Second pass: actually delete (with limit)
+        GCR_ROUND_DELETED=0
+        while IFS=',' read -r digest timestamp; do
+          if [ -z "$digest" ]; then continue; fi
+          if [ $GCR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+            echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
+            break
+          fi
+          FULL_REF="$GCR_PATH@$digest"
+          if echo "$STILL_IN_USE" | grep -q "$digest"; then
+            IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
+            continue
+          fi
+          IMAGE_DATE=$(echo "$timestamp" | cut -d' ' -f1)
+          if [[ -n "$IMAGE_DATE" && "$IMAGE_DATE" > "$CUTOFF_DATE" ]]; then
+            IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
+            continue
+          fi
+          echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
+          if gcloud container images delete "$FULL_REF" \
+            --project=$PROJECT_ID \
+            --quiet --force-delete-tags 2>/dev/null; then
+            IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+            GCR_ROUND_DELETED=$((GCR_ROUND_DELETED + 1))
+          else
+            IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
+          fi
+        done <<< "$GCR_IMAGES_RAW"
       fi
-    done <<< "$GCR_IMAGES"
+    elif [ $GCR_DELETE_CANDIDATES -gt 0 ]; then
+      # Small number, delete without extra prompt
+      GCR_ROUND_DELETED=0
+      while IFS=',' read -r digest timestamp; do
+        if [ -z "$digest" ]; then continue; fi
+        if [ $GCR_ROUND_DELETED -ge $MAX_IMAGE_DELETE ]; then
+          echo "  ⛔ Reached max delete limit ($MAX_IMAGE_DELETE). Re-run to delete more."
+          break
+        fi
+        FULL_REF="$GCR_PATH@$digest"
+        if echo "$STILL_IN_USE" | grep -q "$digest"; then
+          IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
+          continue
+        fi
+        IMAGE_DATE=$(echo "$timestamp" | cut -d' ' -f1)
+        if [[ -n "$IMAGE_DATE" && "$IMAGE_DATE" > "$CUTOFF_DATE" ]]; then
+          IMAGE_KEPT_COUNT=$((IMAGE_KEPT_COUNT + 1))
+          continue
+        fi
+        echo "  🗑️ Deleting orphaned GCR image: ...@${digest:0:20}..."
+        if gcloud container images delete "$FULL_REF" \
+          --project=$PROJECT_ID \
+          --quiet --force-delete-tags 2>/dev/null; then
+          IMAGE_DELETED_COUNT=$((IMAGE_DELETED_COUNT + 1))
+          GCR_ROUND_DELETED=$((GCR_ROUND_DELETED + 1))
+        else
+          IMAGE_FAILED_COUNT=$((IMAGE_FAILED_COUNT + 1))
+        fi
+      done <<< "$GCR_IMAGES_RAW"
+    else
+      echo "  ✅ No orphaned images to delete in GCR"
+    fi
   else
     echo "  ℹ️  No images in GCR for $SERVICE_NAME"
   fi
