@@ -5682,10 +5682,26 @@ async def reset_password(
     # Hash new password
     hashed_password = PasswordManager.hash_password(new_password)
     
-    # Update password
+    # Update password in BOTH locations (legacy + security) and reset security metadata
+    password_changed_at = datetime.utcnow()
+    password_expires_at = PasswordManager.calculate_password_expiry(password_changed_at)
+    
+    # Build password history
+    existing_security = user.get("security", {})
+    password_history = existing_security.get("password_history", [])
+    updated_history = PasswordManager.update_password_history(password_history, hashed_password)
+    
     await db.users.update_one(
         {"username": user["username"]},
-        {"$set": {"password": hashed_password}}
+        {"$set": {
+            "password": hashed_password,
+            "security.password_hash": hashed_password,
+            "security.password_changed_at": password_changed_at,
+            "security.password_expires_at": password_expires_at,
+            "security.password_history": updated_history,
+            "security.force_password_change": False,
+            "updated_at": datetime.utcnow()
+        }}
     )
     
     # Mark code as used
