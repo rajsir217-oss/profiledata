@@ -390,7 +390,7 @@
 
 /* Proceed Button - Cute Gradient */
 .contribution-proceed-btn {
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
   color: white;
   border: none;
   padding: 14px 20px;
@@ -404,7 +404,7 @@
   justify-content: center;
   gap: 8px;
   box-shadow: 
-    0 8px 20px rgba(139, 92, 246, 0.35),
+    0 8px 20px rgba(0, 0, 0, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   position: relative;
   overflow: hidden;
@@ -428,7 +428,7 @@
 .contribution-proceed-btn:hover:not(:disabled) {
   transform: translateY(-3px);
   box-shadow: 
-    0 12px 28px rgba(139, 92, 246, 0.4),
+    0 12px 28px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 
