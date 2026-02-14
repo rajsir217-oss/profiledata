@@ -243,12 +243,14 @@
 
 @media (max-width: 768px) {
   .messages-page {
-    padding: 10px;
+    padding: 6px;
+    height: calc(100vh - 120px);
   }
 
   .messages-container {
     grid-template-columns: 1fr !important;
     position: relative;
+    border-radius: 8px;
   }
   
   /* Hide resizer on mobile */
@@ -276,14 +278,85 @@
     display: flex;
     flex-direction: column;
   }
+
+  /* Compact banners on mobile */
+  .pending-warning-banner {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+  }
+
+  .pending-warning-content {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pending-icon {
+    font-size: 22px;
+    padding: 6px;
+  }
+
+  .pending-text strong {
+    font-size: 13px;
+  }
+
+  .pending-subtext {
+    font-size: 11px;
+  }
+
+  .pending-action-btn {
+    padding: 6px 14px;
+    font-size: 12px;
+  }
+
+  .unattended-banner {
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    border-radius: 8px;
+    border-left-width: 4px;
+  }
+
+  .unattended-banner-content {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .unattended-icon {
+    font-size: 20px;
+  }
+
+  .unattended-text strong {
+    font-size: 13px;
+  }
+
+  .unattended-explanation {
+    font-size: 12px;
+    margin: 4px 0;
+  }
+
+  .exclusion-tip {
+    font-size: 11px;
+    margin-top: 4px;
+  }
 }
 
 @media (max-width: 480px) {
   .messages-page {
     height: calc(100vh - 60px);
+    padding: 4px;
   }
   
   .messages-container {
     border-radius: 0;
+  }
+
+  /* Stack banner content vertically on very small screens */
+  .pending-warning-content {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pending-action-btn {
+    align-self: flex-end;
   }
 }
