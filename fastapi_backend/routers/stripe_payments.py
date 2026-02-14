@@ -369,7 +369,7 @@ async def get_contribution_status(
                 "amounts": contribution_config.get("amounts", [5, 10, 15]),
                 "message": contribution_config.get("message", "Support the platform"),
                 "frequencyDays": contribution_config.get("frequencyDays", 14),
-                "minLogins": contribution_config.get("minLogins", 3)
+                "minLogins": contribution_config.get("minLogins", 10)
             }
         }
     except HTTPException:
@@ -398,7 +398,7 @@ async def get_contribution_settings(
             "amounts": contribution_config.get("amounts", [5, 10, 15]),
             "message": contribution_config.get("message", "Support the platform"),
             "frequencyDays": contribution_config.get("frequencyDays", 14),
-            "minLogins": contribution_config.get("minLogins", 3)
+            "minLogins": contribution_config.get("minLogins", 10)
         }
     }
 
