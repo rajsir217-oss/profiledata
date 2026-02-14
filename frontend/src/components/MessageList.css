@@ -310,31 +310,42 @@ p.conversation-preview.unread {
 /* Responsive - Scoped to .message-list to avoid conflicts */
 @media (max-width: 768px) {
   .message-list .message-list-header {
-    padding: 15px;
+    padding: 12px 14px;
   }
   
   .message-list .message-list-header h3 {
-    font-size: 16px;
+    font-size: 15px;
   }
   
   /* Force horizontal row layout on mobile */
   .message-list .conversation-item {
-    padding: 12px !important;
-    margin: 0 6px 6px 6px !important;
+    padding: 10px !important;
+    margin: 0 6px 5px 6px !important;
     flex-direction: row !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 10px !important;
+    border-radius: 8px;
+  }
+
+  .message-list .conversation-item:hover:not(.active) {
+    transform: none;
   }
   
   .message-list .conversation-avatar {
     flex-shrink: 0;
+    width: 44px;
+    height: 44px;
   }
   
   .message-list .conversation-avatar img,
   .message-list .avatar-placeholder {
-    width: 48px;
-    height: 48px;
-    font-size: 18px;
+    width: 44px;
+    height: 44px;
+    font-size: 17px;
+  }
+
+  .message-list .conversation-avatar img {
+    border-width: 2px;
   }
   
   .message-list .conversation-info {
@@ -347,18 +358,27 @@ p.conversation-preview.unread {
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 4px;
+    gap: 6px;
+    margin-bottom: 2px;
   }
   
   .message-list .conversation-name {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex: 1;
     min-width: 0;
+  }
+
+  .message-list .conversation-meta {
+    gap: 4px;
+  }
+
+  .message-list .urgency-badge {
+    padding: 2px 6px;
+    font-size: 10px;
   }
   
   .message-list .conversation-time {
@@ -368,17 +388,27 @@ p.conversation-preview.unread {
   }
   
   .message-list p.conversation-preview {
-    font-size: 13px;
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
   
   .message-list .view-profile-btn {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+    max-width: 32px;
+    font-size: 13px;
     margin-left: 0;
     flex-shrink: 0;
+  }
+
+  .message-list .unread-badge {
+    top: -3px;
+    right: -3px;
+    font-size: 10px;
+    padding: 1px 5px;
+    min-width: 16px;
   }
 }
