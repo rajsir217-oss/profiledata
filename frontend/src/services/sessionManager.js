@@ -32,12 +32,19 @@ class SessionManager {
     this.HARD_LIMIT = 8 * 60 * 60 * 1000; // 8 hour hard limit (full work day)
     this.WARNING_TIME = 7.5 * 60 * 60 * 1000; // Warn at 7.5 hours
     this.INACTIVITY_LOGOUT = 30 * 60 * 1000; // Log out after 30 minutes of inactivity
+    this.INACTIVITY_WARNING_TIME = 25 * 60 * 1000; // Warn at 25 minutes of inactivity (5 min before logout)
     
     // EDGE CASE: Clock drift buffer (30 seconds)
     // We log out slightly BEFORE the server limit to ensure a graceful experience
-    this.CLOCK_DRIFT_BUFFER = 30 * 1000; 
+    this.CLOCK_DRIFT_BUFFER = 30 * 1000;
+    
+    // EDGE CASE: Sleep/wake grace period (2 minutes)
+    // When a laptop wakes from sleep, give the user a brief chance to interact
+    // instead of immediately logging them out
+    this.SLEEP_WAKE_GRACE_PERIOD = 2 * 60 * 1000;
     
     this.warningShown = false;
+    this.inactivityWarningShown = false;
     this.isLoggingOut = false;
   }
 
@@ -204,22 +211,67 @@ class SessionManager {
         ? parseInt(storedLoginTime, 10) 
         : this.loginTime;
       
-      // Check if user has been inactive too long
-      const timeSinceActivity = Date.now() - actualLastActivity;
-      if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
-        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes (from localStorage), logging out`);
-        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
-        this.logout('tab_return_inactivity');
-        return;
-      }
-
-      // Check hard limit
+      // Check hard limit first (no grace period for this)
       const timeSinceLogin = Date.now() - actualLoginTime;
       if (timeSinceLogin >= (this.HARD_LIMIT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn(`Session near 8-hour hard limit on tab return (${Math.round(timeSinceLogin / 3600000)} hours)`);
         toastService.warning('Your session has expired (8 hour limit). Please log in again.', 5000);
         this.logout('tab_return_hard_limit');
         return;
+      }
+
+      // Check if user has been inactive too long
+      const timeSinceActivity = Date.now() - actualLastActivity;
+      
+      if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
+        // SLEEP/WAKE GRACE PERIOD: If the inactivity is close to the limit (within grace period),
+        // this likely means the user's laptop went to sleep. Give them a brief chance to interact
+        // instead of immediately logging out. For very long inactivity (well past the grace period),
+        // log out immediately since the server-side session is likely already revoked.
+        const graceLimitMs = this.INACTIVITY_LOGOUT + this.SLEEP_WAKE_GRACE_PERIOD;
+        
+        if (timeSinceActivity < graceLimitMs) {
+          logger.warn(`Sleep/wake detected: ${Math.round(timeSinceActivity / 60000)} min inactive (within grace period). Attempting recovery...`);
+          toastService.warning(
+            'Welcome back! Your session was idle while you were away. Refreshing your session...',
+            8000
+          );
+          
+          // Try to refresh the token - if server-side session is still valid, we recover
+          try {
+            await this.refreshToken();
+            // Refresh succeeded - session recovered!
+            logger.info('Session recovered after sleep/wake via token refresh');
+            this.lastActivity = Date.now();
+            this.lastStorageUpdate = Date.now();
+            localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
+            this.inactivityWarningShown = false;
+            return;
+          } catch (refreshError) {
+            // Refresh failed - server already killed the session
+            logger.warn('Session recovery failed after sleep/wake, logging out');
+            toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+            this.logout('tab_return_inactivity_grace_failed');
+            return;
+          }
+        }
+        
+        // Well past grace period - log out immediately
+        logger.warn(`User inactive for ${Math.round(timeSinceActivity / 60000)} minutes (from localStorage), logging out`);
+        toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
+        this.logout('tab_return_inactivity');
+        return;
+      }
+      
+      // Show inactivity warning if in the warning zone (25-30 min)
+      if (timeSinceActivity >= this.INACTIVITY_WARNING_TIME && !this.inactivityWarningShown) {
+        const remainingMin = Math.ceil((this.INACTIVITY_LOGOUT - timeSinceActivity) / 60000);
+        toastService.warning(
+          `You've been inactive for ${Math.round(timeSinceActivity / 60000)} minutes. ` +
+          `Your session will expire in ~${remainingMin} minutes. Move your mouse or press a key to stay logged in.`,
+          15000
+        );
+        this.inactivityWarningShown = true;
       }
 
       // EDGE CASE: If token is "old" (e.g. interval was throttled), refresh immediately
@@ -232,6 +284,7 @@ class SessionManager {
 
       // Reset activity on successful return
       this.lastActivity = Date.now();
+      this.lastStorageUpdate = Date.now();
       localStorage.setItem('sessionLastActivity', this.lastActivity.toString());
     }
   }
@@ -318,6 +371,12 @@ class SessionManager {
     
     this.lastActivity = now;
     
+    // Reset inactivity warning when user becomes active again
+    if (this.inactivityWarningShown) {
+      this.inactivityWarningShown = false;
+      logger.debug('Inactivity warning reset - user is active again');
+    }
+    
     // Throttle: Only update localStorage if more than 30 seconds since last update
     // This prevents excessive writes while ensuring other tabs see the activity
     if (now - this.lastStorageUpdate > 30000) {
@@ -393,10 +452,24 @@ class SessionManager {
       
       const timeSinceActivity = Date.now() - lastActivityTime;
       
+      // Check if we should log out (30 min - 30 sec buffer)
       if (timeSinceActivity >= (this.INACTIVITY_LOGOUT - this.CLOCK_DRIFT_BUFFER)) {
         logger.warn(`Session near inactivity limit (${Math.round(timeSinceActivity / 60000)} minutes)`);
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
         this.logout('inactivity_interval_check');
+        return;
+      }
+      
+      // Show warning at 25 minutes (5 min before logout)
+      if (timeSinceActivity >= this.INACTIVITY_WARNING_TIME && !this.inactivityWarningShown) {
+        const remainingMin = Math.ceil((this.INACTIVITY_LOGOUT - timeSinceActivity) / 60000);
+        logger.warn(`Inactivity warning: ${Math.round(timeSinceActivity / 60000)} minutes idle, ${remainingMin} min until logout`);
+        toastService.warning(
+          `You've been inactive for ${Math.round(timeSinceActivity / 60000)} minutes. ` +
+          `Your session will expire in ~${remainingMin} minutes. Move your mouse or press a key to stay logged in.`,
+          15000
+        );
+        this.inactivityWarningShown = true;
       }
     }, 60 * 1000); // Check every 1 minute
   }
@@ -434,6 +507,18 @@ class SessionManager {
         toastService.warning('Your session has expired due to inactivity. Please log in again.', 5000);
         this.logout('refresh_check_inactivity');
         return;
+      }
+
+      // Show inactivity warning at 25 minutes (5 min before logout)
+      if (timeSinceActivity >= this.INACTIVITY_WARNING_TIME && !this.inactivityWarningShown) {
+        const remainingMin = Math.ceil((this.INACTIVITY_LOGOUT - timeSinceActivity) / 60000);
+        logger.warn(`Inactivity warning in refresh check: ${Math.round(timeSinceActivity / 60000)} min idle`);
+        toastService.warning(
+          `You've been inactive for ${Math.round(timeSinceActivity / 60000)} minutes. ` +
+          `Your session will expire in ~${remainingMin} minutes. Move your mouse or press a key to stay logged in.`,
+          15000
+        );
+        this.inactivityWarningShown = true;
       }
 
       // Only refresh if user is active (within 25 min threshold)
@@ -570,6 +655,7 @@ class SessionManager {
     this.lastActivity = Date.now();
     this.lastStorageUpdate = Date.now();
     this.warningShown = false;
+    this.inactivityWarningShown = false;
 
     // Clear storage
     localStorage.removeItem('token');
@@ -645,6 +731,7 @@ class SessionManager {
     this.lastActivity = Date.now();
     this.lastStorageUpdate = Date.now();
     this.warningShown = false;
+    this.inactivityWarningShown = false;
     this.isLoggingOut = false;
 
     // Clear storage (tokens and session data)

@@ -38,7 +38,7 @@ class Settings(BaseSettings):
     # Authentication
     secret_key: str = "default_secret_key_for_testing"  # Default for testing
     algorithm: str = "HS256"
-    access_token_expire_minutes: int = 15  # Short-lived, refreshed automatically by session manager
+    access_token_expire_minutes: int = 30  # 30 minutes - aligned with security_config.py and .env.production
     
     # Cloudflare Turnstile (CAPTCHA - 100% Free)
     turnstile_secret_key: str = ""
