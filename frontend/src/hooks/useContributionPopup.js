@@ -89,7 +89,7 @@ const useContributionPopup = () => {
 
       // Check login count
       const loginCount = parseInt(localStorage.getItem('login_count') || '0');
-      const minLogins = data.popupConfig?.minLogins || 3;
+      const minLogins = data.popupConfig?.minLogins || 10;
       console.log('🔔 Contribution popup: Login count check:', loginCount, '>=', minLogins);
       if (loginCount < minLogins) {
         console.log('🔔 Contribution popup: Not enough logins');
