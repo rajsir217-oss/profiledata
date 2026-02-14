@@ -14,11 +14,8 @@ SERVICE_NAME="matrimonial-backend"
 REGION="us-central1"
 GCS_BUCKET="matrimonial-uploads-matrimonial-staging"
 
-# Production environment variables (from .env.production)
-# These are hardcoded here to avoid parsing issues with complex values
-MONGODB_URL="mongodb+srv://rajl3v3l_db_user:3F01eZUHTY9tx07u@mongocluster0.rebdf0h.mongodb.net/matrimonialDB?retryWrites=true&w=majority&appName=MongoCluster0"
-REDIS_URL="redis://default:2svzScwOza6YUFifjx32WIWqWHytrq12@redis-11872.c263.us-east-1-2.ec2.redns.redis-cloud.com:11872"
-
+# Production environment variables
+# Sensitive values (MONGODB_URL, REDIS_URL, etc.) are stored in Secret Manager
 echo "✅ Production environment variables configured"
 
 # Use LOG_LEVEL from environment or default to WARNING for production
@@ -60,9 +57,7 @@ gcloud run deploy $SERVICE_NAME \
   --cpu-throttling \
   --set-env-vars "\
 ENV=production,\
-MONGODB_URL=$MONGODB_URL,\
 DATABASE_NAME=matrimonialDB,\
-REDIS_URL=$REDIS_URL,\
 FRONTEND_URL=https://l3v3lmatches.com,\
 BACKEND_URL=https://matrimonial-backend-7cxoxmouuq-uc.a.run.app,\
 APP_URL=https://l3v3lmatches.com,\
@@ -76,7 +71,6 @@ SMTP_HOST=smtp.gmail.com,\
 SMTP_PORT=587,\
 FROM_EMAIL=noreply@l3v3lmatches.com,\
 FROM_NAME=L3V3L MATCHES,\
-TURNSTILE_SECRET_KEY=0x4AAAAAACAeADFuazfxSYYRyiJwVY6pHBI,\
 SMS_PROVIDER=simpletexting,\
 ENABLE_NOTIFICATIONS=true,\
 ENABLE_SCHEDULER=true,\
@@ -85,6 +79,8 @@ DEBUG_MODE=false,\
 LOG_LEVEL=$LOG_LEVEL,\
 AI_PROVIDER=groq" \
   --set-secrets "\
+MONGODB_URL=MONGODB_URL:latest,\
+REDIS_URL=REDIS_URL:latest,\
 SECRET_KEY=SECRET_KEY:latest,\
 ENCRYPTION_KEY=ENCRYPTION_KEY:latest,\
 RESEND_API_KEY=RESEND_API_KEY:latest,\
@@ -96,7 +92,10 @@ GROQ_API_KEY=GROQ_API_KEY:latest,\
 GEMINI_API_KEY=GEMINI_API_KEY:latest,\
 STRIPE_SECRET_KEY=STRIPE_SECRET_KEY:latest,\
 STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY:latest,\
-STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest"
+STRIPE_WEBHOOK_SECRET=STRIPE_WEBHOOK_SECRET:latest,\
+TURNSTILE_SECRET_KEY=TURNSTILE_SECRET_KEY:latest,\
+PAYPAL_CLIENT_ID=PAYPAL_CLIENT_ID:latest,\
+PAYPAL_CLIENT_SECRET=PAYPAL_CLIENT_SECRET:latest"
 
 echo ""
 echo "✅ Backend deployment complete!"
