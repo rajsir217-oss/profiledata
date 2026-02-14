@@ -23,6 +23,7 @@ const Messages = () => {
   });
   const [isResizing, setIsResizing] = useState(false);
   const containerRef = useRef(null);
+  const selectedUserRef = useRef(null);
   const navigate = useNavigate();
   const location = useLocation();
   const currentUsername = localStorage.getItem('username');
@@ -99,12 +100,12 @@ const Messages = () => {
     });
     loadUnattendedChats();
 
-    // Listen for real-time messages
+    // Listen for real-time messages (uses ref to avoid re-registering on every selection change)
     const handleNewMessage = (data) => {
       console.log('💬 New message received:', data);
       
       // If the message is from the currently selected user, add it to messages
-      if (selectedUser && data.from === selectedUser) {
+      if (selectedUserRef.current && data.from === selectedUserRef.current) {
         const newMessage = {
           from_username: data.from,
           to_username: currentUsername,
@@ -131,8 +132,9 @@ const Messages = () => {
 
     // ESC key handler to close message window (deselect user)
     const handleEscKey = (e) => {
-      if (e.key === 'Escape' && selectedUser) {
+      if (e.key === 'Escape' && selectedUserRef.current) {
         setSelectedUser(null);
+        selectedUserRef.current = null;
       }
     };
     document.addEventListener('keydown', handleEscKey);
@@ -142,7 +144,7 @@ const Messages = () => {
       document.removeEventListener('keydown', handleEscKey);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location, selectedUser, currentUsername]);
+  }, [location, currentUsername]);
 
   const loadConversations = async () => {
     console.log('📥 Messages.js: Loading conversations for:', currentUsername);
@@ -205,6 +207,7 @@ const Messages = () => {
 
   const handleSelectUser = async (username) => {
     setSelectedUser(username);
+    selectedUserRef.current = username;
     setMessages([]);
     setOtherUser(null);
     setConversationStatus(null);
@@ -288,6 +291,7 @@ const Messages = () => {
 
   const handleBackToList = () => {
     setSelectedUser(null);
+    selectedUserRef.current = null;
     setOtherUser(null);
     setMessages([]);
   };

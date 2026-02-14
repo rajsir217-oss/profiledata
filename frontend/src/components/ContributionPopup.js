@@ -16,7 +16,9 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   const [paypalConfigured, setPaypalConfigured] = useState(false);
   const [paypalClientId, setPaypalClientId] = useState(null);
   const [paypalReady, setPaypalReady] = useState(false);
+  const [paypalFailed, setPaypalFailed] = useState(false);
   const paypalContainerRef = useRef(null);
+  const paypalTimeoutRef = useRef(null);
 
   const amounts = [5, 10, 15];
 
@@ -73,9 +75,12 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     } else {
       document.body.style.overflow = 'unset';
       setHasLoggedShown(false);
+      // Clear PayPal timeout when popup closes
+      if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
     }
     return () => {
       document.body.style.overflow = 'unset';
+      if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
     };
   }, [isOpen, hasLoggedShown]);
 
@@ -112,14 +117,33 @@ const ContributionPopup = ({ isOpen, onClose }) => {
   }, [paymentMethod, paypalConfigured, paypalClientId, paymentType, selectedAmount, customAmount]);
 
   const initializePayPal = async () => {
+    // Set a timeout - if PayPal doesn't load in 8s (ad blocker), fallback to Stripe
+    if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
+    paypalTimeoutRef.current = setTimeout(() => {
+      if (!paypalReady && !paypalFailed) {
+        console.debug('PayPal SDK timed out - falling back to Stripe');
+        setPaypalFailed(true);
+        setPaymentMethod('stripe');
+      }
+    }, 8000);
+
     if (!window.paypal) {
       const script = document.createElement('script');
       script.src = `https://www.paypal.com/sdk/js?client-id=${paypalClientId}&currency=USD`;
       script.async = true;
-      script.onload = () => renderPayPalButtons();
-      script.onerror = () => setError('Failed to load PayPal');
+      script.onload = () => {
+        if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
+        renderPayPalButtons();
+      };
+      script.onerror = () => {
+        if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
+        console.debug('PayPal SDK blocked - falling back to Stripe');
+        setPaypalFailed(true);
+        setPaymentMethod('stripe');
+      };
       document.body.appendChild(script);
     } else {
+      if (paypalTimeoutRef.current) clearTimeout(paypalTimeoutRef.current);
       renderPayPalButtons();
     }
   };
@@ -224,7 +248,6 @@ const ContributionPopup = ({ isOpen, onClose }) => {
     onClose();
   };
 
-  // eslint-disable-next-line no-unused-vars
   const handleProceedToPayment = async () => {
     const amount = selectedAmount === 'custom' ? parseFloat(customAmount) : selectedAmount;
     
@@ -394,8 +417,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
             </div>
           )} */}
 
-          {/* PayPal Buttons */}
-          {paymentMethod === 'paypal' && paymentType === 'one-time' && (
+          {/* PayPal Buttons (hidden when PayPal failed/blocked) */}
+          {paymentMethod === 'paypal' && paymentType === 'one-time' && !paypalFailed && (
             <div className="contribution-paypal-container">
               <div ref={paypalContainerRef} id="contribution-paypal-buttons"></div>
               {!paypalReady && (
@@ -407,8 +430,8 @@ const ContributionPopup = ({ isOpen, onClose }) => {
             </div>
           )}
 
-          {/* Stripe Button - COMMENTED OUT: Only PayPal for now */}
-          {/* {(paymentMethod === 'stripe' || paymentType === 'monthly') && (
+          {/* Stripe Checkout fallback (auto-enabled when PayPal blocked, or always for monthly) */}
+          {(paymentMethod === 'stripe' || paypalFailed) && (
             <button 
               className="contribution-proceed-btn"
               onClick={handleProceedToPayment}
@@ -420,10 +443,10 @@ const ContributionPopup = ({ isOpen, onClose }) => {
                   Processing...
                 </>
               ) : (
-                <>💜 Proceed to Payment</>
+                <>� Pay with Card</>
               )}
             </button>
-          )} */}
+          )}
 
           <button 
             className="contribution-remind-btn"
