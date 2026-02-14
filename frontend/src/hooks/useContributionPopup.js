@@ -135,16 +135,33 @@ const useContributionPopup = () => {
   }, []);
 
   useEffect(() => {
-    // Increment login count
-    const loginCount = parseInt(localStorage.getItem('login_count') || '0');
-    localStorage.setItem('login_count', (loginCount + 1).toString());
+    // Check on mount if already logged in (e.g. page refresh while authenticated)
+    const token = localStorage.getItem('token');
+    let timer;
+    if (token) {
+      timer = setTimeout(() => {
+        checkShouldShowPopup();
+      }, 2000);
+    }
 
-    // Check if should show popup (with small delay to not block initial render)
-    const timer = setTimeout(() => {
-      checkShouldShowPopup();
-    }, 2000);
+    // Listen for login event to re-trigger check (handles fresh login flow)
+    const handleUserLoggedIn = () => {
+      // Increment login count only on actual login
+      const loginCount = parseInt(localStorage.getItem('login_count') || '0');
+      localStorage.setItem('login_count', (loginCount + 1).toString());
 
-    return () => clearTimeout(timer);
+      // Check popup after a short delay to let dashboard load first
+      setTimeout(() => {
+        checkShouldShowPopup();
+      }, 3000);
+    };
+
+    window.addEventListener('userLoggedIn', handleUserLoggedIn);
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      window.removeEventListener('userLoggedIn', handleUserLoggedIn);
+    };
   }, [checkShouldShowPopup]);
 
   const closePopup = useCallback(() => {
