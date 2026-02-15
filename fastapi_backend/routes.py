@@ -4607,11 +4607,14 @@ async def search_users(
         if occupations and occupations.strip():
             # Parse comma-separated multi-select occupations
             occupation_list = [occ.strip() for occ in occupations.split(',') if occ.strip()]
+            logger.info(f"🔍 Multi-select occupations: {occupation_list}")
         elif occupation and occupation.strip():
             # Backward compatibility for single occupation
             occupation_list = [occupation.strip()]
+            logger.info(f"🔍 Single occupation: {occupation_list}")
         
         if occupation_list:
+            logger.info(f"🔍 Processing occupation search for: {occupation_list}")
             # Search in both occupation field and workExperience.position (case-insensitive)
             occupation_queries = []
             for occ in occupation_list:
@@ -4624,6 +4627,7 @@ async def search_users(
             
             if occupation_queries:
                 occupation_query = {"$or": occupation_queries}
+                logger.info(f"🔍 Occupation query built: {occupation_query}")
                 and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion
@@ -4738,6 +4742,7 @@ async def search_users(
     # Add all collected $and conditions to query
     if len(and_conditions) > 0:
         query["$and"] = and_conditions
+        logger.info(f"🔍 Final query with $and conditions: {query}")
     
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
     logger.info(f"📋 FINAL QUERY before execution: {query}")
