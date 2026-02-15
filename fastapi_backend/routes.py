@@ -4509,7 +4509,10 @@ async def search_users(
         query["profileId"] = {"$regex": profileId, "$options": "i"}
         # If not admin/moderator, still restrict profileId lookup to active users
         if not is_privileged:
-            query["accountStatus"] = "active"
+            query["$or"] = [
+                {"accountStatus": "active"},
+                {"status.status": "active"}
+            ]
         logger.info(f"🔍 Profile ID query: {query}")
     else:
         if status_filter and is_privileged:
@@ -4518,7 +4521,11 @@ async def search_users(
         else:
             # Default to active users only for everyone else
             # (including if a regular user tries to pass status_filter)
-            query["accountStatus"] = "active"
+            # Handle both status formats: nested object or direct accountStatus
+            query["$or"] = [
+                {"accountStatus": "active"},
+                {"status.status": "active"}
+            ]
 
     # Skip all other filters if profileId is provided (direct lookup)
     # Initialize age filter variables (needed even if profileId search)
