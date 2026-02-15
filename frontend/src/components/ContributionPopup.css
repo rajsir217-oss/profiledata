@@ -460,7 +460,7 @@
 .contribution-remind-btn {
   background: transparent;
   border: none;
-  color: #9ca3af;
+  color: var(--text-muted);
   font-size: 12px;
   cursor: pointer;
   padding: 6px;
@@ -470,7 +470,7 @@
 }
 
 .contribution-remind-btn:hover:not(:disabled) {
-  color: #8b5cf6;
+  color: var(--primary-color);
   text-decoration: underline;
 }
 
