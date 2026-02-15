@@ -42,8 +42,15 @@ async def debug_occupation_search():
     for user in case_results:
         print(f"   - {user.get('username', 'unknown')}")
     
-    # Test 3: Partial match
-    print("\n3. Partial match 'marketing':")
+    # Test 3: Check occupation field
+    print("\n3. Occupation field search:")
+    occupation_results = await db.users.find({"occupation": {"$regex": "Marketing Manager", "$options": "i"}}).limit(5).to_list(None)
+    print(f"   Occupation field matches: {len(occupation_results)}")
+    for user in occupation_results:
+        print(f"   - {user.get('username', 'unknown')}: '{user.get('occupation', 'N/A')}' (status: {user.get('status', 'N/A')}, accountStatus: {user.get('accountStatus', 'N/A')})")
+    
+    # Test 4: Partial match in workExperience
+    print("\n4. Partial match 'marketing' in workExperience:")
     pipeline_partial = [
         {"$match": {"workExperience.position": {"$regex": "marketing", "$options": "i"}}},
         {"$limit": 5}
@@ -59,20 +66,24 @@ async def debug_occupation_search():
             if 'marketing' in pos.lower():
                 print(f"     -> Found: '{pos}'")
     
-    # Test 4: Check actual data structure
-    print("\n4. Sample workExperience data:")
-    sample_users = await db.users.find({"workExperience": {"$exists": True}}).limit(3).to_list(None)
+    # Test 5: Check actual data structure
+    print("\n5. Sample user data structure:")
+    sample_users = await db.users.find({}).limit(3).to_list(None)
     for i, user in enumerate(sample_users):
         print(f"   User {i+1}: {user.get('username', 'unknown')}")
-        work = user.get('workExperience', [])
-        for j, job in enumerate(work):
-            print(f"     Job {j+1}:")
-            print(f"       position: '{job.get('position', 'N/A')}'")
-            print(f"       company: '{job.get('company', 'N/A')}'")
-            print(f"       Keys: {list(job.keys())}")
+        print(f"     Has workExperience: {'workExperience' in user}")
+        print(f"     Has occupation: {'occupation' in user}")
+        if 'occupation' in user:
+            print(f"     occupation: '{user.get('occupation', 'N/A')}'")
+        # Check all keys that might contain job info
+        all_keys = list(user.keys())
+        job_related_keys = [k for k in all_keys if any(word in k.lower() for word in ['work', 'job', 'occupation', 'career', 'position'])]
+        print(f"     Job-related keys: {job_related_keys}")
+        print(f"     All keys: {all_keys[:10]}...")  # Show first 10 keys
+        print('---')
     
-    # Test 5: Test our actual search logic
-    print("\n5. Testing actual search logic:")
+    # Test 6: Test our actual search logic
+    print("\n6. Testing actual search logic:")
     occupation_list = ["Marketing Manager"]
     occupation_queries = []
     for occ in occupation_list:
@@ -101,7 +112,8 @@ async def debug_occupation_search():
         for user in search_results:
             print(f"   - {user.get('username', 'unknown')} (status: {user.get('status', 'unknown')})")
     
-    await client.close()
+    if client:
+        await client.close()
 
 if __name__ == "__main__":
     asyncio.run(debug_occupation_search())
