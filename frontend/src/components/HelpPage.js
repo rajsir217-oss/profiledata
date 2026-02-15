@@ -489,7 +489,7 @@ const HelpPage = () => {
               <h3>Ways to Connect</h3>
               <ul>
                 <li><strong>Favorite:</strong> Save someone you like for quick access later.</li>
-                <li><strong>Shortlist:</strong> Your “serious consideration” list.</li>
+                <li><strong>Shortlist:</strong> Your "serious consideration" list.</li>
                 <li><strong>Message:</strong> Start a conversation in the built-in chat.</li>
               </ul>
             </div>
@@ -497,10 +497,77 @@ const HelpPage = () => {
             <div className="help-section">
               <h3>Chat Features</h3>
               <ul>
-                <li>Real-time messaging (messages appear instantly when you’re both online)</li>
+                <li>Real-time messaging (messages appear instantly when you're both online)</li>
                 <li>Conversation history saved</li>
                 <li>Online indicators (when available)</li>
               </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>📩 Messaging Workflow — How It Works</h3>
+              <p>Some members have asked about the message screen blocking navigation. Here's how the workflow is designed:</p>
+              
+              <h4>1. Unattended Messages Must Be Addressed First</h4>
+              <p>If you have unattended messages from members, you must reply to those before navigating anywhere else in the app.</p>
+              
+              <h4>2. Reviewing a Profile Before Replying</h4>
+              <p>If you need to check a member's profile before giving a proper response:</p>
+              <ol>
+                <li>Send a quick placeholder reply such as <em>"I'll get back to you"</em> or <em>"One moment"</em></li>
+                <li>Review the profile</li>
+                <li>Then send your actual message</li>
+                <li>You may delete the placeholder message afterward if you prefer</li>
+              </ol>
+              
+              <h4>3. New "Not Interested" Button</h4>
+              <p>We've added a new button to make things easier:</p>
+              <ul>
+                <li>Tapping <strong>"Not Interested"</strong> will automatically send a polite decline message to the member</li>
+                <li>It will close the message thread</li>
+                <li>It will add that profile to your exclusion list, ensuring they are not shown in future</li>
+              </ul>
+            </div>
+
+            <div className="help-section">
+              <h3>📸 Visual Guide — Message Screen</h3>
+
+              <div className="help-screenshot-block">
+                <div className="help-screenshot">
+                  <img src="/help/message-screen.png" alt="Message screen with Quick Messages panel" />
+                </div>
+                <div className="help-screenshot-caption">
+                  <strong>The Message Screen</strong> — This is what you see when a conversation is open. At the bottom, you'll find the message input field and the <strong>Send</strong> button. Notice the two icon buttons on either side of the input.
+                </div>
+              </div>
+
+              <div className="help-icon-row">
+                <div className="help-icon-block">
+                  <div className="help-screenshot help-screenshot-small">
+                    <img src="/help/quick-messages-icon.png" alt="Quick Messages lightning bolt icon" />
+                  </div>
+                  <div className="help-screenshot-caption">
+                    <strong>⚡ Quick Messages Icon</strong> — Tap this lightning bolt to open the Quick Messages panel. It gives you pre-written message templates like <em>Introduction</em>, <em>Interest</em>, <em>More Info</em>, <em>Next Steps</em>, <em>Follow-up</em>, and <em>Decline</em>. Great for sending a fast, professional reply without typing from scratch.
+                  </div>
+                </div>
+
+                <div className="help-icon-block">
+                  <div className="help-screenshot help-screenshot-small">
+                    <img src="/help/not-interested-icon.png" alt="Not Interested hand icon" />
+                  </div>
+                  <div className="help-screenshot-caption">
+                    <strong>👋 Not Interested Icon</strong> — Tap this hand icon (top-right of the message screen) to quickly decline a conversation. This opens a confirmation dialog before any action is taken.
+                  </div>
+                </div>
+              </div>
+
+              <div className="help-screenshot-block">
+                <div className="help-screenshot">
+                  <img src="/help/not-interested-confirm.png" alt="Not Interested confirmation dialog" />
+                </div>
+                <div className="help-screenshot-caption">
+                  <strong>Not Interested Confirmation</strong> — When you tap the hand icon, this dialog appears. It clearly explains what will happen: a polite decline message is sent, the conversation is closed, and the member is added to your exclusion list. You can tap <strong>"Yes, Not Interested"</strong> to confirm, or <strong>"Cancel"</strong> to go back.
+                </div>
+              </div>
             </div>
 
             <div className="help-section">
@@ -508,22 +575,22 @@ const HelpPage = () => {
               <ul>
                 <li><strong>Favorites:</strong> Your saved profiles</li>
                 <li><strong>Shortlist:</strong> Your top candidates</li>
-                <li><strong>Not Interested / Exclusions:</strong> Profiles you don’t want to see again</li>
+                <li><strong>Not Interested / Exclusions:</strong> Profiles you don't want to see again</li>
               </ul>
             </div>
 
             <div className="help-section">
               <h3>Not Interested (Exclusions)</h3>
-              <p>If you don’t want to see a profile again, exclude it. Excluded profiles won’t show up in your search results.</p>
+              <p>If you don't want to see a profile again, exclude it. Excluded profiles won't show up in your search results.</p>
               <ol>
-                <li>Go to their profile</li>
-                <li>Choose the exclude/not-interested action</li>
-                <li>Manage excluded profiles from the Exclusions page</li>
+                <li>Go to their profile or use the "Not Interested" button in the message screen</li>
+                <li>A polite decline is sent automatically (from messages) or choose the exclude action (from profile)</li>
+                <li>Manage excluded profiles from the Exclusions page on your Dashboard</li>
               </ol>
             </div>
 
             <div className="help-tip">
-              <strong>💡 Pro Tip:</strong> Read the profile before messaging. Start with a polite, specific opener (mention something you liked).
+              <strong>💡 Pro Tip:</strong> Read the profile before messaging. Start with a polite, specific opener (mention something you liked). If you're not interested, use the "Not Interested" button — it handles everything for you automatically.
             </div>
           </div>
         );
