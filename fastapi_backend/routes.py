@@ -8,8 +8,8 @@ import logging
 import uuid
 import hashlib
 import json
-import httpx
 import re
+import httpx
 from pathlib import Path
 from urllib.parse import urlparse
 from sse_starlette.sse import EventSourceResponse
@@ -4612,14 +4612,19 @@ async def search_users(
             occupation_list = [occupation.strip()]
         
         if occupation_list:
-            # Search in both occupation field and workExperience.position
-            occupation_query = {
-                "$or": [
-                    {"occupation": {"$in": occupation_list}},
-                    {"workExperience.position": {"$in": occupation_list}}
-                ]
-            }
-            and_conditions.append(occupation_query)
+            # Search in both occupation field and workExperience.position (case-insensitive)
+            occupation_queries = []
+            for occ in occupation_list:
+                if occ.strip():
+                    occ_regex = re.escape(occ.strip())  # Escape regex special chars
+                    occupation_queries.extend([
+                        {"occupation": {"$regex": occ_regex, "$options": "i"}},
+                        {"workExperience.position": {"$regex": occ_regex, "$options": "i"}}
+                    ])
+            
+            if occupation_queries:
+                occupation_query = {"$or": occupation_queries}
+                and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion
         if caste and caste.strip():

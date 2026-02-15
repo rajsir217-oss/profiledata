@@ -114,6 +114,20 @@ const OccupationMultiSelect = ({
       {/* Dropdown */}
       {isOpen && (
         <div className="occupation-dropdown">
+          <div className="occupation-dropdown-header">
+            <span className="occupation-dropdown-title">Select Occupations</span>
+            <button
+              type="button"
+              className="occupation-dropdown-close"
+              onClick={() => {
+                setIsOpen(false);
+                setSearchTerm('');
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
           <div className="occupation-search">
             <input
               type="text"
