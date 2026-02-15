@@ -2011,7 +2011,16 @@ async def get_user_profile(
         if _is_admin_user(current_user):
             archive = await db.deleted_users_archive.find_one({"originalUsername": {"$regex": f"^{re.escape(username)}$", "$options": "i"}})
             if archive:
-                detail = f"This account ({username}) was permanently deleted on {archive.get('deletedAt', 'unknown date')}. Reason: {archive.get('deletionReason', 'Not specified')}."
+                name = f"{archive.get('firstName', '')} {archive.get('lastName', '')}".strip() or "N/A"
+                dob = f"{archive.get('birthMonth', '')}/{archive.get('birthYear', '')}" if archive.get('birthYear') else "N/A"
+                contact = archive.get('contactEmail') or archive.get('contactNumber') or "N/A"
+                detail = (
+                    f"DELETED ACCOUNT: {username} ({name}). "
+                    f"DOB: {dob}. Contact: {contact}. "
+                    f"Created: {archive.get('createdAt', 'N/A')}. "
+                    f"Deleted: {archive.get('deletedAt', 'unknown')}. "
+                    f"Reason: {archive.get('deletionReason', 'Not specified')}."
+                )
             else:
                 detail = f"User '{username}' not found in active users or deletion archive."
         else:
