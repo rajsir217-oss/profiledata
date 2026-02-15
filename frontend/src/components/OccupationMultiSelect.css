@@ -136,6 +136,53 @@
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
 }
 
+.occupation-actions {
+  display: flex;
+  gap: 8px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  background: var(--background-color, #f8f9fa);
+}
+
+.occupation-action-btn {
+  padding: 6px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: var(--text-color, #333);
+}
+
+.occupation-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.occupation-select-all-btn {
+  background: var(--primary-color, #007bff);
+  color: white;
+  border-color: var(--primary-color, #007bff);
+}
+
+.occupation-select-all-btn:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.occupation-clear-btn {
+  background: var(--danger-color, #dc3545);
+  color: white;
+  border-color: var(--danger-color, #dc3545);
+}
+
+.occupation-clear-btn:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
 .occupation-options {
   max-height: 250px;
   overflow-y: auto;
@@ -156,6 +203,26 @@
 
 .occupation-option:last-child {
   border-bottom: none;
+}
+
+.occupation-option-selected {
+  background: var(--primary-color, #007bff);
+  color: white;
+  font-weight: 500;
+  position: relative;
+}
+
+.occupation-option-selected:hover {
+  background: #0056b3;
+}
+
+.occupation-option-check {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: bold;
+  font-size: 14px;
 }
 
 .occupation-no-options {
@@ -213,6 +280,18 @@
     padding: 10px;
   }
   
+  .occupation-actions {
+    padding: 10px 14px;
+    flex-direction: column;
+    gap: 6px;
+  }
+  
+  .occupation-action-btn {
+    padding: 8px 12px;
+    font-size: 14px;
+    width: 100%;
+  }
+  
   .occupation-option {
     padding: 12px 14px;
     font-size: 16px; /* Larger text for mobile */
@@ -248,5 +327,29 @@
   
   .occupation-option:hover {
     background: #374151;
+  }
+  
+  .occupation-actions {
+    background: #374151;
+    border-color: #4a5568;
+  }
+  
+  .occupation-action-btn {
+    background: #4a5568;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .occupation-action-btn:hover {
+    background: #2d3748;
+  }
+  
+  .occupation-option-selected {
+    background: #3182ce;
+    color: white;
+  }
+  
+  .occupation-option-selected:hover {
+    background: #2c5282;
   }
 }
