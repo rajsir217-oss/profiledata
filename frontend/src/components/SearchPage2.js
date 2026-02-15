@@ -172,7 +172,8 @@ const SearchPage2 = () => {
     heightMax: '', // Kept for backward compatibility
     location: '',
     education: '',
-    occupation: '',
+    occupation: '', // Backward compatibility
+    occupations: [], // New multi-select format
     religion: '',
     caste: '',
     drinking: '',
@@ -761,6 +762,7 @@ const SearchPage2 = () => {
             location: '',
             education: '',
             occupation: '',
+            occupations: [],
             religion: '',
             caste: '',
             drinking: '',
@@ -807,6 +809,7 @@ const SearchPage2 = () => {
             location: '',
             education: '',
             occupation: '',
+            occupations: [],
             religion: '',
             caste: '',
             drinking: '',
@@ -1030,7 +1033,7 @@ const SearchPage2 = () => {
   // Dating field options
   // eslint-disable-next-line no-unused-vars
   const genderOptions = ['', 'Male', 'Female'];
-  const occupationOptions = ['', 'Software Engineer', 'Data Scientist', 'Product Manager', 'Business Analyst', 'Consultant', 'Doctor', 'Chartered Accountant', 'Lawyer', 'Teacher', 'Professor', 'Architect', 'Designer', 'Marketing Manager', 'Sales Executive', 'HR Manager', 'Financial Analyst', 'Civil Engineer', 'Mechanical Engineer', 'Pharmacist', 'Nurse', 'Entrepreneur', 'Banker', 'Government Officer'];
+  const [occupationOptions, setOccupationOptions] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const religionOptions = ['', 'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain'];
   const eatingOptions = ['', 'Vegetarian', 'Eggetarian', 'Non-Veg'];
@@ -1038,6 +1041,30 @@ const SearchPage2 = () => {
   // eslint-disable-next-line no-unused-vars
   const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
   const bodyTypeOptions = ['', 'Slim', 'Athletic', 'Average', 'Curvy'];
+
+  // Load occupation options dynamically
+  const loadOccupationOptions = async () => {
+    try {
+      const response = await api.get('/search/occupation-options');
+      setOccupationOptions(response.data.options || []);
+      logger.info(`Loaded ${response.data.count || 0} occupation options`);
+    } catch (err) {
+      logger.error('Error loading occupation options:', err);
+      // Set fallback options if API fails
+      setOccupationOptions([
+        'Software Engineer', 'Data Scientist', 'Product Manager', 'Business Analyst',
+        'Consultant', 'Doctor', 'Chartered Accountant', 'Lawyer', 'Teacher', 'Professor',
+        'Architect', 'Designer', 'Marketing Manager', 'Sales Executive', 'HR Manager',
+        'Financial Analyst', 'Civil Engineer', 'Mechanical Engineer', 'Pharmacist', 'Nurse',
+        'Entrepreneur', 'Banker', 'Government Officer'
+      ]);
+    }
+  };
+
+  // Load occupation options on component mount
+  useEffect(() => {
+    loadOccupationOptions();
+  }, []);
 
   // NOTE: Standalone loadUserFavorites, loadUserShortlist, loadUserExclusions
   // were removed — they duplicated the loadUserData() function (which uses
@@ -1124,6 +1151,7 @@ const SearchPage2 = () => {
         location: '',
         education: '',
         occupation: '',
+        occupations: [],
         religion: '',
         caste: '',
         eatingPreference: '',
@@ -1155,6 +1183,7 @@ const SearchPage2 = () => {
         location: '',
         education: '',
         occupation: '',
+        occupations: [],
         religion: '',
         caste: '',
         eatingPreference: '',
@@ -1276,6 +1305,11 @@ const SearchPage2 = () => {
           }
         }
       });
+      
+      // Convert occupations array to comma-separated string for API
+      if (params.occupations && Array.isArray(params.occupations) && params.occupations.length > 0) {
+        params.occupations = params.occupations.join(',');
+      }
       
       logger.info('🔍 Search params after validation:', params);
       logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
@@ -1534,8 +1568,15 @@ const SearchPage2 = () => {
       parts.push(`education ${criteria.education}`);
     }
     
-    // Occupation
-    if (criteria.occupation && criteria.occupation !== '') {
+    // Occupation (handle both old single and new multi-select format)
+    if (criteria.occupations && criteria.occupations.length > 0) {
+      if (criteria.occupations.length === 1) {
+        parts.push(`working as ${criteria.occupations[0]}`);
+      } else {
+        parts.push(`working as ${criteria.occupations.slice(0, 2).join(' or ')}${criteria.occupations.length > 2 ? ` (+${criteria.occupations.length - 2} more)` : ''}`);
+      }
+    } else if (criteria.occupation && criteria.occupation !== '') {
+      // Backward compatibility
       parts.push(`working as ${criteria.occupation}`);
     }
     
@@ -1599,11 +1640,22 @@ const SearchPage2 = () => {
     // Expand filters if they were collapsed so user can see what was loaded
     setFiltersCollapsed(false);
     
+    // Handle occupation format conversion for backward compatibility
+    const criteria = { ...savedSearch.criteria };
+    
+    // Convert old single occupation to new occupations array format
+    if (criteria.occupation && !criteria.occupations) {
+      criteria.occupations = [criteria.occupation];
+      delete criteria.occupation; // Remove old field
+    } else if (!criteria.occupations) {
+      criteria.occupations = [];
+    }
+    
     // Apply default daysBack if not set in saved search (for backward compatibility)
     const criteriaWithDefaults = {
-      ...savedSearch.criteria,
-      daysBack: savedSearch.criteria.daysBack || 30,
-      hasPhoto: savedSearch.criteria.hasPhoto !== undefined ? savedSearch.criteria.hasPhoto : true
+      ...criteria,
+      daysBack: criteria.daysBack || 30,
+      hasPhoto: criteria.hasPhoto !== undefined ? criteria.hasPhoto : true
     };
     
     // SAFETY: Enforce opposite-gender filter for non-admin users
@@ -2158,7 +2210,17 @@ const SearchPage2 = () => {
     
     // Education & Occupation
     if (searchCriteria.education) summary.push(`🎓 ${searchCriteria.education}`);
-    if (searchCriteria.occupation) summary.push(`💼 ${searchCriteria.occupation}`);
+    
+    // Occupation (handle both old and new formats)
+    if (searchCriteria.occupations && searchCriteria.occupations.length > 0) {
+      if (searchCriteria.occupations.length === 1) {
+        summary.push(`💼 ${searchCriteria.occupations[0]}`);
+      } else {
+        summary.push(`💼 ${searchCriteria.occupations.length} professions`);
+      }
+    } else if (searchCriteria.occupation) {
+      summary.push(`💼 ${searchCriteria.occupation}`);
+    }
     
     // Religion & Caste
     if (searchCriteria.religion) summary.push(searchCriteria.religion);

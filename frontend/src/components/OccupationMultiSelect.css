@@ -1,0 +1,252 @@
+/* Occupation Multi-Select Component Styles */
+.occupation-multiselect {
+  position: relative;
+  width: 100%;
+}
+
+.occupation-selected-items {
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  background: var(--input-bg, rgba(255, 255, 255, 0.9));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.occupation-selected-items:hover {
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.occupation-placeholder {
+  color: var(--text-muted, #999);
+  font-style: italic;
+  width: 100%;
+}
+
+.occupation-selected-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--primary-color, #007bff);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 13px;
+  font-weight: 500;
+  animation: fadeInScale 0.2s ease;
+}
+
+.occupation-item-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+}
+
+.occupation-remove-btn {
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.occupation-remove-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.occupation-more-indicator {
+  background: var(--secondary-color, #6c757d);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.occupation-clear-all {
+  background: var(--danger-color, #dc3545);
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-left: auto;
+}
+
+.occupation-clear-all:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+/* Dropdown Styles */
+.occupation-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--background-color, white);
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  max-height: 300px;
+  overflow: hidden;
+  margin-top: 4px;
+  animation: dropdownSlide 0.2s ease;
+}
+
+.occupation-search {
+  padding: 12px;
+  border-bottom: 1px solid var(--border-color, #eee);
+}
+
+.occupation-search-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  font-size: 14px;
+  background: var(--input-bg, white);
+  color: var(--text-color, #333);
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.occupation-search-input:focus {
+  border-color: var(--primary-color, #007bff);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.occupation-options {
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+.occupation-option {
+  padding: 10px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-color, #f0f0f0);
+  transition: background-color 0.2s ease;
+  font-size: 14px;
+  color: var(--text-color, #333);
+}
+
+.occupation-option:hover {
+  background: var(--hover-background, #f8f9fa);
+}
+
+.occupation-option:last-child {
+  border-bottom: none;
+}
+
+.occupation-no-options {
+  padding: 20px 16px;
+  text-align: center;
+  color: var(--text-muted, #999);
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Animations */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes dropdownSlide {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .occupation-selected-items {
+    min-height: 44px; /* Larger touch target */
+    padding: 10px 12px;
+  }
+  
+  .occupation-selected-item {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  
+  .occupation-item-text {
+    max-width: 120px;
+  }
+  
+  .occupation-dropdown {
+    max-height: 250px;
+  }
+  
+  .occupation-search {
+    padding: 10px;
+  }
+  
+  .occupation-option {
+    padding: 12px 14px;
+    font-size: 16px; /* Larger text for mobile */
+  }
+}
+
+/* Dark Theme Support */
+@media (prefers-color-scheme: dark) {
+  .occupation-multiselect {
+    --background-color: #2d3748;
+    --input-bg: #4a5568;
+    --text-color: #e2e8f0;
+    --text-muted: #a0aec0;
+    --border-color: #4a5568;
+    --hover-background: #374151;
+  }
+  
+  .occupation-dropdown {
+    background: #2d3748;
+    border-color: #4a5568;
+  }
+  
+  .occupation-search-input {
+    background: #4a5568;
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .occupation-option {
+    color: #e2e8f0;
+    border-color: #4a5568;
+  }
+  
+  .occupation-option:hover {
+    background: #374151;
+  }
+}

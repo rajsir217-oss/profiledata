@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import logger from '../utils/logger';
 import Tooltip from './Tooltip';
+import OccupationMultiSelect from './OccupationMultiSelect';
 import './SearchFilters.css';
 
 /**
@@ -640,29 +641,27 @@ const SearchFilters = ({
                   </select>
                 </div>
               </div>
-              <div className="col-occupation">
+              
+              {/* Occupation Multi-Select */}
+              <div className="col-occupation-advanced" style={{ gridColumn: '1 / -1' }}>
                 <div className="form-group">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     Occupation
                     <Tooltip 
-                      text="Filter by profession or career field."
+                      text="Filter by profession or career field. Select multiple options."
                       position="top"
                       icon 
                     />
                   </label>
-                  <select
-                    className="form-control"
-                    name="occupation"
-                    value={searchCriteria.occupation || ''}
-                    onChange={handleInputChange}
-                  >
-                    <option value="">Any</option>
-                    {occupationOptions.map(option => option && (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
+                  <OccupationMultiSelect
+                    options={occupationOptions}
+                    selected={searchCriteria.occupations || []}
+                    onChange={(selected) => handleInputChange({ target: { name: 'occupations', value: selected } })}
+                    placeholder="Select professions..."
+                  />
                 </div>
               </div>
+              
               <div className="col-eating">
                 <div className="form-group">
                   <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

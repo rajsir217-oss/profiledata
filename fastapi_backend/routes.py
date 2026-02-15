@@ -4383,6 +4383,75 @@ async def delete_user_profile(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to delete profile and related data: {str(e)}"
         )
+
+# Search endpoints
+
+@router.get("/search/occupation-options")
+async def get_occupation_options(db = Depends(get_database)):
+    """Get unique occupation options from workExperience.position field"""
+    logger.info("🔍 Fetching unique occupation options from workExperience")
+    
+    try:
+        # Aggregation pipeline to extract unique positions from workExperience
+        pipeline = [
+            {"$match": {"workExperience": {"$exists": True, "$ne": []}}},
+            {"$unwind": "$workExperience"},
+            {"$match": {"workExperience.position": {"$exists": True, "$ne": "", "$ne": None}}},
+            {"$group": {"_id": "$workExperience.position"}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 100}  # Limit to top 100 most common
+        ]
+        
+        cursor = db.users.aggregate(pipeline)
+        results = await cursor.to_list(length=100)
+        
+        # Extract occupation names and clean them
+        occupations = []
+        for result in results:
+            occupation = result["_id"].strip()
+            if occupation and len(occupation) > 0:
+                occupations.append(occupation)
+        
+        # Also check standalone occupation field for backward compatibility
+        occupation_pipeline = [
+            {"$match": {"occupation": {"$exists": True, "$ne": "", "$ne": None}}},
+            {"$group": {"_id": "$occupation"}},
+            {"$sort": {"_id": 1}}
+        ]
+        
+        occupation_cursor = db.users.aggregate(occupation_pipeline)
+        occupation_results = await occupation_cursor.to_list(length=None)
+        
+        for result in occupation_results:
+            occupation = result["_id"].strip()
+            if occupation and occupation not in occupations:
+                occupations.append(occupation)
+        
+        # Sort alphabetically
+        occupations.sort()
+        
+        logger.info(f"✅ Found {len(occupations)} unique occupation options")
+        
+        return {
+            "options": occupations,
+            "count": len(occupations)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching occupation options: {e}", exc_info=True)
+        # Return fallback options if there's an error
+        fallback_options = [
+            "Software Engineer", "Data Scientist", "Product Manager", "Business Analyst",
+            "Consultant", "Doctor", "Chartered Accountant", "Lawyer", "Teacher", "Professor",
+            "Architect", "Designer", "Marketing Manager", "Sales Executive", "HR Manager",
+            "Financial Analyst", "Civil Engineer", "Mechanical Engineer", "Pharmacist", "Nurse",
+            "Entrepreneur", "Banker", "Government Officer"
+        ]
+        return {
+            "options": fallback_options,
+            "count": len(fallback_options)
+        }
+
 # Search endpoint for advanced user search
 @router.get("/search")
 @limiter.limit(RATE_LIMITS["search"])
@@ -4397,6 +4466,7 @@ async def search_users(
     heightMax: int = 0,
     location: str = "",
     occupation: str = "",
+    occupations: str = "",  # Comma-separated list for multi-select
     religion: str = "",
     caste: str = "",
     eatingPreference: str = "",
@@ -4532,8 +4602,24 @@ async def search_users(
             ]}
             and_conditions.append(location_query)
         
-        if occupation and occupation.strip():
-            query["occupation"] = occupation
+        # Handle occupation filtering - support both single and multi-select
+        occupation_list = []
+        if occupations and occupations.strip():
+            # Parse comma-separated multi-select occupations
+            occupation_list = [occ.strip() for occ in occupations.split(',') if occ.strip()]
+        elif occupation and occupation.strip():
+            # Backward compatibility for single occupation
+            occupation_list = [occupation.strip()]
+        
+        if occupation_list:
+            # Search in both occupation field and workExperience.position
+            occupation_query = {
+                "$or": [
+                    {"occupation": {"$in": occupation_list}},
+                    {"workExperience.position": {"$in": occupation_list}}
+                ]
+            }
+            and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion
         if caste and caste.strip():
@@ -5062,7 +5148,7 @@ async def search_users(
             detail=f"Search failed: {str(e)}"
         )
 
-# Saved searches endpoints
+
 @router.get("/{username}/saved-searches")
 async def get_saved_searches(username: str, db = Depends(get_database)):
     """Get user's saved searches"""
