@@ -96,7 +96,7 @@ async def execute_permanent_deletions(db, **kwargs):
 
 
 async def archive_user_stats(user: dict, db):
-    """Archive anonymized user statistics before deletion"""
+    """Archive user identity + activity stats before permanent deletion (no images)"""
     try:
         username = user.get("username")
         created_at = user.get("createdAt")
@@ -125,10 +125,19 @@ async def archive_user_stats(user: dict, db):
         })
         
         # Archive to deleted_users_archive collection
+        # Stores identity info for admin reference — NO images
         archive_doc = {
-            "originalUsername": username,  # Store for reference
+            "originalUsername": username,
+            "firstName": user.get("firstName", ""),
+            "lastName": user.get("lastName", ""),
+            "birthMonth": user.get("birthMonth", ""),
+            "birthYear": user.get("birthYear", ""),
+            "contactNumber": user.get("contactNumber") or user.get("phone", ""),
+            "contactEmail": user.get("contactEmail") or user.get("email", ""),
+            "createdAt": created_at or "",
             "deletedAt": deleted_at.isoformat(),
             "deletionReason": user.get("deletionRequest", {}).get("reason", "Not specified"),
+            "accountStatus": user.get("accountStatus", ""),
             "accountAge": account_age_days,
             "activityStats": {
                 "totalMessages": total_messages,
@@ -138,7 +147,7 @@ async def archive_user_stats(user: dict, db):
         }
         
         await db.deleted_users_archive.insert_one(archive_doc)
-        logger.info(f"📊 Archived stats for {username}")
+        logger.info(f"📊 Archived profile + stats for {username}")
         
     except Exception as e:
         logger.warning(f"⚠️ Failed to archive stats for {user.get('username')}: {e}")
