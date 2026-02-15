@@ -247,7 +247,27 @@ const SearchFilters = ({
           </div>
         </div>
         
-        {/* Row 2: Location and Age Range */}
+        {/* Row 2: Occupation (Full Width) */}
+        <div className="col-occupation-basic" style={{ gridColumn: '1 / -1' }}>
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              Occupation
+              <Tooltip 
+                text="Filter by profession or career field. Select multiple options."
+                position="top"
+                icon 
+              />
+            </label>
+            <OccupationMultiSelect
+              options={occupationOptions}
+              selected={searchCriteria.occupations || []}
+              onChange={(selected) => handleInputChange({ target: { name: 'occupations', value: selected } })}
+              placeholder="Select professions..."
+            />
+          </div>
+        </div>
+        
+        {/* Row 3: Location and Age Range */}
         <div className="filter-row-location-age">
           <div className="col-location">
             <div className="form-group">
@@ -639,26 +659,6 @@ const SearchFilters = ({
                       <option key={option} value={option}>{option}</option>
                     ))}
                   </select>
-                </div>
-              </div>
-              
-              {/* Occupation Multi-Select */}
-              <div className="col-occupation-advanced" style={{ gridColumn: '1 / -1' }}>
-                <div className="form-group">
-                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    Occupation
-                    <Tooltip 
-                      text="Filter by profession or career field. Select multiple options."
-                      position="top"
-                      icon 
-                    />
-                  </label>
-                  <OccupationMultiSelect
-                    options={occupationOptions}
-                    selected={searchCriteria.occupations || []}
-                    onChange={(selected) => handleInputChange({ target: { name: 'occupations', value: selected } })}
-                    placeholder="Select professions..."
-                  />
                 </div>
               </div>
               
