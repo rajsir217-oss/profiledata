@@ -16,8 +16,7 @@ const OccupationMultiSelect = ({
   // Filter options based on search term
   useEffect(() => {
     const filtered = options.filter(option =>
-      option.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      !selected.includes(option)
+      option.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredOptions(filtered);
   }, [searchTerm, options, selected]);
@@ -55,6 +54,16 @@ const OccupationMultiSelect = ({
 
   const handleClearAll = () => {
     onChange([]);
+  };
+
+  const handleSelectAll = () => {
+    const allAvailableOptions = options.filter(option =>
+      !selected.includes(option) &&
+      option.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    const newSelected = [...selected, ...allAvailableOptions];
+    onChange(newSelected);
+    setSearchTerm('');
   };
 
   const displaySelected = selected.slice(0, maxVisible);
@@ -117,20 +126,50 @@ const OccupationMultiSelect = ({
           </div>
           
           <div className="occupation-options">
+            {/* Select All / Clear All actions */}
+            {filteredOptions.length > 0 && (
+              <div className="occupation-actions">
+                {selected.length > 0 && (
+                  <button
+                    type="button"
+                    className="occupation-action-btn occupation-clear-btn"
+                    onClick={handleClearAll}
+                  >
+                    Clear All
+                  </button>
+                )}
+                {filteredOptions.length > selected.length && (
+                  <button
+                    type="button"
+                    className="occupation-action-btn occupation-select-all-btn"
+                    onClick={handleSelectAll}
+                  >
+                    Select All {searchTerm ? `(${filteredOptions.length} matches)` : `(${filteredOptions.length})`}
+                  </button>
+                )}
+              </div>
+            )}
+            
             {filteredOptions.length === 0 ? (
               <div className="occupation-no-options">
                 {searchTerm ? 'No occupations found' : 'All occupations selected'}
               </div>
             ) : (
-              filteredOptions.map((option, index) => (
-                <div
-                  key={index}
-                  className="occupation-option"
-                  onClick={() => handleSelectOption(option)}
-                >
-                  {option}
-                </div>
-              ))
+              filteredOptions.map((option, index) => {
+                const isSelected = selected.includes(option);
+                return (
+                  <div
+                    key={index}
+                    className={`occupation-option ${isSelected ? 'occupation-option-selected' : ''}`}
+                    onClick={() => isSelected ? handleRemoveOption(option) : handleSelectOption(option)}
+                  >
+                    {option}
+                    {isSelected && (
+                      <span className="occupation-option-check">✓</span>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
         </div>
