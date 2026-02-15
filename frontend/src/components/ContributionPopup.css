@@ -456,22 +456,33 @@
   to { transform: rotate(360deg); }
 }
 
-/* Remind Button - Subtle Link */
+/* Remind Button - Solid Button */
 .contribution-remind-btn {
-  background: transparent;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+  color: white;
   border: none;
-  color: var(--text-muted);
-  font-size: 12px;
+  font-size: 14px;
   cursor: pointer;
-  padding: 6px;
-  transition: all 0.2s ease;
+  padding: 12px 24px;
+  border-radius: 12px;
+  transition: all 0.3s ease;
   text-decoration: none;
-  font-weight: 500;
+  font-weight: 700;
+  width: 100%;
+  text-align: center;
+  letter-spacing: 0.3px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .contribution-remind-btn:hover:not(:disabled) {
-  color: var(--primary-color);
-  text-decoration: underline;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+  filter: brightness(1.1);
+}
+
+.contribution-remind-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .contribution-remind-btn:disabled {
