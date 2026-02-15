@@ -4786,6 +4786,17 @@ async def search_users(
     
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
     logger.info(f"📋 FINAL QUERY before execution: {query}")
+    
+    # Log occupation-specific debug info
+    if occupation_list:
+        logger.info(f"🔍 OCCUPATION SEARCH DEBUG: Checking query results for occupations: {occupation_list}")
+        # Test the query without other conditions to see if occupation matching works
+        occ_test_query = {"$or": occupation_queries[0:2] if len(occupation_queries) >= 2 else occupation_queries}
+        logger.info(f"🔍 OCCUPATION TEST QUERY: {occ_test_query}")
+        occ_test_results = await db.users.find(occ_test_query).limit(5).to_list(None)
+        logger.info(f"🔍 OCCUPATION TEST RESULTS: Found {len(occ_test_results)} users")
+        for user in occ_test_results:
+            logger.info(f"   - {user.get('username', 'unknown')}: occupation='{user.get('occupation', 'N/A')}', status={user.get('status', 'N/A')}, accountStatus={user.get('accountStatus', 'N/A')}")
 
     try:
         # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
