@@ -4626,11 +4626,44 @@ async def search_users(
             occupation_queries = []
             for occ in occupation_list:
                 if occ.strip():
-                    occ_regex = re.escape(occ.strip())  # Escape regex special chars
-                    occupation_queries.extend([
-                        {"occupation": {"$regex": occ_regex, "$options": "i"}},
-                        {"workExperience.position": {"$regex": occ_regex, "$options": "i"}}
-                    ])
+                    occ_text = occ.strip()
+                    # Split into words for better matching
+                    words = occ_text.split()
+                    if len(words) > 1:
+                        # For multi-word searches, try both exact and individual word matches
+                        # Exact match first
+                        exact_regex = f".*{re.escape(occ_text)}.*"
+                        occupation_queries.extend([
+                            {"occupation": {"$regex": exact_regex, "$options": "i"}},
+                            {"workExperience.position": {"$regex": exact_regex, "$options": "i"}}
+                        ])
+                        
+                        # Then try matching key words (any can be present)
+                        # Focus on important words, skip common words
+                        skip_words = {'in', 'the', 'of', 'and', 'or', 'at', 'to', 'for'}
+                        key_words = [w for w in words if w.lower() not in skip_words and len(w) > 2]
+                        
+                        if key_words:
+                            # Build OR query for key words
+                            word_or_queries = []
+                            for word in key_words:
+                                word_regex = f".*{re.escape(word)}.*"
+                                word_or_queries.extend([
+                                    {"occupation": {"$regex": word_regex, "$options": "i"}},
+                                    {"workExperience.position": {"$regex": word_regex, "$options": "i"}}
+                                ])
+                            
+                            if word_or_queries:
+                                # Any key word can match (OR condition)
+                                word_query = {"$or": word_or_queries}
+                                occupation_queries.append(word_query)
+                    else:
+                        # Single word search
+                        single_regex = f".*{re.escape(occ_text)}.*"
+                        occupation_queries.extend([
+                            {"occupation": {"$regex": single_regex, "$options": "i"}},
+                            {"workExperience.position": {"$regex": single_regex, "$options": "i"}}
+                        ])
             
             if occupation_queries:
                 occupation_query = {"$or": occupation_queries}
