@@ -2007,9 +2007,18 @@ async def get_user_profile(
     user = await db.users.find_one(get_username_query(username))
     if not user:
         logger.warning(f"⚠️ Profile not found for username: {username}")
+        # For admins, check if the account was permanently deleted
+        if _is_admin_user(current_user):
+            archive = await db.deleted_users_archive.find_one({"originalUsername": {"$regex": f"^{re.escape(username)}$", "$options": "i"}})
+            if archive:
+                detail = f"This account ({username}) was permanently deleted on {archive.get('deletedAt', 'unknown date')}. Reason: {archive.get('deletionReason', 'Not specified')}."
+            else:
+                detail = f"User '{username}' not found in active users or deletion archive."
+        else:
+            detail = "User not found"
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
+            detail=detail
         )
     
     # Non-active profiles (except own) are not viewable by regular users
