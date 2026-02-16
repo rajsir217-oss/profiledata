@@ -15,6 +15,8 @@ from .conversation_cold_job import register_conversation_cold_job
 from .subscription_monitor_job import register_subscription_monitor_job
 from .login_reminder_job import register_login_reminder_job
 from .profile_completion_job import register_profile_completion_job
+from .batch_sms_processing_job import BatchSMSProcessingJob
+from .queue_cleanup_job import QueueCleanupJob
 
 
 class JobRegistry:
@@ -57,6 +59,35 @@ class JobRegistry:
             logger.info("✅ Registered profile_completion job")
         except Exception as e:
             logger.error(f"❌ Failed to register profile_completion job: {e}")
+        
+        # Phase 5: Performance optimization jobs
+        try:
+            batch_sms_job = {
+                "name": "batch_sms_processing",
+                "template": BatchSMSProcessingJob(),
+                "schedule": "*/5 * * * *",  # Every 5 minutes
+                "enabled": True,
+                "category": "performance",
+                "description": "Process SMS notifications in batches for better throughput"
+            }
+            self.register_job(batch_sms_job)
+            logger.info("✅ Registered batch_sms_processing job")
+        except Exception as e:
+            logger.error(f"❌ Failed to register batch_sms_processing job: {e}")
+        
+        try:
+            queue_cleanup_job = {
+                "name": "queue_cleanup",
+                "template": QueueCleanupJob(),
+                "schedule": "0 2 * * *",  # Daily at 2 AM
+                "enabled": True,
+                "category": "maintenance",
+                "description": "Clean up old and stale notifications"
+            }
+            self.register_job(queue_cleanup_job)
+            logger.info("✅ Registered queue_cleanup job")
+        except Exception as e:
+            logger.error(f"❌ Failed to register queue_cleanup job: {e}")
     
     def register_job(self, job_config: Dict[str, Any]):
         """Register a job configuration"""

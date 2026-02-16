@@ -2311,7 +2311,7 @@ async def get_user_profile(
     if not is_own_profile and requester_username:
         try:
             from services.event_dispatcher import get_event_dispatcher
-            event_dispatcher = get_event_dispatcher(db)
+            event_dispatcher = await get_event_dispatcher(db)
             
             await event_dispatcher.dispatch(
                 event_type="PROFILE_VIEWED",
@@ -2895,7 +2895,7 @@ async def update_user_profile(
         # Dispatch event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.PROFILE_UPDATED,
                 actor_username=username,
@@ -4141,7 +4141,7 @@ async def create_pii_access_request(
     # Dispatch PII request event for notifications
     try:
         from services.event_dispatcher import get_event_dispatcher
-        event_dispatcher = get_event_dispatcher(db)
+        event_dispatcher = await get_event_dispatcher(db)
         
         await event_dispatcher.dispatch(
             event_type="PII_REQUESTED",
@@ -4229,7 +4229,7 @@ async def respond_to_request(
     # Dispatch PII response event for notifications
     try:
         from services.event_dispatcher import get_event_dispatcher
-        event_dispatcher = get_event_dispatcher(db)
+        event_dispatcher = await get_event_dispatcher(db)
         
         # Get the original request to determine who to notify
         original_request = await db.access_requests.find_one({"_id": request_id})
@@ -5672,7 +5672,7 @@ async def add_to_favorites(
         # Dispatch event (handles notifications automatically - includes email + push)
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.FAVORITE_ADDED,
                 actor_username=username,
@@ -5710,7 +5710,7 @@ async def remove_from_favorites(
     # Dispatch event
     try:
         from services.event_dispatcher import get_event_dispatcher, UserEventType
-        dispatcher = get_event_dispatcher(db)
+        dispatcher = await get_event_dispatcher(db)
         await dispatcher.dispatch(
             event_type=UserEventType.FAVORITE_REMOVED,
             actor_username=username,
@@ -6103,7 +6103,7 @@ async def add_to_shortlist(
         # Dispatch event (handles notifications automatically)
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.SHORTLIST_ADDED,
                 actor_username=username,
@@ -6733,7 +6733,7 @@ async def add_to_exclusions(
     # Dispatch event (non-critical, fire-and-forget)
     try:
         from services.event_dispatcher import get_event_dispatcher, UserEventType
-        dispatcher = get_event_dispatcher(db)
+        dispatcher = await get_event_dispatcher(db)
         await dispatcher.dispatch(
             event_type=UserEventType.USER_EXCLUDED,
             actor_username=username,
@@ -7064,7 +7064,7 @@ async def remove_from_exclusions(
         # Dispatch event
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.USER_UNEXCLUDED,
                 actor_username=username,
@@ -7528,7 +7528,7 @@ async def send_message(
         # Dispatch event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.MESSAGE_SENT,
                 actor_username=from_username,
@@ -8117,7 +8117,7 @@ async def send_message_enhanced(
         # Dispatch message sent event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher
-            event_dispatcher = get_event_dispatcher(db)
+            event_dispatcher = await get_event_dispatcher(db)
             
             await event_dispatcher.dispatch(
                 event_type="MESSAGE_SENT",
@@ -8680,7 +8680,7 @@ async def remove_from_shortlist(target_username: str, username: str = Query(...)
         # Dispatch event
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.SHORTLIST_REMOVED,
                 actor_username=username,
@@ -9046,7 +9046,7 @@ async def track_profile_view(
             if new_count <= 3:  # Notify first 3 views only
                 try:
                     from services.event_dispatcher import get_event_dispatcher, UserEventType
-                    dispatcher = get_event_dispatcher(db)
+                    dispatcher = await get_event_dispatcher(db)
                     await dispatcher.dispatch(
                         event_type=UserEventType.PROFILE_VIEWED,
                         actor_username=profile_view.viewedByUsername,
@@ -9092,7 +9092,7 @@ async def track_profile_view(
             # Dispatch event for notifications (first view)
             try:
                 from services.event_dispatcher import get_event_dispatcher, UserEventType
-                dispatcher = get_event_dispatcher(db)
+                dispatcher = await get_event_dispatcher(db)
                 await dispatcher.dispatch(
                     event_type=UserEventType.PROFILE_VIEWED,
                     actor_username=profile_view.viewedByUsername,
@@ -9420,7 +9420,7 @@ async def create_pii_request(
         
         # Dispatch event to trigger notification
         from services.event_dispatcher import get_event_dispatcher, UserEventType
-        dispatcher = get_event_dispatcher(db)
+        dispatcher = await get_event_dispatcher(db)
         await dispatcher.dispatch(
             event_type=UserEventType.PII_REQUESTED,
             actor_username=username,
@@ -9687,7 +9687,7 @@ async def approve_pii_request(
         # Dispatch event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.PII_GRANTED,
                 actor_username=username,  # The granter
@@ -9752,7 +9752,7 @@ async def reject_pii_request(
         # Dispatch event for notifications
         try:
             from services.event_dispatcher import get_event_dispatcher, UserEventType
-            dispatcher = get_event_dispatcher(db)
+            dispatcher = await get_event_dispatcher(db)
             await dispatcher.dispatch(
                 event_type=UserEventType.PII_REJECTED,
                 actor_username=username,  # The rejecter

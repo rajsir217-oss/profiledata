@@ -82,10 +82,11 @@ class EventDispatcher:
     Handles all user events, publishes to Redis, queues notifications
     """
     
-    def __init__(self, db):
+    def __init__(self, db, cache_service=None):
         self.db = db
         self.redis = get_redis_manager()
-        self.notification_service = NotificationService(db)
+        self.cache_service = cache_service
+        self.notification_service = NotificationService(db, cache_service)
         
         # Event channel prefix
         self.EVENT_CHANNEL_PREFIX = "events:"
@@ -1245,9 +1246,13 @@ class EventDispatcher:
 _event_dispatcher = None
 
 
-def get_event_dispatcher(db) -> EventDispatcher:
+async def get_event_dispatcher(db, cache_service=None) -> EventDispatcher:
     """Get or create event dispatcher instance"""
     global _event_dispatcher
     if _event_dispatcher is None:
-        _event_dispatcher = EventDispatcher(db)
+        # Initialize cache service if not provided
+        if cache_service is None:
+            from services.notification_cache import get_notification_cache
+            cache_service = await get_notification_cache()
+        _event_dispatcher = EventDispatcher(db, cache_service)
     return _event_dispatcher
