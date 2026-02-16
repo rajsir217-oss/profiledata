@@ -1338,6 +1338,13 @@ const SearchPage2 = () => {
       // Server now handles: filtering, L3V3L scores via $lookup
       let filteredUsers = response.data.users || [];
       
+      // DEBUG: Log what profiles are actually returned
+      logger.info('🔍 DEBUG: Profiles returned from backend:', filteredUsers.map(u => ({
+        username: u.username,
+        firstName: u.firstName,
+        occupation: u.occupation
+      })));
+      
       // Check for excluded profile message (when profileId search returns no results due to exclusion)
       if (response.data.excludedProfileMessage) {
         setExcludedProfileMessage(response.data.excludedProfileMessage);
@@ -1363,6 +1370,14 @@ const SearchPage2 = () => {
         const serverReturnedFullPage = serverReturnedCount >= pageSize;
         const hasMore = serverReturnedFullPage && filteredUsers.length < total;
         setHasMoreResults(hasMore);
+        
+        // DEBUG: Log what profiles are being set in state
+        logger.info('🔍 DEBUG: Setting profiles in state:', filteredUsers.map(u => ({
+          username: u.username,
+          firstName: u.firstName,
+          occupation: u.occupation
+        })));
+        
         setUsers(filteredUsers);
         setCurrentPage(1);
         // Auto-select first profile in split view so right panel isn't blank

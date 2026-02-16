@@ -4622,52 +4622,23 @@ async def search_users(
         
         if occupation_list:
             logger.info(f"🔍 Processing occupation search for: {occupation_list}")
-            # Search in both occupation field and workExperience.position (case-insensitive)
+            # Search in both occupation field and workExperience.description (case-insensitive)
             occupation_queries = []
             for occ in occupation_list:
                 if occ.strip():
                     occ_text = occ.strip()
-                    # Split into words for better matching
-                    words = occ_text.split()
-                    if len(words) > 1:
-                        # For multi-word searches, try both exact and individual word matches
-                        # Exact match first
-                        exact_regex = f".*{re.escape(occ_text)}.*"
-                        occupation_queries.extend([
-                            {"occupation": {"$regex": exact_regex, "$options": "i"}},
-                            {"workExperience.position": {"$regex": exact_regex, "$options": "i"}}
-                        ])
-                        
-                        # Then try matching key words (any can be present)
-                        # Focus on important words, skip common words
-                        skip_words = {'in', 'the', 'of', 'and', 'or', 'at', 'to', 'for'}
-                        key_words = [w for w in words if w.lower() not in skip_words and len(w) > 2]
-                        
-                        if key_words:
-                            # Build OR query for key words
-                            word_or_queries = []
-                            for word in key_words:
-                                word_regex = f".*{re.escape(word)}.*"
-                                word_or_queries.extend([
-                                    {"occupation": {"$regex": word_regex, "$options": "i"}},
-                                    {"workExperience.position": {"$regex": word_regex, "$options": "i"}}
-                                ])
-                            
-                            if word_or_queries:
-                                # Any key word can match (OR condition)
-                                word_query = {"$or": word_or_queries}
-                                occupation_queries.append(word_query)
-                    else:
-                        # Single word search
-                        single_regex = f".*{re.escape(occ_text)}.*"
-                        occupation_queries.extend([
-                            {"occupation": {"$regex": single_regex, "$options": "i"}},
-                            {"workExperience.position": {"$regex": single_regex, "$options": "i"}}
-                        ])
+                    # For precise matching, use the full search term
+                    # This ensures "Marketing Manager" only matches "Marketing Manager", not just "Manager"
+                    exact_regex = f".*{occ_text}.*"
+                    occupation_queries.extend([
+                        {"occupation": {"$regex": exact_regex, "$options": "i"}},
+                        {"workExperience.description": {"$regex": exact_regex, "$options": "i"}},
+                        {"workExperience": {"$elemMatch": {"description": {"$regex": exact_regex, "$options": "i"}}}}
+                    ])
             
             if occupation_queries:
                 occupation_query = {"$or": occupation_queries}
-                logger.info(f"🔍 Occupation query built: {occupation_query}")
+                logger.info(f"🔍 Occupation query built (exact match only): {occupation_query}")
                 and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion
@@ -4796,6 +4767,29 @@ async def search_users(
         occ_test_results = await db.users.find(occ_test_query).limit(5).to_list(None)
         logger.info(f"🔍 OCCUPATION TEST RESULTS: Found {len(occ_test_results)} users")
         for user in occ_test_results:
+            logger.info(f"   - {user.get('username', 'unknown')}: occupation='{user.get('occupation', 'N/A')}', status={user.get('status', 'N/A')}, accountStatus={user.get('accountStatus', 'N/A')}")
+            # Show workExperience.description
+            work = user.get('workExperience', [])
+            for job in work:
+                desc = job.get('description', '')
+                if 'marketing' in desc.lower():
+                    logger.info(f"     -> workExperience.description: '{desc}'")
+        
+        # Test with status conditions to see what's filtering them out
+        logger.info(f"🔍 TESTING WITH STATUS CONDITIONS:")
+        status_test_query = {
+            "$and": [
+                {"$or": [
+                    {"accountStatus": "active"},
+                    {"status.status": "active"}
+                ]},
+                {"$or": occupation_queries[0:2] if len(occupation_queries) >= 2 else occupation_queries}
+            ]
+        }
+        logger.info(f"🔍 STATUS TEST QUERY: {status_test_query}")
+        status_test_results = await db.users.find(status_test_query).limit(5).to_list(None)
+        logger.info(f"🔍 STATUS TEST RESULTS: Found {len(status_test_results)} users")
+        for user in status_test_results:
             logger.info(f"   - {user.get('username', 'unknown')}: occupation='{user.get('occupation', 'N/A')}', status={user.get('status', 'N/A')}, accountStatus={user.get('accountStatus', 'N/A')}")
 
     try:
