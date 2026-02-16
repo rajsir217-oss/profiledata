@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getBackendUrl } from '../config/apiConfig';
 import './ContributionManagement.css';
+import './LoadMore.css';
 
 const ContributionManagement = () => {
   const navigate = useNavigate();
@@ -30,8 +31,13 @@ const ContributionManagement = () => {
     total: 0,
     totalPages: 0
   });
+    const [hasMoreContributions, setHasMoreContributions] = useState(true);
+  const [hasMoreActivities, setHasMoreActivities] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [filter, setFilter] = useState('all'); // all, one_time, recurring
   const [activityFilter, setActivityFilter] = useState('all'); // all, popup_shown, closed, remind_later, proceed_to_payment
+  const [userFilter, setUserFilter] = useState(''); // username filter
+  const [activityUserFilter, setActivityUserFilter] = useState(''); // username filter for activity
 
   useEffect(() => {
     const userRole = localStorage.getItem('userRole');
@@ -46,16 +52,23 @@ const ContributionManagement = () => {
       loadActivities();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate, filter, activeTab, activityFilter]);
+  }, [navigate, filter, activeTab, activityFilter, userFilter, activityUserFilter]);
 
-  const loadContributions = async (page = 1) => {
+  const loadContributions = async (page = 1, append = false) => {
     try {
-      setLoading(true);
+      if (!append) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       const token = localStorage.getItem('token');
       
-      let url = `${getBackendUrl()}/api/stripe/admin/contributions?page=${page}&limit=50`;
+      let url = `${getBackendUrl()}/api/stripe/admin/contributions?page=${page}&limit=20`;
       if (filter !== 'all') {
         url += `&payment_type=${filter}`;
+      }
+      if (userFilter && userFilter.trim()) {
+        url += `&username=${encodeURIComponent(userFilter.trim())}`;
       }
       
       const response = await axios.get(url, {
@@ -63,26 +76,43 @@ const ContributionManagement = () => {
       });
       
       if (response.data.success) {
-        setContributions(response.data.contributions);
-        setStats(response.data.stats);
+        if (append) {
+          setContributions(prev => [...prev, ...response.data.contributions]);
+        } else {
+          setContributions(response.data.contributions);
+          setStats(response.data.stats);
+        }
         setPagination(response.data.pagination);
+        
+        // Check if there are more rows to load
+        const currentPage = response.data.pagination.page;
+        const totalPages = response.data.pagination.totalPages;
+        setHasMoreContributions(currentPage < totalPages);
       }
     } catch (err) {
       console.error('Error loading contributions:', err);
       setError('Failed to load contributions');
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
-  const loadActivities = async (page = 1) => {
+  const loadActivities = async (page = 1, append = false) => {
     try {
-      setLoading(true);
+      if (!append) {
+        setLoading(true);
+      } else {
+        setIsLoadingMore(true);
+      }
       const token = localStorage.getItem('token');
       
-      let url = `${getBackendUrl()}/api/stripe/admin/contribution-activity?page=${page}&limit=50`;
+      let url = `${getBackendUrl()}/api/stripe/admin/contribution-activity?page=${page}&limit=20`;
       if (activityFilter !== 'all') {
         url += `&action_filter=${activityFilter}`;
+      }
+      if (activityUserFilter && activityUserFilter.trim()) {
+        url += `&username=${encodeURIComponent(activityUserFilter.trim())}`;
       }
       
       const response = await axios.get(url, {
@@ -90,15 +120,25 @@ const ContributionManagement = () => {
       });
       
       if (response.data.success) {
-        setActivities(response.data.activities);
-        setActivityStats(response.data.stats || {});
+        if (append) {
+          setActivities(prev => [...prev, ...response.data.activities]);
+        } else {
+          setActivities(response.data.activities);
+          setActivityStats(response.data.stats || {});
+        }
         setActivityPagination(response.data.pagination);
+        
+        // Check if there are more rows to load
+        const currentPage = response.data.pagination.page;
+        const totalPages = response.data.pagination.totalPages;
+        setHasMoreActivities(currentPage < totalPages);
       }
     } catch (err) {
       console.error('Error loading activities:', err);
       setError('Failed to load activity log');
     } finally {
       setLoading(false);
+      setIsLoadingMore(false);
     }
   };
 
@@ -206,6 +246,32 @@ const ContributionManagement = () => {
         </button>
       </div>
 
+      {/* User Filter - Only show for contributions tab */}
+      {activeTab === 'contributions' && (
+        <div className="user-filter-container">
+          <div className="filter-row">
+            <label htmlFor="user-filter" className="filter-label">Filter by User:</label>
+            <input
+              id="user-filter"
+              type="text"
+              className="user-filter-input"
+              placeholder="Enter username..."
+              value={userFilter}
+              onChange={(e) => setUserFilter(e.target.value)}
+            />
+            {userFilter && (
+              <button 
+                className="clear-filter-btn"
+                onClick={() => setUserFilter('')}
+                title="Clear user filter"
+              >
+                ×
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Filter Tabs - Only show for contributions tab */}
       {activeTab === 'contributions' && (
         <div className="filter-tabs">
@@ -227,6 +293,32 @@ const ContributionManagement = () => {
           >
             Recurring
           </button>
+        </div>
+      )}
+
+      {/* User Filter - Only show for activity tab */}
+      {activeTab === 'activity' && (
+        <div className="user-filter-container">
+          <div className="filter-row">
+            <label htmlFor="activity-user-filter" className="filter-label">Filter by User:</label>
+            <input
+              id="activity-user-filter"
+              type="text"
+              className="user-filter-input"
+              placeholder="Enter username..."
+              value={activityUserFilter}
+              onChange={(e) => setActivityUserFilter(e.target.value)}
+            />
+            {activityUserFilter && (
+              <button 
+                className="clear-filter-btn"
+                onClick={() => setActivityUserFilter('')}
+                title="Clear user filter"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
       )}
 
@@ -334,24 +426,38 @@ const ContributionManagement = () => {
             )}
           </div>
 
-          {/* Pagination */}
-          {pagination.totalPages > 1 && (
-            <div className="pagination">
-              <button 
-                disabled={pagination.page === 1}
-                onClick={() => loadContributions(pagination.page - 1)}
-              >
-                ← Previous
-              </button>
-              <span className="page-info">
-                Page {pagination.page} of {pagination.totalPages}
-              </span>
-              <button 
-                disabled={pagination.page >= pagination.totalPages}
-                onClick={() => loadContributions(pagination.page + 1)}
-              >
-                Next →
-              </button>
+          {/* Load More */}
+          {contributions.length > 0 && (
+            <div className="load-more-container">
+              <div className="load-more-content">
+                <div className="load-more-count">
+                  Showing {contributions.length} of {pagination.total} rows
+                </div>
+                {hasMoreContributions && (
+                  <button 
+                    className="load-more-button"
+                    onClick={() => loadContributions(pagination.page + 1, true)}
+                    disabled={isLoadingMore}
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <div className="load-more-spinner"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load {Math.min(20, pagination.total - contributions.length)} more [{contributions.length}/{pagination.total}]
+                      </>
+                    )}
+                  </button>
+                )}
+                
+                {!hasMoreContributions && contributions.length > 20 && (
+                  <div className="load-more-complete">
+                    ✓ All {pagination.total} records loaded
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>
@@ -421,24 +527,35 @@ const ContributionManagement = () => {
             )}
           </div>
 
-          {/* Activity Pagination */}
-          {activityPagination.totalPages > 1 && (
-            <div className="pagination">
-              <button 
-                disabled={activityPagination.page === 1}
-                onClick={() => loadActivities(activityPagination.page - 1)}
-              >
-                ← Previous
-              </button>
-              <span className="page-info">
-                Page {activityPagination.page} of {activityPagination.totalPages}
-              </span>
-              <button 
-                disabled={activityPagination.page >= activityPagination.totalPages}
-                onClick={() => loadActivities(activityPagination.page + 1)}
-              >
-                Next →
-              </button>
+          {/* Load More */}
+          {activities.length > 0 && (
+            <div className="load-more-container">
+              <div className="load-more-content">
+                {hasMoreActivities && (
+                  <button 
+                    className="load-more-button"
+                    onClick={() => loadActivities(activityPagination.page + 1, true)}
+                    disabled={isLoadingMore}
+                  >
+                    {isLoadingMore ? (
+                      <>
+                        <div className="load-more-spinner"></div>
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        Load {Math.min(20, activityPagination.total - activities.length)} more [{activities.length}/{activityPagination.total}]
+                      </>
+                    )}
+                  </button>
+                )}
+                
+                {!hasMoreActivities && activities.length > 20 && (
+                  <div className="load-more-complete">
+                    ✓ All {activityPagination.total} records loaded
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </>
