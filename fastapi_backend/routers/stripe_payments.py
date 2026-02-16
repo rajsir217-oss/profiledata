@@ -456,7 +456,8 @@ async def get_all_contributions(
     db: AsyncIOMotorDatabase = Depends(get_database),
     page: int = 1,
     limit: int = 50,
-    payment_type: Optional[str] = None
+    payment_type: Optional[str] = None,
+    username: Optional[str] = None
 ):
     """Get all contributions (admin only)"""
     if current_user.get("role") != "admin":
@@ -470,6 +471,10 @@ async def get_all_contributions(
             query["paymentType"] = "contribution_one_time"
         elif payment_type == "recurring":
             query["paymentType"] = "contribution_recurring"
+        
+        # Filter by username if provided
+        if username and username.strip():
+            query["username"] = username.strip()
         
         # Get total count
         total = await db.payments.count_documents(query)
@@ -571,7 +576,8 @@ async def get_contribution_activity(
     db: AsyncIOMotorDatabase = Depends(get_database),
     page: int = 1,
     limit: int = 50,
-    action_filter: Optional[str] = None
+    action_filter: Optional[str] = None,
+    username: Optional[str] = None
 ):
     """Get contribution popup activity log (admin only)"""
     if current_user.get("role") != "admin":
@@ -582,6 +588,10 @@ async def get_contribution_activity(
         query = {}
         if action_filter and action_filter != "all":
             query["action"] = action_filter
+        
+        # Filter by username if provided
+        if username and username.strip():
+            query["username"] = username.strip()
         
         # Get total count
         total = await db.contribution_activity.count_documents(query)
