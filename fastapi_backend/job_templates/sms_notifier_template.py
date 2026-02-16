@@ -377,6 +377,9 @@ class SMSNotifierTemplate(JobTemplate):
                 "support_response": "Support has responded to your ticket! Login to view.",
                 "profile_approved": "Your profile has been approved! Login to connect.",
                 "profile_rejected": "Profile update needed! Login to fix issues.",
+                "status_reactivated": "Your account has been reactivated! Login to access all features.",
+                "status_banned": "Your account has been banned. Contact support for details.",
+                "pii_revoked": "Your PII access has been revoked. Login to view details.",
             }
             
             message = trigger_messages.get(
