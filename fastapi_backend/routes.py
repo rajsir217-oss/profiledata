@@ -2306,6 +2306,27 @@ async def get_user_profile(
             user["contextError"] = str(context_err)
 
     logger.info(f"✅ Profile successfully retrieved for user '{username}' (PII masked: {user.get('piiMasked', False)})")
+    
+    # Dispatch profile view event if viewing someone else's profile
+    if not is_own_profile and requester_username:
+        try:
+            from services.event_dispatcher import get_event_dispatcher
+            event_dispatcher = get_event_dispatcher(db)
+            
+            await event_dispatcher.dispatch(
+                event_type="PROFILE_VIEWED",
+                actor_username=requester_username,
+                target_username=username,
+                metadata={
+                    "viewer_ip": request.client.host if request.client else "unknown",
+                    "user_agent": request.headers.get("user-agent", "unknown"),
+                    "timestamp": datetime.utcnow().isoformat()
+                }
+            )
+            logger.debug(f"📤 Dispatched profile_viewed event: {requester_username} → {username}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to dispatch profile_viewed event: {e}")
+    
     return user
 
 @router.put("/profile/{username}")
@@ -4116,6 +4137,26 @@ async def create_pii_access_request(
         raise HTTPException(status_code=400, detail=result['error'])
     
     logger.info(f"✅ Access request created: {requester} → {requested_user}")
+    
+    # Dispatch PII request event for notifications
+    try:
+        from services.event_dispatcher import get_event_dispatcher
+        event_dispatcher = get_event_dispatcher(db)
+        
+        await event_dispatcher.dispatch(
+            event_type="PII_REQUESTED",
+            actor_username=requester,
+            target_username=requested_user,
+            metadata={
+                "message": message,
+                "request_id": result.get("request_id"),
+                "pii_types": result.get("pii_types", [])
+            }
+        )
+        logger.debug(f"📤 Dispatched pii_requested event: {requester} → {requested_user}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to dispatch pii_requested event: {e}")
+    
     return result
 
 @router.get("/access-requests/{username}")
@@ -4184,6 +4225,34 @@ async def respond_to_request(
         raise HTTPException(status_code=400, detail=result['error'])
     
     logger.info(f"✅ Request {request_id} {response} by {responder}")
+    
+    # Dispatch PII response event for notifications
+    try:
+        from services.event_dispatcher import get_event_dispatcher
+        event_dispatcher = get_event_dispatcher(db)
+        
+        # Get the original request to determine who to notify
+        original_request = await db.access_requests.find_one({"_id": request_id})
+        if original_request:
+            requester = original_request.get("requesterId")
+            
+            # Map response to event type
+            event_type = "PII_GRANTED" if response == "approved" else "PII_DENIED"
+            
+            await event_dispatcher.dispatch(
+                event_type=event_type,
+                actor_username=responder,
+                target_username=requester,
+                metadata={
+                    "request_id": request_id,
+                    "response": response,
+                    "pii_types": original_request.get("pii_types", [])
+                }
+            )
+            logger.debug(f"📤 Dispatched {event_type.lower()} event: {responder} → {requester}")
+    except Exception as e:
+        logger.warning(f"⚠️ Failed to dispatch pii response event: {e}")
+    
     return result
 
 @router.delete("/profile/{username}")
@@ -8044,6 +8113,26 @@ async def send_message_enhanced(
             "is_read": message["isRead"]               # Changed to match frontend expectation
         }
         logger.info(f"✅ Enhanced message sent: {username} → {message_data.toUsername}")
+        
+        # Dispatch message sent event for notifications
+        try:
+            from services.event_dispatcher import get_event_dispatcher
+            event_dispatcher = get_event_dispatcher(db)
+            
+            await event_dispatcher.dispatch(
+                event_type="MESSAGE_SENT",
+                actor_username=username,
+                target_username=message_data.toUsername,
+                metadata={
+                    "message_preview": message_data.content[:50] + "..." if len(message_data.content) > 50 else message_data.content,
+                    "message_id": str(result.inserted_id),
+                    "is_visible": is_visible
+                }
+            )
+            logger.debug(f"📤 Dispatched message_sent event: {username} → {message_data.toUsername}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to dispatch message_sent event: {e}")
+        
         return {"message": "Message sent successfully", "data": message_response}
     except Exception as e:
         logger.error(f"❌ Error sending message: {e}", exc_info=True)
