@@ -613,7 +613,9 @@ async def update_user_status(
             update_data["adminApprovalStatus"] = "approved"
             update_data["adminApprovedBy"] = current_user.get("username")
             update_data["adminApprovedAt"] = now.isoformat()
-            logger.info(f"✅ Setting adminApprovalStatus='approved' for user '{username}' (activated by {current_user.get('username')})")
+            # Reset noPhotoLoginCount so user isn't immediately blocked again on login
+            update_data["noPhotoLoginCount"] = 0
+            logger.info(f"✅ Setting adminApprovalStatus='approved' + resetting noPhotoLoginCount for user '{username}' (activated by {current_user.get('username')})")
         
         # Update accountStatus (unified field)
         logger.info(f"🔧 Updating status for '{username}': {update_data}")

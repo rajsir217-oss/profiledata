@@ -1665,11 +1665,28 @@ async def login_user(login_data: LoginRequest, request: Request, db = Depends(ge
     logger.info(f"📸 Photo check for '{login_data.username}': has_photos={has_photos}, images={len(user_images) if user_images else 0}, role_name={user.get('role_name')}, is_privileged={is_privileged_user}")
     
     if not has_photos and not is_privileged_user:
-        current_count = user.get("noPhotoLoginCount", 0) + 1
+        # Check if admin has reactivated this user (accountStatus set back to 'active')
+        # If so, reset the noPhotoLoginCount to give them a fresh start
+        account_status = user.get("accountStatus", "")
+        deactivation_reason = user.get("deactivationReason", "")
+        
+        if account_status == "active" and deactivation_reason == "no_photo_limit_reached":
+            # Admin reactivated this user - reset counter and clear deactivation reason
+            logger.info(f"📸 User '{login_data.username}' was reactivated by admin - resetting noPhotoLoginCount")
+            await db.users.update_one(
+                get_username_query(login_data.username),
+                {"$set": {"noPhotoLoginCount": 0}, "$unset": {"deactivationReason": ""}}
+            )
+            user["noPhotoLoginCount"] = 0
+            current_count = 1  # Start fresh count
+        else:
+            current_count = user.get("noPhotoLoginCount", 0) + 1
+        
         update_fields = {"noPhotoLoginCount": current_count}
         
         if current_count >= NO_PHOTO_LOGIN_LIMIT:
-            update_fields["status"] = "inactive"
+            update_fields["accountStatus"] = "deactivated"
+            update_fields["status"] = {"status": "inactive", "updated_at": datetime.utcnow().isoformat()}
             update_fields["deactivationReason"] = "no_photo_limit_reached"
             logger.warning(f"🚫 User '{login_data.username}' deactivated: no photo after {current_count} logins")
         else:
