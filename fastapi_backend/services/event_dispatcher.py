@@ -549,7 +549,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target_username,
                 trigger="shortlist_added",
-                channels=["email"],
+                channels=["email", "push"],  # Add push for immediate notification
                 template_data={
                     "match": {  # Use 'match' key for consistency with templates
                         "firstName": actor.get("firstName", actor_username),
@@ -626,7 +626,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="profile_view",
-                channels=["push"],  # Low priority - push only
+                channels=["push"],  # Low priority - push only (no SMS for profile views)
                 template_data={
                     "match": {
                         "firstName": viewer.get("firstName", actor) if viewer else actor,
@@ -687,7 +687,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,  # Notify the original sender
                 trigger="message_read",
-                channels=["push"],  # Low priority - push only
+                channels=["push"],  # Low priority - push only (no SMS for read receipts)
                 template_data={
                     "match": {
                         "firstName": reader_name,
@@ -843,7 +843,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="pii_granted",
-                channels=["email", "push"],
+                channels=["email", "push", "sms"],  # Add SMS for important contact info
                 template_data=template_data,
                 priority="high"
             )
@@ -865,7 +865,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger="pii_rejected",
-                channels=["email"],
+                channels=["email", "push", "sms"],  # Add SMS for important contact info
                 template_data={
                     "recipient": {"firstName": recipient_firstName, "username": target},
                     "recipient_firstName": recipient_firstName,
@@ -906,7 +906,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email"],
+                channels=["email", "push", "sms"],  # Add SMS for important account status
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
@@ -939,7 +939,7 @@ class EventDispatcher:
             await self.notification_service.queue_notification(
                 username=target,
                 trigger=trigger,
-                channels=["email"],
+                channels=["email", "push", "sms"],  # Add SMS for important account status
                 template_data={
                     "username": target,
                     "profileId": metadata.get("profileId", ""),
