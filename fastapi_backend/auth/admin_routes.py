@@ -581,12 +581,31 @@ async def update_user_status(
         
         # Prepare update data
         now = datetime.utcnow()
-        update_data = {
-            "accountStatus": new_account_status,
-            "status.updated_by": current_user.get("username"),  # Track who made change
-            "status.updated_at": now,
-            "updated_at": now
-        }
+        
+        # Check if status field is a string or object
+        # If it's a string (e.g. "inactive"), we must replace the whole field, not use dot notation
+        current_status_field = user.get('status')
+        if isinstance(current_status_field, str) or current_status_field is None:
+            # status is a plain string or missing - replace with proper object
+            update_data = {
+                "accountStatus": new_account_status,
+                "status": {
+                    "status": new_account_status,
+                    "updated_by": current_user.get("username"),
+                    "updated_at": now
+                },
+                "updated_at": now
+            }
+            logger.info(f"🔧 Status field is string/None ('{current_status_field}'), replacing with object")
+        else:
+            # status is already an object - use dot notation safely
+            update_data = {
+                "accountStatus": new_account_status,
+                "status.status": new_account_status,
+                "status.updated_by": current_user.get("username"),
+                "status.updated_at": now,
+                "updated_at": now
+            }
         
         # CRITICAL FIX: When setting status to 'active', also approve admin approval
         # This prevents mismatch between accountStatus and adminApprovalStatus
@@ -598,6 +617,50 @@ async def update_user_status(
         
         # Update accountStatus (unified field)
         logger.info(f"🔧 Updating status for '{username}': {update_data}")
+        
+        # Check if status is already the same
+        current_account_status = user.get('accountStatus')
+        # Handle both string and object status fields
+        raw_status = user.get('status')
+        if isinstance(raw_status, dict):
+            current_nested_status = raw_status.get('status')
+        elif isinstance(raw_status, str):
+            current_nested_status = raw_status
+        else:
+            current_nested_status = None
+        
+        # Status already matches if accountStatus equals the desired value
+        statuses_already_match = (current_account_status == new_account_status)
+        
+        if statuses_already_match:
+            logger.info(f"✅ Status for '{username}' is already set to desired values - no update needed")
+            # Still log audit event for consistency
+            await db.audit_logs.insert_one({
+                "user_id": str(user["_id"]),
+                "username": username,
+                "action": "status_change",
+                "resource": "user",
+                "resource_id": str(user["_id"]),
+                "status": "success",
+                "details": {
+                    "old_status": current_account_status or current_nested_status,
+                    "new_status": request.status,
+                    "performed_by": current_user.get("username"),
+                    "note": "Status already set to desired value"
+                },
+                "timestamp": datetime.utcnow(),
+                "severity": "info"
+            })
+            
+            return {
+                "message": f"Status for '{username}' is already set to '{request.status}'",
+                "username": username,
+                "old_status": current_account_status or current_nested_status,
+                "new_status": request.status,
+                "already_set": True
+            }
+        
+        # Proceed with update if statuses are different
         result = await db.users.update_one(
             {"username": username},
             {"$set": update_data}
@@ -606,20 +669,12 @@ async def update_user_status(
         logger.info(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
         
         if result.modified_count == 0:
-            # Check if user exists and get current data for debugging
-            current_user_data = await db.users.find_one({"username": username})
-            if current_user_data:
-                logger.error(f"❌ Status update failed for '{username}' - no changes made")
-                logger.error(f"   Current accountStatus: {current_user_data.get('accountStatus')}")
-                logger.error(f"   Current status.status: {current_user_data.get('status', {}).get('status')}")
-                logger.error(f"   Attempted update: {update_data}")
-                raise HTTPException(
-                    status_code=400, 
-                    detail=f"Failed to update status - user may already have this status. Current: {current_user_data.get('accountStatus') or current_user_data.get('status', {}).get('status')}"
-                )
-            else:
-                logger.error(f"❌ Status update failed for '{username}' - user not found after initial check")
-                raise HTTPException(status_code=404, detail="User not found")
+            # If still no modification after we confirmed different values, there's an issue
+            logger.error(f"❌ Status update failed for '{username}' - unexpected no modification")
+            raise HTTPException(
+                status_code=500, 
+                detail="Unexpected error: Status update failed despite different values"
+            )
         
         # Log audit event
         await db.audit_logs.insert_one({
