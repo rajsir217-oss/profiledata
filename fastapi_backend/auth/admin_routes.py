@@ -597,13 +597,29 @@ async def update_user_status(
             logger.info(f"✅ Setting adminApprovalStatus='approved' for user '{username}' (activated by {current_user.get('username')})")
         
         # Update accountStatus (unified field)
+        logger.info(f"🔧 Updating status for '{username}': {update_data}")
         result = await db.users.update_one(
             {"username": username},
             {"$set": update_data}
         )
         
+        logger.info(f"📊 Update result: matched={result.matched_count}, modified={result.modified_count}")
+        
         if result.modified_count == 0:
-            raise HTTPException(status_code=400, detail="Failed to update status")
+            # Check if user exists and get current data for debugging
+            current_user_data = await db.users.find_one({"username": username})
+            if current_user_data:
+                logger.error(f"❌ Status update failed for '{username}' - no changes made")
+                logger.error(f"   Current accountStatus: {current_user_data.get('accountStatus')}")
+                logger.error(f"   Current status.status: {current_user_data.get('status', {}).get('status')}")
+                logger.error(f"   Attempted update: {update_data}")
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Failed to update status - user may already have this status. Current: {current_user_data.get('accountStatus') or current_user_data.get('status', {}).get('status')}"
+                )
+            else:
+                logger.error(f"❌ Status update failed for '{username}' - user not found after initial check")
+                raise HTTPException(status_code=404, detail="User not found")
         
         # Log audit event
         await db.audit_logs.insert_one({
