@@ -29,12 +29,13 @@ from models.notification_models import (
 class NotificationService:
     """Service for managing notifications"""
     
-    def __init__(self, db: Database):
+    def __init__(self, db: Database, cache_service=None):
         self.db = db
         self.preferences_collection = db.notification_preferences
         self.queue_collection = db.notification_queue
         self.log_collection = db.notification_log
         self.templates_collection = db.notification_templates
+        self.cache_service = cache_service
         
     # ============================================
     # Preferences Management
@@ -42,6 +43,13 @@ class NotificationService:
     
     async def get_preferences(self, username: str) -> Optional[NotificationPreferences]:
         """Get user notification preferences"""
+        # Try cache first if available
+        if self.cache_service:
+            cached_prefs = await self.cache_service.get_user_preferences(username, self.db)
+            if cached_prefs:
+                return NotificationPreferences(**cached_prefs)
+        
+        # Fallback to database
         prefs = await self.preferences_collection.find_one({"username": username})
         if not prefs:
             # Return default preferences
@@ -712,18 +720,40 @@ class NotificationService:
             if not rate_limit:
                 continue
             
-            # Count recent notifications
-            period_start = self._get_period_start(rate_limit.period)
-            count = await self.log_collection.count_documents({
-                "username": username,
-                "channel": channel,
-                "createdAt": {"$gte": period_start}
-            })
-            
-            if count >= rate_limit.max:
-                return False
+            # Use cache-based rate limiting if available
+            if self.cache_service:
+                window_seconds = self._get_period_seconds(rate_limit.period)
+                allowed = await self.cache_service.check_rate_limit(
+                    username, 
+                    channel.value, 
+                    rate_limit.max, 
+                    window_seconds
+                )
+                if not allowed:
+                    return False
+            else:
+                # Fallback to database-based rate limiting
+                period_start = self._get_period_start(rate_limit.period)
+                count = await self.log_collection.count_documents({
+                    "username": username,
+                    "channel": channel,
+                    "createdAt": {"$gte": period_start}
+                })
+                
+                if count >= rate_limit.max:
+                    return False
         
         return True
+    
+    def _get_period_seconds(self, period: str) -> int:
+        """Get period in seconds for rate limiting"""
+        if period == "hourly":
+            return 3600
+        elif period == "daily":
+            return 86400
+        elif period == "weekly":
+            return 604800
+        return 3600  # Default to hourly
     
     def _get_period_start(self, period: str) -> datetime:
         """Get start time for rate limit period"""
