@@ -326,62 +326,62 @@ class SMSNotifierTemplate(JobTemplate):
                 # Contact Info Requests
                 "pending_pii_request": f"{requester_name} requested your contact info! Login to respond.",
                 "pii_request": f"{requester_name} requested your contact info! Login to respond.",
-                "pii_granted": "Your contact info request was approved! Login to L3V3LMATCHES.com to view.",
-                "pii_denied": "Your contact info request was declined. Login to L3V3LMATCHES.com for details.",
+                "pii_granted": "Your contact info request was approved! Login to view.",
+                "pii_denied": "Your contact info request was declined. Login for details.",
                 
                 # Messaging
-                "new_message": "You have a new message! Login to L3V3LMATCHES.com to read it.",
-                "unread_messages": "You have unread messages waiting! Login to L3V3LMATCHES.com",
+                "new_message": "You have a new message! Login to read it.",
+                "unread_messages": "You have unread messages waiting! Login to catch up.",
                 "conversation_cold": "Your conversation is getting cold! Send a message to rekindle the connection.",
-                "message_reminder": "You have an unread message! Login to L3V3LMATCHES.com to respond.",
+                "message_reminder": "You have an unread message! Login to respond.",
                 
                 # Profile Interactions
-                "profile_view": "Someone viewed your profile! Login to L3V3LMATCHES.com to see who.",
-                "profile_view_multiple": "Multiple people viewed your profile! Login to L3V3LMATCHES.com to see who.",
-                "profile_complete": "Complete your profile to get better matches! Login to L3V3LMATCHES.com",
-                "photo_upload_reminder": "Add photos to get 10x more responses! Login to L3V3LMATCHES.com",
+                "profile_view": "Someone viewed your profile! Login to see who.",
+                "profile_view_multiple": "Multiple people viewed your profile! Login to see who.",
+                "profile_complete": "Complete your profile to get better matches! Login now.",
+                "photo_upload_reminder": "Add photos to get 10x more responses! Login to upload.",
                 
                 # Matching & Favorites
-                "new_match": "You have a new match! Login to L3V3LMATCHES.com to connect.",
-                "mutual_favorite": "It's a match! You both favorited each other. Login to L3V3LMATCHES.com",
-                "shortlist_added": "Someone added you to their shortlist! Login to L3V3LMATCHES.com",
-                "favorited": "Someone favorited your profile! Login to L3V3LMATCHES.com to see who.",
-                "daily_matches": "New daily matches waiting! Login to L3V3LMATCHES.com to view them.",
-                "smart_matches": "Smart matches found! Login to L3V3LMATCHES.com to connect.",
+                "new_match": "You have a new match! Login to connect.",
+                "mutual_favorite": "It's a match! You both favorited each other! Login to connect.",
+                "shortlist_added": "Someone added you to their shortlist! Login to see who.",
+                "favorited": "Someone favorited your profile! Login to see who.",
+                "daily_matches": "New daily matches waiting! Login to view them.",
+                "smart_matches": "Smart matches found! Login to connect.",
                 
                 # Subscription & Premium
-                "subscription_expired": "Your subscription has expired! Login to L3V3LMATCHES.com to renew.",
+                "subscription_expired": "Your subscription has expired! Login to renew.",
                 "subscription_renewal": "Your subscription will renew soon! Login to manage settings.",
-                "premium_feature": "Unlock premium features! Login to L3V3LMATCHES.com to upgrade.",
-                "trial_ending": "Your free trial ends soon! Login to L3V3LMATCHES.com to subscribe.",
+                "premium_feature": "Unlock premium features! Login to upgrade.",
+                "trial_ending": "Your free trial ends soon! Login to subscribe.",
                 
                 # Activity & Engagement
-                "login_reminder": "We miss you! Login to L3V3LMATCHES.com to see new matches.",
-                "weekly_summary": "You have new activity this week! Login to L3V3LMATCHES.com to view.",
-                "success_story": "Inspiring success story! Login to L3V3LMATCHES.com to read it.",
-                "event_invite": "Upcoming matchmaking event! Login to L3V3LMATCHES.com to RSVP.",
+                "login_reminder": "We miss you! Login to see new matches.",
+                "weekly_summary": "You have new activity this week! Login to view.",
+                "success_story": "Inspiring success story! Login to read it.",
+                "event_invite": "Upcoming matchmaking event! Login to RSVP.",
                 
                 # Safety & Verification
                 "verify_email": "Please verify your email address! Check your inbox for link.",
-                "verify_phone": "Verify your phone number for better security! Login to L3V3LMATCHES.com",
-                "safety_tip": "New safety tip available! Login to L3V3LMATCHES.com to read it.",
-                "account_suspended": "Account action required! Login to L3V3LMATCHES.com for details.",
+                "verify_phone": "Verify your phone number for better security! Login to verify.",
+                "safety_tip": "New safety tip available! Login to read it.",
+                "account_suspended": "Account action required! Login for details.",
                 
                 # Contributions & Donations
-                "contribution_reminder": "Support our platform! Login to L3V3LMATCHES.com to contribute.",
+                "contribution_reminder": "Support our platform! Login to contribute.",
                 "contribution_thank_you": "Thank you for your contribution! Your support helps us grow.",
-                "popup_shown": "Check out our premium features! Login to L3V3LMATCHES.com to learn more.",
+                "popup_shown": "Check out our premium features! Login to learn more.",
                 
                 # Admin & Support
-                "admin_message": "Important message from admin! Login to L3V3LMATCHES.com to read.",
-                "support_response": "Support has responded to your ticket! Login to L3V3LMATCHES.com",
-                "profile_approved": "Your profile has been approved! Login to L3V3LMATCHES.com to connect.",
-                "profile_rejected": "Profile update needed! Login to L3V3LMATCHES.com to fix issues.",
+                "admin_message": "Important message from admin! Login to read.",
+                "support_response": "Support has responded to your ticket! Login to view.",
+                "profile_approved": "Your profile has been approved! Login to connect.",
+                "profile_rejected": "Profile update needed! Login to fix issues.",
             }
             
             message = trigger_messages.get(
                 notification.trigger,
-                "You have a new notification! Login to L3V3LMATCHES.com"
+                "You have a new notification! Login to view"
             )
             message = f"{PREFIX}{message}"
         else:
