@@ -191,7 +191,7 @@ class EmailNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly, not dict()
                         NotificationChannel.EMAIL,
-                        success=True
+                        status="success"
                     )
                     
                     # Log notification with lineage tracking
@@ -212,7 +212,7 @@ class EmailNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly
                         NotificationChannel.EMAIL,
-                        success=False,
+                        status="failed",
                         error=str(e)
                     )
                     failed_count += 1
