@@ -120,7 +120,7 @@ async def send_day7_reminder(user: dict, scheduled_date: datetime, notification_
         channel="email",
         title="23 Days Left - Your L3V3L Account Will Be Deleted",
         message=message,
-        metadata={"scheduled_date": scheduled_date.isoformat()}
+        details={"scheduled_date": scheduled_date.isoformat()}
     )
 
 
@@ -158,7 +158,7 @@ async def send_day23_warning(user: dict, scheduled_date: datetime, notification_
         channel="email",
         title="⚠️ FINAL WARNING: 7 Days Until Permanent Deletion",
         message=message,
-        metadata={"scheduled_date": scheduled_date.isoformat()}
+        details={"scheduled_date": scheduled_date.isoformat()}
     )
 
 
