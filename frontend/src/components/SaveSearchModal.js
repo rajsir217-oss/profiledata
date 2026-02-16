@@ -64,6 +64,12 @@ const SaveSearchModal = ({
       }
       parts.push(heightRange);
       
+      // Occupation filter
+      const occupation = criteria.occupation || criteria.occupations || '';
+      const occupationText = occupation ? 
+        (occupation.includes(',') ? occupation.split(',')[0].trim() : occupation) : '';
+      parts.push(occupationText);
+      
       // Days back filter
       const daysBack = criteria.daysBack || '';
       parts.push(daysBack ? `${daysBack}d` : '');
@@ -125,8 +131,8 @@ const SaveSearchModal = ({
     }
     
     if (show && activeTab === 'save') {
-      // Generate search name in format: gender|minage-maxage|minheight-maxheight|l3v3lscore|uniquenumber
-      // Example: M|19-77|5'6-5'9|55|001
+      // Generate search name in format: gender|minage-maxage|minheight-maxheight|occupation|daysback|l3v3lscore|uniquenumber
+      // Example: M|19-77|5'6-5'9|Marketing Manager|7d|55|001
       
       const parts = [];
       
@@ -158,6 +164,13 @@ const SaveSearchModal = ({
         heightRange = `<${maxFt}'${maxIn}`;
       }
       parts.push(heightRange);
+      
+      // Occupation filter
+      const occupation = currentCriteria.occupation || currentCriteria.occupations || '';
+      // Handle both single occupation and comma-separated occupations
+      const occupationText = occupation ? 
+        (occupation.includes(',') ? occupation.split(',')[0].trim() : occupation) : '';
+      parts.push(occupationText);
       
       // Days back filter
       const daysBack = currentCriteria.daysBack || '';
