@@ -109,6 +109,7 @@ class EventDispatcher:
         
         # Exclusions
         self.register_handler(UserEventType.USER_EXCLUDED, self._handle_user_excluded)
+        self.register_handler(UserEventType.USER_UNEXCLUDED, self._handle_user_unexcluded)
         
         # Profile
         self.register_handler(UserEventType.PROFILE_VIEWED, self._handle_profile_viewed)
@@ -122,12 +123,20 @@ class EventDispatcher:
         self.register_handler(UserEventType.PII_REQUESTED, self._handle_pii_requested)
         self.register_handler(UserEventType.PII_GRANTED, self._handle_pii_granted)
         self.register_handler(UserEventType.PII_REJECTED, self._handle_pii_rejected)
+        self.register_handler(UserEventType.PII_REVOKED, self._handle_pii_revoked)
         
         # Admin actions
         self.register_handler(UserEventType.USER_APPROVED, self._handle_user_approved)
         self.register_handler(UserEventType.USER_SUSPENDED, self._handle_user_suspended)
+        self.register_handler(UserEventType.USER_UNSUSPENDED, self._handle_user_unsuspended)
         self.register_handler(UserEventType.USER_BANNED, self._handle_user_banned)
+        self.register_handler(UserEventType.USER_UNBANNED, self._handle_user_unbanned)
         self.register_handler(UserEventType.USER_PAUSED, self._handle_user_paused)
+        
+        # Account Activity
+        self.register_handler(UserEventType.USER_LOGGED_IN, self._handle_user_logged_in)
+        self.register_handler(UserEventType.USER_LOGGED_OUT, self._handle_user_logged_out)
+        self.register_handler(UserEventType.PROFILE_UPDATED, self._handle_profile_updated)
         
         # Security
         self.register_handler(UserEventType.SUSPICIOUS_LOGIN, self._handle_suspicious_login)
@@ -1114,6 +1123,122 @@ class EventDispatcher:
         except Exception as e:
             logger.error(f"❌ Error checking mutual favorite: {e}")
             return False
+    
+    # ============================================
+    # MISSING EVENT HANDLERS (Phase 4)
+    # ============================================
+    
+    async def _handle_user_unexcluded(self, event_data: Dict):
+        """Handle user_unexcluded event - No notification (privacy)"""
+        logger.info(f"🔓 User unexcluded: {event_data.get('actor')} unexcluded {event_data.get('target')}")
+    
+    async def _handle_user_unsuspended(self, event_data: Dict):
+        """Handle user_unsuspended event"""
+        try:
+            target = event_data.get("target")
+            metadata = event_data.get("metadata", {})
+            lineage_token = metadata.get("lineage_token")
+            trigger = metadata.get("notification_trigger", "status_reactivated")
+            
+            # Get user's names using consistent helper
+            firstname, lastname, full_name = await self._get_user_names(target, metadata)
+            
+            await self.notification_service.queue_notification(
+                username=target,
+                trigger=trigger,
+                channels=["email", "push", "sms"],  # Add SMS for important account status
+                template_data={
+                    "username": target,
+                    "profileId": metadata.get("profileId", ""),
+                    "firstname": firstname,
+                    "lastname": lastname,
+                    "full_name": full_name,
+                    "status": "active",
+                    "old_status": "suspended",
+                    "message": "Your account has been reactivated! You now have full access to all features again."
+                },
+                priority="high",
+                lineage_token=lineage_token
+            )
+            logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
+            
+        except Exception as e:
+            logger.error(f"❌ Error handling user_unsuspended: {e}", exc_info=True)
+    
+    async def _handle_user_unbanned(self, event_data: Dict):
+        """Handle user_unbanned event"""
+        try:
+            target = event_data.get("target")
+            metadata = event_data.get("metadata", {})
+            lineage_token = metadata.get("lineage_token")
+            trigger = metadata.get("notification_trigger", "status_reactivated")
+            
+            # Get user's names using consistent helper
+            firstname, lastname, full_name = await self._get_user_names(target, metadata)
+            
+            await self.notification_service.queue_notification(
+                username=target,
+                trigger=trigger,
+                channels=["email", "push", "sms"],  # Add SMS for important account status
+                template_data={
+                    "username": target,
+                    "profileId": metadata.get("profileId", ""),
+                    "firstname": firstname,
+                    "lastname": lastname,
+                    "full_name": full_name,
+                    "status": "active",
+                    "old_status": "banned",
+                    "message": "Your account has been unbanned and you can now access all features."
+                },
+                priority="high",
+                lineage_token=lineage_token
+            )
+            logger.info(f"📧 Queued '{trigger}' notification for {target} (lineage: {lineage_token})")
+            
+        except Exception as e:
+            logger.error(f"❌ Error handling user_unbanned: {e}", exc_info=True)
+    
+    async def _handle_user_logged_in(self, event_data: Dict):
+        """Handle user_logged_in event - No notification (routine activity)"""
+        logger.debug(f"🔑 User logged in: {event_data.get('actor')}")
+    
+    async def _handle_user_logged_out(self, event_data: Dict):
+        """Handle user_logged_out event - No notification (routine activity)"""
+        logger.debug(f"🔓 User logged out: {event_data.get('actor')}")
+    
+    async def _handle_profile_updated(self, event_data: Dict):
+        """Handle profile_updated event - No notification (routine activity)"""
+        logger.debug(f"📝 Profile updated: {event_data.get('actor')}")
+    
+    async def _handle_pii_revoked(self, event_data: Dict):
+        """Handle pii_revoked event"""
+        try:
+            target = event_data.get("target")  # The person whose access was revoked
+            actor = event_data.get("actor")  # The person who revoked access
+            
+            # Get names for both parties
+            target_name, _, _ = await self._get_user_names(target)
+            revoker_name, _, _ = await self._get_user_names(actor) if actor else ("Admin", "", "Admin")
+            
+            await self.notification_service.queue_notification(
+                username=target,
+                trigger="pii_revoked",
+                channels=["email", "push", "sms"],  # Add SMS for important PII changes
+                template_data={
+                    "recipient": {"firstName": target_name, "username": target},
+                    "recipient_firstName": target_name,
+                    "match_firstName": revoker_name,
+                    "match": {
+                        "firstName": revoker_name,
+                        "profileId": ""  # Revoker profileId not exposed for privacy
+                    }
+                },
+                priority="high"
+            )
+            logger.info(f"📧 Queued 'pii_revoked' notification for {target}")
+            
+        except Exception as e:
+            logger.error(f"❌ Error handling pii_revoked: {e}", exc_info=True)
 
 
 # Global instance
