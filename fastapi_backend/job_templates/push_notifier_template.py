@@ -161,13 +161,14 @@ class PushNotifierTemplate(JobTemplate):
                     
                     # User-friendly fallback messages for each trigger type
                     trigger_messages = {
+                        # Contact Info Requests
                         "pending_pii_request": {
                             "title": "{match_firstName} requested your contact info",
-                            "body": "Login to L3V3LMATCHES.com to respond"
+                            "body": "Login to respond"
                         },
                         "pii_request": {
                             "title": "{match_firstName} requested your contact info",
-                            "body": "Login to L3V3LMATCHES.com to respond"
+                            "body": "Login to respond"
                         },
                         "pii_granted": {
                             "title": "Your contact request was approved!",
@@ -177,6 +178,8 @@ class PushNotifierTemplate(JobTemplate):
                             "title": "Contact request update",
                             "body": "Login to L3V3LMATCHES.com for details"
                         },
+                        
+                        # Messaging
                         "new_message": {
                             "title": "You have a new message!",
                             "body": "Login to L3V3LMATCHES.com to read it"
@@ -185,12 +188,36 @@ class PushNotifierTemplate(JobTemplate):
                             "title": "You have unread messages",
                             "body": "Login to L3V3LMATCHES.com to catch up"
                         },
+                        "conversation_cold": {
+                            "title": "Rekindle the conversation! 💬",
+                            "body": "Send a message to keep the connection going"
+                        },
+                        "message_reminder": {
+                            "title": "Unread message waiting!",
+                            "body": "Login to L3V3LMATCHES.com to respond"
+                        },
+                        
+                        # Profile Interactions
                         "profile_view": {
-                            "title": "Someone viewed your profile!",
+                            "title": "Someone viewed your profile! 👀",
                             "body": "Login to L3V3LMATCHES.com to see who"
                         },
+                        "profile_view_multiple": {
+                            "title": "Multiple profile views!",
+                            "body": "People are checking you out! Login to see who"
+                        },
+                        "profile_complete": {
+                            "title": "Complete your profile! 📝",
+                            "body": "Get better matches by completing your profile"
+                        },
+                        "photo_upload_reminder": {
+                            "title": "Add photos to get 10x more responses! 📸",
+                            "body": "Upload photos to increase your match rate"
+                        },
+                        
+                        # Matching & Favorites
                         "new_match": {
-                            "title": "You have a new match!",
+                            "title": "You have a new match! 💕",
                             "body": "Login to L3V3LMATCHES.com to connect"
                         },
                         "mutual_favorite": {
@@ -198,12 +225,106 @@ class PushNotifierTemplate(JobTemplate):
                             "body": "You both favorited each other! Login to connect"
                         },
                         "shortlist_added": {
-                            "title": "Someone shortlisted you!",
+                            "title": "Someone shortlisted you! ⭐",
                             "body": "Login to L3V3LMATCHES.com to see who"
                         },
                         "favorited": {
-                            "title": "Someone favorited your profile!",
+                            "title": "Someone favorited your profile! ❤️",
                             "body": "Login to L3V3LMATCHES.com to see who"
+                        },
+                        "daily_matches": {
+                            "title": "New daily matches! 🌅",
+                            "body": "Login to L3V3LMATCHES.com to view them"
+                        },
+                        "smart_matches": {
+                            "title": "Smart matches found! 🎯",
+                            "body": "AI found compatible matches for you!"
+                        },
+                        
+                        # Subscription & Premium
+                        "subscription_expired": {
+                            "title": "Subscription expired! ⏰",
+                            "body": "Login to L3V3LMATCHES.com to renew"
+                        },
+                        "subscription_renewal": {
+                            "title": "Subscription renewal soon",
+                            "body": "Login to manage your subscription settings"
+                        },
+                        "premium_feature": {
+                            "title": "Unlock premium features! 👑",
+                            "body": "Login to L3V3LMATCHES.com to upgrade"
+                        },
+                        "trial_ending": {
+                            "title": "Free trial ending soon! ⏰",
+                            "body": "Login to L3V3LMATCHES.com to subscribe"
+                        },
+                        
+                        # Activity & Engagement
+                        "login_reminder": {
+                            "title": "We miss you! 👋",
+                            "body": "Login to L3V3LMATCHES.com to see new matches"
+                        },
+                        "weekly_summary": {
+                            "title": "Your weekly activity! 📊",
+                            "body": "See what happened this week on your profile"
+                        },
+                        "success_story": {
+                            "title": "Inspiring success story! 💍",
+                            "body": "Login to L3V3LMATCHES.com to read it"
+                        },
+                        "event_invite": {
+                            "title": "Upcoming matchmaking event! 🎉",
+                            "body": "Login to L3V3LMATCHES.com to RSVP"
+                        },
+                        
+                        # Safety & Verification
+                        "verify_email": {
+                            "title": "Verify your email! ✉️",
+                            "body": "Check your inbox for verification link"
+                        },
+                        "verify_phone": {
+                            "title": "Verify your phone number! 📱",
+                            "body": "Login to L3V3LMATCHES.com for better security"
+                        },
+                        "safety_tip": {
+                            "title": "New safety tip! 🛡️",
+                            "body": "Login to L3V3LMATCHES.com to read it"
+                        },
+                        "account_suspended": {
+                            "title": "Account action required! ⚠️",
+                            "body": "Login to L3V3LMATCHES.com for details"
+                        },
+                        
+                        # Contributions & Donations
+                        "contribution_reminder": {
+                            "title": "Support our platform! 💝",
+                            "body": "Login to L3V3LMATCHES.com to contribute"
+                        },
+                        "contribution_thank_you": {
+                            "title": "Thank you for your contribution! 🙏",
+                            "body": "Your support helps us grow"
+                        },
+                        "popup_shown": {
+                            "title": "Premium features available! 👑",
+                            "body": "Login to L3V3LMATCHES.com to learn more"
+                        },
+                        
+                        # Admin & Support
+                        "admin_message": {
+                            "title": "Important admin message! 📢",
+                            "body": "Login to L3V3LMATCHES.com to read"
+                        },
+                        "support_response": {
+                            "title": "Support has responded! 💬",
+                            "body": "Login to L3V3LMATCHES.com to view response"
+                        },
+                        "profile_approved": {
+                            "title": "Profile approved! ✅",
+                            "body": "Login to L3V3LMATCHES.com to connect"
+                        },
+                        "profile_rejected": {
+                            "title": "Profile update needed! ⚠️",
+                            "body": "Login to L3V3LMATCHES.com to fix issues"
                         },
                     }
                     
