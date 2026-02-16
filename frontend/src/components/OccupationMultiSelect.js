@@ -19,7 +19,7 @@ const OccupationMultiSelect = ({
       option.toLowerCase().includes(searchTerm.toLowerCase())
     );
     setFilteredOptions(filtered);
-  }, [searchTerm, options, selected]);
+  }, [searchTerm, options]);
 
   // Close dropdown when clicking outside
   useEffect(() => {

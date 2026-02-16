@@ -4405,47 +4405,56 @@ async def delete_user_profile(
 
 @router.get("/search/occupation-options")
 async def get_occupation_options(db = Depends(get_database)):
-    """Get unique occupation options from workExperience.position field"""
-    logger.info("🔍 Fetching unique occupation options from workExperience")
+    """Get unique occupation options from occupation field and workExperience.description"""
+    logger.info("🔍 Fetching unique occupation options")
     
     try:
-        # Aggregation pipeline to extract unique positions from workExperience
-        pipeline = [
+        occupations_set = set()
+        skip_values = {"", "N/A", "n/a", "None", "none", "null"}
+        
+        # 1. Get from workExperience.position field
+        position_pipeline = [
             {"$match": {"workExperience": {"$exists": True, "$ne": []}}},
             {"$unwind": "$workExperience"},
-            {"$match": {"workExperience.position": {"$exists": True, "$ne": "", "$ne": None}}},
+            {"$match": {"workExperience.position": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
             {"$group": {"_id": "$workExperience.position"}},
             {"$sort": {"_id": 1}},
-            {"$limit": 100}  # Limit to top 100 most common
+            {"$limit": 200}
         ]
+        position_results = await db.users.aggregate(position_pipeline).to_list(length=200)
+        for result in position_results:
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                occupations_set.add(val)
         
-        cursor = db.users.aggregate(pipeline)
-        results = await cursor.to_list(length=100)
+        # 2. Get from workExperience.description field (where actual occupation info often lives)
+        description_pipeline = [
+            {"$match": {"workExperience": {"$exists": True, "$ne": []}}},
+            {"$unwind": "$workExperience"},
+            {"$match": {"workExperience.description": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
+            {"$group": {"_id": "$workExperience.description"}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 200}
+        ]
+        description_results = await db.users.aggregate(description_pipeline).to_list(length=200)
+        for result in description_results:
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                occupations_set.add(val)
         
-        # Extract occupation names and clean them
-        occupations = []
-        for result in results:
-            occupation = result["_id"].strip()
-            if occupation and len(occupation) > 0:
-                occupations.append(occupation)
-        
-        # Also check standalone occupation field for backward compatibility
+        # 3. Get from standalone occupation field
         occupation_pipeline = [
-            {"$match": {"occupation": {"$exists": True, "$ne": "", "$ne": None}}},
+            {"$match": {"occupation": {"$exists": True, "$nin": ["", None, "N/A", "n/a", "None"]}}},
             {"$group": {"_id": "$occupation"}},
             {"$sort": {"_id": 1}}
         ]
-        
-        occupation_cursor = db.users.aggregate(occupation_pipeline)
-        occupation_results = await occupation_cursor.to_list(length=None)
-        
+        occupation_results = await db.users.aggregate(occupation_pipeline).to_list(length=None)
         for result in occupation_results:
-            occupation = result["_id"].strip()
-            if occupation and occupation not in occupations:
-                occupations.append(occupation)
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                occupations_set.add(val)
         
-        # Sort alphabetically
-        occupations.sort()
+        occupations = sorted(occupations_set)
         
         logger.info(f"✅ Found {len(occupations)} unique occupation options")
         
@@ -4640,22 +4649,23 @@ async def search_users(
         if occupation_list:
             logger.info(f"🔍 Processing occupation search for: {occupation_list}")
             # Search in both occupation field and workExperience.description (case-insensitive)
+            # Note: workExperience.description with $regex already searches within array elements
+            # so $elemMatch is not needed for single-field conditions
             occupation_queries = []
             for occ in occupation_list:
                 if occ.strip():
                     occ_text = occ.strip()
-                    # For precise matching, use the full search term
-                    # This ensures "Marketing Manager" only matches "Marketing Manager", not just "Manager"
-                    exact_regex = f".*{occ_text}.*"
+                    # Escape regex special chars for safety, but preserve spaces for matching
+                    safe_text = re.escape(occ_text)
+                    # $regex does substring matching by default, no need for .* prefix
                     occupation_queries.extend([
-                        {"occupation": {"$regex": exact_regex, "$options": "i"}},
-                        {"workExperience.description": {"$regex": exact_regex, "$options": "i"}},
-                        {"workExperience": {"$elemMatch": {"description": {"$regex": exact_regex, "$options": "i"}}}}
+                        {"occupation": {"$regex": safe_text, "$options": "i"}},
+                        {"workExperience.description": {"$regex": safe_text, "$options": "i"}}
                     ])
             
             if occupation_queries:
                 occupation_query = {"$or": occupation_queries}
-                logger.info(f"🔍 Occupation query built (exact match only): {occupation_query}")
+                logger.info(f"🔍 Occupation query: {occupation_query}")
                 and_conditions.append(occupation_query)
         if religion and religion.strip():
             query["religion"] = religion
@@ -4775,40 +4785,6 @@ async def search_users(
     logger.info(f"🚫 Excluding {len(excluded_usernames)} blocked users + self + admins/moderators from search")
     logger.info(f"📋 FINAL QUERY before execution: {query}")
     
-    # Log occupation-specific debug info
-    if occupation_list:
-        logger.info(f"🔍 OCCUPATION SEARCH DEBUG: Checking query results for occupations: {occupation_list}")
-        # Test the query without other conditions to see if occupation matching works
-        occ_test_query = {"$or": occupation_queries[0:2] if len(occupation_queries) >= 2 else occupation_queries}
-        logger.info(f"🔍 OCCUPATION TEST QUERY: {occ_test_query}")
-        occ_test_results = await db.users.find(occ_test_query).limit(5).to_list(None)
-        logger.info(f"🔍 OCCUPATION TEST RESULTS: Found {len(occ_test_results)} users")
-        for user in occ_test_results:
-            logger.info(f"   - {user.get('username', 'unknown')}: occupation='{user.get('occupation', 'N/A')}', status={user.get('status', 'N/A')}, accountStatus={user.get('accountStatus', 'N/A')}")
-            # Show workExperience.description
-            work = user.get('workExperience', [])
-            for job in work:
-                desc = job.get('description', '')
-                if 'marketing' in desc.lower():
-                    logger.info(f"     -> workExperience.description: '{desc}'")
-        
-        # Test with status conditions to see what's filtering them out
-        logger.info(f"🔍 TESTING WITH STATUS CONDITIONS:")
-        status_test_query = {
-            "$and": [
-                {"$or": [
-                    {"accountStatus": "active"},
-                    {"status.status": "active"}
-                ]},
-                {"$or": occupation_queries[0:2] if len(occupation_queries) >= 2 else occupation_queries}
-            ]
-        }
-        logger.info(f"🔍 STATUS TEST QUERY: {status_test_query}")
-        status_test_results = await db.users.find(status_test_query).limit(5).to_list(None)
-        logger.info(f"🔍 STATUS TEST RESULTS: Found {len(status_test_results)} users")
-        for user in status_test_results:
-            logger.info(f"   - {user.get('username', 'unknown')}: occupation='{user.get('occupation', 'N/A')}', status={user.get('status', 'N/A')}, accountStatus={user.get('accountStatus', 'N/A')}")
-
     try:
         # Use aggregation pipeline if age filtering is needed (for dynamic calculation)
         # Otherwise use simple find for better performance
