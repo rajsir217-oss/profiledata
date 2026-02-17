@@ -2630,6 +2630,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
             >
               <option value="">Select...</option>
               <option value="Vegetarian">🥗 Vegetarian</option>
+              <option value="Vegan">🌱 Vegan</option>
               <option value="Eggetarian">🥚 Eggetarian</option>
               <option value="Non-Veg">🍖 Non-Veg</option>
               <option value="Others">Others</option>
@@ -4077,6 +4078,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
               style={{ minHeight: '80px' }}
             >
               <option value="Vegetarian">Vegetarian</option>
+              <option value="Vegan">Vegan</option>
               <option value="Eggetarian">Eggetarian</option>
               <option value="Non-Veg">Non-Veg</option>
               <option value="Any">Any</option>

@@ -341,10 +341,20 @@ class SessionManager {
       }
     }
     
-    // EDGE CASE: If token or username changes to a different value, 
-    // it means another user logged in. Force reload to prevent state corruption.
-    if ((event.key === 'token' || event.key === 'username') && event.newValue && event.oldValue && event.newValue !== event.oldValue) {
-      logger.warn('Identity change detected from another tab, forcing reload');
+    // EDGE CASE: Token or username changed in another tab.
+    // Token changes happen routinely during refresh (every 5 min) - NO reload needed.
+    // Username changes indicate a different user logged in - MUST reload.
+    if (event.key === 'token' && event.newValue && event.oldValue && event.newValue !== event.oldValue) {
+      // Token rotated in another tab (normal refresh) - the new token is already
+      // in localStorage and will be picked up by axios interceptor on next API call.
+      // No page reload needed.
+      logger.debug('Token refreshed in another tab, no page reload needed');
+      return;
+    }
+    
+    if (event.key === 'username' && event.newValue && event.oldValue && event.newValue !== event.oldValue) {
+      // Different user logged in from another tab - must reload to clear stale React state
+      logger.warn('Different user detected from another tab, forcing reload');
       window.location.reload();
       return;
     }

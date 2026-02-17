@@ -1036,7 +1036,7 @@ const SearchPage2 = () => {
   const [occupationOptions, setOccupationOptions] = useState([]);
   // eslint-disable-next-line no-unused-vars
   const religionOptions = ['', 'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain'];
-  const eatingOptions = ['', 'Vegetarian', 'Eggetarian', 'Non-Veg'];
+  const eatingOptions = ['', 'Vegetarian', 'Vegan', 'Eggetarian', 'Non-Veg'];
   const lifestyleOptions = ['', 'Never', 'Socially', 'Prefer not to say'];
   // eslint-disable-next-line no-unused-vars
   const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
