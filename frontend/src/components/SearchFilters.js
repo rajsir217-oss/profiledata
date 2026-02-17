@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import logger from '../utils/logger';
 import Tooltip from './Tooltip';
 import OccupationMultiSelect from './OccupationMultiSelect';
+import LocationMultiSelect from './LocationMultiSelect';
 import './SearchFilters.css';
 
 /**
@@ -22,6 +23,7 @@ import './SearchFilters.css';
  * @param {Object} currentUserProfile - Current user's profile data
  * @param {Array} bodyTypeOptions - Available body type options
  * @param {Array} occupationOptions - Available occupation options
+ * @param {Array} locationOptions - Available location options
  * @param {Array} eatingOptions - Available eating preference options
  * @param {Array} lifestyleOptions - Available lifestyle options (drinking, smoking)
  * @param {Boolean} hideActionButtons - Optional: hide Save/Search buttons (for modal use)
@@ -44,6 +46,7 @@ const SearchFilters = ({
   currentUserProfile,
   bodyTypeOptions = [],
   occupationOptions = [],
+  locationOptions = [],
   eatingOptions = [],
   lifestyleOptions = [],
   hideActionButtons = false,
@@ -274,18 +277,25 @@ const SearchFilters = ({
               <label style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Location
                 <Tooltip 
-                  text="Filter by city, state, or region. Partial matches work too (e.g., 'CA' for California)."
+                  text="Filter by city, state, or region. Select multiple locations to expand your search."
                   position="top"
                   icon 
                 />
               </label>
-              <input
-                type="text"
-                className="form-control"
-                name="location"
-                value={searchCriteria.location || ''}
-                onChange={handleInputChange}
-                placeholder="City, State..."
+              <LocationMultiSelect
+                options={locationOptions}
+                selected={searchCriteria.locations || []}
+                onChange={(selectedLocations) => {
+                  // Update search criteria with selected locations
+                  handleInputChange({
+                    target: {
+                      name: 'locations',
+                      value: selectedLocations
+                    }
+                  });
+                }}
+                placeholder="Select locations..."
+                maxVisible={3}
               />
             </div>
           </div>
