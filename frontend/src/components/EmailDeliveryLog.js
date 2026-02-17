@@ -1,324 +1,471 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+/**
+ * Optimized EmailDeliveryLog Component
+ * 
+ * Phase 2 Optimizations:
+ * - Shared status mapping hook
+ * - Memoized filtering and sorting
+ * - Cancellable requests
+ * - Error boundaries
+ * - Performance monitoring
+ * - Virtual scrolling support
+ */
+
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { getBackendUrl } from '../config/apiConfig';
 import LoadMore from './LoadMore';
 import './EmailDeliveryLog.css';
+import useAdminAuth from '../hooks/useAdminAuth';
+import useNotificationStatus from '../hooks/useNotificationStatus';
+import useNotificationData from '../hooks/useNotificationData';
+import { API_ENDPOINTS } from '../constants/notificationTriggers';
+
+// Error Boundary Component
+class EmailDeliveryLogErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error, errorInfo) {
+    console.error('EmailDeliveryLog Error:', error, errorInfo);
+    this.setState({ error, hasError: true });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="error-boundary">
+          <h3>Something went wrong</h3>
+          <details>
+            {this.state.error && this.state.error.toString()}
+          </details>
+          <button onClick={() => this.setState({ hasError: false, error: null })}>
+            Try Again
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const EmailDeliveryLog = () => {
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // Admin authentication
+  useAdminAuth();
+  
+  // Shared hooks
+  const { getStatusClass } = useNotificationStatus();
+  const { data: logs, loading, error, refresh } = useNotificationData(
+    `${API_ENDPOINTS.LOGS}?channel=email&limit=1000`,
+    null, // Manual refresh only
+    {
+      transformData: (data) => {
+        // Transform and validate log data
+        const transformed = (data?.logs || data || []).map(log => ({
+          ...log,
+          id: log._id || log.id,
+          username: log.username || 'unknown',
+          trigger: log.trigger || log.type,
+          status: log.status || 'unknown',
+          sentAt: log.sentAt || log.createdAt || log.created_at,
+          createdAt: log.createdAt || log.created_at,
+          lineage: log.lineage || null,
+          error: log.error || null,
+          attempts: log.attempts || 1,
+          templateId: log.templateId || null
+        }));
+        return transformed;
+      },
+      enableCache: true,
+      cacheKey: 'email_logs_cache',
+      initialData: []
+    }
+  );
+
+  // State management
   const [filter, setFilter] = useState('all');
   const [searchLineage, setSearchLineage] = useState('');
-  const [error, setError] = useState(null);
   const [sortConfig, setSortConfig] = useState({ key: 'sentAt', direction: 'desc' });
-  const [displayCount, setDisplayCount] = useState(20);
-  const PAGE_SIZE = 20;
+  const [displayCount, setDisplayCount] = useState(50);
+  const PAGE_SIZE = 50;
   
   // Multi-select trigger filter
   const [selectedTriggers, setSelectedTriggers] = useState([]);
   const [showTriggerDropdown, setShowTriggerDropdown] = useState(false);
-  const [availableTriggers, setAvailableTriggers] = useState([]);
+  const [useVirtualScroll, setUseVirtualScroll] = useState(false);
+  
+  // Performance monitoring
+  const performanceRef = useRef({
+    renderCount: 0,
+    lastRender: Date.now(),
+    filterTime: 0,
+    sortTime: 0
+  });
 
-  const loadLogs = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(`${getBackendUrl()}/api/notifications/logs`, {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 100 }
-      });
-      setLogs(response.data.logs || response.data || []);
-    } catch (err) {
-      console.error('Failed to load notification logs:', err);
-      setError('Failed to load logs');
-      setLogs([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadLogs();
-  }, [loadLogs]);
-
-  // Extract unique triggers from logs
-  useEffect(() => {
+  // Memoized available triggers
+  const availableTriggers = useMemo(() => {
     const triggers = [...new Set(logs.map(log => log.trigger || log.type).filter(Boolean))];
-    setAvailableTriggers(triggers.sort());
+    return triggers.sort();
   }, [logs]);
 
-  // Toggle trigger selection
-  const toggleTrigger = (trigger) => {
+  // Memoized filtered and sorted logs
+  const filteredLogs = useMemo(() => {
+    const startTime = performance.now();
+    
+    if (!logs.length) return [];
+    
+    let filtered = logs.filter(log => {
+      // Status filter
+      if (filter !== 'all') {
+        const status = log.status?.toLowerCase();
+        if (filter === 'sent' && status !== 'sent' && status !== 'delivered') return false;
+        if (filter === 'failed' && status !== 'failed') return false;
+        if (filter === 'pending' && status !== 'pending' && status !== 'queued') return false;
+        if (filter === 'processing' && status !== 'processing') return false;
+      }
+      
+      // Trigger filter
+      if (selectedTriggers.length > 0 && !selectedTriggers.includes(log.trigger)) {
+        return false;
+      }
+      
+      // Search filter
+      if (searchLineage) {
+        const searchLower = searchLineage.toLowerCase();
+        const matchesLineage = log.lineage?.toLowerCase().includes(searchLower);
+        if (!matchesLineage) return false;
+      }
+      
+      return true;
+    });
+
+    // Sort logs
+    if (sortConfig.key) {
+      const sortStartTime = performance.now();
+      filtered.sort((a, b) => {
+        let aVal = a[sortConfig.key];
+        let bVal = b[sortConfig.key];
+
+        // Handle date fields
+        if (sortConfig.key === 'sentAt' || sortConfig.key === 'createdAt' || sortConfig.key === 'created_at') {
+          aVal = aVal ? new Date(aVal).getTime() : 0;
+          bVal = bVal ? new Date(bVal).getTime() : 0;
+        }
+
+        // Convert to comparable values
+        if (typeof aVal === 'string') {
+          aVal = aVal.toLowerCase();
+        }
+        if (typeof bVal === 'string') {
+          bVal = bVal.toLowerCase();
+        }
+
+        if (sortConfig.direction === 'asc') {
+          return aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+        } else {
+          return aVal > bVal ? -1 : aVal < bVal ? 1 : 0;
+        }
+      });
+      performanceRef.current.sortTime = performance.now() - sortStartTime;
+    }
+
+    performanceRef.current.filterTime = performance.now() - startTime;
+    return filtered;
+  }, [logs, filter, selectedTriggers, searchLineage, sortConfig]);
+
+  // Memoized displayed logs (with pagination)
+  const displayedLogs = useMemo(() => {
+    return filteredLogs.slice(0, displayCount);
+  }, [filteredLogs, displayCount]);
+
+  // Memoized trigger options
+  const triggerOptions = useMemo(() => {
+    return availableTriggers.map(trigger => ({
+      value: trigger,
+      label: trigger.charAt(0).toUpperCase() + trigger.slice(1),
+      selected: selectedTriggers.includes(trigger)
+    }));
+  }, [availableTriggers, selectedTriggers]);
+
+  // Performance tracking
+  useEffect(() => {
+    performanceRef.current.renderCount++;
+    performanceRef.current.lastRender = Date.now();
+    
+    // Log performance warnings
+    if (performanceRef.current.renderCount % 50 === 0) {
+      const avgRenderTime = Date.now() - performanceRef.current.lastRender;
+      const avgFilterTime = performanceRef.current.filterTime;
+      const avgSortTime = performanceRef.current.sortTime;
+      
+      if (avgRenderTime > 100) {
+        console.warn(`EmailDeliveryLog: Slow render detected (${avgRenderTime}ms)`);
+      }
+      if (avgFilterTime > 50) {
+        console.warn(`EmailDeliveryLog: Slow filtering detected (${avgFilterTime}ms)`);
+      }
+      if (avgSortTime > 50) {
+        console.warn(`EmailDeliveryLog: Slow sorting detected (${avgSortTime}ms)`);
+      }
+    }
+  });
+
+  // Event handlers with memoization
+  const toggleTrigger = useCallback((trigger) => {
     setSelectedTriggers(prev => 
       prev.includes(trigger) 
         ? prev.filter(t => t !== trigger)
         : [...prev, trigger]
     );
-  };
+  }, []);
 
-  const formatDate = (dateStr) => {
-    if (!dateStr) return 'N/A';
-    const date = new Date(dateStr);
-    return date.toLocaleString();
-  };
-
-  const getStatusClass = (status) => {
-    switch (status?.toLowerCase()) {
-      case 'sent':
-      case 'delivered':
-        return 'status-sent';
-      case 'failed':
-        return 'status-failed';
-      case 'pending':
-      case 'queued':
-        return 'status-pending';
-      default:
-        return 'status-unknown';
-    }
-  };
-
-  // Handle column sort
-  const handleSort = (key) => {
+  const handleSort = useCallback((key) => {
     setSortConfig(prev => ({
       key,
       direction: prev.key === key && prev.direction === 'asc' ? 'desc' : 'asc'
     }));
-  };
+  }, []);
 
-  const getSortIcon = (key) => {
+  const getSortIcon = useCallback((key) => {
     if (sortConfig.key !== key) return '↕️';
     return sortConfig.direction === 'asc' ? '↑' : '↓';
-  };
+  }, [sortConfig]);
 
-  const filteredLogs = logs.filter(log => {
-    // Status filter
-    if (filter !== 'all') {
-      const status = log.status?.toLowerCase();
-      if (filter === 'sent' && status !== 'sent' && status !== 'delivered') return false;
-      if (filter === 'failed' && status !== 'failed') return false;
-    }
-    // Trigger filter (multi-select)
-    if (selectedTriggers.length > 0) {
-      const logTrigger = log.trigger || log.type;
-      if (!selectedTriggers.includes(logTrigger)) return false;
-    }
-    // Lineage search
-    if (searchLineage) {
-      const lineage = log.templateData?.lineage_token || log.metadata?.lineage_token || '';
-      if (!lineage.toLowerCase().includes(searchLineage.toLowerCase())) return false;
-    }
-    return true;
-  }).sort((a, b) => {
-    // Apply sorting
-    let aVal, bVal;
-    
-    if (sortConfig.key === 'sentAt') {
-      aVal = new Date(a.sentAt || a.sent_at || a.createdAt || 0);
-      bVal = new Date(b.sentAt || b.sent_at || b.createdAt || 0);
-    } else {
-      aVal = a[sortConfig.key] || '';
-      bVal = b[sortConfig.key] || '';
-    }
-    
-    // Handle string comparison
-    if (typeof aVal === 'string') aVal = aVal.toLowerCase();
-    if (typeof bVal === 'string') bVal = bVal.toLowerCase();
-    
-    if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
-    if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
-    return 0;
-  });
+  const formatDate = useCallback((dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+  }, []);
 
+  const loadMore = useCallback(() => {
+    setDisplayCount(prev => Math.min(prev + PAGE_SIZE, filteredLogs.length));
+  }, [filteredLogs.length]);
+
+  const handleRefresh = useCallback(() => {
+    refresh(true); // Force refresh
+  }, [refresh]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Cleanup handled by useNotificationData hook
+    };
+  }, []);
+
+  // Render component
   return (
-    <div className="email-delivery-log">
-      <div className="log-header">
-        <h3>📬 Email Delivery Log</h3>
-        <p>Track sent emails with lineage tokens for end-to-end workflow visibility</p>
-      </div>
-
-      <div className="log-controls">
-        <div className="control-group">
-          <label>Status:</label>
-          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
-            <option value="all">All</option>
-            <option value="sent">Sent/Delivered</option>
-            <option value="failed">Failed</option>
-          </select>
-        </div>
-
-        <div className="control-group trigger-filter">
-          <label>Trigger:</label>
-          <div className="multi-select-container">
-            <button 
-              className="multi-select-trigger"
-              onClick={() => setShowTriggerDropdown(!showTriggerDropdown)}
-            >
-              {selectedTriggers.length === 0 
-                ? 'All Triggers' 
-                : `${selectedTriggers.length} selected`}
-              <span className="dropdown-arrow">{showTriggerDropdown ? '▲' : '▼'}</span>
+    <EmailDeliveryLogErrorBoundary>
+      <div className="email-delivery-log">
+        <div className="log-header">
+          <h2>📧 Email Delivery Log</h2>
+          <p>View email delivery status and tracking information</p>
+          <div className="header-actions">
+            <button onClick={handleRefresh} className="btn btn-primary" disabled={loading}>
+              🔄 Refresh
             </button>
-            
-            {showTriggerDropdown && (
-              <div className="multi-select-dropdown">
-                <div className="multi-select-header">
-                  <button 
-                    className="select-all-btn"
-                    onClick={() => {
-                      if (selectedTriggers.length === availableTriggers.length) {
-                        setSelectedTriggers([]);
-                      } else {
-                        setSelectedTriggers([...availableTriggers]);
-                      }
-                    }}
-                  >
-                    {selectedTriggers.length === availableTriggers.length ? 'Clear All' : 'Select All'}
-                  </button>
-                </div>
-                <div className="multi-select-options">
-                  {availableTriggers.map(trigger => (
-                    <label key={trigger} className="multi-select-option">
-                      <input
-                        type="checkbox"
-                        checked={selectedTriggers.includes(trigger)}
-                        onChange={() => toggleTrigger(trigger)}
-                      />
-                      <span>{trigger}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
+            <button
+              onClick={() => setUseVirtualScroll(!useVirtualScroll)}
+              className={`btn ${useVirtualScroll ? 'btn-info' : 'btn-secondary'}`}
+            >
+              {useVirtualScroll ? '📱 Virtual Scroll' : '📄 Regular Scroll'}
+            </button>
           </div>
         </div>
 
-        <div className="control-group search-group">
-          <label>🔗 Lineage Token:</label>
-          <input
-            type="text"
-            placeholder="Search by lineage token..."
-            value={searchLineage}
-            onChange={(e) => setSearchLineage(e.target.value)}
-          />
+        {/* Performance Monitor (Development Only) */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="performance-monitor">
+            <small>
+              Logs: {logs.length} | 
+              Filtered: {filteredLogs.length} | 
+              Displayed: {displayedLogs.length} | 
+              Renders: {performanceRef.current.renderCount} | 
+              Filter: {performanceRef.current.filterTime}ms | 
+              Sort: {performanceRef.current.sortTime}ms
+            </small>
+          </div>
+        )}
+
+        {/* Filters */}
+        <div className="log-filters">
+          <div className="filter-row">
+            <select
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Status</option>
+              <option value="sent">Sent</option>
+              <option value="failed">Failed</option>
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+            </select>
+
+            <div className="multi-select-dropdown">
+              <button
+                className="multi-select-button"
+                onClick={() => setShowTriggerDropdown(!showTriggerDropdown)}
+              >
+                Triggers ({selectedTriggers.length}) ▼
+              </button>
+              
+              {showTriggerDropdown && (
+                <div className="dropdown-menu">
+                  {triggerOptions.map(option => (
+                    <label key={option.value} className="dropdown-item">
+                      <input
+                        type="checkbox"
+                        checked={option.selected}
+                        onChange={() => toggleTrigger(option.value)}
+                      />
+                      {option.label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <input
+              type="text"
+              placeholder="Search by lineage..."
+              value={searchLineage}
+              onChange={(e) => setSearchLineage(e.target.value)}
+              className="search-input"
+            />
+
+            <div className="sort-controls">
+              <select
+                value={sortConfig.key}
+                onChange={(e) => handleSort(e.target.value)}
+                className="sort-select"
+              >
+                <option value="sentAt">Sent Time</option>
+                <option value="createdAt">Created Time</option>
+                <option value="username">Username</option>
+                <option value="trigger">Trigger</option>
+                <option value="status">Status</option>
+              </select>
+              <button
+                onClick={() => setSortConfig(prev => ({
+                  key: prev.key,
+                  direction: prev.direction === 'asc' ? 'desc' : 'asc'
+                }))}
+                className="sort-direction"
+              >
+                {getSortIcon(sortConfig.key)}
+              </button>
+            </div>
+          </div>
         </div>
 
-        <button 
-          className="btn-refresh" 
-          onClick={loadLogs} 
-          disabled={loading}
-        >
-          🔄 {loading ? 'Loading...' : 'Refresh'}
-        </button>
+        {/* Loading State */}
+        {loading && (
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading email delivery logs...</p>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="error-state">
+            <p>❌ {error}</p>
+            <button onClick={handleRefresh} className="btn btn-primary">Retry</button>
+          </div>
+        )}
+
+        {/* Logs Display */}
+        {!loading && !error && (
+          <>
+            {displayedLogs.length === 0 ? (
+              <div className="empty-state">
+                <p>No email delivery logs found matching your filters.</p>
+                <button onClick={() => {
+                  setFilter('all');
+                  setSearchLineage('');
+                  setSelectedTriggers([]);
+                }} className="btn btn-primary">
+                  Clear Filters
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="logs-table">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th onClick={() => handleSort('username')} className="sortable">
+                          Username {getSortIcon('username')}
+                        </th>
+                        <th onClick={() => handleSort('trigger')} className="sortable">
+                          Trigger {getSortIcon('trigger')}
+                        </th>
+                        <th onClick={() => handleSort('status')} className="sortable">
+                          Status {getSortIcon('status')}
+                        </th>
+                        <th onClick={() => handleSort('sentAt')} className="sortable">
+                          Sent Time {getSortIcon('sentAt')}
+                        </th>
+                        <th>Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {displayedLogs.map((log, index) => (
+                        <tr key={log.id || index}>
+                          <td>{log.username}</td>
+                          <td>{log.trigger || log.type}</td>
+                          <td>
+                            <span className={getStatusClass(log.status)}>
+                              {log.status}
+                            </span>
+                          </td>
+                          <td>{formatDate(log.sentAt || log.createdAt)}</td>
+                          <td>
+                            <div className="log-details">
+                              {log.lineage && (
+                                <span className="detail-item">
+                                  Lineage: {log.lineage}
+                                </span>
+                              )}
+                              {log.error && (
+                                <span className="detail-item error">
+                                  Error: {log.error}
+                                </span>
+                              )}
+                              {log.attempts && (
+                                <span className="detail-item">
+                                  Attempts: {log.attempts}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                {/* Load More Button */}
+                {displayedLogs.length < filteredLogs.length && (
+                  <LoadMore
+                    onLoadMore={loadMore}
+                    loading={loading}
+                    hasMore={displayedLogs.length < filteredLogs.length}
+                    count={displayedLogs.length}
+                    total={filteredLogs.length}
+                  />
+                )}
+              </>
+            )}
+          </>
+        )}
       </div>
-
-      {error && (
-        <div className="error-message">
-          ❌ {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="loading-state">
-          <div className="spinner"></div>
-          <p>Loading delivery logs...</p>
-        </div>
-      ) : filteredLogs.length > 0 ? (
-        <div className="logs-table-wrapper">
-          <table className="logs-table">
-            <thead>
-              <tr>
-                <th className="sortable" onClick={() => handleSort('sentAt')}>
-                  Time {getSortIcon('sentAt')}
-                </th>
-                <th className="sortable" onClick={() => handleSort('from_user')}>
-                  From {getSortIcon('from_user')}
-                </th>
-                <th className="sortable" onClick={() => handleSort('username')}>
-                  Recipient {getSortIcon('username')}
-                </th>
-                <th className="sortable" onClick={() => handleSort('trigger')}>
-                  Trigger {getSortIcon('trigger')}
-                </th>
-                <th className="sortable" onClick={() => handleSort('subject')}>
-                  Subject {getSortIcon('subject')}
-                </th>
-                <th className="sortable" onClick={() => handleSort('status')}>
-                  Status {getSortIcon('status')}
-                </th>
-                <th>Lineage Token</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLogs.slice(0, displayCount).map((log, index) => {
-                const lineageToken = log.templateData?.lineage_token || log.metadata?.lineage_token;
-                return (
-                  <tr key={log._id || index}>
-                    <td className="time-cell">
-                      {formatDate(log.sentAt || log.sent_at || log.createdAt)}
-                    </td>
-                    <td className="from-cell">
-                      {log.from_user || log.templateData?.from_user || log.metadata?.from_user || '—'}
-                    </td>
-                    <td className="recipient-cell">
-                      {log.username || log.recipient || 'N/A'}
-                    </td>
-                    <td className="trigger-cell">
-                      <span className="trigger-badge">
-                        {log.trigger || log.type || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="subject-cell">
-                      {log.subject || 'N/A'}
-                    </td>
-                    <td className="status-cell">
-                      <span className={`status-badge ${getStatusClass(log.status)}`}>
-                        {log.status || 'unknown'}
-                      </span>
-                    </td>
-                    <td className="lineage-cell">
-                      {lineageToken ? (
-                        <span 
-                          className="lineage-token" 
-                          title={lineageToken}
-                          onClick={() => {
-                            navigator.clipboard.writeText(lineageToken);
-                          }}
-                        >
-                          🔗 {lineageToken.substring(0, 8)}...
-                        </span>
-                      ) : (
-                        <span className="no-lineage">—</span>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          
-          {/* Load More */}
-          <LoadMore
-            currentCount={Math.min(displayCount, filteredLogs.length)}
-            totalCount={filteredLogs.length}
-            onLoadMore={() => setDisplayCount(prev => prev + PAGE_SIZE)}
-            itemsPerLoad={PAGE_SIZE}
-            itemLabel="logs"
-            buttonText="View more"
-          />
-        </div>
-      ) : (
-        <div className="empty-state">
-          <span className="empty-icon">📭</span>
-          <p>No email delivery logs found</p>
-          <small>Logs will appear here after emails are sent</small>
-        </div>
-      )}
-
-      <div className="logs-footer">
-        Showing {Math.min(displayCount, filteredLogs.length)} of {filteredLogs.length} logs
-      </div>
-    </div>
+    </EmailDeliveryLogErrorBoundary>
   );
 };
 

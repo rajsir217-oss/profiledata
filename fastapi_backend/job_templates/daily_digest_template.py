@@ -475,6 +475,8 @@ class DailyDigestTemplate(JobTemplate):
             "trigger": "daily_digest",
             "priority": "low",
             "channels": channels,  # Use user's channel preferences
+            "title": f"📊 Daily Digest - {first_name}",
+            "body": f"Here's your daily activity summary for {username}.",
             "templateData": {
                 "recipient": {
                     "username": username,
