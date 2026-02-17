@@ -12,8 +12,9 @@ const AdminReports = () => {
   const [error, setError] = useState(null);
   const [genderFilter, setGenderFilter] = useState('all');
   const [chartType, setChartType] = useState('bar'); // 'bar' or 'pie'
+  const [reportType, setReportType] = useState('gender-by-age'); // 'gender-by-age', 'by-location', 'by-profession'
   const [reportData, setReportData] = useState(null);
-  const [selectedAge, setSelectedAge] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [summary, setSummary] = useState(null);
 
@@ -32,7 +33,7 @@ const AdminReports = () => {
     setError(null);
     try {
       const params = genderFilter !== 'all' ? `?gender=${genderFilter}` : '';
-      const response = await api.get(`/api/admin/reports/gender-by-age${params}`);
+      const response = await api.get(`/api/admin/reports/${reportType}${params}`);
       if (response.data.success) {
         setReportData(response.data);
       }
@@ -42,7 +43,7 @@ const AdminReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [genderFilter]);
+  }, [genderFilter, reportType]);
 
   // Fetch summary
   const fetchSummary = useCallback(async () => {
@@ -74,8 +75,8 @@ const AdminReports = () => {
   }, [showModal]);
 
   // Handle data point click
-  const handleDataPointClick = (ageData) => {
-    setSelectedAge(ageData);
+  const handleDataPointClick = (itemData) => {
+    setSelectedItem(itemData);
     setShowModal(true);
   };
 
@@ -84,28 +85,21 @@ const AdminReports = () => {
     window.open(`/profile/${username}`, '_blank');
   };
 
+  // Get chart data first
+  const data = reportData?.data || [];
+  const maxCount = Math.max(...data.map(d => d.count), 1);
+
   // Calculate chart dimensions
   const chartWidth = 800;
-  const chartHeight = 400;
-  const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+  const chartHeight = Math.max(400, data.length * 35 + 100); // Dynamic height based on data
+  const padding = { top: 40, right: 60, bottom: 60, left: 150 }; // More left padding for labels
   const innerWidth = chartWidth - padding.left - padding.right;
   const innerHeight = chartHeight - padding.top - padding.bottom;
 
-  // Get chart data
-  const data = reportData?.data || [];
-  const maxCount = Math.max(...data.map(d => d.count), 1);
-  const minAge = Math.min(...data.map(d => d.age), 18);
-  const maxAge = Math.max(...data.map(d => d.age), 60);
+  // Scale function for horizontal bar chart X-axis (count)
+  const xScale = (count) => padding.left + (count / maxCount) * innerWidth;
 
-  // Scale functions
-  const xScale = (age) => padding.left + ((age - minAge) / (maxAge - minAge)) * innerWidth;
-  const yScale = (count) => padding.top + innerHeight - (count / maxCount) * innerHeight;
-
-  // Generate path for line chart
-  const linePath = data.length > 0
-    ? data.map((d, i) => `${i === 0 ? 'M' : 'L'} ${xScale(d.age)} ${yScale(d.count)}`).join(' ')
-    : '';
-
+  
   // Generate Y-axis ticks
   const yTicks = [];
   const tickCount = 5;
@@ -114,12 +108,7 @@ const AdminReports = () => {
     yTicks.push(value);
   }
 
-  // Generate X-axis ticks (every 5 years)
-  const xTicks = [];
-  for (let age = Math.ceil(minAge / 5) * 5; age <= maxAge; age += 5) {
-    xTicks.push(age);
-  }
-
+  
   return (
     <div className="admin-reports-page">
       <div className="admin-reports-header">
@@ -161,20 +150,43 @@ const AdminReports = () => {
         </div>
       )}
 
-      {/* Gender by Age Report */}
+      {/* Report Section */}
       <div className="report-section">
         <div className="report-header">
-          <h2>👤 Members by Age Distribution</h2>
+          <h2>
+            {reportType === 'gender-by-age' && '👤 Members by Age Distribution'}
+            {reportType === 'by-location' && '📍 Members by Location'}
+            {reportType === 'by-profession' && '💼 Members by Profession'}
+          </h2>
           <div className="filter-controls">
-            <label>Chart:</label>
+            <label>Report:</label>
             <select 
-              value={chartType} 
-              onChange={(e) => setChartType(e.target.value)}
-              className="chart-type-select"
+              value={reportType} 
+              onChange={(e) => {
+                setReportType(e.target.value);
+                if (e.target.value !== 'gender-by-age') {
+                  setChartType('bar');
+                }
+              }}
+              className="report-type-select"
             >
-              <option value="bar">📊 Bar</option>
-              <option value="pie">🥧 Pie</option>
+              <option value="gender-by-age">👤 By Age</option>
+              <option value="by-location">📍 By Location</option>
+              <option value="by-profession">💼 By Profession</option>
             </select>
+            {reportType === 'gender-by-age' && (
+              <>
+                <label>Chart:</label>
+                <select 
+                  value={chartType} 
+                  onChange={(e) => setChartType(e.target.value)}
+                  className="chart-type-select"
+                >
+                  <option value="bar">📊 Bar</option>
+                  <option value="pie">🥧 Pie</option>
+                </select>
+              </>
+            )}
             <label>Gender:</label>
             <select 
               value={genderFilter} 
@@ -213,7 +225,7 @@ const AdminReports = () => {
             </div>
 
             {/* Pie Chart */}
-            {chartType === 'pie' && summary && (
+            {chartType === 'pie' && reportType === 'gender-by-age' && summary && (
               <div className="pie-chart-container">
                 <svg viewBox="0 0 400 300" className="pie-chart">
                   {(() => {
@@ -281,190 +293,203 @@ const AdminReports = () => {
               </div>
             )}
 
-            {/* Bar/Line Chart */}
+            {/* Horizontal Bar Chart for all report types */}
             {chartType === 'bar' && (
-            <>
-            <svg 
-              viewBox={`0 0 ${chartWidth} ${chartHeight}`}
-              className="line-chart"
-              preserveAspectRatio="xMidYMid meet"
-            >
-              {/* Grid lines */}
-              {yTicks.map((tick, i) => (
-                <line
-                  key={`grid-${i}`}
-                  x1={padding.left}
-                  y1={yScale(tick)}
-                  x2={chartWidth - padding.right}
-                  y2={yScale(tick)}
-                  className="grid-line"
-                />
-              ))}
-
-              {/* Y-axis */}
-              <line
-                x1={padding.left}
-                y1={padding.top}
-                x2={padding.left}
-                y2={chartHeight - padding.bottom}
-                className="axis-line"
-              />
-
-              {/* X-axis */}
-              <line
-                x1={padding.left}
-                y1={chartHeight - padding.bottom}
-                x2={chartWidth - padding.right}
-                y2={chartHeight - padding.bottom}
-                className="axis-line"
-              />
-
-              {/* Y-axis labels */}
-              {yTicks.map((tick, i) => (
-                <text
-                  key={`y-label-${i}`}
-                  x={padding.left - 10}
-                  y={yScale(tick)}
-                  className="axis-label y-label"
-                >
-                  {tick}
-                </text>
-              ))}
-
-              {/* X-axis labels */}
-              {xTicks.map((tick, i) => (
-                <text
-                  key={`x-label-${i}`}
-                  x={xScale(tick)}
-                  y={chartHeight - padding.bottom + 25}
-                  className="axis-label x-label"
-                >
-                  {tick}
-                </text>
-              ))}
-
-              {/* Axis titles */}
-              <text
-                x={chartWidth / 2}
-                y={chartHeight - 10}
-                className="axis-title"
-              >
-                Age
-              </text>
-              <text
-                x={-chartHeight / 2}
-                y={20}
-                className="axis-title"
-                transform="rotate(-90)"
-              >
-                Count
-              </text>
-
-              {/* Bar chart - Male (blue) and Female (pink) */}
-              {data.map((d, i) => {
-                const barWidth = Math.max(6, innerWidth / (data.length * 4));
-                const barX = xScale(d.age);
-                const barBottom = chartHeight - padding.bottom;
-                
-                // Use yScale for proper positioning (same as line chart)
-                const maleBarTop = yScale(d.maleCount || 0);
-                const femaleBarTop = yScale(d.femaleCount || 0);
-                const maleHeight = barBottom - maleBarTop;
-                const femaleHeight = barBottom - femaleBarTop;
-                
-                return (
-                  <g key={`bars-${i}`} className="bar-group">
-                    {/* Male bar (blue) - left side */}
-                    {(d.maleCount || 0) > 0 && (
-                      <rect
-                        x={barX - barWidth - 2}
-                        y={maleBarTop}
-                        width={barWidth}
-                        height={maleHeight}
-                        className="bar-male"
-                        onClick={() => handleDataPointClick(d)}
-                      />
-                    )}
-                    {/* Female bar (pink) - right side */}
-                    {(d.femaleCount || 0) > 0 && (
-                      <rect
-                        x={barX + 2}
-                        y={femaleBarTop}
-                        width={barWidth}
-                        height={femaleHeight}
-                        className="bar-female"
-                        onClick={() => handleDataPointClick(d)}
-                      />
-                    )}
-                  </g>
-                );
-              })}
-
-              {/* Line path */}
-              {linePath && (
-                <path
-                  d={linePath}
-                  className="chart-line"
-                  fill="none"
-                />
-              )}
-
-              {/* Data points */}
-              {data.map((d, i) => (
-                <g key={i} className="data-point-group">
-                  <circle
-                    cx={xScale(d.age)}
-                    cy={yScale(d.count)}
-                    r={8}
-                    className="data-point"
-                    onClick={() => handleDataPointClick(d)}
-                  />
-                  <text
-                    x={xScale(d.age)}
-                    y={yScale(d.count) - 15}
-                    className="data-label"
+              <>
+                <div className="horizontal-bar-chart">
+                  <svg 
+                    viewBox={`0 0 ${chartWidth} ${chartHeight}`}
+                    className="horizontal-bar-chart-svg"
+                    preserveAspectRatio="xMidYMid meet"
                   >
-                    {d.count}
-                  </text>
-                </g>
-              ))}
-            </svg>
+                    {/* Vertical grid lines */}
+                    {yTicks.map((tick, i) => (
+                      <line
+                        key={`grid-${i}`}
+                        x1={xScale(tick)}
+                        y1={padding.top}
+                        x2={xScale(tick)}
+                        y2={chartHeight - padding.bottom}
+                        className="grid-line"
+                      />
+                    ))}
 
-            {/* Legend */}
-            <div className="chart-legend">
-              <div className="legend-item">
-                <span className="legend-color male"></span>
-                <span>Male</span>
-              </div>
-              <div className="legend-item">
-                <span className="legend-color female"></span>
-                <span>Female</span>
-              </div>
-            </div>
+                    {/* Y-axis */}
+                    <line
+                      x1={padding.left}
+                      y1={padding.top}
+                      x2={padding.left}
+                      y2={chartHeight - padding.bottom}
+                      className="axis-line"
+                    />
 
-            <p className="chart-hint">
-              💡 Click on any data point or bar to see the list of members at that age
-            </p>
-            </>
+                    {/* X-axis */}
+                    <line
+                      x1={padding.left}
+                      y1={chartHeight - padding.bottom}
+                      x2={chartWidth - padding.right}
+                      y2={chartHeight - padding.bottom}
+                      className="axis-line"
+                    />
+
+                    {/* X-axis labels */}
+                    {yTicks.map((tick, i) => (
+                      <text
+                        key={`x-label-${i}`}
+                        x={xScale(tick)}
+                        y={chartHeight - padding.bottom + 25}
+                        className="axis-label x-label"
+                        textAnchor="middle"
+                      >
+                        {tick}
+                      </text>
+                    ))}
+
+                    {/* Y-axis labels */}
+                    {data.map((d, i) => {
+                      let label;
+                      if (reportType === 'gender-by-age') {
+                        label = `Age ${d.age}`;
+                      } else if (reportType === 'by-location') {
+                        label = d.location;
+                      } else {
+                        label = d.profession;
+                      }
+                      
+                      const itemHeight = innerHeight / data.length;
+                      const y = padding.top + (i * itemHeight) + (itemHeight / 2);
+                      return (
+                        <text
+                          key={`y-label-${i}`}
+                          x={padding.left - 10}
+                          y={y}
+                          className="axis-label y-label"
+                          textAnchor="end"
+                          dominantBaseline="middle"
+                        >
+                          {label?.length > 25 ? `${label.substring(0, 25)}...` : label}
+                        </text>
+                      );
+                    })}
+
+                    {/* Axis titles */}
+                    <text
+                      x={chartWidth / 2}
+                      y={chartHeight - 10}
+                      className="axis-title"
+                      textAnchor="middle"
+                    >
+                      Count
+                    </text>
+                    <text
+                      x={20}
+                      y={chartHeight / 2}
+                      className="axis-title"
+                      textAnchor="middle"
+                      transform={`rotate(-90, 20, ${chartHeight / 2})`}
+                    >
+                      {reportType === 'gender-by-age' ? 'Age' : reportType === 'by-location' ? 'Location' : 'Profession'}
+                    </text>
+
+                    {/* Horizontal bars */}
+                    {data.map((d, i) => {
+                      const itemHeight = innerHeight / data.length;
+                      const barHeight = Math.max(4, itemHeight - 8);
+                      const barY = padding.top + (i * itemHeight) + (itemHeight - barHeight) / 2;
+                      const maxBarWidth = innerWidth - 10;
+                      const barWidth = Math.min((d.count / maxCount) * maxBarWidth, maxBarWidth);
+                      
+                      return (
+                        <g key={`bar-${i}`} className="horizontal-bar-group">
+                          {/* Total bar */}
+                          <rect
+                            x={padding.left}
+                            y={barY}
+                            width={barWidth}
+                            height={barHeight}
+                            className="bar-total"
+                            onClick={() => handleDataPointClick(d)}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          {/* Male portion */}
+                          {(d.maleCount || 0) > 0 && (
+                            <rect
+                              x={padding.left}
+                              y={barY}
+                              width={Math.min((d.maleCount / maxCount) * maxBarWidth, maxBarWidth)}
+                              height={barHeight / 2 - 1}
+                              className="bar-male"
+                              onClick={() => handleDataPointClick(d)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          )}
+                          {/* Female portion */}
+                          {(d.femaleCount || 0) > 0 && (
+                            <rect
+                              x={padding.left}
+                              y={barY + barHeight / 2 + 1}
+                              width={Math.min((d.femaleCount / maxCount) * maxBarWidth, maxBarWidth)}
+                              height={barHeight / 2 - 1}
+                              className="bar-female"
+                              onClick={() => handleDataPointClick(d)}
+                              style={{ cursor: 'pointer' }}
+                            />
+                          )}
+                          {/* Count label */}
+                          <text
+                            x={padding.left + barWidth + 8}
+                            y={barY + barHeight / 2}
+                            className="data-label"
+                            dominantBaseline="middle"
+                          >
+                            {d.count}
+                          </text>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+
+                <div className="chart-legend">
+                  <div className="legend-item">
+                    <span className="legend-color male"></span>
+                    <span>Male</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-color female"></span>
+                    <span>Female</span>
+                  </div>
+                  <div className="legend-item">
+                    <span className="legend-color total"></span>
+                    <span>Total</span>
+                  </div>
+                </div>
+
+                <p className="chart-hint">
+                  💡 Click on any bar to see the list of members in that category
+                </p>
+              </>
             )}
           </div>
         )}
       </div>
 
       {/* Modal for user list */}
-      {showModal && selectedAge && (
+      {showModal && selectedItem && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                👥 Members Age {selectedAge.age}
-                <span className="user-count">({selectedAge.count} members)</span>
+                {reportType === 'gender-by-age' && `👥 Members Age ${selectedItem.age}`}
+                {reportType === 'by-location' && `📍 Members in ${selectedItem.location}`}
+                {reportType === 'by-profession' && `💼 Members in ${selectedItem.profession}`}
+                <span className="user-count">({selectedItem.count} members)</span>
               </h3>
               <button className="close-btn" onClick={() => setShowModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <div className="user-list">
-                {selectedAge.users.map((user, i) => (
+                {selectedItem.users.map((user, i) => (
                   <div 
                     key={i} 
                     className="user-item"

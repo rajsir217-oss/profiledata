@@ -216,7 +216,7 @@ class NotificationCacheService:
         except Exception as e:
             logger.warning(f"⚠️ Rate limit cache error for {username}:{channel}: {e}")
             # Fallback to allowing the request
-            return None
+            return True
     
     def _serialize_datetime_dict(self, data_dict: Dict[str, Any]) -> Dict[str, Any]:
         """Recursively serialize datetime objects in dictionary"""

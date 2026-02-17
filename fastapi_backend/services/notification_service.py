@@ -143,6 +143,10 @@ class NotificationService:
         if result.matched_count == 0:
             raise HTTPException(status_code=404, detail="Preferences not found")
         
+        # Invalidate cache so stale preferences aren't served
+        if self.cache_service:
+            await self.cache_service.invalidate_user_preferences(username)
+        
         return await self.get_preferences(username)
     
     # ============================================
@@ -788,10 +792,28 @@ class NotificationService:
         end_time = datetime.strptime(quiet_hours.end, "%H:%M").time()
         
         # Check if current time is in quiet hours
-        if start_time <= user_time < end_time:
+        # Handle both same-day spans (e.g., 01:00-06:00) and overnight spans (e.g., 22:00-08:00)
+        in_quiet_hours = False
+        if start_time <= end_time:
+            # Same-day span: e.g., 01:00-06:00
+            in_quiet_hours = start_time <= user_time < end_time
+        else:
+            # Overnight span: e.g., 22:00-08:00
+            in_quiet_hours = user_time >= start_time or user_time < end_time
+        
+        if in_quiet_hours:
             # Schedule for end of quiet hours
+            user_now = now.astimezone(user_tz)
+            send_date = user_now.date()
+            
+            # If overnight span and we're past midnight, end time is today
+            # If overnight span and we're before midnight, end time is tomorrow
+            if start_time > end_time and user_time >= start_time:
+                from datetime import timedelta as td
+                send_date = send_date + td(days=1)
+            
             next_send_time = datetime.combine(
-                now.date(),
+                send_date,
                 end_time,
                 tzinfo=user_tz
             )

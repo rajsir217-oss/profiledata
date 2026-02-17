@@ -51,6 +51,7 @@ class NotificationTrigger(str, Enum):
     PENDING_PII_REQUEST = "pending_pii_request"
     PII_GRANTED = "pii_granted"
     PII_DENIED = "pii_denied"
+    PII_REVOKED = "pii_revoked"
     PII_EXPIRING = "pii_expiring"
     SUSPICIOUS_LOGIN = "suspicious_login"
     
