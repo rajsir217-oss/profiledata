@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import useToast from '../hooks/useToast';
+import logger from '../utils/logger';
 import './SaveSearchModal.css';
 
 const SaveSearchModal = ({ 
@@ -64,10 +65,44 @@ const SaveSearchModal = ({
       }
       parts.push(heightRange);
       
+      // Location filter (handle both single and multi-select formats)
+      let locationText = '';
+      if (criteria.locations && criteria.locations.length > 0) {
+        if (criteria.locations.length === 1) {
+          // For single location, use city name only (remove state for brevity)
+          const location = criteria.locations[0];
+          locationText = location.includes(',') ? location.split(',')[0].trim() : location;
+        } else {
+          // Multiple locations: loc(3)
+          // Single location: Nashville
+          locationText = `loc (${criteria.locations.length})`;
+        }
+        logger.info(`📍 Location found in criteria: ${JSON.stringify(criteria.locations)}, locationText: ${locationText}`);
+      } else if (criteria.location) {
+        // Backward compatibility for single location
+        const location = criteria.location;
+        locationText = location.includes(',') ? location.split(',')[0].trim() : location;
+        logger.info(`📍 Legacy location found: ${criteria.location}, locationText: ${locationText}`);
+      } else {
+        logger.info(`📍 No location found in criteria, locations: ${criteria.locations}, location: ${criteria.location}`);
+      }
+      // Always push location part to maintain format (empty string if no location)
+      parts.push(locationText);
+      
       // Occupation filter
       const occupation = criteria.occupation || criteria.occupations || '';
-      const occupationText = occupation ? 
-        (occupation.includes(',') ? occupation.split(',')[0].trim() : occupation) : '';
+      let occupationText = '';
+      if (criteria.occupations && criteria.occupations.length > 0) {
+        if (criteria.occupations.length === 1) {
+          occupationText = criteria.occupations[0];
+        } else {
+          // Multiple occupations: occ(3)  
+          // Single occupation: Software Engineer
+          occupationText = `occ (${criteria.occupations.length})`;
+        }
+      } else if (occupation) {
+        occupationText = occupation.includes(',') ? occupation.split(',')[0].trim() : occupation;
+      }
       parts.push(occupationText);
       
       // Days back filter
@@ -80,13 +115,16 @@ const SaveSearchModal = ({
       // Keep existing unique number or generate new one
       const currentName = editingScheduleFor.name || '';
       const currentParts = currentName.split('|');
-      // Format: Gender|Age|Height|DaysBack|Score|UniqueNum (6 parts) or old format (5 parts)
-      const uniqueNum = currentParts.length === 6 ? currentParts[5] : 
+      // Format: Gender|Age|Height|Location|Occupation|DaysBack|Score|UniqueNum (7 parts) or old format (5-6 parts)
+      const uniqueNum = currentParts.length === 7 ? currentParts[6] : 
+                        currentParts.length === 6 ? currentParts[5] : 
                         currentParts.length === 5 ? currentParts[4] : 
                         String(Date.now() % 1000).padStart(3, '0');
       parts.push(uniqueNum);
       
       const correctedName = parts.join('|');
+      logger.info(`🔧 Generated corrected search name: ${correctedName}`);
+      logger.info(`🔧 Name parts: [${parts.join(', ')}]`);
       setSearchName(correctedName);
       
       // Pre-populate notification settings
@@ -165,11 +203,38 @@ const SaveSearchModal = ({
       }
       parts.push(heightRange);
       
+      // Location filter (handle both single and multi-select formats)
+      let locationText = '';
+      if (currentCriteria.locations && currentCriteria.locations.length > 0) {
+        if (currentCriteria.locations.length === 1) {
+          // For single location, use city name only (remove state for brevity)
+          const location = currentCriteria.locations[0];
+          locationText = location.includes(',') ? location.split(',')[0].trim() : location;
+        } else {
+          // Multiple locations: loc(3)
+          locationText = `loc (${currentCriteria.locations.length})`;
+        }
+      } else if (currentCriteria.location) {
+        // Backward compatibility for single location
+        const location = currentCriteria.location;
+        locationText = location.includes(',') ? location.split(',')[0].trim() : location;
+      }
+      parts.push(locationText);
+      
       // Occupation filter
       const occupation = currentCriteria.occupation || currentCriteria.occupations || '';
-      // Handle both single occupation and comma-separated occupations
-      const occupationText = occupation ? 
-        (occupation.includes(',') ? occupation.split(',')[0].trim() : occupation) : '';
+      let occupationText = '';
+      if (currentCriteria.occupations && currentCriteria.occupations.length > 0) {
+        if (currentCriteria.occupations.length === 1) {
+          occupationText = currentCriteria.occupations[0];
+        } else {
+          // Multiple occupations: occ(3)
+          occupationText = `occ (${currentCriteria.occupations.length})`;
+        }
+      } else if (occupation) {
+        // Handle both single occupation and comma-separated occupations
+        occupationText = occupation.includes(',') ? occupation.split(',')[0].trim() : occupation;
+      }
       parts.push(occupationText);
       
       // Days back filter

@@ -23,6 +23,7 @@ const SearchFiltersModal = ({
   currentUserProfile,
   bodyTypeOptions,
   occupationOptions,
+  locationOptions,
   eatingOptions,
   lifestyleOptions,
   isAdmin,
@@ -158,6 +159,7 @@ const SearchFiltersModal = ({
                     currentUserProfile={currentUserProfile}
                     bodyTypeOptions={bodyTypeOptions}
                     occupationOptions={occupationOptions}
+                    locationOptions={locationOptions}
                     eatingOptions={eatingOptions}
                     lifestyleOptions={lifestyleOptions}
                     isAdmin={isAdmin}

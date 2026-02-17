@@ -4547,6 +4547,117 @@ async def get_occupation_options(db = Depends(get_database)):
             "count": len(fallback_options)
         }
 
+@router.get("/search/location-options")
+async def get_location_options(db = Depends(get_database)):
+    """Get unique location options from region, city, and state fields"""
+    logger.info("🔍 Fetching unique location options")
+    
+    try:
+        locations_set = set()
+        skip_values = {"", "N/A", "n/a", "None", "none", "null"}
+        
+        # 1. Get from region field (most comprehensive location field)
+        region_pipeline = [
+            {"$match": {"region": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
+            {"$group": {"_id": "$region"}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 300}
+        ]
+        region_results = await db.users.aggregate(region_pipeline).to_list(length=300)
+        for result in region_results:
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                locations_set.add(val)
+                # Also extract city and state from combined formats like "Nashville, TN"
+                if ',' in val:
+                    parts = [part.strip() for part in val.split(',')]
+                    if len(parts) >= 2:
+                        city_part = parts[0]
+                        state_part = parts[1]
+                        if city_part and city_part not in skip_values:
+                            locations_set.add(city_part)
+                        if state_part and state_part not in skip_values:
+                            locations_set.add(state_part)
+        
+        # 2. Get from city field
+        city_pipeline = [
+            {"$match": {"city": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
+            {"$group": {"_id": "$city"}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 200}
+        ]
+        city_results = await db.users.aggregate(city_pipeline).to_list(length=200)
+        for result in city_results:
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                locations_set.add(val)
+        
+        # 3. Get from state field
+        state_pipeline = [
+            {"$match": {"state": {"$exists": True, "$nin": ["", None, "N/A", "n/a"]}}},
+            {"$group": {"_id": "$state"}},
+            {"$sort": {"_id": 1}},
+            {"$limit": 100}
+        ]
+        state_results = await db.users.aggregate(state_pipeline).to_list(length=100)
+        for result in state_results:
+            val = result["_id"].strip() if isinstance(result["_id"], str) else ""
+            if val and val not in skip_values:
+                locations_set.add(val)
+        
+        # 4. Add US states as fallback if no data found
+        if len(locations_set) < 10:
+            us_states = [
+                "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut",
+                "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa",
+                "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan",
+                "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire",
+                "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio",
+                "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+                "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia",
+                "Wisconsin", "Wyoming"
+            ]
+            for state in us_states:
+                locations_set.add(state)
+        
+        # Sort locations alphabetically for better UX
+        sorted_locations = sorted(list(locations_set))
+        
+        # Log sample of locations for debugging
+        logger.info(f"🔍 Found {len(sorted_locations)} total location options")
+        logger.info(f"🔍 Sample locations: {sorted_locations[:10]}")
+        
+        # Check for Nashville specifically
+        nashville_matches = [loc for loc in sorted_locations if 'nashville' in loc.lower()]
+        if nashville_matches:
+            logger.info(f"🔍 Found Nashville-related locations: {nashville_matches}")
+        else:
+            logger.warning("⚠️ No Nashville-related locations found in database")
+        
+        return {
+            "options": sorted_locations,
+            "count": len(sorted_locations)
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Error fetching location options: {e}", exc_info=True)
+        # Return fallback options if there's an error
+        fallback_options = [
+            "California", "New York", "Texas", "Florida", "Illinois", "Pennsylvania",
+            "Ohio", "Georgia", "North Carolina", "Michigan", "New Jersey", "Virginia",
+            "Washington", "Arizona", "Massachusetts", "Tennessee", "Indiana", "Missouri",
+            "Maryland", "Wisconsin", "Colorado", "Minnesota", "South Carolina", "Alabama",
+            "Louisiana", "Kentucky", "Oregon", "Oklahoma", "Connecticut", "Utah", "Iowa",
+            "Nevada", "Arkansas", "Mississippi", "Kansas", "New Mexico", "Nebraska",
+            "West Virginia", "Idaho", "Hawaii", "New Hampshire", "Maine", "Montana",
+            "Rhode Island", "Alaska", "Delaware", "North Dakota", "South Dakota", "Vermont", "Wyoming",
+            "Nashville", "Nashville, TN", "Music City"
+        ]
+        return {
+            "options": fallback_options,
+            "count": len(fallback_options)
+        }
+
 # Search endpoint for advanced user search
 @router.get("/search")
 @limiter.limit(RATE_LIMITS["search"])
@@ -4560,6 +4671,7 @@ async def search_users(
     heightMin: int = 0,
     heightMax: int = 0,
     location: str = "",
+    locations: str = "",  # Comma-separated list for multi-select locations
     occupation: str = "",
     occupations: str = "",  # Comma-separated list for multi-select
     religion: str = "",
@@ -4703,6 +4815,30 @@ async def search_users(
                 {"aboutYou": {"$regex": location, "$options": "i"}}
             ]}
             and_conditions.append(location_query)
+        
+        # Handle locations filtering - support both single and multi-select
+        location_list = []
+        if locations and locations.strip():
+            # Parse comma-separated multi-select locations
+            location_list = [loc.strip() for loc in locations.split(',') if loc.strip()]
+            logger.info(f"🔍 Multi-select locations: {location_list}")
+        elif location and location.strip():
+            # Backward compatibility for single location
+            location_list = [location.strip()]
+            logger.info(f"🔍 Single location: {location_list}")
+        
+        # Build location query for multiple locations
+        if location_list:
+            location_or_conditions = []
+            for loc in location_list:
+                location_or_conditions.extend([
+                    {"region": {"$regex": loc, "$options": "i"}},
+                    {"city": {"$regex": loc, "$options": "i"}},
+                    {"state": {"$regex": loc, "$options": "i"}},
+                    {"aboutYou": {"$regex": loc, "$options": "i"}}
+                ])
+            if location_or_conditions:
+                and_conditions.append({"$or": location_or_conditions})
         
         # Handle occupation filtering - support both single and multi-select
         occupation_list = []

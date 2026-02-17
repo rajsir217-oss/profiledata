@@ -9,9 +9,6 @@ import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
 import OnlineStatusBadge from './OnlineStatusBadge';
-// eslint-disable-next-line no-unused-vars
-import UniversalTabContainer from './UniversalTabContainer';
-// eslint-disable-next-line no-unused-vars
 import SearchFilters from './SearchFilters';
 import LoadMore from './LoadMore';
 import socketService from '../services/socketService';
@@ -19,9 +16,10 @@ import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
 import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
+import GraphView from './GraphView';
 import toastService from '../services/toastService';
 import useActivityLogger from '../hooks/useActivityLogger';
-import GraphView from './GraphView';
+import { formatHeightRange, heightToInches } from '../utils/heightUtils';
 import './SearchPage2.css';
 
 // Shared utility: build default search criteria from a user profile.
@@ -121,20 +119,19 @@ const buildDefaultCriteria = (profile) => {
     heightMaxFeet: defaultHeightMaxFeet,
     heightMaxInches: defaultHeightMaxInches,
     daysBack: 30,
-    hasPhoto: true
+    hasPhoto: true,
+    locations: []
   };
 };
 
 const SearchPage2 = () => {
   // Activity logger hook
-  // eslint-disable-next-line no-unused-vars
   const { logPageVisit, logSearchResultsViewed, logFilterApplied, logSortChanged } = useActivityLogger();
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
   const [imageErrors, setImageErrors] = useState({});
-  // eslint-disable-next-line no-unused-vars
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Main application state
@@ -148,7 +145,6 @@ const SearchPage2 = () => {
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
   const [isPremiumUser, setIsPremiumUser] = useState(false); // Premium status for L3V3L filtering
-  // eslint-disable-next-line no-unused-vars
   const [systemConfig, setSystemConfig] = useState({ enable_l3v3l_for_all: true }); // System configuration
   const [isAdmin, setIsAdmin] = useState(false); // Admin role check for clear vs reset behavior
   const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
@@ -171,6 +167,7 @@ const SearchPage2 = () => {
     heightMin: '', // Kept for backward compatibility
     heightMax: '', // Kept for backward compatibility
     location: '',
+    locations: [], // New multi-select format for locations
     education: '',
     occupation: '', // Backward compatibility
     occupations: [], // New multi-select format
@@ -205,14 +202,9 @@ const SearchPage2 = () => {
   
   // Split-screen layout state
   const [selectedProfileForDetail, setSelectedProfileForDetail] = useState(null);
-  // eslint-disable-next-line no-unused-vars
   const [expandedSections, setExpandedSections] = useState({
     aboutMe: true,
     lookingFor: true,
-    basicInfo: false,
-    lifestyle: false,
-    contact: false,
-    preferences: false
   });
   
   // Handler to change view mode and persist to localStorage
@@ -242,10 +234,7 @@ const SearchPage2 = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   // Saved searches state
-  // eslint-disable-next-line no-unused-vars
-  const [saveSearchName, setSaveSearchName] = useState('');
   const [savedSearches, setSavedSearches] = useState([]);
-  // eslint-disable-next-line no-unused-vars
   const [showSavedSearches, setShowSavedSearches] = useState(false);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [selectedSearch, setSelectedSearch] = useState(null);
@@ -552,52 +541,62 @@ const SearchPage2 = () => {
       return;
     }
     
-    // Load current user's profile to get gender and set default search
-    const loadCurrentUserProfile = async () => {
+    // Load all initial data in coordinated way to prevent race conditions
+    const loadAllInitialData = async () => {
       try {
-        const response = await api.get(`/profile/${username}?requester=${username}`);
-        setCurrentUserProfile(response.data);
-        
-        // Check if user is premium (has subscription)
-        const userRole = response.data.role?.toLowerCase();
-        const hasPremium = userRole === 'premium' || userRole === 'admin';
-        setIsPremiumUser(hasPremium);
-        
-        // Check if user is admin (for clear vs reset behavior)
-        // Note: username is already defined in the outer scope (line 118)
-        setIsAdmin(userRole === 'admin' || username === 'admin');
-        
-        // Compute default criteria for logging (actual criteria set by loadAndExecuteDefaultSearch)
-        const defaults = buildDefaultCriteria(response.data);
-        logger.info('🎯 User gender:', response.data.gender, '→ Default search gender:', defaults.gender);
-        logger.info('📊 Default search criteria (from buildDefaultCriteria):', defaults);
-        
-        // NOTE: Do NOT set searchCriteria here!
-        // loadAndExecuteDefaultSearch will set it properly:
-        // - If user has default saved search → use saved search criteria
-        // - Else → use partnerCriteria defaults
-        // Setting it here causes a "flash" where UI shows partnerCriteria then switches to saved search
-        logger.info('🔧 Profile loaded, criteria will be set by loadAndExecuteDefaultSearch');
-      } catch (err) {
-        logger.error('❌ Error loading current user profile:', err);
-        // Set profile anyway to trigger search
-        setCurrentUserProfile({});
-      }
-    };
-    
-    // Load user's favorites, shortlist, and exclusions
-    const loadUserData = async () => {
-      try {
-        const [favResponse, shortlistResponse, exclusionsResponse] = await Promise.all([
-          api.get(`/favorites/${username}`),
-          api.get(`/shortlist/${username}`),
-          api.get(`/exclusions/${username}`)
+        // Load user profile and data in parallel
+        const [profileResponse, userDataResponse] = await Promise.all([
+          api.get(`/profile/${username}?requester=${username}`).catch(err => {
+            logger.error('❌ Error loading profile:', err);
+            return { data: null }; // Fallback response
+          }),
+          Promise.all([
+            api.get(`/favorites/${username}`).catch(err => {
+              logger.error('❌ Error loading favorites:', err);
+              return { data: [] }; // Fallback empty array
+            }),
+            api.get(`/shortlist/${username}`).catch(err => {
+              logger.error('❌ Error loading shortlist:', err);
+              return { data: [] }; // Fallback empty array
+            }),
+            api.get(`/exclusions/${username}`).catch(err => {
+              logger.error('❌ Error loading exclusions:', err);
+              return { data: [] }; // Fallback empty array
+            })
+          ]).catch(err => {
+            logger.error('❌ Error loading user data batch:', err);
+            return [[], [], []]; // Fallback empty arrays
+          })
         ]);
         
-        // Extract usernames from user objects (backend returns full user objects)
-        const favoriteUsernames = (favResponse.data.favorites || []).map(u => u.username);
-        const shortlistUsernames = (shortlistResponse.data.shortlist || []).map(u => u.username);
-        const exclusionUsernames = (exclusionsResponse.data.exclusions || []).map(u => u.username);
+        // Process profile data
+        if (profileResponse?.data) {
+          setCurrentUserProfile(profileResponse.data);
+          const userRole = profileResponse.data.role?.toLowerCase();
+          const hasPremium = userRole === 'premium' || userRole === 'admin';
+          setIsPremiumUser(hasPremium);
+          setIsAdmin(userRole === 'admin' || username === 'admin');
+          
+          // Compute default criteria for logging
+          const defaults = buildDefaultCriteria(profileResponse.data);
+          logger.info('🎯 User gender:', profileResponse.data.gender, '→ Default search gender:', defaults.gender);
+          logger.info('📊 Default search criteria (from buildDefaultCriteria):', defaults);
+        } else {
+          logger.warn('⚠️ Profile data not available, using fallback');
+          setCurrentUserProfile({});
+        }
+        
+        // Process user data
+        const [favResponse, shortlistResponse, exclusionsResponse] = userDataResponse;
+        
+        // Safely extract data with fallbacks
+        const favData = Array.isArray(favResponse?.data) ? favResponse.data : [];
+        const shortlistData = Array.isArray(shortlistResponse?.data) ? shortlistResponse.data : [];
+        const exclusionsData = Array.isArray(exclusionsResponse?.data) ? exclusionsResponse.data : [];
+        
+        const favoriteUsernames = favData.map(fav => fav.targetUsername || fav.username);
+        const shortlistUsernames = shortlistData.map(sl => sl.targetUsername || sl.username);
+        const exclusionUsernames = exclusionsData.map(ex => ex.targetUsername || ex.username);
         
         setFavoritedUsers(new Set(favoriteUsernames));
         setShortlistedUsers(new Set(shortlistUsernames));
@@ -606,33 +605,48 @@ const SearchPage2 = () => {
         logger.info('✅ Loaded user interactions:', {
           favorites: favoriteUsernames.length,
           shortlist: shortlistUsernames.length,
-          exclusions: exclusionUsernames.length
+          exclusions: exclusionUsernames.length,
+          favDataStructure: typeof favResponse.data,
+          favDataIsArray: Array.isArray(favResponse.data)
         });
+        
       } catch (err) {
-        logger.error('Error loading user data:', err);
+        logger.error('❌ Error loading initial data:', err);
+        // Set profile anyway to trigger search
+        setCurrentUserProfile({});
       }
     };
     
-    // Load initial online users
+    // Load other data that doesn't depend on profile
+    const loadOtherData = async () => {
+      try {
+        await Promise.all([
+          loadSavedSearches(),
+          loadPiiRequests()
+        ]);
+      } catch (err) {
+        logger.error('❌ Error loading other data:', err);
+      }
+    };
+    
+    // Load online users function
     const loadOnlineUsers = async () => {
       try {
         const response = await api.get('/online-status/users');
         logger.debug('Loaded online users:', response.data.onlineUsers);
-        const onlineSet = new Set(response.data.onlineUsers || []);
-        logger.debug('Online users Set:', onlineSet);
+        
+        const onlineSet = new Set(response.data.onlineUsers);
         setOnlineUsers(onlineSet);
       } catch (err) {
         logger.error('Error loading online users:', err);
       }
     };
+    
+    // Execute coordinated loading
+    loadAllInitialData();
+    loadOtherData();
 
-    // Load all initial data
-    loadCurrentUserProfile();
-    loadUserData();
-    loadSavedSearches();
-    loadPiiRequests();
-
-    // Setup online users initially with a small delay
+    // Setup online users with delay
     setTimeout(() => {
       loadOnlineUsers();
     }, 1000);
@@ -670,7 +684,7 @@ const SearchPage2 = () => {
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [navigate]);
 
   // Listen for external "open search modal" events (e.g. from TopBar)
   useEffect(() => {
@@ -1031,15 +1045,10 @@ const SearchPage2 = () => {
   };
 
   // Dating field options
-  // eslint-disable-next-line no-unused-vars
-  const genderOptions = ['', 'Male', 'Female'];
   const [occupationOptions, setOccupationOptions] = useState([]);
-  // eslint-disable-next-line no-unused-vars
-  const religionOptions = ['', 'Hindu', 'Muslim', 'Christian', 'Sikh', 'Buddhist', 'Jain'];
+  const [locationOptions, setLocationOptions] = useState([]);
   const eatingOptions = ['', 'Vegetarian', 'Vegan', 'Eggetarian', 'Non-Veg'];
   const lifestyleOptions = ['', 'Never', 'Socially', 'Prefer not to say'];
-  // eslint-disable-next-line no-unused-vars
-  const relationshipOptions = ['', 'Single', 'Divorced', 'Widowed'];
   const bodyTypeOptions = ['', 'Slim', 'Athletic', 'Average', 'Curvy'];
 
   // Load occupation options dynamically
@@ -1064,6 +1073,34 @@ const SearchPage2 = () => {
   // Load occupation options on component mount
   useEffect(() => {
     loadOccupationOptions();
+  }, []);
+
+  // Load location options dynamically
+  const loadLocationOptions = async () => {
+    try {
+      const response = await api.get('/search/location-options');
+      setLocationOptions(response.data.options || []);
+      logger.info(`Loaded ${response.data.count || 0} location options`);
+    } catch (err) {
+      logger.error('Error loading location options:', err);
+      // Set fallback options if API fails
+      setLocationOptions([
+        'California', 'New York', 'Texas', 'Florida', 'Illinois', 'Pennsylvania',
+        'Ohio', 'Georgia', 'North Carolina', 'Michigan', 'New Jersey', 'Virginia',
+        'Washington', 'Arizona', 'Massachusetts', 'Tennessee', 'Indiana', 'Missouri',
+        'Maryland', 'Wisconsin', 'Colorado', 'Minnesota', 'South Carolina', 'Alabama',
+        'Louisiana', 'Kentucky', 'Oregon', 'Oklahoma', 'Connecticut', 'Utah', 'Iowa',
+        'Nevada', 'Arkansas', 'Mississippi', 'Kansas', 'New Mexico', 'Nebraska',
+        'West Virginia', 'Idaho', 'Hawaii', 'New Hampshire', 'Maine', 'Montana',
+        'Rhode Island', 'Alaska', 'Delaware', 'North Dakota', 'South Dakota', 'Vermont', 'Wyoming',
+        'Nashville, TN', 'Nashville', 'Music City'
+      ]);
+    }
+  };
+
+  // Load location options on component mount
+  useEffect(() => {
+    loadLocationOptions();
   }, []);
 
   // NOTE: Standalone loadUserFavorites, loadUserShortlist, loadUserExclusions
@@ -1149,6 +1186,7 @@ const SearchPage2 = () => {
         heightMaxFeet: '',
         heightMaxInches: '',
         location: '',
+        locations: [],
         education: '',
         occupation: '',
         occupations: [],
@@ -1181,6 +1219,7 @@ const SearchPage2 = () => {
         heightMaxFeet: defaults.heightMaxFeet,
         heightMaxInches: defaults.heightMaxInches,
         location: '',
+        locations: [],
         education: '',
         occupation: '',
         occupations: [],
@@ -1201,7 +1240,6 @@ const SearchPage2 = () => {
     }
     
     setUsers([]);
-    setSaveSearchName('');
     setMinMatchScore(0); // Reset L3V3L compatibility score
     setSelectedSearch(null); // Clear selected search badge
     setCurrentPage(1); // Reset pagination
@@ -1309,6 +1347,11 @@ const SearchPage2 = () => {
       // Convert occupations array to comma-separated string for API
       if (params.occupations && Array.isArray(params.occupations) && params.occupations.length > 0) {
         params.occupations = params.occupations.join(',');
+      }
+      
+      // Convert locations array to comma-separated string for API
+      if (params.locations && Array.isArray(params.locations) && params.locations.length > 0) {
+        params.locations = params.locations.join(',');
       }
       
       logger.info('🔍 Search params after validation:', params);
@@ -1568,8 +1611,14 @@ const SearchPage2 = () => {
       parts.push(`height from ${heightMin} to ${heightMax}`);
     }
     
-    // Location
-    if (criteria.location) {
+    // Location (handle both single location and locations array)
+    if (criteria.locations && criteria.locations.length > 0) {
+      if (criteria.locations.length === 1) {
+        parts.push(`living around ${criteria.locations[0]}`);
+      } else {
+        parts.push(`living around ${criteria.locations.slice(0, 2).join(' or ')}${criteria.locations.length > 2 ? ` (+${criteria.locations.length - 2} more)` : ''}`);
+      }
+    } else if (criteria.location) {
       parts.push(`living around ${criteria.location}`);
     }
     
@@ -1664,6 +1713,14 @@ const SearchPage2 = () => {
       delete criteria.occupation; // Remove old field
     } else if (!criteria.occupations) {
       criteria.occupations = [];
+    }
+    
+    // Convert old single location to new locations array format
+    if (criteria.location && !criteria.locations) {
+      criteria.locations = [criteria.location];
+      delete criteria.location; // Remove old field
+    } else if (!criteria.locations) {
+      criteria.locations = [];
     }
     
     // Apply default daysBack if not set in saved search (for backward compatibility)
@@ -2215,8 +2272,16 @@ const SearchPage2 = () => {
       }
     }
     
-    // Location
-    if (searchCriteria.location) summary.push(`📍 ${searchCriteria.location}`);
+    // Location (handle both single and multi-select formats)
+    if (searchCriteria.locations && searchCriteria.locations.length > 0) {
+      if (searchCriteria.locations.length === 1) {
+        summary.push(`📍 ${searchCriteria.locations[0]}`);
+      } else {
+        summary.push(`📍 ${searchCriteria.locations.length} locations`);
+      }
+    } else if (searchCriteria.location) {
+      summary.push(`📍 ${searchCriteria.location}`);
+    }
     if (searchCriteria.state) summary.push(searchCriteria.state);
     if (searchCriteria.country) summary.push(searchCriteria.country);
     
@@ -2304,6 +2369,7 @@ const SearchPage2 = () => {
         currentUserProfile={currentUserProfile}
         bodyTypeOptions={bodyTypeOptions}
         occupationOptions={occupationOptions}
+        locationOptions={locationOptions}
         eatingOptions={eatingOptions}
         lifestyleOptions={lifestyleOptions}
         isAdmin={isAdmin}

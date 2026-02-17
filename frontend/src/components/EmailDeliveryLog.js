@@ -11,7 +11,6 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { getBackendUrl } from '../config/apiConfig';
 import LoadMore from './LoadMore';
 import './EmailDeliveryLog.css';
 import useAdminAuth from '../hooks/useAdminAuth';
