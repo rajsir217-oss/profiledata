@@ -413,29 +413,55 @@ const AdminReports = () => {
                           />
                           {/* Male portion */}
                           {(d.maleCount || 0) > 0 && (
-                            <rect
-                              x={padding.left}
-                              y={barY}
-                              width={Math.min((d.maleCount / maxCount) * maxBarWidth, maxBarWidth)}
-                              height={barHeight / 2 - 1}
-                              className="bar-male"
-                              onClick={() => handleDataPointClick(d)}
-                              style={{ cursor: 'pointer' }}
-                            />
+                            <>
+                              <rect
+                                x={padding.left}
+                                y={barY}
+                                width={Math.min((d.maleCount / maxCount) * maxBarWidth, maxBarWidth)}
+                                height={barHeight / 2 - 1}
+                                className="bar-male"
+                                onClick={() => handleDataPointClick(d)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              {/* Male count label */}
+                              <text
+                                x={padding.left + Math.min((d.maleCount / maxCount) * maxBarWidth, maxBarWidth) - 5}
+                                y={barY + (barHeight / 2 - 1) / 2}
+                                className="data-label"
+                                dominantBaseline="middle"
+                                textAnchor="end"
+                                style={{ fontSize: '10px', fill: '#fff' }}
+                              >
+                                {d.maleCount}
+                              </text>
+                            </>
                           )}
                           {/* Female portion */}
                           {(d.femaleCount || 0) > 0 && (
-                            <rect
-                              x={padding.left}
-                              y={barY + barHeight / 2 + 1}
-                              width={Math.min((d.femaleCount / maxCount) * maxBarWidth, maxBarWidth)}
-                              height={barHeight / 2 - 1}
-                              className="bar-female"
-                              onClick={() => handleDataPointClick(d)}
-                              style={{ cursor: 'pointer' }}
-                            />
+                            <>
+                              <rect
+                                x={padding.left}
+                                y={barY + barHeight / 2 + 1}
+                                width={Math.min((d.femaleCount / maxCount) * maxBarWidth, maxBarWidth)}
+                                height={barHeight / 2 - 1}
+                                className="bar-female"
+                                onClick={() => handleDataPointClick(d)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              {/* Female count label */}
+                              <text
+                                x={padding.left + Math.min((d.femaleCount / maxCount) * maxBarWidth, maxBarWidth) - 5}
+                                y={barY + barHeight / 2 + 1 + (barHeight / 2 - 1) / 2}
+                                className="data-label"
+                                dominantBaseline="middle"
+                                textAnchor="end"
+                                style={{ fontSize: '10px', fill: '#fff' }}
+                              >
+                                {d.femaleCount}
+                              </text>
+                            </>
                           )}
-                          {/* Count label */}
+                          {/* Total count label */}
                           <text
                             x={padding.left + barWidth + 8}
                             y={barY + barHeight / 2}
