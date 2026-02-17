@@ -1785,7 +1785,7 @@ const Register2 = ({ mode = 'register', editUsername = null }) => {
           url={pageSEO.url}
         />
       )}
-    <div className={`register-container ${isEditMode ? 'edit-mode' : 'registration-mode'}`} style={{
+    <div className={` ${isEditMode ? 'edit-mode' : 'registration-mode'}`} style={{
       ...(!isEditMode && {
         // Wedding background only for registration
         minHeight: '100vh',
