@@ -298,6 +298,53 @@ const Messages = () => {
 
   return (
     <div className="messages-page">
+      {/* Messages Guide Section */}
+      <div className="messages-guide-section">
+        <div className="messages-guide-content">
+          <h3 className="messages-guide-title">
+            💬 Managing Your Messages
+          </h3>
+          <div className="messages-guide-grid">
+            <div className="guide-item">
+              <div className="guide-icon">📋</div>
+              <div className="guide-text">
+                <strong>High Volume?</strong>
+                <p>Use Quick Messages to respond efficiently or decline politely</p>
+              </div>
+            </div>
+            <div className="guide-item">
+              <div className="guide-icon">⚡</div>
+              <div className="guide-text">
+                <strong>Quick Actions</strong>
+                <p>Accept, decline, or ask questions with one-click responses</p>
+              </div>
+            </div>
+            <div className="guide-item">
+              <div className="guide-icon">🚫</div>
+              <div className="guide-text">
+                <strong>Not Interested?</strong>
+                <p>Add to exclusions to prevent future messages</p>
+              </div>
+            </div>
+            <div className="guide-item">
+              <div className="guide-icon">⏰</div>
+              <div className="guide-text">
+                <strong>Response Time</strong>
+                <p>Try to respond within 3 days for best engagement</p>
+              </div>
+            </div>
+          </div>
+          <div className="messages-guide-tips">
+            <span className="tip-badge">💡 Pro Tip:</span>
+            <span>Use the sidebar to prioritize messages by urgency (🔴 Critical, 🟠 High, 🟡 Medium)</span>
+          </div>
+          <div className="messages-guide-tips" style={{ marginTop: '12px', background: 'linear-gradient(135deg, var(--warning-light, #fff3cd) 0%, var(--warning-color, #ffc107) 100%)' }}>
+            <span className="tip-badge">⏰ Time Saver:</span>
+            <span>If you need to review the profile before responding, use a placeholder like "We will get back to you" to clear the urgency. You can always edit the message later!</span>
+          </div>
+        </div>
+      </div>
+
       {/* Warning Banner for High/Medium/Pending messages (dismissible, non-blocking) */}
       {unattendedData && unattendedData.warningCount > 0 && unattendedData.criticalCount === 0 && !pendingDismissed && (
         <div className="pending-warning-banner">
