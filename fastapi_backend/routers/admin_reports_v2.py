@@ -1,11 +1,11 @@
 """
-Admin Reports API - Ultra-Optimized version
+Admin Reports API - Optimized version
 Gender by Age distribution and other analytics
 Admin-only endpoints for viewing user statistics
 """
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from typing import Optional, Dict, List, Any, Tuple
+from typing import Optional, Dict, List, Any
 from datetime import datetime
 from database import get_database
 from auth.jwt_auth import get_current_user_dependency as get_current_user
@@ -14,18 +14,10 @@ import logging
 import re
 import json
 from functools import lru_cache
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/admin/reports", tags=["admin-reports"])
-
-# Constants
-MAX_USERS_PER_QUERY = 1000
-MAX_USERS_PER_GROUP = 100
-MAX_RESULTS_PER_REPORT = 50
-MIN_AGE = 18
-MAX_AGE = 79
 
 # Pre-compiled regex patterns for profession categorization
 PROFESSION_PATTERNS = {
@@ -44,6 +36,14 @@ PROFESSION_PATTERNS = {
     "Creative & Design": re.compile(r"design|creative|artist|writer|marketing", re.IGNORECASE),
     "Other Services": re.compile(r"transportation|dept of transportation|non profit", re.IGNORECASE)
 }
+
+# Age group configuration
+AGE_GROUPS = [
+    (18, 19), (20, 22), (23, 25), (26, 28), (29, 31),
+    (32, 34), (35, 37), (38, 40), (41, 43), (44, 46),
+    (47, 49), (50, 52), (53, 55), (56, 58), (59, 61),
+    (62, 64), (65, 67), (68, 70), (71, 73), (74, 76), (77, 79)
+]
 
 # Response models
 class ReportResponse(BaseModel):
@@ -88,14 +88,7 @@ def _check_admin_access(current_user: dict):
             detail="Admin access required"
         )
 
-def _build_gender_filter(gender: Optional[str]) -> Dict[str, Any]:
-    """Build MongoDB gender filter query"""
-    match_query = {"accountStatus": "active"}
-    if gender and gender.lower() in ["male", "female"]:
-        match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
-    return match_query
-
-def _safe_gender_count(user: dict) -> Tuple[str, int]:
+def _safe_gender_count(user: dict) -> tuple[str, int]:
     """Safely extract gender and return normalized gender and count increment"""
     gender = user.get("gender")
     if not gender or gender == "":
@@ -114,26 +107,20 @@ def _create_user_summary(user: dict, **extra_fields) -> UserSummary:
         "username": user.get("username", ""),
         "firstName": user.get("firstName", ""),
         "lastName": user.get("lastName", ""),
-        "gender": user.get("gender") or None
+        "gender": user.get("gender") or None  # Handle None values properly
     }
     base_data.update(extra_fields)
     return UserSummary(**base_data)
 
-def _get_age_group_math(age: int) -> Optional[Tuple[int, str]]:
-    """Mathematical age group calculation - O(1) complexity"""
-    if age < MIN_AGE or age > MAX_AGE:
+def _get_age_group(age: int) -> Optional[tuple[int, str]]:
+    """Efficient age group calculation using mathematical approach"""
+    if age < 18 or age > 79:
         return None
     
-    # Special case for 18-19 (2-year group)
-    if age <= 19:
-        return (18, "18-19")
-    
-    # For ages 20+, use 3-year groups starting at 20
-    if age >= 20:
-        group_start = ((age - 20) // 3) * 3 + 20
-        group_end = min(group_start + 2, MAX_AGE)
-        return (group_start, f"{group_start}-{group_end}")
-    
+    # Find the appropriate age group
+    for i, (min_age, max_age) in enumerate(AGE_GROUPS):
+        if min_age <= age <= max_age:
+            return (min_age, f"{min_age}-{max_age}")
     return None
 
 def _categorize_profession(profession_text: str) -> str:
@@ -195,54 +182,10 @@ def _update_group_counts(group: Dict[str, Any], user: dict):
     elif gender == "female":
         group["femaleCount"] += increment
 
-def _add_user_to_group(group: Dict[str, Any], user: dict, **extra_fields):
-    """Add user to group if under limit"""
-    if len(group["users"]) < MAX_USERS_PER_GROUP:
-        group["users"].append(_create_user_summary(user, **extra_fields))
-
-def _format_group_results(groups: Dict[str, Dict[str, Any]], 
-                         key_field: str, 
-                         additional_fields: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
-    """Format group results consistently across all reports"""
-    formatted_results = []
-    additional_fields = additional_fields or {}
-    
-    for key, data in sorted(groups.items(), key=lambda x: x[1]["count"], reverse=True)[:MAX_RESULTS_PER_REPORT]:
-        result = {
-            key_field: key,
-            "count": data["count"],
-            "maleCount": data["maleCount"],
-            "femaleCount": data["femaleCount"],
-            "users": [user.dict() if hasattr(user, 'dict') else user for user in data["users"]]
-        }
-        result.update(additional_fields)
-        formatted_results.append(result)
-    
-    return formatted_results
-
-def _process_users_by_category(users: List[Dict[str, Any]], 
-                               category_extractor: callable,
-                               category_key: str,
-                               **extra_fields) -> Dict[str, Dict[str, Any]]:
-    """Process users and group them by category with unified logic"""
-    groups = defaultdict(_create_group_data)
-    
-    for user in users:
-        try:
-            # Extract category
-            category = category_extractor(user)
-            
-            # Update counts
-            _update_group_counts(groups[category], user)
-            
-            # Add user if under limit
-            _add_user_to_group(groups[category], user, **extra_fields)
-            
-        except Exception as e:
-            logger.debug(f"Error processing user {user.get('username')}: {e}")
-            continue
-    
-    return dict(groups)
+def _limit_users_in_groups(groups: Dict[str, Dict[str, Any]], limit: int = 100):
+    """Limit number of users in each group to prevent memory bloat"""
+    for group in groups.values():
+        group["users"] = group["users"][:limit]
 
 @router.get("/gender-by-age")
 async def get_gender_by_age_report(
@@ -259,7 +202,9 @@ async def get_gender_by_age_report(
     
     try:
         # Build match query
-        match_query = _build_gender_filter(gender)
+        match_query = {"accountStatus": "active"}
+        if gender and gender.lower() in ["male", "female"]:
+            match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
         
         # Calculate current year/month for age calculation
         now = datetime.now()
@@ -300,7 +245,7 @@ async def get_gender_by_age_report(
                 },
                 "normalizedGender": {"$toLower": {"$ifNull": ["$gender", "other"]}}
             }},
-            {"$match": {"calculatedAge": {"$ne": None, "$gte": MIN_AGE, "$lte": 100}}},
+            {"$match": {"calculatedAge": {"$ne": None, "$gte": 18, "$lte": 100}}},
             {"$group": {
                 "_id": "$calculatedAge",
                 "count": {"$sum": 1},
@@ -325,39 +270,38 @@ async def get_gender_by_age_report(
         # Get individual age data
         individual_ages = await db.users.aggregate(pipeline).to_list(100)
         
-        # Group into age ranges efficiently using mathematical approach
-        age_groups = defaultdict(_create_group_data)
-        
+        # Group into age ranges efficiently
+        age_groups = {}
         for result in individual_ages:
             age = result["_id"]
-            age_group = _get_age_group_math(age)
+            age_group = _get_age_group(age)
             
             if not age_group:
                 continue
             
             group_id, range_label = age_group
-            
-            # Initialize group with age-specific data
             if group_id not in age_groups:
-                age_groups[group_id].update({
+                age_groups[group_id] = {
                     "ageGroup": group_id,
-                    "ageRange": range_label
-                })
+                    "ageRange": range_label,
+                    "count": 0,
+                    "maleCount": 0,
+                    "femaleCount": 0,
+                    "users": []
+                }
             
             # Update counts
             age_groups[group_id]["count"] += result["count"]
             age_groups[group_id]["maleCount"] += result["maleCount"]
             age_groups[group_id]["femaleCount"] += result["femaleCount"]
-            
-            # Add users (with limit)
-            remaining_slots = MAX_USERS_PER_GROUP - len(age_groups[group_id]["users"])
-            if remaining_slots > 0:
-                age_groups[group_id]["users"].extend(result["users"][:remaining_slots])
+            age_groups[group_id]["users"].extend(result["users"])
         
-        # Convert to sorted list
+        # Convert to sorted list and limit users
         grouped_results = []
         for group_id in sorted(age_groups.keys()):
-            grouped_results.append(dict(age_groups[group_id]))
+            group_data = age_groups[group_id]
+            group_data["users"] = group_data["users"][:100]  # Limit users per group
+            grouped_results.append(group_data)
         
         total_count = sum(r["count"] for r in grouped_results)
         
@@ -453,42 +397,56 @@ async def get_by_location_report(
         encryptor = get_encryptor_cached()
         
         # Build match query for gender filter
-        match_query = _build_gender_filter(gender)
+        match_query = {"accountStatus": "active"}
+        if gender and gender.lower() in ["male", "female"]:
+            match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
         
         # Get active users with location data and optional gender filter
         users_cursor = db.users.find(
             match_query,
             {"location": 1, "gender": 1, "profileId": 1, "username": 1, "firstName": 1, "lastName": 1}
         )
-        users = await users_cursor.to_list(MAX_USERS_PER_QUERY)
+        users = await users_cursor.to_list(1000)
         
-        def extract_location(user: dict) -> str:
-            """Extract and decrypt location from user"""
+        # Process locations with decrypted data
+        location_groups = {}
+        for user in users:
             encrypted_location = user.get("location")
             if not encrypted_location:
-                return "Unknown"
+                continue
             
+            # Decrypt location safely
             try:
                 decrypted_location = encryptor.decrypt(encrypted_location)
                 if not decrypted_location or decrypted_location.strip() == "":
-                    return "Unknown"
-                return decrypted_location
+                    continue
             except Exception as decrypt_err:
                 logger.debug(f"⚠️ Could not decrypt location for user {user.get('username')}")
-                return "Unknown"
+                continue
+            
+            # Initialize group if needed
+            if decrypted_location not in location_groups:
+                location_groups[decrypted_location] = _create_group_data()
+            
+            # Update counts
+            _update_group_counts(location_groups[decrypted_location], user)
+            
+            # Add user if under limit
+            if len(location_groups[decrypted_location]["users"]) < 100:
+                location_groups[decrypted_location]["users"].append(
+                    _create_user_summary(user)
+                )
         
-        # Process users by location
-        location_groups = _process_users_by_category(
-            users, 
-            extract_location, 
-            "location"
-        )
-        
-        # Remove "Unknown" location if present
-        location_groups.pop("Unknown", None)
-        
-        # Format results
-        formatted_results = _format_group_results(location_groups, "location")
+        # Convert to sorted list
+        formatted_results = []
+        for location, data in sorted(location_groups.items(), key=lambda x: x[1]["count"], reverse=True)[:50]:
+            formatted_results.append({
+                "location": location,
+                "count": data["count"],
+                "maleCount": data["maleCount"],
+                "femaleCount": data["femaleCount"],
+                "users": [user.dict() if hasattr(user, 'dict') else user for user in data["users"]]
+            })
         
         total_count = sum(r["count"] for r in formatted_results)
         
@@ -523,38 +481,50 @@ async def get_by_profession_report(
     
     try:
         # Build match query for gender filter
-        match_query = _build_gender_filter(gender)
+        match_query = {"accountStatus": "active"}
+        if gender and gender.lower() in ["male", "female"]:
+            match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
         
         # Get users with profession data and optional gender filter
         users_cursor = db.users.find(
             match_query,
             {"occupation": 1, "workExperience": 1, "gender": 1, "profileId": 1, "username": 1, "firstName": 1, "lastName": 1}
         )
-        users = await users_cursor.to_list(MAX_USERS_PER_QUERY)
+        users = await users_cursor.to_list(1000)
         
-        def extract_profession(user: dict) -> str:
-            """Extract and categorize profession from user"""
+        # Process professions
+        profession_groups = {}
+        for user in users:
+            # Extract profession text
             profession_text = _extract_profession_from_user(user)
-            return _categorize_profession(profession_text)
+            
+            # Categorize profession
+            profession_category = _categorize_profession(profession_text)
+            
+            # Initialize group if needed
+            if profession_category not in profession_groups:
+                profession_groups[profession_category] = _create_group_data()
+            
+            # Update counts
+            _update_group_counts(profession_groups[profession_category], user)
+            
+            # Add user if under limit
+            if len(profession_groups[profession_category]["users"]) < 100:
+                profession_groups[profession_category]["users"].append(
+                    _create_user_summary(user, occupation=profession_text)
+                )
         
-        # Process users by profession
-        profession_groups = _process_users_by_category(
-            users, 
-            extract_profession, 
-            "profession",
-            occupation=_extract_profession_from_user
-        )
-        
-        # Format results with additional fields
-        formatted_results = _format_group_results(
-            profession_groups, 
-            "profession", 
-            {"group": lambda x: x}  # Add group field same as profession
-        )
-        
-        # Update group field to match profession
-        for result in formatted_results:
-            result["group"] = result["profession"]
+        # Convert to sorted list
+        formatted_results = []
+        for profession, data in sorted(profession_groups.items(), key=lambda x: x[1]["count"], reverse=True)[:50]:
+            formatted_results.append({
+                "profession": profession,
+                "group": profession,
+                "count": data["count"],
+                "maleCount": data["maleCount"],
+                "femaleCount": data["femaleCount"],
+                "users": [user.dict() if hasattr(user, 'dict') else user for user in data["users"]]
+            })
         
         total_count = sum(r["count"] for r in formatted_results)
         
