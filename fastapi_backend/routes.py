@@ -2310,11 +2310,11 @@ async def get_user_profile(
     # Dispatch profile view event if viewing someone else's profile
     if not is_own_profile and requester_username:
         try:
-            from services.event_dispatcher import get_event_dispatcher
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
             event_dispatcher = await get_event_dispatcher(db)
             
             await event_dispatcher.dispatch(
-                event_type="PROFILE_VIEWED",
+                event_type=UserEventType.PROFILE_VIEWED,
                 actor_username=requester_username,
                 target_username=username,
                 metadata={
@@ -4140,11 +4140,11 @@ async def create_pii_access_request(
     
     # Dispatch PII request event for notifications
     try:
-        from services.event_dispatcher import get_event_dispatcher
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
         event_dispatcher = await get_event_dispatcher(db)
         
         await event_dispatcher.dispatch(
-            event_type="PII_REQUESTED",
+            event_type=UserEventType.PII_REQUESTED,
             actor_username=requester,
             target_username=requested_user,
             metadata={
@@ -4228,7 +4228,7 @@ async def respond_to_request(
     
     # Dispatch PII response event for notifications
     try:
-        from services.event_dispatcher import get_event_dispatcher
+        from services.event_dispatcher import get_event_dispatcher, UserEventType
         event_dispatcher = await get_event_dispatcher(db)
         
         # Get the original request to determine who to notify
@@ -4237,7 +4237,7 @@ async def respond_to_request(
             requester = original_request.get("requesterId")
             
             # Map response to event type
-            event_type = "PII_GRANTED" if response == "approved" else "PII_DENIED"
+            event_type = UserEventType.PII_GRANTED if response == "approved" else UserEventType.PII_REJECTED
             
             await event_dispatcher.dispatch(
                 event_type=event_type,
@@ -8116,11 +8116,11 @@ async def send_message_enhanced(
         
         # Dispatch message sent event for notifications
         try:
-            from services.event_dispatcher import get_event_dispatcher
+            from services.event_dispatcher import get_event_dispatcher, UserEventType
             event_dispatcher = await get_event_dispatcher(db)
             
             await event_dispatcher.dispatch(
-                event_type="MESSAGE_SENT",
+                event_type=UserEventType.MESSAGE_SENT,
                 actor_username=username,
                 target_username=message_data.toUsername,
                 metadata={

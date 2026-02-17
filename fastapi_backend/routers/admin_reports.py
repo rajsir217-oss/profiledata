@@ -183,3 +183,216 @@ async def get_reports_summary(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error getting summary: {str(e)}"
         )
+
+
+@router.get("/by-location")
+async def get_by_location_report(
+    gender: Optional[str] = None,  # "male", "female", or None for all
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user count by location (region/city/state), optionally filtered by gender.
+    Returns data for bar chart visualization.
+    """
+    if not _is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    logger.info(f"📊 Admin report: by-location, filter={gender}")
+    
+    # Build match query
+    match_query = {"accountStatus": "active"}
+    if gender and gender.lower() in ["male", "female"]:
+        match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
+    
+    # Aggregation pipeline to group by location
+    pipeline = [
+        {"$match": match_query},
+        # Normalize gender to lowercase for consistent grouping
+        {"$addFields": {
+            "normalizedGender": {"$toLower": {"$ifNull": ["$gender", "other"]}},
+            # Extract location in order of preference: region > city > state > location
+            "primaryLocation": {
+                "$ifNull": [
+                    "$region",
+                    "$city", 
+                    "$state",
+                    "$location",
+                    "Unknown"
+                ]
+            }
+        }},
+        # Filter out users without valid location
+        {"$match": {"primaryLocation": {"$ne": None, "$ne": ""}}},
+        # Group by location with gender breakdown
+        {"$group": {
+            "_id": "$primaryLocation",
+            "count": {"$sum": 1},
+            "maleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "male"]}, 1, 0]}
+            },
+            "femaleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "female"]}, 1, 0]}
+            },
+            "users": {"$push": {
+                "profileId": "$profileId",
+                "username": "$username",
+                "firstName": "$firstName",
+                "lastName": "$lastName",
+                "gender": "$gender",
+                "location": "$primaryLocation"
+            }}
+        }},
+        # Sort by count (descending) to show most popular locations first
+        {"$sort": {"count": -1}},
+        # Limit to top 50 locations
+        {"$limit": 50},
+        # Project final shape
+        {"$project": {
+            "_id": 0,
+            "location": "$_id",
+            "count": 1,
+            "maleCount": 1,
+            "femaleCount": 1,
+            "users": {"$slice": ["$users", 20]}  # Limit users per location to 20
+        }}
+    ]
+    
+    try:
+        results = await db.users.aggregate(pipeline).to_list(50)
+        
+        # Calculate totals
+        total_count = sum(r["count"] for r in results)
+        
+        logger.info(f"📊 Location report generated: {len(results)} locations, {total_count} total users")
+        
+        return {
+            "success": True,
+            "filter": gender or "all",
+            "totalCount": total_count,
+            "data": results
+        }
+    except Exception as e:
+        logger.error(f"❌ Error generating location report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating location report: {str(e)}"
+        )
+
+
+@router.get("/by-profession")
+async def get_by_profession_report(
+    gender: Optional[str] = None,  # "male", "female", or None for all
+    current_user: dict = Depends(get_current_user),
+    db = Depends(get_database)
+):
+    """
+    Get user count by profession/occupation, optionally filtered by gender.
+    Uses same logic as search filter occupation (checks both occupation and workExperience.position).
+    Returns data for bar chart visualization.
+    """
+    if not _is_admin(current_user):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    logger.info(f"📊 Admin report: by-profession, filter={gender}")
+    
+    # Build match query
+    match_query = {"accountStatus": "active"}
+    if gender and gender.lower() in ["male", "female"]:
+        match_query["gender"] = {"$regex": f"^{gender}$", "$options": "i"}
+    
+    # Aggregation pipeline to extract profession and group by it
+    pipeline = [
+        {"$match": match_query},
+        # Normalize gender to lowercase for consistent grouping
+        {"$addFields": {
+            "normalizedGender": {"$toLower": {"$ifNull": ["$gender", "other"]}},
+            # Extract profession using same logic as search filter
+            "profession": {
+                "$let": {
+                    "vars": {
+                        "workPosition": {
+                            "$arrayElemAt": [
+                                {"$filter": {
+                                    "input": {"$ifNull": ["$workExperience", []]},
+                                    "as": "work",
+                                    "cond": {"$ne": ["$$work.position", ""]}
+                                }},
+                                0
+                            ]
+                        }
+                    },
+                    "in": {
+                        "$ifNull": [
+                            "$$workPosition.position",
+                            "$$workPosition.description",
+                            "$$workPosition.company",
+                            "$occupation",
+                            "Unknown"
+                        ]
+                    }
+                }
+            }
+        }},
+        # Filter out users without valid profession
+        {"$match": {"profession": {"$ne": None, "$ne": "", "$ne": "Unknown"}}},
+        # Group by profession with gender breakdown
+        {"$group": {
+            "_id": "$profession",
+            "count": {"$sum": 1},
+            "maleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "male"]}, 1, 0]}
+            },
+            "femaleCount": {
+                "$sum": {"$cond": [{"$eq": ["$normalizedGender", "female"]}, 1, 0]}
+            },
+            "users": {"$push": {
+                "profileId": "$profileId",
+                "username": "$username",
+                "firstName": "$firstName",
+                "lastName": "$lastName",
+                "gender": "$gender",
+                "profession": "$profession"
+            }}
+        }},
+        # Sort by count (descending) to show most common professions first
+        {"$sort": {"count": -1}},
+        # Limit to top 50 professions
+        {"$limit": 50},
+        # Project final shape
+        {"$project": {
+            "_id": 0,
+            "profession": "$_id",
+            "count": 1,
+            "maleCount": 1,
+            "femaleCount": 1,
+            "users": {"$slice": ["$users", 20]}  # Limit users per profession to 20
+        }}
+    ]
+    
+    try:
+        results = await db.users.aggregate(pipeline).to_list(50)
+        
+        # Calculate totals
+        total_count = sum(r["count"] for r in results)
+        
+        logger.info(f"📊 Profession report generated: {len(results)} professions, {total_count} total users")
+        
+        return {
+            "success": True,
+            "filter": gender or "all",
+            "totalCount": total_count,
+            "data": results
+        }
+    except Exception as e:
+        logger.error(f"❌ Error generating profession report: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error generating profession report: {str(e)}"
+        )

@@ -214,7 +214,7 @@ class SMSNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly
                         NotificationChannel.SMS,
-                        status="success"
+                        success=True
                     )
                     
                     # Log notification
@@ -234,7 +234,7 @@ class SMSNotifierTemplate(JobTemplate):
                     await service.mark_as_sent(
                         notification.id,  # Use .id field directly
                         NotificationChannel.SMS,
-                        status="failed",
+                        success=False,
                         error=str(e)
                     )
                     failed_count += 1

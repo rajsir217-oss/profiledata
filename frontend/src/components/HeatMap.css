@@ -1,0 +1,142 @@
+/* Heat Map Component Styles */
+/* Using theme-aware CSS variables */
+
+.heat-map-container {
+  position: relative;
+  width: 100%;
+  overflow-x: auto;
+  background: var(--card-background);
+  border-radius: var(--radius-lg, 12px);
+  padding: 20px;
+  border: 1px solid var(--border-color);
+}
+
+.heat-map-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color);
+  fill: var(--text-color);
+}
+
+.heat-map-rect {
+  transition: all 0.3s ease;
+  stroke: none;
+  stroke-width: 0;
+}
+
+.heat-map-rect:hover {
+  filter: brightness(1.1);
+}
+
+.heat-map-label {
+  font-size: 11px;
+  font-weight: 500;
+  fill: var(--text-color);
+  pointer-events: none;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+}
+
+.heat-map-value {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-color);
+  pointer-events: none;
+  text-shadow: 0 0 3px rgba(255, 255, 255, 0.8);
+}
+
+/* Tooltip */
+.heat-map-tooltip {
+  background: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md, 8px);
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  min-width: 150px;
+  backdrop-filter: blur(10px);
+}
+
+.tooltip-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.tooltip-content {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.tooltip-content strong {
+  color: var(--text-color);
+  font-weight: 600;
+}
+
+/* Legend */
+.legend-title {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text-color);
+}
+
+.legend .domain {
+  stroke: var(--border-color);
+}
+
+.legend .tick line {
+  stroke: var(--border-color);
+}
+
+.legend .tick text {
+  fill: var(--text-secondary);
+  font-size: 11px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .heat-map-container {
+    padding: 10px;
+  }
+  
+  .heat-map-label {
+    font-size: 10px;
+  }
+  
+  .heat-map-value {
+    font-size: 11px;
+  }
+  
+  .heat-map-tooltip {
+    min-width: 120px;
+    padding: 8px;
+  }
+}
+
+/* Dark theme adjustments */
+[data-theme="dark"] .heat-map-rect {
+  filter: brightness(0.9);
+}
+
+[data-theme="dark"] .heat-map-rect:hover {
+  filter: brightness(1.2);
+}
+
+/* Animation for data updates */
+.heat-map-rect {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

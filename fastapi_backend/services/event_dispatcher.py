@@ -870,11 +870,14 @@ class EventDispatcher:
             
             # Get names for both parties
             recipient_firstName, _, _ = await self._get_user_names(target)
-            rejecter_firstName, _, _ = await self._get_user_names(actor) if actor else ("Someone", "", "Someone")
+            if actor:
+                rejecter_firstName, _, _ = await self._get_user_names(actor)
+            else:
+                rejecter_firstName = "Someone"
             
             await self.notification_service.queue_notification(
                 username=target,
-                trigger="pii_rejected",
+                trigger="pii_denied",
                 channels=["email", "push", "sms"],  # Add SMS for important contact info
                 template_data={
                     "recipient": {"firstName": recipient_firstName, "username": target},
@@ -1219,7 +1222,10 @@ class EventDispatcher:
             
             # Get names for both parties
             target_name, _, _ = await self._get_user_names(target)
-            revoker_name, _, _ = await self._get_user_names(actor) if actor else ("Admin", "", "Admin")
+            if actor:
+                revoker_name, _, _ = await self._get_user_names(actor)
+            else:
+                revoker_name = "Admin"
             
             await self.notification_service.queue_notification(
                 username=target,
