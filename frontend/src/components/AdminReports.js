@@ -225,7 +225,7 @@ const AdminReports = () => {
             </div>
 
             {/* Pie Chart */}
-            {chartType === 'pie' && reportType === 'gender-by-age' && summary && (
+            {chartType === 'pie' && reportType === 'gender-by-age' && summary && summary.maleCount !== undefined ? (
               <div className="pie-chart-container">
                 <svg viewBox="0 0 400 300" className="pie-chart">
                   {(() => {
@@ -291,7 +291,13 @@ const AdminReports = () => {
                   </div>
                 </div>
               </div>
-            )}
+            ) : chartType === 'pie' && reportType === 'gender-by-age' ? (
+              <div className="pie-chart-container">
+                <div className="loading-placeholder">
+                  <span>📊 Loading gender distribution data...</span>
+                </div>
+              </div>
+            ) : null}
 
             {/* Horizontal Bar Chart for all report types */}
             {chartType === 'bar' && (
@@ -349,7 +355,7 @@ const AdminReports = () => {
                     {data.map((d, i) => {
                       let label;
                       if (reportType === 'gender-by-age') {
-                        label = `Age ${d.age}`;
+                        label = d.ageRange || `Age ${d.ageGroup}`;
                       } else if (reportType === 'by-location') {
                         label = d.location;
                       } else {
@@ -506,7 +512,7 @@ const AdminReports = () => {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>
-                {reportType === 'gender-by-age' && `👥 Members Age ${selectedItem.age}`}
+                {reportType === 'gender-by-age' && `👥 Members ${selectedItem.ageRange || `Age ${selectedItem.ageGroup}`}`}
                 {reportType === 'by-location' && `📍 Members in ${selectedItem.location}`}
                 {reportType === 'by-profession' && `💼 Members in ${selectedItem.profession}`}
                 <span className="user-count">({selectedItem.count} members)</span>
