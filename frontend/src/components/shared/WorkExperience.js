@@ -17,6 +17,7 @@ const WorkExperience = ({
   const [editingIndex, setEditingIndex] = useState(null);
   const [newWorkExperience, setNewWorkExperience] = useState({
     status: '',
+    workType: '',
     description: '',
     location: ''
   });
@@ -40,6 +41,7 @@ const WorkExperience = ({
     // Add or update
     const workEntry = {
       status: newWorkExperience.status,
+      workType: newWorkExperience.workType,
       description: newWorkExperience.description.trim(),
       location: newWorkExperience.location?.trim() || ''
     };
@@ -58,6 +60,7 @@ const WorkExperience = ({
     // Reset form
     setNewWorkExperience({
       status: '',
+      workType: '',
       description: '',
       location: ''
     });
@@ -75,6 +78,7 @@ const WorkExperience = ({
       setEditingIndex(null);
       setNewWorkExperience({
         status: '',
+        workType: '',
         description: '',
         location: ''
       });
@@ -85,6 +89,7 @@ const WorkExperience = ({
     setEditingIndex(null);
     setNewWorkExperience({
       status: '',
+      workType: '',
       description: '',
       location: ''
     });
@@ -103,6 +108,7 @@ const WorkExperience = ({
             <thead style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', borderColor: 'var(--border-color, #dee2e6)' }}>
               <tr>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Status</th>
+                <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Work Type</th>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Description</th>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>Location</th>
                 <th style={{ backgroundColor: 'var(--hover-background, #f8f9fa)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)', textAlign: 'right' }}>Actions</th>
@@ -115,6 +121,9 @@ const WorkExperience = ({
                     <span className={`badge ${work.status === 'current' ? 'bg-success' : 'bg-secondary'}`}>
                       {work.status}
                     </span>
+                  </td>
+                  <td data-label="Work Type" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>
+                    <span className="badge bg-info">{work.workType || 'Not specified'}</span>
                   </td>
                   <td data-label="Description" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.description}</td>
                   <td data-label="Location" style={{ backgroundColor: 'var(--surface-color, #fff)', color: 'var(--text-color, #333)', borderColor: 'var(--border-color, #dee2e6)' }}>{work.location || '-'}</td>
@@ -150,7 +159,7 @@ const WorkExperience = ({
         <h6 className="mb-3">{editingIndex !== null ? 'Edit' : 'Add'} Work Experience Entry</h6>
 
         <div className="row mb-3">
-          <div className="col-md-3">
+          <div className="col-md-2">
             <label className="form-label">Work Status <span className="text-danger">*</span></label>
             <select
               className="form-control"
@@ -165,7 +174,44 @@ const WorkExperience = ({
             </select>
           </div>
 
-          <div className="col-md-4">
+          <div className="col-md-3">
+            <label className="form-label">Work Type</label>
+            <select
+              className="form-control"
+              name="workType"
+              value={newWorkExperience.workType}
+              onChange={handleWorkExperienceChange}
+            >
+              <option value="">Select Type</option>
+              <option value="manager">Manager</option>
+              <option value="engineer">Engineer</option>
+              <option value="doctor">Doctor</option>
+              <option value="attorney">Attorney</option>
+              <option value="teacher">Teacher</option>
+              <option value="nurse">Nurse</option>
+              <option value="accountant">Accountant</option>
+              <option value="consultant">Consultant</option>
+              <option value="developer">Developer</option>
+              <option value="designer">Designer</option>
+              <option value="analyst">Analyst</option>
+              <option value="scientist">Scientist</option>
+              <option value="entrepreneur">Entrepreneur</option>
+              <option value="freelancer">Freelancer</option>
+              <option value="sales">Sales</option>
+              <option value="marketing">Marketing</option>
+              <option value="hr">HR</option>
+              <option value="finance">Finance</option>
+              <option value="operations">Operations</option>
+              <option value="customer_service">Customer Service</option>
+              <option value="student">Student</option>
+              <option value="researcher">Researcher</option>
+              <option value="writer">Writer</option>
+              <option value="artist">Artist</option>
+              <option value="others">Others</option>
+            </select>
+          </div>
+
+          <div className="col-md-3">
             <label className="form-label">Type of work & Industry <span className="text-danger">*</span></label>
             <input
               type="text"
@@ -177,7 +223,7 @@ const WorkExperience = ({
             />
           </div>
 
-          <div className="col-md-3">
+          <div className="col-md-2">
             <label className="form-label">Work Location</label>
             <input
               type="text"
