@@ -312,7 +312,7 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     };
 
     fetchAdminPendingCounts();
-    const interval = setInterval(fetchAdminPendingCounts, 60000);
+    const interval = setInterval(fetchAdminPendingCounts, 120000); // Reduced from 60s to 120s
     return () => clearInterval(interval);
   }, [userRole]);
 
@@ -348,8 +348,8 @@ const TopBar = ({ onSidebarToggle, isOpen }) => {
     // Fetch immediately
     fetchUnreadResponseCount();
 
-    // Poll every 60 seconds
-    const interval = setInterval(fetchUnreadResponseCount, 60000);
+    // Poll every 90 seconds (reduced from 60s to prevent too frequent updates)
+    const interval = setInterval(fetchUnreadResponseCount, 90000);
 
     return () => clearInterval(interval);
   }, [currentUser]);
