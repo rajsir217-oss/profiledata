@@ -90,6 +90,7 @@ class EducationEntry(BaseModel):
 class WorkEntry(BaseModel):
     """Structured work experience entry"""
     status: str = Field(..., description="Status: current, past")
+    workType: Optional[str] = Field(None, description="Type of work: manager, engineer, doctor, attorney, others")
     company: Optional[str] = Field(None, description="Company name")
     position: Optional[str] = Field(None, description="Job title/position")
     description: Optional[str] = Field(None, description="Job description")
@@ -102,6 +103,7 @@ class WorkEntry(BaseModel):
         json_schema_extra = {
             "example": {
                 "status": "current",
+                "workType": "engineer",
                 "company": "Google",
                 "position": "Software Engineer",
                 "description": "Full-stack development",
