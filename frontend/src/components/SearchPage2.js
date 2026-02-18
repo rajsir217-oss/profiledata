@@ -221,15 +221,6 @@ const SearchPage2 = () => {
     }
   };
   
-  // Toggle section expansion in split view
-  // eslint-disable-next-line no-unused-vars
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-  
   // Advanced filters collapse state
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
@@ -290,10 +281,6 @@ const SearchPage2 = () => {
   // AbortController ref to cancel in-flight search requests when a new search starts
   const searchAbortRef = useRef(null);
   
-  // Cache L3V3L scores to avoid re-fetching on subsequent pages
-  // eslint-disable-next-line no-unused-vars
-  const l3v3lScoresCacheRef = useRef({});
-  
   // Track accumulated user count for hasMore calculation (avoids stale closure issues)
   const accumulatedCountRef = useRef(0);
 
@@ -349,10 +336,6 @@ const SearchPage2 = () => {
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
   }, [handleResizeMove]);
-
-  // Collapse state for filters panel
-  // eslint-disable-next-line no-unused-vars
-  const [filtersCollapsed, setFiltersCollapsed] = useState(false);
 
   const navigate = useNavigate();
   
@@ -589,14 +572,18 @@ const SearchPage2 = () => {
         // Process user data
         const [favResponse, shortlistResponse, exclusionsResponse] = userDataResponse;
         
-        // Safely extract data with fallbacks
-        const favData = Array.isArray(favResponse?.data) ? favResponse.data : [];
-        const shortlistData = Array.isArray(shortlistResponse?.data) ? shortlistResponse.data : [];
-        const exclusionsData = Array.isArray(exclusionsResponse?.data) ? exclusionsResponse.data : [];
+        // APIs return nested objects: {favorites: [...]}, {shortlist: [...]}, {exclusions: [...]}
+        const favData = favResponse?.data?.favorites || favResponse?.data || [];
+        const shortlistData = shortlistResponse?.data?.shortlist || shortlistResponse?.data || [];
+        const exclusionsData = exclusionsResponse?.data?.exclusions || exclusionsResponse?.data || [];
         
-        const favoriteUsernames = favData.map(fav => fav.targetUsername || fav.username);
-        const shortlistUsernames = shortlistData.map(sl => sl.targetUsername || sl.username);
-        const exclusionUsernames = exclusionsData.map(ex => ex.targetUsername || ex.username);
+        const favArray = Array.isArray(favData) ? favData : [];
+        const shortlistArray = Array.isArray(shortlistData) ? shortlistData : [];
+        const exclusionsArray = Array.isArray(exclusionsData) ? exclusionsData : [];
+        
+        const favoriteUsernames = favArray.map(fav => fav.targetUsername || fav.favoriteUsername || fav.username);
+        const shortlistUsernames = shortlistArray.map(sl => sl.targetUsername || sl.username);
+        const exclusionUsernames = exclusionsArray.map(ex => ex.targetUsername || ex.username);
         
         setFavoritedUsers(new Set(favoriteUsernames));
         setShortlistedUsers(new Set(shortlistUsernames));
@@ -605,9 +592,7 @@ const SearchPage2 = () => {
         logger.info('✅ Loaded user interactions:', {
           favorites: favoriteUsernames.length,
           shortlist: shortlistUsernames.length,
-          exclusions: exclusionUsernames.length,
-          favDataStructure: typeof favResponse.data,
-          favDataIsArray: Array.isArray(favResponse.data)
+          exclusions: exclusionUsernames.length
         });
         
       } catch (err) {
@@ -935,115 +920,6 @@ const SearchPage2 = () => {
     });
   };
 
-  // eslint-disable-next-line no-unused-vars
-  const renderProfileImage = (user) => {
-    const currentIndex = imageIndices[user.username] || 0;
-    const currentImage = user.images && user.images.length > currentIndex ? user.images[currentIndex] : null;
-    const hasError = imageErrors[user.username] || false;
-
-    const hasImageAccess = hasPiiAccess(user.username, 'images');
-    
-    // Check if user has any images to display (profile picture always visible when enabled)
-    const hasVisibleImages = user.images && user.images.length > 0;
-    
-    // SIMPLE LOGIC: If backend sent images in the array, show them!
-    // The backend already handles visibility logic - if images are in the array, they're meant to be shown
-    const canShowImages = hasImageAccess || hasVisibleImages;
-
-    // If no images to show, show masked version
-    if (!canShowImages) {
-      return (
-        <div className="profile-image-container">
-          <div className="profile-thumbnail-placeholder">
-            <span className="no-image-icon">🔒</span>
-          </div>
-          <div className="image-access-overlay">
-            <p className="text-muted small">Images Locked</p>
-            <button
-              className="btn btn-sm btn-primary"
-              onClick={(e) => {
-                e.stopPropagation();
-                openPIIRequestModal(user.username);
-              }}
-              disabled={isPiiRequestPending(user.username, 'images')}
-            >
-              {isPiiRequestPending(user.username, 'images') ? (
-                <span className="badge bg-warning text-dark">📨 Request Pics Sent</span>
-              ) : 'Request Access'}
-            </button>
-          </div>
-          {/* Online Status Badge */}
-          <div className="status-badge-absolute">
-            <OnlineStatusBadge username={user.username} size="medium" />
-          </div>
-        </div>
-      );
-    }
-
-    // Check if image is already a full URL (from search results) or relative path (from profile view)
-    const imageSrc = currentImage && currentImage.startsWith('http') ? currentImage : getImageUrl(currentImage);
-    return (
-      <div className="profile-image-container">
-        {currentImage && !hasError ? (
-          <img
-            key={`${user.username}-${currentIndex}`}
-            src={`${imageSrc}?t=${Date.now()}`}
-            alt={`${user.firstName}'s profile`}
-            className="profile-thumbnail"
-            onError={(e) => {
-              logger.error(`Failed to load image: ${currentImage}`, e);
-              setImageErrors(prev => ({ ...prev, [user.username]: true }));
-              e.target.style.display = 'none';
-              e.target.nextSibling.style.display = 'flex';
-            }}
-            onLoad={(e) => {
-              logger.info(`Successfully loaded image: ${currentImage}`);
-              setImageErrors(prev => ({ ...prev, [user.username]: false }));
-              e.target.style.display = 'block';
-              e.target.nextSibling.style.display = 'none';
-            }}
-            crossOrigin="anonymous"
-            loading="lazy"
-          />
-        ) : (
-          <div className="profile-thumbnail-placeholder">
-            <span className="no-image-icon">👤</span>
-          </div>
-        )}
-        <div className="no-image-icon-overlay" style={{display: hasError || !currentImage ? 'flex' : 'none'}}>👤</div>
-
-        {user.images.length > 1 && (
-          <>
-            <button
-              className="image-nav-btn prev-btn"
-              onClick={(e) => handlePrevImage(user.username, e)}
-              disabled={currentIndex === 0}
-              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
-            >
-              {'<'}
-            </button>
-            <button
-              className="image-nav-btn next-btn"
-              onClick={(e) => handleNextImage(user.username, e, users)}
-              disabled={currentIndex === user.images.length - 1}
-              style={{ padding: 0, minWidth: '28px', maxWidth: '28px', width: '28px', height: '28px' }}
-            >
-              {'>'}
-            </button>
-            <div className="image-counter">
-              {currentIndex + 1}/{user.images.length}
-            </div>
-          </>
-        )}
-        
-        {/* Online Status Badge */}
-        <div className="status-badge-absolute">
-          <OnlineStatusBadge username={user.username} size="medium" />
-        </div>
-      </div>
-    );
-  };
-
   // Dating field options
   const [occupationOptions, setOccupationOptions] = useState([]);
   const [locationOptions, setLocationOptions] = useState([]);
@@ -1245,12 +1121,9 @@ const SearchPage2 = () => {
     setCurrentPage(1); // Reset pagination
     setTotalResults(0);
     setHasMoreResults(true);
-    setFiltersCollapsed(false); // Expand filters when clearing
   };
 
   const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null, overrideSort = null) => {
-    // eslint-disable-next-line no-unused-vars
-    const currentUser = localStorage.getItem('username');
     
     // Cancel any in-flight search request to prevent stale data from overwriting
     if (searchAbortRef.current) {
@@ -1433,8 +1306,6 @@ const SearchPage2 = () => {
         logSearchResultsViewed(total, criteriaToUse);
       } else {
         // Subsequent pages: append new users and calculate hasMore
-        // eslint-disable-next-line no-unused-vars
-        const serverReturnedNothing = serverReturnedCount === 0;
         
         // Get current users synchronously to calculate hasMore BEFORE state update
         // This avoids all closure/timing issues
@@ -1701,9 +1572,6 @@ const SearchPage2 = () => {
   };
 
   const handleLoadSavedSearch = (savedSearch) => {
-    // Expand filters if they were collapsed so user can see what was loaded
-    setFiltersCollapsed(false);
-    
     // Handle occupation format conversion for backward compatibility
     const criteria = { ...savedSearch.criteria };
     
