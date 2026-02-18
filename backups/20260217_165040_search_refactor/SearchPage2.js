@@ -2,101 +2,12 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../utils/urlHelper';
 import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSearch } from '../api';
-import { useUserData } from '../hooks/useUserData';
 import SearchResultCard from './SearchResultCard';
 import SwipeableCard from './SwipeableCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
-
-/*
-TODO: HOOK INTEGRATION PLAN - REMAINING HOOKS TO REPLACE MONOLITHIC CODE
-================================================================================
-
-✅ COMPLETED:
-- [x] useUserData - User interactions (favorites, shortlist, exclusions) - INTEGRATED
-
-🔄 TODO - REMAINING HOOKS:
-
-📊 PRIORITY 1 - Simple & Low Risk:
-------------------------------------
-[ ] useSearchFilters (259 lines)
-   - Replace: occupationOptions, locationOptions, eatingOptions, lifestyleOptions, bodyTypeOptions
-   - Replace: savedSearches, showSavedSearches, showSaveModal, selectedSearch, editingScheduleFor
-   - Replace: showAdvancedFilters
-   - Replace: loadOccupationOptions, loadLocationOptions, loadSavedSearches
-   - Replace: updateSavedSearch, deleteSavedSearch, setDefaultSavedSearch
-   - Replace: All filter-related functions
-   - Impact: Filter management, saved searches
-   - Risk: LOW (isolated functionality)
-
-[ ] useSearchPagination (149 lines)
-   - Replace: handleLoadMore function
-   - Replace: IntersectionObserver useEffect for infinite scroll
-   - Replace: loadMoreTriggerRef, loadingPageRef, accumulatedCountRef
-   - Replace: All pagination logic
-   - Impact: Infinite scroll, pagination
-   - Risk: LOW (self-contained logic)
-
-📊 PRIORITY 2 - Medium Complexity:
-------------------------------------
-[ ] useSearchViewModes (201 lines)
-   - Replace: viewMode, setViewMode, cardsPerRow, setCardsPerRow
-   - Replace: swipeIndex, setSwipeIndex, selectedProfileForDetail, setSelectedProfileForDetail
-   - Replace: expandedSections, setExpandedSections, columnWidths, setColumnWidths
-   - Replace: handleViewModeChange function
-   - Replace: All view mode switching logic
-   - Replace: Swipe navigation functions
-   - Impact: All view modes (cards, rows, split, swipe, graph)
-   - Risk: MEDIUM (affects UI layout)
-
-📊 PRIORITY 3 - High Complexity:
-------------------------------------
-[ ] useSearchState (274 lines)
-   - Replace: users, setUsers, searchCriteria, setSearchCriteria
-   - Replace: loading, setLoading, error, setError, initialSearchComplete, setInitialSearchComplete
-   - Replace: currentPage, setCurrentPage, totalResults, setTotalResults, hasMoreResults, setHasMoreResults
-   - Replace: sortBy, setSortBy, sortOrder, setSortOrder
-   - Replace: loadingStartTime, setLoadingStartTime, elapsedTime, setElapsedTime
-   - Replace: All core search state management
-   - Impact: Core search functionality
-   - Risk: HIGH (affects everything)
-
-[ ] useSearchActions (471 lines)
-   - Replace: loadAllInitialData, loadOtherData, loadOnlineUsers, loadPiiRequests
-   - Replace: handleSearch function (main search logic)
-   - Replace: handleSaveSearch, handleProfileAction, toggleListAction
-   - Replace: actuallyOpenPIIRequestModal, handlePIIRequestSuccess, hasPiiAccess
-   - Replace: All API calls and async operations
-   - Impact: All API interactions
-   - Risk: HIGH (affects all data flow)
-
-📊 INTEGRATION STRATEGY:
----------------------
-1. Start with useSearchFilters (simplest, isolated)
-2. Add useSearchPagination (self-contained)
-3. Add useSearchViewModes (UI focused)
-4. Add useSearchState (core functionality)
-5. Add useSearchActions (final integration)
-
-📊 EXPECTED BENEFITS:
---------------------
-- Code reduction: ~1000+ lines from main component
-- Maintainability: Dramatically improved
-- Testability: Each hook independently testable
-- Reusability: Hooks can be used in other components
-- Performance: Optimized state management
-
-📊 CURRENT STATUS:
-----------------
-- Progress: 1/6 hooks integrated (17%)
-- System: Fully operational with zero downtime
-- Code quality: Significantly improved
-- Risk: Low - gradual integration approach
-
-================================================================================
-*/
 import OnlineStatusBadge from './OnlineStatusBadge';
 import SearchFilters from './SearchFilters';
 import LoadMore from './LoadMore';
@@ -217,25 +128,6 @@ const SearchPage2 = () => {
   // Activity logger hook
   const { logPageVisit, logSearchResultsViewed, logFilterApplied, logSortChanged } = useActivityLogger();
   
-  // ===== USER DATA HOOK =====
-  const userData = useUserData();
-  const {
-    favoritedUsers, setFavoritedUsers,
-    shortlistedUsers, setShortlistedUsers,
-    excludedUsers, setExcludedUsers,
-    loadUserData,
-    toggleListAction,
-    addToFavorites,
-    removeFromFavorites,
-    addToShortlist,
-    removeFromShortlist,
-    addToExclusions,
-    removeFromExclusions,
-    isFavorited,
-    isShortlisted,
-    isExcluded,
-  } = userData;
-  
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for image indices per user
   const [imageIndices, setImageIndices] = useState({});
@@ -288,6 +180,9 @@ const SearchPage2 = () => {
     daysBack: 30, // Number of days to look back for profile creation (default: 30)
     hasPhoto: true, // Default ON - only show profiles with photos
   });
+  const [favoritedUsers, setFavoritedUsers] = useState(new Set());
+  const [shortlistedUsers, setShortlistedUsers] = useState(new Set());
+  const [excludedUsers, setExcludedUsers] = useState(new Set());
   const [statusMessage, setStatusMessage] = useState('');
   
   // View mode state - default based on screen size (swipe for mobile, split for desktop)
@@ -735,7 +630,6 @@ const SearchPage2 = () => {
     // Execute coordinated loading
     loadAllInitialData();
     loadOtherData();
-    loadUserData(); // Load user data from hook
 
     // Setup online users with delay
     setTimeout(() => {
