@@ -225,11 +225,29 @@
   background-color: rgba(99, 102, 241, 0.1);
 }
 
-/* Delete Button */
-.btn-delete {
+/* Delete Button Container */
+.btn-delete-container {
   position: absolute;
   top: 6px;
   left: 6px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.btn-delete-container.confirm {
+  background: white;
+  border: 2px solid var(--warning-color, #ffc107);
+  border-radius: 8px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.3);
+  animation: pulse 0.5s ease infinite;
+}
+
+/* Delete Button */
+.btn-delete {
   width: 26px;
   height: 26px;
   border: none;
@@ -243,7 +261,6 @@
   justify-content: center;
   opacity: 0;
   transition: all 0.2s ease;
-  z-index: 10;
 }
 
 .photo-slot:hover .btn-delete {
@@ -252,19 +269,67 @@
 
 .btn-delete:hover {
   background: var(--error-color, #dc3545);
-  transform: scale(1.1);
+  transform: scale(1.05);
 }
 
-.btn-delete.confirm {
-  opacity: 1;
-  background: var(--warning-color, #ffc107);
+/* Delete Confirmation */
+.delete-confirmation {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 2px;
+}
+
+.delete-question {
+  font-size: 0.7rem;
+  font-weight: 600;
   color: #333;
-  animation: pulse 0.5s ease infinite;
+  text-align: center;
+}
+
+.delete-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.btn-confirm-yes,
+.btn-confirm-no {
+  padding: 2px 8px;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 35px;
+}
+
+.btn-confirm-yes {
+  background: var(--error-color, #dc3545);
+  color: white;
+}
+
+.btn-confirm-yes:hover {
+  background: #c82333;
+  transform: translateY(-1px);
+}
+
+.btn-confirm-no {
+  background: var(--surface-color, #f8f9fa);
+  color: var(--text-color, #333);
+  border: 1px solid var(--border-color, #dee2e6);
+}
+
+.btn-confirm-no:hover {
+  background: var(--hover-background, #e9ecef);
+  transform: translateY(-1px);
+  border-color: var(--primary-color, #007bff);
 }
 
 @keyframes pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.02); }
 }
 
 /* Drag Handle */
@@ -423,11 +488,36 @@
     font-size: 0.65rem;
   }
   
+  .btn-delete-container {
+    left: 4px;
+    top: 4px;
+  }
+  
   .btn-delete {
     width: 22px;
     height: 22px;
     font-size: 0.75rem;
     opacity: 1; /* Always show on mobile */
+  }
+  
+  .btn-delete-container.confirm {
+    padding: 3px;
+    gap: 3px;
+  }
+  
+  .delete-question {
+    font-size: 0.65rem;
+  }
+  
+  .delete-buttons {
+    gap: 3px;
+  }
+  
+  .btn-confirm-yes,
+  .btn-confirm-no {
+    padding: 1px 6px;
+    font-size: 0.65rem;
+    min-width: 30px;
   }
   
   .visibility-legend {
