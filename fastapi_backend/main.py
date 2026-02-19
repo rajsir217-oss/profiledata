@@ -70,10 +70,23 @@ handlers = [logging.StreamHandler()]  # Console output
 # Add file handler if log_file is configured (skip in production - Cloud Run captures stdout)
 if settings.log_file and settings.env != "production":
     from logging.handlers import RotatingFileHandler
+    
+    # Custom RotatingFileHandler that handles permission errors gracefully
+    class SafeRotatingFileHandler(RotatingFileHandler):
+        def doRollover(self):
+            """Override doRollover to handle permission errors gracefully"""
+            try:
+                super().doRollover()
+            except (PermissionError, OSError) as e:
+                # If rotation fails, just continue with current file
+                self.stream.seek(0, 2)  # Seek to end of current file
+                if hasattr(self, 'logger'):
+                    self.logger.warning(f"⚠️ Log rotation failed: {e}")
+    
     try:
         log_dir = Path(settings.log_file).parent
         log_dir.mkdir(parents=True, exist_ok=True)
-        file_handler = RotatingFileHandler(
+        file_handler = SafeRotatingFileHandler(
             settings.log_file,
             maxBytes=10*1024*1024,  # 10MB per file
             backupCount=5  # Keep 5 backup files
@@ -83,6 +96,9 @@ if settings.log_file and settings.env != "production":
     except (PermissionError, OSError) as e:
         # Skip file logging if directory is not writable (e.g., in containers)
         logger.warning(f"⚠️ File logging disabled: {e}")
+    except Exception as e:
+        # Catch any other logging-related errors (e.g., rotation permissions)
+        logger.warning(f"⚠️ File logging disabled due to unexpected error: {e}")
 
 logging.basicConfig(
     level=log_level,
