@@ -8294,7 +8294,15 @@ async def get_user_violations(
         raise HTTPException(status_code=404, detail="User not found")
     
     status = user.get("status", {})
-    account_status = status.get("status", "active")
+    
+    # Handle case where status might be a string instead of dict
+    if isinstance(status, str):
+        # If status is a string, use it as account_status directly
+        account_status = status
+        status = {"status": status}  # Convert to dict for consistency
+    else:
+        # Normal case: status is a dict
+        account_status = status.get("status", "active")
     
     # Determine warning level
     warning_level = "none"
