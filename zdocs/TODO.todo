@@ -1,151 +1,74 @@
-# TODO List
+📋 Remaining 3 Hooks to Integrate
+Based on our current progress (3/6 hooks integrated at 50%), here are the remaining 3 hooks that need to be integrated:
 
-## UI/UX Improvements
-add to todo.todo "review for opportuniites -- add a factory function to api.js that creates properly configured axios instances with session handling and others, then update components to use it -- it will eliminates code issues later"
+🔍 Remaining Hooks Overview
+🎯 Current Status:
+
+✅ useUserData - Integrated (user interactions: favorites, shortlist, exclusions)
+✅ useSearchPagination - Integrated (pagination and infinite scroll)
+✅ useSearchViewModes - Integrated (view mode management)
+🔄 Remaining 3 Hooks
+1. useSearchFilters (259 lines)
+🎯 Purpose: Manage search filters and saved searches
+
+Filter options - All search criteria state
+Saved searches - Load, save, delete, schedule searches
+Filter functions - Apply, clear, reset filters
+Risk: LOW (isolated functionality)
+📦 What it will replace:
+
+savedSearches, showSavedSearches, showSaveModal state
+loadSavedSearches, handleSaveSearch, handleDeleteSavedSearch functions
+Filter option loading functions
+Filter state management
+2. useSearchState (274 lines)
+🎯 Purpose: Core search state management
+
+Search results - users, loading, error state
+Search criteria - Complete search parameters
+Pagination state - currentPage, totalResults, hasMoreResults
+Search execution - handleSearch function
+Risk: HIGH (core functionality)
+📦 What it will replace:
+
+users, loading, error, initialSearchComplete state
+searchCriteria, currentPage, totalResults, hasMoreResults state
+handleSearch function and related search logic
+Session management and state persistence
+3. useSearchActions (471 lines)
+🎯 Purpose: API calls and user actions
+
+Profile actions - handleProfileAction, handleMessage, handlePIIRequest
+Search actions - handleLoadSavedSearch, handleClearFilters
+PII management - loadPiiRequests, hasPiiAccess, isPiiRequestPending
+Risk: MEDIUM (complex interactions)
+📦 What it will replace:
+
+handleProfileAction, handleMessage, handlePIIRequestSuccess functions
+loadPiiRequests, hasPiiAccess, isPiiRequestPending functions
+handleLoadSavedSearch, handleDeleteSavedSearch, handleSaveSearch functions
+PII access management and user interaction handlers
+📊 Integration Priority
+🎯 Recommended Order:
+
+useSearchState (HIGH priority) - Core foundation
+useSearchFilters (LOW risk) - Isolated functionality
+useSearchActions (MEDIUM risk) - Final integration
+🔧 Why This Order:
+
+useSearchState provides the foundation for the other two
+useSearchFilters is low-risk and isolated
+useSearchActions ties everything together
+🚀 Expected Final Result
+After integrating all 6 hooks:
+
+Modular architecture with complete separation of concerns
+Significantly reduced SearchPage2.js component size
+Reusable hooks that can be used in other components
+Testable units for better code quality
+Maintainable codebase for future development
+📈 Current Progress: 50% complete (3/6 hooks) 🎯 Remaining Work: 3 hooks to complete the transformation!
+
+Ready to proceed with the next hook integration? 🚀
 
 
-
-1. ✅ **Profile Pictures - 3-Column Visibility System** (Dec 28, 2025)
-   - Design: `zdocs/PHOTO_VISIBILITY_DESIGN.md`
-   - Backend: `routes.py` - GET/PUT `/profile/{username}/image-visibility`
-   - Frontend: `PhotoVisibilityManager.js` + CSS
-   - Migration: `migrations/migrate_image_visibility.py`
-   - **Buckets:** Profile Pic (1) | Member Visible (4) | On Request (within 5)
-   - **Status:** Core implementation complete, needs integration testing
-   - **Next:** Replace ImageManager with PhotoVisibilityManager in Dashboard, run migration
-
-2. membership fee - payment - gateway integeration - wikipedia style -- link to "promocode"(implmented)
-3. on profile page -- from search - navigate to profile by clicking left|right the profile images are not refreshing as per the profile
-4. moderator role - free user permissions plus below
-   1. admin Dashboard
-   2. Invitation Management
-   3. http://localhost:3000/announcement-management
-   4. http://localhost:3000/poll-management
-   5. http://localhost:3000/admin-reports
-5. in profile search query should always pick only active accountstatus members only (i think it does)
-6. in dashboard -- if a profile is in shortlisted or in favorites and the profile accountstatus is changed to other than the "active" the dashboard should remove that profile from shortlist/favorites - it is not happening
----
-
-
-
-###Common causes for slow React dev server:
-
-First start after cache clear - Normal, rebuilding everything
-ESLint on 315 files - Takes time
-Large CSS files (5,531 lines in SearchPage.css)
-Source map generation
-To speed up future starts:
-
- 
-Disabling ESLint during dev
-Code splitting
-Removing unused dependencies
-
-
-
-
-## Promo Code System (feature/promo-code branch)
-
-### ✅ Phase 1: Complete
-- Promo code models, service, router
-- User promo codes (USVEDIKA default)
-- Invitation integration
-- User Management promo column
-
-### ✅ Phase 2: Complete
-- PromoCodeManager - Full CRUD for promo codes
-- Custom per-plan pricing (planPricing field)
-- Discount configuration
-- Usage tracking
-
-### 🔲 Phase 3: QR Code Generation (Planned)
-- Generate QR codes for promo codes
-- Download as PNG/SVG
-- Printable cards for events
-
-### 🔲 Phase 4: Membership Integration (Planned)
-- Validate promo at checkout
-- Apply discounts to membership fees
-- Track conversions (registration → paid member)
-
-### 🔲 Phase 5: Analytics Dashboard (Planned)
-- Overall metrics (codes, registrations, conversions, revenue)
-- Code performance charts
-- Revenue attribution by promo code
-
----
-
-## Activity Logging - Missing Events (Jan 11, 2026)
-
-**Summary:** Only ~20 of 54 defined activity events are being logged. The following need implementation:
-
-### 🔲 Authentication (2 - 1 IMPLEMENTED)
-- [ ] Session Expired
-- [x] Password Changed - Backend: `auth_routes.py` change_password endpoint
-
-### 🔲 Profile (8 - 3 IMPLEMENTED)
-- [x] Photo Uploaded - Backend: `routes.py` upload_photos endpoint
-- [x] Photo Deleted - Backend: `routes.py` delete_photo endpoint
-- [x] Profile Visibility Changed - Backend: `routes.py` update_image_visibility endpoint
-- [ ] Matching Criteria Updated
-- [ ] Bio Updated
-- [ ] Contact Info Updated
-- [ ] Education Updated
-- [ ] Occupation Updated
-
-### 🔲 Messaging (4 - 2 IMPLEMENTED)
-- [ ] Conversation Started
-- [ ] Conversation Archived
-- [x] Message Deleted - Backend: `routes.py` delete_message endpoint
-- [x] Messages Page Viewed - `useActivityLogger.logMessagesPageViewed()` (integrated in Messages.js)
-
-### ✅ Search (3 - IMPLEMENTED via Frontend Hook)
-- [x] Filter Applied - `useActivityLogger.logFilterApplied()`
-- [x] Search Results Viewed - `useActivityLogger.logSearchResultsViewed()` (integrated in SearchPage2)
-- [x] Sort Changed - `useActivityLogger.logSortChanged()`
-
-### 🔲 PII & Access (4 missing)
-- [ ] Image Access Requested
-- [ ] Image Access Granted
-- [ ] Image Access Revoked
-- [ ] PII Viewed
-
-### 🔲 Admin (4 missing)
-- [ ] User Deleted
-- [ ] Role Changed
-- [ ] Ticket Resolved
-- [ ] Notification Sent Manual
-
-### ✅ System (4 - ALL IMPLEMENTED via Frontend Hook)
-- [x] Page Visited - `useActivityLogger.logPageVisit()` (integrated in SearchPage2, Messages)
-- [x] Error Occurred - `useActivityLogger.logError()`
-- [x] Feature Used - `useActivityLogger.logFeatureUsed()`
-- [x] Export Requested - `useActivityLogger.logExportRequested()`
-
-**Reference:** `fastapi_backend/models/activity_models.py` - ActivityType enum
-**Logger:** `fastapi_backend/services/activity_logger.py` - get_activity_logger()
-
-### ✅ Frontend Activity Logger Hook Created
-**File:** `frontend/src/hooks/useActivityLogger.js`
-**Backend Endpoint:** `POST /api/activity-logs/batch` (for batched logging)
-
-**Available Methods:**
-- `logPageVisit(pageName, metadata)` - Log page navigation
-- `logFilterApplied(filterName, filterValue, allFilters)` - Log filter changes
-- `logSearchResultsViewed(resultCount, searchCriteria)` - Log search results
-- `logSortChanged(sortField, sortDirection)` - Log sort changes
-- `logMessagesPageViewed(conversationCount)` - Log messages page view
-- `logFeatureUsed(featureName, metadata)` - Log feature usage
-- `logExportRequested(exportType, recordCount)` - Log export requests
-- `logMatchesViewed(matchType, matchCount)` - Log matches page view
-- `logError(errorMessage, errorStack, componentName)` - Log errors
-- `logActivity(actionType, metadata, targetUsername, immediate)` - Generic logger
-
-**Features:**
-- Batched logging (flushes every 5 seconds or when queue reaches 10 items)
-- Debounced to prevent spam
-- Non-blocking (won't break app if logging fails)
-- Tracks page URL and referrer automatically
-
----
-**Last Updated:** Jan 11, 2026
