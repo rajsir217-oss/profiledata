@@ -409,7 +409,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
         toastService.error('Unknown action');
     }
   }, [
-    currentUser, favoritedUsers, setFavoritedUsers,
+    favoritedUsers, setFavoritedUsers,
     shortlistedUsers, setShortlistedUsers,
     toggleListAction
   ]);

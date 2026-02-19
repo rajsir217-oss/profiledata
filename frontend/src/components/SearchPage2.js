@@ -5,24 +5,22 @@ import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSea
 import { useUserData } from '../hooks/useUserData';
 import { useSearchPagination } from '../hooks/useSearchPagination';
 import { useSearchViewModes } from '../hooks/useSearchViewModes';
+import { useSearchActions } from '../hooks/useSearchActions';
 import SearchResultCard from './SearchResultCard';
 import SwipeableCard from './SwipeableCard';
 import MessageModal from './MessageModal';
 import SaveSearchModal from './SaveSearchModal';
 import PIIRequestModal from './PIIRequestModal';
 import ChatFirstPrompt from './ChatFirstPrompt';
-import OnlineStatusBadge from './OnlineStatusBadge';
-import SearchFilters from './SearchFilters';
-import LoadMore from './LoadMore';
-import socketService from '../services/socketService';
-import { onPIIAccessChange } from '../utils/piiAccessEvents';
-import logger from '../utils/logger';
 import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import GraphView from './GraphView';
 import toastService from '../services/toastService';
 import useActivityLogger from '../hooks/useActivityLogger';
-import { formatHeightRange, heightToInches } from '../utils/heightUtils';
+import { onPIIAccessChange } from '../utils/piiAccessEvents';
+import logger from '../utils/logger';
+import socketService from '../services/socketService';
+import LoadMore from './LoadMore';
 import './SearchPage2.css';
 
 // Shared utility: build default search criteria from a user profile.
@@ -129,7 +127,7 @@ const buildDefaultCriteria = (profile) => {
 
 const SearchPage2 = () => {
   // Activity logger hook
-  const { logPageVisit, logSearchResultsViewed, logFilterApplied, logSortChanged } = useActivityLogger();
+  const { logPageVisit, logSearchResultsViewed } = useActivityLogger();
   
   // ===== USER DATA HOOK =====
   const userData = useUserData();
@@ -138,23 +136,83 @@ const SearchPage2 = () => {
     shortlistedUsers, setShortlistedUsers,
     excludedUsers, setExcludedUsers,
     loadUserData,
-    toggleListAction,
-    addToFavorites,
-    removeFromFavorites,
-    addToShortlist,
-    removeFromShortlist,
-    addToExclusions,
-    removeFromExclusions,
-    isFavorited,
-    isShortlisted,
-    isExcluded,
+    // toggleListAction is now managed by useSearchActions hook
+    // Functions below are now managed by useSearchActions hook
   } = userData;
   
-  // ===== SHARED STATE FOR HOOKS =====
-  // Refs needed by multiple hooks
+  // ===== REFS NEEDED BY HOOKS =====
+  // MUST be declared before any hooks that use them
   const loadMoreTriggerRef = useRef(null);
   const loadingPageRef = useRef(1);
   const accumulatedCountRef = useRef(0);
+  const searchResultsRef = useRef(null);
+  const hasAutoExecutedRef = useRef(false);
+  
+  // ===== SEARCH ACTIONS HOOK =====
+  const searchActions = useSearchActions(
+    // searchState
+    {
+      users: [],
+      setUsers: () => {},
+      searchCriteria: {},
+      loading: false,
+      setLoading: () => {},
+      loadingMore: false,
+      setLoadingMore: () => {},
+      loadingStartTime: null,
+      setLoadingStartTime: () => {},
+      elapsedTime: 0,
+      setElapsedTime: () => {},
+      initialSearchComplete: false,
+      setInitialSearchComplete: () => {},
+      error: '',
+      setError: () => {},
+      currentPage: 1,
+      setCurrentPage: () => {},
+      totalResults: 0,
+      setTotalResults: () => {},
+      hasMoreResults: true,
+      setHasMoreResults: () => {},
+      sortBy: 'matchScore',
+      setSortBy: () => {},
+      sortOrder: 'desc',
+      setSortOrder: () => {},
+      hasAutoExecutedRef,
+      searchResultsRef,
+      loadMoreTriggerRef,
+      loadingPageRef,
+      searchAbortRef: { current: null },
+      accumulatedCountRef,
+      resetSearchState: () => {},
+      startLoadingTimer: () => {},
+      updateElapsedTime: () => {},
+      selectedProfileForDetail: null,
+      setSelectedProfileForDetail: () => {},
+    },
+    // userState
+    {
+      currentUserProfile: {},
+      favoritedUsers,
+      setFavoritedUsers,
+      shortlistedUsers,
+      setShortlistedUsers,
+      excludedUsers,
+      setExcludedUsers,
+    },
+    // filterState
+    {
+      loadSavedSearches: () => {},
+      loadOccupationOptions: () => {},
+      loadLocationOptions: () => {},
+    }
+  );
+  const {
+    handleSearch: handleSearchHook,
+    handleProfileAction: handleProfileActionHook,
+    hasPiiAccess: hasPiiAccessHook,
+    actuallyOpenPIIRequestModal,
+    handlePIIRequestSuccess: handlePIIRequestSuccessHook,
+  } = searchActions;
   
   // ===== SEARCH PAGINATION HOOK =====
   const pagination = useSearchPagination({
@@ -229,11 +287,6 @@ const SearchPage2 = () => {
     return saved ? parseInt(saved) : 4;
   });
   
-  const [expandedSections, setExpandedSections] = useState({
-    aboutMe: true,
-    lookingFor: true,
-  });
-  
   const [columnWidths, setColumnWidths] = useState({
     index: 35, photo: 40, name: 140, score: 45, age: 40,
     height: 50, location: 110, education: 140, occupation: 100, actions: 80
@@ -267,8 +320,7 @@ const SearchPage2 = () => {
   const [currentUserProfile, setCurrentUserProfile] = useState({});
   
   // Additional refs needed for functionality
-  const searchResultsRef = useRef(null);
-  const hasAutoExecutedRef = useRef(false);
+  // searchResultsRef and hasAutoExecutedRef already declared above
   
   // Additional state variables
   const [excludedProfileUsername, setExcludedProfileUsername] = useState(null);
@@ -288,8 +340,6 @@ const SearchPage2 = () => {
   
   // Placeholder functions (will be enhanced with remaining hooks)
   const handleSwipeAction = () => {};
-  const toggleExpandedSection = () => {};
-  const resetViewMode = () => {};
   
   // ===== COLUMN RESIZE FUNCTIONALITY =====
   const resizingColumnRef = useRef(null);
@@ -369,9 +419,7 @@ const SearchPage2 = () => {
   const hasRestoredStateRef = useRef(false);
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
-  // State for image indices per user
-  const [imageIndices, setImageIndices] = useState({});
-  const [imageErrors, setImageErrors] = useState({});
+  // State for online users
   const [onlineUsers, setOnlineUsers] = useState(new Set());
 
   // Loading timer state
@@ -444,6 +492,23 @@ const SearchPage2 = () => {
       logger.info('💾 Saved search state to sessionStorage for user:', currentUser);
     }
   }, [users, searchCriteria, sortBy, sortOrder, viewMode, currentPage, totalResults, hasMoreResults, minMatchScore, favoritedUsers, shortlistedUsers, excludedUsers, selectedSearch, selectedProfileForDetail]);
+  
+  // Handle split view: sync selected profile with current results
+  useEffect(() => {
+    if (viewMode === 'split') {
+      if (users.length === 0) {
+        // Clear selected profile when no results
+        if (selectedProfileForDetail !== null) {
+          logger.info('📱 Split view: Clearing selected profile (no results)');
+          setSelectedProfileForDetail(null);
+        }
+      } else if (!selectedProfileForDetail || !users.find(u => u.username === selectedProfileForDetail.username)) {
+        // Auto-select first profile if none selected or current selection not in results
+        logger.info('📱 Split view: Auto-selecting first profile');
+        setSelectedProfileForDetail(users[0]);
+      }
+    }
+  }, [viewMode, users, selectedProfileForDetail]);
   
   // Save scroll position before navigating away
   useEffect(() => {
@@ -897,17 +962,6 @@ const SearchPage2 = () => {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentUserProfile]);
-  
-  // ❌ DISABLED: No auto-search on gender change
-  // User must manually click "Search" button
-  // useEffect(() => {
-  //   if (currentUserProfile && searchCriteria.gender && users.length === 0) {
-  //     logger.info('🔄 Gender changed, triggering search:', searchCriteria.gender);
-  //     handleSearch(1);
-  //   }
-  //   // eslint-disable-next-line react-hooks/exhaustive-deps
-  // }, [searchCriteria.gender]);
-
   const loadPiiRequests = async () => {
     const currentUser = localStorage.getItem('username');
     if (!currentUser) return;
@@ -964,26 +1018,6 @@ const SearchPage2 = () => {
     
     return cleanup;
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handlePrevImage = (username, e) => {
-    e.stopPropagation();
-    setImageIndices(prev => ({
-      ...prev,
-      [username]: prev[username] === undefined ? 0 : prev[username] > 0 ? prev[username] - 1 : 0
-    }));
-  };
-
-  const handleNextImage = (username, e, usersData) => {
-    e.stopPropagation();
-    setImageIndices(prev => {
-      const currentIndex = prev[username] || 0;
-      const maxIndex = (usersData.find(u => u.username === username)?.images?.length || 1) - 1;
-      return {
-        ...prev,
-        [username]: currentIndex < maxIndex ? currentIndex + 1 : maxIndex
-      };
-    });
-  };
 
   // Dating field options
   const [occupationOptions, setOccupationOptions] = useState([]);
@@ -1361,9 +1395,15 @@ const SearchPage2 = () => {
         
         setUsers(filteredUsers);
         setCurrentPage(1);
-        // Auto-select first profile in split view so right panel isn't blank
-        if (viewMode === 'split' && filteredUsers.length > 0) {
-          setSelectedProfileForDetail(filteredUsers[0]);
+        // Handle split view: clear or auto-select profile based on results
+        if (viewMode === 'split') {
+          if (filteredUsers.length > 0) {
+            // Auto-select first profile so right panel isn't blank
+            setSelectedProfileForDetail(filteredUsers[0]);
+          } else {
+            // Clear selected profile when no results found
+            setSelectedProfileForDetail(null);
+          }
         }
         logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
         
@@ -1747,48 +1787,11 @@ const SearchPage2 = () => {
     setShowChatFirstPrompt(true);
   };
 
-  // Actually open the PII modal (called after chat-first prompt)
-  const actuallyOpenPIIRequestModal = async (user) => {
-    const targetUsername = user.username;
+  // actuallyOpenPIIRequestModal function - now managed by useSearchActions hook
 
-    try {
-      // Fetch target user's full profile to get accurate visibility settings
-      const profileResponse = await api.get(`/profile/${targetUsername}`);
-      const targetProfile = profileResponse.data;
+  // handlePIIRequestSuccess function - now managed by useSearchActions hook
 
-      // Set current PII access status - pass actual status values
-      setCurrentPIIAccess({
-        images: piiRequests[`${targetUsername}_images`] === 'approved',
-        contact_info: piiRequests[`${targetUsername}_contact_info`] === 'approved',
-        date_of_birth: piiRequests[`${targetUsername}_date_of_birth`] === 'approved',
-        linkedin_url: piiRequests[`${targetUsername}_linkedin_url`] === 'approved'
-      });
-
-      // Override with fetched visibility settings
-      setSelectedUserForPII({
-        ...user,
-        contactNumberVisible: targetProfile.contactNumberVisible,
-        contactEmailVisible: targetProfile.contactEmailVisible,
-        linkedinUrlVisible: targetProfile.linkedinUrlVisible,
-        imageVisibility: targetProfile.imageVisibility
-      });
-      setShowPIIRequestModal(true);
-    } catch (err) {
-      logger.error('Failed to fetch profile for PII modal:', err);
-      // Fallback to user data from search results
-      setSelectedUserForPII(user);
-      setShowPIIRequestModal(true);
-    }
-  };
-
-  const handlePIIRequestSuccess = async () => {
-    // Reload PII requests to get updated status
-    await loadPiiRequests();
-  };
-
-  const hasPiiAccess = (targetUsername, requestType) => {
-    return piiRequests[`${targetUsername}_${requestType}`] === 'approved';
-  };
+  // hasPiiAccess function - now managed by useSearchActions hook
 
   const isPiiRequestPending = (targetUsername, requestType) => {
     return piiRequests[`${targetUsername}_${requestType}`] === 'pending';
@@ -1804,120 +1807,7 @@ const SearchPage2 = () => {
     };
   };
 
-  const handleProfileAction = async (e, targetUsername, action) => {
-    if (e && e.stopPropagation) {
-      e.stopPropagation();
-    }
-
-    const currentUser = localStorage.getItem('username');
-    if (!currentUser) {
-      setError('Please login to perform this action');
-      return;
-    }
-
-    // Shared helper for toggling list membership (favorites / shortlist)
-    const toggleListAction = async (listName, apiPath, usersSet, setUsersSet) => {
-      const isCurrentlyInList = usersSet.has(targetUsername);
-      try {
-        if (isCurrentlyInList) {
-          await api.delete(`/${apiPath}/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-          setUsersSet(prev => { const s = new Set(prev); s.delete(targetUsername); return s; });
-          setStatusMessage(`✅ Removed from ${listName}`);
-        } else {
-          await api.post(`/${apiPath}/${targetUsername}?username=${encodeURIComponent(currentUser)}`);
-          setUsersSet(prev => new Set([...prev, targetUsername]));
-          setStatusMessage(`✅ Added to ${listName}`);
-        }
-        setTimeout(() => setStatusMessage(''), 3000);
-        setError('');
-      } catch (err) {
-        logger.error(`Error ${isCurrentlyInList ? 'removing from' : 'adding to'} ${listName}:`, err);
-        if (err.response?.status === 409) {
-          setUsersSet(prev => new Set([...prev, targetUsername]));
-          setStatusMessage(`ℹ️ Already in ${listName}`);
-          setTimeout(() => setStatusMessage(''), 3000);
-        } else {
-          const errorMsg = `Failed to ${isCurrentlyInList ? 'remove from' : 'add to'} ${listName}. ` + (err.response?.data?.detail || err.message);
-          setError(errorMsg);
-          setStatusMessage(`❌ ${errorMsg}`);
-          setTimeout(() => setStatusMessage(''), 3000);
-        }
-      }
-    };
-
-    try {
-      switch (action) {
-        case 'favorite':
-          await toggleListAction('favorites', 'favorites', favoritedUsers, setFavoritedUsers);
-          break;
-
-        case 'shortlist':
-          await toggleListAction('shortlist', 'shortlist', shortlistedUsers, setShortlistedUsers);
-          break;
-
-        case 'exclude':
-          const isCurrentlyExcluded = excludedUsers.has(targetUsername);
-
-          try {
-            const currentUser = localStorage.getItem('username');
-            if (!currentUser) {
-              setError('Please login to perform this action');
-              return;
-            }
-
-            logger.info(`Attempting to ${isCurrentlyExcluded ? 'remove from' : 'add to'} exclusions for user: ${targetUsername} by: ${currentUser}`);
-
-            if (isCurrentlyExcluded) {
-              // Remove from exclusions directly
-              logger.info(`DELETE /exclusions/${targetUsername}`);
-              await api.delete(`/exclusions/${targetUsername}`);
-              setExcludedUsers(prev => {
-                const newSet = new Set(prev);
-                newSet.delete(targetUsername);
-                return newSet;
-              });
-              setStatusMessage('✅ Removed from not interested');
-              setTimeout(() => setStatusMessage(''), 3000);
-            } else {
-              // Show preview modal before excluding
-              setExclusionLoading(true);
-              // Find the user object from the users array
-              const userObj = users.find(u => u.username === targetUsername) || { username: targetUsername };
-              setSelectedUserForExclusion(userObj);
-              const response = await api.get(`/exclusions/preview/${targetUsername}`);
-              setExclusionPreviewData(response.data);
-              setShowExclusionPreview(true);
-              setExclusionLoading(false);
-              return; // Don't continue - modal will handle the actual exclusion
-            }
-            setError(''); // Clear any previous errors
-          } catch (err) {
-            logger.error(`Error ${isCurrentlyExcluded ? 'removing from' : 'adding to'} exclusions:`, err);
-            const errorMsg = `Failed to ${isCurrentlyExcluded ? 'remove from' : 'mark as'} not interested. ` + (err.response?.data?.detail || err.message);
-            setError(errorMsg);
-            setStatusMessage(`❌ ${errorMsg}`);
-            setTimeout(() => setStatusMessage(''), 3000);
-          }
-          break;
-
-        case 'message':
-          // Open message modal instead of navigating
-          const userToMessage = users.find(u => u.username === targetUsername);
-          setSelectedUserForMessage(userToMessage);
-          setShowMessageModal(true);
-          break;
-
-        default:
-          logger.warn('Unknown action:', action);
-      }
-    } catch (err) {
-      logger.error(`Error performing ${action}:`, err);
-      const errorMsg = `Failed to ${action}. ` + (err.response?.data?.detail || err.message);
-      setError(errorMsg);
-      setStatusMessage(`❌ ${errorMsg}`);
-      setTimeout(() => setStatusMessage(''), 3000);
-    }
-  };
+  // handleProfileAction function - now managed by useSearchActions hook
 
   // Swipe action functions are now handled by useSearchViewModes hook
 
@@ -2723,15 +2613,15 @@ const SearchPage2 = () => {
                             debugIndex={swipeIndex + 1}
                             currentUsername={localStorage.getItem('username')}
                             context="swipe-mode"
-                            onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
-                            onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
-                            onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                            onToggleFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
+                            onToggleShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
+                            onBlock={(u) => handleProfileActionHook(null, u.username, 'exclude')}
                             onMessage={handleMessage}
                             onRequestPII={(u) => openPIIRequestModal(u.username)}
                             isFavorited={favoritedUsers.has(user.username)}
                             isShortlisted={shortlistedUsers.has(user.username)}
                             isExcluded={excludedUsers.has(user.username)}
-                            hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
+                            hasPiiAccess={hasPiiAccessHook(user.username, 'contact_info')}
                             viewMode="cards"
                             showFavoriteButton={false}
                             showShortlistButton={false}
@@ -2841,7 +2731,7 @@ const SearchPage2 = () => {
               favoritedUsers={favoritedUsers}
               shortlistedUsers={shortlistedUsers}
               excludedUsers={excludedUsers}
-              onProfileAction={handleProfileAction}
+              onProfileAction={handleProfileActionHook}
             />
           ) : (
             /* Cards/Rows Layout - wrapped in scroll container for rows view */
@@ -2953,31 +2843,31 @@ const SearchPage2 = () => {
                   // Context for kebab menu
                   context="search-results"
                   // Kebab menu handlers
-                  onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
-                  onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
-                  onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                  onToggleFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
+                  onToggleShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
+                  onBlock={(u) => handleProfileActionHook(null, u.username, 'exclude')}
                   onMessage={handleMessage}
                   onRequestPII={(u) => openPIIRequestModal(u.username)}
                   // Legacy handlers (for backward compatibility)
-                  onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
-                  onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
-                  onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
+                  onFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
+                  onShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
+                  onExclude={(u) => handleProfileActionHook(null, u.username, 'exclude')}
                   onPIIRequest={(u) => openPIIRequestModal(u.username)}
                   // State
                   isFavorited={favoritedUsers.has(user.username)}
                   isShortlisted={shortlistedUsers.has(user.username)}
                   isExcluded={excludedUsers.has(user.username)}
                   isBlocked={excludedUsers.has(user.username)}
-                  hasPiiAccess={hasPiiAccess(user.username, 'contact_info')}
-                  hasImageAccess={hasPiiAccess(user.username, 'images')}
+                  hasPiiAccess={hasPiiAccessHook(user.username, 'contact_info')}
+                  hasImageAccess={hasPiiAccessHook(user.username, 'images')}
                   isPiiRequestPending={isPiiRequestPending(user.username, 'contact_info')}
                   isImageRequestPending={isPiiRequestPending(user.username, 'images')}
                   piiRequestStatus={getPIIRequestStatus(user.username)}
                   piiAccess={{
-                    contact: hasPiiAccess(user.username, 'contact_info'),
-                    email: hasPiiAccess(user.username, 'email'),
-                    phone: hasPiiAccess(user.username, 'phone'),
-                    photos: hasPiiAccess(user.username, 'images')
+                    contact: hasPiiAccessHook(user.username, 'contact_info'),
+                    email: hasPiiAccessHook(user.username, 'email'),
+                    phone: hasPiiAccessHook(user.username, 'phone'),
+                    photos: hasPiiAccessHook(user.username, 'images')
                   }}
                   viewMode={viewMode}
                   columnWidths={columnWidths}
@@ -3238,7 +3128,7 @@ const SearchPage2 = () => {
             logger.info('🔄 PIIRequestModal requested refresh in SearchPage');
             loadPiiRequests(); // Refresh PII status when modal opens
           }}
-          onSuccess={handlePIIRequestSuccess}
+          onSuccess={handlePIIRequestSuccessHook}
         />
       )}
     </div>
