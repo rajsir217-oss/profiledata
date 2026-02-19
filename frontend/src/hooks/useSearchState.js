@@ -277,6 +277,8 @@ export const useSearchState = () => {
     setHasMoreResults,
     setSortBy,
     setSortOrder,
+    setViewMode,
+    setCardsPerRow,
     setSwipeIndex,
     setSelectedProfileForDetail,
     setExpandedSections,

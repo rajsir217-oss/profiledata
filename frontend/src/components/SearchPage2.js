@@ -5,6 +5,7 @@ import api, { setDefaultSavedSearch, getDefaultSavedSearch, unsetDefaultSavedSea
 import { useUserData } from '../hooks/useUserData';
 import { useSearchPagination } from '../hooks/useSearchPagination';
 import { useSearchViewModes } from '../hooks/useSearchViewModes';
+import { useSearchState } from '../hooks/useSearchState';
 import { useSearchActions } from '../hooks/useSearchActions';
 import SearchResultCard from './SearchResultCard';
 import SwipeableCard from './SwipeableCard';
@@ -129,6 +130,10 @@ const SearchPage2 = () => {
   // Activity logger hook
   const { logPageVisit, logSearchResultsViewed } = useActivityLogger();
   
+  // ===== USER PROFILE STATE =====
+  // Must be declared before hooks that use it
+  const [currentUserProfile, setCurrentUserProfile] = useState({});
+  
   // ===== USER DATA HOOK =====
   const userData = useUserData();
   const {
@@ -140,64 +145,46 @@ const SearchPage2 = () => {
     // Functions below are now managed by useSearchActions hook
   } = userData;
   
-  // ===== REFS NEEDED BY HOOKS =====
-  // MUST be declared before any hooks that use them
-  const loadMoreTriggerRef = useRef(null);
-  const loadingPageRef = useRef(1);
-  const accumulatedCountRef = useRef(0);
-  const searchResultsRef = useRef(null);
-  const hasAutoExecutedRef = useRef(false);
+  // ===== SEARCH STATE HOOK =====
+  const searchState = useSearchState();
+  const {
+    users, setUsers,
+    searchCriteria, setSearchCriteria,
+    loading, setLoading,
+    loadingMore, setLoadingMore,
+    loadingStartTime, setLoadingStartTime,
+    elapsedTime, setElapsedTime,
+    initialSearchComplete, setInitialSearchComplete,
+    error, setError,
+    currentPage, setCurrentPage,
+    totalResults, setTotalResults,
+    hasMoreResults, setHasMoreResults,
+    sortBy, setSortBy,
+    sortOrder, setSortOrder,
+    viewMode, setViewMode,
+    cardsPerRow, setCardsPerRow,
+    swipeIndex, setSwipeIndex,
+    selectedProfileForDetail, setSelectedProfileForDetail,
+    expandedSections, setExpandedSections,
+    columnWidths, setColumnWidths,
+    hasAutoExecutedRef,
+    searchResultsRef,
+    loadMoreTriggerRef,
+    loadingPageRef,
+    searchAbortRef,
+    accumulatedCountRef,
+  } = searchState;
   
   // ===== SEARCH ACTIONS HOOK =====
   const searchActions = useSearchActions(
-    // searchState
-    {
-      users: [],
-      setUsers: () => {},
-      searchCriteria: {},
-      loading: false,
-      setLoading: () => {},
-      loadingMore: false,
-      setLoadingMore: () => {},
-      loadingStartTime: null,
-      setLoadingStartTime: () => {},
-      elapsedTime: 0,
-      setElapsedTime: () => {},
-      initialSearchComplete: false,
-      setInitialSearchComplete: () => {},
-      error: '',
-      setError: () => {},
-      currentPage: 1,
-      setCurrentPage: () => {},
-      totalResults: 0,
-      setTotalResults: () => {},
-      hasMoreResults: true,
-      setHasMoreResults: () => {},
-      sortBy: 'matchScore',
-      setSortBy: () => {},
-      sortOrder: 'desc',
-      setSortOrder: () => {},
-      hasAutoExecutedRef,
-      searchResultsRef,
-      loadMoreTriggerRef,
-      loadingPageRef,
-      searchAbortRef: { current: null },
-      accumulatedCountRef,
-      resetSearchState: () => {},
-      startLoadingTimer: () => {},
-      updateElapsedTime: () => {},
-      selectedProfileForDetail: null,
-      setSelectedProfileForDetail: () => {},
-    },
+    // searchState - now using real state from useSearchState
+    searchState,
     // userState
     {
-      currentUserProfile: {},
-      favoritedUsers,
-      setFavoritedUsers,
-      shortlistedUsers,
-      setShortlistedUsers,
-      excludedUsers,
-      setExcludedUsers,
+      currentUserProfile,
+      favoritedUsers, setFavoritedUsers,
+      shortlistedUsers, setShortlistedUsers,
+      excludedUsers, setExcludedUsers,
     },
     // filterState
     {
@@ -215,15 +202,8 @@ const SearchPage2 = () => {
   } = searchActions;
   
   // ===== SEARCH PAGINATION HOOK =====
-  const pagination = useSearchPagination({
-    users: [],
-    loadingMore: false,
-    hasMoreResults: true,
-    loadMoreTriggerRef,
-    loadingPageRef,
-    setLoadingMore: () => {},
-    setCurrentPage: () => {},
-  }, () => {});
+  // Now using real state from useSearchState
+  const pagination = useSearchPagination(searchState, handleSearchHook);
   const {
     handleLoadMore,
     manualLoadMore,
@@ -236,26 +216,11 @@ const SearchPage2 = () => {
   } = pagination;
   
   // ===== SEARCH VIEW MODES HOOK =====
-  // Note: Using minimal state until useSearchState integration
-  const viewModes = useSearchViewModes({
-    users: [],
-    viewMode: 'split',
-    setViewMode: () => {},
-    cardsPerRow: 4,
-    setCardsPerRow: () => {},
-    swipeIndex: 0,
-    setSwipeIndex: () => {},
-    selectedProfileForDetail: null,
-    setSelectedProfileForDetail: () => {},
-    expandedSections: { aboutMe: true, lookingFor: true },
-    setExpandedSections: () => {},
-    columnWidths: {
-      index: 35, photo: 40, name: 140, score: 45, age: 40,
-      height: 50, location: 110, education: 140, occupation: 100, actions: 80
-    },
-    setColumnWidths: () => {}
-  });
+  // Now using real state from useSearchState
+  const viewModes = useSearchViewModes(searchState);
   const {
+    // View mode actions
+    changeViewMode,
     // Non-conflicting hook functions
     nextCard: handleNextSwipe,
     previousCard: handlePreviousSwipe,
@@ -273,27 +238,6 @@ const SearchPage2 = () => {
     cardsPerRowOptions,
     getViewModeInfo: getViewModeConfig,
   } = viewModes;
-  
-  // ===== LOCAL STATE MANAGEMENT =====
-  // View mode state with localStorage persistence
-  const [viewMode, setViewMode] = useState(() => {
-    const saved = localStorage.getItem('searchViewMode');
-    return saved || (window.innerWidth <= 768 ? 'swipe' : 'split');
-  });
-  
-  const [swipeIndex, setSwipeIndex] = useState(0);
-  const [cardsPerRow, setCardsPerRow] = useState(() => {
-    const saved = localStorage.getItem('searchCardsPerRow');
-    return saved ? parseInt(saved) : 4;
-  });
-  
-  const [columnWidths, setColumnWidths] = useState({
-    index: 35, photo: 40, name: 140, score: 45, age: 40,
-    height: 50, location: 110, education: 140, occupation: 100, actions: 80
-  });
-  
-  // Placeholder for selected profile (will be enhanced with useSearchState)
-  const [selectedProfileForDetail, setSelectedProfileForDetail] = useState(null);
   
   // Saved searches state
   const [selectedSearch, setSelectedSearch] = useState(null);
@@ -316,9 +260,6 @@ const SearchPage2 = () => {
   const [piiRequests, setPiiRequests] = useState({});
   const [currentPIIAccess, setCurrentPIIAccess] = useState({});
   
-  // User profile state
-  const [currentUserProfile, setCurrentUserProfile] = useState({});
-  
   // Additional refs needed for functionality
   // searchResultsRef and hasAutoExecutedRef already declared above
   
@@ -333,9 +274,7 @@ const SearchPage2 = () => {
   
   // ===== VIEW MODE HANDLERS =====
   const handleViewModeChange = (mode) => {
-    logger.info(`🔄 Changing view mode from ${viewMode} to ${mode}`);
-    setViewMode(mode);
-    localStorage.setItem('searchViewMode', mode);
+    changeViewMode(mode);
   };
   
   // Placeholder functions (will be enhanced with remaining hooks)
@@ -377,56 +316,13 @@ const SearchPage2 = () => {
   }, [handleResizeMove]);
   
   // ===== MAIN APPLICATION STATE =====
-  const [loading, setLoading] = useState(false);
+  // Note: Most state is now managed by useSearchState hook above
   const [isSearchModalOpen, setIsSearchModalOpen] = useState(false);
-  const [error, setError] = useState('');
-  const [initialSearchComplete, setInitialSearchComplete] = useState(false);
   const [statusMessage, setStatusMessage] = useState('');
-  
-  // Search results state
-  const [users, setUsers] = useState([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalResults, setTotalResults] = useState(0);
-  const [hasMoreResults, setHasMoreResults] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  
-  // Search criteria state
-  const [searchCriteria, setSearchCriteria] = useState({
-    profileId: '',
-    gender: '',
-    ageMin: '',
-    ageMax: '',
-    heightMinFeet: '',
-    heightMinInches: '',
-    heightMaxFeet: '',
-    heightMaxInches: '',
-    location: '',
-    locations: [],
-    religion: '',
-    caste: '',
-    education: '',
-    occupation: '',
-    occupations: [],
-    drinking: '',
-    smoking: '',
-    relationshipStatus: '',
-    newlyAdded: false,
-    daysBack: 30,
-    hasPhoto: true,
-  });
-  
-  // Session restore ref
-  const hasRestoredStateRef = useRef(false);
   
   // HYBRID SEARCH: Traditional filters + L3V3L match score (premium feature)
   // State for online users
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-
-  // Loading timer state
-  const [loadingStartTime, setLoadingStartTime] = useState(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  // const [totalResults, setTotalResults] = useState(0); // Unused - kept for future pagination
-  // currentPage removed - using LoadMore incremental loading instead
 
   // L3V3L specific state
   const [minMatchScore, setMinMatchScore] = useState(0); // L3V3L match score filter
@@ -436,16 +332,12 @@ const SearchPage2 = () => {
   const [excludedProfileMessage, setExcludedProfileMessage] = useState(null); // Message when profileId search hits exclusion
   const [excludedProfileId, setExcludedProfileId] = useState(null); // Profile ID of excluded profile
   
+  // Session restore ref
+  const hasRestoredStateRef = useRef(false);
+  
   // Refs are now handled in the pagination hook section
 
-  // AbortController ref to cancel in-flight search requests when a new search starts
-  const searchAbortRef = useRef(null);
-
-  // Sort state
-  const [sortBy, setSortBy] = useState('newest'); // matchScore, age, height, location, occupation, newest
-  const [sortOrder, setSortOrder] = useState('desc'); // desc or asc (desc = newest first)
-
-  // Column width state is now handled by useSearchViewModes hook
+  // Sort state is now managed by useSearchState hook
 
   // Column resize functions are now handled by useSearchViewModes hook
 
@@ -597,7 +489,7 @@ const SearchPage2 = () => {
             // The fresh search will populate users with correct data
             setSortBy(state.sortBy || 'age');
             setSortOrder(state.sortOrder || 'asc');
-            if (state.viewMode) setViewMode(state.viewMode);
+            if (state.viewMode) changeViewMode(state.viewMode);
             setMinMatchScore(state.minMatchScore || 0);
             setFavoritedUsers(new Set(state.favoritedUsers || []));
             setShortlistedUsers(new Set(state.shortlistedUsers || []));
@@ -872,7 +764,7 @@ const SearchPage2 = () => {
               return;
             }
             logger.info('🔍 Auto-executing default saved search');
-            handleSearch(1, loadedMinScore, defaultSearch.criteria);
+            handleSearchHook(1, loadedMinScore, defaultSearch.criteria);
             toastService.info(`⭐ Default search "${defaultSearch.name}" executed`);
           }, 100);
         } else {
@@ -918,7 +810,7 @@ const SearchPage2 = () => {
               return;
             }
             logger.info('🔍 Auto-executing search with partnerCriteria defaults');
-            handleSearch(1, 0, partnerCriteriaDefaults);
+            handleSearchHook(1, 0, partnerCriteriaDefaults);
           }, 100);
         }
       } catch (err) {
@@ -949,7 +841,7 @@ const SearchPage2 = () => {
           setSearchCriteria(fallbackCriteria);
           hasAutoExecutedRef.current = true;
           autoSearchTimerId = setTimeout(() => {
-            handleSearch(1, 0, fallbackCriteria);
+            handleSearchHook(1, 0, fallbackCriteria);
           }, 100);
         }
       }
@@ -1222,256 +1114,6 @@ const SearchPage2 = () => {
     setHasMoreResults(true);
   };
 
-  const handleSearch = async (page = 1, overrideMinMatchScore = null, overrideCriteria = null, overrideSort = null) => {
-    
-    // Cancel any in-flight search request to prevent stale data from overwriting
-    if (searchAbortRef.current) {
-      searchAbortRef.current.abort();
-    }
-    const abortController = new AbortController();
-    searchAbortRef.current = abortController;
-
-    try {
-      setLoading(true);
-      setLoadingStartTime(Date.now()); // Start timer
-      setError('');
-      if (page === 1) {
-        setUsers([]); // Clear old results immediately to prevent showing stale/wrong gender profiles
-        setHasMoreResults(true); // Reset for new search
-        loadingPageRef.current = 1; // Reset page tracking ref for new search
-      }
-
-      // STEP 1: Apply traditional search filters
-      // Use overrideCriteria if provided (for immediate load), otherwise use state
-      const criteriaToUse = overrideCriteria !== null ? overrideCriteria : searchCriteria;
-      
-      // Log profileId for debugging
-      logger.info('🔍 Profile ID in criteria:', criteriaToUse.profileId);
-      
-      // If profileId is provided, ONLY send profileId (bypass all other filters)
-      let params;
-      if (criteriaToUse.profileId?.trim()) {
-        params = {
-          profileId: criteriaToUse.profileId.trim(),
-          page: page,
-          limit: 20  // Server-side pagination - fetch 20 at a time
-        };
-        logger.info('🔍 Profile ID search - bypassing other filters');
-      } else {
-        params = {
-          ...criteriaToUse,
-          status: 'active',  // Only search for active users
-          page: page,
-          limit: 20,  // Server-side pagination - fetch 20 at a time
-          sortBy: overrideSort?.sortBy || sortBy,  // Use override if provided
-          sortOrder: overrideSort?.sortOrder || sortOrder  // Use override if provided
-        };
-      }
-      
-      // Convert feet/inches to total inches for height range
-      // Only set heightMin if BOTH feet and inches are provided
-      if (params.heightMinFeet && params.heightMinFeet !== '' && 
-          params.heightMinInches && params.heightMinInches !== '') {
-        const feet = parseInt(params.heightMinFeet);
-        const inches = parseInt(params.heightMinInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMin = feet * 12 + inches;
-        }
-      }
-      
-      // Only set heightMax if BOTH feet and inches are provided
-      if (params.heightMaxFeet && params.heightMaxFeet !== '' && 
-          params.heightMaxInches && params.heightMaxInches !== '') {
-        const feet = parseInt(params.heightMaxFeet);
-        const inches = parseInt(params.heightMaxInches);
-        if (!isNaN(feet) && !isNaN(inches)) {
-          params.heightMax = feet * 12 + inches;
-        }
-      }
-      
-      // Remove feet/inches fields from params (not needed by API)
-      delete params.heightMinFeet;
-      delete params.heightMinInches;
-      delete params.heightMaxFeet;
-      delete params.heightMaxInches;
-
-      // Clean up empty strings, false values, null, and undefined
-      Object.keys(params).forEach(key => {
-        const value = params[key];
-        if (value === '' || value === false || value === null || value === undefined) {
-          delete params[key];
-        }
-      });
-      
-      // Additional validation: ensure integer fields are valid numbers
-      const integerFields = ['ageMin', 'ageMax', 'heightMin', 'heightMax', 'daysBack'];
-      integerFields.forEach(field => {
-        if (params[field] !== undefined) {
-          const num = parseInt(params[field]);
-          if (isNaN(num)) {
-            delete params[field]; // Remove if not a valid number
-          } else {
-            params[field] = num; // Ensure it's a number, not a string
-          }
-        }
-      });
-      
-      // Convert occupations array to comma-separated string for API
-      if (params.occupations && Array.isArray(params.occupations) && params.occupations.length > 0) {
-        params.occupations = params.occupations.join(',');
-      }
-      
-      // Convert locations array to comma-separated string for API
-      if (params.locations && Array.isArray(params.locations) && params.locations.length > 0) {
-        params.locations = params.locations.join(',');
-      }
-      
-      logger.info('🔍 Search params after validation:', params);
-      logger.info(`📄 SENDING PAGE: ${params.page}, LIMIT: ${params.limit}`);
-      logger.info(`🚻 GENDER PARAM BEING SENT: '${params.gender}'`);
-
-      // SINGLE API CALL: Search now includes L3V3L scores via MongoDB $lookup
-      // No separate L3V3L API call needed - scores come with search results
-      logger.info(`🚀 Starting search (L3V3L scores included via $lookup)`);
-      
-      const response = await api.get('/search', { params, signal: abortController.signal });
-      logger.info('✅ Search complete');
-      
-      logger.info('🔍 API URL called:', `/search?${new URLSearchParams(params).toString()}`);
-      logger.info('🔍 response.data.users length:', response.data.users?.length);
-      
-      // Debug: Log first 3 users with their L3V3L scores
-      if (response.data.users?.length > 0) {
-        logger.info('🦋 First 3 users with scores:', response.data.users.slice(0, 3).map(u => ({
-          username: u.username,
-          matchScore: u.matchScore,
-          compatibilityLevel: u.compatibilityLevel,
-          imageCount: u.images?.length || 0
-        })));
-      }
-      
-      // Server now handles: filtering, L3V3L scores via $lookup
-      let filteredUsers = response.data.users || [];
-      
-      // DEBUG: Log what profiles are actually returned
-      logger.info('🔍 DEBUG: Profiles returned from backend:', filteredUsers.map(u => ({
-        username: u.username,
-        firstName: u.firstName,
-        occupation: u.occupation
-      })));
-      
-      // Check for excluded profile message (when profileId search returns no results due to exclusion)
-      if (response.data.excludedProfileMessage) {
-        setExcludedProfileMessage(response.data.excludedProfileMessage);
-        setExcludedProfileId(response.data.excludedProfileId || null);
-        setExcludedProfileUsername(response.data.excludedProfileUsername || null);
-      } else {
-        setExcludedProfileMessage(null);
-        setExcludedProfileId(null);
-        setExcludedProfileUsername(null);
-      }
-
-      // Update pagination state
-      const total = response.data.total || 0;
-      const serverReturnedCount = response.data.users?.length || 0;
-      const pageSize = 20;
-      
-      if (page === 1) {
-        // First page: set total and hasMore
-        setTotalResults(total);
-        accumulatedCountRef.current = filteredUsers.length;
-        // hasMore = server returned a full page AND we haven't loaded all records yet
-        // Use both conditions to be safe
-        const serverReturnedFullPage = serverReturnedCount >= pageSize;
-        const hasMore = serverReturnedFullPage && filteredUsers.length < total;
-        setHasMoreResults(hasMore);
-        
-        // DEBUG: Log what profiles are being set in state
-        logger.info('🔍 DEBUG: Setting profiles in state:', filteredUsers.map(u => ({
-          username: u.username,
-          firstName: u.firstName,
-          occupation: u.occupation
-        })));
-        
-        setUsers(filteredUsers);
-        setCurrentPage(1);
-        // Handle split view: clear or auto-select profile based on results
-        if (viewMode === 'split') {
-          if (filteredUsers.length > 0) {
-            // Auto-select first profile so right panel isn't blank
-            setSelectedProfileForDetail(filteredUsers[0]);
-          } else {
-            // Clear selected profile when no results found
-            setSelectedProfileForDetail(null);
-          }
-        }
-        logger.info(`📊 Pagination: page=1, serverReturned=${serverReturnedCount}, afterFilter=${filteredUsers.length}, total=${total}, fullPage=${serverReturnedFullPage}, hasMore=${hasMore}`);
-        
-        // Log search results viewed activity
-        logSearchResultsViewed(total, criteriaToUse);
-      } else {
-        // Subsequent pages: append new users and calculate hasMore
-        
-        // Get current users synchronously to calculate hasMore BEFORE state update
-        // This avoids all closure/timing issues
-        setUsers(prev => {
-          const existingUsernames = new Set(prev.map(u => u.username));
-          const newUsers = filteredUsers.filter(u => !existingUsernames.has(u.username));
-          const newTotal = prev.length + newUsers.length;
-          
-          // Update ref for tracking
-          accumulatedCountRef.current = newTotal;
-          
-          logger.info(`📊 Dedup: ${filteredUsers.length} fetched, ${newUsers.length} new, ${filteredUsers.length - newUsers.length} duplicates skipped`);
-          logger.info(`📊 Pagination: page=${page}, accumulated=${newTotal}, total=${total}`);
-          
-          // Calculate hasMore INSIDE the callback to use accurate newTotal
-          // hasMore = false if:
-          // 1. We've loaded all records (newTotal >= total)
-          // 2. Server returned nothing (no more data on server)
-          // 3. All returned users were duplicates (prevents infinite loop)
-          const hasMoreNow = newTotal < total && serverReturnedCount > 0 && newUsers.length > 0;
-          logger.info(`📊 Setting hasMoreResults: serverReturned=${serverReturnedCount}, newUsers=${newUsers.length}, accumulated=${newTotal}, total=${total}, hasMore=${hasMoreNow}`);
-          
-          // Use setTimeout to update hasMoreResults after state update completes
-          setTimeout(() => {
-            setHasMoreResults(hasMoreNow);
-            setLoadingMore(false); // Ensure loading state is cleared
-          }, 0);
-          
-          return [...prev, ...newUsers];
-        });
-      }
-
-    } catch (err) {
-      // If this request was aborted by a newer search, silently exit
-      if (err.name === 'AbortError' || err.name === 'CanceledError' || abortController.signal.aborted) {
-        logger.info('🚫 Search request aborted (superseded by newer search)');
-        return;
-      }
-      logger.error('Error searching users:', err);
-      const errorDetail = err.response?.data?.detail;
-      let errorMsg = 'Failed to search users.';
-      
-      if (typeof errorDetail === 'string') {
-        errorMsg += ' ' + errorDetail;
-      } else if (Array.isArray(errorDetail)) {
-        errorMsg += ' ' + errorDetail.map(e => e.msg || e.message || JSON.stringify(e)).join(', ');
-      } else if (errorDetail) {
-        errorMsg += ' ' + JSON.stringify(errorDetail);
-      } else {
-        errorMsg += ' ' + err.message;
-      }
-      
-      setError(errorMsg);
-    } finally {
-      setLoading(false);
-      setLoadingStartTime(null); // Stop timer
-      setInitialSearchComplete(true); // Mark initial search as complete
-      // No longer auto-collapse filters - user controls visibility via Hide Filters button
-    }
-  };
-
   // Update elapsed time while loading
   useEffect(() => {
     let interval;
@@ -1663,7 +1305,7 @@ const SearchPage2 = () => {
     // Automatically perform search with loaded criteria
     // Pass the criteria directly to handleSearch to ensure immediate execution with correct values
     setTimeout(() => {
-      handleSearch(1, loadedMinScore, criteriaWithDefaults);
+      handleSearchHook(1, loadedMinScore, criteriaWithDefaults);
     }, 100);
   };
 
@@ -2097,7 +1739,7 @@ const SearchPage2 = () => {
         handleInputChange={handleInputChange}
         showAdvancedFilters={showAdvancedFilters}
         setShowAdvancedFilters={setShowAdvancedFilters}
-        onSearch={() => handleSearch(1)}
+        onSearch={() => handleSearchHook(1)}
         onClear={handleClearFilters}
         onSave={() => setShowSaveModal(true)}
         systemConfig={systemConfig}
