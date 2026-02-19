@@ -535,14 +535,40 @@ const PhotoVisibilityManager = ({
               </div>
               
               {/* Delete Button */}
-              <button
-                type="button"
-                className={`btn-delete ${isConfirmDelete ? 'confirm' : ''}`}
-                onClick={() => handleDeletePhoto(index)}
-                title={isConfirmDelete ? 'Click again to confirm' : 'Delete photo'}
-              >
-                {isConfirmDelete ? '⚠️' : '🗑️'}
-              </button>
+              <div className={`btn-delete-container ${isConfirmDelete ? 'confirm' : ''}`}>
+                {isConfirmDelete ? (
+                  <div className="delete-confirmation">
+                    <span className="delete-question">Are you sure?</span>
+                    <div className="delete-buttons">
+                      <button
+                        type="button"
+                        className="btn-confirm-yes"
+                        onClick={() => handleDeletePhoto(index)}
+                        title="Yes, delete this photo"
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-confirm-no"
+                        onClick={() => setDeleteConfirmIndex(null)}
+                        title="No, keep this photo"
+                      >
+                        No
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn-delete"
+                    onClick={() => handleDeletePhoto(index)}
+                    title="Delete this photo"
+                  >
+                    🗑️
+                  </button>
+                )}
+              </div>
               
               {/* Drag Handle */}
               <div className="drag-handle">⋮⋮</div>
