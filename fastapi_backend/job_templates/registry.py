@@ -167,6 +167,7 @@ def initialize_templates():
     from .poll_reminder_notifier import PollReminderNotifierTemplate
     from .daily_digest_template import DailyDigestTemplate
     from .poll_auto_close_template import PollAutoCloseTemplate
+    from .enhanced_login_reminder import EnhancedLoginReminderJob
     
     registry = get_template_registry()
     
@@ -220,6 +221,9 @@ def initialize_templates():
     
     # Register poll auto-close template
     registry.register(PollAutoCloseTemplate())
+    
+    # Register enhanced login reminder template
+    registry.register(EnhancedLoginReminderJob())
     
     logger.info(f"✅ Initialized {len(registry.list_templates())} job templates")
     return registry

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import useToast from '../hooks/useToast';
 import { getBackendApiUrl } from '../utils/urlHelper';
@@ -29,22 +29,30 @@ const DynamicScheduler = ({ currentUser }) => {
   const [sortOrder, setSortOrder] = useState('asc');
   const toast = useToast();
 
+  // Cache localStorage access to avoid repeated calls
+  const getCachedAuth = useCallback(() => {
+    return {
+      token: localStorage.getItem('token'),
+      role: localStorage.getItem('userRole'),
+      username: localStorage.getItem('username')
+    };
+  }, []);
+
   // Check admin access - redirect if not admin or role missing
   useEffect(() => {
-    const role = localStorage.getItem('userRole');
+    const { role } = getCachedAuth();
     setUserRole(role);
     if (role !== 'admin') {
-      console.warn('⚠️ Unauthorized access attempt to Dynamic Scheduler');
       navigate('/dashboard');
     }
-  }, [navigate]);
+  }, [navigate, getCachedAuth]);
 
   const isAdmin = userRole === 'admin';
 
   // Define functions BEFORE hooks to avoid TDZ errors
   const loadTemplates = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const { token } = getCachedAuth();
       if (!token) {
         console.error('No auth token found');
         toast.error('Authentication required. Please log in again.');
@@ -66,7 +74,6 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       
       const data = await response.json();
-      console.log('Templates loaded:', data);
       // Sort templates alphabetically by name
       const sortedTemplates = (data.templates || []).sort((a, b) => 
         a.name.localeCompare(b.name)
@@ -80,7 +87,7 @@ const DynamicScheduler = ({ currentUser }) => {
 
   const loadSchedulerStatus = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const { token } = getCachedAuth();
       const response = await fetch(getBackendApiUrl('/api/admin/scheduler/status'), {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -93,7 +100,6 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       
       const data = await response.json();
-      console.log('Status data:', data);
       setStatus(data);
     } catch (err) {
       console.error('Error loading status:', err);
@@ -131,7 +137,6 @@ const DynamicScheduler = ({ currentUser }) => {
       );
       
       if (template) {
-        console.log('🎯 Found preselected template:', template);
         // Open modal with pre-selected template
         setShowCreateModal(true);
         // Store template type for modal to use (use 'type' field from API)
@@ -198,11 +203,6 @@ const DynamicScheduler = ({ currentUser }) => {
         return;
       }
       
-      console.log('📋 Jobs loaded:', data.jobs?.length || 0);
-      if (data.jobs && data.jobs.length > 0) {
-        console.log('📋 First job fields:', Object.keys(data.jobs[0]));
-        console.log('📋 First job data:', data.jobs[0]);
-      }
       setJobs(data.jobs || []);
     } catch (err) {
       // Ensure error is always a string
@@ -276,7 +276,6 @@ const DynamicScheduler = ({ currentUser }) => {
       parameters: job.parameters || {}
     };
     
-    console.log('📝 Editing job with data:', jobData);
     setEditJob(jobData);
     setShowCreateModal(true);
   };
@@ -414,7 +413,6 @@ const DynamicScheduler = ({ currentUser }) => {
       }
       
       const result = await response.json();
-      console.log('✅ Job started:', result);
       toast.success(`Job "${jobName}" execution started`);
       setRefreshTrigger(prev => prev + 1);
     } catch (err) {
