@@ -3,12 +3,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom';
 import toastService from '../services/toastService';
 
-// Inline styles to guarantee visibility regardless of CSS context
+// Theme-aware colors that work in both light and dark themes
 const TOAST_COLORS = {
-  success: { border: '#22c55e', bg: '#f0fdf4', text: '#166534', icon: '✅' },
-  error: { border: '#ef4444', bg: '#fef2f2', text: '#991b1b', icon: '❌' },
-  warning: { border: '#f59e0b', bg: '#fffbeb', text: '#92400e', icon: '⚠️' },
-  info: { border: '#3b82f6', bg: '#eff6ff', text: '#1e40af', icon: 'ℹ️' },
+  success: { border: '#10b981', bg: 'rgba(16, 185, 129, 0.1)', text: '#10b981', icon: '✅' },
+  error: { border: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)', text: '#ef4444', icon: '❌' },
+  warning: { border: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', text: '#f59e0b', icon: '⚠️' },
+  info: { border: '#3b82f6', bg: 'rgba(59, 130, 246, 0.1)', text: '#3b82f6', icon: 'ℹ️' },
 };
 
 const containerStyle = {
@@ -41,6 +41,7 @@ const getToastStyle = (type) => {
     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
     fontSize: '14px',
     lineHeight: '1.4',
+    fontWeight: '500',
   };
 };
 
