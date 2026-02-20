@@ -305,7 +305,26 @@ const ChatWindow = ({ messages, currentUsername, otherUser, onSendMessage, onMes
                 </span>
               )}
             </h4>
-            <p>{otherUser.location || 'Location not specified'}</p>
+            <p className="chat-user-subtitle">
+              {console.log('🔍 ChatWindow otherUser fields:', { height: otherUser.height, heightInches: otherUser.heightInches, age: otherUser.age, birthYear: otherUser.birthYear, birthMonth: otherUser.birthMonth, eatingPreference: otherUser.eatingPreference, location: otherUser.location, keys: Object.keys(otherUser).join(', ') })}
+              {otherUser.location || 'Location not specified'}
+              {(() => {
+                const h = otherUser.height || (otherUser.heightInches ? `${Math.floor(otherUser.heightInches / 12)}'${otherUser.heightInches % 12}"` : null);
+                return h ? <span className="chat-detail-separator"> · {h}</span> : null;
+              })()}
+              {(() => {
+                let age = otherUser.age;
+                if (!age && otherUser.birthYear) {
+                  const now = new Date();
+                  age = now.getFullYear() - parseInt(otherUser.birthYear);
+                  if (otherUser.birthMonth && (now.getMonth() + 1) < parseInt(otherUser.birthMonth)) age--;
+                }
+                return age ? <span className="chat-detail-separator"> · {age}yrs</span> : null;
+              })()}
+              {otherUser.eatingPreference && otherUser.eatingPreference !== 'None' && (
+                <span className="chat-detail-separator"> · {otherUser.eatingPreference}</span>
+              )}
+            </p>
           </div>
         </div>
 
