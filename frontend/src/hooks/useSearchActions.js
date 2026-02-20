@@ -344,7 +344,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
         });
         toastService.success(`Removed from ${listName}`);
       } else {
-        await api.post(apiPath, { targetUsername });
+        await api.post(apiPath);
         setUsersSet(prev => new Set([...prev, targetUsername]));
         toastService.success(`Added to ${listName}`);
       }
@@ -353,7 +353,7 @@ export const useSearchActions = (searchState, userState, filterState) => {
       if (err.response?.status === 409) {
         toastService.info(`Already in ${listName}`);
       } else {
-        toastService.error(`Failed to update ${listName}`);
+        toastService.error(`Failed to update ${listName}: ${err.response?.data?.detail || err.message}`);
       }
     }
   }, []);
@@ -377,9 +377,10 @@ export const useSearchActions = (searchState, userState, filterState) => {
 
     switch (action) {
       case 'favorite':
+      case 'unfavorite':
         await toggleListAction(
           'favorites',
-          `/favorites/${currentUser}/${targetUsername}`,
+          `/favorites/${targetUsername}?username=${currentUser}`,
           favoritedUsers,
           setFavoritedUsers,
           targetUsername
@@ -387,9 +388,10 @@ export const useSearchActions = (searchState, userState, filterState) => {
         break;
         
       case 'shortlist':
+      case 'unshortlist':
         await toggleListAction(
           'shortlist',
-          `/shortlist/${currentUser}/${targetUsername}`,
+          `/shortlist/${targetUsername}?username=${currentUser}`,
           shortlistedUsers,
           setShortlistedUsers,
           targetUsername
@@ -397,12 +399,16 @@ export const useSearchActions = (searchState, userState, filterState) => {
         break;
         
       case 'exclude':
-        // This would open exclusion modal
-        break;
+      case 'unexclude':
+        // For exclude action, we need to trigger the exclusion preview workflow
+        // This is handled by the parent component, not directly in the hook
+        // Return a special indicator to parent to handle exclusion workflow
+        return { type: 'exclude', targetUsername };
         
       case 'message':
-        // This would open message modal
-        break;
+        // For message action, we need to trigger the message modal
+        // This is handled by the parent component
+        return { type: 'message', targetUsername };
         
       default:
         logger.error('Unknown profile action:', action);

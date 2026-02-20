@@ -987,8 +987,10 @@ const Dashboard2 = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
+      toast.success('Removed from favorites');
     } catch (err) {
       logger.error(`Failed to remove from favorites: ${err.message}`);
+      toast.error('Failed to remove from favorites');
     }
   };
 
@@ -1001,8 +1003,10 @@ const Dashboard2 = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
+      toast.success('Removed from shortlist');
     } catch (err) {
       logger.error(`Failed to remove from shortlist: ${err.message}`);
+      toast.error('Failed to remove from shortlist');
     }
   };
 
@@ -1015,8 +1019,10 @@ const Dashboard2 = () => {
           (typeof u === 'string' ? u : u.username) !== targetUsername
         )
       }));
+      toast.success('Removed from exclusions');
     } catch (err) {
       logger.error(`Failed to remove from exclusions: ${err.message}`);
+      toast.error('Failed to remove from exclusions');
     }
   };
 

@@ -17,6 +17,7 @@ import SearchFiltersModal from './SearchFiltersModal';
 import Profile from './Profile';
 import GraphView from './GraphView';
 import toastService from '../services/toastService';
+import ToastContainer from './ToastContainer';
 import useActivityLogger from '../hooks/useActivityLogger';
 import { onPIIAccessChange } from '../utils/piiAccessEvents';
 import logger from '../utils/logger';
@@ -275,6 +276,39 @@ const SearchPage2 = () => {
   // ===== VIEW MODE HANDLERS =====
   const handleViewModeChange = (mode) => {
     changeViewMode(mode);
+  };
+  
+  // Profile action handler that wraps the hook and handles special cases
+  const handleProfileAction = async (e, targetUsername, action) => {
+    const result = await handleProfileActionHook(e, targetUsername, action);
+    
+    // Handle special return values from hook
+    if (result?.type === 'exclude') {
+      // Open exclusion preview modal
+      const user = users.find(u => u.username === targetUsername);
+      if (user) {
+        setSelectedUserForExclusion(user);
+        // Calculate what will be removed
+        const exclusionData = {
+          target_username: targetUsername,
+          messages_count: 0, // Would need to fetch from API
+          favorites_count: favoritedUsers.has(targetUsername) ? 1 : 0,
+          shortlists_count: shortlistedUsers.has(targetUsername) ? 1 : 0,
+          pii_requests_count: 0, // Would need to fetch from API
+          pii_access_count: 0, // Would need to fetch from API
+          notifications_count: 0, // Would need to fetch from API
+          total_items: (favoritedUsers.has(targetUsername) ? 1 : 0) + (shortlistedUsers.has(targetUsername) ? 1 : 0)
+        };
+        setExclusionPreviewData(exclusionData);
+        setShowExclusionPreview(true);
+      }
+    } else if (result?.type === 'message') {
+      // Open message modal
+      const user = users.find(u => u.username === targetUsername);
+      if (user) {
+        handleMessage(user);
+      }
+    }
   };
   
   // Placeholder functions (will be enhanced with remaining hooks)
@@ -2255,9 +2289,9 @@ const SearchPage2 = () => {
                             debugIndex={swipeIndex + 1}
                             currentUsername={localStorage.getItem('username')}
                             context="swipe-mode"
-                            onToggleFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
-                            onToggleShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
-                            onBlock={(u) => handleProfileActionHook(null, u.username, 'exclude')}
+                            onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                            onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                            onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
                             onMessage={handleMessage}
                             onRequestPII={(u) => openPIIRequestModal(u.username)}
                             isFavorited={favoritedUsers.has(user.username)}
@@ -2277,6 +2311,15 @@ const SearchPage2 = () => {
                           user={user}
                           currentUsername={localStorage.getItem('username')}
                           viewMode="cards"
+                          onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                          onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                          onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
+                          onMessage={handleMessage}
+                          onRequestPII={(u) => openPIIRequestModal(u.username)}
+                          isFavorited={favoritedUsers.has(user.username)}
+                          isShortlisted={shortlistedUsers.has(user.username)}
+                          isExcluded={excludedUsers.has(user.username)}
+                          hasPiiAccess={hasPiiAccessHook(user.username, 'contact_info')}
                           showFavoriteButton={false}
                           showShortlistButton={false}
                           showExcludeButton={false}
@@ -2373,7 +2416,7 @@ const SearchPage2 = () => {
               favoritedUsers={favoritedUsers}
               shortlistedUsers={shortlistedUsers}
               excludedUsers={excludedUsers}
-              onProfileAction={handleProfileActionHook}
+              onProfileAction={handleProfileAction}
             />
           ) : (
             /* Cards/Rows Layout - wrapped in scroll container for rows view */
@@ -2485,15 +2528,15 @@ const SearchPage2 = () => {
                   // Context for kebab menu
                   context="search-results"
                   // Kebab menu handlers
-                  onToggleFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
-                  onToggleShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
-                  onBlock={(u) => handleProfileActionHook(null, u.username, 'exclude')}
+                  onToggleFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                  onToggleShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                  onBlock={(u) => handleProfileAction(null, u.username, 'exclude')}
                   onMessage={handleMessage}
                   onRequestPII={(u) => openPIIRequestModal(u.username)}
                   // Legacy handlers (for backward compatibility)
-                  onFavorite={(u) => handleProfileActionHook(null, u.username, 'favorite')}
-                  onShortlist={(u) => handleProfileActionHook(null, u.username, 'shortlist')}
-                  onExclude={(u) => handleProfileActionHook(null, u.username, 'exclude')}
+                  onFavorite={(u) => handleProfileAction(null, u.username, 'favorite')}
+                  onShortlist={(u) => handleProfileAction(null, u.username, 'shortlist')}
+                  onExclude={(u) => handleProfileAction(null, u.username, 'exclude')}
                   onPIIRequest={(u) => openPIIRequestModal(u.username)}
                   // State
                   isFavorited={favoritedUsers.has(user.username)}
