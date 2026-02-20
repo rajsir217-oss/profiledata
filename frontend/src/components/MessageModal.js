@@ -194,7 +194,23 @@ const MessageModal = ({ isOpen, profile, onClose }) => {
             </div>
             <div>
               <h3>{profile?.firstName || profile?.username}</h3>
-              <p>{profile?.location || 'Location not specified'}</p>
+              <p>
+                {profile?.location || 'Location not specified'}
+                {(() => {
+                  const h = profile?.height || (profile?.heightInches ? `${Math.floor(profile.heightInches / 12)}'${profile.heightInches % 12}"` : null);
+                  return h ? ` · ${h}` : '';
+                })()}
+                {(() => {
+                  let age = profile?.age;
+                  if (!age && profile?.birthYear) {
+                    const now = new Date();
+                    age = now.getFullYear() - parseInt(profile.birthYear);
+                    if (profile.birthMonth && (now.getMonth() + 1) < parseInt(profile.birthMonth)) age--;
+                  }
+                  return age ? ` · ${age}yrs` : '';
+                })()}
+                {profile?.eatingPreference && profile.eatingPreference !== 'None' ? ` · ${profile.eatingPreference}` : ''}
+              </p>
             </div>
           </div>
           <button className="modal-close-btn" onClick={onClose}>

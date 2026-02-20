@@ -748,7 +748,7 @@ const SearchResultCard = ({
             )}
           </div>
 
-          {/* Quick Stats Pills Row - Height, DOB, Religion, Match Score, Age */}
+          {/* Quick Stats Pills Row - Height, DOB, Religion, Match Score, Age, Eating Preference */}
           <div className="card-stats-pills">
             {displayHeight && <span className="card-stat-pill">{displayHeight}</span>}
             {displayDOB && <span className="card-stat-pill">{displayDOB}</span>}
@@ -759,6 +759,7 @@ const SearchResultCard = ({
               </span>
             )}
             {displayAge && displayAge !== 'N/A' && <span className="age-badge">{displayAge}yrs</span>}
+            {user.eatingPreference && <span className="card-stat-pill">{user.eatingPreference}</span>}
           </div>
 
           {/* User Details - Single Column with Icons */}

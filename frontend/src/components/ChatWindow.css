@@ -156,6 +156,16 @@
   color: #d1d5db !important;
 }
 
+.chat-user-subtitle {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.chat-detail-separator {
+  opacity: 0.7;
+}
+
 .pause-badge-header {
   display: inline-flex;
   align-items: center;
